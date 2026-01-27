@@ -21,10 +21,6 @@
             <div class="col-span-12 xl:col-span-5">
                 @include('partials.map-01')
             </div>
-
-            <div class="col-span-12 xl:col-span-7">
-                @include('partials.table.table-01')
-            </div>
         </div>
     </div>
 @endsection

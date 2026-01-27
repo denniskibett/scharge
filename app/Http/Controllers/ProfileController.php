@@ -55,119 +55,228 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResponse
-    {
-        // Check if it's an AJAX request
-        if ($request->expectsJson() || $request->ajax()) {
-            try {
-                $user = $request->user();
+public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResponse
+{
+    // Check if it's an AJAX request
+    if ($request->expectsJson() || $request->ajax()) {
+        try {
+            $user = $request->user();
+            
+            // Validate the request with ALL fields
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => [
+                    'required',
+                    'string',
+                    'email',
+                    'max:255',
+                    Rule::unique('users')->ignore($user->id),
+                ],
+                'phone' => 'nullable|string|max:20',
+                'bio' => 'nullable|string|max:500',
+                'country' => 'nullable|string|max:100',
+                'city' => 'nullable|string|max:100',
+                'postal_code' => 'nullable|string|max:20',
+                'tax_id' => 'nullable|string|max:50',
+                'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:2048',
+            ]);
+            
+            // Handle avatar upload - using same structure as logos
+            if ($request->hasFile('avatar')) {
+                $file = $request->file('avatar');
                 
-                // Validate the request with ALL fields
-                $validated = $request->validate([
-                    'name' => 'required|string|max:255',
-                    'email' => [
-                        'required',
-                        'string',
-                        'email',
-                        'max:255',
-                        Rule::unique('users')->ignore($user->id),
-                    ],
-                    'phone' => 'nullable|string|max:20',
-                    'bio' => 'nullable|string|max:500',
-                    'country' => 'nullable|string|max:100',
-                    'city' => 'nullable|string|max:100',
-                    'postal_code' => 'nullable|string|max:20',
-                    'tax_id' => 'nullable|string|max:50',
-                    'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-                ]);
+                // Get original extension
+                $extension = $file->getClientOriginalExtension();
                 
-                // Handle avatar upload
-                if ($request->hasFile('avatar')) {
-                    // Delete old avatar if exists
-                    if ($user->avatar) {
-                        Storage::disk('public')->delete($user->avatar);
-                    }
+                // Generate unique filename
+                $filename = 'avatar-' . time() . '.' . $extension;
+                
+                // Define storage path - using same pattern as logos
+                $folder = 'images/avatars';
+                
+                // Ensure directory exists
+                if (!Storage::disk('public')->exists($folder)) {
+                    Storage::disk('public')->makeDirectory($folder, 0755, true);
+                }
+                
+                // Delete old avatar if exists
+                if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                    Storage::disk('public')->delete($user->avatar);
+                }
+                
+                // Store new avatar in 'images/avatars' folder
+                $path = $file->storeAs($folder, $filename, 'public');
+                $validated['avatar'] = $path; // This will be 'images/avatars/avatar-1234567890.jpg'
+            }
+            
+            // Handle social links
+            $socialData = [];
+            $socialPlatforms = ['facebook', 'twitter', 'linkedin', 'instagram'];
+            
+            foreach ($socialPlatforms as $platform) {
+                $value = $request->input("social.{$platform}");
+                if (!empty($value)) {
+                    // Remove any whitespace
+                    $value = trim($value);
                     
-                    // Store new avatar
-                    $path = $request->file('avatar')->store('avatars', 'public');
-                    $validated['avatar'] = $path;
-                }
-                
-                // Handle social links
-                $socialData = [];
-                $socialPlatforms = ['facebook', 'twitter', 'linkedin', 'instagram'];
-                
-                foreach ($socialPlatforms as $platform) {
-                    $value = $request->input("social.{$platform}");
-                    if (!empty($value)) {
-                        // If it starts with @, it's a username
-                        if (str_starts_with($value, '@')) {
-                            $username = substr($value, 1);
-                            $socialData[$platform] = $this->formatSocialLink($platform, $username);
-                        } 
-                        // If it doesn't start with http, assume it's a username without @
-                        elseif (!str_starts_with($value, 'http')) {
-                            $socialData[$platform] = $this->formatSocialLink($platform, $value);
-                        }
-                        // Otherwise, it's already a URL
-                        else {
-                            $socialData[$platform] = $value;
-                        }
+                    // If it starts with @, it's a username
+                    if (str_starts_with($value, '@')) {
+                        $username = substr($value, 1);
+                        $socialData[$platform] = $this->formatSocialLink($platform, $username);
+                    } 
+                    // If it's already a full URL, use it as is
+                    elseif (filter_var($value, FILTER_VALIDATE_URL)) {
+                        $socialData[$platform] = $value;
+                    }
+                    // Otherwise, assume it's a username without @
+                    else {
+                        $socialData[$platform] = $this->formatSocialLink($platform, $value);
                     }
                 }
+            }
+            
+            // Only encode if we have social data
+            if (!empty($socialData)) {
+                $validated['social'] = json_encode($socialData);
+            } else {
+                $validated['social'] = null;
+            }
+            
+            // Fill and save user data
+            $user->fill($validated);
+            
+            if ($user->isDirty('email')) {
+                $user->email_verified_at = null;
+            }
+            
+            $user->save();
+            
+            // Return success response with full data
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'user' => $user->fresh(),
+                'avatar_url' => $user->avatar ? asset('storage/' . $user->avatar) : asset('images/default-avatar.png'),
+                'social' => json_decode($user->social, true) ?? []
+            ]);
+            
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors()
+            ], 422);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating profile: ' . $e->getMessage(),
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+    
+    // Original form submission handling (for non-AJAX requests)
+    try {
+        $user = $request->user();
+        
+        // Validate for non-AJAX requests
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users')->ignore($user->id),
+            ],
+            'phone' => 'nullable|string|max:20',
+            'bio' => 'nullable|string|max:500',
+            'country' => 'nullable|string|max:100',
+            'city' => 'nullable|string|max:100',
+            'postal_code' => 'nullable|string|max:20',
+            'tax_id' => 'nullable|string|max:50',
+            'avatar' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:2048',
+        ]);
+        
+        // Handle avatar upload for non-AJAX
+        if ($request->hasFile('avatar')) {
+            $file = $request->file('avatar');
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'avatar-' . $extension;
+            $folder = 'images/avatars';
+            
+            // Ensure directory exists
+            if (!Storage::disk('public')->exists($folder)) {
+                Storage::disk('public')->makeDirectory($folder, 0755, true);
+            }
+            
+            // Delete old avatar
+            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+                Storage::disk('public')->delete($user->avatar);
+            }
+            
+            // Store new avatar
+            $path = $file->storeAs($folder, $filename, 'public');
+            $validated['avatar'] = $path;
+        }
+        
+        // Handle social links for non-AJAX
+        $socialData = [];
+        $socialPlatforms = ['facebook', 'twitter', 'linkedin', 'instagram'];
+        
+        foreach ($socialPlatforms as $platform) {
+            $value = $request->input("social.{$platform}");
+            if (!empty($value)) {
+                $value = trim($value);
                 
-                // Only encode if we have social data
-                if (!empty($socialData)) {
-                    $validated['social'] = json_encode($socialData);
+                if (str_starts_with($value, '@')) {
+                    $username = substr($value, 1);
+                    $socialData[$platform] = $this->formatSocialLink($platform, $username);
+                } elseif (filter_var($value, FILTER_VALIDATE_URL)) {
+                    $socialData[$platform] = $value;
                 } else {
-                    $validated['social'] = null;
+                    $socialData[$platform] = $this->formatSocialLink($platform, $value);
                 }
-                
-                $user->fill($validated);
-                
-                if ($user->isDirty('email')) {
-                    $user->email_verified_at = null;
-                }
-                
-                $user->save();
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Profile updated successfully',
-                    'user' => $user->fresh(),
-                    'avatar_url' => $user->avatar ? asset('storage/' . $user->avatar) : null,
-                    'social' => json_decode($user->social, true) ?? []
-                ]);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error updating profile',
-                    'error' => $e->getMessage()
-                ], 422);
             }
         }
         
-        // Original form submission handling
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if (!empty($socialData)) {
+            $validated['social'] = json_encode($socialData);
+        } else {
+            $validated['social'] = null;
         }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        
+        $user->fill($validated);
+        
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
+        
+        $user->save();
+        
+        return Redirect::route('profile.edit')
+            ->with('status', 'profile-updated')
+            ->with('success', 'Profile updated successfully!');
+            
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return Redirect::route('profile.edit')
+            ->withErrors($e->errors())
+            ->withInput();
+            
+    } catch (\Exception $e) {
+        return Redirect::route('profile.edit')
+            ->with('error', 'Error updating profile: ' . $e->getMessage());
     }
+}
 
-    /**
-     * Delete user's avatar
-     */
     public function deleteAvatar(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
             
             if ($user->avatar) {
+                // Delete from storage
                 Storage::disk('public')->delete($user->avatar);
                 $user->avatar = null;
                 $user->save();

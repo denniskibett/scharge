@@ -122,9 +122,7 @@ class User extends Authenticatable
         return $url;
     }
 
-    /**
-     * Helper to create full URL from username
-     */
+
     private function getSocialUrl($value, $baseUrl)
     {
         if (empty($value)) {
@@ -140,9 +138,7 @@ class User extends Authenticatable
         return rtrim($baseUrl, '/') . '/' . ltrim($value, '/');
     }
 
-    /**
-     * Prepare social data for storage
-     */
+
     public function prepareSocialData($data)
     {
         $social = [];
@@ -167,11 +163,21 @@ class User extends Authenticatable
         return $social;
     }
 
-    /**
-     * Clean username (remove @ symbol, trim)
-     */
+
     private function cleanUsername($username)
     {
         return ltrim(trim($username), '@');
     }
+
+        public function roles()
+    {
+        return $this->belongsToMany(Role::class);
+    }
+
+    public function tenancies()
+    {
+        return $this->hasMany(Tenancy::class);
+    }
+
+    
 }
