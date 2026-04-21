@@ -11,9 +11,9 @@ class InvoiceItem extends Model
 
     protected $fillable = [
         'invoice_id',
-        'description', // e.g., Rent, Security, Trash, Utilities
+        'description',
         'amount',
-        'item_type', // rent, utility, service_charge
+        'item_type', // rent, power, water, security, garbage, internet, other
     ];
 
     protected $casts = [
@@ -26,5 +26,57 @@ class InvoiceItem extends Model
     public function invoice()
     {
         return $this->belongsTo(Invoice::class);
+    }
+    
+    /**
+     * Get the service category for this item
+     */
+    public function getServiceCategoryAttribute()
+    {
+        $utilityItems = ['water', 'power', 'internet'];
+        $serviceChargeItems = ['security', 'garbage'];
+        
+        if (in_array($this->item_type, $utilityItems)) {
+            return 'Utility';
+        } elseif (in_array($this->item_type, $serviceChargeItems)) {
+            return 'Service Charge';
+        } elseif ($this->item_type === 'rent') {
+            return 'Rent';
+        }
+        
+        return 'Other';
+    }
+    
+    /**
+     * Get all available item types
+     */
+    public static function getItemTypes()
+    {
+        return [
+            'rent' => 'Rent',
+            'water' => 'Water',
+            'power' => 'Power/Electricity',
+            'internet' => 'Internet',
+            'security' => 'Security',
+            'garbage' => 'Garbage Collection',
+            'service' => 'Service Charge',
+            'other' => 'Other Charges'
+        ];
+    }
+    
+    /**
+     * Check if this is a utility item
+     */
+    public function isUtility()
+    {
+        return in_array($this->item_type, ['water', 'power', 'internet']);
+    }
+    
+    /**
+     * Check if this is a service charge
+     */
+    public function isServiceCharge()
+    {
+        return in_array($this->item_type, ['security', 'garbage', 'service']);
     }
 }

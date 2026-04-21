@@ -240,14 +240,9 @@ document.addEventListener('alpine:init', () => {
                 page: 'payees'
               },
               {
-                label: 'Expense Categories',
-                link: '/expense-categories',
-                page: 'expenseCategories'
-              },
-              {
-                label: 'Expense Payments',
-                link: '/expense-payments',
-                page: 'expensePayments'
+                label: 'Expenses',
+                link: '/expenses',
+                page: 'expenses'
               }
             ]
           }

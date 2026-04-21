@@ -2,22 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tenancy; // Renamed from Tenant
+use App\Models\Tenancy;
 use App\Models\User;
 use App\Models\Unit;
 use App\Models\Tenant;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 
-class TenancyController extends Controller // Renamed from TenantController
+class TenancyController extends Controller
 {
     public function index()
     {
-        $tenancies = Tenancy::with('tenant.user', 'unit.estate')->get();
+        $tenancies = Tenancy::with(['tenant.user', 'unit.estate'])->get();
         
-        // Format data for Alpine.js
+        // Format data for Alpine.js - Include utility fields from unit
         $tenanciesData = $tenancies->map(function ($tenancy) {
             return [
                 'id' => $tenancy->id,
@@ -29,9 +30,20 @@ class TenancyController extends Controller // Renamed from TenantController
                 'unit_number' => $tenancy->unit->unit_number ?? null,
                 'unit_id' => $tenancy->unit_id,
                 'estate_name' => $tenancy->unit->estate->name ?? null,
+                'rent_amount' => $tenancy->unit->rent_amount ?? 0,
+                'water_charge' => $tenancy->unit->water_charge ?? 0,
+                'service_charge' => $tenancy->unit->service_charge ?? 0,
+                'garbage_charge' => $tenancy->unit->garbage_charge ?? 0,
+                'security_charge' => $tenancy->unit->security_charge ?? 0,
+                'total_monthly_payment' => ($tenancy->unit->rent_amount ?? 0) + 
+                                          ($tenancy->unit->water_charge ?? 0) + 
+                                          ($tenancy->unit->service_charge ?? 0) + 
+                                          ($tenancy->unit->garbage_charge ?? 0) + 
+                                          ($tenancy->unit->security_charge ?? 0),
                 'move_in_date' => $tenancy->move_in_date,
                 'move_out_date' => $tenancy->move_out_date,
                 'status' => $tenancy->status,
+                'notes' => $tenancy->notes,
                 'move_in_date_formatted' => $tenancy->move_in_date 
                     ? \Carbon\Carbon::parse($tenancy->move_in_date)->format('M d, Y') 
                     : null,
@@ -44,32 +56,43 @@ class TenancyController extends Controller // Renamed from TenantController
         // Get ALL tenants from tenants table
         $allTenants = Tenant::with('user')->get();
         
-        // Get tenant IDs that exist in tenancies table
-        $tenantIdsInTenancies = Tenancy::pluck('tenant_id')->toArray();
+        // Get tenant IDs that have ACTIVE tenancies (not all tenancies)
+        $tenantIdsWithActiveTenancies = Tenancy::where('status', 'active')
+            ->pluck('tenant_id')
+            ->toArray();
         
-        // Filter tenants: show all tenants.id that are NOT in tenancies.tenant_id
-        // This includes tenants who have never had a tenancy
-        $availableTenants = $allTenants->filter(function ($tenant) use ($tenantIdsInTenancies) {
-            return !in_array($tenant->id, $tenantIdsInTenancies);
+        // Filter tenants: show tenants that do NOT have an ACTIVE tenancy
+        // This includes:
+        // 1. Tenants who have never had a tenancy
+        // 2. Tenants whose tenancies have ended (status = 'ended')
+        $availableTenants = $allTenants->filter(function ($tenant) use ($tenantIdsWithActiveTenancies) {
+            return !in_array($tenant->id, $tenantIdsWithActiveTenancies);
         })->values();
         
         // Format available tenants for dropdown
         $availableUsersFormatted = $availableTenants->map(function ($tenant) {
+            // Check if this tenant has any ended tenancies
+            $hasEndedTenancy = Tenancy::where('tenant_id', $tenant->id)
+                ->where('status', 'ended')
+                ->exists();
+                
             return [
                 'id' => $tenant->user->id ?? null,
                 'name' => $tenant->user->name ?? 'Unknown',
                 'email' => $tenant->user->email ?? null,
                 'phone' => $tenant->user->phone ?? null,
                 'tenant_id' => $tenant->id,
-                'label' => ($tenant->user->name ?? 'Unknown') . ' (' . ($tenant->user->phone ?? 'No Phone') . ')',
+                'has_ended_tenancy' => $hasEndedTenancy,
+                'label' => ($tenant->user->name ?? 'Unknown') . ' (' . ($tenant->user->phone ?? 'No Phone') . ')' . 
+                          ($hasEndedTenancy ? ' (Previous Tenant)' : ''),
             ];
         });
         
         // Also include all users for the "Create New Tenant" option
         // Get all users with guest role
-        $allUsers = User::whereHas('roles', function ($query) {
-                $query->where('name', 'guest');
-            })
+        $allUsers = User::whereHas('role', function ($query) {
+    $query->where('name', 'guest');
+})
             ->select('id', 'name', 'email', 'phone')
             ->get();
         
@@ -84,9 +107,10 @@ class TenancyController extends Controller // Renamed from TenantController
             ];
         });
 
-        // Pass ALL units (for edit modal)
+        // Pass ALL units (for edit modal) - Include utility fields
         $allUnits = Unit::with('estate')
-            ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount', 'status')
+            ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount', 
+                    'water_charge', 'service_charge', 'garbage_charge', 'security_charge', 'status')
             ->get()
             ->map(function ($unit) {
                 return [
@@ -95,15 +119,25 @@ class TenancyController extends Controller // Renamed from TenantController
                     'estate_name' => $unit->estate->name ?? null,
                     'unit_type' => $unit->unit_type,
                     'rent_amount' => $unit->rent_amount,
+                    'water_charge' => $unit->water_charge ?? 0,
+                    'service_charge' => $unit->service_charge ?? 0,
+                    'garbage_charge' => $unit->garbage_charge ?? 0,
+                    'security_charge' => $unit->security_charge ?? 0,
+                    'total_monthly_payment' => ($unit->rent_amount ?? 0) + 
+                                               ($unit->water_charge ?? 0) + 
+                                               ($unit->service_charge ?? 0) + 
+                                               ($unit->garbage_charge ?? 0) + 
+                                               ($unit->security_charge ?? 0),
                     'status' => $unit->status,
                     'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Estate') . ', (' . $unit->unit_type . ')',
                 ];
             });
 
-        // Get vacant units for create modal
+        // Get vacant units for create modal - Include utility fields
         $units = Unit::with('estate')
             ->where('status', 'vacant')
-            ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount')
+            ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount',
+                    'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
             ->get()
             ->map(function ($unit) {
                 return [
@@ -112,6 +146,15 @@ class TenancyController extends Controller // Renamed from TenantController
                     'estate_name' => $unit->estate->name ?? null,
                     'unit_type' => $unit->unit_type,
                     'rent_amount' => $unit->rent_amount,
+                    'water_charge' => $unit->water_charge ?? 0,
+                    'service_charge' => $unit->service_charge ?? 0,
+                    'garbage_charge' => $unit->garbage_charge ?? 0,
+                    'security_charge' => $unit->security_charge ?? 0,
+                    'total_monthly_payment' => ($unit->rent_amount ?? 0) + 
+                                               ($unit->water_charge ?? 0) + 
+                                               ($unit->service_charge ?? 0) + 
+                                               ($unit->garbage_charge ?? 0) + 
+                                               ($unit->security_charge ?? 0),
                     'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Estate') . ', (' . $unit->unit_type . ')',
                 ];
             });
@@ -123,7 +166,7 @@ class TenancyController extends Controller // Renamed from TenantController
 
         return view('tenancies.index', [
             'tenanciesData' => $tenanciesData,
-            'availableUsers' => $availableUsersFormatted,  // Pass the formatted array
+            'availableUsers' => $availableUsersFormatted,
             'allUsersFormatted' => $allUsersFormatted,
             'allUnits' => $allUnits,
             'units' => $units,
@@ -131,119 +174,288 @@ class TenancyController extends Controller // Renamed from TenantController
         ]);
     }
     
-// In TenancyController.php
-public function show(Tenancy $tenancy)
-{
-    $tenancy->load([
-        'tenant.user', 
-        'unit.estate', 
-        'payments.invoice',
-        'invoices.items',
-        'invoices.payments'
-    ]);
-    
-    // Get unit tenancy history
-    $unitTenancyHistory = Tenancy::where('unit_id', $tenancy->unit_id)
-        ->with(['tenant.user'])
-        ->orderBy('move_in_date', 'desc')
-        ->get();
-    
-    // Calculate duration
-    $moveIn = $tenancy->move_in_date ? \Carbon\Carbon::parse($tenancy->move_in_date) : null;
-    $moveOut = $tenancy->move_out_date ? \Carbon\Carbon::parse($tenancy->move_out_date) : null;
-    $duration = $moveIn ? $moveIn->diffForHumans($moveOut ?? now(), true) : 'N/A';
-    
-    return view('tenancies.show', compact(
-        'tenancy', 
-        'unitTenancyHistory', 
-        'duration'
-    ));
-}
+    public function show(Tenancy $tenancy)
+    {
+        // Load only essential relationships with counts
+        $tenancy->loadCount(['invoices', 'payments']);
+        
+        // Load basic tenant and unit info (select only needed columns)
+        $tenancy->load([
+            'tenant' => function ($query) {
+                $query->select('id', 'user_id', 'notes')
+                      ->with(['user' => function ($q) {
+                          $q->select('id', 'name', 'email', 'phone');
+                      }]);
+            },
+            'unit' => function ($query) {
+                $query->select('id', 'estate_id', 'unit_number', 'unit_type', 'rent_amount', 'status',
+                              'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
+                      ->with(['estate' => function ($q) {
+                          $q->select('id', 'name', 'location');
+                      }]);
+            },
+            'payments' => function ($query) {
+                $query->latest()->limit(50)->with('invoice');
+            }
+        ]);
+        
+        // Get unit tenancy history - limit to last 10 and only load essential data
+        $unitTenancyHistory = Tenancy::where('unit_id', $tenancy->unit_id)
+            ->with([
+                'tenant' => function ($query) {
+                    $query->select('id', 'user_id')
+                          ->with(['user' => function ($q) {
+                              $q->select('id', 'name');
+                          }]);
+                }
+            ])
+            ->select('id', 'tenant_id', 'move_in_date', 'move_out_date', 'status')
+            ->orderBy('move_in_date', 'desc')
+            ->limit(10)
+            ->get();
+        
+        // Calculate duration without loading extra data
+        $moveIn = $tenancy->move_in_date ? \Carbon\Carbon::parse($tenancy->move_in_date) : null;
+        $moveOut = $tenancy->move_out_date ? \Carbon\Carbon::parse($tenancy->move_out_date) : null;
+        $duration = $moveIn ? $moveIn->diffForHumans($moveOut ?? now(), true) : 'N/A';
+        
+        // Calculate financial summary without loading all invoices
+        $totalInvoiced = $tenancy->invoices()->sum('total_amount');
+        $totalPaid = $tenancy->payments()->sum('amount');
+        $balance = $totalInvoiced - $totalPaid;
+        
+        // Calculate total monthly payment including utilities
+        $totalMonthlyPayment = ($tenancy->unit->rent_amount ?? 0) + 
+                               ($tenancy->unit->water_charge ?? 0) + 
+                               ($tenancy->unit->service_charge ?? 0) + 
+                               ($tenancy->unit->garbage_charge ?? 0) + 
+                               ($tenancy->unit->security_charge ?? 0);
+        
+        return view('tenancies.show', compact(
+            'tenancy', 
+            'unitTenancyHistory', 
+            'duration',
+            'totalInvoiced',
+            'totalPaid',
+            'balance',
+            'totalMonthlyPayment'
+        ));
+    }
+
+    public function edit(Tenancy $tenancy)
+    {
+        $tenancy->load(['tenant.user', 'unit.estate']);
+        
+        if (request()->wantsJson()) {
+            return response()->json([
+                'tenancy' => [
+                    'id' => $tenancy->id,
+                    'tenant_id' => $tenancy->tenant_id,
+                    'tenant_name' => $tenancy->tenant->user->name ?? null,
+                    'tenant_phone' => $tenancy->tenant->user->phone ?? null,
+                    'unit_id' => $tenancy->unit_id,
+                    'unit_number' => $tenancy->unit->unit_number ?? null,
+                    'estate_name' => $tenancy->unit->estate->name ?? null,
+                    'rent_amount' => $tenancy->unit->rent_amount ?? 0,
+                    'water_charge' => $tenancy->unit->water_charge ?? 0,
+                    'service_charge' => $tenancy->unit->service_charge ?? 0,
+                    'garbage_charge' => $tenancy->unit->garbage_charge ?? 0,
+                    'security_charge' => $tenancy->unit->security_charge ?? 0,
+                    'total_monthly_payment' => ($tenancy->unit->rent_amount ?? 0) + 
+                                               ($tenancy->unit->water_charge ?? 0) + 
+                                               ($tenancy->unit->service_charge ?? 0) + 
+                                               ($tenancy->unit->garbage_charge ?? 0) + 
+                                               ($tenancy->unit->security_charge ?? 0),
+                    'move_in_date' => $tenancy->move_in_date,
+                    'move_out_date' => $tenancy->move_out_date,
+                    'status' => $tenancy->status,
+                    'notes' => $tenancy->notes                
+                ]
+            ]);
+        }
+        
+        $units = Unit::with('estate')->select('id', 'unit_number', 'estate_id', 'unit_type', 
+                                              'rent_amount', 'water_charge', 'service_charge', 
+                                              'garbage_charge', 'security_charge', 'status')->get();
+        return view('tenancies.edit', compact('tenancy', 'units'));
+    }
+
+    public function create(Request $request)
+    {
+        $unitId = $request->get('unit_id');
+
+        $unit = null;
+
+        if ($unitId) {
+            $unit = Unit::with('estate')->findOrFail($unitId);
+        }
+
+        // get available tenants
+        $tenants = Tenant::with('user')->get();
+
+        return view('tenancies.create', compact('unit', 'tenants'));
+    }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required_if:new_tenant_name,null|nullable|exists:users,id',
-            'new_tenant_name' => 'required_if:user_id,new|nullable|string|max:255',
-            'new_tenant_phone' => 'required_if:user_id,new|nullable|string|max:255',
+            'tenant_id' => 'nullable|exists:tenants,id',
+            'new_tenant_name' => 'nullable|string|max:255',
+            'new_tenant_phone' => 'nullable|string|max:255',
+            'new_tenant_email' => 'nullable|email|unique:users,email',
             'unit_id' => 'required|exists:units,id',
             'move_in_date' => 'required|date',
-            'tenant_id' => 'nullable|exists:tenants,id', // Add this validation
+            'notes' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
         
         try {
+            $tenantId = null;
+            
             // Handle existing tenant
-            if ($request->user_id !== 'new' && $request->user_id) {
-                $tenant = Tenant::where('user_id', $request->user_id)->first();
+            if (isset($validated['tenant_id']) && $validated['tenant_id']) {
+                $tenant = Tenant::find($validated['tenant_id']);
                 
                 if (!$tenant) {
-                    // Create tenant record if it doesn't exist
-                    $tenant = Tenant::create([
-                        'user_id' => $request->user_id,
-                        'id_number' => null,
-                        'emergency_contact' => null,
-                        'notes' => null,
-                    ]);
+                    throw new \Exception('Selected tenant not found');
+                }
+                
+                // Check if tenant already has an active tenancy
+                $activeTenancy = Tenancy::where('tenant_id', $tenant->id)
+                    ->where('status', 'active')
+                    ->first();
+                    
+                if ($activeTenancy) {
+                    throw new \Exception('This tenant already has an active tenancy');
                 }
                 
                 $tenantId = $tenant->id;
             } 
             // Handle new tenant creation
-            else if ($request->user_id === 'new') {
-                // First create the user
+            else if (isset($validated['new_tenant_name']) && $validated['new_tenant_name']) {
+                // Validate new tenant fields
+                if (!isset($validated['new_tenant_phone']) || !$validated['new_tenant_phone']) {
+                    throw new \Exception('Phone number is required for new tenant');
+                }
+                
+                // Generate a unique email if not provided
+                $email = $validated['new_tenant_email'] ?? $this->generateTenantEmail($validated['new_tenant_name']);
+                
+                // Check if email already exists
+                if (User::where('email', $email)->exists()) {
+                    // Generate a unique email
+                    $baseEmail = strtolower(str_replace(' ', '.', $validated['new_tenant_name']));
+                    $counter = 1;
+                    while (User::where('email', $email)->exists()) {
+                        $email = $baseEmail . $counter . '@tenant.com';
+                        $counter++;
+                    }
+                }
+                
+                // Create the user
                 $user = User::create([
-                    'name' => $request->new_tenant_name,
-                    'phone' => $request->new_tenant_phone,
-                    'email' => Str::slug($request->new_tenant_name) . '@example.com', // Generate email
-                    'password' => Hash::make('password'), // Default password
+                    'name' => $validated['new_tenant_name'],
+                    'email' => $email,
+                    'phone' => $validated['new_tenant_phone'],
+                    'password' => Hash::make('00000000'), // Default password
                 ]);
                 
                 // Assign guest role
-                $user->assignRole('guest');
+                $guestRole = Role::where('name', 'guest')->first();
+                if ($guestRole) {
+                    $user->roles()->attach($guestRole->id);
+                }
                 
-                // Then create the tenant record
+                // Create the tenant record
                 $tenant = Tenant::create([
                     'user_id' => $user->id,
-                    'id_number' => null,
-                    'emergency_contact' => null,
-                    'notes' => null,
+                    'notes' => $validated['notes'] ?? null,
                 ]);
                 
                 $tenantId = $tenant->id;
             } else {
-                throw new \Exception('Invalid tenant selection');
+                throw new \Exception('Please select a tenant or provide new tenant details');
+            }
+
+            // Check if unit is vacant
+            $unit = Unit::find($validated['unit_id']);
+            if (!$unit) {
+                throw new \Exception('Unit not found');
+            }
+            
+            if ($unit->status !== 'vacant') {
+                throw new \Exception('Selected unit is not vacant');
             }
 
             // Create the tenancy
             $tenancy = Tenancy::create([
-                'tenant_id' => $tenantId, // Make sure this is set
-                'unit_id' => $request->unit_id,
-                'move_in_date' => $request->move_in_date,
+                'tenant_id' => $tenantId,
+                'unit_id' => $validated['unit_id'],
+                'move_in_date' => $validated['move_in_date'],
+                'notes' => $validated['notes'] ?? null,
                 'status' => 'active',
             ]);
 
             // Update unit status to occupied
-            $unit = Unit::find($request->unit_id);
-            if ($unit) {
-                $unit->update(['status' => 'occupied']);
-            }
+            $unit->update(['status' => 'occupied']);
 
             DB::commit();
 
+            // Load unit with utility charges for response
+            $tenancy->load(['tenant.user', 'unit']);
+
             return response()->json([
+                'success' => true,
                 'message' => 'Tenancy created successfully!',
-                'tenancy' => $tenancy
+                'tenancy' => [
+                    'id' => $tenancy->id,
+                    'tenant_name' => $tenancy->tenant->user->name ?? null,
+                    'unit_number' => $tenancy->unit->unit_number ?? null,
+                    'rent_amount' => $tenancy->unit->rent_amount ?? 0,
+                    'water_charge' => $tenancy->unit->water_charge ?? 0,
+                    'service_charge' => $tenancy->unit->service_charge ?? 0,
+                    'garbage_charge' => $tenancy->unit->garbage_charge ?? 0,
+                    'security_charge' => $tenancy->unit->security_charge ?? 0,
+                    'total_monthly_payment' => ($tenancy->unit->rent_amount ?? 0) + 
+                                               ($tenancy->unit->water_charge ?? 0) + 
+                                               ($tenancy->unit->service_charge ?? 0) + 
+                                               ($tenancy->unit->garbage_charge ?? 0) + 
+                                               ($tenancy->unit->security_charge ?? 0),
+                    'move_in_date' => $tenancy->move_in_date,
+                    'status' => $tenancy->status,
+                ]
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            \Log::error('Failed to create tenancy: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request' => $request->all()
+            ]);
+            
             return response()->json([
+                'success' => false,
                 'message' => 'Failed to create tenancy: ' . $e->getMessage(),
-                'errors' => []
             ], 500);
         }
+    }
+
+    /**
+     * Generate a unique email for new tenant
+     */
+    private function generateTenantEmail($name)
+    {
+        $baseEmail = strtolower(str_replace(' ', '.', $name)) . '@tenant.com';
+        $email = $baseEmail;
+        $counter = 1;
+        
+        while (User::where('email', $email)->exists()) {
+            $email = strtolower(str_replace(' ', '.', $name)) . $counter . '@tenant.com';
+            $counter++;
+        }
+        
+        return $email;
     }
 
     public function bulkStore(Request $request)
@@ -255,6 +467,7 @@ public function show(Tenancy $tenancy)
             'tenancies.*.tenant_name' => 'required|string|max:255',
             'tenancies.*.tenant_email' => 'required|email|unique:users,email',
             'tenancies.*.tenant_phone' => 'nullable|string|max:20',
+            'tenancies.*.notes' => 'nullable|string',
         ]);
 
         $created = [];
@@ -271,13 +484,23 @@ public function show(Tenancy $tenancy)
                 ]);
 
                 // Assign guest role
-                $user->assignRole('guest');
+                $guestRole = Role::where('name', 'guest')->first();
+                if ($guestRole) {
+                    $user->roles()->attach($guestRole->id);
+                }
+
+                // Create tenant record
+                $tenant = Tenant::create([
+                    'user_id' => $user->id,
+                    'notes' => $data['notes'] ?? null,
+                ]);
 
                 // Create tenancy
                 $tenancy = Tenancy::create([
-                    'user_id' => $user->id,
+                    'tenant_id' => $tenant->id,
                     'unit_id' => $data['unit_id'],
                     'move_in_date' => $data['move_in_date'],
+                    'notes' => $data['notes'] ?? null,
                     'status' => 'active',
                 ]);
 
@@ -310,18 +533,64 @@ public function show(Tenancy $tenancy)
     public function update(Request $request, Tenancy $tenancy)
     {
         $validated = $request->validate([
+            'unit_id' => 'required|exists:units,id',
+            'move_in_date' => 'required|date',
             'move_out_date' => 'nullable|date',
             'status' => 'required|in:active,ended',
+            'notes' => 'nullable|string',
         ]);
 
+        // Store old unit_id before update
+        $oldUnitId = $tenancy->unit_id;
+        
+        // Update the tenancy
         $tenancy->update($validated);
 
-        // If ended, set unit vacant
-        if ($validated['status'] === 'ended') {
-            $tenancy->unit->update(['status' => 'vacant']);
+        // Handle unit status changes
+        if ($tenancy->status === 'ended') {
+            // If tenancy ended, set the unit to vacant
+            Unit::where('id', $tenancy->unit_id)->update(['status' => 'vacant']);
+            
+            // Also update old unit if it was changed
+            if ($oldUnitId && $oldUnitId != $tenancy->unit_id) {
+                Unit::where('id', $oldUnitId)->update(['status' => 'vacant']);
+            }
+        } else if ($tenancy->status === 'active') {
+            // If tenancy is active, ensure the unit is occupied
+            Unit::where('id', $tenancy->unit_id)->update(['status' => 'occupied']);
+            
+            // If unit was changed, set old unit to vacant
+            if ($oldUnitId && $oldUnitId != $tenancy->unit_id) {
+                Unit::where('id', $oldUnitId)->update(['status' => 'vacant']);
+            }
         }
+        
+        // Load updated unit with utility charges for response
+        $tenancy->load('unit');
 
-        return response()->json(['success' => true, 'message' => 'Tenancy updated successfully']);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Tenancy updated successfully',
+            'tenancy' => [
+                'id' => $tenancy->id,
+                'unit_id' => $tenancy->unit_id,
+                'unit_number' => $tenancy->unit->unit_number ?? null,
+                'rent_amount' => $tenancy->unit->rent_amount ?? 0,
+                'water_charge' => $tenancy->unit->water_charge ?? 0,
+                'service_charge' => $tenancy->unit->service_charge ?? 0,
+                'garbage_charge' => $tenancy->unit->garbage_charge ?? 0,
+                'security_charge' => $tenancy->unit->security_charge ?? 0,
+                'total_monthly_payment' => ($tenancy->unit->rent_amount ?? 0) + 
+                                           ($tenancy->unit->water_charge ?? 0) + 
+                                           ($tenancy->unit->service_charge ?? 0) + 
+                                           ($tenancy->unit->garbage_charge ?? 0) + 
+                                           ($tenancy->unit->security_charge ?? 0),
+                'move_in_date' => $tenancy->move_in_date,
+                'move_out_date' => $tenancy->move_out_date,
+                'status' => $tenancy->status,
+                'notes' => $tenancy->notes
+            ]
+        ]);
     }
 
     public function destroy(Tenancy $tenancy)
@@ -337,7 +606,7 @@ public function show(Tenancy $tenancy)
     public function getUsers(Request $request)
     {
         if ($request->ajax()) {
-            $users = User::role('guest') // Only show guest users
+            $users = User::role('guest')
                 ->select('id', 'name', 'email', 'phone')
                 ->get()
                 ->map(function ($user) {
@@ -354,13 +623,14 @@ public function show(Tenancy $tenancy)
         }
     }
 
-    // API endpoint to get units for select
+    // API endpoint to get units for select - Include utility fields
     public function getUnits(Request $request)
     {
         if ($request->ajax()) {
             $units = Unit::with('estate')
-                ->where('status', 'vacant') // Only show vacant units
-                ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount')
+                ->where('status', 'vacant')
+                ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount',
+                        'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
                 ->get()
                 ->map(function ($unit) {
                     return [
@@ -369,8 +639,16 @@ public function show(Tenancy $tenancy)
                         'estate_name' => $unit->estate->name ?? null,
                         'unit_type' => $unit->unit_type,
                         'rent_amount' => $unit->rent_amount,
+                        'water_charge' => $unit->water_charge ?? 0,
+                        'service_charge' => $unit->service_charge ?? 0,
+                        'garbage_charge' => $unit->garbage_charge ?? 0,
+                        'security_charge' => $unit->security_charge ?? 0,
+                        'total_monthly_payment' => ($unit->rent_amount ?? 0) + 
+                                                   ($unit->water_charge ?? 0) + 
+                                                   ($unit->service_charge ?? 0) + 
+                                                   ($unit->garbage_charge ?? 0) + 
+                                                   ($unit->security_charge ?? 0),
                         'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Estate') . ', (' . $unit->unit_type . ')',
-
                     ];
                 });
             
@@ -420,5 +698,22 @@ public function show(Tenancy $tenancy)
                 'message' => $exists ? 'Email already exists' : 'Email available'
             ]);
         }
+    }
+    
+    // Get utility charges for a specific unit (for invoice generation)
+    public function getUnitCharges(Unit $unit)
+    {
+        return response()->json([
+            'rent_amount' => $unit->rent_amount,
+            'water_charge' => $unit->water_charge ?? 0,
+            'service_charge' => $unit->service_charge ?? 0,
+            'garbage_charge' => $unit->garbage_charge ?? 0,
+            'security_charge' => $unit->security_charge ?? 0,
+            'total_monthly_payment' => ($unit->rent_amount ?? 0) + 
+                                       ($unit->water_charge ?? 0) + 
+                                       ($unit->service_charge ?? 0) + 
+                                       ($unit->garbage_charge ?? 0) + 
+                                       ($unit->security_charge ?? 0)
+        ]);
     }
 }

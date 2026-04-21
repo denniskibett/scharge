@@ -9,6 +9,7 @@ use App\Http\Middleware\LogRequests;
 use App\Http\Middleware\RecordUserActivity;
 use App\Http\Middleware\SetUserTimezone;
 use App\Http\Middleware\VerifyCsrfToken;
+use App\Http\Middleware\RoleMiddleware;
 
 
 class Kernel extends HttpKernel
@@ -26,7 +27,8 @@ class Kernel extends HttpKernel
         \Illuminate\Foundation\Http\Middleware\ValidatePostSize::class,
         \App\Http\Middleware\TrimStrings::class,
         \Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull::class,
-        \App\Http\Middleware\ApplySystemSettings::class, // Add this line
+        \App\Http\Middleware\ApplySystemSettings::class,
+        \App\Http\Middleware\RoleMiddleware::class,
     ];
 
     // ... rest of the kernel file

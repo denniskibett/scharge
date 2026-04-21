@@ -4,22 +4,28 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Validation\Rules\In;
 
 class Tenancy extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'tenant_id', 'unit_id', 'move_in_date', 'move_out_date', 'status'
+        'tenant_id', 
+        'unit_id', 
+        'move_in_date', 
+        'move_out_date', 
+        'status',
+        'notes'
+    ];
+
+    protected $casts = [
+        'move_in_date' => 'date',
+        'move_out_date' => 'date'
     ];
 
     public function tenant()
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');
-    }
-
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function unit()
@@ -31,12 +37,53 @@ class Tenancy extends Model
     {
         return $this->hasMany(Payment::class, 'tenancy_id');
     }
+    
     public function invoices()
     {
         return $this->hasMany(Invoice::class, 'tenancy_id');
     }
 
+    // Helper method to check if tenancy is active
+    public function isActive()
+    {
+        return $this->status === 'active';
+    }
 
+    // Helper method to check if tenancy is ended
+    public function isEnded()
+    {
+        return $this->status === 'ended';
+    }
 
+    // Get the duration of the tenancy in days
+    public function getDurationInDaysAttribute()
+    {
+        $endDate = $this->move_out_date ?? now();
+        return $this->move_in_date->diffInDays($endDate);
+    }
 
+    // Get formatted duration
+    public function getFormattedDurationAttribute()
+    {
+        $endDate = $this->move_out_date ?? now();
+        return $this->move_in_date->diffForHumans($endDate, true);
+    }
+
+    // Get the total paid amount for this tenancy
+    public function getTotalPaidAttribute()
+    {
+        return $this->payments()->sum('amount');
+    }
+
+    // Get the total invoiced amount for this tenancy
+    public function getTotalInvoicedAttribute()
+    {
+        return $this->invoices()->sum('total_amount');
+    }
+
+    // Get the outstanding balance
+    public function getOutstandingBalanceAttribute()
+    {
+        return $this->total_invoiced - $this->total_paid;
+    }
 }

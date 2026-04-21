@@ -12,12 +12,15 @@ use App\Models\Unit;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class TenantController extends Controller
 {
     public function index()
     {
-        $tenants = Tenant::with(['user', 'activeTenancy.unit.estate'])->get();
+        $tenants = Tenant::with(['user', 'tenancies' => function($query) {
+                $query->with('unit.estate')->orderBy('created_at', 'desc');
+            }])->get();
         
         // Get vacant units for dropdown
         $vacantUnits = Unit::where('status', 'vacant')
@@ -28,12 +31,22 @@ class TenantController extends Controller
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
                     'estate_name' => $unit->estate->name ?? 'N/A',
+                    'rent_amount' => $unit->rent_amount,
                 ];
             });
         
-        // Format data for Alpine.js - now getting name, email, phone from user relationship
+        // Get existing users without tenant records (for dropdown in modal)
+        $existingUsersWithoutTenant = User::whereDoesntHave('tenant')
+            ->where(function($q) {
+                $q->whereHas('role', function($r) {
+                    $r->where('name', 'tenant');
+                })->orWhereNull('role_id');
+            })
+            ->get(['id', 'name', 'email', 'phone']);
+        
+        // Format data for Alpine.js
         $tenantsData = $tenants->map(function ($tenant) {
-            $activeTenancy = $tenant->activeTenancy;
+            $activeTenancy = $tenant->tenancies->where('status', 'active')->first();
             
             return [
                 'id' => $tenant->id,
@@ -43,6 +56,7 @@ class TenantController extends Controller
                 'phone2' => $tenant->user->phone2 ?? null,
                 'id_number' => $tenant->id_number,
                 'emergency_contact' => $tenant->emergency_contact,
+                'notes' => $tenant->notes,
                 'user_id' => $tenant->user_id,
                 'current_unit' => $activeTenancy ? [
                     'id' => $activeTenancy->unit_id,
@@ -62,7 +76,7 @@ class TenantController extends Controller
         
         // Get stats
         $totalTenants = $tenants->count();
-        $activeTenants = $tenants->filter(fn($t) => $t->activeTenancy)->count();
+        $activeTenants = $tenants->filter(fn($t) => $t->tenancies->where('status', 'active')->count() > 0)->count();
         $vacantTenants = $totalTenants - $activeTenants;
         
         return view('tenants.index', compact(
@@ -70,7 +84,8 @@ class TenantController extends Controller
             'totalTenants',
             'activeTenants',
             'vacantTenants',
-            'vacantUnits'
+            'vacantUnits',
+            'existingUsersWithoutTenant'
         ));
     }
 
@@ -85,7 +100,7 @@ class TenantController extends Controller
         ]);
         
         // Get active tenancy
-        $activeTenancy = $tenant->activeTenancy;
+        $activeTenancy = $tenant->tenancies->where('status', 'active')->first();
         
         // Load invoices for active tenancy if exists
         $invoices = collect();
@@ -107,8 +122,7 @@ class TenantController extends Controller
                 ->get();
             
             $totalPaid = $payments->sum('amount');
-            $totalBalance = $invoices->where('status', '!=', 'paid')->sum('total_amount') - 
-                           $payments->whereIn('invoice_id', $invoices->where('status', '!=', 'paid')->pluck('id'))->sum('amount');
+            $totalBalance = $invoices->sum('total_amount') - $payments->sum('amount');
             
             // Get current month invoice
             $currentMonth = now()->format('Y-m');
@@ -125,15 +139,6 @@ class TenantController extends Controller
             return $tenancy->unit->estate ?? null;
         })->filter()->unique('id')->values();
         
-        // Get units for stats
-        $units = Unit::with(['estate', 'tenancies'])->get(); 
-
-        // Calculate stats
-        $occupiedCount = $units->where('status', 'occupied')->count();
-        $vacantCount = $units->where('status', 'vacant')->count();
-        $totalUnits = $units->count();
-        $monthlyRentPotential = $units->sum('rent_amount');
-        
         return view('tenants.show', compact(
             'tenant',
             'activeTenancy',
@@ -145,17 +150,239 @@ class TenantController extends Controller
             'totalTenancies',
             'activeTenancies',
             'pastTenancies',
-            'estates',
-            'occupiedCount',
-            'vacantCount',
-            'totalUnits',
-            'monthlyRentPotential'
+            'estates'
         ));
+    }
+
+public function store(Request $request)
+{
+    $mode = $request->input('mode', 'new');
+    
+    if ($mode === 'existing') {
+        // Handle existing user mode
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'id_number' => 'nullable|string|max:50',
+            'emergency_contact' => 'nullable|string|max:255',
+            'unit_id' => 'nullable|exists:units,id',
+            'notes' => 'nullable|string',
+        ]);
+        
+        // Check if user already has a tenant record
+        $existingTenant = Tenant::where('user_id', $validated['user_id'])->first();
+        if ($existingTenant) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This user already has a tenant record.'
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'This user already has a tenant record.');
+        }
+        
+        // Get the user
+        $user = User::findOrFail($validated['user_id']);
+        
+        // Assign tenant role if not already assigned (using role_id directly)
+        $tenantRole = Role::where('name', 'tenant')->first();
+        if ($tenantRole && $user->role_id !== $tenantRole->id) {
+            $user->update(['role_id' => $tenantRole->id]);
+        }
+        
+        // Create tenant record
+        $tenant = Tenant::create([
+            'user_id' => $user->id,
+            'id_number' => $validated['id_number'] ?? null,
+            'emergency_contact' => $validated['emergency_contact'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+        
+        // Create tenancy if unit is provided
+        if (!empty($validated['unit_id'])) {
+            $tenancy = Tenancy::create([
+                'tenant_id' => $tenant->id,
+                'unit_id' => $validated['unit_id'],
+                'move_in_date' => now()->format('Y-m-d'),
+                'status' => 'active',
+            ]);
+            
+            // Update unit status
+            Unit::find($validated['unit_id'])->update(['status' => 'occupied']);
+        }
+        
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tenant created successfully from existing user',
+                'tenant' => $tenant->load('user')
+            ]);
+        }
+        
+        return redirect()->route('tenants.index')->with('success', 'Tenant created successfully');
+        
+    } else {
+        // Handle new user mode (original logic)
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|unique:users,email',
+            'phone2' => 'nullable|string|max:20',
+            'id_number' => 'nullable|string|max:50',
+            'emergency_contact' => 'nullable|string|max:255',
+            'unit_id' => 'nullable|exists:units,id',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Generate unique email if not provided
+        if (empty($validated['email'])) {
+            $baseEmail = strtolower(str_replace(' ', '.', $validated['name'])) . '.' . substr($validated['phone'], -4);
+            $email = $baseEmail . '@tenant.com';
+            
+            // Check if email already exists, if yes, add index
+            $counter = 1;
+            while (User::where('email', $email)->exists()) {
+                $email = $baseEmail . $counter . '@tenant.com';
+                $counter++;
+            }
+            $validated['email'] = $email;
+        }
+
+        // Get tenant role ID
+        $tenantRole = Role::where('name', 'tenant')->first();
+        
+        // Create user account for the tenant
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'phone2' => $validated['phone2'] ?? null,
+            'password' => Hash::make('00000000'), // Default password
+            'email_verified_at' => now(),
+            'role_id' => $tenantRole ? $tenantRole->id : null, // Assign tenant role directly
+        ]);
+
+        // Create tenant record
+        $tenant = Tenant::create([
+            'user_id' => $user->id,
+            'id_number' => $validated['id_number'] ?? null,
+            'emergency_contact' => $validated['emergency_contact'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        // Create tenancy if unit is provided
+        if (!empty($validated['unit_id'])) {
+            $tenancy = Tenancy::create([
+                'tenant_id' => $tenant->id,
+                'unit_id' => $validated['unit_id'],
+                'move_in_date' => now()->format('Y-m-d'),
+                'status' => 'active',
+            ]);
+
+            // Update unit status
+            Unit::find($validated['unit_id'])->update(['status' => 'occupied']);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true, 
+                'message' => 'Tenant created successfully',
+                'tenant' => $tenant->load('user')
+            ]);
+        }
+
+        return redirect()->route('tenants.index')->with('success', 'Tenant created successfully');
+    }
+}
+
+    public function edit(Tenant $tenant)
+    {
+        $tenant->load('user');
+        
+        if (request()->wantsJson()) {
+            return response()->json([
+                'tenant' => [
+                    'id' => $tenant->id,
+                    'name' => $tenant->user->name,
+                    'email' => $tenant->user->email,
+                    'phone' => $tenant->user->phone,
+                    'phone2' => $tenant->user->phone2,
+                    'id_number' => $tenant->id_number,
+                    'emergency_contact' => $tenant->emergency_contact,
+                    'notes' => $tenant->notes,
+                ]
+            ]);
+        }
+        
+        return view('tenants.edit', compact('tenant'));
+    }
+
+    public function update(Request $request, Tenant $tenant)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $tenant->user_id,
+            'phone' => 'required|string|max:20',
+            'phone2' => 'nullable|string|max:20',
+            'id_number' => 'nullable|string|max:50',
+            'emergency_contact' => 'nullable|string|max:255',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Update user
+        $tenant->user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'phone2' => $validated['phone2'] ?? null,
+        ]);
+
+        // Update tenant
+        $tenant->update([
+            'id_number' => $validated['id_number'] ?? null,
+            'emergency_contact' => $validated['emergency_contact'] ?? null,
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true, 
+                'message' => 'Tenant updated successfully',
+                'tenant' => $tenant->fresh('user')
+            ]);
+        }
+
+        return redirect()->route('tenants.show', $tenant)->with('success', 'Tenant updated successfully');
+    }
+
+    public function destroy(Tenant $tenant)
+    {
+        // End any active tenancies
+        $tenant->tenancies()->where('status', 'active')->update(['status' => 'ended']);
+        
+        // Set associated units to vacant
+        $activeTenancies = $tenant->tenancies()->where('status', 'active')->get();
+        foreach ($activeTenancies as $tenancy) {
+            if ($tenancy->unit) {
+                $tenancy->unit->update(['status' => 'vacant']);
+            }
+        }
+
+        // Delete user account
+        $tenant->user->delete();
+
+        // Delete tenant
+        $tenant->delete();
+
+        if (request()->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Tenant deleted successfully']);
+        }
+
+        return redirect()->route('tenants.index')->with('success', 'Tenant deleted successfully');
     }
 
     public function storeInvoice(Request $request, Tenant $tenant)
     {
-        $activeTenancy = $tenant->activeTenancy;
+        $activeTenancy = $tenant->tenancies()->where('status', 'active')->first();
         
         if (!$activeTenancy) {
             return redirect()->back()->with('error', 'No active tenancy found for this tenant.');
@@ -166,7 +393,7 @@ class TenantController extends Controller
             'items' => 'required|array|min:1',
             'items.*.description' => 'required|string',
             'items.*.amount' => 'required|numeric|min:0',
-            'items.*.item_type' => 'required|in:rent,utility,service_charge', // Match your database enum
+            'items.*.item_type' => 'required|in:rent,power,water,security,garbage,internet,other',
         ]);
 
         // Calculate total amount
@@ -212,13 +439,13 @@ class TenantController extends Controller
         $invoice = Invoice::findOrFail($validated['invoice_id']);
         
         // Check if invoice belongs to this tenant's active tenancy
-        if ($tenant->activeTenancy && $invoice->tenancy_id !== $tenant->activeTenancy->id) {
+        $activeTenancy = $tenant->tenancies()->where('status', 'active')->first();
+        if (!$activeTenancy || $invoice->tenancy_id !== $activeTenancy->id) {
             return redirect()->back()->with('error', 'Invalid invoice for this tenant.');
         }
 
-        // Create payment with tenant_id
+        // Create payment
         $payment = Payment::create([
-            'tenant_id' => $tenant->id, // Changed to tenant_id
             'invoice_id' => $validated['invoice_id'],
             'amount' => $validated['amount'],
             'payment_method' => $validated['payment_method'],
@@ -244,64 +471,6 @@ class TenantController extends Controller
         return redirect()->back()->with('success', 'Payment recorded successfully.');
     }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'unit_id' => 'nullable|exists:units,id',
-        ]);
-
-        // Generate unique email based on name and phone
-        $baseEmail = strtolower(str_replace(' ', '.', $validated['name'])) . '.' . substr($validated['phone'], -4);
-        $email = $baseEmail . '@tenant.com';
-        
-        // Check if email already exists, if yes, add index
-        $counter = 1;
-        while (User::where('email', $email)->exists()) {
-            $email = $baseEmail . $counter . '@tenant.com';
-            $counter++;
-        }
-
-        // Create user account for the tenant
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $email, // Generated automatically
-            'phone' => $validated['phone'],
-            'password' => Hash::make('00000000'), // Default password
-        ]);
-
-        // Get tenant role and assign it
-        $tenantRole = Role::where('name', 'tenant')->first();
-        if ($tenantRole) {
-            $user->roles()->attach($tenantRole->id);
-        }
-
-        // Create tenant record
-        $tenant = Tenant::create([
-            'user_id' => $user->id,
-        ]);
-
-        // Create tenancy if unit is provided (with Jan 1, 2025 as move-in date)
-        if (isset($validated['unit_id'])) {
-            $tenancy = Tenancy::create([
-                'tenant_id' => $tenant->id,
-                'unit_id' => $validated['unit_id'],
-                'move_in_date' => '2025-01-01', // Default to Jan 1, 2025
-                'status' => 'active',
-            ]);
-
-            // Update unit status
-            Unit::find($validated['unit_id'])->update(['status' => 'occupied']);
-        }
-
-        return response()->json([
-            'success' => true, 
-            'message' => 'Tenant created successfully',
-            'tenant' => $tenant->load('user')
-        ]);
-    }
-
     public function bulkStore(Request $request)
     {
         $validated = $request->validate([
@@ -319,11 +488,10 @@ class TenantController extends Controller
 
         foreach ($validated['tenants'] as $index => $data) {
             try {
-                // Generate unique email based on name and phone
+                // Generate unique email
                 $baseEmail = strtolower(str_replace(' ', '.', $data['name'])) . '.' . substr($data['phone'], -4);
                 $email = $baseEmail . '@tenant.com';
                 
-                // Check if email already exists, if yes, add index
                 $counter = 1;
                 while (User::where('email', $email)->exists()) {
                     $email = $baseEmail . $counter . '@tenant.com';
@@ -336,6 +504,7 @@ class TenantController extends Controller
                     'email' => $email,
                     'phone' => $data['phone'],
                     'password' => Hash::make('00000000'),
+                    'email_verified_at' => now(),
                 ]);
 
                 // Assign tenant role
@@ -348,12 +517,12 @@ class TenantController extends Controller
                     'user_id' => $user->id,
                 ]);
 
-                // Create tenancy if unit is provided (with Jan 1, 2025 as move-in date)
+                // Create tenancy if unit is provided
                 if (isset($data['unit_id'])) {
                     $tenancy = Tenancy::create([
                         'tenant_id' => $tenant->id,
                         'unit_id' => $data['unit_id'],
-                        'move_in_date' => '2025-01-01', // Default to Jan 1, 2025
+                        'move_in_date' => now()->format('Y-m-d'),
                         'status' => 'active',
                     ]);
 
@@ -383,64 +552,6 @@ class TenantController extends Controller
             'created' => $created,
             'errors' => $errors,
         ]);
-    }
-
-
-    public function update(Request $request, Tenant $tenant)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $tenant->user_id,
-            'phone' => 'required|string|max:20',
-            'phone2' => 'nullable|string|max:20',
-            'id_number' => 'nullable|string|max:50',
-            'emergency_contact' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-        ]);
-
-        // Update user (name, email, phone now stored in User model)
-        $tenant->user->update([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-            'phone2' => $validated['phone2'] ?? null,
-        ]);
-
-        // Update tenant (only tenant-specific fields)
-        $tenant->update([
-            'id_number' => $validated['id_number'] ?? null,
-            'emergency_contact' => $validated['emergency_contact'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-        ]);
-
-        return response()->json([
-            'success' => true, 
-            'message' => 'Tenant updated successfully',
-            'tenant' => $tenant->load('user')
-        ]);
-    }
-
-    public function destroy(Tenant $tenant)
-    {
-        // End any active tenancies
-        $tenant->tenancies()->where('status', 'active')->update(['status' => 'ended']);
-        
-        // Set associated units to vacant
-        $activeTenancies = $tenant->tenancies()->where('status', 'active')->get();
-        foreach ($activeTenancies as $tenancy) {
-            // Make sure the unit relationship exists
-            if ($tenancy->unit) {
-                $tenancy->unit->update(['status' => 'vacant']);
-            }
-        }
-
-        // Delete user account
-        $tenant->user->delete();
-
-        // Delete tenant
-        $tenant->delete();
-
-        return response()->json(['success' => true, 'message' => 'Tenant deleted successfully']);
     }
 
     // API endpoint to search tenants

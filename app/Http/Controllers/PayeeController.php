@@ -9,13 +9,13 @@ class PayeeController extends Controller
 {
     public function index()
     {
-        $payees = Payee::all();
+        $payees = Payee::with('expenses')->get();
         return view('payees.index', compact('payees'));
     }
 
     public function show(Payee $payee)
     {
-        $payee->load('expenses');
+        $payee->load('expenses.estate', 'expenses.category');
         return view('payees.show', compact('payee'));
     }
 
@@ -29,7 +29,7 @@ class PayeeController extends Controller
         ]);
 
         Payee::create($validated);
-        return back();
+        return redirect()->route('payees.index')->with('success', 'Payee created successfully!');
     }
 
     public function update(Request $request, Payee $payee)
@@ -42,6 +42,12 @@ class PayeeController extends Controller
         ]);
 
         $payee->update($validated);
-        return back();
+        return redirect()->route('payees.index')->with('success', 'Payee updated successfully!');
+    }
+
+    public function destroy(Payee $payee)
+    {
+        $payee->delete();
+        return redirect()->route('payees.index')->with('success', 'Payee deleted successfully!');
     }
 }

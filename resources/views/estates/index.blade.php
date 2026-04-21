@@ -1,6 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
+<!-- Include modal partials -->
+@include('partials.modal.success-modal')
+@include('partials.modal.error-modal')
+
 <div class="container mx-auto px-4 py-6" x-data="estateTable()" x-init="init()">
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
         <div class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -256,7 +260,7 @@
                                 @click="goToPage(page)"
                                 :class="{
                                     'relative inline-flex items-center px-4 py-2 text-sm font-medium': true,
-                                    'bg-blue-600 text-white': currentPage === page,
+                                    'bg-brand-600 text-white': currentPage === page,
                                     'text-gray-700 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700': currentPage !== page && page !== '...',
                                     'cursor-default': page === '...'
                                 }"
@@ -277,32 +281,40 @@
     </div>
 </div>
 
-<!-- Create Estate Modal -->
-<div x-data="createEstateModal()" x-show="isModalOpen" x-cloak>
-    <div class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
-        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+<!-- CREATE ESTATE SLIDEOVER MODAL -->
+<div x-data="createEstateModal()" x-init="init()">
+    <!-- Backdrop -->
+    <template x-if="isOpen">
         <div 
-            @click.outside="isModalOpen = false"
-            class="relative w-full max-w-[584px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-10"
-        >
+            @click="closeModal()"
+            class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+        ></div>
+    </template>
+
+    <!-- Modal Content - Slides from Right -->
+    <div x-show="isOpen" 
+         x-transition:enter="transition transform ease-out duration-300"
+         x-transition:enter-start="translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="translate-x-full"
+         x-cloak
+         class="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-99999 overflow-y-auto">
+        <div class="p-6 lg:p-8">
             <!-- close btn -->
             <button
-                @click="isModalOpen = false"
-                class="group absolute right-3 top-3 z-999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
+                @click="closeModal()"
+                class="group absolute right-3 top-3 z-99999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
             >
-                <svg
-                    class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"
-                    />
+                <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
                 </svg>
             </button>
 
@@ -310,6 +322,17 @@
                 <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
                     Add New Estate
                 </h4>
+
+                <!-- Form Errors -->
+                <template x-if="formErrors.length > 0">
+                    <div class="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
+                        <ul class="list-disc pl-5">
+                            <template x-for="error in formErrors" :key="error">
+                                <li x-text="error"></li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
 
                 <div class="grid grid-cols-1 gap-x-6 gap-y-5">
                     <div class="col-span-1">
@@ -323,7 +346,6 @@
                             required
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
-                        <p x-show="errors.name" x-text="errors.name[0]" class="mt-1 text-sm text-red-600"></p>
                     </div>
 
                     <div class="col-span-1">
@@ -336,22 +358,104 @@
                             placeholder="Enter estate location"
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
-                        <p x-show="errors.location" x-text="errors.location[0]" class="mt-1 text-sm text-red-600"></p>
+                    </div>
+
+                    <!-- Utility Charges Section -->
+                    <div class="col-span-1 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                        <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Default Utility Charges</h5>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">These charges will be applied to all new units in this estate by default</p>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Water Rate (per unit)
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.water_rate"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Cost per water unit consumed (e.g., 150.00 per unit)</p>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Default Service Charge
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.service_charge"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Default Garbage Charge
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.garbage_charge"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Default Security Charge
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.security_charge"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-end w-full gap-3 mt-6">
                     <button
-                        @click="isModalOpen = false"
+                        @click="closeModal()"
                         type="button"
                         class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto"
                     >
-                        Close
+                        Cancel
                     </button>
                     <button
                         type="submit"
                         :disabled="loading"
-                        class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-blue-600 shadow-theme-xs hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+                        class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
                     >
                         <span x-show="!loading">Create Estate</span>
                         <span x-show="loading">Creating...</span>
@@ -362,32 +466,40 @@
     </div>
 </div>
 
-<!-- Edit Estate Modal -->
-<div x-data="editEstateModal()" x-show="isModalOpen" x-cloak>
-    <div class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
-        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+<!-- EDIT ESTATE SLIDEOVER MODAL -->
+<div x-data="editEstateModal()" x-init="init()">
+    <!-- Backdrop -->
+    <template x-if="isOpen">
         <div 
-            @click.outside="isModalOpen = false"
-            class="relative w-full max-w-[584px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-10"
-        >
+            @click="closeModal()"
+            class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+            x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+        ></div>
+    </template>
+
+    <!-- Modal Content - Slides from Right -->
+    <div x-show="isOpen" 
+         x-transition:enter="transition transform ease-out duration-300"
+         x-transition:enter-start="translate-x-full"
+         x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200"
+         x-transition:leave-start="translate-x-0"
+         x-transition:leave-end="translate-x-full"
+         x-cloak
+         class="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-99999 overflow-y-auto">
+        <div class="p-6 lg:p-8">
             <!-- close btn -->
             <button
-                @click="isModalOpen = false"
-                class="group absolute right-3 top-3 z-999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
+                @click="closeModal()"
+                class="group absolute right-3 top-3 z-99999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
             >
-                <svg
-                    class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"
-                    />
+                <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
                 </svg>
             </button>
 
@@ -395,6 +507,17 @@
                 <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
                     Edit Estate
                 </h4>
+
+                <!-- Form Errors -->
+                <template x-if="formErrors.length > 0">
+                    <div class="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
+                        <ul class="list-disc pl-5">
+                            <template x-for="error in formErrors" :key="error">
+                                <li x-text="error"></li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
 
                 <div class="grid grid-cols-1 gap-x-6 gap-y-5">
                     <div class="col-span-1">
@@ -408,7 +531,6 @@
                             required
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
-                        <p x-show="errors.name" x-text="errors.name[0]" class="mt-1 text-sm text-red-600"></p>
                     </div>
 
                     <div class="col-span-1">
@@ -421,22 +543,104 @@
                             placeholder="Enter estate location"
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
-                        <p x-show="errors.location" x-text="errors.location[0]" class="mt-1 text-sm text-red-600"></p>
+                    </div>
+
+                    <!-- Utility Charges Section -->
+                    <div class="col-span-1 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+                        <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Default Utility Charges</h5>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">These charges will be applied to all new units in this estate by default</p>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Water Rate (per unit)
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.water_rate"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Cost per water unit consumed (e.g., 150.00 per unit)</p>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Default Service Charge
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.service_charge"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Default Garbage Charge
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.garbage_charge"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="col-span-1">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Default Security Charge
+                        </label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                x-model="form.security_charge"
+                                placeholder="0.00"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                            />
+                        </div>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-end w-full gap-3 mt-6">
                     <button
-                        @click="isModalOpen = false"
+                        @click="closeModal()"
                         type="button"
                         class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto"
                     >
-                        Close
+                        Cancel
                     </button>
                     <button
                         type="submit"
                         :disabled="loading"
-                        class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-blue-600 shadow-theme-xs hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
+                        class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
                     >
                         <span x-show="!loading">Update Estate</span>
                         <span x-show="loading">Updating...</span>
@@ -447,32 +651,20 @@
     </div>
 </div>
 
-<!-- Delete Estate Modal -->
+<!-- DELETE ESTATE MODAL (Centered) -->
 <div x-data="deleteEstateModal()" x-show="isModalOpen" x-cloak>
     <div class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
-        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]" @click="closeModal()"></div>
         <div 
-            @click.outside="isModalOpen = false"
-            class="relative w-full max-w-[584px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-10"
+            class="relative w-full max-w-md rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-8"
         >
             <!-- close btn -->
             <button
-                @click="isModalOpen = false"
+                @click="closeModal()"
                 class="group absolute right-3 top-3 z-999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
             >
-                <svg
-                    class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <path
-                        fill-rule="evenodd"
-                        clip-rule="evenodd"
-                        d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"
-                    />
+                <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
                 </svg>
             </button>
 
@@ -494,7 +686,7 @@
 
                 <div class="flex items-center justify-center gap-3">
                     <button
-                        @click="isModalOpen = false"
+                        @click="closeModal()"
                         type="button"
                         class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto"
                     >
@@ -518,7 +710,6 @@
 <script>
 function estateTable() {
     return {
-        // Data - passed from controller
         estates: [],
         filteredEstates: [],
         paginatedEstates: [],
@@ -531,13 +722,11 @@ function estateTable() {
         showingEnd: 10,
         totalPages: 1,
         
-        // Modal instances will be set in init
         createModal: null,
         editModal: null,
         deleteModal: null,
         
         init() {
-            // Set estates data from data attribute
             const estatesElement = document.getElementById('estates-data');
             if (estatesElement) {
                 this.estates = JSON.parse(estatesElement.textContent);
@@ -546,7 +735,6 @@ function estateTable() {
             this.filteredEstates = [...this.estates];
             this.updateTable();
             
-            // Initialize modals
             this.$nextTick(() => {
                 this.createModal = Alpine.$data(document.querySelector('[x-data="createEstateModal()"]'));
                 this.editModal = Alpine.$data(document.querySelector('[x-data="editEstateModal()"]'));
@@ -579,7 +767,6 @@ function estateTable() {
                 this.sortColumn = column;
                 this.sortDirection = 'asc';
             }
-            
             this.sortEstates();
             this.updateTable();
         },
@@ -587,7 +774,6 @@ function estateTable() {
         sortEstates() {
             this.filteredEstates.sort((a, b) => {
                 let aValue, bValue;
-                
                 if (this.sortColumn === 'units_count') {
                     aValue = a.units_count;
                     bValue = b.units_count;
@@ -595,7 +781,6 @@ function estateTable() {
                     aValue = a[this.sortColumn]?.toString().toLowerCase() || '';
                     bValue = b[this.sortColumn]?.toString().toLowerCase() || '';
                 }
-                
                 if (aValue < bValue) return this.sortDirection === 'asc' ? -1 : 1;
                 if (aValue > bValue) return this.sortDirection === 'asc' ? 1 : -1;
                 return 0;
@@ -606,7 +791,6 @@ function estateTable() {
             this.totalPages = Math.ceil(this.filteredEstates.length / this.entriesPerPage);
             const startIndex = (this.currentPage - 1) * this.entriesPerPage;
             const endIndex = startIndex + this.entriesPerPage;
-            
             this.paginatedEstates = this.filteredEstates.slice(startIndex, endIndex);
             this.showingStart = this.filteredEstates.length ? startIndex + 1 : 0;
             this.showingEnd = Math.min(endIndex, this.filteredEstates.length);
@@ -616,32 +800,16 @@ function estateTable() {
             const pages = [];
             const total = this.totalPages;
             const current = this.currentPage;
-            
             if (total <= 1) return [1];
-            
             pages.push(1);
-            
             let start = Math.max(2, current - 1);
             let end = Math.min(total - 1, current + 1);
-            
-            if (start > 2) {
-                pages.push('...');
-            }
-            
+            if (start > 2) pages.push('...');
             for (let i = start; i <= end; i++) {
-                if (i > 1 && i < total) {
-                    pages.push(i);
-                }
+                if (i > 1 && i < total) pages.push(i);
             }
-            
-            if (end < total - 1) {
-                pages.push('...');
-            }
-            
-            if (total > 1) {
-                pages.push(total);
-            }
-            
+            if (end < total - 1) pages.push('...');
+            if (total > 1) pages.push(total);
             return pages;
         },
         
@@ -668,19 +836,19 @@ function estateTable() {
         
         openCreateModal() {
             if (this.createModal) {
-                this.createModal.open();
+                this.createModal.openModal();
             }
         },
         
         openEditModal(estate) {
             if (this.editModal) {
-                this.editModal.open(estate);
+                this.editModal.openModal(estate);
             }
         },
         
         confirmDelete(estate) {
             if (this.deleteModal) {
-                this.deleteModal.open(estate);
+                this.deleteModal.openModal(estate);
             }
         }
     };
@@ -688,31 +856,51 @@ function estateTable() {
 
 function createEstateModal() {
     return {
-        isModalOpen: false,
+        isOpen: false,
         form: {
             name: '',
-            location: ''
+            location: '',
+            water_rate: '',
+            service_charge: '',
+            garbage_charge: '',
+            security_charge: ''
         },
-        errors: {},
+        formErrors: [],
         loading: false,
         
-        open() {
+        init() {
+            window.createEstateModal = this;
+        },
+        
+        openModal() {
             this.resetForm();
-            this.isModalOpen = true;
+            this.isOpen = true;
+            document.body.style.overflow = 'hidden';
+        },
+        
+        closeModal() {
+            this.isOpen = false;
+            this.formErrors = [];
+            this.loading = false;
+            document.body.style.overflow = '';
         },
         
         resetForm() {
             this.form = {
                 name: '',
-                location: ''
+                location: '',
+                water_rate: '',
+                service_charge: '',
+                garbage_charge: '',
+                security_charge: ''
             };
-            this.errors = {};
+            this.formErrors = [];
             this.loading = false;
         },
         
         async submitForm() {
             this.loading = true;
-            this.errors = {};
+            this.formErrors = [];
             
             try {
                 const response = await fetch('{{ route("estates.store") }}', {
@@ -720,7 +908,6 @@ function createEstateModal() {
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify(this.form)
@@ -729,54 +916,89 @@ function createEstateModal() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    this.isModalOpen = false;
-                    this.showNotification('Estate created successfully!', 'success');
+                    this.closeModal();
+                    if (window.successModal) {
+                        window.successModal.simple('Estate Created', `Estate "${this.form.name}" has been created successfully!`);
+                    }
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    this.errors = data.errors || {};
-                    this.showNotification(data.message || 'Failed to create estate.', 'error');
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat();
+                        if (window.errorModal) {
+                            window.errorModal.show('Creation Failed', 'Please correct the following errors:', errorMessages);
+                        } else {
+                            this.formErrors = errorMessages;
+                        }
+                    } else {
+                        if (window.errorModal) {
+                            window.errorModal.show('Creation Failed', data.message || 'Failed to create estate');
+                        } else {
+                            this.formErrors = [data.message || 'Failed to create estate'];
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                this.showNotification('An error occurred. Please try again.', 'error');
+                if (window.errorModal) {
+                    window.errorModal.show('Error', 'An unexpected error occurred. Please try again.');
+                } else {
+                    this.formErrors = ['An unexpected error occurred. Please try again.'];
+                }
             } finally {
                 this.loading = false;
             }
-        },
-        
-        showNotification(message, type = 'success') {
-            alert(message);
         }
     };
 }
 
 function editEstateModal() {
     return {
-        isModalOpen: false,
+        isOpen: false,
         estate: null,
         form: {
             name: '',
-            location: ''
+            location: '',
+            water_rate: '',
+            service_charge: '',
+            garbage_charge: '',
+            security_charge: ''
         },
-        errors: {},
+        formErrors: [],
         loading: false,
         
-        open(estate) {
+        init() {
+            window.editEstateModal = this;
+        },
+        
+        openModal(estate) {
             this.estate = estate;
             this.form = {
                 name: estate.name,
-                location: estate.location || ''
+                location: estate.location || '',
+                water_rate: estate.water_rate || '',
+                service_charge: estate.service_charge || '',
+                garbage_charge: estate.garbage_charge || '',
+                security_charge: estate.security_charge || ''
             };
-            this.errors = {};
+            this.formErrors = [];
             this.loading = false;
-            this.isModalOpen = true;
+            this.isOpen = true;
+            document.body.style.overflow = 'hidden';
+        },
+        
+        closeModal() {
+            this.isOpen = false;
+            this.estate = null;
+            this.formErrors = [];
+            this.loading = false;
+            document.body.style.overflow = '';
         },
         
         async submitForm() {
             this.loading = true;
-            this.errors = {};
+            this.formErrors = [];
             
             try {
                 const response = await fetch(`/estates/${this.estate.id}`, {
@@ -784,7 +1006,6 @@ function editEstateModal() {
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify(this.form)
@@ -793,25 +1014,39 @@ function editEstateModal() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    this.isModalOpen = false;
-                    this.showNotification('Estate updated successfully!', 'success');
+                    this.closeModal();
+                    if (window.successModal) {
+                        window.successModal.simple('Estate Updated', `Estate "${this.form.name}" has been updated successfully!`);
+                    }
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    this.errors = data.errors || {};
-                    this.showNotification(data.message || 'Failed to update estate.', 'error');
+                    if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat();
+                        if (window.errorModal) {
+                            window.errorModal.show('Update Failed', 'Please correct the following errors:', errorMessages);
+                        } else {
+                            this.formErrors = errorMessages;
+                        }
+                    } else {
+                        if (window.errorModal) {
+                            window.errorModal.show('Update Failed', data.message || 'Failed to update estate');
+                        } else {
+                            this.formErrors = [data.message || 'Failed to update estate'];
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                this.showNotification('An error occurred. Please try again.', 'error');
+                if (window.errorModal) {
+                    window.errorModal.show('Error', 'An unexpected error occurred. Please try again.');
+                } else {
+                    this.formErrors = ['An unexpected error occurred. Please try again.'];
+                }
             } finally {
                 this.loading = false;
             }
-        },
-        
-        showNotification(message, type = 'success') {
-            alert(message);
         }
     };
 }
@@ -822,10 +1057,18 @@ function deleteEstateModal() {
         estate: null,
         loading: false,
         
-        open(estate) {
+        openModal(estate) {
             this.estate = estate;
             this.loading = false;
             this.isModalOpen = true;
+            document.body.style.overflow = 'hidden';
+        },
+        
+        closeModal() {
+            this.isModalOpen = false;
+            this.estate = null;
+            this.loading = false;
+            document.body.style.overflow = '';
         },
         
         async deleteEstate() {
@@ -836,7 +1079,6 @@ function deleteEstateModal() {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                        'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json'
                     }
                 });
@@ -844,24 +1086,30 @@ function deleteEstateModal() {
                 const data = await response.json();
                 
                 if (response.ok) {
-                    this.isModalOpen = false;
-                    this.showNotification('Estate deleted successfully!', 'success');
+                    this.closeModal();
+                    if (window.successModal) {
+                        window.successModal.simple('Estate Deleted', data.message || 'Estate deleted successfully!');
+                    }
                     setTimeout(() => {
                         window.location.reload();
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    this.showNotification(data.message || 'Failed to delete estate.', 'error');
+                    if (window.errorModal) {
+                        window.errorModal.show('Deletion Failed', data.message || 'Failed to delete estate.');
+                    } else {
+                        alert(data.message || 'Failed to delete estate.');
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
-                this.showNotification('An error occurred. Please try again.', 'error');
+                if (window.errorModal) {
+                    window.errorModal.show('Error', 'An unexpected error occurred. Please try again.');
+                } else {
+                    alert('An error occurred. Please try again.');
+                }
             } finally {
                 this.loading = false;
             }
-        },
-        
-        showNotification(message, type = 'success') {
-            alert(message);
         }
     };
 }
