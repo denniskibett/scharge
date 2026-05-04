@@ -1,26 +1,23 @@
-@props(['readings' => [], 'showActions' => true, 'showConsumption' => true])
+@props(['readings' => [], 'showActions' => true, 'showConsumption' => true, 'units' => []])
 
 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-data="readingsTable()" x-init="init()">
     <!-- Table Header -->
     <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
         <div>
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Water Meter Readings</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Track and manage water consumption readings</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Track and manage water consumption readings per unit</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <!-- Status/Consumption Filters -->
+            <!-- Status Filters -->
             <div class="hidden h-11 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 lg:inline-flex dark:bg-gray-900">
                 <button @click="filterStatus = 'all'; currentPage = 1" :class="filterStatus === 'all' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
                     All (<span x-text="statusCounts.all"></span>)
                 </button>
-                <button @click="filterStatus = 'high'; currentPage = 1" :class="filterStatus === 'high' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
-                    High (<span x-text="statusCounts.high"></span>)
+                <button @click="filterStatus = 'read'; currentPage = 1" :class="filterStatus === 'read' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
+                    Read (<span x-text="statusCounts.read"></span>)
                 </button>
-                <button @click="filterStatus = 'normal'; currentPage = 1" :class="filterStatus === 'normal' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
-                    Normal (<span x-text="statusCounts.normal"></span>)
-                </button>
-                <button @click="filterStatus = 'low'; currentPage = 1" :class="filterStatus === 'low' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
-                    Low (<span x-text="statusCounts.low"></span>)
+                <button @click="filterStatus = 'unread'; currentPage = 1" :class="filterStatus === 'unread' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
+                    Unread (<span x-text="statusCounts.unread"></span>)
                 </button>
             </div>
 
@@ -36,15 +33,12 @@
             
             <!-- Action Buttons -->
             <div class="flex gap-2">
-                <!-- Record Reading Button -->
                 <button @click="openCreateReadingModal()" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
                     Record Reading
                 </button>
-                
-                <!-- Export Button -->
                 <button @click="exportData()" class="border border-gray-300 shadow-theme-xs hover:bg-gray-50 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 transition dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                     <svg class="fill-current" width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <path d="M10 1.66667V12.5M10 12.5L13.3333 9.16667M10 12.5L6.66667 9.16667M4.16667 15H15.8333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -67,53 +61,15 @@
         <table class="w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                        Unit
-                    </th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">
-                        Estate
-                    </th>
-                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('previous_reading')">
-                        <div class="flex items-center justify-end gap-2">
-                            <span>Previous (m³)</span>
-                            <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'previous_reading' && sortDirection === 'asc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'previous_reading' && sortDirection === 'desc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
-                            </span>
-                        </div>
-                    </th>
-                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('current_reading')">
-                        <div class="flex items-center justify-end gap-2">
-                            <span>Current (m³)</span>
-                            <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'current_reading' && sortDirection === 'asc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'current_reading' && sortDirection === 'desc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
-                            </span>
-                        </div>
-                    </th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Unit</th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Estate</th>
+                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Previous (m³)</th>
+                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Current (m³)</th>
                     @if($showConsumption)
-                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('consumption')">
-                        <div class="flex items-center justify-end gap-2">
-                            <span>Consumption (m³)</span>
-                            <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'consumption' && sortDirection === 'asc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'consumption' && sortDirection === 'desc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
-                            </span>
-                        </div>
-                    </th>
-                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">
-                        Charge (KES)
-                    </th>
+                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Consumption (m³)</th>
+                    <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Charge (KES)</th>
                     @endif
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('reading_date')">
-                        <div class="flex items-center gap-2">
-                            <span>Reading Date</span>
-                            <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'reading_date' && sortDirection === 'asc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'reading_date' && sortDirection === 'desc' ? 'text-brand-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
-                            </span>
-                        </div>
-                    </th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Last Reading Date</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Status</th>
                     @if($showActions)
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
@@ -121,10 +77,11 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-                <template x-for="reading in paginatedReadings" :key="reading.unit_id">
+                <template x-for="reading in paginatedReadings" :key="reading.id || reading.unit_id">
                     <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
                         <td class="p-4 whitespace-nowrap">
                             <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="reading.unit_number"></span>
+                            <span x-show="reading.billing_type === 'flat'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Flat</span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.estate_name"></span>
@@ -144,18 +101,26 @@
                         </td>
                         @endif
                         <td class="p-4 whitespace-nowrap">
-                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="formatDate(reading.reading_date)"></span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.last_reading_date ? formatDate(reading.last_reading_date) : 'Never'"></span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
-                            <span :class="getStatusBadgeClass(reading.consumption)" class="px-2 py-1 text-xs font-medium rounded-full">
-                                <span x-text="getStatusText(reading.consumption)"></span>
+                            <span :class="getReadingStatusBadge(reading.needs_reading)" class="px-2 py-1 text-xs font-medium rounded-full">
+                                <span x-text="reading.needs_reading ? 'Needs Reading' : 'Up to Date'"></span>
                             </span>
                         </td>
                         @if($showActions)
                         <td class="p-4 whitespace-nowrap">
-                            <button @click="openReadingModal(reading.unit_id)" class="text-brand-500 hover:text-brand-600 text-sm font-medium">
-                                Update Reading
-                            </button>
+                            <div class="flex gap-2">
+                                <button @click="viewHistory(reading.unit_id, reading.unit_number)" class="text-blue-500 hover:text-blue-600 text-sm font-medium" title="View History">
+                                    History
+                                </button>
+                                <button @click="openCreateReadingModal(reading.unit_id)" class="text-green-500 hover:text-green-600 text-sm font-medium" title="Record Reading">
+                                    Record
+                                </button>
+                                <button @click="openUpdateReadingModal(reading.unit_id)" class="text-brand-500 hover:text-brand-600 text-sm font-medium" title="Update Reading">
+                                    Update
+                                </button>
+                            </div>
                         </td>
                         @endif
                     </tr>
@@ -206,7 +171,7 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('readingsTable', () => ({
-        readings: @json($readings),
+        readings: [],
         searchQuery: '',
         filterStatus: 'all',
         sortBy: 'reading_date',
@@ -214,27 +179,150 @@ document.addEventListener('alpine:init', () => {
         currentPage: 1,
         itemsPerPage: 10,
         loading: false,
+        units: @json($units ?? []),
         
         init() {
-            // Process readings to add computed fields
-            this.readings = this.readings.map(reading => {
-                const consumption = (reading.current_reading || 0) - (reading.previous_reading || 0);
-                const rate = reading.rate || 50;
-                return {
-                    ...reading,
-                    consumption: Math.max(0, consumption),
-                    charge: Math.max(0, consumption) * rate
+            // Normalize incoming readings - handle both array and object formats
+            let rawReadings = @json($readings);
+            
+            // CRITICAL DEBUG: Log what we received
+            console.log('========== TABLE DEBUG ==========');
+            console.log('Raw readings type:', Array.isArray(rawReadings) ? 'array' : typeof rawReadings);
+            console.log('Raw readings count:', rawReadings.length);
+            console.log('First 3 raw readings:', rawReadings.slice(0, 3));
+            
+            if (rawReadings.length === 0) {
+                console.warn('No readings received!');
+                this.readings = [];
+                return;
+            }
+            
+            // Process each reading to ensure consistent format
+            this.readings = rawReadings.map((reading, index) => {
+                // Debug first reading
+                if (index === 0) {
+                    console.log('Sample raw reading structure:', reading);
+                    console.log('Reading keys:', Object.keys(reading));
+                }
+                
+                // Handle if reading is an array (from controller mapping) or object (Eloquent model)
+                const getValue = (key, defaultValue = null) => {
+                    if (reading && typeof reading === 'object') {
+                        // Try direct property first
+                        if (reading[key] !== undefined) return reading[key];
+                        // Try nested paths (for Eloquent models)
+                        if (key.includes('.')) {
+                            const parts = key.split('.');
+                            let value = reading;
+                            for (const part of parts) {
+                                if (value && typeof value === 'object' && value[part] !== undefined) {
+                                    value = value[part];
+                                } else {
+                                    return defaultValue;
+                                }
+                            }
+                            return value;
+                        }
+                        return defaultValue;
+                    }
+                    return defaultValue;
                 };
+                
+                // Extract unit number from various possible locations
+                let unitNumber = getValue('unit_number');
+                if (!unitNumber && reading.unit) {
+                    unitNumber = reading.unit.unit_number;
+                }
+                if (!unitNumber) unitNumber = 'N/A';
+                
+                // Extract estate name from various possible locations
+                let estateName = getValue('estate_name');
+                if (!estateName && reading.unit && reading.unit.estate) {
+                    estateName = reading.unit.estate.name;
+                }
+                if (!estateName && reading.estate) {
+                    estateName = reading.estate.name || reading.estate;
+                }
+                if (!estateName) estateName = 'N/A';
+                
+                const previousReading = parseFloat(getValue('previous_reading', 0));
+                let currentReading = parseFloat(getValue('current_reading', 0));
+                
+                // If current_reading is null/undefined, set to 0 for pending readings
+                if (isNaN(currentReading)) currentReading = 0;
+                
+                let consumption = parseFloat(getValue('consumption', 0));
+                if (isNaN(consumption)) consumption = 0;
+                
+                if (consumption === 0 && currentReading > 0) {
+                    consumption = Math.max(0, currentReading - previousReading);
+                }
+                
+                const billingType = getValue('water_billing_type', getValue('billing_type', 'consumption'));
+                let charge = parseFloat(getValue('charge', 0));
+                if (isNaN(charge)) charge = 0;
+                
+                if (billingType === 'flat') {
+                    const waterCharge = parseFloat(getValue('water_charge', 0));
+                    charge = isNaN(waterCharge) ? 0 : waterCharge;
+                } else if (charge === 0 && consumption > 0) {
+                    const rate = parseFloat(getValue('custom_water_rate', getValue('rate', 50)));
+                    charge = consumption * (isNaN(rate) ? 50 : rate);
+                }
+                
+                const lastReadingDate = getValue('last_reading_date') || getValue('reading_date');
+                const needsReading = getValue('needs_reading', !lastReadingDate);
+                
+                const normalizedReading = {
+                    id: getValue('id', null),
+                    unit_id: getValue('unit_id', getValue('id', null)),
+                    unit_number: unitNumber,
+                    estate_name: estateName,
+                    previous_reading: previousReading,
+                    current_reading: currentReading,
+                    consumption: consumption,
+                    charge: charge,
+                    last_reading_date: lastReadingDate,
+                    reading_date: lastReadingDate,
+                    needs_reading: needsReading,
+                    billing_type: billingType,
+                    water_billing_type: billingType,
+                    water_charge: parseFloat(getValue('water_charge', 0)),
+                    custom_water_rate: parseFloat(getValue('custom_water_rate', 0)),
+                    rate: parseFloat(getValue('rate', 50)),
+                    status: getValue('status', 'occupied'),
+                    unit_type: getValue('unit_type', null),
+                    recorded_by_name: getValue('recorded_by_name', null)
+                };
+                
+                // Debug first normalized reading
+                if (index === 0) {
+                    console.log('Normalized reading:', normalizedReading);
+                }
+                
+                return normalizedReading;
+            });
+            
+            console.log('Final normalized readings count:', this.readings.length);
+            console.log('Readings with needs_reading=true:', this.readings.filter(r => r.needs_reading).length);
+            console.log('Readings with needs_reading=false:', this.readings.filter(r => !r.needs_reading).length);
+            console.log('================================');
+            
+            // Force Alpine to update the view
+            this.$nextTick(() => {
+                console.log('Table render complete, displaying', this.filteredReadings.length, 'readings');
             });
         },
         
+        // ... rest of your existing methods remain exactly the same ...
         get statusCounts() {
-            const counts = { all: this.readings.length, high: 0, normal: 0, low: 0 };
+            const counts = { all: this.readings.length, read: 0, unread: 0 };
             this.readings.forEach(reading => {
-                const status = this.getConsumptionStatus(reading.consumption);
-                if (status === 'high') counts.high++;
-                else if (status === 'normal') counts.normal++;
-                else counts.low++;
+                if (reading.needs_reading) {
+                    counts.unread++;
+                } else {
+                    counts.read++;
+                }
             });
             return counts;
         },
@@ -242,11 +330,20 @@ document.addEventListener('alpine:init', () => {
         get filteredReadings() {
             let filtered = this.readings;
             
+            console.log('Filtering - Current filterStatus:', this.filterStatus);
+            console.log('Total readings before filter:', filtered.length);
+            console.log('Readings with needs_reading=true:', filtered.filter(r => r.needs_reading).length);
+            console.log('Readings with needs_reading=false:', filtered.filter(r => !r.needs_reading).length);
+            
             // Apply status filter
-            if (this.filterStatus !== 'all') {
-                filtered = filtered.filter(reading => 
-                    this.getConsumptionStatus(reading.consumption) === this.filterStatus
-                );
+            if (this.filterStatus === 'read') {
+                filtered = filtered.filter(reading => !reading.needs_reading);
+                console.log('After "read" filter:', filtered.length);
+            } else if (this.filterStatus === 'unread') {
+                filtered = filtered.filter(reading => reading.needs_reading === true);
+                console.log('After "unread" filter:', filtered.length);
+            } else {
+                console.log('Showing all readings');
             }
             
             // Apply search filter
@@ -256,6 +353,7 @@ document.addEventListener('alpine:init', () => {
                     (reading.unit_number && reading.unit_number.toLowerCase().includes(query)) ||
                     (reading.estate_name && reading.estate_name.toLowerCase().includes(query))
                 );
+                console.log('After search filter:', filtered.length);
             }
             
             // Apply sorting
@@ -263,7 +361,7 @@ document.addEventListener('alpine:init', () => {
                 let valA = a[this.sortBy];
                 let valB = b[this.sortBy];
                 
-                if (this.sortBy === 'reading_date') {
+                if (this.sortBy === 'reading_date' || this.sortBy === 'last_reading_date') {
                     valA = valA ? new Date(valA).getTime() : 0;
                     valB = valB ? new Date(valB).getTime() : 0;
                 }
@@ -278,6 +376,7 @@ document.addEventListener('alpine:init', () => {
                 return 0;
             });
             
+            console.log('Final filtered count:', filtered.length);
             return filtered;
         },
         
@@ -301,30 +400,23 @@ document.addEventListener('alpine:init', () => {
         },
         
         getConsumptionStatus(consumption) {
-            if (consumption > 20) return 'high';
-            if (consumption > 0) return 'normal';
+            if (consumption > 30) return 'high';
+            if (consumption > 5) return 'normal';
             return 'low';
         },
         
         getConsumptionClass(consumption) {
             const status = this.getConsumptionStatus(consumption);
-            if (status === 'high') return 'text-red-600 dark:text-red-400';
+            if (status === 'high') return 'text-red-600 dark:text-red-400 font-semibold';
             if (status === 'normal') return 'text-yellow-600 dark:text-yellow-400';
             return 'text-green-600 dark:text-green-400';
         },
         
-        getStatusBadgeClass(consumption) {
-            const status = this.getConsumptionStatus(consumption);
-            if (status === 'high') return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-            if (status === 'normal') return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        getReadingStatusBadge(needsReading) {
+            if (needsReading) {
+                return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+            }
             return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-        },
-        
-        getStatusText(consumption) {
-            const status = this.getConsumptionStatus(consumption);
-            if (status === 'high') return 'High Usage';
-            if (status === 'normal') return 'Normal Usage';
-            return 'Low Usage';
         },
         
         formatNumber(value) {
@@ -353,33 +445,32 @@ document.addEventListener('alpine:init', () => {
         nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
         previousPage() { if (this.currentPage > 1) this.currentPage--; },
         
-        openReadingModal(unitId) {
-            if (unitId && window.waterReadingModal) {
-                window.waterReadingModal.openModal(unitId);
+        openUpdateReadingModal(unitId) {
+            if (window.openCreateReadingModal) {
+                window.openCreateReadingModal(unitId);
+            } else {
+                alert('Modal system not available. Please refresh the page.');
             }
         },
         
-        openCreateReadingModal() {
-            // This opens a modal to select a unit first, or directly opens the water reading modal
-            // For now, we'll open a prompt or a selection modal
-            // You can enhance this to show a unit selector dropdown
-            
-            // Simple approach: Ask for unit ID (you can replace with a proper unit selector modal)
-            const unitId = prompt('Enter Unit ID to record reading:');
-            if (unitId && !isNaN(unitId)) {
-                if (window.waterReadingModal) {
-                    window.waterReadingModal.openModal(parseInt(unitId));
+        openCreateReadingModal(unitId = null) {
+            if (window.openCreateReadingModal) {
+                if (unitId) {
+                    window.openCreateReadingModal(unitId);
                 } else {
-                    alert('Water reading modal not available');
+                    window.openCreateReadingModal();
                 }
-            } else if (unitId) {
-                alert('Please enter a valid Unit ID');
+            } else {
+                alert('Modal system not available. Please refresh the page.');
             }
+        },
+        
+        viewHistory(unitId, unitNumber) {
+            window.location.href = `/water/unit/${unitId}/statement`;
         },
         
         exportData() {
-            // Simple CSV export
-            const headers = ['Unit', 'Estate', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Reading Date', 'Status'];
+            const headers = ['Unit', 'Estate', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Last Reading Date', 'Status'];
             const rows = this.filteredReadings.map(r => [
                 r.unit_number,
                 r.estate_name,
@@ -387,8 +478,8 @@ document.addEventListener('alpine:init', () => {
                 this.formatNumber(r.current_reading),
                 this.formatNumber(r.consumption),
                 this.formatNumber(r.charge),
-                this.formatDate(r.reading_date),
-                this.getStatusText(r.consumption)
+                this.formatDate(r.last_reading_date),
+                r.needs_reading ? 'Needs Reading' : 'Up to Date'
             ]);
             
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -404,5 +495,5 @@ document.addEventListener('alpine:init', () => {
 });
 </script>
 
-<!-- Include Water Reading Modal -->
-@include('partials.modal.water-reading-create-modal')
+<!-- Include the separate Water Reading Modal -->
+@include('partials.modal.modal-create-reading')

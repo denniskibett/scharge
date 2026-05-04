@@ -31,7 +31,7 @@ class User extends Authenticatable
         'social',
         'first_name',
         'last_name',
-        'role_id',  // Add role_id to fillable
+        'role_id',  
     ];
 
     /**

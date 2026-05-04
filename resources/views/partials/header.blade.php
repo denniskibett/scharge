@@ -1,6 +1,6 @@
 <header
   x-data="{menuToggle: false}"
-  class="sticky top-0 z-99999 flex w-full border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:border-b"
+  class="sticky top-0 z-50 flex w-full border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:border-b"
 >
   <div class="flex flex-grow flex-col items-center justify-between lg:flex-row lg:px-6">
     <div
@@ -9,7 +9,7 @@
       <!-- Hamburger Toggle BTN -->
       <button
         :class="sidebarToggle ? 'lg:bg-transparent dark:lg:bg-transparent bg-gray-100 dark:bg-gray-800' : ''"
-        class="z-99999 flex h-10 w-10 items-center justify-center rounded-lg border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400 lg:h-11 lg:w-11 lg:border"
+        class="z-50 flex h-10 w-10 items-center justify-center rounded-lg border-gray-200 text-gray-500 dark:border-gray-800 dark:text-gray-400 lg:h-11 lg:w-11 lg:border"
         @click.stop="sidebarToggle = !sidebarToggle"
       >
         <svg
@@ -76,7 +76,7 @@
 
       <!-- Application nav menu button -->
       <button
-        class="z-99999 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
+        class="z-50 flex h-10 w-10 items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 lg:hidden"
         :class="menuToggle ? 'bg-gray-100 dark:bg-gray-800' : ''"
         @click.stop="menuToggle = !menuToggle"
       >

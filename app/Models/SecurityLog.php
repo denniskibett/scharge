@@ -9,7 +9,7 @@ class SecurityLog extends Model
 {
     use HasFactory;
 
-    protected $table = 'security_logs';
+    protected $table = 'security';
 
     protected $fillable = [
         'unit_id', 'tenant_id', 'visitor_id', 'verified_by_user_id',

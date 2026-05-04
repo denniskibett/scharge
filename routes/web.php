@@ -19,6 +19,7 @@ use App\Http\Controllers\CleaningController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\WaterReadingController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -206,6 +207,37 @@ Route::middleware('auth')->group(function () {
             Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
             Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
         });
+
+        
+// In your water prefix group, add these routes:
+Route::prefix('water')->group(function () {
+    Route::get('/', [WaterReadingController::class, 'index'])->name('water.index');
+    Route::post('/readings', [WaterReadingController::class, 'store'])->name('water.readings.store');
+    Route::post('/readings/bulk', [WaterReadingController::class, 'storeBulk'])->name('water.readings.bulk');
+    Route::post('/readings/bulk-matrix', [WaterReadingController::class, 'storeBulkMatrix'])->name('water.readings.bulk-matrix');
+    Route::post('/readings/multi-month', [WaterReadingController::class, 'storeMultiMonth'])->name('water.readings.multi-month');
+    Route::put('/readings/{reading}/reconcile', [WaterReadingController::class, 'reconcile'])->name('water.readings.reconcile');
+    Route::get('/last-reading/{unitId}', [WaterReadingController::class, 'getLastReading']);
+    Route::get('/unit-history/{unitId}', [WaterReadingController::class, 'getUnitWaterHistory']);
+    Route::get('/unit/{unit}/statement', [WaterReadingController::class, 'statement'])->name('water.statement');
+    Route::get('/unit/{unit}/readings', [WaterReadingController::class, 'getUnitReadings']);
+    Route::post('/report', [WaterReadingController::class, 'generateReport']);
+    
+    // NEW ROUTES
+    Route::get('/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
+    Route::get('/api/water/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange']);
+
+    // These are the actual routes your modal expects:
+    Route::post('/readings/bulk-matrix', [WaterReadingController::class, 'storeBulkMatrix'])->name('water.readings.bulk-matrix');
+    Route::post('/readings/multi-month', [WaterReadingController::class, 'storeMultiMonth'])->name('water.readings.multi-month');
+    Route::get('/api/readings/bulk', [WaterReadingController::class, 'getBulkReadings'])->name('water.api.bulk');
+    Route::get('/api/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange'])->name('water.api.unit-readings');
+});
+
+// API routes for units
+// Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings']);
+Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
+Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
 
         // Cleaning Staff routes
         Route::middleware(['auth', 'role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {

@@ -382,4 +382,9 @@ class Unit extends Model
         
         return implode(', ', $parts);
     }
+
+    public function waterReadings()
+    {
+        return $this->hasMany(WaterReading::class);
+    }
 }

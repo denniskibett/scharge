@@ -1,4 +1,4 @@
--- MySQL dump 10.13  Distrib 8.0.41, for macos15 (x86_64)
+-- MySQL dump 10.13  Distrib 9.4.0, for macos14.7 (x86_64)
 --
 -- Host: localhost    Database: scharge
 -- ------------------------------------------------------
@@ -7,13 +7,21 @@
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!50503 SET NAMES utf8 */;
+/*!50503 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+
+--
+-- Current Database: `scharge`
+--
+
+CREATE DATABASE /*!32312 IF NOT EXISTS*/ `scharge` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+
+USE `scharge`;
 
 --
 -- Table structure for table `cache`
@@ -174,7 +182,7 @@ CREATE TABLE `invoice_items` (
   PRIMARY KEY (`id`),
   KEY `invoice_items_invoice_id_foreign` (`invoice_id`),
   CONSTRAINT `invoice_items_invoice_id_foreign` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1984 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1985 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -196,7 +204,7 @@ CREATE TABLE `invoices` (
   PRIMARY KEY (`id`),
   KEY `invoices_tenancy_id_foreign` (`tenancy_id`),
   CONSTRAINT `invoices_tenancy_id_foreign` FOREIGN KEY (`tenancy_id`) REFERENCES `tenancies` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=1978 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=1979 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -355,7 +363,7 @@ CREATE TABLE `payments` (
   KEY `payments_user_id_foreign` (`tenancy_id`),
   CONSTRAINT `payments_invoice_id_foreign` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
   CONSTRAINT `payments_user_id_foreign` FOREIGN KEY (`tenancy_id`) REFERENCES `tenancies` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -504,7 +512,7 @@ CREATE TABLE `tenancies` (
   PRIMARY KEY (`id`),
   KEY `tenancies_unit_id_foreign` (`unit_id`),
   CONSTRAINT `tenancies_unit_id_foreign` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=135 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=167 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -525,7 +533,7 @@ CREATE TABLE `tenants` (
   PRIMARY KEY (`id`),
   KEY `tenants_user_id_foreign` (`user_id`),
   CONSTRAINT `tenants_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=132 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=179 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -546,16 +554,30 @@ CREATE TABLE `units` (
   `garbage_charge` decimal(12,2) NOT NULL DEFAULT '0.00',
   `security_charge` decimal(12,2) NOT NULL DEFAULT '0.00',
   `total_monthly_charges` decimal(12,2) GENERATED ALWAYS AS (((((`rent_amount` + `water_charge`) + `service_charge`) + `garbage_charge`) + `security_charge`)) STORED,
-  `status` enum('vacant','occupied') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'vacant',
+  `status` enum('vacant','occupied','available') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'vacant',
+  `ownership_type` enum('homeowner','tenant','company') COLLATE utf8mb4_unicode_ci DEFAULT 'tenant',
+  `furnishing_status` enum('furnished','unfurnished','semi_furnished') COLLATE utf8mb4_unicode_ci DEFAULT 'unfurnished',
+  `stay_type` enum('long_stay','short_stay','bnb','mixed') COLLATE utf8mb4_unicode_ci DEFAULT 'long_stay',
+  `property_category` enum('residential','commercial','showhouse','office','retail','industrial') COLLATE utf8mb4_unicode_ci DEFAULT 'residential',
+  `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
-  `previous_water_reading` decimal(12,2) DEFAULT '0.00' COMMENT 'Previous water meter reading',
-  `current_water_reading` decimal(12,2) DEFAULT '0.00' COMMENT 'Current water meter reading',
-  `last_reading_date` date DEFAULT NULL COMMENT 'Date when last reading was taken',
+  `previous_water_reading` decimal(12,2) DEFAULT '0.00',
+  `current_water_reading` decimal(12,2) DEFAULT '0.00',
+  `last_reading_date` date DEFAULT NULL,
   `custom_water_rate` decimal(12,2) DEFAULT NULL COMMENT 'Custom water rate per unit (overrides estate)',
   `water_billing_type` enum('flat','consumption') COLLATE utf8mb4_unicode_ci DEFAULT 'consumption' COMMENT 'How water is billed',
+  `min_stay_days` int DEFAULT NULL COMMENT 'Minimum stay in days for short-stay/BNB',
+  `max_stay_days` int DEFAULT NULL COMMENT 'Maximum stay in days',
+  `bnb_cleaning_fee` decimal(12,2) DEFAULT '0.00' COMMENT 'One-time cleaning fee for BNB',
+  `bnb_nightly_rate` decimal(12,2) DEFAULT NULL COMMENT 'Per night rate for BNB (overrides rent_amount)',
+  `security_deposit_amount` decimal(12,2) DEFAULT NULL COMMENT 'Security deposit amount',
+  `commission_rate` decimal(5,2) DEFAULT NULL COMMENT 'Commission percentage for agents',
   PRIMARY KEY (`id`),
   UNIQUE KEY `units_estate_id_unit_number_unique` (`estate_id`,`unit_number`),
+  KEY `idx_ownership_type` (`ownership_type`),
+  KEY `idx_stay_type` (`stay_type`),
+  KEY `idx_property_category` (`property_category`),
   CONSTRAINT `units_estate_id_foreign` FOREIGN KEY (`estate_id`) REFERENCES `estates` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=160 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -592,7 +614,7 @@ CREATE TABLE `users` (
   UNIQUE KEY `users_email_unique` (`email`),
   KEY `users_role_id_foreign` (`role_id`),
   CONSTRAINT `users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=158 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=220 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -638,6 +660,35 @@ CREATE TABLE `visitors` (
   CONSTRAINT `visitors_registered_by_tenant_id_foreign` FOREIGN KEY (`registered_by_tenant_id`) REFERENCES `tenants` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `water_readings`
+--
+
+DROP TABLE IF EXISTS `water_readings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `water_readings` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `unit_id` bigint unsigned NOT NULL,
+  `is_initial` tinyint(1) DEFAULT '0',
+  `previous_reading` decimal(12,2) DEFAULT '0.00',
+  `current_reading` decimal(12,2) NOT NULL,
+  `consumption` decimal(12,2) NOT NULL,
+  `rate_applied` decimal(12,2) NOT NULL,
+  `charge` decimal(12,2) NOT NULL,
+  `billing_type` varchar(255) DEFAULT 'consumption',
+  `reading_date` date NOT NULL,
+  `recorded_by` varchar(255) DEFAULT NULL,
+  `notes` text,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_unit_reading_date` (`unit_id`,`reading_date`),
+  KEY `idx_reading_date` (`reading_date`),
+  CONSTRAINT `fk_water_readings_unit` FOREIGN KEY (`unit_id`) REFERENCES `units` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -648,4 +699,4 @@ CREATE TABLE `visitors` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-04-19 16:57:13
+-- Dump completed on 2026-04-29 16:09:48
