@@ -1,10 +1,10 @@
 <!-- CREATE INVOICE SLIDEOVER MODAL -->
-<div x-data="invoiceCreateModal" x-init="init()">
+<div x-data="invoiceCreateModal" x-init="init()" class="relative z-99999">
   <!-- Backdrop -->
   <template x-if="isOpen">
     <div 
       @click="closeModal"
-      class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-[99999]"
+      class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-999999"
       x-transition:enter="transition ease-out duration-300"
       x-transition:enter-start="opacity-0"
       x-transition:enter-end="opacity-100"
@@ -23,18 +23,20 @@
        x-transition:leave-start="translate-x-0"
        x-transition:leave-end="translate-x-full"
        x-cloak
-       class="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-[99999] overflow-y-auto">
-    <div class="p-6 lg:p-8">
-      <!-- close btn -->
-      <button
-        @click="closeModal"
-        class="group absolute right-3 top-3 z-[99999] flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
-      >
-        <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
-        </svg>
-      </button>
+       class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+       style="width: 42rem; max-width: calc(100% - 2rem);">
+    
+    <!-- Close Button -->
+    <button
+      @click="closeModal"
+      class="group fixed right-3 top-3 z-9999999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
+    >
+      <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
+      </svg>
+    </button>
 
+    <div class="p-6 lg:p-8">
       <form @submit.prevent="submitForm">
         @csrf
         <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
@@ -316,8 +318,8 @@
           </div>
         </div>
 
-        <!-- Smart Water Reading Section - OLD UI (Display Only, No Input) -->
-        <div x-show="showWaterSection && form.billing_month && !allInvoicesGenerated" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <!-- Smart Water Reading Section - IMPROVED UI -->
+        <div x-show="showWaterSection && form.billing_month && !allInvoicesGenerated" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
           <div class="flex items-center justify-between mb-3">
             <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90">Water Meter Reading</h5>
             <span class="text-xs px-2 py-1 rounded-full" 
@@ -325,40 +327,87 @@
                   x-text="waterSource === 'estate' ? 'Estate Rate' : 'Unit Rate'"></span>
           </div>
           
-          <div class="grid grid-cols-2 gap-4 mb-3">
+          <!-- Water Reading Inputs -->
+          <div class="space-y-4">
+            <!-- Previous Reading (Read-only) -->
             <div>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Previous Reading</p>
-              <p class="text-sm font-semibold text-gray-800 dark:text-white/90" x-text="formatNumber(previousReading) + ' units'"></p>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Previous Reading (units)</label>
+              <div class="relative">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  :value="formatNumber(previousReading) + ' units'"
+                  disabled
+                  class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-gray-100 dark:bg-gray-800 px-4 py-2.5 pl-10 text-sm text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                />
+              </div>
             </div>
+            
+            <!-- Current Reading (Editable) -->
             <div>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Current Reading</p>
-              <p class="text-sm font-semibold text-gray-800 dark:text-white/90" x-text="formatNumber(currentReadingInput) + ' units'"></p>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Current Reading (units) *</label>
+              <div class="relative">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  </svg>
+                </div>
+                <input
+                  type="number"
+                  step="0.01"
+                  x-model="currentReadingInput"
+                  @input="updateWaterCalculation"
+                  placeholder="Enter current meter reading"
+                  class="dark:bg-dark-900 w-full rounded-lg border border-blue-300 bg-transparent px-4 py-2.5 pl-10 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-500 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-blue-700 dark:bg-gray-900 dark:text-white/90"
+                />
+              </div>
             </div>
-          </div>
-          
-          <div class="mb-3">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Consumption</p>
-            <p class="text-sm font-bold text-blue-600" x-text="formatNumber(consumption) + ' units'"></p>
-          </div>
-          
-          <div class="mb-3">
-            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Water Rate</p>
-            <p class="text-sm font-semibold text-gray-800 dark:text-white/90">KES <span x-text="formatNumber(waterRate)"></span> / unit</p>
-          </div>
-          
-          <div class="pt-3 border-t border-blue-200 dark:border-blue-800">
-            <div class="flex justify-between items-center">
-              <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Water Charge</p>
-              <p class="text-lg font-bold text-blue-600">KES <span x-text="formatNumber(calculatedWaterCharge)"></span></p>
+            
+            <!-- Water Rate -->
+            <div>
+              <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Water Rate</label>
+              <div class="relative">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <span class="text-gray-500 dark:text-gray-400">KES</span>
+                </div>
+                <input
+                  type="text"
+                  :value="formatNumber(waterRate) + ' / unit'"
+                  disabled
+                  class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-gray-100 dark:bg-gray-800 px-4 py-2.5 pl-16 text-sm text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                />
+              </div>
             </div>
-            <button
-              type="button"
-              @click="addWaterItemToInvoice"
-              :disabled="consumption <= 0 || (allInvoicesGenerated && !forceGenerateMode)"
-              class="mt-3 w-full py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Add Water Charge to Invoice
-            </button>
+            
+            <!-- Consumption Summary -->
+            <div class="pt-3 border-t border-blue-200 dark:border-blue-800">
+              <div class="grid grid-cols-2 gap-4 mb-3">
+                <div class="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Consumption</p>
+                  <p class="text-lg font-bold text-blue-600" x-text="formatNumber(consumption) + ' units'"></p>
+                </div>
+                <div class="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                  <p class="text-xs text-gray-500 dark:text-gray-400">Water Charge</p>
+                  <p class="text-lg font-bold text-green-600">KES <span x-text="formatNumber(calculatedWaterCharge)"></span></p>
+                </div>
+              </div>
+              
+              <button
+                type="button"
+                @click="addWaterItemToInvoice"
+                :disabled="consumption <= 0 || (allInvoicesGenerated && !forceGenerateMode)"
+                class="w-full py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Add Water Charge to Invoice
+              </button>
+            </div>
           </div>
         </div>
 
@@ -394,11 +443,11 @@
   </div>
 
   <!-- Missing Invoices Modal -->
-  <div x-show="showMissingInvoicesModal" x-cloak class="fixed inset-0 z-[999999] overflow-y-auto" style="display: none;">
+  <div x-show="showMissingInvoicesModal" x-cloak class="fixed inset-0 z-9999999 overflow-y-auto" style="display: none;">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="fixed inset-0 bg-black/50" @click="showMissingInvoicesModal = false"></div>
       
-      <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto z-[999999]">
+      <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto z-9999999">
         <div class="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Missing Invoices</h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -483,11 +532,11 @@
   </div>
 
   <!-- Duplicate Invoice Resolution Modal -->
-  <div x-show="showDuplicateResolution" x-cloak class="fixed inset-0 z-[999999] overflow-y-auto" style="display: none;">
+  <div x-show="showDuplicateResolution" x-cloak class="fixed inset-0 z-9999999 overflow-y-auto" style="display: none;">
     <div class="flex items-center justify-center min-h-screen px-4">
       <div class="fixed inset-0 bg-black/50" @click="showDuplicateResolution = false"></div>
       
-      <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full z-[999999]">
+      <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-2xl w-full z-9999999">
         <div class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">Duplicate Invoices Found</h3>
           <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">

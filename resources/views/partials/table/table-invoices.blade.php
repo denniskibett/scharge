@@ -245,7 +245,7 @@
 <!-- Include Modals -->
 @include('partials.modal.invoice-create-modal')
 @include('partials.modal.invoice-bulk-modal', ['mappedActiveTenancies' => $mappedActiveTenancies ?? collect()])
-@include('partials.modal.payment-create-modal', ['invoices' => $paymentInvoices ?? []])
+@include('partials.modal.payments-create-modal', ['invoices' => $paymentInvoices ?? []])
 @include('partials.modal.invoice-delete-modal')
 
 <script>

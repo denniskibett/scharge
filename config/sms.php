@@ -1,3 +1,7 @@
+<?php
+
+use Illuminate\Support\Str;
+
 return [
     'base_url' => env('KENYASMS_URL'),
     'api_key' => env('KENYASMS_KEY'),
