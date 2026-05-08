@@ -299,14 +299,15 @@
 
     <!-- Modal Content - Slides from Right -->
     <div x-show="isOpen" 
-         x-transition:enter="transition transform ease-out duration-300"
-         x-transition:enter-start="translate-x-full"
-         x-transition:enter-end="translate-x-0"
-         x-transition:leave="transition transform ease-in duration-200"
-         x-transition:leave-start="translate-x-0"
-         x-transition:leave-end="translate-x-full"
-         x-cloak
-         class="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-99999 overflow-y-auto">
+        x-transition:enter="transition transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        x-cloak
+        class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+        style="width: 38rem; max-width: calc(100% - 2rem);">
         <div class="p-6 lg:p-8">
             <!-- close btn -->
             <button
@@ -491,7 +492,8 @@
          x-transition:leave-start="translate-x-0"
          x-transition:leave-end="translate-x-full"
          x-cloak
-         class="fixed top-0 right-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl z-99999 overflow-y-auto">
+        class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+        style="width: 38rem; max-width: calc(100% - 2rem);">
         <div class="p-6 lg:p-8">
             <!-- close btn -->
             <button
