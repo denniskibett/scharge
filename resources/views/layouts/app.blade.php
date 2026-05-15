@@ -24,7 +24,7 @@
     {{-- Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Vite Assets -->
+    {{-- Vite Assets (only essential files) --}}
     @vite([
         'resources/css/app.css',
         'resources/js/app.js',
@@ -32,17 +32,9 @@
         'resources/js/index.js'
     ])
 
-    <!-- Auto-load all JS components -->
-    @php
-        // Get all JS component files
-        $components = collect(File::allFiles(resource_path('js/components')))
-            ->filter(fn($file) => $file->getExtension() === 'js')
-            ->map(fn($file) => 'resources/js/components/'.$file->getRelativePathname())
-            ->values()
-            ->all();
-    @endphp
-
-    @vite($components)
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 
 <body class="font-outfit antialiased bg-gray-100"
@@ -56,9 +48,10 @@
           selected: $persist('{{ ucfirst(request()->segment(1) ?? 'Dashboard') }}')
       }"
       x-init="$watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
-      :class="{'dark bg-gray-900': darkMode}">
+      :class="{'dark bg-gray-900': darkMode}"
+      x-cloak>
 
-@include('partials.preloader')
+{{-- @include('partials.preloader') --}}
 
 <div class="flex h-screen overflow-hidden">
     @include('partials.sidebar')
@@ -68,8 +61,6 @@
         {{-- Header --}}
         @include('partials.header')
 
-        
-
         {{-- Page Content --}}
         <main class="flex-1 p-6">
             @yield('content')
@@ -78,6 +69,8 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+{{-- Alpine.js with Persist Plugin --}}
+<script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/persist@3.x.x/dist/cdn.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </body>
 </html>

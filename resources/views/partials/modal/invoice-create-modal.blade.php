@@ -474,7 +474,7 @@
                   <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400">
                     <input type="checkbox" x-model="selectAllMissing" @change="toggleSelectAllMissing" class="rounded border-gray-300">
                   </th>
-                </tr>
+                </table>
               </thead>
               <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                 <template x-for="(month, idx) in missingMonthsFiltered" :key="month.value">
@@ -699,6 +699,49 @@ document.addEventListener('alpine:init', () => {
       await this.fetchBillingHistory();
       await this.determineNextBillingMonth();
       
+      document.body.style.overflow = 'hidden';
+    },
+
+    // NEW METHOD FOR TENANCY FINANCIALS TAB
+    async openModalForFinancials(tenancyId, waterBill, serviceCharge, readingMonth) {
+      this.tenancyId = tenancyId;
+      this.isOpen = true;
+      this.resetForm();
+      this.forceGenerateMode = false;
+      this.forceGenerateReason = '';
+      this.monthWarning = null;
+      this.selectedMissingMonths = [];
+      this.selectAllMissing = false;
+      this.allInvoicesGenerated = false;
+
+      await this.fetchTenancyData();
+      await this.checkExistingInvoices();
+      await this.fetchBillingHistory();
+      await this.determineNextBillingMonth();
+
+      // Clear default items and add water + service charges (if amounts > 0)
+      this.form.items = [];
+      if (waterBill > 0) {
+        this.form.items.push({
+          description: `Water bill for ${readingMonth}`,
+          item_type: 'water',
+          amount: waterBill,
+          metadata: { source: 'financials_tab' }
+        });
+      }
+      if (serviceCharge > 0) {
+        this.form.items.push({
+          description: `Service charge for ${readingMonth}`,
+          item_type: 'service',
+          amount: serviceCharge,
+          metadata: { source: 'financials_tab' }
+        });
+      }
+      // If no water or service, fallback to standard monthly charges (rent, etc.)
+      if (this.form.items.length === 0) {
+        this.addStandardChargesToForm();
+      }
+
       document.body.style.overflow = 'hidden';
     },
     

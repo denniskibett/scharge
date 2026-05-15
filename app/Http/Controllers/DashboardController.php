@@ -459,7 +459,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get Accountant specific data
+     * Get Accountant specific data – PAGINATED & OPTIMIZED
      */
     private function getAccountantData()
     {
@@ -498,7 +498,7 @@ class DashboardController extends Controller
                     })->toArray(),
                 ];
             })->toArray();
-        
+
         $recentTransactions = Payment::with(['invoice.tenancy.tenant.user', 'invoice.tenancy.unit'])
             ->latest()
             ->take(15)
@@ -518,11 +518,65 @@ class DashboardController extends Controller
                     'date' => Carbon::parse($payment->payment_datetime)->format('M d, Y'),
                 ];
             })->toArray();
-        
+
+        // ========== PAGINATED, OPTIMIZED TENANCY FINANCIALS ==========
+        // Get active tenancies (paginated, 20 per page)
+        $tenancies = Tenancy::with(['unit', 'tenant.user'])
+            ->where('status', 'active')
+            ->paginate(20);  // <-- change 20 to any number you prefer
+
+        // Extract unit IDs and tenancy IDs from the current page only
+        $unitIds = $tenancies->getCollection()->pluck('unit_id')->unique()->filter();
+        $tenancyIds = $tenancies->getCollection()->pluck('id')->unique()->filter();
+
+        // Preload latest water readings for these units (one query)
+        $latestReadings = collect();
+        if ($unitIds->isNotEmpty()) {
+            $latestReadings = WaterReading::whereIn('unit_id', $unitIds)
+                ->orderBy('reading_date', 'desc')
+                ->get()
+                ->groupBy('unit_id')
+                ->map(fn($group) => $group->first());
+        }
+
+        // Preload latest invoices for these tenancies (one query)
+        $latestInvoices = collect();
+        if ($tenancyIds->isNotEmpty()) {
+            $latestInvoices = Invoice::whereIn('tenancy_id', $tenancyIds)
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->groupBy('tenancy_id')
+                ->map(fn($group) => $group->first());
+        }
+
+        // Transform the paginated collection without extra DB queries
+        $tenancies->getCollection()->transform(function ($tenancy) use ($latestReadings, $latestInvoices) {
+            $unit = $tenancy->unit;
+            $tenant = $tenancy->tenant;
+            $waterReading = $latestReadings[$unit->id] ?? null;
+            $waterBill = $waterReading ? $waterReading->charge : 0;
+            $readingMonth = $waterReading ? $waterReading->reading_date->format('M Y') : 'No reading';
+            $serviceCharge = $unit->service_charge ?? 0;
+            $latestInvoice = $latestInvoices[$tenancy->id] ?? null;
+
+            return (object) [
+                'tenancy_id'     => $tenancy->id,
+                'unit_number'    => $unit->unit_number ?? 'N/A',
+                'tenant_name'    => $tenant->user->name ?? 'N/A',
+                'phone_number'   => $tenant->user->phone ?? $tenant->user->phone_number ?? 'N/A',
+                'reading_month'  => $readingMonth,
+                'water_bill'     => (float) $waterBill,
+                'service_charge' => (float) $serviceCharge,
+                'total_due'      => (float) ($waterBill + $serviceCharge),
+                'invoice_id'     => $latestInvoice ? $latestInvoice->id : null,
+            ];
+        });
+
         return [
             'type' => 'accountant',
-            'overdueInvoices' => $overdueInvoices,
+            'overdueInvoices'    => $overdueInvoices,
             'recentTransactions' => $recentTransactions,
+            'tenancyFinancials'  => $tenancies,  // <-- Paginator instance
         ];
     }
 

@@ -216,6 +216,10 @@ Route::middleware('auth')->group(function () {
 // In your water prefix group, add these routes:
 Route::prefix('water')->group(function () {
     Route::get('/', [WaterReadingController::class, 'index'])->name('water.index');
+    
+    // NEW: Display bulk reading form (GET)
+    Route::get('/readings/bulk', [WaterReadingController::class, 'bulkForm'])->name('water.readings.bulk.form');
+    
     Route::post('/readings', [WaterReadingController::class, 'store'])->name('water.readings.store');
     Route::post('/readings/bulk', [WaterReadingController::class, 'storeBulk'])->name('water.readings.bulk');
     Route::post('/readings/bulk-matrix', [WaterReadingController::class, 'storeBulkMatrix'])->name('water.readings.bulk-matrix');
@@ -311,3 +315,11 @@ Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.g
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 require __DIR__.'/auth.php';
+
+// Handle GET requests to /logout (permanent fix for MethodNotAllowedHttpException)
+Route::get('/logout', function () {
+    auth()->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/');
+});

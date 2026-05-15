@@ -9,7 +9,7 @@
       <meta http-equiv="X-UA-Compatible" content="ie=edge" />
       <title>Sign In | {{ SystemHelper::appName() }}</title>
     
-    <!-- Vite Assets -->
+    <!-- Vite Assets (explicit, no auto‑loader) -->
     @vite([
         'resources/css/app.css',
         'resources/js/app.js',
@@ -19,14 +19,6 @@
         'resources/js/components/charts/chart-02.js',
         'resources/js/components/charts/chart-03.js'
     ])
-
-    <!-- Auto-load all JS components -->
-    @php
-        $components = array_diff(scandir(resource_path('js/components')), array('..', '.'));
-    @endphp
-    @foreach ($components as $component)
-        @vite(['resources/js/components/' . $component])
-    @endforeach
   </head>
   <body
     x-data="{ page: 'comingSoon', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
