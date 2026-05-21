@@ -1,4 +1,5 @@
 <?php
+// app/Models/Invoice.php
 
 namespace App\Models;
 
@@ -14,10 +15,11 @@ class Invoice extends Model
      */
     protected $fillable = [
         'tenancy_id',
-        'invoice_type', // move_in, monthly, move_out
-        'billing_month', // nullable for move_in/move_out
+        'invoice_type',
+        'billing_month',
         'total_amount',
-        'status', // unpaid, partial, paid
+        'total_paid',
+        'status',
     ];
 
     /**
@@ -26,6 +28,7 @@ class Invoice extends Model
     protected $casts = [
         'billing_month' => 'date',
         'total_amount' => 'decimal:2',
+        'total_paid' => 'decimal:2',
     ];
 
     /**
@@ -43,7 +46,6 @@ class Invoice extends Model
     {
         return $this->hasMany(InvoiceItem::class);
     }
-    
 
     // Invoice has many payments
     public function payments()
@@ -53,13 +55,13 @@ class Invoice extends Model
 
     public function getRemainingAmountAttribute()
     {
-        $paidAmount = $this->payments->sum('amount');
+        $paidAmount = $this->total_paid ?? 0;
         return max(0, $this->total_amount - $paidAmount);
     }
 
     public function updateStatus()
     {
-        $totalPaid = $this->payments->sum('amount');
+        $totalPaid = $this->total_paid ?? 0;
         
         if ($totalPaid >= $this->total_amount) {
             $this->status = 'paid';
@@ -72,5 +74,4 @@ class Invoice extends Model
         $this->save();
         return $this;
     }
-
 }

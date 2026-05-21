@@ -733,9 +733,7 @@ class DashboardController extends Controller
         ];
     }
     
-    /**
-     * Get Property Manager specific data - INCLUDING WATER READINGS
-     */
+
     private function getPropertyManagerData()
     {
         // Long term vacant units
@@ -844,6 +842,7 @@ class DashboardController extends Controller
         ];
     }
     
+<<<<<<< HEAD
     private function getMeterReaderData($month = null)
     {
         $user = auth()->user();
@@ -968,6 +967,154 @@ class DashboardController extends Controller
             'selectedMonth' => $month,
         ];
     }
+=======
+private function getMeterReaderData()
+{
+    $user = auth()->user();
+
+    // Units that need reading (no reading in last 30 days)
+    $unitsNeedingReading = Unit::where('status', 'occupied')
+        ->where(function ($query) {
+            $query->whereNull('last_reading_date')
+                ->orWhere('last_reading_date', '<=', Carbon::now()->subDays(30));
+        })
+        ->with('estate')
+        ->get()
+        ->map(function ($unit) {
+            // Get the last reading from water_readings table
+            $lastReading = WaterReading::where('unit_id', $unit->id)
+                ->latest('reading_date')
+                ->first();
+
+            $billingType = $unit->water_billing_type ?? 'consumption';
+            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+
+            $previousReading = $lastReading
+                ? $lastReading->current_reading
+                : ($unit->previous_water_reading ?? 0);
+
+            return [
+                'id' => $unit->id,
+                'unit_id' => $unit->id,
+                'unit_number' => $unit->unit_number ?? 'N/A',
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'previous_reading' => (float) $previousReading,
+                'current_reading' => null,
+                'consumption' => null,
+                'charge' => null,
+                'reading_date' => null,
+                'last_reading_date' => $lastReading
+                    ? $lastReading->reading_date->format('Y-m-d')
+                    : null,
+                'water_billing_type' => $billingType,
+                'water_charge' => (float) ($unit->water_charge ?? 0),
+                'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
+                'water_rate' => (float) $rate,
+                'rate' => (float) $rate,
+                'needs_reading' => true,
+                'status' => $unit->status,
+                'unit_type' => $unit->unit_type,
+            ];
+        });
+
+    // Reading history for meter reader
+    $readingHistory = WaterReading::with(['unit.estate', 'recordedBy'])
+        ->orderBy('reading_date', 'desc')
+        ->get()
+        ->map(function ($reading) {
+            $unit = $reading->unit;
+
+            if (!$unit) {
+                return null;
+            }
+
+            $billingType = $unit->water_billing_type ?? 'consumption';
+            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+
+            $consumption = $reading->consumption;
+            if ($consumption == 0 && $billingType === 'consumption') {
+                $consumption = $reading->current_reading - $reading->previous_reading;
+            }
+
+            $charge = $reading->charge;
+            if ($charge == 0) {
+                if ($billingType === 'flat') {
+                    $charge = $unit->water_charge ?? 0;
+                } else {
+                    $charge = max(0, $consumption) * $rate;
+                }
+            }
+
+            return [
+                'id' => $reading->id,
+                'unit_id' => $unit->id,
+                'unit_number' => $unit->unit_number ?? 'N/A',
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'previous_reading' => (float) $reading->previous_reading,
+                'current_reading' => (float) $reading->current_reading,
+                'consumption' => (float) max(0, $consumption),
+                'charge' => (float) max(0, $charge),
+                'reading_date' => $reading->reading_date->format('Y-m-d'),
+                'last_reading_date' => $reading->reading_date->format('Y-m-d'),
+                'water_billing_type' => $billingType,
+                'water_charge' => (float) ($unit->water_charge ?? 0),
+                'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
+                'water_rate' => (float) $rate,
+                'rate' => (float) $rate,
+                'needs_reading' => false,
+                'status' => $unit->status ?? 'occupied',
+                'unit_type' => $unit->unit_type,
+                'recorded_by_name' => optional($reading->recordedBy)->name ?? 'System',
+            ];
+        })
+        ->filter()
+        ->values();
+
+    // Get ALL units exactly like Property Manager does
+    $units = Unit::with('estate')
+        ->where('is_active', true)
+        ->get()
+        ->map(function ($unit) {
+            return [
+                'id' => $unit->id,
+                'unit_number' => $unit->unit_number,
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'status' => $unit->status,
+                'unit_type' => $unit->unit_type,
+                'rent_amount' => $unit->rent_amount,
+
+                // Water-related fields needed by the meter reader modal
+                'water_billing_type' => $unit->water_billing_type ?? 'consumption',
+                'water_charge' => (float) ($unit->water_charge ?? 0),
+                'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
+                'water_rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+                'rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+                'previous_reading' => (float) ($unit->previous_water_reading ?? 0),
+                'current_reading' => (float) ($unit->current_water_reading ?? 0),
+                'last_reading_date' => $unit->last_reading_date
+                    ? $unit->last_reading_date->format('Y-m-d')
+                    : null,
+            ];
+        });
+
+    return [
+        'type' => 'meter_reader',
+        'unitsNeedingReading' => $unitsNeedingReading,
+        'readingHistory' => $readingHistory,
+
+        // This now matches Property Manager's unit listing structure,
+        // with additional water fields required for the reading modal.
+        'units' => $units,
+
+        'allWaterReadings' => WaterReading::count(),
+        'todayReadings' => WaterReading::whereDate('reading_date', Carbon::today())->count(),
+        'thisMonthReadings' => WaterReading::whereMonth('reading_date', Carbon::now()->month)->count(),
+    ];
+}
+>>>>>>> 3a151e2e571b93fd79515b10d60532d0bbb6997c
     
     private function getCleaningStaffData()
     {

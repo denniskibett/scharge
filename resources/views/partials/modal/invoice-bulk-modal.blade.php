@@ -18,7 +18,7 @@
   <template x-if="isOpen">
     <div 
       @click="closeModal"
-      class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-[99999]"
+      class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
       x-transition:enter="transition ease-out duration-300"
       x-transition:enter-start="opacity-0"
       x-transition:enter-end="opacity-100"
@@ -36,7 +36,7 @@
        x-transition:leave="transition transform ease-in duration-200"
        x-transition:leave-start="translate-x-0"
        x-transition:leave-end="translate-x-full"
-       class="fixed top-0 right-0 h-full w-full max-w-4xl bg-white dark:bg-gray-900 shadow-2xl z-[99999] overflow-y-auto">
+       class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 42rem; max-width: calc(100% - 2rem);">
     <div class="p-6 lg:p-8">
       <!-- close btn -->
       <button
@@ -53,7 +53,7 @@
       <!-- Tab Navigation -->
       <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
         <button 
-          @click="activeTab = 'create'" 
+          @click="activeTab = 'create'; resetCreateForm()" 
           :class="activeTab === 'create' ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'"
           class="px-4 py-2 text-sm font-medium border-b-2 transition-colors">
           <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +95,7 @@
             </label>
             <select
               x-model="createForm.invoice_type"
-              @change="onInvoiceTypeChange"
+              @change="onInvoiceTypeChange()"
               required
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
             >
@@ -113,7 +113,7 @@
             <input
               type="month"
               x-model="createForm.billing_month"
-              @change="onBillingMonthChange"
+              @change="onBillingMonthChange()"
               required
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
             />
@@ -127,7 +127,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="createForm.apply_to === 'bulk' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
-                <input type="radio" x-model="createForm.apply_to" value="bulk" class="mr-3">
+                <input type="radio" x-model="createForm.apply_to" @click="onApplyToChange()" value="bulk" class="mr-3">
                 <div>
                   <p class="font-medium text-gray-700 dark:text-gray-300">All Tenancies</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">All active tenancies</p>
@@ -136,7 +136,7 @@
               
               <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="createForm.apply_to === 'single' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
-                <input type="radio" x-model="createForm.apply_to" value="single" class="mr-3">
+                <input type="radio" x-model="createForm.apply_to" @click="onApplyToChange()" value="single" class="mr-3">
                 <div>
                   <p class="font-medium text-gray-700 dark:text-gray-300">Single Tenancy</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">One specific tenancy</p>
@@ -145,7 +145,7 @@
               
               <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="createForm.apply_to === 'multiple' ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
-                <input type="radio" x-model="createForm.apply_to" value="multiple" class="mr-3">
+                <input type="radio" x-model="createForm.apply_to" @click="onApplyToChange()" value="multiple" class="mr-3">
                 <div>
                   <p class="font-medium text-gray-700 dark:text-gray-300">Multiple Tenancies</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400">Select specific units</p>
@@ -161,6 +161,7 @@
             </label>
             <select
               x-model="createForm.tenancy_id"
+              @change="onTenancySelectionChange()"
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
             >
               <option value="">Select Tenancy</option>
@@ -199,7 +200,7 @@
                     <input type="checkbox" 
                            x-model="createForm.selected_tenancies" 
                            :value="tenancy.id" 
-                           @change="toggleTenancySelection(tenancy.id)"
+                           @change="onTenancySelectionChange()"
                            class="mr-3 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600">
                     <div class="flex-1">
                       <p class="font-medium text-gray-700 dark:text-gray-300" x-text="tenancy.tenant_name"></p>
@@ -212,8 +213,62 @@
             </div>
           </div>
 
+          <!-- ==================== UTILITY SELECTION SECTION ==================== -->
+          <div class="mb-6" x-show="createForm.invoice_type === 'monthly' && getTenancyCount() > 0">
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+              Select Items to Generate *
+            </label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-4">
+              <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                     :class="selectedUtilities.rent ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
+                <input type="checkbox" x-model="selectedUtilities.rent" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
+                <span class="text-sm">🏠 Rent</span>
+              </label>
+              
+              <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                     :class="selectedUtilities.water ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
+                <input type="checkbox" x-model="selectedUtilities.water" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
+                <span class="text-sm">💧 Water</span>
+              </label>
+              
+              <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                     :class="selectedUtilities.service ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
+                <input type="checkbox" x-model="selectedUtilities.service" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
+                <span class="text-sm">🔧 Service</span>
+              </label>
+              
+              <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                     :class="selectedUtilities.garbage ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
+                <input type="checkbox" x-model="selectedUtilities.garbage" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
+                <span class="text-sm">🗑️ Garbage</span>
+              </label>
+              
+              <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                     :class="selectedUtilities.security ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
+                <input type="checkbox" x-model="selectedUtilities.security" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
+                <span class="text-sm">🛡️ Security</span>
+              </label>
+              
+              <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                     :class="selectedUtilities.other ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
+                <input type="checkbox" x-model="selectedUtilities.other" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
+                <span class="text-sm">📋 Other</span>
+              </label>
+            </div>
+            
+            <!-- Refresh Button -->
+            <div class="flex justify-end mb-2">
+              <button type="button" @click="updateSelectedItems()" :disabled="isLoadingUtilities" class="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
+                <svg x-show="!isLoadingUtilities" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                <span x-text="isLoadingUtilities ? 'Loading...' : '↻ Refresh Utility Charges'"></span>
+              </button>
+            </div>
+          </div>
+
           <!-- Check Existing Invoices Button -->
-          <div class="mb-6" x-show="createFormValid">
+          <div class="mb-6" x-show="createForm.invoice_type === 'monthly' && createForm.items.length > 0 && createForm.items.some(i => i.amount > 0)">
             <button type="button" 
                     @click="checkExistingInvoices"
                     :disabled="isCheckingInvoices"
@@ -247,74 +302,51 @@
             </div>
           </div>
 
-          <!-- Invoice Items Section -->
-          <div class="mb-6">
-            <div class="flex items-center justify-between mb-4">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
-                Invoice Items *
-              </label>
-              <button type="button" @click="addItem" class="text-sm text-brand-500 hover:text-brand-600 flex items-center gap-1">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
-                Add Another Item
-              </button>
-            </div>
-            
-            <div class="space-y-4">
-              <template x-for="(item, index) in createForm.items" :key="item.id">
-                <div class="p-4 border border-gray-200 rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                  <div class="flex justify-between items-start mb-3">
-                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Item <span x-text="index + 1"></span></span>
-                    <button type="button" @click="removeItem(index)" x-show="createForm.items.length > 1" class="text-gray-400 hover:text-red-500">
-                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Item Type *</label>
-                      <select x-model="item.item_type" @change="updateItemDescription(index)" :required="createForm.invoice_type === 'monthly'" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
-                        <option value="">Select Item Type</option>
-                        <option value="rent">Rent</option>
-                        <option value="water">Water</option>
-                        <option value="service">Service Charge</option>
-                        <option value="garbage">Garbage</option>
-                        <option value="security">Security</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount *</label>
-                      <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <span class="text-gray-500 dark:text-gray-400">{{ SystemHelper::currencySymbol() }}</span>
-                        </div>
-                        <input type="number" step="0.01" min="0.01" x-model="item.amount" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-8 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="0.00"/>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="mt-3">
-                    <textarea x-model="item.description" rows="2" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Description will be auto-generated..."></textarea>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-
+<!-- Invoice Items Preview Section -->
+<div class="mb-6" x-show="createForm.invoice_type === 'monthly' && createForm.items.length > 0">
+  <div class="flex items-center justify-between mb-3">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
+      Invoice Items Preview (<span x-text="createForm.items.length"></span> items)
+    </label>
+    <button type="button" @click="addManualItem" class="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
+      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add Manual Item
+    </button>
+  </div>
+  
           <!-- Summary -->
-          <div class="mb-6 rounded-lg bg-gray-50 dark:bg-gray-800 p-4" x-show="getTotalAmount() > 0 && createForm.billing_month">
+          <div class="mb-6 rounded-lg bg-gray-50 dark:bg-gray-800 p-4" x-show="summaryTotals.total > 0">
             <h5 class="font-medium text-gray-800 dark:text-white/90 mb-2">Summary</h5>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Total Amount per Tenancy: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="getTotalAmount().toFixed(2)"></span></span></p>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Number of Items: <span class="font-medium" x-text="createForm.items.length"></span></p>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Number of Tenancies: <span class="font-medium" x-text="getTenancyCount()"></span></p>
+            <div class="space-y-1 text-sm">
+              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.rent && summaryTotals.rent > 0">
+                Rent Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.rent.toFixed(2)"></span></span>
+              </p>
+              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.water && summaryTotals.water > 0">
+                Water Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.water.toFixed(2)"></span></span>
+              </p>
+              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.service && summaryTotals.service > 0">
+                Service Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.service.toFixed(2)"></span></span>
+              </p>
+              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.garbage && summaryTotals.garbage > 0">
+                Garbage Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.garbage.toFixed(2)"></span></span>
+              </p>
+              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.security && summaryTotals.security > 0">
+                Security Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.security.toFixed(2)"></span></span>
+              </p>
+              <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                <p class="text-gray-800 dark:text-white/90 font-medium">
+                  Grand Total: <span class="text-brand-600">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.total.toFixed(2)"></span></span>
+                </p>
+                <p class="text-xs text-gray-500 mt-1">Across <span x-text="summaryTotals.tenancy_count"></span> tenancies | <span x-text="createForm.items.length"></span> items</p>
+              </div>
+            </div>
           </div>
 
           <div class="flex items-center justify-end w-full gap-3 mt-6">
             <button @click="closeModal" type="button" class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto">Cancel</button>
-            <button type="submit" :disabled="isLoading || !createFormValid" class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto">
+            <button type="submit" :disabled="isLoading || !createFormValid || createForm.items.filter(i => i.amount > 0).length === 0" class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto">
               <span x-show="!isLoading">Create Invoices</span>
               <span x-show="isLoading">Creating...</span>
             </button>
@@ -335,7 +367,6 @@
             </div>
           </div>
 
-          <!-- Tenancy Selection for Missing Invoices -->
           <div class="border border-gray-200 rounded-lg max-h-80 overflow-y-auto dark:border-gray-700 mb-6">
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
               <template x-for="tenancy in activeTenanciesData" :key="tenancy.id">
@@ -355,7 +386,6 @@
             </div>
           </div>
 
-          <!-- Missing Months Display -->
           <div x-show="missingForm.selected_tenancies.length > 0 && missingMonthsData.length > 0" class="mt-4">
             <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Missing Months</h5>
             <div class="space-y-4 max-h-96 overflow-y-auto">
@@ -371,10 +401,6 @@
                         <div class="flex items-center gap-3">
                           <input type="checkbox" x-model="tenancy.selected_months" :value="month.value" class="rounded border-gray-300">
                           <span class="text-sm font-medium text-gray-700 dark:text-gray-300" x-text="month.label"></span>
-                        </div>
-                        <div x-show="showWaterSection && tenancy.water_readings && tenancy.water_readings[month.value]" class="flex items-center gap-2">
-                          <input type="number" step="0.01" x-model="tenancy.water_readings[month.value].current" @change="updateWaterReading(tenancy.id, month.value)" placeholder="Current reading" class="w-32 rounded border border-gray-300 px-2 py-1 text-xs dark:bg-gray-800">
-                          <span class="text-xs text-gray-500">Charge: KES <span x-text="formatNumber(tenancy.water_readings[month.value]?.charge || 0)"></span></span>
                         </div>
                       </div>
                     </template>
@@ -410,9 +436,21 @@ document.addEventListener('alpine:init', () => {
     isLoading: false,
     isCheckingInvoices: false,
     missingGenerating: false,
+    isLoadingUtilities: false,
     checkResults: null,
     activeTenanciesData: @json($mappedActiveTenancies),
     showWaterSection: false,
+    utilityCache: {},
+    
+    // Utility selection
+    selectedUtilities: {
+      rent: true,
+      water: true,
+      service: true,
+      garbage: true,
+      security: true,
+      other: false
+    },
     
     // Bulk Create Form
     createForm: {
@@ -421,9 +459,20 @@ document.addEventListener('alpine:init', () => {
       apply_to: 'bulk',
       tenancy_id: '',
       selected_tenancies: [],
-      items: [{ id: 1, item_type: '', amount: '', description: '' }]
+      items: []
     },
-    nextItemId: 2,
+    nextItemId: 1,
+    
+    // Summary totals
+    summaryTotals: {
+      rent: 0,
+      water: 0,
+      service: 0,
+      garbage: 0,
+      security: 0,
+      total: 0,
+      tenancy_count: 0
+    },
     
     // Missing Invoices Form
     missingForm: {
@@ -437,14 +486,27 @@ document.addEventListener('alpine:init', () => {
       const month = String(today.getMonth() + 1).padStart(2, '0');
       this.createForm.billing_month = `${year}-${month}`;
       window.bulkInvoiceModal = this;
+      this.updateSelectedItems();
+    },
+    
+    resetCreateForm() {
+      this.createForm.items = [];
+      this.nextItemId = 1;
+      this.checkResults = null;
+      this.summaryTotals = { rent: 0, water: 0, service: 0, garbage: 0, security: 0, total: 0, tenancy_count: 0 };
+      this.utilityCache = {};
+      if (this.createForm.invoice_type === 'monthly') {
+        this.updateSelectedItems();
+      }
     },
     
     get createFormValid() {
-      const basicValid = this.createForm.invoice_type && this.createForm.billing_month && this.createForm.items.length > 0;
-      const itemsValid = this.createForm.items.every(item => item.item_type && item.amount && parseFloat(item.amount) > 0);
-      if (this.createForm.apply_to === 'single') return basicValid && itemsValid && this.createForm.tenancy_id;
-      if (this.createForm.apply_to === 'multiple') return basicValid && itemsValid && this.createForm.selected_tenancies.length > 0;
-      return basicValid && itemsValid;
+      const basicValid = this.createForm.invoice_type && this.createForm.billing_month;
+      const hasItemsWithAmount = this.createForm.items.some(item => item.amount && parseFloat(item.amount) > 0);
+      
+      if (this.createForm.apply_to === 'single') return basicValid && hasItemsWithAmount && this.createForm.tenancy_id;
+      if (this.createForm.apply_to === 'multiple') return basicValid && hasItemsWithAmount && this.createForm.selected_tenancies.length > 0;
+      return basicValid && hasItemsWithAmount;
     },
     
     formatNumber(value) { 
@@ -457,10 +519,6 @@ document.addEventListener('alpine:init', () => {
       return new Date(year, month - 1).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }); 
     },
     
-    getTotalAmount() { 
-      return this.createForm.items.reduce((total, item) => total + (parseFloat(item.amount) || 0), 0); 
-    },
-    
     getTenancyCount() {
       if (this.createForm.apply_to === 'bulk') return this.activeTenanciesData.length;
       if (this.createForm.apply_to === 'single') return this.createForm.tenancy_id ? 1 : 0;
@@ -471,110 +529,318 @@ document.addEventListener('alpine:init', () => {
       return this.createForm.selected_tenancies.length; 
     },
     
-    onInvoiceTypeChange() { 
-      this.createForm.items.forEach(item => { item.item_type = ''; }); 
-      this.updateItemDescriptions(); 
-      this.resetCheckResults(); 
-    },
-    
-    onBillingMonthChange() { 
-      this.updateItemDescriptions(); 
-      this.resetCheckResults(); 
-    },
-    
-    updateItemDescription(index) {
-      const item = this.createForm.items[index];
-      if (!item.item_type) { 
-        item.description = ''; 
-        return; 
-      }
-      let description = '';
-      if (this.createForm.invoice_type === 'monthly') {
-        const labels = { rent: 'Monthly Rent', water: 'Water Charges', service: 'Service Charge', garbage: 'Garbage Collection', security: 'Security Service', other: 'Other Charges' };
-        description = labels[item.item_type] || item.item_type + ' Charges';
-      } else if (this.createForm.invoice_type === 'move_in') {
-        description = 'Move In Charges';
-      } else if (this.createForm.invoice_type === 'move_out') {
-        description = 'Move Out Charges';
-      }
-      if (this.createForm.billing_month) {
-        description += ` for ${this.formatMonth(this.createForm.billing_month)}`;
-      }
-      item.description = description;
-    },
-    
-    updateItemDescriptions() { 
-      this.createForm.items.forEach((_, index) => this.updateItemDescription(index)); 
-    },
-    
-    addItem() { 
-      this.createForm.items.push({ id: this.nextItemId++, item_type: '', amount: '', description: '' }); 
-      this.resetCheckResults(); 
-    },
-    
-    removeItem(index) { 
-      if (this.createForm.items.length > 1) { 
-        this.createForm.items.splice(index, 1); 
-        this.resetCheckResults(); 
-      } 
-    },
-    
-    toggleTenancySelection(tenancyId) {
-      const index = this.createForm.selected_tenancies.indexOf(tenancyId);
-      if (index === -1) {
-        this.createForm.selected_tenancies.push(tenancyId);
+    getSelectedTenancyIds() {
+      if (this.createForm.apply_to === 'bulk') {
+        return this.activeTenanciesData.map(t => t.id);
+      } else if (this.createForm.apply_to === 'single') {
+        return this.createForm.tenancy_id ? [this.createForm.tenancy_id] : [];
       } else {
-        this.createForm.selected_tenancies.splice(index, 1);
+        return this.createForm.selected_tenancies;
       }
+    },
+    
+    async fetchTenancyUtilityData(tenancyId) {
+      if (this.utilityCache[tenancyId]) {
+        return this.utilityCache[tenancyId];
+      }
+      
+      try {
+        const response = await fetch(`/tenancies/${tenancyId}/invoice-data`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const utilityData = {
+            rent_amount: parseFloat(data.rent_amount) || 0,
+            service_charge: parseFloat(data.service_charge) || 0,
+            garbage_charge: parseFloat(data.garbage_charge) || 0,
+            security_charge: parseFloat(data.security_charge) || 0,
+            has_water: data.has_water_config || false,
+            water_rate: parseFloat(data.water_rate) || 0,
+            water_source: data.water_source,
+            previous_reading: parseFloat(data.previous_reading) || 0,
+            current_reading: parseFloat(data.current_reading) || 0,
+          };
+          
+          if (utilityData.has_water) {
+            if (utilityData.water_source === 'unit') {
+              utilityData.water_charge = utilityData.water_rate;
+            } else {
+              const consumption = Math.max(0, utilityData.current_reading - utilityData.previous_reading);
+              utilityData.water_charge = consumption * utilityData.water_rate;
+              utilityData.water_consumption = consumption;
+            }
+          } else {
+            utilityData.water_charge = 0;
+          }
+          
+          this.utilityCache[tenancyId] = utilityData;
+          return utilityData;
+        }
+      } catch (error) {
+        console.error('Error fetching utility data:', error);
+        return null;
+      }
+    },
+    
+    async updateSelectedItems() {
+      const tenancyIds = this.getSelectedTenancyIds();
+      
+      if (tenancyIds.length === 0) {
+        this.createForm.items = [];
+        this.summaryTotals = { rent: 0, water: 0, service: 0, garbage: 0, security: 0, total: 0, tenancy_count: 0 };
+        return;
+      }
+      
+      this.isLoadingUtilities = true;
+      
+      try {
+        const allUtilityData = [];
+        for (const tenancyId of tenancyIds) {
+          const utilityData = await this.fetchTenancyUtilityData(tenancyId);
+          if (utilityData) {
+            const tenancyInfo = this.activeTenanciesData.find(t => t.id === tenancyId);
+            allUtilityData.push({
+              tenancy_id: tenancyId,
+              tenant_name: tenancyInfo?.tenant_name || 'Unknown',
+              unit_number: tenancyInfo?.unit_number || 'Unknown',
+              ...utilityData
+            });
+          }
+        }
+        
+        if (allUtilityData.length > 0) {
+          this.generateItemsFromAllTenancies(allUtilityData);
+        }
+      } catch (error) {
+        console.error('Error updating selected items:', error);
+      } finally {
+        this.isLoadingUtilities = false;
+      }
+    },
+    
+    generateItemsFromAllTenancies(allUtilityData) {
+      const newItems = [];
+      const monthLabel = this.formatMonth(this.createForm.billing_month);
+      
+      let rentTotal = 0;
+      let waterTotal = 0;
+      let serviceTotal = 0;
+      let garbageTotal = 0;
+      let securityTotal = 0;
+      
+      for (const data of allUtilityData) {
+        const unitLabel = `${data.unit_number} (${data.tenant_name})`;
+        
+        if (this.selectedUtilities.rent && data.rent_amount > 0) {
+          newItems.push({
+            id: this.nextItemId++,
+            tenancy_id: data.tenancy_id,
+            unit_number: data.unit_number,
+            item_type: 'rent',
+            amount: data.rent_amount,
+            description: `Monthly Rent for ${unitLabel} - ${monthLabel}`,
+            is_auto: true
+          });
+          rentTotal += data.rent_amount;
+        }
+        
+        if (this.selectedUtilities.service && data.service_charge > 0) {
+          newItems.push({
+            id: this.nextItemId++,
+            tenancy_id: data.tenancy_id,
+            unit_number: data.unit_number,
+            item_type: 'service',
+            amount: data.service_charge,
+            description: `Service Charge for ${unitLabel} - ${monthLabel}`,
+            is_auto: true
+          });
+          serviceTotal += data.service_charge;
+        }
+        
+        if (this.selectedUtilities.garbage && data.garbage_charge > 0) {
+          newItems.push({
+            id: this.nextItemId++,
+            tenancy_id: data.tenancy_id,
+            unit_number: data.unit_number,
+            item_type: 'garbage',
+            amount: data.garbage_charge,
+            description: `Garbage Collection for ${unitLabel} - ${monthLabel}`,
+            is_auto: true
+          });
+          garbageTotal += data.garbage_charge;
+        }
+        
+        if (this.selectedUtilities.security && data.security_charge > 0) {
+          newItems.push({
+            id: this.nextItemId++,
+            tenancy_id: data.tenancy_id,
+            unit_number: data.unit_number,
+            item_type: 'security',
+            amount: data.security_charge,
+            description: `Security Service for ${unitLabel} - ${monthLabel}`,
+            is_auto: true
+          });
+          securityTotal += data.security_charge;
+        }
+        
+        if (this.selectedUtilities.water && data.water_charge > 0) {
+          let waterDescription = `Water Charges for ${unitLabel} - ${monthLabel}`;
+          let metadata = null;
+          
+          if (data.water_consumption && data.water_consumption > 0) {
+            waterDescription += ` (Usage: ${data.water_consumption.toFixed(2)} m³ @ ${data.water_rate}/m³)`;
+            metadata = {
+              consumption: data.water_consumption,
+              rate: data.water_rate,
+              previous_reading: data.previous_reading,
+              current_reading: data.current_reading,
+              unit_number: data.unit_number
+            };
+          } else if (data.water_source === 'unit') {
+            waterDescription += ` (Flat rate)`;
+          }
+          
+          newItems.push({
+            id: this.nextItemId++,
+            tenancy_id: data.tenancy_id,
+            unit_number: data.unit_number,
+            item_type: 'water',
+            amount: data.water_charge,
+            description: waterDescription,
+            is_auto: true,
+            metadata: metadata
+          });
+          waterTotal += data.water_charge;
+        }
+      }
+      
+      if (this.selectedUtilities.other) {
+        for (const data of allUtilityData) {
+          newItems.push({
+            id: this.nextItemId++,
+            tenancy_id: data.tenancy_id,
+            unit_number: data.unit_number,
+            item_type: 'other',
+            amount: 0,
+            description: `Other Charges for ${data.unit_number} (${data.tenant_name}) - ${monthLabel}`,
+            is_auto: false
+          });
+        }
+      }
+      
+      this.createForm.items = newItems;
+      
+      this.summaryTotals = {
+        rent: rentTotal,
+        water: waterTotal,
+        service: serviceTotal,
+        garbage: garbageTotal,
+        security: securityTotal,
+        total: rentTotal + waterTotal + serviceTotal + garbageTotal + securityTotal,
+        tenancy_count: allUtilityData.length
+      };
+    },
+    
+    updateItemTotal() {
+      const rentTotal = this.createForm.items.filter(i => i.item_type === 'rent').reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      const waterTotal = this.createForm.items.filter(i => i.item_type === 'water').reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      const serviceTotal = this.createForm.items.filter(i => i.item_type === 'service').reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      const garbageTotal = this.createForm.items.filter(i => i.item_type === 'garbage').reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      const securityTotal = this.createForm.items.filter(i => i.item_type === 'security').reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+      
+      this.summaryTotals.rent = rentTotal;
+      this.summaryTotals.water = waterTotal;
+      this.summaryTotals.service = serviceTotal;
+      this.summaryTotals.garbage = garbageTotal;
+      this.summaryTotals.security = securityTotal;
+      this.summaryTotals.total = rentTotal + waterTotal + serviceTotal + garbageTotal + securityTotal;
+    },
+    
+    addManualItem() {
+      this.createForm.items.push({
+        id: this.nextItemId++,
+        item_type: 'other',
+        amount: 0,
+        description: '',
+        is_auto: false
+      });
       this.resetCheckResults();
     },
     
-    selectAllTenancies() { 
-      this.createForm.selected_tenancies = this.activeTenanciesData.map(t => t.id); 
-      this.resetCheckResults(); 
+    removeItem(index) {
+      this.createForm.items.splice(index, 1);
+      this.updateItemTotal();
+      this.resetCheckResults();
     },
     
-    clearTenancySelection() { 
-      this.createForm.selected_tenancies = []; 
-      this.resetCheckResults(); 
+    onInvoiceTypeChange() {
+      this.createForm.items = [];
+      this.nextItemId = 1;
+      this.resetCheckResults();
+      this.updateSelectedItems();
     },
     
-    resetCheckResults() { 
-      this.checkResults = null; 
+    onBillingMonthChange() {
+      this.resetCheckResults();
+      this.updateSelectedItems();
+    },
+    
+    onApplyToChange() {
+      this.resetCheckResults();
+      this.utilityCache = {};
+      this.updateSelectedItems();
+    },
+    
+    onTenancySelectionChange() {
+      this.resetCheckResults();
+      this.utilityCache = {};
+      this.updateSelectedItems();
+    },
+    
+    selectAllTenancies() {
+      this.createForm.selected_tenancies = this.activeTenanciesData.map(t => t.id);
+      this.resetCheckResults();
+      this.utilityCache = {};
+      this.updateSelectedItems();
+    },
+    
+    clearTenancySelection() {
+      this.createForm.selected_tenancies = [];
+      this.resetCheckResults();
+      this.utilityCache = {};
+      this.updateSelectedItems();
+    },
+    
+    resetCheckResults() {
+      this.checkResults = null;
     },
     
     async checkExistingInvoices() {
-      if (!this.createForm.invoice_type || !this.createForm.billing_month) { 
-        alert('Please select invoice type and billing month first'); 
-        return; 
+      if (!this.createForm.invoice_type || !this.createForm.billing_month) {
+        alert('Please select invoice type and billing month first');
+        return;
       }
       
-      let tenancyIds = [];
-      if (this.createForm.apply_to === 'bulk') {
-        tenancyIds = this.activeTenanciesData.map(t => t.id);
-      } else if (this.createForm.apply_to === 'single' && this.createForm.tenancy_id) {
-        tenancyIds = [this.createForm.tenancy_id];
-      } else if (this.createForm.apply_to === 'multiple' && this.createForm.selected_tenancies.length > 0) {
-        tenancyIds = this.createForm.selected_tenancies;
-      } else { 
-        alert('Please select tenancies to check'); 
-        return; 
+      let tenancyIds = this.getSelectedTenancyIds();
+      
+      if (tenancyIds.length === 0) {
+        alert('Please select tenancies to check');
+        return;
       }
       
       this.isCheckingInvoices = true;
       try {
         const response = await fetch('{{ route("invoices.check.existing") }}', {
-          method: 'POST', 
-          headers: { 
-            'Content-Type': 'application/json', 
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 
-            'Accept': 'application/json' 
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'Accept': 'application/json'
           },
-          body: JSON.stringify({ 
-            tenancy_ids: tenancyIds, 
-            invoice_type: this.createForm.invoice_type, 
-            billing_month: this.createForm.billing_month, 
-            item_type: this.createForm.items[0]?.item_type 
+          body: JSON.stringify({
+            tenancy_ids: tenancyIds,
+            invoice_type: this.createForm.invoice_type,
+            billing_month: this.createForm.billing_month
           })
         });
         const result = await response.json();
@@ -583,72 +849,96 @@ document.addEventListener('alpine:init', () => {
         } else {
           alert('Error checking existing invoices: ' + (result.message || 'Unknown error'));
         }
-      } catch (error) { 
-        console.error('Error checking existing invoices:', error); 
+      } catch (error) {
+        console.error('Error checking existing invoices:', error);
         alert('An error occurred while checking existing invoices');
-      } finally { 
-        this.isCheckingInvoices = false; 
+      } finally {
+        this.isCheckingInvoices = false;
       }
     },
     
     async submitBulkCreate() {
-      if (!this.createFormValid) { 
-        alert('Please fill in all required fields'); 
-        return; 
+      if (!this.createFormValid) {
+        alert('Please fill in all required fields and ensure at least one item has an amount');
+        return;
       }
       
-      let tenancyIds = [];
-      if (this.createForm.apply_to === 'bulk') {
-        tenancyIds = this.activeTenanciesData.map(t => t.id);
-      } else if (this.createForm.apply_to === 'single') {
-        tenancyIds = [this.createForm.tenancy_id];
-      } else {
-        tenancyIds = this.createForm.selected_tenancies;
-      }
+      const tenancyIds = [...new Set(this.createForm.items.filter(item => item.tenancy_id).map(item => item.tenancy_id))];
       
+      let finalTenancyIds = tenancyIds;
       if (this.checkResults && this.checkResults.remaining_tenancy_ids) {
-        tenancyIds = this.checkResults.remaining_tenancy_ids;
+        finalTenancyIds = tenancyIds.filter(id => this.checkResults.remaining_tenancy_ids.includes(id));
       }
       
-      if (tenancyIds.length === 0) { 
-        alert('No tenancies to create invoices for'); 
-        return; 
+      if (finalTenancyIds.length === 0) {
+        alert('No tenancies to create invoices for (all have existing invoices)');
+        return;
       }
       
       this.isLoading = true;
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+      
       try {
-        const results = [];
+        const itemsByTenancy = {};
         for (const item of this.createForm.items) {
-          for (const tenancyId of tenancyIds) {
-            const response = await fetch('{{ route("invoices.bulk.create") }}', {
-              method: 'POST', 
-              headers: { 
-                'Content-Type': 'application/json', 
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 
-                'Accept': 'application/json' 
-              },
-              body: JSON.stringify({ 
-                invoice_type: this.createForm.invoice_type, 
-                item_type: item.item_type, 
-                amount: item.amount, 
-                billing_month: this.createForm.billing_month, 
-                apply_to: 'single', 
-                tenancy_id: tenancyId, 
-                description: item.description 
-              })
-            });
-            results.push(await response.json());
+          if (!item.tenancy_id) continue;
+          if (!itemsByTenancy[item.tenancy_id]) {
+            itemsByTenancy[item.tenancy_id] = [];
+          }
+          if (item.amount && parseFloat(item.amount) > 0) {
+            itemsByTenancy[item.tenancy_id].push(item);
           }
         }
-        const successCount = results.filter(r => r.success).length;
-        alert(`Created ${successCount} invoices successfully!`);
+        
+        for (const tenancyId of finalTenancyIds) {
+          const items = itemsByTenancy[tenancyId] || [];
+          if (items.length === 0) continue;
+          
+          const totalAmount = items.reduce((sum, item) => sum + parseFloat(item.amount), 0);
+          
+          const response = await fetch(`/tenancies/${tenancyId}/invoices`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+              billing_month: this.createForm.billing_month,
+              items: items.map(item => ({
+                item_type: item.item_type,
+                description: item.description,
+                amount: parseFloat(item.amount),
+                metadata: item.metadata
+              }))
+            })
+          });
+          
+          const result = await response.json();
+          if (result.success) {
+            successCount++;
+          } else {
+            errorCount++;
+            errors.push(`Tenancy ${tenancyId}: ${result.message}`);
+          }
+        }
+        
+        const message = `Created ${successCount} invoice(s) successfully!`;
+        if (errorCount > 0) {
+          alert(`${message}\nFailed: ${errorCount}\n${errors.join('\n')}`);
+        } else {
+          alert(message);
+        }
+        
         this.closeModal();
         setTimeout(() => window.location.reload(), 1500);
-      } catch (error) { 
-        console.error('Error creating bulk invoices:', error); 
-        alert('An error occurred while creating invoices');
-      } finally { 
-        this.isLoading = false; 
+      } catch (error) {
+        console.error('Error creating bulk invoices:', error);
+        alert('An error occurred while creating invoices: ' + error.message);
+      } finally {
+        this.isLoading = false;
       }
     },
     
@@ -742,6 +1032,12 @@ document.addEventListener('alpine:init', () => {
     openModal(tab = 'create') { 
       this.isOpen = true; 
       this.activeTab = tab;
+      if (tab === 'create') {
+        this.resetCreateForm();
+      } else {
+        this.missingForm.selected_tenancies = [];
+        this.missingMonthsData = [];
+      }
       document.body.style.overflow = 'hidden'; 
     },
     
