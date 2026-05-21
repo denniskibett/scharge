@@ -130,38 +130,38 @@ class SystemHelper
     // =========================
 
 
-public static function logoUrl($type = 'light')
-{
-    $logo = match($type){
-        'dark' => self::get('logo_dark'),
-        'icon' => self::get('logo_icon'),
-        'auth' => null,
-        default => self::get('logo')
-    };
+    public static function logoUrl($type = 'light')
+    {
+        $logo = match($type){
+            'dark' => self::get('logo_dark'),
+            'icon' => self::get('logo_icon'),
+            'auth' => null,
+            default => self::get('logo')
+        };
 
-    if ($type === 'auth') return self::authLogoUrl();
+        if ($type === 'auth') return self::authLogoUrl();
 
-    // Try: exact path from DB
-    if ($logo && file_exists(public_path($logo))) {
-        return asset($logo);
+        // Try: exact path from DB
+        if ($logo && file_exists(public_path($logo))) {
+            return asset($logo);
+        }
+
+        // Default fallback images
+        return match($type){
+            'dark' => asset('public/images/logo/logo-dark.svg'),
+            'icon' => asset('public/images/logo/logo-icon.svg'),
+            'auth' => asset('public/images/logo/auth-logo.svg'),
+            default => asset('public/images/logo/logo.svg'),
+        };
     }
-
-    // Default fallback images
-    return match($type){
-        'dark' => asset('images/logo/logo-dark.svg'),
-        'icon' => asset('images/logo/logo-icon.svg'),
-        'auth' => asset('images/logo/auth-logo.svg'),
-        default => asset('images/logo/logo.svg'),
-    };
-}
 
     public static function authLogoUrl()
     {
         $logo = self::get('logo');
         if ($logo) {
             // First try images/logo directory
-            if (file_exists(public_path('images/logo/' . $logo))) {
-                return asset('images/logo/' . $logo);
+            if (file_exists(public_path('public/images/logo/' . $logo))) {
+                return asset('public/images/logo/' . $logo);
             }
             
             // Then try storage directory

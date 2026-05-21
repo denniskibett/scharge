@@ -23,8 +23,7 @@
       x-transition:leave-start="translate-x-0"
       x-transition:leave-end="translate-x-full"
       x-cloak
-      class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
-      style="width: 38rem; max-width: calc(100% - 2rem);">
+      class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 38rem; max-width: calc(100% - 2rem);">
     <div class="p-6 lg:p-10">
       <!-- close btn -->
       <button

@@ -5,15 +5,18 @@
     
     <!-- Slideover Panel - slides in from right -->
     <div class="fixed inset-y-0 right-0 max-w-full flex">
-        <div class="w-screen max-w-4xl transform transition-transform duration-300 ease-in-out translate-x-full" id="slideoverPanel">
+        <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 38rem; max-width: calc(100% - 2rem);" id="slideoverPanel">
+            
             <div class="h-full flex flex-col bg-white dark:bg-gray-900 shadow-xl">
-                <!-- Header with Mode Toggle -->
+                <!-- Header -->
                 <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="slideover-title">
                             Water Meter Reading
                         </h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Record readings for single or multiple units</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            <span id="modeDescription">Record water meter readings for units</span>
+                        </p>
                     </div>
                     <button onclick="closeCreateReadingModal()" class="text-gray-400 hover:text-gray-500">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -22,8 +25,8 @@
                     </button>
                 </div>
                 
-                <!-- Mode Toggle Buttons -->
-                <div class="p-4 border-b border-gray-200 dark:border-gray-800">
+                <!-- Mode Toggle - HIDE for meter_reader, SHOW for others -->
+                <div id="modeToggleContainer" class="p-4 border-b border-gray-200 dark:border-gray-800">
                     <div class="flex rounded-lg bg-gray-100 p-1 dark:bg-gray-800">
                         <button type="button" onclick="setMode('single')" id="modeSingleBtn" class="mode-btn flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all bg-white text-gray-800 shadow-sm dark:bg-gray-700 dark:text-white">
                             <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,8 +72,12 @@
 </div>
 
 <script>
+// Check if user is meter_reader (role_id = 5 or role name = 'meter_reader')
+const userRole = @json(auth()->user()->role->name ?? '');
+const isMeterReader = userRole === 'meter_reader';
+
 // Global variables
-let currentMode = 'single';
+let currentMode = isMeterReader ? 'bulk' : 'single';
 let currentSelectedUnit = null;
 let allUnits = [];
 let bulkSelectedUnits = [];
@@ -83,6 +90,15 @@ let bulkReadingsMatrix = [];
 // Initialize modal when page loads
 document.addEventListener('DOMContentLoaded', function() {
     fetchUnits();
+    
+    // For meter readers, hide mode toggle and set to bulk
+    if (isMeterReader) {
+        const modeToggle = document.getElementById('modeToggleContainer');
+        if (modeToggle) {
+            modeToggle.style.display = 'none';
+        }
+        document.getElementById('modeDescription').innerText = 'Record water meter readings for multiple units - Enter readings for current month only';
+    }
 });
 
 // Fetch units for the modal
@@ -148,137 +164,18 @@ function renderForm() {
         container.innerHTML = renderSingleMode();
         attachSingleModeEvents();
     } else if (currentMode === 'bulk') {
-        container.innerHTML = renderNewBulkMode();
-        attachNewBulkModeEvents();
+        container.innerHTML = renderMeterReaderBulkMode();
+        attachMeterReaderBulkEvents();
     } else if (currentMode === 'multimonth') {
         container.innerHTML = renderMultiMonthMode();
         attachMultiMonthEvents();
     }
 }
 
-// ==================== SINGLE MODE RENDER ====================
-function renderSingleMode() {
+// ==================== METER READER BULK MODE ====================
+function renderMeterReaderBulkMode() {
     return `
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
-                Select Unit
-            </label>
-            <select id="unit_id" name="unit_id" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-                <option value="">Select Unit</option>
-                @foreach($units ?? [] as $unit)
-                <option value="{{ $unit['id'] }}" 
-                    data-estate="{{ $unit['estate_name'] }}" 
-                    data-rate="{{ $unit['custom_water_rate'] ?? ($unit['water_charge'] ?? 50) }}" 
-                    data-water-billing-type="{{ $unit['water_billing_type'] ?? 'consumption' }}"
-                    data-flat-rate="{{ $unit['water_charge'] ?? 0 }}"
-                    data-previous-reading="{{ $unit['current_water_reading'] ?? 0 }}"
-                    data-last-reading-date="{{ $unit['last_reading_date'] ?? '' }}">
-                    {{ $unit['unit_number'] }} - {{ $unit['estate_name'] }} ({{ $unit['unit_type'] ?? 'N/A' }})
-                </option>
-                @endforeach
-            </select>
-        </div>
-        
-        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    Billing Type:
-                </span>
-                <span id="billing_type_badge" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Select Unit</span>
-            </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
-                <span id="billing_note">Choose a unit to see billing type</span>
-            </div>
-        </div>
-        
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                Current Reading (m³)
-            </label>
-            <input type="number" id="current_reading" name="current_reading" step="0.01" required 
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-            <p class="text-xs text-gray-500 mt-1">
-                <svg class="inline w-3 h-3 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                </svg>
-                Must be greater than or equal to previous reading
-            </p>
-        </div>
-        
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Reading Date
-            </label>
-            <input type="date" id="reading_date" name="reading_date" required 
-                value="{{ date('Y-m-d') }}"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-        </div>
-        
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Notes (Optional)
-            </label>
-            <textarea id="notes" name="notes" rows="2" 
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800"
-                placeholder="Any additional notes about this reading..."></textarea>
-        </div>
-        
-        <div id="previous_reading_info" class="hidden bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-            <p class="text-sm text-blue-800 dark:text-blue-400 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                </svg>
-                Previous Reading: <span id="previous_reading_display" class="font-semibold">0.00</span> m³
-            </p>
-            <p class="text-xs text-blue-700 dark:text-blue-300">
-                <svg class="inline w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                Last reading date: <span id="last_reading_date_display">Not available</span>
-            </p>
-        </div>
-        
-        <div id="calculation_results" class="hidden bg-green-50 dark:bg-green-900/20 p-3 rounded-lg space-y-1">
-            <p class="text-sm text-green-800 dark:text-green-400">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
-                </svg>
-                Consumption: <span id="consumption_display" class="font-semibold">0.00</span> m³
-            </p>
-            <p class="text-sm text-green-800 dark:text-green-400">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Rate: KES <span id="rate_display">0.00</span> / m³
-            </p>
-            <p class="text-sm text-green-800 dark:text-green-400">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                Total Charge: KES <span id="charge_display" class="font-semibold">0.00</span>
-            </p>
-        </div>
-    `;
-}
-
-// ==================== BULK MODE RENDER ====================
-function renderNewBulkMode() {
-    return `
+        <!-- Estate Selection -->
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,71 +191,19 @@ function renderNewBulkMode() {
             </select>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    Start Month
-                </label>
-                <input type="month" id="bulkStartMonth" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    End Month
-                </label>
-                <input type="month" id="bulkEndMonth" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-            </div>
-        </div>
-        
+        <!-- Reading Month (current month by default) -->
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
-                Reading Entry Method
+                Reading Month
             </label>
-            <select id="bulkDistributionMethod" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-                <option value="manual">Manual Entry (Enter each reading individually)</option>
-                <option value="auto_increment">Auto Increment (Starting reading + fixed increment per month)</option>
-                <option value="auto_percentage">Auto Percentage (Starting reading + percentage increase per month)</option>
-            </select>
+            <input type="month" id="readingMonth" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" value="{{ date('Y-m') }}">
+            <p class="text-xs text-gray-500 mt-1">Select the month for these readings</p>
         </div>
         
-        <div id="autoIncrementSettings" class="hidden bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
-            <h5 class="font-medium text-gray-800 dark:text-white/90">Auto Increment Settings</h5>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Starting Reading (m³)</label>
-                    <input type="number" id="autoStartReading" step="0.01" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Increment (m³)</label>
-                    <input type="number" id="autoIncrement" step="0.01" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800">
-                </div>
-            </div>
-            <p class="text-xs text-gray-500">Each month's reading will be: Previous month + increment</p>
-        </div>
-        
-        <div id="autoPercentageSettings" class="hidden bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-3">
-            <h5 class="font-medium text-gray-800 dark:text-white/90">Auto Percentage Settings</h5>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Starting Reading (m³)</label>
-                    <input type="number" id="percentStartReading" step="0.01" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Increase (%)</label>
-                    <input type="number" id="percentIncrease" step="0.1" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800">
-                </div>
-            </div>
-            <p class="text-xs text-gray-500">Each month's reading will be: Previous month × (1 + percentage/100)</p>
-        </div>
-        
+        <!-- Notes -->
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -369,20 +214,21 @@ function renderNewBulkMode() {
             <textarea id="bulkNotes" rows="2" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" placeholder="General notes for these readings..."></textarea>
         </div>
         
+        <!-- Readings Table -->
         <div class="border border-gray-200 rounded-lg overflow-hidden dark:border-gray-700">
             <div class="bg-gray-50 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                 <h5 class="font-medium text-gray-800 dark:text-white/90">
                     <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                     </svg>
-                    Readings Matrix
+                    Units Needing Reading
                 </h5>
-                <p class="text-xs text-gray-500 mt-1">Enter water readings for each unit and month</p>
+                <p class="text-xs text-gray-500 mt-1">Only units without a reading for the selected month are shown</p>
             </div>
             <div class="overflow-x-auto max-h-96 overflow-y-auto">
                 <div id="bulkMatrixContainer" class="p-4">
                     <div class="text-center text-gray-500 py-8">
-                        Select estate and month range to load units
+                        Select an estate to load units needing reading
                     </div>
                 </div>
             </div>
@@ -390,105 +236,262 @@ function renderNewBulkMode() {
     `;
 }
 
-// ==================== MULTI-MONTH MODE RENDER ====================
-function renderMultiMonthMode() {
-    return `
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                </svg>
-                Select Unit
-            </label>
-            <select id="mm_unit_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-                <option value="">Select Unit</option>
-                @foreach($units ?? [] as $unit)
-                <option value="{{ $unit['id'] }}" 
-                    data-rate="{{ $unit['custom_water_rate'] ?? ($unit['water_charge'] ?? 50) }}"
-                    data-current-reading="{{ $unit['current_water_reading'] ?? 0 }}">
-                    {{ $unit['unit_number'] }} - {{ $unit['estate_name'] }}
-                </option>
-                @endforeach
-            </select>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    Start Month
-                </label>
-                <input type="month" id="start_month" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+// ==================== METER READER BULK EVENT HANDLERS ====================
+function attachMeterReaderBulkEvents() {
+    const estateSelect = document.getElementById('bulkEstateId');
+    const readingMonth = document.getElementById('readingMonth');
+    
+    if (estateSelect) {
+        estateSelect.addEventListener('change', loadMeterReaderMatrix);
+    }
+    if (readingMonth) {
+        readingMonth.addEventListener('change', loadMeterReaderMatrix);
+    }
+    
+    // Load initial matrix
+    loadMeterReaderMatrix();
+}
+
+async function loadMeterReaderMatrix() {
+    const estateId = document.getElementById('bulkEstateId').value;
+    const readingMonth = document.getElementById('readingMonth').value;
+    
+    if (!readingMonth) return;
+    
+    // Generate single month
+    const month = {
+        value: readingMonth,
+        label: new Date(readingMonth + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+    };
+    
+    bulkMonthRange = [month];
+    
+    // Filter units by estate
+    let units = [...allUnits];
+    if (estateId) {
+        units = units.filter(u => u.estate_id == estateId);
+    }
+    
+    if (units.length === 0) {
+        document.getElementById('bulkMatrixContainer').innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                No units found for the selected estate.
             </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                    End Month
-                </label>
-                <input type="month" id="end_month" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+        `;
+        return;
+    }
+    
+    // FETCH EXISTING READINGS FOR THIS MONTH
+    const unitIds = units.map(u => u.id).join(',');
+    let existingReadings = {};
+    
+    try {
+        const response = await fetch(`/water/api/water/readings/bulk?unit_ids=${unitIds}&start_month=${readingMonth}&end_month=${readingMonth}`);
+        const data = await response.json();
+        
+        if (data.success && data.readings) {
+            data.readings.forEach(reading => {
+                existingReadings[reading.unit_id] = reading;
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching existing readings:', error);
+    }
+    
+    // Filter out units that ALREADY HAVE a reading for this month
+    const unitsNeedingReading = units.filter(unit => !existingReadings[unit.id]);
+    
+    if (unitsNeedingReading.length === 0) {
+        document.getElementById('bulkMatrixContainer').innerHTML = `
+            <div class="text-center text-green-500 py-8">
+                <svg class="inline w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p>All units have been recorded for ${month.label}!</p>
+                <p class="text-sm mt-1">Great job! No pending readings for this month.</p>
             </div>
-        </div>
+        `;
+        return;
+    }
+    
+    // Initialize readings matrix for units needing reading
+    bulkReadingsMatrix = [];
+    unitsNeedingReading.forEach(unit => {
+        const unitReadings = [];
         
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                </svg>
-                Starting Reading (m³)
-            </label>
-            <input type="number" id="starting_reading" step="0.01" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-            <p class="text-xs text-gray-500 mt-1">Current reading: <span id="mm_current_reading_display">0.00</span> m³</p>
-        </div>
+        // Get the previous reading (last recorded reading)
+        let previousReadingValue = unit.current_water_reading || 0;
         
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                </svg>
-                Distribution Method
-            </label>
-            <select id="distribution_method" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-                <option value="equal">Equal Distribution (Even split across months)</option>
-                <option value="increasing">Increasing (Gradual increase each month)</option>
-                <option value="decreasing">Decreasing (Gradual decrease each month)</option>
-                <option value="manual">Manual Entry</option>
-            </select>
-        </div>
+        unitReadings.push({
+            month: month.value,
+            monthLabel: month.label,
+            reading: 0,
+            previousReading: previousReadingValue,
+            consumption: 0,
+            charge: 0,
+            exists: false,
+            readingId: null,
+            modified: false
+        });
         
-        <div class="border border-gray-200 rounded-lg overflow-hidden dark:border-gray-700">
-            <div class="overflow-x-auto max-h-96 overflow-y-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 dark:bg-gray-800 sticky top-0">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reading (m³)</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Consumption</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Est. Charge (KES)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="monthlyReadingsTable" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
-                    <tfoot id="monthlyReadingsFooter" class="bg-gray-100 dark:bg-gray-800 font-semibold"></tfoot>
-                </table>
+        bulkReadingsMatrix.push({
+            unitId: unit.id,
+            unitNumber: unit.unit_number,
+            estateName: unit.estate_name,
+            waterRate: unit.custom_water_rate || unit.water_rate || 50,
+            billingType: unit.water_billing_type || 'consumption',
+            flatRate: unit.water_charge || 0,
+            initialReading: unit.current_water_reading || 0,
+            readings: unitReadings
+        });
+    });
+    
+    renderMeterReaderMatrix();
+}
+
+function renderMeterReaderMatrix() {
+    const container = document.getElementById('bulkMatrixContainer');
+    if (!container) return;
+    
+    if (bulkReadingsMatrix.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-gray-500 py-8">
+                No data to display. Please select an estate.
             </div>
-        </div>
+        `;
+        return;
+    }
+    
+    let html = `
+        <div class="overflow-x-auto">
+            <table class="min-w-full border-collapse">
+                <thead class="sticky top-0 bg-gray-100 dark:bg-gray-800">
+                    <tr>
+                        <th class="border border-gray-300 dark:border-gray-700 px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-300 sticky left-0 bg-gray-100 dark:bg-gray-800 z-10">
+                            Unit
+                        </th>
+                        <th class="border border-gray-300 dark:border-gray-700 px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-300 min-w-[200px]">
+                            ${bulkMonthRange[0].label}
+                            <span class="block text-xs text-gray-400">Current Reading (m³)</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    bulkReadingsMatrix.forEach(unitData => {
+        const reading = unitData.readings[0];
+        const displayValue = reading.reading === 0 ? '' : reading.reading.toFixed(2);
         
-        <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        html += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                <td class="border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-800 dark:text-white/90 sticky left-0 bg-white dark:bg-gray-900 z-10">
+                    ${unitData.unitNumber}
+                    <span class="block text-xs text-gray-500">${unitData.estateName}</span>
+                    <span class="block text-xs text-blue-500 mt-1">Prev: ${reading.previousReading.toFixed(2)} m³</span>
+                </td>
+                <td class="border border-gray-300 dark:border-gray-700 px-2 py-1">
+                    <div class="flex flex-col space-y-1">
+                        <input type="number" 
+                            step="0.01" 
+                            value="${displayValue}"
+                            placeholder="Enter reading"
+                            data-unit-id="${unitData.unitId}"
+                            data-month="${reading.month}"
+                            data-idx="0"
+                            onchange="updateMeterReaderReading(this)"
+                            class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800"
+                        >
+                        ${reading.reading > 0 ? `
+                        <div class="text-xs text-gray-500 flex justify-between">
+                            <span class="text-green-600">Cons: ${reading.consumption.toFixed(2)} m³</span>
+                            <span class="text-blue-600">KES ${reading.charge.toFixed(0)}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
+            <p>
                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                Notes (Optional)
-            </label>
-            <textarea id="mm_notes" rows="2" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" placeholder="General notes for these readings..."></textarea>
+                <strong>Note:</strong> Previous reading shown for reference. Enter current meter reading for ${bulkMonthRange[0].label}.
+            </p>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+function updateMeterReaderReading(input) {
+    const unitId = parseInt(input.dataset.unitId);
+    const month = input.dataset.month;
+    const newReading = parseFloat(input.value) || 0;
+    
+    const unitIndex = bulkReadingsMatrix.findIndex(u => u.unitId === unitId);
+    if (unitIndex === -1) return;
+    
+    const unit = bulkReadingsMatrix[unitIndex];
+    const reading = unit.readings[0];
+    const previousReading = reading.previousReading;
+    
+    if (newReading < previousReading && previousReading > 0) {
+        showToast(`Reading cannot be less than previous reading (${previousReading.toFixed(2)})`, 'error');
+        input.value = '';
+        return;
+    }
+    
+    const consumption = newReading - previousReading;
+    const rate = unit.waterRate;
+    
+    let charge = 0;
+    if (unit.billingType === 'flat') {
+        charge = unit.flatRate;
+        reading.consumption = 0;
+    } else {
+        reading.consumption = consumption > 0 ? consumption : 0;
+        charge = reading.consumption * rate;
+    }
+    
+    reading.reading = newReading;
+    reading.charge = charge;
+    reading.modified = true;
+    
+    // Update the display
+    const cell = input.closest('td');
+    const displayValue = reading.reading === 0 ? '' : reading.reading.toFixed(2);
+    
+    cell.innerHTML = `
+        <div class="flex flex-col space-y-1">
+            <input type="number" 
+                step="0.01" 
+                value="${displayValue}"
+                placeholder="Enter reading"
+                data-unit-id="${unit.unitId}"
+                data-month="${reading.month}"
+                data-idx="0"
+                onchange="updateMeterReaderReading(this)"
+                class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800"
+            >
+            ${reading.reading > 0 ? `
+            <div class="text-xs text-gray-500 flex justify-between">
+                <span class="text-green-600">Cons: ${reading.consumption.toFixed(2)} m³</span>
+                <span class="text-blue-600">KES ${reading.charge.toFixed(0)}</span>
+            </div>
+            ` : ''}
         </div>
     `;
 }
 
-// ==================== BULK MODE EVENT HANDLERS ====================
+// ==================== BULK MODE EVENT HANDLERS (for non-meter-readers) ====================
 function attachNewBulkModeEvents() {
     const estateSelect = document.getElementById('bulkEstateId');
     const startMonth = document.getElementById('bulkStartMonth');
@@ -901,6 +904,125 @@ function applyAutoPercentageToMatrix() {
 }
 
 // ==================== SINGLE MODE EVENT HANDLERS ====================
+function renderSingleMode() {
+    return `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                Select Unit
+            </label>
+            <select id="unit_id" name="unit_id" required class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                <option value="">Select Unit</option>
+                @foreach($units ?? [] as $unit)
+                <option value="{{ $unit['id'] }}" 
+                    data-estate="{{ $unit['estate_name'] }}" 
+                    data-rate="{{ $unit['custom_water_rate'] ?? ($unit['water_charge'] ?? 50) }}" 
+                    data-water-billing-type="{{ $unit['water_billing_type'] ?? 'consumption' }}"
+                    data-flat-rate="{{ $unit['water_charge'] ?? 0 }}"
+                    data-previous-reading="{{ $unit['current_water_reading'] ?? 0 }}"
+                    data-last-reading-date="{{ $unit['last_reading_date'] ?? '' }}">
+                    {{ $unit['unit_number'] }} - {{ $unit['estate_name'] }} ({{ $unit['unit_type'] ?? 'N/A' }})
+                </option>
+                @endforeach
+            </select>
+        </div>
+        
+        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Billing Type:
+                </span>
+                <span id="billing_type_badge" class="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Select Unit</span>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+                <span id="billing_note">Choose a unit to see billing type</span>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                Current Reading (m³)
+            </label>
+            <input type="number" id="current_reading" name="current_reading" step="0.01" required 
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs text-gray-500 mt-1">
+                <svg class="inline w-3 h-3 text-red-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                Must be greater than or equal to previous reading
+            </p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Reading Date
+            </label>
+            <input type="date" id="reading_date" name="reading_date" required 
+                value="{{ date('Y-m-d') }}"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Notes (Optional)
+            </label>
+            <textarea id="notes" name="notes" rows="2" 
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800"
+                placeholder="Any additional notes about this reading..."></textarea>
+        </div>
+        
+        <div id="previous_reading_info" class="hidden bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+            <p class="text-sm text-blue-800 dark:text-blue-400 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Previous Reading: <span id="previous_reading_display" class="font-semibold">0.00</span> m³
+            </p>
+            <p class="text-xs text-blue-700 dark:text-blue-300">
+                <svg class="inline w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                Last reading date: <span id="last_reading_date_display">Not available</span>
+            </p>
+        </div>
+        
+        <div id="calculation_results" class="hidden bg-green-50 dark:bg-green-900/20 p-3 rounded-lg space-y-1">
+            <p class="text-sm text-green-800 dark:text-green-400">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                </svg>
+                Consumption: <span id="consumption_display" class="font-semibold">0.00</span> m³
+            </p>
+            <p class="text-sm text-green-800 dark:text-green-400">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Rate: KES <span id="rate_display">0.00</span> / m³
+            </p>
+            <p class="text-sm text-green-800 dark:text-green-400">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+                Total Charge: KES <span id="charge_display" class="font-semibold">0.00</span>
+            </p>
+        </div>
+    `;
+}
+
 function attachSingleModeEvents() {
     const unitSelect = document.getElementById('unit_id');
     const currentReading = document.getElementById('current_reading');
@@ -946,6 +1068,103 @@ function attachMultiMonthEvents() {
     
     if (unitSelect && unitSelect.value) handleMultiMonthUnitChange();
     else generateMonthRange();
+}
+
+function renderMultiMonthMode() {
+    return `
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+                Select Unit
+            </label>
+            <select id="mm_unit_id" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                <option value="">Select Unit</option>
+                @foreach($units ?? [] as $unit)
+                <option value="{{ $unit['id'] }}" 
+                    data-rate="{{ $unit['custom_water_rate'] ?? ($unit['water_charge'] ?? 50) }}"
+                    data-current-reading="{{ $unit['current_water_reading'] ?? 0 }}">
+                    {{ $unit['unit_number'] }} - {{ $unit['estate_name'] }}
+                </option>
+                @endforeach
+            </select>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Start Month
+                </label>
+                <input type="month" id="start_month" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    End Month
+                </label>
+                <input type="month" id="end_month" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                Starting Reading (m³)
+            </label>
+            <input type="number" id="starting_reading" step="0.01" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+            <p class="text-xs text-gray-500 mt-1">Current reading: <span id="mm_current_reading_display">0.00</span> m³</p>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                </svg>
+                Distribution Method
+            </label>
+            <select id="distribution_method" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                <option value="equal">Equal Distribution (Even split across months)</option>
+                <option value="increasing">Increasing (Gradual increase each month)</option>
+                <option value="decreasing">Decreasing (Gradual decrease each month)</option>
+                <option value="manual">Manual Entry</option>
+            </select>
+        </div>
+        
+        <div class="border border-gray-200 rounded-lg overflow-hidden dark:border-gray-700">
+            <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 dark:bg-gray-800 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reading (m³)</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Consumption</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Est. Charge (KES)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthlyReadingsTable" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                    <tfoot id="monthlyReadingsFooter" class="bg-gray-100 dark:bg-gray-800 font-semibold"></tfoot>
+                </table>
+            </div>
+        </div>
+        
+        <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Notes (Optional)
+            </label>
+            <textarea id="mm_notes" rows="2" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" placeholder="General notes for these readings..."></textarea>
+        </div>
+    `;
 }
 
 async function handleUnitChange() {
@@ -1212,13 +1431,20 @@ document.getElementById('createReadingForm')?.addEventListener('submit', async f
         } 
         else if (currentMode === 'bulk') {
             if (bulkReadingsMatrix.length === 0) {
-                alert('No units loaded. Please select an estate and month range.');
+                alert('No units loaded. Please select an estate.');
                 submitBtn.disabled = false;
                 submitBtn.innerText = originalText;
                 return;
             }
             
             const notes = document.getElementById('bulkNotes')?.value || '';
+            let readingMonth;
+            
+            if (isMeterReader) {
+                readingMonth = document.getElementById('readingMonth').value;
+            } else {
+                readingMonth = document.getElementById('bulkStartMonth')?.value;
+            }
             
             const bulkData = [];
             for (const unit of bulkReadingsMatrix) {
@@ -1231,7 +1457,6 @@ document.getElementById('createReadingForm')?.addEventListener('submit', async f
                             notes: notes
                         };
                         
-                        // IMPORTANT: Send existing_reading_id for updates
                         if (reading.readingId) {
                             readingData.existing_reading_id = reading.readingId;
                         }
@@ -1239,6 +1464,13 @@ document.getElementById('createReadingForm')?.addEventListener('submit', async f
                         bulkData.push(readingData);
                     }
                 }
+            }
+            
+            if (bulkData.length === 0) {
+                alert('No readings entered. Please enter at least one reading.');
+                submitBtn.disabled = false;
+                submitBtn.innerText = originalText;
+                return;
             }
             
             response = await fetch('/water/readings/bulk-matrix', {
@@ -1298,13 +1530,19 @@ document.getElementById('createReadingForm')?.addEventListener('submit', async f
         const data = await response.json();
         
         if (data.success) {
-            closeCreateReadingModal();
             showToast(data.message || 'Water reading(s) recorded successfully!', 'success');
             
-            if (window.refreshReadingsTable) {
-                setTimeout(() => window.refreshReadingsTable(), 500);
+            // For meter readers, reload the matrix to show remaining units
+            if (isMeterReader && currentMode === 'bulk') {
+                await loadMeterReaderMatrix();
+                showToast('Reading saved! Units with readings will disappear from the list.', 'success');
             } else {
-                setTimeout(() => window.location.reload(), 500);
+                closeCreateReadingModal();
+                if (window.refreshReadingsTable) {
+                    setTimeout(() => window.refreshReadingsTable(), 500);
+                } else {
+                    setTimeout(() => window.location.reload(), 500);
+                }
             }
         } else {
             showToast(data.message || 'Error saving reading(s)', 'error');
@@ -1343,9 +1581,15 @@ window.openCreateReadingModal = function(unitId = null) {
     const panel = document.getElementById('slideoverPanel');
     
     if (modal && panel) {
-        setMode('single');
+        if (isMeterReader) {
+            setMode('bulk');
+        } else if (unitId) {
+            setMode('single');
+        } else {
+            setMode('single');
+        }
         
-        if (unitId) {
+        if (unitId && !isMeterReader) {
             setTimeout(() => {
                 const unitSelect = document.getElementById('unit_id');
                 if (unitSelect) {

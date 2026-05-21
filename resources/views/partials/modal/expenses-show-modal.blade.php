@@ -23,7 +23,7 @@
        x-transition:leave-start="opacity-100 scale-100"
        x-transition:leave-end="opacity-0 scale-95"
        x-cloak
-       class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
+       class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 38rem; max-width: calc(100% - 2rem);">
     <div 
       @click.outside="closeModal()"
       class="relative w-full max-w-3xl rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-10 max-h-[90vh] overflow-y-auto"
