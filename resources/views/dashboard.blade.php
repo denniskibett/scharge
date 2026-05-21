@@ -306,57 +306,92 @@
         @endauth
 
         <!-- METER READER DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasRole('meter_reader'))
-        <!-- DEBUG SECTION - Remove after fixing -->
-        <div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
-            <h3 class="font-bold">Debug: Meter Reader Data</h3>
-            <p>Units Needing Reading Count: {{ $roleData['unitsNeedingReading']->count() }}</p>
-            <p>Reading History Count: {{ $roleData['readingHistory']->count() }}</p>
-            <details>
-                <summary>First Pending Reading (Raw)</summary>
-                <pre class="text-xs">{{ json_encode($roleData['unitsNeedingReading']->first(), JSON_PRETTY_PRINT) }}</pre>
-            </details>
-            <details>
-                <summary>First History Reading (Raw)</summary>
-                <pre class="text-xs">{{ json_encode($roleData['readingHistory']->first(), JSON_PRETTY_PRINT) }}</pre>
-            </details>
+@auth
+@if(auth()->user()->hasRole('meter_reader'))
+
+<!-- Month Selector -->
+<div class="mb-4 flex items-center gap-3">
+    <label for="monthSelect" class="text-sm font-medium text-gray-700 dark:text-gray-300">Select Month:</label>
+    <input type="month" id="monthSelect" class="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-white" 
+           value="{{ $roleData['selectedMonth'] ?? now()->format('Y-m') }}" 
+           onchange="window.location.href = '{{ route('dashboard') }}?month=' + this.value">
+</div>
+
+<!-- DEBUG SECTION - Remove after fixing -->
+<div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
+    <h3 class="font-bold">Debug: Meter Reader Data</h3>
+    <p>Units Needing Reading Count: {{ $roleData['unitsNeedingReading']->count() }}</p>
+    <p>Reading History Count: {{ $roleData['readingHistory']->count() }}</p>
+    <details>
+        <summary>First Pending Reading (Raw)</summary>
+        <pre class="text-xs">{{ json_encode($roleData['unitsNeedingReading']->first(), JSON_PRETTY_PRINT) }}</pre>
+    </details>
+    <details>
+        <summary>First History Reading (Raw)</summary>
+        <pre class="text-xs">{{ json_encode($roleData['readingHistory']->first(), JSON_PRETTY_PRINT) }}</pre>
+    </details>
+</div>
+
+<div class="mt-6">
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
+            <div class="flex flex-wrap gap-2">
+                <button 
+                    @click="activeMeterTab = 'pending'" 
+                    :class="activeMeterTab === 'pending' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
+                    class="px-4 py-2 text-sm font-medium transition-colors">
+                    Pending Readings ({{ $roleData['unitsNeedingReading']->count() ?? 0 }})
+                </button>
+                <button 
+                    @click="activeMeterTab = 'history'" 
+                    :class="activeMeterTab === 'history' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
+                    class="px-4 py-2 text-sm font-medium transition-colors">
+                    Reading History ({{ $roleData['readingHistory']->count() ?? 0 }})
+                </button>
+            </div>
         </div>
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button 
-                            @click="activeMeterTab = 'pending'" 
-                            :class="activeMeterTab === 'pending' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
-                            class="px-4 py-2 text-sm font-medium transition-colors">
-                            Pending Readings ({{ $roleData['unitsNeedingReading']->count() ?? 0 }})
-                        </button>
-                        <button 
-                            @click="activeMeterTab = 'history'" 
-                            :class="activeMeterTab === 'history' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
-                            class="px-4 py-2 text-sm font-medium transition-colors">
-                            Reading History ({{ $roleData['readingHistory']->count() ?? 0 }})
-                        </button>
+        <div class="p-5">
+            <!-- PENDING READINGS TAB -->
+            <div x-show="activeMeterTab === 'pending'" x-cloak>
+                @if(($roleData['unitsNeedingReading'] ?? collect())->count() > 0)
+                    @include('partials.table.table-readings', [
+                        'readings' => $roleData['unitsNeedingReading'] ?? [], 
+                        'showActions' => true, 
+                        'showConsumption' => true,
+                        'units' => $roleData['units'] ?? []
+                    ])
+                @else
+                    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        No units need reading for the selected month.
                     </div>
-                </div>
-                <div class="p-5">
-                    <!-- PENDING READINGS TAB -->
-                    <div x-show="activeMeterTab === 'pending'" x-cloak>
-                        @if(($roleData['unitsNeedingReading'] ?? collect())->count() > 0)
-                            @include('partials.table.table-readings', [
-                                'readings' => $roleData['unitsNeedingReading'] ?? [], 
-                                'showActions' => true, 
-                                'showConsumption' => true,
-                                'units' => $roleData['units'] ?? []
-                            ])
-                        @else
-                            <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                                No units need reading at this time. All occupied units have recent readings.
-                            </div>
-                        @endif
+                @endif
+            </div>
+            
+            <!-- READING HISTORY TAB -->
+            <div x-show="activeMeterTab === 'history'" x-cloak>
+                @if(($roleData['readingHistory'] ?? collect())->count() > 0)
+                    @include('partials.table.table-readings', [
+                        'readings' => $roleData['readingHistory'] ?? [], 
+                        'showActions' => false, 
+                        'showConsumption' => true,
+                        'units' => $roleData['units'] ?? []
+                    ])
+                @else
+                    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                        No reading history found for the selected month.
                     </div>
-                    
+                @endif
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add x-cloak styles to prevent flash of unstyled content -->
+<style>
+    [x-cloak] { display: none !important; }
+</style>
+@endif
+@endauth
                     <!-- READING HISTORY TAB -->
                     <div x-show="activeMeterTab === 'history'" x-cloak>
                         @if(($roleData['readingHistory'] ?? collect())->count() > 0)

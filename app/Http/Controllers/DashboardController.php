@@ -23,6 +23,9 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
         
+        // Get selected month from request (default to current month)
+        $selectedMonth = request('month', Carbon::now()->format('Y-m'));
+        
         // Get all invoices for the dashboard
         $invoices = Invoice::with('tenancy.tenant.user', 'tenancy.unit', 'items', 'payments')
             ->orderBy('created_at', 'desc')
@@ -183,7 +186,7 @@ class DashboardController extends Controller
         }
         
         // Get role-specific data (this will include water readings for each role)
-        $roleData = $this->getRoleSpecificData($user);
+        $roleData = $this->getRoleSpecificData($user, $selectedMonth);
         
         // Add maintenance data to roleData for consistency
         $roleData['maintenanceRequests'] = $maintenanceRequests;
@@ -264,7 +267,7 @@ class DashboardController extends Controller
         ));
     }
     
-    private function getRoleSpecificData($user)
+    private function getRoleSpecificData($user, $month = null)
     {
         $roleName = $user->role ? $user->role->name : 'guest';
         
@@ -279,7 +282,7 @@ class DashboardController extends Controller
             case 'tenant':
                 return $this->getTenantData();
             case 'meter_reader':
-                return $this->getMeterReaderData();
+                return $this->getMeterReaderData($month);
             case 'cleaning_staff':
                 return $this->getCleaningStaffData();
             case 'maintenance':
@@ -841,33 +844,34 @@ class DashboardController extends Controller
         ];
     }
     
-    private function getMeterReaderData()
+    private function getMeterReaderData($month = null)
     {
         $user = auth()->user();
-        
-        // Units that need reading (no reading in last 30 days)
+        // Default to current month if none provided
+        $month = $month ?? Carbon::now()->format('Y-m');
+        $year = substr($month, 0, 4);
+        $monthNum = substr($month, 5, 2);
+
+        // Units that need reading for the selected month
         $unitsNeedingReading = Unit::where('status', 'occupied')
-            ->where(function($query) {
-                $query->whereNull('last_reading_date')
-                    ->orWhere('last_reading_date', '<=', Carbon::now()->subDays(30));
+            ->whereDoesntHave('waterReadings', function ($query) use ($year, $monthNum) {
+                $query->whereYear('reading_date', $year)
+                      ->whereMonth('reading_date', $monthNum);
             })
             ->with('estate')
             ->get()
             ->map(function ($unit) {
-                // Get the last reading from water_readings table
                 $lastReading = WaterReading::where('unit_id', $unit->id)
-                    ->latest('reading_date')
+                    ->orderBy('reading_date', 'desc')
                     ->first();
                 
                 $billingType = $unit->water_billing_type ?? 'consumption';
                 $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                
                 $previousReading = $lastReading ? $lastReading->current_reading : ($unit->previous_water_reading ?? 0);
                 
-                // CRITICAL FIX: Return ALL fields the modal needs
                 return [
                     'id' => $unit->id,
-                    'unit_id' => $unit->id,                    // For modal unit selection
+                    'unit_id' => $unit->id,
                     'unit_number' => $unit->unit_number ?? 'N/A',
                     'estate_name' => $unit->estate->name ?? 'N/A',
                     'estate_id' => $unit->estate_id,
@@ -878,20 +882,21 @@ class DashboardController extends Controller
                     'reading_date' => null,
                     'last_reading_date' => $lastReading ? $lastReading->reading_date->format('Y-m-d') : null,
                     'water_billing_type' => $billingType,
-                    'water_charge' => (float) ($unit->water_charge ?? 0),        // REQUIRED for flat rate
-                    'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0), // REQUIRED
-                    'water_rate' => (float) $rate,                                // REQUIRED for consumption calc
-                    'rate' => (float) $rate,                                      // Alias for compatibility
+                    'water_charge' => (float) ($unit->water_charge ?? 0),
+                    'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
+                    'water_rate' => (float) $rate,
+                    'rate' => (float) $rate,
                     'needs_reading' => true,
                     'status' => $unit->status,
                     'unit_type' => $unit->unit_type,
                 ];
             });
         
-        // Reading history for meter reader - from water_readings table
+        // Reading history for the selected month
         $readingHistory = WaterReading::with(['unit.estate', 'recordedBy'])
+            ->whereYear('reading_date', $year)
+            ->whereMonth('reading_date', $monthNum)
             ->orderBy('reading_date', 'desc')
-            // ->take(100)
             ->get()
             ->map(function ($reading) {
                 $unit = $reading->unit;
@@ -935,7 +940,7 @@ class DashboardController extends Controller
                 ];
             });
         
-        // Get all units for dropdown
+        // All units for dropdown (unchanged)
         $units = Unit::with('estate')
             ->where('is_active', true)
             ->get()
@@ -960,6 +965,7 @@ class DashboardController extends Controller
             'allWaterReadings' => WaterReading::count(),
             'todayReadings' => WaterReading::whereDate('reading_date', Carbon::today())->count(),
             'thisMonthReadings' => WaterReading::whereMonth('reading_date', Carbon::now()->month)->count(),
+            'selectedMonth' => $month,
         ];
     }
     
