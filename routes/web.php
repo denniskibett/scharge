@@ -309,5 +309,10 @@ Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'ge
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+// SMS Module Routes
+require base_path('app/Modules/SMS/routes.php');
 
 require __DIR__.'/auth.php';
+
+// SMS Module Routes
+require base_path('app/Modules/SMS/routes.php');

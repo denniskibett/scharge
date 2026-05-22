@@ -3,13 +3,14 @@
 namespace App\Modules\SMS\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use App\Modules\Tenants\Models\Tenant;
 use App\Modules\Water\Models\WaterReading;
 use App\Modules\SMS\Services\KenyaSMS;
 use App\Modules\SMS\Models\SmsLog;
 use App\Modules\Properties\Models\Estate;
+use App\Modules\SMS\Helpers\PhoneHelper;
 use Carbon\Carbon;
-use App\Http\Controllers\Controller;
 
 class SmsController extends Controller
 {
@@ -44,7 +45,7 @@ class SmsController extends Controller
             ->values();
 
         $estates = Estate::orderBy('name')->get();
-        $sandbox = config('sms.sandbox', true);
+        $sandbox = config('sms.kenyasms.sandbox', true);
 
         return view('sms.broadcast', compact('tenants', 'estates', 'sandbox'));
     }
@@ -91,7 +92,7 @@ class SmsController extends Controller
             'message_type' => 'nullable|in:transactional,promotional',
         ]);
 
-        $phone = \App\Modules\SMS\Helpers\PhoneHelper::clean($request->phone);
+        $phone = PhoneHelper::clean($request->phone);
         if (!$phone) {
             return back()->with('error', 'Invalid Kenyan phone number. Please use format like 0712345678 or 254712345678.');
         }

@@ -33,129 +33,84 @@ class KenyaSMS
             return ['success' => false, 'error' => 'Invalid Kenyan phone number'];
         }
 
-        $response = $this->callApi('/sms/send', [
-            'sender_id' => $this->senderId,
-            'recipient' => $phone,
-            'message' => $message,
-            'message_type' => $messageType ?? $this->defaultType,
-        ]);
-
-        SmsLog::create([
-            'recipient_phone' => $phone,
-            'message' => $message,
-            'status' => $response['success'] ? 'sent' : 'failed',
-            'provider_message_id' => $response['data']['message_id'] ?? null,
-            'failure_reason' => $response['error'] ?? null,
-            'meta' => ['api_response' => $response],
-        ]);
-
-        return $response;
-    }
-
-    public function sendBulk(array $phones, string $message, ?string $messageType = null): array
-    {
-        $validPhones = [];
-        $invalidPhones = [];
-        foreach ($phones as $phone) {
-            $cleaned = PhoneHelper::clean($phone);
-            if ($cleaned) {
-                $validPhones[] = $cleaned;
-            } else {
-                $invalidPhones[] = $phone;
-            }
+        // For testing without API
+        if ($this->sandbox) {
+            SmsLog::create([
+                'recipient_phone' => $phone,
+                'message' => $message,
+                'status' => 'sent',
+                'meta' => ['sandbox' => true],
+            ]);
+            return ['success' => true, 'data' => ['message_id' => 'sandbox_' . time()]];
         }
 
-        if (empty($validPhones)) {
-            return ['success' => false, 'error' => 'No valid phone numbers provided'];
-        }
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($this->baseUrl . '/sms/send', [
+                'sender_id' => $this->senderId,
+                'recipient' => $phone,
+                'message' => $message,
+                'message_type' => $messageType ?? $this->defaultType,
+            ]);
 
-        $response = $this->callApi('/sms/bulk', [
-            'sender_id' => $this->senderId,
-            'recipients' => $validPhones,
-            'message' => $message,
-            'message_type' => $messageType ?? $this->defaultType,
-        ]);
+            $body = $response->json();
 
-        if ($response['success']) {
-            $campaignId = $response['data']['campaign_id'] ?? null;
-            foreach ($validPhones as $phone) {
+            if ($response->successful()) {
                 SmsLog::create([
                     'recipient_phone' => $phone,
                     'message' => $message,
                     'status' => 'sent',
-                    'provider_message_id' => $campaignId,
-                    'meta' => ['campaign' => true, 'invalid_phones' => $invalidPhones],
+                    'provider_message_id' => $body['data']['message_id'] ?? null,
                 ]);
-            }
-        } else {
-            foreach ($validPhones as $phone) {
+                return ['success' => true, 'data' => $body['data'] ?? []];
+            } else {
                 SmsLog::create([
                     'recipient_phone' => $phone,
                     'message' => $message,
                     'status' => 'failed',
-                    'failure_reason' => $response['error'] ?? 'Unknown API error',
-                    'meta' => ['invalid_phones' => $invalidPhones],
+                    'failure_reason' => $body['error']['message'] ?? 'Unknown error',
                 ]);
+                return ['success' => false, 'error' => $body['error']['message'] ?? 'API error'];
             }
+        } catch (\Exception $e) {
+            SmsLog::create([
+                'recipient_phone' => $phone,
+                'message' => $message,
+                'status' => 'failed',
+                'failure_reason' => $e->getMessage(),
+            ]);
+            return ['success' => false, 'error' => $e->getMessage()];
         }
-
-        return $response;
     }
 
     public function sendPersonalized(string $template, array $recipients, ?string $messageType = null): array
     {
-        $apiRecipients = [];
-        $invalidEntries = [];
+        $sent = 0;
+        $failed = 0;
 
         foreach ($recipients as $recipient) {
             $phone = PhoneHelper::clean($recipient['phone'] ?? null);
             if (!$phone) {
-                $invalidEntries[] = $recipient;
+                $failed++;
                 continue;
             }
-            $apiRecipients[] = [
-                'phone' => $phone,
-                'variables' => $recipient['variables'] ?? [],
-            ];
-        }
 
-        if (empty($apiRecipients)) {
-            return ['success' => false, 'error' => 'No valid recipients with phone numbers'];
-        }
-
-        $response = $this->callApi('/sms/personalized', [
-            'sender_id' => $this->senderId,
-            'template' => $template,
-            'message_type' => $messageType ?? $this->defaultType,
-            'recipients' => $apiRecipients,
-        ]);
-
-        if ($response['success']) {
-            $campaignId = $response['data']['campaign_id'] ?? null;
-            foreach ($apiRecipients as $apiRecipient) {
-                $renderedMessage = $this->renderTemplate($template, $apiRecipient['variables']);
-                SmsLog::create([
-                    'recipient_phone' => $apiRecipient['phone'],
-                    'message' => $renderedMessage,
-                    'status' => 'sent',
-                    'provider_message_id' => $campaignId,
-                    'meta' => ['personalized' => true, 'variables' => $apiRecipient['variables'], 'invalid_entries' => $invalidEntries],
-                ]);
-            }
-        } else {
-            foreach ($apiRecipients as $apiRecipient) {
-                $renderedMessage = $this->renderTemplate($template, $apiRecipient['variables']);
-                SmsLog::create([
-                    'recipient_phone' => $apiRecipient['phone'],
-                    'message' => $renderedMessage,
-                    'status' => 'failed',
-                    'failure_reason' => $response['error'] ?? 'Unknown API error',
-                    'meta' => ['personalized' => true, 'variables' => $apiRecipient['variables'], 'invalid_entries' => $invalidEntries],
-                ]);
+            $message = $this->renderTemplate($template, $recipient['variables'] ?? []);
+            $result = $this->sendOne($phone, $message, $messageType);
+            
+            if ($result['success']) {
+                $sent++;
+            } else {
+                $failed++;
             }
         }
 
-        return $response;
+        return [
+            'success' => $sent > 0,
+            'data' => ['sent' => $sent, 'failed' => $failed],
+        ];
     }
 
     protected function renderTemplate(string $template, array $variables): string
@@ -165,43 +120,5 @@ class KenyaSMS
             $rendered = str_replace('{{' . $key . '}}', $value, $rendered);
         }
         return $rendered;
-    }
-
-    protected function callApi(string $endpoint, array $payload): array
-    {
-        $url = $this->baseUrl . $endpoint;
-        $headers = [
-            'Authorization' => 'Bearer ' . $this->apiKey,
-            'Content-Type' => 'application/json',
-        ];
-        if ($this->sandbox) {
-            $headers['X-Sandbox-Mode'] = 'true';
-        }
-
-        try {
-            $response = Http::withHeaders($headers)
-                ->timeout(30)
-                ->post($url, $payload);
-
-            $body = $response->json();
-
-            if ($response->successful() && isset($body['success']) && $body['success'] === true) {
-                return ['success' => true, 'data' => $body['data']];
-            } else {
-                $error = $body['error']['message'] ?? 'Unknown API error';
-                return ['success' => false, 'error' => $error];
-            }
-        } catch (\Exception $e) {
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
-    }
-
-    public function checkBalance(): ?float
-    {
-        $response = $this->callApi('/account/balance', []);
-        if ($response['success']) {
-            return $response['data']['balance_kes'] ?? null;
-        }
-        return null;
     }
 }
