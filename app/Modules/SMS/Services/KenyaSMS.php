@@ -3,8 +3,8 @@
 namespace App\Modules\SMS\Services;
 
 use Illuminate\Support\Facades\Http;
-use App\Models\SmsLog;
-use App\Helpers\PhoneHelper;
+use App\Modules\SMS\Models\SmsLog;
+use App\Modules\SMS\Helpers\PhoneHelper;
 
 class KenyaSMS
 {
@@ -16,12 +16,14 @@ class KenyaSMS
 
     public function __construct()
     {
-        $config = config('sms.kenyasms');
-        $this->apiKey = $config['api_key'] ?? null;
-        $this->baseUrl = $config['base_url'] ?? 'https://kenyasms.com/api/v1';
-        $this->senderId = $config['sender_id'] ?? 'SHARETENT';
-        $this->defaultType = $config['default_type'] ?? 'transactional';
-        $this->sandbox = $config['sandbox'] ?? true;
+        $config = config('sms');
+        $kenyaSmsConfig = $config['kenyasms'] ?? $config;
+        
+        $this->apiKey = $kenyaSmsConfig['api_key'] ?? env('KENYASMS_KEY');
+        $this->baseUrl = $kenyaSmsConfig['base_url'] ?? 'https://kenyasms.com/api/v1';
+        $this->senderId = $kenyaSmsConfig['sender_id'] ?? 'SHARETENT';
+        $this->defaultType = $kenyaSmsConfig['default_type'] ?? 'transactional';
+        $this->sandbox = $kenyaSmsConfig['sandbox'] ?? true;
     }
 
     public function sendOne(string $phone, string $message, ?string $messageType = null): array
@@ -80,7 +82,7 @@ class KenyaSMS
                 SmsLog::create([
                     'recipient_phone' => $phone,
                     'message' => $message,
-                    'status' => 'sent', // changed from 'pending' to 'sent' for consistency
+                    'status' => 'sent',
                     'provider_message_id' => $campaignId,
                     'meta' => ['campaign' => true, 'invalid_phones' => $invalidPhones],
                 ]);
@@ -135,7 +137,7 @@ class KenyaSMS
                 SmsLog::create([
                     'recipient_phone' => $apiRecipient['phone'],
                     'message' => $renderedMessage,
-                    'status' => 'sent', // <-- CHANGED from 'pending' to 'sent'
+                    'status' => 'sent',
                     'provider_message_id' => $campaignId,
                     'meta' => ['personalized' => true, 'variables' => $apiRecipient['variables'], 'invalid_entries' => $invalidEntries],
                 ]);
