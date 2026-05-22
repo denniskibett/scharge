@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Models;
+namespace App\Modules\Expenses\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class ExpenseCategory extends Model
+class Payee extends Model
 {
-    protected $fillable = ['name','description'];
+    protected $fillable = ['name','type','phone','email'];
 
     public function expenses()
     {

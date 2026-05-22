@@ -1,15 +1,11 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Modules\SMS\Helpers;
 
 class PhoneHelper
 {
     /**
      * Normalize a Kenyan phone number to 2547XXXXXXXX format.
-     * Returns null if the number is not a valid Kenyan mobile format.
-     *
-     * @param string|null $phone
-     * @return string|null
      */
     public static function normalize(?string $phone): ?string
     {
@@ -30,37 +26,23 @@ class PhoneHelper
             return '254' . $matches[1];
         }
 
-        // Case 3: 712345678 (9 digits, missing leading 0 – rare but possible)
+        // Case 3: 712345678 (9 digits)
         if (preg_match('/^([7-9][0-9]{8})$/', $cleaned, $matches)) {
             return '254' . $matches[1];
         }
 
-        // Not a valid Kenyan number
         return null;
     }
 
-    /**
-     * Check if a phone number is a valid Kenyan mobile number.
-     *
-     * @param string|null $phone
-     * @return bool
-     */
     public static function isValid(?string $phone): bool
     {
         $normalized = self::normalize($phone);
         if (!$normalized) {
             return false;
         }
-        // Must be 12 digits and start with 2547
         return preg_match('/^2547[0-9]{8}$/', $normalized) === 1;
     }
 
-    /**
-     * Clean and normalize a phone number. Returns normalized number if valid, null otherwise.
-     *
-     * @param string|null $phone
-     * @return string|null
-     */
     public static function clean(?string $phone): ?string
     {
         $normalized = self::normalize($phone);

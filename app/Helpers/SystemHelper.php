@@ -2,7 +2,7 @@
 
 namespace App\Helpers;
 
-use App\Models\System;
+use App\Modules\System\Models\System;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use PragmaRX\Countries\Package\Countries;
@@ -65,7 +65,7 @@ class SystemHelper
                         'vision' => '',
                         'values' => '',
                     ],
-                    'currency_position' => 'before', // for formatting currency
+                    'currency_position' => 'before',
                 ],
                 'website_pages' => [
                     'home' => ['enabled' => true,'title' => 'Home','slug' => '', 'show_in_menu' => true,'order' => 1],
@@ -129,7 +129,6 @@ class SystemHelper
     // Logos & Favicon
     // =========================
 
-
     public static function logoUrl($type = 'light')
     {
         $logo = match($type){
@@ -141,12 +140,10 @@ class SystemHelper
 
         if ($type === 'auth') return self::authLogoUrl();
 
-        // Try: exact path from DB
         if ($logo && file_exists(public_path($logo))) {
             return asset($logo);
         }
 
-        // Default fallback images
         return match($type){
             'dark' => asset('public/images/logo/logo-dark.svg'),
             'icon' => asset('public/images/logo/logo-icon.svg'),
@@ -159,17 +156,14 @@ class SystemHelper
     {
         $logo = self::get('logo');
         if ($logo) {
-            // First try images/logo directory
             if (file_exists(public_path('public/images/logo/' . $logo))) {
                 return asset('public/images/logo/' . $logo);
             }
             
-            // Then try storage directory
             if (file_exists(storage_path('app/public/' . $logo))) {
                 return asset('storage/' . $logo);
             }
             
-            // Then try just the logo as is
             if (file_exists(public_path($logo))) {
                 return asset($logo);
             }
@@ -181,23 +175,18 @@ class SystemHelper
     {
         $favicon = self::get('favicon');
         if ($favicon) {
-          
-            // First try images directory
             if (file_exists(public_path('images/' . $favicon))) {
                 return asset('images/' . $favicon);
             }
             
-            // Then try images/logo directory
             if (file_exists(public_path('images/logo/' . $favicon))) {
                 return asset('images/logo/' . $favicon);
             }
             
-            // Then try storage directory
             if (file_exists(storage_path('app/public/' . $favicon))) {
                 return asset('storage/' . $favicon);
             }
             
-            // Then try just the favicon as is
             if (file_exists(public_path($favicon))) {
                 return asset($favicon);
             }
@@ -205,7 +194,6 @@ class SystemHelper
         return asset('favicon.ico');
     }
     
-
     // =========================
     // Social media
     // =========================

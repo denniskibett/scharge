@@ -5,7 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Auth;
-use App\Models\System;
+use App\Modules\System\Models\System;
 use App\Helpers\SystemHelper;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,10 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // System model event listener
-        System::updated(function ($system) {
-            SystemHelper::clearCache();
-        });
+        // System model event listener - Check if System model exists
+        if (class_exists('App\Modules\System\Models\System')) {
+            System::updated(function ($system) {
+                SystemHelper::clearCache();
+            });
+        }
 
         // Register role-based Blade directives
         $this->registerBladeDirectives();

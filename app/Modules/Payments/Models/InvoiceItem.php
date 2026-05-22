@@ -1,7 +1,7 @@
 <?php
 // app/Models/InvoiceItem.php
 
-namespace App\Models;
+namespace App\Modules\Payments\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
