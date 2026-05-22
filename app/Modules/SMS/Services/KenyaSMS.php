@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Modules\SMS\Services;
 
 use Illuminate\Support\Facades\Http;
 use App\Models\SmsLog;

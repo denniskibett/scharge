@@ -8,6 +8,7 @@ use App\Models\WaterReading;
 use App\Services\KenyaSMS;
 use App\Models\SmsLog;
 use Carbon\Carbon;
+use App\Http\Controllers\Controller;
 
 class SmsController extends Controller
 {
