@@ -5,6 +5,11 @@ namespace App\Modules\Payments\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Tenancy;
+use App\Models\Invoice;
+use App\Models\Transaction;
+use App\Models\User;
+use App\Models\InvoiceItem;
 
 class Payment extends Model
 {

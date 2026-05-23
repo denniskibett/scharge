@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Payee;
+use App\Modules\Expenses\Models\Payee; 
 use Illuminate\Http\Request;
 
 class PayeeController extends Controller

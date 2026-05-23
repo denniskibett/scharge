@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Expense;
 use App\Models\Estate;
-use App\Models\Payee;
-use App\Models\ExpenseCategory;
+use App\Modules\Expenses\Models\Payee; 
+use App\Modules\Expenses\Models\ExpenseCategory;
 use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
