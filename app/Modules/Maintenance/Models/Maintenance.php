@@ -4,6 +4,9 @@ namespace App\Modules\Maintenance\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Models\Tenant;
+use App\Models\Unit;
 
 class Maintenance extends Model
 {
