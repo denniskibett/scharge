@@ -20,13 +20,14 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
 
-Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
