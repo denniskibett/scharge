@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Modules\Tenants\Models;
+namespace App\Modules\Security\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +10,7 @@ class Visitor extends Model
     use HasFactory;
 
     protected $fillable = [
-        'first_name', 'last_name', 'phone', 'email', 'id_number', 'id_type',
+        'company_id', 'estate_id', 'first_name', 'last_name', 'phone', 'email', 'id_number', 'id_type',
         'visitor_type', 'relationship', 'company', 'vehicles',
         'is_registered', 'registered_by_tenant_id', 'valid_from', 'valid_until',
         'access_schedule', 'is_active', 'is_blacklisted', 'blacklist_reason',
@@ -38,7 +38,7 @@ class Visitor extends Model
     public function getPrimaryVehicleAttribute()
     {
         if (!$this->vehicles) return null;
-        $vehicles = json_decode($this->vehicles, true);
+        $vehicles = is_array($this->vehicles) ? $this->vehicles : json_decode($this->vehicles, true);
         if (empty($vehicles)) return null;
         
         $primary = collect($vehicles)->firstWhere('is_primary', true);
@@ -70,6 +70,16 @@ class Visitor extends Model
         return $this->hasMany(SecurityLog::class);
     }
 
+    public function company()
+    {
+        return $this->belongsTo(\App\Models\Company::class);
+    }
+
+    public function estate()
+    {
+        return $this->belongsTo(\App\Models\Estate::class);
+    }
+
     // Scopes
     public function scopeRegistered($query)
     {
@@ -93,51 +103,5 @@ class Visitor extends Model
     public function scopeByType($query, $type)
     {
         return $query->where('visitor_type', $type);
-    }
-
-    // Helper methods
-    public function isAuthorizedForUnit($unitId)
-    {
-        if (!$this->is_active) return false;
-        if ($this->is_blacklisted) return false;
-        if ($this->valid_until && $this->valid_until < now()) return false;
-        
-        // Check if registered for this specific unit
-        if ($this->is_registered && $this->registered_by_tenant_id) {
-            $tenant = $this->registeredByTenant;
-            if ($tenant && $tenant->activeTenancy && $tenant->activeTenancy->unit_id == $unitId) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-
-    public function addVehicle($registration, $make = null, $color = null, $isPrimary = false)
-    {
-        $vehicles = $this->vehicles ?: [];
-        $vehicles[] = [
-            'registration' => $registration,
-            'make' => $make,
-            'color' => $color,
-            'is_primary' => $isPrimary
-        ];
-        
-        // If this is primary, remove primary from others
-        if ($isPrimary) {
-            foreach ($vehicles as &$v) {
-                $v['is_primary'] = false;
-            }
-        }
-        
-        $this->update(['vehicles' => $vehicles]);
-        return $this;
-    }
-
-    public function incrementVisit()
-    {
-        $this->increment('visit_count');
-        $this->update(['last_visit_at' => now()]);
-        return $this;
     }
 }

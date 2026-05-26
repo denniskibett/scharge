@@ -10,6 +10,7 @@ use App\Models\Tenant;
 use App\Models\Tenancy;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Company; // Add this
 
 class User extends Authenticatable
 {
@@ -37,6 +38,7 @@ class User extends Authenticatable
         'first_name',
         'last_name',
         'role_id',  
+        'company_id',
     ];
 
     /**
@@ -59,9 +61,23 @@ class User extends Authenticatable
         'social' => 'array',
     ];
 
-    /**
-     * Get the user's full name.
-     */
+        public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+
+    public function belongsToCompany(): bool
+    {
+        return !is_null($this->company_id);
+    }
+
+
+    public function getCompanyNameAttribute(): ?string
+    {
+        return $this->company ? $this->company->name : null;
+    }
+
     public function getFullNameAttribute(): string
     {
         if ($this->first_name && $this->last_name) {
@@ -70,9 +86,7 @@ class User extends Authenticatable
         return $this->name;
     }
 
-    /**
-     * Get the user's initials.
-     */
+
     public function getInitialsAttribute(): string
     {
         $name = $this->full_name;
@@ -86,9 +100,7 @@ class User extends Authenticatable
         return substr($initials, 0, 2);
     }
 
-    /**
-     * Get the user's avatar URL.
-     */
+
     public function getAvatarUrlAttribute(): string
     {
         if ($this->avatar) {
@@ -566,6 +578,26 @@ class User extends Authenticatable
         return 'Dashboard';
     }
 
+
+    // app/Modules/Users/Models/User.php - Add these methods
+
+    // Get tenant's registered visitors (if user is tenant)
+    public function registeredVisitors()
+    {
+        if (!$this->tenant) {
+            return collect();
+        }
+        return $this->tenant->registeredVisitors();
+    }
+
+    // Get security logs for tenant's unit
+    public function securityLogs()
+    {
+        if (!$this->tenant) {
+            return collect();
+        }
+        return $this->tenant->securityLogs();
+    }
 
     
 }

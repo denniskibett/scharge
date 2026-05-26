@@ -1,417 +1,388 @@
-@props(['logs' => [], 'showActions' => true])
+@props(['logs' => [], 'units' => [], 'totalLogs' => 0, 'pendingCount' => 0, 'approvedCount' => 0, 'deniedCount' => 0])
 
-<div class="space-y-4">
-    <!-- Header with Create Button -->
-    <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Security Access Logs</h3>
-        @if($showActions && auth()->user()->hasAnyRole(['super_admin', 'admin', 'security']))
-        <button @click="openSecuritySlideOver()" 
-                class="inline-flex items-center px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium rounded-lg transition-colors">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-            </svg>
-            New Access Log
-        </button>
-        @endif
-    </div>
-
-    <!-- Table -->
-    <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-800">
-                <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date & Time</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Person Name</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Access Type</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Verified By</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</th>
-                    @if($showActions)
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                    @endif
-                </tr>
-            </thead>
-            <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                @forelse($logs as $log)
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {{ \Carbon\Carbon::parse($log['datetime'])->format('M d, Y H:i') }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                        {{ $log['unit_number'] }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {{ $log['person_name'] }}
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                            @if($log['access_type'] === 'entry') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200
-                            @elseif($log['access_type'] === 'exit') bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200
-                            @elseif($log['access_type'] === 'delivery') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200
-                            @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                            @endif">
-                            {{ ucfirst($log['access_type']) }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        @if($log['status'] === 'granted')
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                                Granted
-                            </span>
-                        @elseif($log['status'] === 'pending')
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                Pending
-                            </span>
-                        @else
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                                Denied
-                            </span>
-                        @endif
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        {{ $log['verified_by'] ?? 'System' }}
-                    </td>
-                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate" title="{{ $log['notes'] ?? '-' }}">
-                        {{ Str::limit($log['notes'] ?? '-', 50) }}
-                    </td>
-                    @if($showActions)
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div class="flex items-center justify-end gap-2">
-                            <button onclick="viewSecurityLog({{ $log['id'] }})" 
-                                    class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                                    title="View Details">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                </svg>
-                            </button>
-                            @if(auth()->user()->hasAnyRole(['super_admin', 'admin', 'security']))
-                            <button onclick="editSecurityLog({{ $log['id'] }})" 
-                                    class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 transition-colors"
-                                    title="Edit Log">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                </svg>
-                            </button>
-                            <button onclick="deleteSecurityLog({{ $log['id'] }})" 
-                                    class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                                    title="Delete Log">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                </svg>
-                            </button>
-                            @endif
-                        </div>
-                    </td>
-                    @endif
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="{{ $showActions ? 8 : 7 }}" class="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                        <div class="flex flex-col items-center">
-                            <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            <p>No access logs found.</p>
-                            @if($showActions && auth()->user()->hasAnyRole(['super_admin', 'admin', 'security']))
-                            <button @click="openSecuritySlideOver()" 
-                                    class="mt-3 text-sm text-brand-600 hover:text-brand-700 dark:text-brand-400">
-                                Create your first access log
-                            </button>
-                            @endif
-                        </div>
-                    </td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- CREATE/EDIT SLIDE-OVER MODAL -->
-<div x-show="showSecuritySlideOver" 
-     x-cloak
-     x-transition:enter="transform transition ease-in-out duration-300"
-     x-transition:enter-start="translate-x-full"
-     x-transition:enter-end="translate-x-0"
-     x-transition:leave="transform transition ease-in-out duration-300"
-     x-transition:leave-start="translate-x-0"
-     x-transition:leave-end="translate-x-full"
-     class="fixed inset-0 z-[99999] overflow-hidden" 
-     style="display: none;">
-    
-    <!-- Backdrop with 50% opacity frosted glass -->
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
-         @click="closeSecuritySlideOver()"></div>
-    
-    <!-- Slide-over Panel -->
-    <div class="absolute inset-y-0 right-0 max-w-full flex">
-        <div class="w-screen max-w-md">
-            <div class="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                <!-- Header -->
-                <div class="px-4 py-6 bg-gradient-to-r from-brand-500 to-brand-600 sm:px-6">
-                    <div class="flex items-start justify-between">
-                        <h2 class="text-lg font-medium text-white" id="slide-over-title">
-                            <span x-text="securityForm.id ? 'Edit Access Log' : 'Create New Access Log'"></span>
-                        </h2>
-                        <div class="ml-3 h-7 flex items-center">
-                            <button @click="closeSecuritySlideOver()" class="rounded-md text-white hover:text-gray-200 focus:outline-none">
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Form -->
-                <form @submit.prevent="submitSecurityLog" class="flex-1 flex flex-col">
-                    <div class="flex-1 px-4 py-6 sm:px-6">
-                        <div class="space-y-6">
-                            <!-- Unit Selection -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Unit *
-                                </label>
-                                <select x-model="securityForm.unit_id" 
-                                        required
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white">
-                                    <option value="">Select Unit</option>
-                                    @foreach($units ?? [] as $unit)
-                                        <option value="{{ $unit->id }}">{{ $unit->unit_number }} - {{ $unit->estate->name ?? '' }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <!-- Person Name -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Person Name *
-                                </label>
-                                <input type="text" 
-                                       x-model="securityForm.person_name" 
-                                       required
-                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white"
-                                       placeholder="Full name of the person">
-                            </div>
-
-                            <!-- Access Type -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Access Type *
-                                </label>
-                                <select x-model="securityForm.access_type" 
-                                        required
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white">
-                                    <option value="entry">Entry</option>
-                                    <option value="exit">Exit</option>
-                                    <option value="delivery">Delivery</option>
-                                    <option value="visitor">Visitor</option>
-                                    <option value="maintenance">Maintenance</option>
-                                </select>
-                            </div>
-
-                            <!-- Status -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Status *
-                                </label>
-                                <select x-model="securityForm.status" 
-                                        required
-                                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white">
-                                    <option value="granted">Granted</option>
-                                    <option value="denied">Denied</option>
-                                    <option value="pending">Pending</option>
-                                </select>
-                            </div>
-
-                            <!-- Date & Time -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Date & Time *
-                                </label>
-                                <input type="datetime-local" 
-                                       x-model="securityForm.datetime" 
-                                       required
-                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white">
-                            </div>
-
-                            <!-- Verified By -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Verified By
-                                </label>
-                                <input type="text" 
-                                       x-model="securityForm.verified_by" 
-                                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white"
-                                       placeholder="Who verified this access">
-                            </div>
-
-                            <!-- Notes -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    Notes
-                                </label>
-                                <textarea x-model="securityForm.notes" 
-                                          rows="4"
-                                          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-500 focus:border-brand-500 dark:bg-gray-700 dark:text-white"
-                                          placeholder="Additional notes..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Form Actions -->
-                    <div class="flex-shrink-0 px-4 py-4 border-t border-gray-200 dark:border-gray-700">
-                        <div class="flex justify-end space-x-3">
-                            <button type="button"
-                                    @click="closeSecuritySlideOver()"
-                                    class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
-                                Cancel
-                            </button>
-                            <button type="submit"
-                                    :disabled="submitting"
-                                    class="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                                <span x-show="!submitting" x-text="securityForm.id ? 'Update Log' : 'Create Log'"></span>
-                                <span x-show="submitting" class="flex items-center">
-                                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Saving...
-                                </span>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- VIEW MODAL (Center with frosted bg) -->
-<div x-show="showSecurityViewModal" 
-     x-cloak
-     x-transition:enter="transition ease-out duration-300"
-     x-transition:enter-start="opacity-0 transform scale-95"
-     x-transition:enter-end="opacity-100 transform scale-100"
-     x-transition:leave="transition ease-in duration-200"
-     x-transition:leave-start="opacity-100 transform scale-100"
-     x-transition:leave-end="opacity-0 transform scale-95"
-     class="fixed inset-0 z-[99999] overflow-y-auto" 
-     style="display: none;">
-    
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <!-- Frosted backdrop -->
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
-
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="sm:flex sm:items-start">
-                    <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-                            Access Log Details
-                        </h3>
-                        
-                        <div class="space-y-3">
-                            <div class="border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Date & Time</p>
-                                <p class="text-sm text-gray-900 dark:text-white" x-text="viewLog.datetime_formatted"></p>
-                            </div>
-                            <div class="border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Unit</p>
-                                <p class="text-sm text-gray-900 dark:text-white" x-text="viewLog.unit_number"></p>
-                            </div>
-                            <div class="border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Person Name</p>
-                                <p class="text-sm text-gray-900 dark:text-white" x-text="viewLog.person_name"></p>
-                            </div>
-                            <div class="border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Access Type</p>
-                                <p class="text-sm text-gray-900 dark:text-white" x-text="viewLog.access_type"></p>
-                            </div>
-                            <div class="border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
-                                <p class="text-sm" :class="viewLog.status === 'granted' ? 'text-green-600' : (viewLog.status === 'pending' ? 'text-yellow-600' : 'text-red-600')" x-text="viewLog.status"></p>
-                            </div>
-                            <div class="border-b border-gray-200 dark:border-gray-700 pb-2">
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Verified By</p>
-                                <p class="text-sm text-gray-900 dark:text-white" x-text="viewLog.verified_by || 'System'"></p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">Notes</p>
-                                <p class="text-sm text-gray-900 dark:text-white" x-text="viewLog.notes || '-'"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button"
-                        @click="closeSecurityViewModal()"
-                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-600 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 sm:mt-0 sm:w-auto sm:text-sm">
-                    Close
+<!-- Security Logs Table -->
+<div x-data="securityTable()" x-init="init()" x-cloak>
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <!-- Table Header -->
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between border-b border-gray-200 dark:border-gray-700 px-5 py-4 gap-4">
+            <!-- Tabs - Balanced layout -->
+            <div class="flex flex-wrap gap-1 sm:gap-2">
+                <button
+                    @click="activeTab = 'all'; filterLogs()"
+                    :class="activeTab === 'all' 
+                        ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400' 
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800'"
+                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                >
+                    All Logs
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" x-text="statusCounts.all"></span>
+                </button>
+                
+                <button
+                    @click="activeTab = 'pending'; filterLogs()"
+                    :class="activeTab === 'pending' 
+                        ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' 
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800'"
+                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                >
+                    Pending
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400" x-text="statusCounts.pending"></span>
+                </button>
+                
+                <button
+                    @click="activeTab = 'approved'; filterLogs()"
+                    :class="activeTab === 'approved' 
+                        ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800'"
+                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                >
+                    Approved
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" x-text="statusCounts.approved"></span>
+                </button>
+                
+                <button
+                    @click="activeTab = 'denied'; filterLogs()"
+                    :class="activeTab === 'denied' 
+                        ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400' 
+                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-800'"
+                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+                >
+                    Denied
+                    <span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" x-text="statusCounts.denied"></span>
                 </button>
             </div>
-        </div>
-    </div>
-</div>
 
-<!-- DELETE CONFIRMATION MODAL -->
-<div x-show="showSecurityDeleteModal" 
-     x-cloak
-     x-transition:enter="transition ease-out duration-300"
-     x-transition:enter-start="opacity-0 transform scale-95"
-     x-transition:enter-end="opacity-100 transform scale-100"
-     x-transition:leave="transition ease-in duration-200"
-     x-transition:leave-start="opacity-100 transform scale-100"
-     x-transition:leave-end="opacity-0 transform scale-95"
-     class="fixed inset-0 z-[99999] overflow-y-auto" 
-     style="display: none;">
-    
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
-
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="sm:flex sm:items-start">
-                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900 sm:mx-0 sm:h-10 sm:w-10">
-                        <svg class="h-6 w-6 text-red-600 dark:text-red-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            <!-- Search and Controls -->
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Search Bar -->
+                <div class="relative">
+                    <span class="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                    </div>
-                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                            Delete Access Log
-                        </h3>
-                        <div class="mt-2">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">
-                                Are you sure you want to delete this access log? This action cannot be undone.
-                            </p>
-                        </div>
-                    </div>
+                    </span>
+                    <input 
+                        type="text" 
+                        x-model="searchTerm"
+                        @input.debounce.300ms="filterLogs()"
+                        placeholder="Search..." 
+                        class="w-48 lg:w-64 h-9 pl-9 pr-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                    >
+                </div>
+
+                <!-- Access Type Filter -->
+                <select 
+                    x-model="filters.access_type"
+                    @change="filterLogs()"
+                    class="h-9 px-3 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                >
+                    <option value="">All Types</option>
+                    <option value="entry">Entry</option>
+                    <option value="exit">Exit</option>
+                    <option value="delivery">Delivery</option>
+                    <option value="guest">Guest</option>
+                    <option value="contractor">Contractor</option>
+                    <option value="maintenance">Maintenance</option>
+                </select>
+
+                <!-- Clear Filters Button -->
+                <button 
+                    @click="clearFilters()"
+                    x-show="hasActiveFilters"
+                    class="h-9 px-3 text-sm text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                >
+                    Clear
+                </button>
+
+                <!-- Entries Per Page -->
+                <select 
+                    x-model="entriesPerPage" 
+                    @change="updateTable()"
+                    class="h-9 px-2 text-sm border border-gray-300 rounded-lg focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                >
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-1.5">
+                    <button 
+                        @click="openQuickEntryModal()"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                        </svg>
+                        Quick Entry
+                    </button>
+
+                    <button 
+                        @click="openSecurityVisitorModal()"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Visitor Mgmt
+                    </button>
+
+                    <button 
+                        @click="openNewLogModal()"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Log
+                    </button>
                 </div>
             </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                <button type="button"
-                        @click="confirmDeleteSecurityLog()"
-                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
-                    Delete
-                </button>
-                <button type="button"
-                        @click="closeSecurityDeleteModal()"
-                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-600 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 sm:mt-0 sm:w-auto sm:text-sm">
-                    Cancel
-                </button>
+        </div>
+
+        <!-- Table Content -->
+        <div class="w-full overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700" @click="sortBy('access_time')">
+                            <div class="flex items-center gap-1">
+                                <span>Date & Time</span>
+                                <svg :class="sortColumn === 'access_time' && sortDirection === 'asc' ? 'text-brand-500' : 'text-gray-400'" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                            </div>
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Unit</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Person Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Access Type</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Verified By</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                    <template x-for="log in paginatedLogs" :key="log.id">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
+                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400" x-text="log.datetime_formatted"></td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                                        <span class="text-xs font-medium text-blue-600 dark:text-blue-400" x-text="(log.unit_number || 'U').charAt(0)"></span>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-800 dark:text-white" x-text="log.unit_number"></span>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="text-sm font-medium text-gray-800 dark:text-white" x-text="log.person_name"></div>
+                                <div x-show="log.visitor_phone" class="text-xs text-gray-500" x-text="log.visitor_phone"></div>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex px-2 py-0.5 text-xs rounded-full"
+                                      :class="log.access_type === 'entry' ? 'bg-blue-100 text-blue-700' : log.access_type === 'exit' ? 'bg-gray-100 text-gray-700' : log.access_type === 'delivery' ? 'bg-purple-100 text-purple-700' : 'bg-yellow-100 text-yellow-700'"
+                                      x-text="log.access_type.charAt(0).toUpperCase() + log.access_type.slice(1)"></span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="inline-flex px-2 py-0.5 text-xs rounded-full"
+                                      :class="log.status === 'approved' || log.status === 'granted' ? 'bg-green-100 text-green-700' : log.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'"
+                                      x-text="log.status.charAt(0).toUpperCase() + log.status.slice(1)"></span>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500" x-text="log.verified_by || 'System'"></td>
+                            <td class="px-4 py-3 text-center">
+                                <div x-data="{ open: false }" class="relative inline-block">
+                                    <button @click="open = !open" class="p-1 text-gray-400 hover:text-gray-600">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="open" @click.outside="open = false" class="absolute right-0 mt-1 w-36 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10" x-cloak>
+                                        <button @click="viewLog(log.id); open = false" class="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-100 dark:hover:bg-gray-700">View</button>
+                                        <button @click="editLog(log.id); open = false" class="w-full px-3 py-2 text-left text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
+                                        <template x-if="log.status === 'pending'">
+                                            <div>
+                                                <button @click="approveLog(log.id); open = false" class="w-full px-3 py-2 text-left text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">Approve</button>
+                                                <button @click="denyLog(log.id); open = false" class="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Deny</button>
+                                            </div>
+                                        </template>
+                                        <button @click="confirmDelete(log.id); open = false" class="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700">Delete</button>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                    
+                    <tr x-show="filteredLogs.length === 0">
+                        <td colspan="7" class="px-4 py-12 text-center text-gray-500">
+                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <p>No access logs found</p>
+                            <p class="text-sm mt-1" x-show="hasActiveFilters || searchTerm">Try adjusting your filters</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <!-- Pagination -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+                <div class="text-sm text-gray-500">
+                    Showing <span x-text="((currentPage - 1) * entriesPerPage) + 1"></span> to <span x-text="Math.min(currentPage * entriesPerPage, filteredLogs.length)"></span> of <span x-text="filteredLogs.length"></span> entries
+                </div>
+                <div class="flex items-center gap-1">
+                    <button @click="prevPage()" :disabled="currentPage === 1" class="px-3 py-1 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800">Previous</button>
+                    <template x-for="page in visiblePages" :key="page">
+                        <button @click="goToPage(page)" :class="page === currentPage ? 'bg-brand-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-800'" class="px-3 py-1 text-sm rounded-lg transition" x-text="page"></button>
+                    </template>
+                    <button @click="nextPage()" :disabled="currentPage === totalPages" class="px-3 py-1 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800">Next</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<script type="application/json" id="security-logs-data">
+@json($logs ?? [])
+</script>
+
+<script>
+function securityTable() {
+    return {
+        logs: [],
+        filteredLogs: [],
+        paginatedLogs: [],
+        currentPage: 1,
+        entriesPerPage: 10,
+        searchTerm: '',
+        filters: { access_type: '', date_from: '', date_to: '' },
+        sortColumn: 'access_time',
+        sortDirection: 'desc',
+        activeTab: 'all',
+        totalPages: 1,
+        
+        init() {
+            const element = document.getElementById('security-logs-data');
+            if (element) {
+                this.logs = JSON.parse(element.textContent);
+            }
+            this.filterLogs();
+        },
+        
+        get statusCounts() {
+            return {
+                all: this.logs.length,
+                pending: this.logs.filter(l => l.status === 'pending').length,
+                approved: this.logs.filter(l => l.status === 'approved' || l.status === 'granted').length,
+                denied: this.logs.filter(l => l.status === 'denied').length
+            };
+        },
+        
+        get hasActiveFilters() {
+            return this.filters.access_type || this.searchTerm;
+        },
+        
+        filterLogs() {
+            let filtered = [...this.logs];
+            
+            if (this.activeTab !== 'all') {
+                filtered = filtered.filter(l => l.status === this.activeTab);
+            }
+            if (this.filters.access_type) {
+                filtered = filtered.filter(l => l.access_type === this.filters.access_type);
+            }
+            if (this.searchTerm) {
+                const term = this.searchTerm.toLowerCase();
+                filtered = filtered.filter(l => 
+                    (l.person_name && l.person_name.toLowerCase().includes(term)) ||
+                    (l.unit_number && l.unit_number.toLowerCase().includes(term))
+                );
+            }
+            
+            this.filteredLogs = filtered;
+            this.sortLogs();
+            this.updateTable();
+            this.currentPage = 1;
+        },
+        
+        clearFilters() {
+            this.filters = { access_type: '', date_from: '', date_to: '' };
+            this.searchTerm = '';
+            this.filterLogs();
+        },
+        
+        sortLogs() {
+            this.filteredLogs.sort((a, b) => {
+                let aVal = a[this.sortColumn];
+                let bVal = b[this.sortColumn];
+                if (this.sortColumn === 'access_time') {
+                    aVal = new Date(aVal).getTime();
+                    bVal = new Date(bVal).getTime();
+                }
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        },
+        
+        sortBy(column) {
+            if (this.sortColumn === column) {
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortColumn = column;
+                this.sortDirection = 'asc';
+            }
+            this.sortLogs();
+            this.updateTable();
+        },
+        
+        updateTable() {
+            this.totalPages = Math.ceil(this.filteredLogs.length / this.entriesPerPage);
+            const start = (this.currentPage - 1) * this.entriesPerPage;
+            this.paginatedLogs = this.filteredLogs.slice(start, start + this.entriesPerPage);
+        },
+        
+        get visiblePages() {
+            const pages = [];
+            const total = this.totalPages;
+            const current = this.currentPage;
+            if (total <= 5) {
+                for (let i = 1; i <= total; i++) pages.push(i);
+            } else {
+                if (current <= 3) {
+                    for (let i = 1; i <= 5; i++) pages.push(i);
+                } else if (current >= total - 2) {
+                    for (let i = total - 4; i <= total; i++) pages.push(i);
+                } else {
+                    for (let i = current - 2; i <= current + 2; i++) pages.push(i);
+                }
+            }
+            return pages;
+        },
+        
+        prevPage() { if (this.currentPage > 1) { this.currentPage--; this.updateTable(); } },
+        nextPage() { if (this.currentPage < this.totalPages) { this.currentPage++; this.updateTable(); } },
+        goToPage(page) { this.currentPage = page; this.updateTable(); },
+        
+        openQuickEntryModal() { if (window.securityQuickEntryModal) window.securityQuickEntryModal.openModal(); },
+        openSecurityVisitorModal() { if (typeof openSecurityVisitorModal === 'function') openSecurityVisitorModal(); },
+        openNewLogModal() { if (window.securityCrudModal) window.securityCrudModal.openModal(); },
+        viewLog(id) { if (window.securityCrudModal) window.securityCrudModal.viewLog(id); },
+        editLog(id) { if (window.securityCrudModal) window.securityCrudModal.editLog(id); },
+        confirmDelete(id) { if (window.securityCrudModal) window.securityCrudModal.confirmDelete(id); },
+        approveLog(id) { if (window.securityCrudModal) window.securityCrudModal.approveLog(id); },
+        denyLog(id) { if (window.securityCrudModal) window.securityCrudModal.denyLog(id); }
+    };
+}
+
+window.securityTable = securityTable;
+</script>
 
 <style>
-    [x-cloak] { display: none !important; }
+[x-cloak] { display: none !important; }
 </style>
+
+@include('partials.modal.security-create-modal')
+@include('partials.modal.security-quick-entry-modal')
+@include('partials.modal.security-crud-modal')

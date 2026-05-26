@@ -41,7 +41,7 @@
                     <select x-model="unitId" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm">
                         <option value="">Select Unit</option>
                         @foreach($units ?? [] as $unit)
-                        <option value="{{ $unit->id }}">{{ $unit->unit_number }} ({{ $unit->estate->name ?? 'No Estate' }})</option>
+                        <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} ({{ $unit['estate_name'] ?? 'No Estate' }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -50,10 +50,17 @@
                     <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Access Type</label>
                     <select x-model="accessType" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm">
                         <option value="entry">Entry</option>
+                        <option value="exit">Exit</option>
                         <option value="delivery">Delivery</option>
                         <option value="guest">Guest</option>
                         <option value="contractor">Contractor</option>
+                        <option value="maintenance">Maintenance</option>
                     </select>
+                </div>
+
+                <div class="mb-6">
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Purpose (Optional)</label>
+                    <input type="text" x-model="purpose" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm" placeholder="Reason for visit">
                 </div>
 
                 <div class="flex items-center justify-end gap-3 mt-6">
@@ -77,6 +84,7 @@ document.addEventListener('alpine:init', () => {
         lookupValue: '',
         unitId: '',
         accessType: 'entry',
+        purpose: '',
         
         init() {
             window.securityQuickEntryModal = this;
@@ -98,10 +106,14 @@ document.addEventListener('alpine:init', () => {
             this.lookupValue = '';
             this.unitId = '';
             this.accessType = 'entry';
+            this.purpose = '';
         },
         
         async quickCheckin() {
-            if (!this.lookupValue || !this.unitId) return;
+            if (!this.lookupValue || !this.unitId) {
+                alert('Please enter lookup value and select a unit');
+                return;
+            }
             
             this.isSubmitting = true;
             
@@ -117,7 +129,8 @@ document.addEventListener('alpine:init', () => {
                         lookup_by: this.lookupBy,
                         lookup_value: this.lookupValue,
                         unit_id: this.unitId,
-                        access_type: this.accessType
+                        access_type: this.accessType,
+                        purpose: this.purpose
                     })
                 });
                 
@@ -130,15 +143,15 @@ document.addEventListener('alpine:init', () => {
                 } else if (data.requires_registration) {
                     alert('Visitor not found. Please register them first.');
                     this.closeModal();
-                    if (window.securityRegisterModal) {
-                        window.securityRegisterModal.openModal();
+                    if (window.securityAddVisitorModal) {
+                        window.securityAddVisitorModal.openModal();
                     }
                 } else {
                     alert(data.message || 'Check-in failed');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred');
+                alert('An error occurred. Please try again.');
             } finally {
                 this.isSubmitting = false;
             }

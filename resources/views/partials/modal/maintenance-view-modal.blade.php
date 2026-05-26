@@ -11,7 +11,7 @@
         
         <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-                <div class="absolute inset-0 bg-gray-500 opacity-75 dark:bg-gray-900 dark:opacity-90"></div>
+                <div class="absolute inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-90"></div>
             </div>
 
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
@@ -57,12 +57,17 @@
                                 
                                 <div>
                                     <span class="text-xs text-gray-500">Tenant</span>
-                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.tenant_name"></p>
+                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.tenant_name || 'N/A'"></p>
+                                </div>
+                                
+                                <div>
+                                    <span class="text-xs text-gray-500">Category</span>
+                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.category_label || request.category"></p>
                                 </div>
                                 
                                 <div>
                                     <span class="text-xs text-gray-500">Title</span>
-                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.title"></p>
+                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.title || request.name"></p>
                                 </div>
                                 
                                 <div>
@@ -70,14 +75,24 @@
                                     <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="request.description"></p>
                                 </div>
                                 
+                                <div x-show="request.admin_notes">
+                                    <span class="text-xs text-gray-500">Admin Notes</span>
+                                    <p class="text-gray-700 dark:text-gray-300" x-text="request.admin_notes"></p>
+                                </div>
+                                
                                 <div>
                                     <span class="text-xs text-gray-500">Reported On</span>
                                     <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.created_at)"></p>
                                 </div>
                                 
-                                <div x-show="request.resolved_at">
-                                    <span class="text-xs text-gray-500">Resolved On</span>
-                                    <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.resolved_at)"></p>
+                                <div x-show="request.scheduled_date">
+                                    <span class="text-xs text-gray-500">Scheduled Date</span>
+                                    <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.scheduled_date)"></p>
+                                </div>
+                                
+                                <div x-show="request.completed_date">
+                                    <span class="text-xs text-gray-500">Completed Date</span>
+                                    <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.completed_date)"></p>
                                 </div>
                             </div>
                         </div>
@@ -131,6 +146,7 @@ document.addEventListener('alpine:init', () => {
                         priority_color: this.getPriorityColor(data.request.priority),
                         status_label: this.getStatusLabel(data.request.status),
                         status_color: this.getStatusColor(data.request.status),
+                        category_label: this.getCategoryLabel(data.request.category),
                         request_number: data.request.request_number || '#' + String(data.request.id).padStart(6, '0')
                     };
                 } else {
@@ -174,7 +190,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         getStatusLabel(status) {
-            const labels = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved' };
+            const labels = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved', pending_parts: 'Pending Parts', cancelled: 'Cancelled' };
             return labels[status] || status;
         },
         
@@ -182,9 +198,20 @@ document.addEventListener('alpine:init', () => {
             const colors = {
                 resolved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
                 in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-                open: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                pending_parts: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+                open: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+                cancelled: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
             };
             return colors[status] || 'bg-gray-100 text-gray-800';
+        },
+        
+        getCategoryLabel(category) {
+            const labels = {
+                plumbing: 'Plumbing', electrical: 'Electrical', hvac: 'HVAC / AC',
+                appliance: 'Appliance', structural: 'Structural', pest_control: 'Pest Control',
+                cleaning: 'Cleaning', other: 'Other'
+            };
+            return labels[category] || category;
         },
         
         formatDate(dateString) {

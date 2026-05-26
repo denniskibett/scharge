@@ -245,7 +245,7 @@
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Maintenance</span>
                 <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($roleData['maintenanceRequests']->count() ?? 0) }}
+                    {{ number_format(count($roleData['maintenanceRequests'] ?? [])) }}
                 </h4>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">
@@ -436,7 +436,7 @@
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Maintenance</span>
                 <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($roleData['maintenanceRequests']->count() ?? 0) }}
+                    {{ number_format(count($roleData['maintenanceRequests'] ?? [])) }}
                 </h4>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">

@@ -411,7 +411,12 @@ document.addEventListener('alpine:init', () => {
 {{-- @include('partials.modal.maintenance-create-modal', ['units' => $units ?? []]) --}}
 
 <!-- Include Maintenance Modals -->
-@include('partials.modal.maintenance-create-modal', ['units' => $units ?? [], 'currentUnit' => $currentUnit ?? null])
+{{-- @include('partials.modal.maintenance-create-modal', ['units' => $units ?? [], 'currentUnit' => $currentUnit ?? null]) --}}
+@include('partials.modal.maintenance-create-modal', [
+    'units' => $units ?? [], 
+    'estates' => $estates ?? [],
+    'currentUnit' => $currentUnit ?? null
+])
 @include('partials.modal.maintenance-view-modal')
 
 <style>

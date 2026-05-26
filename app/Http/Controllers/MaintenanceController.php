@@ -15,7 +15,15 @@ class MaintenanceController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = Maintenance::with(['unit', 'tenant.user', 'assignedStaff']);
+        
+        // Apply company filter for non-sysadmin users
+        if (!$user->hasRole('sysadmin') && $user->company_id) {
+            $query->whereHas('unit', function($q) use ($user) {
+                $q->where('company_id', $user->company_id);
+            });
+        }
         
         // Filter by status
         if ($request->has('status') && $request->status !== 'all') {
@@ -64,63 +72,75 @@ class MaintenanceController extends Controller
         return view('maintenance.index', compact('requests'));
     }
 
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'unit_id' => 'required|exists:units,id',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'category' => 'required|in:plumbing,electrical,hvac,appliance,structural,pest_control,cleaning,other',
+            'priority' => 'required|in:low,medium,high,emergency',
+            'duration' => 'nullable|string',
+            'images' => 'nullable',
+        ]);
 
+        $user = Auth::user();
+        
+        // Get tenant properly
+        $tenant = Tenant::where('user_id', $user->id)->first();
 
-public function store(Request $request)
-{
-    $validated = $request->validate([
-        'unit_id' => 'required|exists:units,id',
-        'name' => 'required|string|max:255', // ✅ match frontend
-        'description' => 'required|string',
-        'category' => 'required|in:plumbing,electrical,hvac,appliance,structural,pest_control,cleaning,other',
-        'priority' => 'required|in:low,medium,high,emergency',
-        'duration' => 'required|string',
-        'images' => 'nullable',
-    ]);
+        if (!$tenant) {
+            // fallback: derive tenant from unit
+            $unit = Unit::with('tenant')->find($validated['unit_id']);
+            $tenantId = $unit?->tenant?->id;
+        } else {
+            $tenantId = $tenant->id;
+        }
 
-    // ✅ Get tenant properly
-    $tenant = \App\Models\Tenant::where('user_id', Auth::id())->first();
+        if (!$tenantId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tenant assigned to this unit'
+            ], 422);
+        }
 
-    if (!$tenant) {
-        // fallback: derive tenant from unit
-        $unit = \App\Models\Unit::with('tenant')->find($validated['unit_id']);
-        $tenantId = $unit?->tenant?->id;
-    } else {
-        $tenantId = $tenant->id;
-    }
+        // Generate request number
+        $lastId = Maintenance::max('id') ?? 0;
+        $requestNumber = 'MT-' . str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
 
-    // ❌ Still no tenant? STOP
-    if (!$tenantId) {
+        // Get company_id from the unit
+        $unit = Unit::find($validated['unit_id']);
+        $companyId = $unit?->company_id ?? $user->company_id;
+
+        // Create record
+        $maintenance = Maintenance::create([
+            'company_id' => $companyId,
+            'estate_id' => $unit?->estate_id,
+            'unit_id' => $validated['unit_id'],
+            'tenant_id' => $tenantId,
+            'assigned_to' => null,
+            'request_number' => $requestNumber,
+            'duration' => $validated['duration'] ?? null,
+            'name' => $validated['name'],
+            'description' => $validated['description'],
+            'category' => $validated['category'],
+            'priority' => $validated['priority'],
+            'status' => 'open',
+            'admin_notes' => null,
+            'resolution_notes' => null,
+            'scheduled_date' => null,
+            'completed_date' => null,
+            'cost' => null,
+            'images' => json_encode([]),
+        ]);
+
         return response()->json([
-            'success' => false,
-            'message' => 'No tenant assigned to this unit'
-        ], 422);
+            'success' => true,
+            'message' => 'Maintenance request submitted successfully',
+            'request' => $maintenance
+        ]);
     }
 
-    // ✅ Generate request number safely
-    $lastId = \App\Models\Maintenance::max('id') ?? 0;
-    $requestNumber = 'MT-' . str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
-
-    // ✅ Create record
-    $maintenance = \App\Models\Maintenance::create([
-        'unit_id' => $validated['unit_id'],
-        'tenant_id' => $tenantId,
-        'name' => $validated['name'], // ✅ map correctly
-        'description' => $validated['description'],
-        'category' => $validated['category'],
-        'priority' => $validated['priority'],
-        'duration' => $validated['duration'],
-        'status' => 'open',
-        'request_number' => $requestNumber,
-        'images' => json_encode([]), // you can improve this later
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'message' => 'Maintenance request submitted successfully',
-        'request' => $maintenance
-    ]);
-}
     public function update(Request $request, Maintenance $maintenance)
     {
         $validated = $request->validate([
@@ -138,12 +158,12 @@ public function store(Request $request)
             $validated['completed_date'] = $validated['completed_date'] ?? Carbon::now();
         }
         
-        $maintenanceRequest->update($validated);
+        $maintenance->update($validated);
         
         return response()->json([
             'success' => true,
             'message' => 'Maintenance request updated successfully',
-            'request' => $maintenanceRequest
+            'request' => $maintenance
         ]);
     }
 
@@ -154,11 +174,11 @@ public function store(Request $request)
         if (request()->wantsJson()) {
             return response()->json([
                 'success' => true,
-                'data' => $maintenanceRequest
+                'data' => $maintenance
             ]);
         }
         
-        return view('maintenance.show', compact('maintenanceRequest'));
+        return view('maintenance.show', compact('maintenance'));
     }
 
     public function tenantRequests()
@@ -248,7 +268,7 @@ public function store(Request $request)
                 'priority' => $maintenance->priority,
                 'status' => $maintenance->status,
                 'created_at' => $maintenance->created_at,
-                'resolved_at' => $maintenance->resolved_at,
+                'completed_date' => $maintenance->completed_date,
             ]
         ]);
     }

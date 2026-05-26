@@ -5,6 +5,9 @@ namespace App\Modules\Payments\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Models\Payment;
+use App\Models\Tenancy;
 
 class Transaction extends Model
 {
@@ -17,7 +20,7 @@ class Transaction extends Model
         'tenancy_id',
         'raw_message',
         'parsed_amount',
-        'parsed_reference_number',     // The external ref from message (M-Pesa code)
+        'parsed_reference_number',     
         'parsed_payment_method',
         'parsed_payment_datetime',
         'parsed_payer_name',

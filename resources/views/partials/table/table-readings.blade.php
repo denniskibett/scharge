@@ -314,7 +314,6 @@ document.addEventListener('alpine:init', () => {
             });
         },
         
-        // ... rest of your existing methods remain exactly the same ...
         get statusCounts() {
             const counts = { all: this.readings.length, read: 0, unread: 0 };
             this.readings.forEach(reading => {
