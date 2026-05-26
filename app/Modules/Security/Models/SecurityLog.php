@@ -4,6 +4,10 @@ namespace App\Modules\Security\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Unit;
+use App\Models\Tenant;
+use App\Models\Visitor;
+use App\Models\User;
 
 class SecurityLog extends Model
 {
@@ -12,7 +16,7 @@ class SecurityLog extends Model
     protected $table = 'security';
 
     protected $fillable = [
-        'unit_id', 'tenant_id', 'visitor_id', 'verified_by_user_id',
+        'company_id', 'estate_id', 'unit_id', 'tenant_id', 'visitor_id', 'verified_by_user_id',
         'visitor_name_snapshot', 'visitor_phone_snapshot', 'visitor_id_number_snapshot',
         'visitor_company_snapshot', 'vehicle_registration_snapshot',
         'access_type', 'status', 'access_time', 'exit_time', 'duration_hours',
@@ -48,6 +52,16 @@ class SecurityLog extends Model
         return $this->belongsTo(User::class, 'verified_by_user_id');
     }
 
+    public function company()
+    {
+        return $this->belongsTo(\App\Models\Company::class);
+    }
+
+    public function estate()
+    {
+        return $this->belongsTo(\App\Models\Estate::class);
+    }
+
     // Accessors
     public function getStatusColorAttribute()
     {
@@ -71,25 +85,15 @@ class SecurityLog extends Model
         return $labels[$this->access_type] ?? ucfirst($this->access_type);
     }
 
-    // Helper to create log from visitor
-    public static function createFromVisitor($data, Visitor $visitor, Unit $unit, $tenant = null)
+    public function getStatusLabelAttribute()
     {
-        $primaryVehicle = $visitor->primary_vehicle;
-        
-        return self::create([
-            'unit_id' => $unit->id,
-            'tenant_id' => $tenant?->id,
-            'visitor_id' => $visitor->id,
-            'visitor_name_snapshot' => $visitor->full_name,
-            'visitor_phone_snapshot' => $visitor->phone,
-            'visitor_id_number_snapshot' => $visitor->id_number,
-            'visitor_company_snapshot' => $visitor->company,
-            'vehicle_registration_snapshot' => $data['vehicle_registration'] ?? $primaryVehicle['registration'] ?? null,
-            'access_type' => $data['access_type'],
-            'access_time' => $data['access_time'] ?? now(),
-            'purpose' => $data['purpose'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'status' => $visitor->isAuthorizedForUnit($unit->id) ? 'approved' : 'pending',
-        ]);
+        return match($this->status) {
+            'pending' => 'Pending',
+            'approved' => 'Approved',
+            'denied' => 'Denied',
+            'completed' => 'Completed',
+            'expired' => 'Expired',
+            default => ucfirst($this->status),
+        };
     }
 }

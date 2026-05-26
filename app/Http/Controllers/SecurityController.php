@@ -7,6 +7,7 @@ use App\Models\SecurityLog;
 use App\Models\Visitor;
 use App\Models\Unit;
 use App\Models\Tenant;
+use App\Models\Estate;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -379,4 +380,311 @@ class SecurityController extends Controller
             'log' => $log
         ]);
     }
+
+    // Add these methods to app/Http/Controllers/SecurityController.php
+
+/**
+ * Get estates for the current user's company
+ */
+/**
+ * Get estates for the current user's company
+ */
+public function getEstates()
+{
+    $user = auth()->user();
+    $companyId = $user->company_id;
+    
+    // If user is sysadmin, get all estates, otherwise filter by company
+    if ($user->hasRole('sysadmin')) {
+        $estates = Estate::orderBy('name')->get();
+    } else {
+        $estates = Estate::where('company_id', $companyId)
+            ->orderBy('name')
+            ->get();
+    }
+    
+    return response()->json([
+        'success' => true, 
+        'estates' => $estates->map(function($estate) {
+            return [
+                'id' => $estate->id,
+                'name' => $estate->name,
+            ];
+        })
+    ]);
+}
+
+/**
+ * Get units for a specific estate with active tenancies
+ */
+public function getUnitsByEstate(Request $request)
+{
+    $request->validate([
+        'estate_id' => 'required|exists:estates,id',
+    ]);
+    
+    $units = Unit::where('estate_id', $request->estate_id)
+        ->with(['activeTenancy.tenant.user'])
+        ->get()
+        ->map(function($unit) {
+            $tenant = $unit->activeTenancy?->tenant;
+            return [
+                'id' => $unit->id,
+                'unit_number' => $unit->unit_number,
+                'has_active_tenancy' => !is_null($tenant),
+                'tenant' => $tenant ? [
+                    'id' => $tenant->id,
+                    'name' => $tenant->user->name ?? 'Unknown',
+                    'phone' => $tenant->user->phone ?? null,
+                    'email' => $tenant->user->email ?? null,
+                ] : null,
+            ];
+        });
+    
+    return response()->json(['success' => true, 'units' => $units]);
+}
+
+/**
+ * Get tenants for a specific unit
+ */
+public function getTenantsByUnit(Request $request)
+{
+    $request->validate([
+        'unit_id' => 'required|exists:units,id',
+    ]);
+    
+    $unit = Unit::with(['activeTenancy.tenant.user', 'tenancies.tenant.user'])->find($request->unit_id);
+    
+    $tenants = collect();
+    
+    // Current/active tenant
+    if ($unit->activeTenancy && $unit->activeTenancy->tenant) {
+        $tenant = $unit->activeTenancy->tenant;
+        $tenants->push([
+            'id' => $tenant->id,
+            'name' => $tenant->user->name ?? 'Unknown',
+            'phone' => $tenant->user->phone ?? null,
+            'email' => $tenant->user->email ?? null,
+            'is_active' => true,
+            'status' => 'Current Tenant',
+        ]);
+    }
+    
+    // Past tenants (optional - can be expanded)
+    foreach ($unit->tenancies->where('status', '!=', 'active') as $tenancy) {
+        if ($tenancy->tenant) {
+            $tenants->push([
+                'id' => $tenancy->tenant->id,
+                'name' => $tenancy->tenant->user->name ?? 'Unknown',
+                'phone' => $tenancy->tenant->user->phone ?? null,
+                'email' => $tenancy->tenant->user->email ?? null,
+                'is_active' => false,
+                'status' => 'Past Tenant',
+                'move_out_date' => $tenancy->move_out_date,
+            ]);
+        }
+    }
+    
+    return response()->json(['success' => true, 'tenants' => $tenants]);
+}
+
+/**
+ * Get visitors for a specific tenant
+ */
+public function getVisitorsByTenant(Request $request)
+{
+    $request->validate([
+        'tenant_id' => 'required|exists:tenants,id',
+    ]);
+    
+    $tenant = Tenant::with(['user'])->find($request->tenant_id);
+    
+    // Get unit for this tenant
+    $unit = $tenant->activeTenancy?->unit;
+    
+    // Get visitors registered by this tenant
+    $visitors = Visitor::where('registered_by_tenant_id', $tenant->id)
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($visitor) use ($unit) {
+            // Check if visitor has a security log for today/active
+            $recentLog = SecurityLog::where('visitor_id', $visitor->id)
+                ->where('unit_id', $unit?->id)
+                ->latest('access_time')
+                ->first();
+            
+            return [
+                'id' => $visitor->id,
+                'name' => $visitor->full_name,
+                'phone' => $visitor->phone,
+                'id_number' => $visitor->id_number,
+                'visitor_type' => $visitor->visitor_type,
+                'visitor_type_label' => $visitor->visitor_type_label,
+                'company' => $visitor->company,
+                'vehicles' => $visitor->vehicles,
+                'is_active' => $visitor->is_active,
+                'is_blacklisted' => $visitor->is_blacklisted,
+                'valid_until' => $visitor->valid_until,
+                'visit_count' => $visitor->visit_count,
+                'last_visit_at' => $visitor->last_visit_at,
+                'recent_log' => $recentLog ? [
+                    'access_time' => $recentLog->access_time,
+                    'status' => $recentLog->status,
+                ] : null,
+            ];
+        });
+    
+    // Also get recent one-time visitors (not registered) for this unit
+    $oneTimeVisitors = SecurityLog::where('unit_id', $unit?->id)
+        ->whereNull('visitor_id')
+        ->latest('access_time')
+        ->take(10)
+        ->get()
+        ->map(function($log) {
+            return [
+                'id' => $log->id,
+                'name' => $log->visitor_name_snapshot ?? $log->person_name,
+                'phone' => $log->visitor_phone_snapshot,
+                'id_number' => $log->visitor_id_number_snapshot,
+                'company' => $log->visitor_company_snapshot,
+                'vehicle' => $log->vehicle_registration_snapshot,
+                'access_type' => $log->access_type_label,
+                'access_time' => $log->access_time,
+                'status' => $log->status,
+                'is_one_time' => true,
+            ];
+        });
+    
+    return response()->json([
+        'success' => true,
+        'tenant' => [
+            'id' => $tenant->id,
+            'name' => $tenant->user->name ?? 'Unknown',
+            'phone' => $tenant->user->phone ?? null,
+            'email' => $tenant->user->email ?? null,
+            'unit' => $unit ? [
+                'id' => $unit->id,
+                'unit_number' => $unit->unit_number,
+            ] : null,
+        ],
+        'visitors' => $visitors,
+        'recent_one_time_visitors' => $oneTimeVisitors,
+        'stats' => [
+            'total_visitors' => $visitors->count(),
+            'active_visitors' => $visitors->where('is_active', true)->count(),
+            'total_visits' => $visitors->sum('visit_count'),
+        ]
+    ]);
+}
+
+// Add this method to SecurityController.php
+public function getSecurityData()
+{
+    $user = auth()->user();
+    $companyId = $user->company_id;
+    
+    // Get estates for the current company
+    $estates = Estate::where('company_id', $companyId)
+        ->orderBy('name')
+        ->get()
+        ->map(function($estate) {
+            return [
+                'id' => $estate->id,
+                'name' => $estate->name,
+            ];
+        });
+    
+    // Get all units with estates for the modal dropdowns
+    $units = Unit::with('estate')
+        ->where('company_id', $companyId)
+        ->where('is_active', true)
+        ->get()
+        ->map(function($unit) {
+            return [
+                'id' => $unit->id,
+                'unit_number' => $unit->unit_number,
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'status' => $unit->status,
+            ];
+        });
+    
+    return response()->json([
+        'success' => true,
+        'estates' => $estates,
+        'units' => $units
+    ]);
+}
+
+public function getSecurityLogsByTenant(Request $request)
+{
+    $request->validate([
+        'tenant_id' => 'required|exists:tenants,id',
+        'limit' => 'nullable|integer|min:1|max:100',
+    ]);
+    
+    $tenant = Tenant::find($request->tenant_id);
+    $unit = $tenant->activeTenancy?->unit;
+    
+    if (!$unit) {
+        return response()->json([
+            'success' => true,
+            'logs' => [],
+            'message' => 'No active unit found for this tenant',
+        ]);
+    }
+    
+    $limit = $request->limit ?? 50;
+    
+    $logs = SecurityLog::where('unit_id', $unit->id)
+        ->with(['visitor'])
+        ->latest('access_time')
+        ->limit($limit)
+        ->get()
+        ->map(function($log) {
+            return [
+                'id' => $log->id,
+                'visitor_name' => $log->visitor_name_snapshot ?? ($log->visitor->full_name ?? $log->person_name),
+                'visitor_phone' => $log->visitor_phone_snapshot ?? $log->visitor->phone ?? null,
+                'visitor_type' => $log->visitor ? $log->visitor->visitor_type_label : 'One-time',
+                'access_type' => $log->access_type_label,
+                'access_time' => $log->access_time,
+                'access_time_formatted' => $log->access_time->format('M d, Y H:i'),
+                'exit_time' => $log->exit_time,
+                'exit_time_formatted' => $log->exit_time ? $log->exit_time->format('M d, Y H:i') : null,
+                'status' => $log->status,
+                'status_badge_class' => $log->status_color,
+                'purpose' => $log->purpose,
+                'notes' => $log->notes,
+                'verified_by' => $log->approved_by ?? 'System',
+            ];
+        });
+    
+    $stats = [
+        'total_logs' => $logs->count(),
+        'today_logs' => $logs->filter(function($log) {
+            return $log['access_time']->isToday();
+        })->count(),
+        'pending_logs' => $logs->filter(function($log) {
+            return $log['status'] === 'pending';
+        })->count(),
+        'approved_logs' => $logs->filter(function($log) {
+            return $log['status'] === 'approved';
+        })->count(),
+        'denied_logs' => $logs->filter(function($log) {
+            return $log['status'] === 'denied';
+        })->count(),
+    ];
+    
+    return response()->json([
+        'success' => true,
+        'logs' => $logs,
+        'stats' => $stats,
+        'unit' => [
+            'id' => $unit->id,
+            'unit_number' => $unit->unit_number,
+            'estate_name' => $unit->estate->name ?? 'N/A',
+        ],
+    ]);
+}
 }

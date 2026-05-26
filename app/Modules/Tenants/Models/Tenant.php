@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\Tenancy;
-
+use App\Modules\Security\Models\SecurityLog;
+use App\Modules\Security\Models\Visitor;
 
 class Tenant extends Model
 {
@@ -39,25 +40,60 @@ class Tenant extends Model
         return $this->hasOne(Tenancy::class, 'tenant_id')->where('status', 'active');
     }
 
-    // Get full name from user relationship
+    // Get current unit
+    public function getCurrentUnitAttribute()
+    {
+        $activeTenancy = $this->activeTenancy;
+        return $activeTenancy ? $activeTenancy->unit : null;
+    }
+
+    // Get all visitors registered by this tenant
+    public function registeredVisitors()
+    {
+        return $this->hasMany(Visitor::class, 'registered_by_tenant_id');
+    }
+
+    // Get all security logs for this tenant's unit
+    public function securityLogs()
+    {
+        $unit = $this->current_unit;
+        if (!$unit) {
+            return collect();
+        }
+        return SecurityLog::where('unit_id', $unit->id)->latest('access_time');
+    }
+
+    // Get active visitors (valid and not expired)
+    public function getActiveVisitorsAttribute()
+    {
+        return $this->registeredVisitors()
+            ->where('is_active', true)
+            ->where(function($q) {
+                $q->whereNull('valid_until')
+                  ->orWhere('valid_until', '>=', now());
+            })
+            ->get();
+    }
+
+    // Get full name
     public function getNameAttribute()
     {
         return $this->user->name ?? 'Unknown';
     }
 
-    // Get email from user relationship
+    // Get email
     public function getEmailAttribute()
     {
         return $this->user->email ?? null;
     }
 
-    // Get phone from user relationship
+    // Get phone
     public function getPhoneAttribute()
     {
         return $this->user->phone ?? null;
     }
 
-    // Get phone2 from user relationship
+    // Get phone2
     public function getPhone2Attribute()
     {
         return $this->user->phone2 ?? null;
@@ -67,12 +103,5 @@ class Tenant extends Model
     public function hasActiveTenancy()
     {
         return $this->tenancies()->where('status', 'active')->exists();
-    }
-
-    // Get current unit if any
-    public function getCurrentUnitAttribute()
-    {
-        $activeTenancy = $this->tenancies()->with('unit')->where('status', 'active')->first();
-        return $activeTenancy ? $activeTenancy->unit : null;
     }
 }

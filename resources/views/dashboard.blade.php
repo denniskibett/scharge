@@ -6,401 +6,216 @@
 <div x-data="dashboard()" x-init="init()">
     <div class="container-fluid px-4 py-4">
 
-        <!-- Welcome Card -->
-        <div class="row mb-6">
-            <div class="col-12">
-                <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] p-6 shadow-lg">
-                    <div class="absolute inset-0 opacity-10">
-                        <svg class="absolute -right-20 -top-20 h-64 w-64 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    
-                    <div class="relative flex flex-col md:flex-row md:items-center md:justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-3">
-                                <div class="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                                    <svg class="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h2 class="text-2xl font-bold text-white">Welcome back, <span x-text="userName"></span>!</h2>
-                                    <p class="text-brand-100 mt-1" x-text="currentDate"></p>
-                                    <p class="text-brand-50 text-sm mt-2" x-text="welcomeMessage"></p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-4 md:mt-0">
-                            <div class="flex items-center gap-4">
-                                <div class="text-right">
-                                    <p class="text-sm text-brand-100">Your Role</p>
-                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm" x-text="userRole"></span>
-                                </div>
-                                <img src="{{ Auth::user()->avatar_url }}" alt="avatar" class="h-14 w-14 rounded-full border-2 border-white shadow-lg">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Dashboard Cards -->
-        <div class="mt-6 mb-6">
-            @include('partials.card.card-dashboard', [
-                'stats' => $stats ?? [],
-                'outstandingBalance' => $outstandingBalance ?? 0,
-                'totalPaid' => $totalPaid ?? 0
-            ])
-        </div>
-
-        <!-- Role-Based Dashboard Content with Tab Cards -->
-        
-        <!-- ADMIN / SUPER ADMIN DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasAnyRole(['super_admin', 'admin']))
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <!-- Tab Navigation -->
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="activeAdminTab = 'invoices'" :class="activeAdminTab === 'invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Recent Invoices
-                        </button>
-                        <button @click="activeAdminTab = 'payments'" :class="activeAdminTab === 'payments' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"></path>
-                            </svg>
-                            Recent Payments
-                        </button>
-                        <button @click="activeAdminTab = 'readings'" :class="activeAdminTab === 'readings' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                            </svg>
-                            Water Readings
-                        </button>
-                    </div>
+    <!-- Welcome Card -->
+    <div class="row mb-6">
+        <div class="col-12">
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[var(--primary-color)] to-[var(--secondary-color)] p-6 shadow-lg">
+                <div class="absolute inset-0 opacity-10">
+                    <svg class="absolute -right-20 -top-20 h-64 w-64 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                 </div>
                 
-                <!-- Tab Content -->
-                <div class="p-5">
-                    <div x-show="activeAdminTab === 'invoices'">
-                        @include('partials.table.table-invoices', [
-                            'mappedInvoices' => collect($roleData['recentInvoices'] ?? []),
-                            'mappedActiveTenancies' => $mappedActiveTenancies ?? collect()
-                        ])
+                <div class="relative flex flex-col md:flex-row md:items-center md:justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <div class="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                                <img src="{{ Auth::user()->avatar ? Storage::url(Auth::user()->avatar) : 'https://ui-avatars.com/api/?name=' . urlencode(Auth::user()->name) . '&background=ffffff&color=6366f1' }}" 
+                                     alt="avatar" class="h-14 w-14 rounded-full">
+                            </div>
+                            <div>
+                                <h2 class="text-2xl font-bold text-white">Welcome back, <span x-text="userName"></span>!</h2>
+                                <p class="text-brand-100 mt-1" x-text="currentDate"></p>
+                                
+                                <!-- Company Info Display (for non-sysadmin) -->
+                                @if(!auth()->user()->hasRole('sysadmin') && Auth::user()->company)
+                                <div class="mt-2 flex items-center gap-2 text-brand-100 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                    </svg>
+                                    <span>Managed by: <strong>{{ Auth::user()->company->name }}</strong></span>
+                                    
+                                    @if(Auth::user()->company->currentSubscription)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-white/20">
+                                            {{ ucfirst(Auth::user()->company->currentSubscription->plan->name ?? 'Plan') }}
+                                        </span>
+                                    @endif
+                                </div>
+                                @elseif(auth()->user()->hasRole('sysadmin'))
+                                <div class="mt-2 flex items-center gap-2 text-brand-100 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    <span>System Administrator</span>
+                                </div>
+                                @else
+                                <div class="mt-2 flex items-center gap-2 text-brand-100 text-sm">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                                    </svg>
+                                    <span>No company assigned</span>
+                                </div>
+                                @endif
+                                
+                                <p class="text-brand-50 text-sm mt-2" x-text="welcomeMessage"></p>
+                            </div>
+                        </div>
                     </div>
-                    <div x-show="activeAdminTab === 'payments'">
-                        @include('partials.table.table-payments', [
-                            'payments' => $roleData['recentPayments'] ?? [], 
-                            'showActions' => true, 
-                            'showTenant' => true
-                        ])
-                    </div>
-                    <div x-show="activeAdminTab === 'readings'">
-                        @include('partials.table.table-readings', [
-                            'readings' => $roleData['recentReadings'] ?? [], 
-                            'showActions' => true, 
-                            'showConsumption' => true
-                        ])
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-        @endauth
-
-        <!-- PROPERTY MANAGER DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasRole('property_manager'))
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="activePMTab = 'readings'" :class="activePMTab === 'readings' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Water Readings
-                        </button>
-                        <button @click="activePMTab = 'vacant'" :class="activePMTab === 'vacant' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Long Term Vacant
-                        </button>
-                        <button @click="activePMTab = 'maintenance'" :class="activePMTab === 'maintenance' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Maintenance
-                        </button>
-                        
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div x-show="activePMTab === 'readings'">
-                        @include('partials.table.table-readings', [
-                            'readings' => $roleData['recentReadings'] ?? [], 
-                            'showActions' => true, 
-                            'showConsumption' => true
-                        ])
-                    </div>
-                    <div x-show="activePMTab === 'vacant'">
-                        @include('partials.table.table-units', [
-                            'units' => $roleData['longTermVacant'] ?? []
-                        ])
-                    </div>
-                    <div x-show="activePMTab === 'maintenance'">
-                        @include('partials.table.table-maintenance', [
-                            'requests' => $roleData['maintenanceRequests'] ?? []
-                        ])
+                    <div class="mt-4 md:mt-0">
+                        <div class="flex items-center gap-4">
+                            <div class="text-right">
+                                <p class="text-sm text-brand-100">Your Role</p>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm" x-text="userRole"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        @endif
-        @endauth
-
-        <!-- ACCOUNTANT DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasRole('accountant'))
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="activeAccTab = 'overdue'" :class="activeAccTab === 'overdue' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Overdue Invoices
-                        </button>
-                        <button @click="activeAccTab = 'transactions'" :class="activeAccTab === 'transactions' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Recent Transactions
-                        </button>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div x-show="activeAccTab === 'overdue'">
-                        @include('partials.table.table-invoices', [
-                            'mappedInvoices' => collect($roleData['overdueInvoices'] ?? []),
-                            'mappedActiveTenancies' => $mappedActiveTenancies ?? collect()
-                        ])
-                    </div>
-                    <div x-show="activeAccTab === 'transactions'">
-                        @include('partials.table.table-payments', [
-                            'payments' => $roleData['recentTransactions'] ?? [], 
-                            'showActions' => true, 
-                            'showTenant' => true
-                        ])
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-        @endauth
-
-        <!-- TENANT DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasRole('tenant'))
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="activeTenantTab = 'invoices'" :class="activeTenantTab === 'invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            My Invoices
-                        </button>
-                        <button @click="activeTenantTab = 'payments'" :class="activeTenantTab === 'payments' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Payment History
-                        </button>
-                        <button @click="activeTenantTab = 'maintenance'" :class="activeTenantTab === 'maintenance' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Maintenance
-                        </button>
-                        <button @click="activeTenantTab = 'security'" :class="activeTenantTab === 'security' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Access Logs
-                        </button>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div x-show="activeTenantTab === 'invoices'">
-                        @include('partials.table.table-invoices', [
-                            'mappedInvoices' => collect($roleData['invoices'] ?? []),
-                            'mappedActiveTenancies' => $mappedActiveTenancies ?? collect()
-                        ])
-                    </div>
-                    <div x-show="activeTenantTab === 'payments'">
-                        @include('partials.table.table-payments', [
-                            'payments' => $roleData['payments'] ?? [], 
-                            'showActions' => false, 
-                            'showTenant' => false
-                        ])
-                    </div>
-                    <div x-show="activeTenantTab === 'maintenance'">
-                        @include('partials.table.table-maintenance', [
-                            'requests' => $roleData['maintenanceRequests'] ?? []
-                        ])
-                    </div>
-                    <div x-show="activeTenantTab === 'security'">
-                        @include('partials.table.table-security', [
-                            'logs' => $roleData['accessLogs'] ?? []
-                        ])
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-        @endauth
-
-<!-- METER READER DASHBOARD -->
-@auth
-@if(auth()->user()->hasRole('meter_reader'))
-<!-- DEBUG SECTION - Remove after cfixing -->
-<div class="mb-4 p-4 bg-yellow-100 border border-yellow-400 rounded">
-    <h3 class="font-bold">Debug: Meter Reader Data</h3>
-    <p>Units Needing Reading Count: {{ $roleData['unitsNeedingReading']->count() }}</p>
-    <p>Reading History Count: {{ $roleData['readingHistory']->count() }}</p>
-    <details>
-        <summary>First Pending Reading (Raw)</summary>
-        <pre class="text-xs">{{ json_encode($roleData['unitsNeedingReading']->first(), JSON_PRETTY_PRINT) }}</pre>
-    </details>
-    <details>
-        <summary>First History Reading (Raw)</summary>
-        <pre class="text-xs">{{ json_encode($roleData['readingHistory']->first(), JSON_PRETTY_PRINT) }}</pre>
-    </details>
-</div>
-<div class="mt-6">
-    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-            <div class="flex flex-wrap gap-2">
-                <button 
-                    @click="activeMeterTab = 'pending'" 
-                    :class="activeMeterTab === 'pending' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
-                    class="px-4 py-2 text-sm font-medium transition-colors">
-                    Pending Readings ({{ $roleData['unitsNeedingReading']->count() ?? 0 }})
-                </button>
-                <button 
-                    @click="activeMeterTab = 'history'" 
-                    :class="activeMeterTab === 'history' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
-                    class="px-4 py-2 text-sm font-medium transition-colors">
-                    Reading History ({{ $roleData['readingHistory']->count() ?? 0 }})
-                </button>
-            </div>
-        </div>
-        <div class="p-5">
-            <!-- PENDING READINGS TAB -->
-            <div x-show="activeMeterTab === 'pending'" x-cloak>
-                @if(($roleData['unitsNeedingReading'] ?? collect())->count() > 0)
-                    @include('partials.table.table-readings', [
-                        'readings' => $roleData['unitsNeedingReading'] ?? [], 
-                        'showActions' => true, 
-                        'showConsumption' => true,
-                        'units' => $roleData['units'] ?? []
-                    ])
-                @else
-                    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                        No units need reading at this time. All occupied units have recent readings.
-                    </div>
-                @endif
-            </div>
-            
-            <!-- READING HISTORY TAB -->
-            <div x-show="activeMeterTab === 'history'" x-cloak>
-                @if(($roleData['readingHistory'] ?? collect())->count() > 0)
-                    @include('partials.table.table-readings', [
-                        'readings' => $roleData['readingHistory'] ?? [], 
-                        'showActions' => false, 
-                        'showConsumption' => true,
-                        'units' => $roleData['units'] ?? []
-                    ])
-                @else
-                    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                        No reading history found. Record your first reading to see history here.
-                    </div>
-                @endif
             </div>
         </div>
     </div>
-</div>
 
-<!-- Add x-cloak styles to prevent flash of unstyled content -->
-<style>
-    [x-cloak] { display: none !important; }
-</style>
+    <!-- Dashboard Cards - Only for non-sysadmin roles -->
+    @if(!auth()->user()->hasRole('sysadmin'))
+    <div class="mt-6 mb-6">
+        @include('partials.card.card-dashboard', [
+            'stats' => $stats ?? [],
+            'outstandingBalance' => $outstandingBalance ?? 0,
+            'totalPaid' => $totalPaid ?? 0
+        ])
+    </div>
+    @endif
+
+    <!-- Role-Based Dashboard Content - Using Partials -->
+    
+    <!-- SYSADMIN DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('sysadmin'))
+        @include('partials.dashboard.sys-admin', [
+            'stats' => $stats ?? [],
+            'companies' => $companies ?? [],
+            'pendingUsers' => $pendingUsers ?? [],
+            'pendingCompanyUsers' => $pendingCompanyUsers ?? [],
+            'inactiveUsers' => $inactiveUsers ?? []
+        ])
+    @endif
+    @endauth
+
+    <!-- ADMIN / SUPER ADMIN DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('super_admin'))
+        @include('partials.dashboard.admin', [
+            'stats' => $stats ?? [],
+            'roleData' => $roleData ?? [],
+            'company' => $company ?? null,
+            'recentInvoices' => $roleData['recentInvoices'] ?? [],
+            'recentPayments' => $roleData['recentPayments'] ?? [],
+            'waterReadings' => $roleData['recentReadings'] ?? [],
+            'monthlyRevenue' => $monthlyRevenue ?? []
+        ])
+    @endif
+    @endauth
+
+    <!-- PROPERTY MANAGER DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('property_manager'))
+        @include('partials.dashboard.property-manager', [
+            'stats' => $stats ?? [],
+            'roleData' => $roleData ?? [],
+            'company' => $company ?? null
+        ])
+    @endif
+    @endauth
+
+    <!-- ACCOUNTANT DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('accountant'))
+        @include('partials.dashboard.accountant', [
+            'stats' => $stats ?? [],
+            'roleData' => $roleData ?? [],
+            'company' => $company ?? null,
+            'monthlyRevenue' => $monthlyRevenue ?? [],
+            'paymentMethods' => $paymentMethods ?? []
+        ])
+    @endif
+    @endauth
+
+<!-- TENANT DASHBOARD -->
+@auth
+@if(auth()->user()->hasRole('tenant'))
+    @include('partials.dashboard.tenant', [
+        'stats' => $stats ?? [],
+        'roleData' => $roleData ?? [],
+        'company' => $company ?? null,
+        'outstandingBalance' => $outstandingBalance ?? 0,
+        'totalPaid' => $totalPaid ?? 0,
+        'units' => $units ?? [],
+        'estates' => $estates ?? [],
+        'currentUnit' => $currentUnit ?? null
+    ])
 @endif
 @endauth
 
-        <!-- MAINTENANCE DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasRole('maintenance'))
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="activeMaintTab = 'open'" :class="activeMaintTab === 'open' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Open Requests
-                        </button>
-                        <button @click="activeMaintTab = 'in_progress'" :class="activeMaintTab === 'in_progress' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            In Progress
-                        </button>
-                        <button @click="activeMaintTab = 'completed'" :class="activeMaintTab === 'completed' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Completed
-                        </button>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div x-show="activeMaintTab === 'open'">
-                        @include('partials.table.table-maintenance', [
-                            'requests' => $roleData['openRequests'] ?? []
-                        ])
-                    </div>
-                    <div x-show="activeMaintTab === 'in_progress'">
-                        @include('partials.table.table-maintenance', [
-                            'requests' => $roleData['inProgressRequests'] ?? []
-                        ])
-                    </div>
-                    <div x-show="activeMaintTab === 'completed'">
-                        @include('partials.table.table-maintenance', [
-                            'requests' => $roleData['completedRequests'] ?? []
-                        ])
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-        @endauth
+    <!-- METER READER DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('meter_reader'))
+        @include('partials.dashboard.meter-reader', [
+            'stats' => $stats ?? [],
+            'roleData' => $roleData ?? [],
+            'company' => $company ?? null
+        ])
+    @endif
+    @endauth
 
-        <!-- SECURITY DASHBOARD -->
-        @auth
-        @if(auth()->user()->hasRole('security'))
-        <div class="mt-6">
-            <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="activeSecurityTab = 'pending'" :class="activeSecurityTab === 'pending' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Pending Approval
-                        </button>
-                        <button @click="activeSecurityTab = 'today'" :class="activeSecurityTab === 'today' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Today's Visits
-                        </button>
-                        <button @click="activeSecurityTab = 'all'" :class="activeSecurityTab === 'all' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            All Logs
-                        </button>
-                    </div>
-                </div>
-                <div class="p-5">
-                    <div x-show="activeSecurityTab === 'pending'">
-                        @include('partials.table.table-security', [
-                            'logs' => $roleData['pendingLogs'] ?? []
-                        ])
-                    </div>
-                    <div x-show="activeSecurityTab === 'today'">
-                        @include('partials.table.table-security', [
-                            'logs' => $roleData['todayLogs'] ?? []
-                        ])
-                    </div>
-                    <div x-show="activeSecurityTab === 'all'">
-                        @include('partials.table.table-security', [
-                            'logs' => $roleData['accessLogs'] ?? []
-                        ])
-                    </div>
-                </div>
-            </div>
-        </div>
-        @endif
-        @endauth
+    <!-- MAINTENANCE DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('maintenance'))
+        @include('partials.dashboard.maintenance', [
+            'stats' => $stats ?? [],
+            'roleData' => $roleData ?? [],
+            'company' => $company ?? null
+        ])
+    @endif
+    @endauth
+
+    <!-- SECURITY DASHBOARD -->
+<!-- SECURITY DASHBOARD -->
+@auth
+@if(auth()->user()->hasRole('security'))
+<div class="mt-6">
+    @include('partials.table.table-security', [
+        'logs' => $roleData['accessLogs'] ?? [],
+        'units' => $units ?? [],
+        'totalLogs' => ($roleData['accessLogs'] ?? collect())->count(),
+        'pendingCount' => ($roleData['pendingLogs'] ?? collect())->count(),
+        'approvedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
+            return in_array($log['status'], ['approved', 'granted']); 
+        })->count(),
+        'deniedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
+            return $log['status'] === 'denied'; 
+        })->count()
+    ])
+</div>
+@endif
+@endauth
+
+    <!-- CLEANING STAFF DASHBOARD -->
+    @auth
+    @if(auth()->user()->hasRole('cleaning_staff'))
+        @include('partials.dashboard.cleaning-staff', [
+            'stats' => $stats ?? [],
+            'roleData' => $roleData ?? [],
+            'company' => $company ?? null
+        ])
+    @endif
+    @endauth
+
     </div>
 </div>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
 
 <script>
 function dashboard() {
@@ -408,12 +223,13 @@ function dashboard() {
         roleData: @json($roleData ?? []),
         stats: @json($stats ?? []),
         userName: '{{ Auth::user()->first_name ?: Auth::user()->name }}',
-        userRole: '{{ Auth::user()->role->name ?? "User" }}',
+        userRole: '{{ ucfirst(str_replace("_", " ", Auth::user()->role->name ?? "User")) }}',
         dashboardTitle: '{{ Auth::user()->dashboard_title ?? 'Dashboard' }}',
         currentDate: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         welcomeMessage: '',
         
-        // Tab states for different roles
+        // Tab states for different roles (used by partials)
+        activeSysTab: 'companies',
         activeAdminTab: 'invoices',
         activePMTab: 'readings',
         activeAccTab: 'overdue',
@@ -422,25 +238,14 @@ function dashboard() {
         activeMaintTab: 'open',
         activeSecurityTab: 'pending',
         
-// In your dashboard() function, update the init method:
-init() {
-    this.setWelcomeMessage();
-    
-    console.log('========== DASHBOARD DEBUG ==========');
-    console.log('Meter Reader - activeMeterTab:', this.activeMeterTab);
-    console.log('Units needing reading count:', this.roleData.unitsNeedingReading?.length);
-    console.log('Reading history count:', this.roleData.readingHistory?.length);
-    
-    // Force the active tab to trigger proper filtering
-    if (this.activeMeterTab === 'pending') {
-        console.log('Pending tab is active - should show units needing reading');
-    }
-    
-    // Log first pending reading to verify structure
-    if (this.roleData.unitsNeedingReading && this.roleData.unitsNeedingReading.length > 0) {
-        console.log('First pending reading sample:', this.roleData.unitsNeedingReading[0]);
-    }
-},
+        init() {
+            this.setWelcomeMessage();
+            
+            console.log('========== DASHBOARD DEBUG ==========');
+            console.log('User Role:', this.userRole);
+            console.log('Role Data keys:', Object.keys(this.roleData));
+            console.log('=====================================');
+        },
         
         setWelcomeMessage() {
             const hour = new Date().getHours();
@@ -455,10 +260,102 @@ init() {
     };
 }
 
-// Global functions
+// Sysadmin Functions
+function editCompany(companyId) {
+    window.location.href = `/admin/companies/${companyId}/edit`;
+}
+
+function viewCompany(companyId) {
+    window.location.href = `/admin/companies/${companyId}`;
+}
+
+function createCompany() {
+    window.location.href = '/admin/companies/create';
+}
+
+function verifyUser(userId) {
+    if (confirm('Verify this user?')) {
+        fetch(`/admin/users/${userId}/verify`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  location.reload();
+              } else {
+                  alert('Failed to verify user');
+              }
+          });
+    }
+}
+
+function assignCompany(userId) {
+    const companyId = prompt('Enter Company ID to assign:');
+    if (companyId) {
+        fetch(`/admin/users/${userId}/assign-company`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ company_id: companyId })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  location.reload();
+              } else {
+                  alert('Failed to assign company');
+              }
+          });
+    }
+}
+
+function saveSystemSettings() {
+    const settings = {
+        default_water_rate: document.getElementById('defaultWaterRate')?.value || 50,
+        invoice_due_days: document.getElementById('dueDays')?.value || 30,
+        late_fee_percentage: document.getElementById('lateFee')?.value || 5,
+        maintenance_sla_days: document.getElementById('maintenanceSla')?.value || 3
+    };
+    
+    fetch('/admin/system-settings', {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(settings)
+    }).then(response => response.json())
+      .then(data => {
+          if (data.success) {
+              alert('Settings saved successfully!');
+          } else {
+              alert('Failed to save settings');
+          }
+      });
+}
+
+// Global functions for other roles
 function editReading(unitId) {
     if (window.waterReadingModal) {
         window.waterReadingModal.openModal(unitId);
+    } else if (typeof openCreateReadingModal === 'function') {
+        openCreateReadingModal(unitId);
+    } else {
+        alert('Please refresh the page to record readings.');
+    }
+}
+
+function openCreateReadingModal(unitId) {
+    if (typeof window.openCreateReadingModal === 'function') {
+        window.openCreateReadingModal(unitId);
+    } else if (window.waterReadingModal) {
+        window.waterReadingModal.openModal(unitId);
+    } else {
+        alert('Please refresh the page to record readings.');
     }
 }
 
@@ -491,6 +388,69 @@ function viewRequest(requestId) {
 
 function viewLog(logId) {
     window.location.href = `/security/logs/${logId}`;
+}
+
+function markTaskComplete(taskId) {
+    if (confirm('Mark this task as complete?')) {
+        fetch(`/cleaning/tasks/${taskId}/complete`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  location.reload();
+              } else {
+                  alert('Failed to mark task as complete');
+              }
+          });
+    }
+}
+
+function approveAccessLog(logId) {
+    if (confirm('Approve this access request?')) {
+        fetch(`/security/logs/${logId}/approve`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  location.reload();
+              } else {
+                  alert('Failed to approve access');
+              }
+          });
+    }
+}
+
+function rejectAccessLog(logId) {
+    if (confirm('Reject this access request?')) {
+        fetch(`/security/logs/${logId}/reject`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  location.reload();
+              } else {
+                  alert('Failed to reject access');
+              }
+          });
+    }
+}
+
+function closeModal() {
+    if (typeof window.closeModal === 'function') {
+        window.closeModal();
+    }
 }
 </script>
 @endsection

@@ -355,6 +355,7 @@ document.addEventListener('alpine:init', () => {
                         priority_color: this.getPriorityColor(req.priority),
                         status_label: this.getStatusLabel(req.status),
                         status_color: this.getStatusColor(req.status),
+                        request_number: req.request_number || '#' + String(req.id).padStart(6, '0'),
                         created_at: req.created_at
                     }));
                 }

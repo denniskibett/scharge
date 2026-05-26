@@ -20,11 +20,17 @@ use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
+use App\Http\Controllers\Auth\VerificationController;
+
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+// Email Verification Routes
+Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
+Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
+Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
 
 Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
@@ -122,17 +128,13 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::resource('invoices', InvoiceController::class);
-    // Invoice generation routes
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateForCurrentMonth'])->name('invoices.generate.single');
     Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllMonthlyInvoices'])->name('invoices.generate.all');
-    // Payments
     Route::post('/invoices/payments', [InvoiceController::class, 'processPayment'])->name('invoices.payments.store');
-
     Route::post('/invoices/bulk-create', [InvoiceController::class, 'bulkCreate'])->name('invoices.bulk.create');
     Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing');
     Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllInvoices'])->name('invoices.generate.all');
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');
-
 
     Route::resource('estates', EstateController::class);
     Route::resource('expenses', ExpenseController::class);
@@ -143,25 +145,17 @@ Route::middleware('auth')->group(function () {
     Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
     Route::get('/api/invoices/{invoice}/details', [PaymentController::class, 'getInvoiceDetails'])->name('api.invoices.details');
         
-
     Route::resource('units', UnitController::class);
     Route::resource('tenancies', TenancyController::class);
     Route::resource('tenants', TenantController::class);
 
-    // In routes/web.php
     Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
     Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
-    // Get invoice data for a tenancy (includes water readings)
     Route::get('/tenancies/{tenancy}/invoice-data', [InvoiceController::class, 'getInvoiceData'])->name('tenancies.invoice-data');     
-    
-    // In your routes/web.php file
     Route::post('/tenants/bulk-store', [TenantController::class, 'bulkStore'])->name('tenants.bulkStore');
-    
-    // Invoices and Payments for Tenants
     Route::post('/tenants/{tenant}/invoices', [TenantController::class, 'storeInvoice'])->name('tenants.store.invoice');
     Route::post('/tenants/{tenant}/payments', [TenantController::class, 'storePayment'])->name('tenants.store.payment');
 
-    // Add these routes after the existing invoice routes
     Route::post('/invoices/{invoice}/add-item', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
     Route::put('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
     Route::delete('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
@@ -169,150 +163,175 @@ Route::middleware('auth')->group(function () {
     Route::get('/tenancies/{tenancy}/check-invoice-status', [InvoiceController::class, 'checkInvoiceGenerationStatus'])->name('tenancies.check-invoice-status');
     Route::post('/tenancies/{tenancy}/force-invoice', [InvoiceController::class, 'forceGenerateInvoice'])->name('tenancies.force-invoice');
 
-
-    // Billing history and missing months
     Route::get('/tenancies/{tenancy}/billing-history', [InvoiceController::class, 'getBillingHistory'])->name('tenancies.billing-history');
     Route::post('/tenancies/{tenancy}/generate-missing-invoices', [InvoiceController::class, 'generateMissingInvoices'])->name('tenancies.generate-missing-invoices');
     Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
-
-    // Add this route after the existing invoice routes
     Route::post('/tenancies/{tenancy}/invoices/bulk-missing', [InvoiceController::class, 'generateMissingInvoicesBulk'])->name('tenancies.invoices.bulk-missing');
     Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates');
 
     Route::get('/payments/create-data', [PaymentController::class, 'getCreateData'])->name('payments.create-data');
-    // In routes/web.php
     Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing');
-    // In routes/web.php, add this route:
-
     Route::post('/tenancies/{tenancy}/payments', [PaymentController::class, 'store'])->name('tenancies.payments.store');
 
-        // Add these routes after the existing tenancy routes
-        Route::prefix('tenancies/{tenancy}')->group(function () {
-            Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('tenancies.invoices.store');
-            Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('tenancies.invoices.index');
-            Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('tenancies.invoices.check');
-        });
+    Route::prefix('tenancies/{tenancy}')->group(function () {
+        Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('tenancies.invoices.store');
+        Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('tenancies.invoices.index');
+        Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('tenancies.invoices.check');
+    });
 
-        // Add invoice item management routes
-        Route::prefix('invoices/{invoice}')->group(function () {
-            Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
-            Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
-            Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
-        });
+    Route::prefix('invoices/{invoice}')->group(function () {
+        Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
+        Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
+        Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
+    });
 
-        Route::resource('users', UserController::class);
-        Route::resource('expense-categories', ExpenseCategoryController::class);
-        Route::resource('staff', StaffController::class);
+    Route::resource('users', UserController::class);
+    Route::resource('expense-categories', ExpenseCategoryController::class);
+    Route::resource('staff', StaffController::class);
 
-        // Meter Reader specific routes
-        Route::middleware(['auth', 'role:super_admin,admin,property_manager,meter_reader'])->group(function () {
-            Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
-            Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
-            Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
-            Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
-        });
-
+    // Meter Reader specific routes
+    Route::middleware(['auth', 'role:super_admin,admin,property_manager,meter_reader'])->group(function () {
+        Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
+        Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
+        Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
+        Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
+    });
         
-// In your water prefix group, add these routes:
-Route::prefix('water')->group(function () {
-    Route::get('/', [WaterReadingController::class, 'index'])->name('water.index');
-    Route::post('/readings', [WaterReadingController::class, 'store'])->name('water.readings.store');
-    Route::post('/readings/bulk', [WaterReadingController::class, 'storeBulk'])->name('water.readings.bulk');
-    Route::post('/readings/bulk-matrix', [WaterReadingController::class, 'storeBulkMatrix'])->name('water.readings.bulk-matrix');
-    Route::post('/readings/multi-month', [WaterReadingController::class, 'storeMultiMonth'])->name('water.readings.multi-month');
-    Route::put('/readings/{reading}/reconcile', [WaterReadingController::class, 'reconcile'])->name('water.readings.reconcile');
-    Route::get('/last-reading/{unitId}', [WaterReadingController::class, 'getLastReading']);
-    Route::get('/unit-history/{unitId}', [WaterReadingController::class, 'getUnitWaterHistory']);
-    Route::get('/unit/{unit}/statement', [WaterReadingController::class, 'statement'])->name('water.statement');
-    Route::get('/unit/{unit}/readings', [WaterReadingController::class, 'getUnitReadings']);
-    Route::post('/report', [WaterReadingController::class, 'generateReport']);
+    // Water routes
+    Route::prefix('water')->group(function () {
+        Route::get('/', [WaterReadingController::class, 'index'])->name('water.index');
+        Route::post('/readings', [WaterReadingController::class, 'store'])->name('water.readings.store');
+        Route::post('/readings/bulk', [WaterReadingController::class, 'storeBulk'])->name('water.readings.bulk');
+        Route::post('/readings/bulk-matrix', [WaterReadingController::class, 'storeBulkMatrix'])->name('water.readings.bulk-matrix');
+        Route::post('/readings/multi-month', [WaterReadingController::class, 'storeMultiMonth'])->name('water.readings.multi-month');
+        Route::put('/readings/{reading}/reconcile', [WaterReadingController::class, 'reconcile'])->name('water.readings.reconcile');
+        Route::get('/last-reading/{unitId}', [WaterReadingController::class, 'getLastReading']);
+        Route::get('/unit-history/{unitId}', [WaterReadingController::class, 'getUnitWaterHistory']);
+        Route::get('/unit/{unit}/statement', [WaterReadingController::class, 'statement'])->name('water.statement');
+        Route::get('/unit/{unit}/readings', [WaterReadingController::class, 'getUnitReadings']);
+        Route::post('/report', [WaterReadingController::class, 'generateReport']);
+        Route::get('/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
+        Route::get('/api/water/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange']);
+    });
+
+    Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
+    Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
+
+    // Cleaning Staff routes
+    Route::middleware(['auth', 'role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
+        Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
+        Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
+        Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
+    });
+
+    // Maintenance Staff routes
+    Route::middleware(['auth', 'role:super_admin,admin,property_manager,maintenance'])->group(function () {
+        Route::get('/maintenance/requests', [MaintenanceController::class, 'index'])->name('maintenance.index');
+        Route::put('/maintenance/requests/{request}/update', [MaintenanceController::class, 'update'])->name('maintenance.update');
+        Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
+    });
+
+    // Security Staff routes
+    Route::middleware(['auth', 'role:super_admin,admin,security'])->group(function () {
+        Route::get('/security/logs', [SecurityController::class, 'logs'])->name('security.logs');
+        Route::get('/security/access', [SecurityController::class, 'accessRecords'])->name('security.access');
+        Route::post('/security/incidents', [SecurityController::class, 'reportIncident'])->name('security.incidents');
+    });
+
+    // Accountant routes (finance only)
+    Route::middleware(['auth', 'role:super_admin,admin,accountant'])->group(function () {
+        Route::get('/reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
+        Route::get('/reports/invoices', [ReportController::class, 'invoices'])->name('reports.invoices');
+        Route::get('/reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
+    });
+
+    // Tenant specific routes
+    Route::middleware(['auth', 'role:tenant'])->group(function () {
+        Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
+        Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
+        Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
+        Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
+    });
+
+    Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');
+    Route::resource('maintenance', App\Http\Controllers\MaintenanceController::class);
+    Route::get('/tenant/maintenance', [App\Http\Controllers\MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
+    Route::get('/tenant/access-logs', [App\Http\Controllers\SecurityController::class, 'tenantAccessLogs'])->name('tenant.access-logs');
+
+    Route::resource('security', App\Http\Controllers\SecurityController::class);
+    Route::post('/security/access', [App\Http\Controllers\SecurityController::class, 'store'])->name('security.access.store');
+    Route::put('/security/access/{accessLog}', [App\Http\Controllers\SecurityController::class, 'update'])->name('security.access.update');
+
+    Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])
+        ->middleware(['auth'])
+        ->name('maintenance.unit.history');
+    Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
     
-    // NEW ROUTES
-    Route::get('/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
-    Route::get('/api/water/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange']);
+    Route::prefix('security')->middleware(['auth'])->group(function () {
+        Route::get('/logs', [SecurityController::class, 'index'])->name('security.logs.index');
+        Route::get('/logs/{id}', [SecurityController::class, 'show'])->name('security.logs.show');
+        Route::post('/logs', [SecurityController::class, 'store'])->name('security.logs.store');
+        Route::put('/logs/{id}', [SecurityController::class, 'update'])->name('security.logs.update');
+        Route::delete('/logs/{id}', [SecurityController::class, 'destroy'])->name('security.logs.destroy');
+    });
 
-    // These are the actual routes your modal expects:
-    Route::post('/readings/bulk-matrix', [WaterReadingController::class, 'storeBulkMatrix'])->name('water.readings.bulk-matrix');
-    Route::post('/readings/multi-month', [WaterReadingController::class, 'storeMultiMonth'])->name('water.readings.multi-month');
-    Route::get('/api/readings/bulk', [WaterReadingController::class, 'getBulkReadings'])->name('water.api.bulk');
-    Route::get('/api/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange'])->name('water.api.unit-readings');
-});
+    // Security API Routes
+    Route::middleware(['auth'])->prefix('security')->name('security.')->group(function () {
+        Route::get('/estates', [SecurityController::class, 'getEstates'])->name('estates');
+        Route::get('/units', [SecurityController::class, 'getUnitsByEstate'])->name('units');
+        Route::get('/tenants', [SecurityController::class, 'getTenantsByUnit'])->name('tenants');
+        Route::get('/visitors', [SecurityController::class, 'getVisitorsByTenant'])->name('visitors');
+        Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
+    });
 
-// API routes for units
-// Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings']);
-Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
-Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
-
-        // Cleaning Staff routes
-        Route::middleware(['auth', 'role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
-            Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
-            Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
-            Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
-        });
-
-        // Maintenance Staff routes
-        Route::middleware(['auth', 'role:super_admin,admin,property_manager,maintenance'])->group(function () {
-            Route::get('/maintenance/requests', [MaintenanceController::class, 'index'])->name('maintenance.index');
-            Route::put('/maintenance/requests/{request}/update', [MaintenanceController::class, 'update'])->name('maintenance.update');
-            Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
-        });
-
-        // Security Staff routes
-        Route::middleware(['auth', 'role:super_admin,admin,security'])->group(function () {
-            Route::get('/security/logs', [SecurityController::class, 'logs'])->name('security.logs');
-            Route::get('/security/access', [SecurityController::class, 'accessRecords'])->name('security.access');
-            Route::post('/security/incidents', [SecurityController::class, 'reportIncident'])->name('security.incidents');
-        });
-
-        // Accountant routes (finance only)
-        Route::middleware(['auth', 'role:super_admin,admin,accountant'])->group(function () {
-            Route::get('/reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
-            Route::get('/reports/invoices', [ReportController::class, 'invoices'])->name('reports.invoices');
-            Route::get('/reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
-        });
-
-        // Tenant specific routes
-        Route::middleware(['auth', 'role:tenant'])->group(function () {
-            Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
-            Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
-            Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
-            Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
-        });
-
-        // Get unit data for meter reading form
-        Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');
-        // Maintenance Routes
-        Route::resource('maintenance', App\Http\Controllers\MaintenanceController::class);
-        Route::get('/tenant/maintenance', [App\Http\Controllers\MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
-        Route::get('/tenant/access-logs', [App\Http\Controllers\SecurityController::class, 'tenantAccessLogs'])->name('tenant.access-logs');
-
-        // Security Routes
-        Route::resource('security', App\Http\Controllers\SecurityController::class);
-        Route::post('/security/access', [App\Http\Controllers\SecurityController::class, 'store'])->name('security.access.store');
-        Route::put('/security/access/{accessLog}', [App\Http\Controllers\SecurityController::class, 'update'])->name('security.access.update');
-
-        Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])
-            ->middleware(['auth'])
-            ->name('maintenance.unit.history');
-        Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
-        // Security Logs Routes
-        Route::prefix('security')->middleware(['auth'])->group(function () {
-            Route::get('/logs', [SecurityController::class, 'index'])->name('security.logs.index');
-            Route::get('/logs/{id}', [SecurityController::class, 'show'])->name('security.logs.show');
-            Route::post('/logs', [SecurityController::class, 'store'])->name('security.logs.store');
-            Route::put('/logs/{id}', [SecurityController::class, 'update'])->name('security.logs.update');
-            Route::delete('/logs/{id}', [SecurityController::class, 'destroy'])->name('security.logs.destroy');
+    // =============================================
+    // SUBSCRIPTION MODULE ROUTES - Admin Section
+    // =============================================
+    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth', 'role:super_admin,admin'])->group(function () {
+        
+        // API Routes for AJAX calls
+        Route::prefix('api')->name('api.')->group(function () {
+            Route::get('/plans/data', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'getData'])->name('plans.data');
+            Route::get('/plans/{plan}', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'show'])->name('plans.show');
+            Route::get('/plans/{plan}/subscribers', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'getSubscribers'])->name('plans.subscribers');
         });
         
-});
+        // Subscription Plans CRUD
+        Route::get('/plans', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'index'])->name('plans.index');
+        Route::post('/plans', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'store'])->name('plans.store');
+        Route::put('/plans/{plan}', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'update'])->name('plans.update');
+        Route::delete('/plans/{plan}', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'destroy'])->name('plans.destroy');
+    });
 
+    // Company Management Routes
+    Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
+        Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
+        Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
+        Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
+        Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
+        Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
+        
+        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
+        Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
+        Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
+        Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
+        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstates'])->name('estates');
+        Route::get('/{company}/subscriptions', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
+        Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
+        Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
+        Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
+    });
+
+    
+
+
+});
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
+
 // SMS Module Routes
 require base_path('app/Modules/SMS/routes.php');
 
 require __DIR__.'/auth.php';
-
-// SMS Module Routes
-require base_path('app/Modules/SMS/routes.php');
