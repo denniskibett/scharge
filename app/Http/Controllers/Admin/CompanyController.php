@@ -37,12 +37,14 @@ class CompanyController extends Controller
             ]);
         }
         
-        $users = $company->users()->with('role')->latest()->paginate(20);
-        $availableRoles = Role::where('name', '!=', 'super_admin')->get();
-        $availableUserSlots = $company->getAvailableUserSlots();
+        // Get available roles (exclude sysadmin and tenant for staff)
+        $availableRoles = Role::whereNotIn('name', ['sysadmin', 'tenant'])
+            ->orderBy('name')
+            ->get();
+        
         $subscription = $company->currentSubscription;
         
-        return view('admin.companies.show', compact('company', 'users', 'availableRoles', 'availableUserSlots', 'subscription'));
+        return view('admin.companies.show', compact('company', 'availableRoles', 'subscription'));
     }
 
     public function getCompaniesData()
@@ -66,12 +68,11 @@ class CompanyController extends Controller
         ]);
     }
 
-    // ========== COMPANY USERS MANAGEMENT (for the modal) ==========
+    // ========== COMPANY USERS MANAGEMENT ==========
     
     /**
-     * Get users for a specific company (for the modal)
+     * Get all users for a specific company (excluding sysadmin)
      */
-
     public function getCompanyUsers(Company $company)
     {
         // Get all users belonging to this company (excluding sysadmin)
@@ -105,17 +106,182 @@ class CompanyController extends Controller
                 ];
             });
         
-        // Calculate available user slots based on subscription
-        $availableUserSlots = $company->getAvailableUserSlots();
-        
         return response()->json([
             'success' => true,
             'users' => $users,
             'availableRoles' => $availableRoles,
-            'availableUserSlots' => $availableUserSlots,
             'currentUserCount' => $users->count(),
         ]);
     }
+
+    /**
+     * Get all users for a specific company (alias for backward compatibility)
+     */
+    public function getCompanyStaff(Company $company)
+    {
+        return $this->getCompanyUsers($company);
+    }
+
+    /**
+     * Add a new user/staff member to the company
+     */
+    public function addUser(Request $request, Company $company)
+    {
+        try {
+            $validated = $request->validate([
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'phone' => 'nullable|string|max:20',
+                'role_id' => 'required|exists:roles,id',
+                'password' => 'required|string|min:8',
+            ]);
+
+            // Check if role is valid (exclude sysadmin)
+            $role = Role::find($validated['role_id']);
+            if ($role->name === 'sysadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot assign sysadmin role to company staff.'
+                ], 422);
+            }
+
+            $user = User::create([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'name' => $validated['first_name'] . ' ' . $validated['last_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'role_id' => $validated['role_id'],
+                'company_id' => $company->id,
+                'password' => Hash::make($validated['password']),
+                'email_verified_at' => now(),
+                'status' => 0, // active
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Staff member {$user->full_name} added successfully!",
+                'user' => [
+                    'id' => $user->id,
+                    'full_name' => $user->full_name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '-',
+                    'role_name' => $user->role?->display_name ?? $user->role?->name ?? 'No Role',
+                    'role_badge' => $this->getRoleBadge($user->role?->name),
+                    'created_at_formatted' => $user->created_at->format('M d, Y'),
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Failed to add user: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to add staff member: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add staff member (alias for addUser)
+     */
+    public function addStaff(Request $request, Company $company)
+    {
+        return $this->addUser($request, $company);
+    }
+
+    /**
+     * Remove a user from the company
+     */
+    public function removeUser(Company $company, User $user)
+    {
+        try {
+            if ($user->company_id !== $company->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User does not belong to this company.'
+                ], 422);
+            }
+
+            $userName = $user->full_name;
+            $user->update(['company_id' => null]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Staff member {$userName} removed from company."
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to remove user: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove staff member: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove staff member (alias for removeUser)
+     */
+    public function removeStaff(Company $company, User $user)
+    {
+        return $this->removeUser($company, $user);
+    }
+
+    /**
+     * Update user role
+     */
+    public function updateUserRole(Request $request, Company $company, User $user)
+    {
+        try {
+            $validated = $request->validate([
+                'role_id' => 'required|exists:roles,id',
+            ]);
+
+            if ($user->company_id !== $company->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User does not belong to this company.'
+                ], 422);
+            }
+
+            $role = Role::find($validated['role_id']);
+            if ($role->name === 'sysadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot assign sysadmin role to company staff.'
+                ], 422);
+            }
+
+            $user->update(['role_id' => $validated['role_id']]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User role updated successfully!',
+                'user' => [
+                    'id' => $user->id,
+                    'full_name' => $user->full_name,
+                    'role_name' => $user->role?->display_name ?? $user->role?->name ?? 'No Role',
+                    'role_badge' => $this->getRoleBadge($user->role?->name),
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update user role: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update user role: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ========== COMPANY CRUD ==========
 
     public function store(Request $request)
     {
@@ -168,6 +334,7 @@ class CompanyController extends Controller
                     'company_id' => $company->id,
                     'password' => Hash::make($request->admin_user['password']),
                     'email_verified_at' => now(),
+                    'status' => 0,
                 ]);
 
                 $adminCredentials = [
@@ -230,6 +397,7 @@ class CompanyController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Company update failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update company: ' . $e->getMessage()
@@ -255,135 +423,10 @@ class CompanyController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            Log::error('Company deletion failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete company: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ========== ADD USER TO COMPANY ==========
-    
-    public function addUser(Request $request, Company $company)
-    {
-        try {
-            $validated = $request->validate([
-                'first_name' => 'required|string|max:255',
-                'last_name' => 'required|string|max:255',
-                'email' => 'required|email|unique:users,email',
-                'phone' => 'nullable|string|max:20',
-                'role_id' => 'required|exists:roles,id',
-                'password' => 'required|string|min:8',
-            ]);
-
-            // Check user limit
-            $availableSlots = $company->getAvailableUserSlots();
-            if ($availableSlots <= 0 && $company->users()->count() > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Company has reached maximum user limit. Please upgrade subscription.'
-                ], 422);
-            }
-
-            $user = User::create([
-                'first_name' => $validated['first_name'],
-                'last_name' => $validated['last_name'],
-                'name' => $validated['first_name'] . ' ' . $validated['last_name'],
-                'email' => $validated['email'],
-                'phone' => $validated['phone'] ?? null,
-                'role_id' => $validated['role_id'],
-                'company_id' => $company->id,
-                'password' => Hash::make($validated['password']),
-                'email_verified_at' => now(),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => "User {$user->full_name} added successfully!",
-                'user' => [
-                    'id' => $user->id,
-                    'full_name' => $user->full_name,
-                    'email' => $user->email,
-                    'phone' => $user->phone,
-                    'role_name' => $user->role?->display_name ?? $user->role?->name ?? 'No Role',
-                    'role_badge' => $this->getRoleBadge($user->role?->name),
-                    'created_at_formatted' => $user->created_at->format('M d, Y'),
-                ]
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add user: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ========== REMOVE USER FROM COMPANY ==========
-    
-    public function removeUser(Company $company, User $user)
-    {
-        try {
-            if ($user->company_id !== $company->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User does not belong to this company.'
-                ], 422);
-            }
-
-            $userName = $user->full_name;
-            $user->update(['company_id' => null]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => "User {$userName} removed from company."
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to remove user: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function updateUserRole(Request $request, Company $company, User $user)
-    {
-        try {
-            $validated = $request->validate([
-                'role_id' => 'required|exists:roles,id',
-            ]);
-
-            if ($user->company_id !== $company->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'User does not belong to this company.'
-                ], 422);
-            }
-
-            $user->update(['role_id' => $validated['role_id']]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'User role updated successfully!',
-                'user' => [
-                    'id' => $user->id,
-                    'full_name' => $user->full_name,
-                    'role_name' => $user->role?->display_name ?? $user->role?->name ?? 'No Role',
-                    'role_badge' => $this->getRoleBadge($user->role?->name),
-                ]
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update user role: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -476,23 +519,6 @@ class CompanyController extends Controller
                 ];
             }),
         ]);
-    }
-
-    // ========== STAFF MANAGEMENT (Backward compatibility) ==========
-    
-    public function getCompanyStaff(Company $company)
-    {
-        return $this->getCompanyUsers($company);
-    }
-
-    public function addStaff(Request $request, Company $company)
-    {
-        return $this->addUser($request, $company);
-    }
-
-    public function removeStaff(Company $company, User $user)
-    {
-        return $this->removeUser($company, $user);
     }
 
     // ========== HELPER METHODS ==========

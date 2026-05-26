@@ -21,7 +21,7 @@ use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
 use App\Http\Controllers\Auth\VerificationController;
-
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -32,7 +32,7 @@ Route::get('/email/verify', [VerificationController::class, 'notice'])->name('ve
 Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
 Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
 
-Route::get('/dashboard', [App\Http\Controllers\DashboardController::class, 'index'])
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
