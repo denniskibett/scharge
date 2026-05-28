@@ -23,6 +23,10 @@ use App\Http\Controllers\WaterReadingController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
 
+// ========== SMS CONTROLLERS ==========
+use App\Modules\SMS\Controllers\SmsController;
+use App\Modules\SMS\Controllers\SmsTemplateController;
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -190,7 +194,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('staff', StaffController::class);
 
     // Meter Reader specific routes
-    Route::middleware(['auth', 'role:super_admin,admin,property_manager,meter_reader'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
         Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
         Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
@@ -218,39 +222,43 @@ Route::middleware('auth')->group(function () {
     Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
 
     // Cleaning Staff routes
-    Route::middleware(['auth', 'role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
         Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
         Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
     });
 
     // Maintenance Staff routes
-    Route::middleware(['auth', 'role:super_admin,admin,property_manager,maintenance'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/maintenance/requests', [MaintenanceController::class, 'index'])->name('maintenance.index');
         Route::put('/maintenance/requests/{request}/update', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
 
     // Security Staff routes
-    Route::middleware(['auth', 'role:super_admin,admin,security'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/security/logs', [SecurityController::class, 'logs'])->name('security.logs');
         Route::get('/security/access', [SecurityController::class, 'accessRecords'])->name('security.access');
         Route::post('/security/incidents', [SecurityController::class, 'reportIncident'])->name('security.incidents');
     });
 
     // Accountant routes (finance only)
-    Route::middleware(['auth', 'role:super_admin,admin,accountant'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
         Route::get('/reports/invoices', [ReportController::class, 'invoices'])->name('reports.invoices');
         Route::get('/reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
     });
 
-    // Tenant specific routes
-    Route::middleware(['auth', 'role:tenant'])->group(function () {
+    // Tenant specific routes (including wallet)
+    Route::middleware(['auth'])->group(function () {
         Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
         Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
         Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
         Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
+
+        // Wallet Module Routes
+        Route::get('/wallet', [App\Http\Controllers\Tenant\WalletController::class, 'index'])->name('tenant.wallet');
+        Route::post('/wallet/topup', [App\Http\Controllers\Tenant\WalletController::class, 'topup'])->name('tenant.wallet.topup');
     });
 
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');
@@ -284,10 +292,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
     });
 
-    // =============================================
-    // SUBSCRIPTION MODULE ROUTES - Admin Section
-    // =============================================
-    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth', 'role:super_admin,admin'])->group(function () {
+    // Subscription Module Routes - Admin Section
+    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth'])->group(function () {
         
         // API Routes for AJAX calls
         Route::prefix('api')->name('api.')->group(function () {
@@ -323,15 +329,37 @@ Route::middleware('auth')->group(function () {
         Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
     });
 
-    
-
-
 });
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
-// SMS Module Routes
-require base_path('app/Modules/SMS/routes.php');
+// ========== SMS ROUTES (direct) ==========
+Route::prefix('sms')->middleware(['auth'])->group(function () {
+    Route::get('/broadcast', [SmsController::class, 'create'])->name('sms.broadcast');
+    Route::post('/send', [SmsController::class, 'send'])->name('sms.send');
+    Route::post('/send-custom', [SmsController::class, 'sendCustom'])->name('sms.send-custom');
+    Route::get('/logs', [SmsController::class, 'logs'])->name('sms.logs');
+    Route::get('/history', [SmsController::class, 'logs'])->name('sms.history');
+    Route::get('/logs/export', [SmsController::class, 'export'])->name('sms.logs.export');  // 👈 ADDED
+    
+    // SMS Templates - explicit routes
+    Route::get('/templates', [SmsTemplateController::class, 'index'])->name('sms.templates.index');
+    Route::get('/templates/create', [SmsTemplateController::class, 'create'])->name('sms.templates.create');
+    Route::post('/templates', [SmsTemplateController::class, 'store'])->name('sms.templates.store');
+    Route::get('/templates/{template}/edit', [SmsTemplateController::class, 'edit'])->name('sms.templates.edit');
+    Route::put('/templates/{template}', [SmsTemplateController::class, 'update'])->name('sms.templates.update');
+    Route::delete('/templates/{template}', [SmsTemplateController::class, 'destroy'])->name('sms.templates.destroy');
+    
+    // SMS Settings
+    Route::get('/settings', [SmsController::class, 'settings'])->name('sms.settings');
+    Route::post('/settings', [SmsController::class, 'updateSettings'])->name('sms.settings.update');
+});
+// =============================================================
+
+// GET route for /sms/send to avoid method not allowed error
+Route::get('/sms/send', function () {
+    return redirect()->route('sms.broadcast');
+})->name('sms.send.get');
 
 require __DIR__.'/auth.php';

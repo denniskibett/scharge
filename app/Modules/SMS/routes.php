@@ -8,4 +8,5 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::post('/send', [SmsController::class, 'send'])->name('sms.send');
     Route::post('/send-custom', [SmsController::class, 'sendCustom'])->name('sms.send-custom');
     Route::get('/logs', [SmsController::class, 'logs'])->name('sms.logs');
+    Route::get('/history', [SmsController::class, 'logs'])->name('sms.history'); // 👈 added for sidebar link
 });

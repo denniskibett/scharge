@@ -104,4 +104,12 @@ class Tenant extends Model
     {
         return $this->tenancies()->where('status', 'active')->exists();
     }
+
+    /**
+     * Get the tenant's wallet.
+     */
+    public function wallet()
+    {
+        return $this->hasOne(\App\Models\Wallet::class);
+    }
 }

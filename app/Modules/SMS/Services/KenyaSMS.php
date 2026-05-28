@@ -33,7 +33,6 @@ class KenyaSMS
             return ['success' => false, 'error' => 'Invalid Kenyan phone number'];
         }
 
-        // For testing without API
         if ($this->sandbox) {
             SmsLog::create([
                 'recipient_phone' => $phone,
@@ -111,6 +110,41 @@ class KenyaSMS
             'success' => $sent > 0,
             'data' => ['sent' => $sent, 'failed' => $failed],
         ];
+    }
+
+    /**
+     * Get account balance from KenyaSMS (real endpoint)
+     */
+    public function getBalance(): array
+    {
+        if ($this->sandbox) {
+            return ['success' => true, 'balance' => 9999.00, 'currency' => 'KES'];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Accept' => 'application/json',
+            ])->get($this->baseUrl . '/account/balance');
+
+            if ($response->successful()) {
+                $data = $response->json();
+                // Response: { "success": true, "data": { "balance_kes": 27.6, "currency": "KES", ... } }
+                if (isset($data['data']['balance_kes'])) {
+                    $balance = (float) $data['data']['balance_kes'];
+                    $currency = $data['data']['currency'] ?? 'KES';
+                    return ['success' => true, 'balance' => $balance, 'currency' => $currency];
+                } else {
+                    \Log::error('KenyaSMS balance response missing balance_kes', ['response' => $data]);
+                    return ['success' => false, 'error' => 'Balance not found in response'];
+                }
+            } else {
+                $error = $response->json()['error']['message'] ?? 'Failed to fetch balance';
+                return ['success' => false, 'error' => $error];
+            }
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
     protected function renderTemplate(string $template, array $variables): string
