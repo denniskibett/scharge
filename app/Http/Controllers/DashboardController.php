@@ -58,10 +58,6 @@ class DashboardController extends Controller
         }
     }
     
-    /**
-     * Check if user is ready to access the dashboard
-     * Conditions: email verified, status = active (0), and has company (unless sysadmin)
-     */
     private function isUserReady($user)
     {
         // Must have email verified
@@ -74,7 +70,7 @@ class DashboardController extends Controller
             return false;
         }
         
-        // Sysadmin doesn't need company assignment
+        // Sysadmin doesn't need company assignment - they can access the dashboard
         if ($user->hasRole('sysadmin')) {
             return true;
         }
@@ -82,10 +78,7 @@ class DashboardController extends Controller
         // Other roles must have a company assigned
         return !is_null($user->company_id);
     }
-    
-    /**
-     * Get the reason why user is not ready
-     */
+
     private function getUserNotReadyReason($user)
     {
         if (is_null($user->email_verified_at)) {
@@ -96,12 +89,18 @@ class DashboardController extends Controller
             return ['message' => 'Your account has been deactivated. Please contact your system administrator.', 'status' => 'inactive'];
         }
         
+        // For sysadmin, even without company, they can proceed (handled in isUserReady)
+        if ($user->hasRole('sysadmin')) {
+            return ['message' => 'System Administrator access granted.', 'status' => 'sysadmin'];
+        }
+        
         if (!$user->hasRole('sysadmin') && is_null($user->company_id)) {
             return ['message' => 'Your account is not assigned to any company. Please contact your system administrator.', 'status' => 'no_company'];
         }
         
         return ['message' => 'Your account requires further configuration. Please contact support.', 'status' => 'unknown'];
     }
+    
     
     /**
      * Show pending verification view with appropriate message
@@ -1192,122 +1191,244 @@ private function getStatusColor($status)
         ];
     }
     
-    private function getMeterReaderData($company)
-    {
-        // Units that need reading (company scoped)
-        $unitsNeedingReading = Unit::where('company_id', $company->id)
-            ->where('status', 'occupied')
-            ->where(function ($query) {
-                $query->whereNull('last_reading_date')
-                    ->orWhere('last_reading_date', '<=', Carbon::now()->subDays(30));
-            })
-            ->with('estate')
-            ->get()
-            ->map(function ($unit) {
-                $lastReading = WaterReading::where('unit_id', $unit->id)->latest('reading_date')->first();
-                $billingType = $unit->water_billing_type ?? 'consumption';
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                $previousReading = $lastReading ? $lastReading->current_reading : ($unit->previous_water_reading ?? 0);
-                
-                return [
-                    'id' => $unit->id,
-                    'unit_id' => $unit->id,
-                    'unit_number' => $unit->unit_number ?? 'N/A',
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
-                    'previous_reading' => (float) $previousReading,
-                    'current_reading' => null,
-                    'consumption' => null,
-                    'charge' => null,
-                    'reading_date' => null,
-                    'last_reading_date' => $lastReading ? $lastReading->reading_date->format('Y-m-d') : null,
-                    'water_billing_type' => $billingType,
-                    'water_charge' => (float) ($unit->water_charge ?? 0),
-                    'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
-                    'water_rate' => (float) $rate,
-                    'rate' => (float) $rate,
-                    'needs_reading' => true,
-                    'status' => $unit->status,
-                    'unit_type' => $unit->unit_type,
-                ];
-            });
+private function getMeterReaderData($company)
+{
+    // Get all units for the company
+    $allUnits = Unit::where('company_id', $company->id)
+        ->with('estate')
+        ->get();
+    
+    // Get current month's start and end
+    $currentMonthStart = Carbon::now()->startOfMonth();
+    $currentMonthEnd = Carbon::now()->endOfMonth();
+    
+    // Get all water readings for this company
+    $allReadings = WaterReading::whereHas('unit', fn($q) => $q->where('company_id', $company->id))
+        ->with(['unit.estate', 'recordedBy'])
+        ->orderBy('reading_date', 'desc')
+        ->get();
+    
+    // ========== 1. CURRENT MONTH READINGS (Units WITH readings this month) ==========
+    $currentMonthReadingsCollection = $allReadings->filter(function($reading) use ($currentMonthStart, $currentMonthEnd) {
+        return $reading->reading_date->between($currentMonthStart, $currentMonthEnd);
+    });
+    
+    $currentMonthReadings = $currentMonthReadingsCollection->map(function ($reading) {
+        $unit = $reading->unit;
+        if (!$unit) return null;
         
-        // Reading history (company scoped through unit relationship)
-        $readingHistory = WaterReading::whereHas('unit', fn($q) => $q->where('company_id', $company->id))
-            ->with(['unit.estate', 'recordedBy'])
-            ->orderBy('reading_date', 'desc')
-            ->get()
-            ->map(function ($reading) {
-                $unit = $reading->unit;
-                if (!$unit) return null;
-                
-                $billingType = $unit->water_billing_type ?? 'consumption';
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                $consumption = $reading->consumption ?: ($reading->current_reading - $reading->previous_reading);
-                $charge = $reading->charge ?: ($billingType === 'flat' ? ($unit->water_charge ?? 0) : max(0, $consumption) * $rate);
-                
-                return [
-                    'id' => $reading->id,
-                    'unit_id' => $unit->id,
-                    'unit_number' => $unit->unit_number ?? 'N/A',
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
-                    'previous_reading' => (float) $reading->previous_reading,
-                    'current_reading' => (float) $reading->current_reading,
-                    'consumption' => (float) max(0, $consumption),
-                    'charge' => (float) max(0, $charge),
-                    'reading_date' => $reading->reading_date->format('Y-m-d'),
-                    'last_reading_date' => $reading->reading_date->format('Y-m-d'),
-                    'water_billing_type' => $billingType,
-                    'water_charge' => (float) ($unit->water_charge ?? 0),
-                    'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
-                    'water_rate' => (float) $rate,
-                    'rate' => (float) $rate,
-                    'needs_reading' => false,
-                    'status' => $unit->status ?? 'occupied',
-                    'unit_type' => $unit->unit_type,
-                    'recorded_by_name' => optional($reading->recordedBy)->name ?? 'System',
-                ];
-            })
-            ->filter()
-            ->values();
-        
-        // Units for modal dropdown (company scoped)
-        $units = Unit::where('company_id', $company->id)
-            ->with('estate')
-            ->where('is_active', true)
-            ->get()
-            ->map(function($unit) {
-                return [
-                    'id' => $unit->id,
-                    'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
-                    'water_billing_type' => $unit->water_billing_type ?? 'consumption',
-                    'water_charge' => (float) ($unit->water_charge ?? 0),
-                    'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
-                    'current_water_reading' => (float) ($unit->current_water_reading ?? 0),
-                    'previous_water_reading' => (float) ($unit->previous_water_reading ?? 0),
-                    'last_reading_date' => $unit->last_reading_date,
-                ];
-            });
-        
-        // Estates for filtering (company scoped)
-        $estates = Estate::where('company_id', $company->id)->orderBy('name')->get();
+        $consumption = $reading->consumption ?: max(0, ($reading->current_reading ?? 0) - ($reading->previous_reading ?? 0));
         
         return [
-            'type' => 'meter_reader',
-            'unitsNeedingReading' => $unitsNeedingReading,
-            'readingHistory' => $readingHistory,
-            'units' => $units,
-            'estates' => $estates,
-            'allWaterReadings' => WaterReading::whereHas('unit', fn($q) => $q->where('company_id', $company->id))->count(),
-            'todayReadings' => WaterReading::whereHas('unit', fn($q) => $q->where('company_id', $company->id))
-                ->whereDate('reading_date', Carbon::today())->count(),
-            'thisMonthReadings' => WaterReading::whereHas('unit', fn($q) => $q->where('company_id', $company->id))
-                ->whereMonth('reading_date', Carbon::now()->month)->count(),
+            'id' => $reading->id,
+            'unit_id' => $unit->id,
+            'unit_number' => $unit->unit_number ?? 'N/A',
+            'estate_name' => $unit->estate->name ?? 'N/A',
+            'estate_id' => $unit->estate_id,
+            'previous_reading' => (float) ($reading->previous_reading ?? 0),
+            'current_reading' => (float) ($reading->current_reading ?? 0),
+            'consumption' => (float) max(0, $consumption),
+            'charge' => (float) ($reading->charge ?? 0),
+            'reading_date' => $reading->reading_date->format('Y-m-d'),
+            'last_reading_date' => $reading->reading_date->format('Y-m-d'),
+            'needs_reading' => false,
+            'recorded_by_name' => optional($reading->recordedBy)->name ?? 'System',
         ];
+    })->filter()->values();
+    
+    // Get total consumption for current month
+    $totalConsumption = $currentMonthReadingsCollection->sum('consumption');
+    
+    // ========== 2. PENDING READINGS (Units with NO reading this month) ==========
+    $unitIdsWithCurrentMonthReading = $currentMonthReadingsCollection->pluck('unit_id')->toArray();
+    
+    $unitsNeedingReading = $allUnits
+        ->filter(function($unit) use ($unitIdsWithCurrentMonthReading) {
+            // Only include occupied units that don't have a reading this month
+            return $unit->status === 'occupied' && !in_array($unit->id, $unitIdsWithCurrentMonthReading);
+        })
+        ->map(function($unit) {
+            // Get last reading info (previous reading value to show)
+            $lastReading = WaterReading::where('unit_id', $unit->id)->latest('reading_date')->first();
+            
+            return [
+                'id' => null, // No reading ID since pending
+                'unit_id' => $unit->id,
+                'unit_number' => $unit->unit_number ?? 'N/A',
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'previous_reading' => (float) ($lastReading ? $lastReading->current_reading : ($unit->previous_water_reading ?? 0)),
+                'current_reading' => null, // No reading yet this month
+                'consumption' => null,
+                'charge' => null,
+                'reading_date' => null,
+                'last_reading_date' => $lastReading ? $lastReading->reading_date->format('Y-m-d') : null,
+                'needs_reading' => true,
+                'status' => $unit->status,
+                'unit_type' => $unit->unit_type,
+            ];
+        })
+        ->values();
+    
+    // ========== 3. READING HISTORY (Units with total consumption sum) ==========
+    // Group readings by unit to calculate total consumption per unit
+    $unitsWithHistoryData = [];
+    
+    foreach ($allReadings as $reading) {
+        $unitId = $reading->unit_id;
+        if (!isset($unitsWithHistoryData[$unitId])) {
+            $unit = $reading->unit;
+            if (!$unit) continue;
+            
+            $unitsWithHistoryData[$unitId] = [
+                'unit_id' => $unitId,
+                'unit_number' => $unit->unit_number ?? 'N/A',
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'total_consumption' => 0,
+                'total_readings' => 0,
+                'first_reading_date' => null,
+                'last_reading_date' => null,
+                'status' => $unit->status,
+            ];
+        }
+        
+        $unitsWithHistoryData[$unitId]['total_consumption'] += ($reading->consumption ?: max(0, ($reading->current_reading ?? 0) - ($reading->previous_reading ?? 0)));
+        $unitsWithHistoryData[$unitId]['total_readings']++;
+        
+        // Track first and last reading dates
+        $readingDate = $reading->reading_date;
+        if (!$unitsWithHistoryData[$unitId]['first_reading_date'] || $readingDate < $unitsWithHistoryData[$unitId]['first_reading_date']) {
+            $unitsWithHistoryData[$unitId]['first_reading_date'] = $readingDate;
+        }
+        if (!$unitsWithHistoryData[$unitId]['last_reading_date'] || $readingDate > $unitsWithHistoryData[$unitId]['last_reading_date']) {
+            $unitsWithHistoryData[$unitId]['last_reading_date'] = $readingDate;
+        }
     }
+    
+    // Convert to array and format for table-readings partial
+    $historyReadings = collect($unitsWithHistoryData)->map(function($data) {
+        return [
+            'id' => null,
+            'unit_id' => $data['unit_id'],
+            'unit_number' => $data['unit_number'],
+            'estate_name' => $data['estate_name'],
+            'estate_id' => $data['estate_id'],
+            'previous_reading' => 0,
+            'current_reading' => 0,
+            'consumption' => (float) $data['total_consumption'],
+            'charge' => 0,
+            'reading_date' => $data['last_reading_date'] ? $data['last_reading_date']->format('Y-m-d') : null,
+            'last_reading_date' => $data['last_reading_date'] ? $data['last_reading_date']->format('Y-m-d') : null,
+            'needs_reading' => false,
+            'total_readings' => $data['total_readings'],
+            'first_reading_date' => $data['first_reading_date'] ? $data['first_reading_date']->format('M Y') : null,
+            'last_reading_date_formatted' => $data['last_reading_date'] ? $data['last_reading_date']->format('M Y') : null,
+            'status' => $data['status'],
+        ];
+    })->sortBy('unit_number')->values();
+    
+    // Get date range for history tab header
+    $firstReading = $allReadings->sortBy('reading_date')->first();
+    $lastReading = $allReadings->sortByDesc('reading_date')->first();
+    
+    $firstReadingDate = $firstReading ? $firstReading->reading_date->format('M Y') : 'N/A';
+    $lastReadingDate = $lastReading ? $lastReading->reading_date->format('M Y') : 'N/A';
+    
+    // ========== 4. Units for modal dropdown ==========
+    $units = Unit::where('company_id', $company->id)
+        ->with('estate')
+        ->where('is_active', true)
+        ->get()
+        ->map(function($unit) {
+            return [
+                'id' => $unit->id,
+                'unit_number' => $unit->unit_number,
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'water_billing_type' => $unit->water_billing_type ?? 'consumption',
+                'water_charge' => (float) ($unit->water_charge ?? 0),
+                'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
+                'current_water_reading' => (float) ($unit->current_water_reading ?? 0),
+                'previous_water_reading' => (float) ($unit->previous_water_reading ?? 0),
+                'last_reading_date' => $unit->last_reading_date,
+            ];
+        });
+    
+    // ========== 5. Estates for filtering ==========
+    $estates = Estate::where('company_id', $company->id)->orderBy('name')->get();
+    
+    // ========== 6. Reading history list (for backward compatibility) ==========
+    $readingHistory = $allReadings->map(function ($reading) {
+        $unit = $reading->unit;
+        if (!$unit) return null;
+        
+        $consumption = $reading->consumption ?: max(0, ($reading->current_reading ?? 0) - ($reading->previous_reading ?? 0));
+        
+        return [
+            'id' => $reading->id,
+            'unit_id' => $unit->id,
+            'unit_number' => $unit->unit_number ?? 'N/A',
+            'estate_name' => $unit->estate->name ?? 'N/A',
+            'estate_id' => $unit->estate_id,
+            'previous_reading' => (float) ($reading->previous_reading ?? 0),
+            'current_reading' => (float) ($reading->current_reading ?? 0),
+            'consumption' => (float) max(0, $consumption),
+            'reading_date' => $reading->reading_date->format('Y-m-d'),
+            'recorded_by_name' => optional($reading->recordedBy)->name ?? 'System',
+        ];
+    })->filter()->values();
+    
+    // Units with history (for backward compatibility)
+    $unitsWithHistory = $historyReadings->map(function($reading) {
+        return [
+            'id' => $reading['unit_id'],
+            'unit_number' => $reading['unit_number'],
+            'unit_type' => 'N/A',
+            'estate_name' => $reading['estate_name'],
+            'estate_id' => $reading['estate_id'],
+            'status' => $reading['status'],
+            'rent_amount' => 0,
+            'total_readings' => $reading['total_readings'],
+            'last_reading_date' => $reading['last_reading_date'],
+            'last_reading_value' => 0,
+            'total_consumption' => $reading['consumption'],
+        ];
+    });
+    
+    // ========== 7. Return all data ==========
+    return [
+        'type' => 'meter_reader',
+        
+        // For Pending Tab (units needing reading)
+        'pendingCount' => $unitsNeedingReading->count(),
+        'unitsNeedingReading' => $unitsNeedingReading,
+        
+        // For Current Month Tab
+        'currentMonthCount' => $currentMonthReadings->count(),
+        'currentMonthReadings' => $currentMonthReadings,
+        
+        // For History Tab
+        'unitsWithHistoryCount' => $historyReadings->count(),
+        'historyReadings' => $historyReadings,
+        'firstReadingDate' => $firstReadingDate,
+        'lastReadingDate' => $lastReadingDate,
+        
+        // Stats cards
+        'totalConsumption' => $totalConsumption,
+        'allWaterReadings' => $allReadings->count(),
+        'todayReadings' => $allReadings->filter(fn($r) => $r->reading_date->isToday())->count(),
+        'thisMonthReadings' => $currentMonthReadings->count(),
+        
+        // Supporting data
+        'units' => $units,
+        'estates' => $estates,
+        
+        // Backward compatibility
+        'readingHistory' => $readingHistory,
+        'unitsWithHistory' => $unitsWithHistory,
+    ];
+}
     
     private function getCleaningStaffData()
     {

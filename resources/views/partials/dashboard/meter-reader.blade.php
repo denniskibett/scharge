@@ -57,7 +57,7 @@
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Units Needing Reading</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::now()->format('F Y') }} Pending</span>
                         <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
                             {{ $roleData['unitsNeedingReading']->count() ?? 0 }}
                         </h4>
@@ -73,29 +73,13 @@
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Total Readings</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::now()->format('F Y') }} Readings</span>
                         <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            {{ $roleData['allWaterReadings'] ?? 0 }}
+                            {{ $roleData['currentMonthReadings']->count() ?? 0 }}
                         </h4>
                     </div>
                     <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
                         <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Today's Readings</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            {{ $roleData['todayReadings'] ?? 0 }}
-                        </h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
@@ -105,9 +89,25 @@
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">This Month</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Total Consumption</span>
                         <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            {{ $roleData['thisMonthReadings'] ?? 0 }}
+                            {{ number_format($roleData['totalConsumption'] ?? 0) }} m³
+                        </h4>
+                    </div>
+                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Total Readings</span>
+                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                            {{ $roleData['allWaterReadings'] ?? 0 }}
                         </h4>
                     </div>
                     <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
@@ -119,36 +119,55 @@
             </div>
         </div>
 
-        <!-- Tabs for Pending Readings and History -->
+        <!-- Tabs -->
         <div class="mt-6">
             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
                     <div class="flex flex-wrap gap-2">
+                        <!-- Pending Readings Tab -->
                         <button @click="activeTab = 'pending'" :class="activeTab === 'pending' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Pending Readings ({{ $roleData['unitsNeedingReading']->count() ?? 0 }})
+                            {{ \Carbon\Carbon::now()->format('F Y') }} Pending ({{ $roleData['unitsNeedingReading']->count() ?? 0 }})
                         </button>
+                        
+                        <!-- Current Month Readings Tab -->
+                        <button @click="activeTab = 'current'" :class="activeTab === 'current' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                            {{ \Carbon\Carbon::now()->format('F Y') }} Readings ({{ $roleData['currentMonthReadings']->count() ?? 0 }})
+                        </button>
+                        
+                        <!-- Reading History Tab with Date Range -->
                         <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            Reading History ({{ $roleData['readingHistory']->count() ?? 0 }})
+                            Reading History ({{ $roleData['firstReadingDate'] ?? 'N/A' }} - {{ $roleData['lastReadingDate'] ?? 'N/A' }}) ({{ $roleData['unitsWithHistory']->count() ?? 0 }})
                         </button>
                     </div>
                 </div>
                 
                 <div class="p-5">
-                    <!-- Pending Readings Tab -->
+                    <!-- Pending Readings Tab - Uses table-readings with showActions=true -->
                     <div x-show="activeTab === 'pending'">
                         @include('partials.table.table-readings', [
-                            'readings' => $roleData['unitsNeedingReading'] ?? [], 
-                            'showActions' => true, 
+                            'readings' => $roleData['unitsNeedingReading'] ?? [],
+                            'showActions' => true,
+                            'showConsumption' => false,
+                            'units' => $roleData['units'] ?? []
+                        ])
+                    </div>
+                    
+                    <!-- Current Month Readings Tab - Uses table-readings with showActions=true -->
+                    <div x-show="activeTab === 'current'">
+                        @include('partials.table.table-readings', [
+                            'readings' => $roleData['currentMonthReadings'] ?? [],
+                            'showActions' => true,
                             'showConsumption' => true,
                             'units' => $roleData['units'] ?? []
                         ])
                     </div>
                     
-                    <!-- Reading History Tab -->
+                    <!-- Reading History Tab - Shows units with total consumption sum -->
+                    <!-- Reading History Tab - Now uses table-readings -->
                     <div x-show="activeTab === 'history'">
                         @include('partials.table.table-readings', [
-                            'readings' => $roleData['readingHistory'] ?? [], 
-                            'showActions' => false, 
+                            'readings' => $roleData['historyReadings'] ?? [],
+                            'showActions' => false,
                             'showConsumption' => true,
                             'units' => $roleData['units'] ?? []
                         ])
@@ -168,7 +187,8 @@ function meterReaderDashboard() {
         init() {
             console.log('Meter Reader Dashboard loaded');
             console.log('Units needing reading:', {{ $roleData['unitsNeedingReading']->count() ?? 0 }});
-            console.log('Reading history count:', {{ $roleData['readingHistory']->count() ?? 0 }});
+            console.log('Current month readings:', {{ $roleData['currentMonthReadings']->count() ?? 0 }});
+            console.log('Units with history:', {{ $roleData['unitsWithHistory']->count() ?? 0 }});
         }
     };
 }
