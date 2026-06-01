@@ -155,7 +155,7 @@ document.addEventListener('alpine:init', () => {
     activeItemLabel: Alpine.$persist('Dashboard'),
     userRole: '{{ auth()->user()->role->name ?? "guest" }}',
     
-    // Menu Data Structure
+    // Menu Data Structure – SMS History removed
     menuData: [
       {
         title: 'MENU',
@@ -299,11 +299,6 @@ document.addEventListener('alpine:init', () => {
                 label: 'Send SMS',
                 link: '/sms/send',
                 page: 'smsSend'
-              },
-              {
-                label: 'SMS History',
-                link: '/sms/history',
-                page: 'smsHistory'
               },
               {
                 label: 'SMS Templates',
@@ -550,7 +545,6 @@ document.addEventListener('alpine:init', () => {
         'maintenance': 'maintenance',
         'security/logs': 'securityLogs',
         'sms/send': 'smsSend',
-        'sms/history': 'smsHistory',
         'sms/templates': 'smsTemplates',
         'sms/settings': 'smsSettings',
         'admin/companies': 'companies',

@@ -6,8 +6,8 @@
 <div class="container mx-auto px-4 py-8" x-data="smsBroadcast()" x-init="init()" x-cloak>
     <!-- Header -->
     <div class="mb-8 text-center md:text-left">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">📱 SMS Broadcast</h1>
-        <p class="text-gray-500 mt-2">Send personalized SMS to tenants or a single phone number.</p>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">📱 SMS Manager</h1>
+        <p class="text-gray-500 mt-2">Send personalized SMS to tenants, a single number, or view history.</p>
         @if($sandbox)
             <div class="inline-block mt-3 rounded-full bg-yellow-100 px-4 py-1 text-sm text-yellow-800">⚠️ SANDBOX MODE – No real SMS will be sent</div>
         @endif
@@ -32,9 +32,12 @@
         <button @click="activeTab = 'custom'" :class="{'border-brand-500 text-brand-600': activeTab === 'custom'}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
             ✉️ Send Custom SMS
         </button>
+        <button @click="activeTab = 'history'" :class="{'border-brand-500 text-brand-600': activeTab === 'history'}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
+            📜 SMS History
+        </button>
     </div>
 
-    <!-- Tab 1: Send to Tenants -->
+    <!-- Tab 1: Send to Tenants (unchanged) -->
     <div x-show="activeTab === 'tenants'" x-cloak>
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <form method="POST" action="{{ route('sms.send') }}" @submit.prevent="submitForm" class="p-6">
@@ -146,12 +149,11 @@
         </div>
     </div>
 
-    <!-- Tab 2: Send to Single Number (with template dropdown) -->
+    <!-- Tab 2: Send Custom SMS (unchanged) -->
     <div x-show="activeTab === 'custom'" x-cloak>
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6">
                 @csrf
-                <!-- Template Dropdown for custom SMS -->
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">📋 Load Saved Template (optional)</label>
                     <select x-model="customTemplateId" @change="loadCustomTemplate" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500">
@@ -183,6 +185,43 @@
                 </div>
                 <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md transition">✉️ Send SMS Now</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Tab 3: SMS History (new) -->
+    <div x-show="activeTab === 'history'" x-cloak>
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Phone</th>
+                            <th class="p-3">Message</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Provider ID</th>
+                            <th class="p-3">Failure Reason</th>
+                            <th class="p-3">Sent At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($logs as $log)
+                        <tr class="border-t hover:bg-gray-50">
+                            <td class="p-3">{{ $log->id }}</td>
+                            <td class="p-3">{{ $log->recipient_phone }}</td>
+                            <td class="p-3">{{ Str::limit($log->message, 60) }}</td>
+                            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs {{ $log->status=='sent' ? 'bg-green-100 text-green-800' : ($log->status=='failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">{{ $log->status }}</span></td>
+                            <td class="p-3">{{ $log->provider_message_id ?? '-' }}</td>
+                            <td class="p-3">{{ Str::limit($log->failure_reason, 30) ?? '-' }}</td>
+                            <td class="p-3">{{ $log->created_at ? $log->created_at->format('d-m-Y H:i') : '-' }}</td>
+                        </tr>
+                        @empty
+                        <tr><td colspan="7" class="p-3 text-center text-gray-500">No logs found.</div>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4">{{ $logs->links() }}</div>
         </div>
     </div>
 </div>

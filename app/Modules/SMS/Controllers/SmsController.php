@@ -54,7 +54,11 @@ class SmsController extends Controller
         $sandbox = config('sms.kenyasms.sandbox', true);
         $templates = SmsTemplate::orderBy('name')->get();
 
-        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates'));
+        // ADD THIS LINE – fetch SMS logs for the history tab
+        $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);
+
+        // ADD 'logs' TO THE compact() array
+        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates', 'logs'));
     }
 
     public function send(Request $request, KenyaSMS $kenyaSms)
