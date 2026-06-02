@@ -24,6 +24,13 @@
         </div>
     @endif
 
+    @if(isset($internationalCount) && $internationalCount > 0)
+        <div class="mb-6 rounded-xl bg-yellow-50 border-l-4 border-yellow-500 p-4 text-yellow-800 shadow-sm">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            {{ $internationalCount }} tenant(s) with international numbers were excluded from the list because KenyaSMS only supports Kenyan numbers.
+        </div>
+    @endif
+
     <!-- Tab Headers -->
     <div class="flex border-b border-gray-200 mb-6">
         <button @click="activeTab = 'tenants'" :class="{'border-brand-500 text-brand-600': activeTab === 'tenants'}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
@@ -37,7 +44,7 @@
         </button>
     </div>
 
-    <!-- Tab 1: Send to Tenants (unchanged) -->
+    <!-- Tab 1: Send to Tenants -->
     <div x-show="activeTab === 'tenants'" x-cloak>
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <form method="POST" action="{{ route('sms.send') }}" @submit.prevent="submitForm" class="p-6">
@@ -149,14 +156,14 @@
         </div>
     </div>
 
-    <!-- Tab 2: Send Custom SMS (unchanged) -->
+    <!-- Tab 2: Send Custom SMS -->
     <div x-show="activeTab === 'custom'" x-cloak>
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6">
+            <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6" id="customSmsForm" data-ajax="false" onsubmit="return true">
                 @csrf
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">📋 Load Saved Template (optional)</label>
-                    <select x-model="customTemplateId" @change="loadCustomTemplate" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                    <select id="customTemplateSelect" class="w-full rounded-xl border-gray-300 shadow-sm">
                         <option value="">-- Select Template --</option>
                         @foreach($templates as $template)
                             <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
@@ -168,7 +175,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">📞 Phone Number</label>
-                        <input type="text" name="phone" placeholder="e.g., 0712345678 or 254712345678" required class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                        <input type="text" name="phone" placeholder="e.g., 0712345678 or 254712345678" required class="w-full rounded-xl border-gray-300 shadow-sm">
                         <p class="text-xs text-gray-500 mt-1">Kenyan number only</p>
                     </div>
                     <div>
@@ -181,14 +188,14 @@
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">💬 Message</label>
-                    <textarea name="message" rows="4" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="Enter your message here..." required x-model="customMessage"></textarea>
+                    <textarea name="message" id="customMessage" rows="4" class="w-full rounded-xl border-gray-300 shadow-sm" placeholder="Enter your message here..." required></textarea>
                 </div>
                 <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md transition">✉️ Send SMS Now</button>
             </form>
         </div>
     </div>
 
-    <!-- Tab 3: SMS History (new) -->
+    <!-- Tab 3: SMS History -->
     <div x-show="activeTab === 'history'" x-cloak>
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 p-6">
             <div class="overflow-x-auto">
@@ -216,7 +223,7 @@
                             <td class="p-3">{{ $log->created_at ? $log->created_at->format('d-m-Y H:i') : '-' }}</td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="p-3 text-center text-gray-500">No logs found.</div>
+                        <tr><td colspan="7" class="p-3 text-center text-gray-500">No logs found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -238,7 +245,6 @@ function smsBroadcast() {
         selectedEstateId: '',
         activeTab: 'tenants',
         sending: false,
-        // For custom SMS tab
         customTemplateId: '',
         customMessage: '',
 
@@ -250,10 +256,18 @@ function smsBroadcast() {
         },
 
         get availableVariables() {
-            return ['name', 'phone', 'unit_number', 'estate_name', 'water_bill', 'water_consumption', 'month', 'due_date', 'total'];
+            return ['name', 'phone', 'unit_number', 'unit', 'estate_name', 'water_bill', 'water_consumption', 'month', 'due_date', 'total'];
         },
 
         get recipientsPayload() {
+            const now = new Date();
+            // Due date: 5th of current month (YYYY-MM-DD)
+            const dueDate = new Date(now.getFullYear(), now.getMonth(), 5);
+            const dueDateString = dueDate.toLocaleDateString('en-CA');
+            // Billing month: previous month (e.g., "May 2026")
+            const billingMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const monthString = billingMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+
             return this.tenants
                 .filter(t => this.selectedTenantIds.includes(t.id))
                 .map(t => ({
@@ -262,19 +276,12 @@ function smsBroadcast() {
                         name: t.name,
                         phone: t.phone,
                         unit_number: t.unit_number,
+                        unit: t.unit_number,
                         estate_name: t.estate_name,
                         water_bill: t.water_bill.toFixed(2),
                         water_consumption: t.water_consumption,
-                        month: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
-                        due_date: (function() {
-                            let today = new Date();
-                            let targetDay = 3;
-                            let due = new Date(today.getFullYear(), today.getMonth(), targetDay);
-                            if (today.getDate() > targetDay) {
-                                due = new Date(today.getFullYear(), today.getMonth() + 1, targetDay);
-                            }
-                            return due.toLocaleDateString('en-CA');
-                        })(),
+                        month: monthString,
+                        due_date: dueDateString,
                         total: t.total
                     }
                 }));
@@ -299,10 +306,7 @@ function smsBroadcast() {
         },
 
         loadCustomTemplate() {
-            if (!this.customTemplateId) {
-                this.customMessage = '';
-                return;
-            }
+            if (!this.customTemplateId) return;
             const selected = this.templates.find(t => t.id == this.customTemplateId);
             if (selected) {
                 this.customMessage = selected.content;
@@ -353,5 +357,20 @@ function smsBroadcast() {
     };
 }
 </script>
+
+<script>
+    (function() {
+        const templateSelect = document.getElementById('customTemplateSelect');
+        const messageArea = document.getElementById('customMessage');
+        if (templateSelect && messageArea) {
+            templateSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const content = selectedOption.getAttribute('data-content');
+                if (content) messageArea.value = content;
+            });
+        }
+    })();
+</script>
+
 <style>[x-cloak]{display:none;}</style>
 @endsection

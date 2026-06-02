@@ -31,11 +31,18 @@ class SmsController extends Controller
                 $garbageFee = 300;
                 $total = $waterBill + $securityFee + $garbageFee;
 
+                $rawPhone = $tenant->user->phone ?? null;
+                $phone = $rawPhone ? PhoneHelper::clean($rawPhone) : null;
+                $isKenyan = $phone && preg_match('/^254[0-9]{9}$/', $phone);
+                $unitNumber = $unit->unit_number ?? '';
+
                 return [
                     'id' => $tenant->id,
                     'name' => $tenant->user->name ?? 'N/A',
-                    'phone' => $tenant->user->phone ?? null,
-                    'unit_number' => $unit->unit_number ?? 'N/A',
+                    'phone' => $phone,
+                    'is_kenyan' => $isKenyan,
+                    'unit_number' => $unitNumber,
+                    'unit' => $unitNumber,
                     'estate_id' => $unit->estate_id ?? null,
                     'estate_name' => $unit->estate->name ?? 'N/A',
                     'water_bill' => $waterBill,
@@ -46,19 +53,24 @@ class SmsController extends Controller
                 ];
             })
             ->filter(function ($tenant) {
-                return !empty($tenant['phone']);
+                return !empty($tenant['phone']) && $tenant['is_kenyan'];
             })
             ->values();
+
+        $internationalCount = Tenant::with('user')
+            ->get()
+            ->filter(function ($tenant) {
+                $rawPhone = $tenant->user->phone ?? null;
+                $phone = $rawPhone ? PhoneHelper::clean($rawPhone) : null;
+                return $phone && !preg_match('/^254[0-9]{9}$/', $phone);
+            })->count();
 
         $estates = Estate::orderBy('name')->get();
         $sandbox = config('sms.kenyasms.sandbox', true);
         $templates = SmsTemplate::orderBy('name')->get();
-
-        // ADD THIS LINE – fetch SMS logs for the history tab
         $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);
 
-        // ADD 'logs' TO THE compact() array
-        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates', 'logs'));
+        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates', 'logs', 'internationalCount'));
     }
 
     public function send(Request $request, KenyaSMS $kenyaSms)
@@ -75,6 +87,35 @@ class SmsController extends Controller
 
         if (empty($recipients)) {
             return back()->with('error', 'No valid recipients selected.');
+        }
+
+        $tenantIds = collect($recipients)->pluck('id')->filter()->unique();
+        $tenantData = collect();
+        if ($tenantIds->isNotEmpty()) {
+            $tenantData = Tenant::whereIn('id', $tenantIds)
+                ->with('activeTenancy.unit')
+                ->get()
+                ->keyBy('id');
+        }
+
+        // Default due date: 5th of current month
+        $defaultDueDate = Carbon::now()->setDay(5)->format('Y-m-d');
+        // Default billing month: previous month (e.g., "May 2026")
+        $defaultBillingMonth = Carbon::now()->subMonth()->format('F Y');
+
+        foreach ($recipients as &$recipient) {
+            if (isset($recipient['id']) && $tenantData->has($recipient['id'])) {
+                $tenant = $tenantData->get($recipient['id']);
+                $unitNumber = optional($tenant->activeTenancy->unit)->unit_number ?? '';
+                $recipient['variables']['unit'] = $unitNumber;
+            }
+
+            if (!isset($recipient['variables']['due_date']) || empty($recipient['variables']['due_date'])) {
+                $recipient['variables']['due_date'] = $defaultDueDate;
+            }
+            if (!isset($recipient['variables']['month']) || empty($recipient['variables']['month'])) {
+                $recipient['variables']['month'] = $defaultBillingMonth;
+            }
         }
 
         $response = $kenyaSms->sendPersonalized($template, $recipients, $messageType);
@@ -98,7 +139,7 @@ class SmsController extends Controller
         ]);
 
         $phone = PhoneHelper::clean($request->phone);
-        if (!$phone) {
+        if (!$phone || !preg_match('/^254[0-9]{9}$/', $phone)) {
             if ($request->expectsJson()) {
                 return response()->json(['success' => false, 'error' => 'Invalid Kenyan phone number.']);
             }
