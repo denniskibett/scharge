@@ -26,7 +26,10 @@ class KenyaSMS
         $this->sandbox = $kenyaSmsConfig['sandbox'] ?? true;
     }
 
-    public function sendOne(string $phone, string $message, ?string $messageType = null): array
+    /**
+     * Send a single SMS, optionally linked to a campaign.
+     */
+    public function sendOne(string $phone, string $message, ?string $messageType = null, ?int $campaignId = null): array
     {
         $phone = PhoneHelper::clean($phone);
         if (!$phone) {
@@ -38,6 +41,7 @@ class KenyaSMS
                 'recipient_phone' => $phone,
                 'message' => $message,
                 'status' => 'sent',
+                'campaign_id' => $campaignId,
                 'meta' => ['sandbox' => true],
             ]);
             return ['success' => true, 'data' => ['message_id' => 'sandbox_' . time()]];
@@ -62,6 +66,7 @@ class KenyaSMS
                     'message' => $message,
                     'status' => 'sent',
                     'provider_message_id' => $body['data']['message_id'] ?? null,
+                    'campaign_id' => $campaignId,
                 ]);
                 return ['success' => true, 'data' => $body['data'] ?? []];
             } else {
@@ -70,6 +75,7 @@ class KenyaSMS
                     'message' => $message,
                     'status' => 'failed',
                     'failure_reason' => $body['error']['message'] ?? 'Unknown error',
+                    'campaign_id' => $campaignId,
                 ]);
                 return ['success' => false, 'error' => $body['error']['message'] ?? 'API error'];
             }
@@ -79,12 +85,16 @@ class KenyaSMS
                 'message' => $message,
                 'status' => 'failed',
                 'failure_reason' => $e->getMessage(),
+                'campaign_id' => $campaignId,
             ]);
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
-    public function sendPersonalized(string $template, array $recipients, ?string $messageType = null): array
+    /**
+     * Send personalized bulk SMS, optionally linked to a campaign.
+     */
+    public function sendPersonalized(string $template, array $recipients, ?string $messageType = null, ?int $campaignId = null): array
     {
         $sent = 0;
         $failed = 0;
@@ -97,7 +107,7 @@ class KenyaSMS
             }
 
             $message = $this->renderTemplate($template, $recipient['variables'] ?? []);
-            $result = $this->sendOne($phone, $message, $messageType);
+            $result = $this->sendOne($phone, $message, $messageType, $campaignId);
             
             if ($result['success']) {
                 $sent++;
@@ -129,7 +139,6 @@ class KenyaSMS
 
             if ($response->successful()) {
                 $data = $response->json();
-                // Response: { "success": true, "data": { "balance_kes": 27.6, "currency": "KES", ... } }
                 if (isset($data['data']['balance_kes'])) {
                     $balance = (float) $data['data']['balance_kes'];
                     $currency = $data['data']['currency'] ?? 'KES';

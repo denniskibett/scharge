@@ -9,6 +9,7 @@ use App\Modules\Water\Models\WaterReading;
 use App\Modules\SMS\Services\KenyaSMS;
 use App\Modules\SMS\Models\SmsLog;
 use App\Modules\SMS\Models\SmsTemplate;
+use App\Modules\SMS\Models\SmsCampaign;
 use App\Modules\Properties\Models\Estate;
 use App\Modules\SMS\Helpers\PhoneHelper;
 use Carbon\Carbon;
@@ -69,8 +70,9 @@ class SmsController extends Controller
         $sandbox = config('sms.kenyasms.sandbox', true);
         $templates = SmsTemplate::orderBy('name')->get();
         $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);
+        $campaigns = SmsCampaign::with('creator')->latest()->paginate(20);
 
-        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates', 'logs', 'internationalCount'));
+        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates', 'logs', 'internationalCount', 'campaigns'));
     }
 
     public function send(Request $request, KenyaSMS $kenyaSms)
@@ -100,7 +102,6 @@ class SmsController extends Controller
 
         // Default due date: 5th of current month
         $defaultDueDate = Carbon::now()->setDay(5)->format('Y-m-d');
-        // Default billing month: previous month (e.g., "May 2026")
         $defaultBillingMonth = Carbon::now()->subMonth()->format('F Y');
 
         foreach ($recipients as &$recipient) {
@@ -118,12 +119,30 @@ class SmsController extends Controller
             }
         }
 
-        $response = $kenyaSms->sendPersonalized($template, $recipients, $messageType);
+        // Create campaign
+        $campaign = SmsCampaign::create([
+            'name' => 'Campaign ' . now()->format('Y-m-d H:i:s'),
+            'template_id' => null,
+            'total_recipients' => count($recipients),
+            'status' => 'sending',
+            'created_by' => auth()->id(),
+        ]);
+
+        foreach ($recipients as &$recipient) {
+            $recipient['campaign_id'] = $campaign->id;
+        }
+
+        $response = $kenyaSms->sendPersonalized($template, $recipients, $messageType, $campaign->id);
+
+        $campaign->update([
+            'sent_count' => $response['data']['sent'] ?? 0,
+            'failed_count' => $response['data']['failed'] ?? 0,
+            'status' => 'completed',
+        ]);
 
         if ($response['success']) {
-            $campaignId = $response['data']['campaign_id'] ?? null;
             return redirect()->route('sms.broadcast')
-                ->with('success', "SMS campaign sent successfully! Campaign ID: {$campaignId}");
+                ->with('success', "SMS campaign sent successfully! Campaign ID: {$campaign->id}");
         } else {
             return redirect()->route('sms.broadcast')
                 ->with('error', 'Failed to send SMS: ' . ($response['error'] ?? 'Unknown error'));
@@ -207,7 +226,7 @@ class SmsController extends Controller
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
 
-        fputcsv($handle, ['ID', 'Phone', 'Message', 'Status', 'Provider ID', 'Failure Reason', 'Sent At']);
+        fputcsv($handle, ['ID', 'Phone', 'Message', 'Status', 'Provider ID', 'Failure Reason', 'Sent At', 'Campaign ID']);
 
         foreach ($logs as $log) {
             fputcsv($handle, [
@@ -218,6 +237,7 @@ class SmsController extends Controller
                 $log->provider_message_id,
                 $log->failure_reason,
                 $log->created_at ? $log->created_at->format('Y-m-d H:i:s') : '',
+                $log->campaign_id,
             ]);
         }
 
@@ -248,5 +268,42 @@ class SmsController extends Controller
 
         return redirect()->route('sms.settings')
             ->with('info', 'To change sandbox mode, edit your .env file: set KENYASMS_SANDBOX=true or false and restart the server.');
+    }
+
+    public function showCampaign($id)
+    {
+        $campaign = SmsCampaign::with('logs', 'creator')->findOrFail($id);
+        return view('sms.campaigns.show', compact('campaign'));
+    }
+
+    public function resendFailed(Request $request, $campaignId, KenyaSMS $kenyaSms)
+    {
+        $campaign = SmsCampaign::with('logs')->findOrFail($campaignId);
+        $failedLogs = $campaign->logs()->where('status', 'failed')->get();
+
+        if ($failedLogs->isEmpty()) {
+            return redirect()->route('sms.campaigns.show', $campaign->id)
+                ->with('error', 'No failed messages to resend.');
+        }
+
+        $sent = 0;
+        $failed = 0;
+
+        foreach ($failedLogs as $log) {
+            $result = $kenyaSms->sendOne($log->recipient_phone, $log->message, null, $campaign->id);
+            if ($result['success']) {
+                $sent++;
+                $log->update(['status' => 'sent']);
+            } else {
+                $failed++;
+            }
+        }
+
+        $campaign->sent_count += $sent;
+        $campaign->failed_count = $campaign->failed_count - $sent;
+        $campaign->save();
+
+        return redirect()->route('sms.campaigns.show', $campaign->id)
+            ->with('success', "Resent {$sent} messages successfully. {$failed} still failed.");
     }
 }

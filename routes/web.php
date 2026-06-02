@@ -27,6 +27,9 @@ use App\Http\Controllers\DashboardController;
 use App\Modules\SMS\Controllers\SmsController;
 use App\Modules\SMS\Controllers\SmsTemplateController;
 
+// ========== WALLET CONTROLLER ==========
+use App\Http\Controllers\TenantWalletController;
+
 Route::get('/', function () {
     return view('welcome');
 });
@@ -257,8 +260,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
 
         // Wallet Module Routes
-        Route::get('/wallet', [App\Http\Controllers\Tenant\WalletController::class, 'index'])->name('tenant.wallet');
-        Route::post('/wallet/topup', [App\Http\Controllers\Tenant\WalletController::class, 'topup'])->name('tenant.wallet.topup');
+        Route::get('/wallet', [TenantWalletController::class, 'index'])->name('tenant.wallet');
+        Route::post('/wallet/topup', [TenantWalletController::class, 'topUp'])->name('tenant.wallet.topup');
     });
 
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');
@@ -329,6 +332,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
     });
 
+    // ========== ADMIN WALLET ROUTES ==========
+    Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+        Route::resource('wallets', App\Http\Controllers\Admin\WalletController::class)->except(['create', 'store']);
+        Route::get('/wallets/export', [App\Http\Controllers\Admin\WalletController::class, 'export'])->name('wallets.export');
+    });
+
 });
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');
@@ -341,7 +350,7 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::post('/send-custom', [SmsController::class, 'sendCustom'])->name('sms.send-custom');
     Route::get('/logs', [SmsController::class, 'logs'])->name('sms.logs');
     Route::get('/history', [SmsController::class, 'logs'])->name('sms.history');
-    Route::get('/logs/export', [SmsController::class, 'export'])->name('sms.logs.export');  // 👈 ADDED
+    Route::get('/logs/export', [SmsController::class, 'export'])->name('sms.logs.export');
     
     // SMS Templates - explicit routes
     Route::get('/templates', [SmsTemplateController::class, 'index'])->name('sms.templates.index');
@@ -354,6 +363,11 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     // SMS Settings
     Route::get('/settings', [SmsController::class, 'settings'])->name('sms.settings');
     Route::post('/settings', [SmsController::class, 'updateSettings'])->name('sms.settings.update');
+    
+    // Campaigns
+    Route::get('/campaigns/{campaign}', [SmsController::class, 'showCampaign'])->name('sms.campaigns.show');
+    // Resend failed messages
+    Route::post('/campaigns/{campaign}/resend-failed', [SmsController::class, 'resendFailed'])->name('sms.campaigns.resend-failed');
 });
 // =============================================================
 
@@ -361,5 +375,33 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
 Route::get('/sms/send', function () {
     return redirect()->route('sms.broadcast');
 })->name('sms.send.get');
+
+// ========== TEMPORARY TEST ROUTE (bulk send simulation) – remove after testing ==========
+Route::get('/test-bulk-send', function () {
+    $recipients = [
+        [
+            'id' => 1,
+            'phone' => '254727371496',
+            'variables' => [
+                'name' => 'Test Tenant',
+                'unit' => 'D01-12',
+                'water_bill' => '750',
+                'due_date' => '2026-06-05',
+                'month' => 'June 2026'
+            ]
+        ]
+    ];
+    
+    $request = new \Illuminate\Http\Request();
+    $request->replace([
+        'recipients' => json_encode($recipients),
+        'template' => "Hi {{name}}, please pay your {{month}} water bill by {{due_date}}. Paybill 7263733 Acc {{unit}} KES {{water_bill}}",
+        'message_type' => 'transactional'
+    ]);
+    
+    $controller = new \App\Modules\SMS\Controllers\SmsController();
+    $kenyaSms = new \App\Modules\SMS\Services\KenyaSMS();
+    return $controller->send($request, $kenyaSms);
+});
 
 require __DIR__.'/auth.php';

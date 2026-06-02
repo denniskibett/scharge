@@ -3,7 +3,7 @@
 @section('title', 'SMS Broadcast')
 
 @section('content')
-<div class="container mx-auto px-4 py-8" x-data="smsBroadcast()" x-init="init()" x-cloak>
+<div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="mb-8 text-center md:text-left">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-white">📱 SMS Manager</h1>
@@ -33,44 +33,35 @@
 
     <!-- Tab Headers -->
     <div class="flex border-b border-gray-200 mb-6">
-        <button @click="activeTab = 'tenants'" :class="{'border-brand-500 text-brand-600': activeTab === 'tenants'}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            📢 Send to Tenants
-        </button>
-        <button @click="activeTab = 'custom'" :class="{'border-brand-500 text-brand-600': activeTab === 'custom'}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            ✉️ Send Custom SMS
-        </button>
-        <button @click="activeTab = 'history'" :class="{'border-brand-500 text-brand-600': activeTab === 'history'}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            📜 SMS History
-        </button>
+        <button onclick="activeTab = 'tenants'; renderTab()" id="tab-tenants" class="py-2 px-4 text-sm font-medium border-b-2 border-brand-500 text-brand-600">📢 Send to Tenants</button>
+        <button onclick="activeTab = 'custom'; renderTab()" id="tab-custom" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600">✉️ Send Custom SMS</button>
+        <button onclick="activeTab = 'history'; renderTab()" id="tab-history" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600">📜 SMS History</button>
+        <button onclick="activeTab = 'campaigns'; renderTab()" id="tab-campaigns" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600">📊 Campaigns</button>
     </div>
 
     <!-- Tab 1: Send to Tenants -->
-    <div x-show="activeTab === 'tenants'" x-cloak>
+    <div id="tenants-tab" style="display: block;">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <form method="POST" action="{{ route('sms.send') }}" @submit.prevent="submitForm" class="p-6">
+            <form method="POST" action="{{ route('sms.send') }}" id="bulkForm" class="p-6">
                 @csrf
 
                 <!-- Template Dropdown -->
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">📋 Load Saved Template</label>
-                    <select x-model="selectedTemplateId" @change="loadTemplate" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500">
+                    <select id="templateSelect" class="w-full rounded-xl border-gray-300 shadow-sm">
                         <option value="">-- Select Template --</option>
                         @foreach($templates as $template)
                             <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-xs text-gray-400">Choose a template to pre‑fill the message.</p>
                 </div>
 
                 <!-- Message Template -->
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">✏️ Message Template</label>
-                    <textarea x-model="template" rows="5" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="Hi @{{name}}, pay by @{{due_date}}: Water @{{water_bill}}, Sec 500, Garb 300 = Total @{{total}}. Pay via *334# or portal."></textarea>
+                    <textarea id="template" name="template" rows="5" class="w-full rounded-xl border-gray-300 shadow-sm" placeholder="Hi @{{name}}, please pay your @{{month}} water bill by @{{due_date}}. Paybill 7263733 Acc @{{unit}} KES @{{water_bill}}">Hi @{{name}}, please pay your @{{month}} water bill by @{{due_date}}. Paybill 7263733 Acc @{{unit}} KES @{{water_bill}}</textarea>
                     <div class="flex flex-wrap gap-2 mt-2">
-                        <span class="text-xs text-gray-500">Available variables:</span>
-                        <template x-for="varName in availableVariables" :key="varName">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-gray-100 text-gray-700" x-text="'@{{' + varName + '}}'"></span>
-                        </template>
+                        <span class="text-xs text-gray-500">Available variables: @{{name}}, @{{unit}}, @{{water_bill}}, @{{due_date}}, @{{month}}, @{{estate_name}}</span>
                     </div>
                 </div>
 
@@ -86,144 +77,80 @@
                 <!-- Recipient Selection -->
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-2 mb-3">
-                        <button type="button" @click="selectAll()" class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 rounded-lg text-sm shadow-sm">Select All</button>
-                        <button type="button" @click="selectNone()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-lg text-sm shadow-sm">Clear All</button>
-                        <button type="button" @click="showEstateFilter = !showEstateFilter" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-sm shadow-sm">
-                            Filter by Estate <span x-text="showEstateFilter ? '▲' : '▼'"></span>
-                        </button>
-                    </div>
-
-                    <div x-show="showEstateFilter" class="mb-3 transition-all">
-                        <select x-model="selectedEstateId" class="rounded-xl border-gray-300 shadow-sm">
-                            <option value="">All Estates</option>
-                            @foreach($estates as $estate)
-                                <option value="{{ $estate->id }}">{{ $estate->name }}</option>
-                            @endforeach
-                        </select>
+                        <button type="button" id="selectAllBtn" class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 rounded-lg text-sm">Select All</button>
+                        <button type="button" id="selectNoneBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-lg text-sm">Clear All</button>
                     </div>
 
                     <div class="overflow-x-auto border rounded-xl shadow-sm">
                         <table class="min-w-full text-sm">
                             <thead class="bg-gray-50 sticky top-0">
-                                <tr>
-                                    <th class="p-3"><input type="checkbox" @change="toggleAll($event)" :checked="selectedTenantIds.length === filteredTenants.length && filteredTenants.length"></th>
-                                    <th class="p-3 text-left">Name</th>
-                                    <th class="p-3 text-left">Phone</th>
-                                    <th class="p-3 text-left">Unit</th>
-                                    <th class="p-3 text-left">Estate</th>
-                                    <th class="p-3 text-left">Last Bill</th>
-                                </tr>
+                                <tr><th class="p-3"><input type="checkbox" id="toggleAllCheckbox"></th><th class="p-3 text-left">Name</th><th class="p-3 text-left">Phone</th><th class="p-3 text-left">Unit</th><th class="p-3 text-left">Estate</th><th class="p-3 text-left">Water Bill</th></tr>
                             </thead>
-                            <tbody>
-                                <template x-for="tenant in filteredTenants" :key="tenant.id">
-                                    <tr class="border-t hover:bg-gray-50">
-                                        <td class="p-3">
-                                            <input type="checkbox" :value="tenant.id" @change="toggleTenant(tenant.id, $event)" :checked="selectedTenantIds.includes(tenant.id)">
-                                        </td>
-                                        <td class="p-3" x-text="tenant.name"></td>
-                                        <td class="p-3" x-text="tenant.phone"></td>
-                                        <td class="p-3" x-text="tenant.unit_number"></td>
-                                        <td class="p-3" x-text="tenant.estate_name"></td>
-                                        <td class="p-3">KES <span x-text="tenant.water_bill.toFixed(2)"></span></td>
-                                    </tr>
-                                </template>
+                            <tbody id="tenantsTableBody">
+                                @foreach($tenants as $tenant)
+                                <tr class="border-t hover:bg-gray-50">
+                                    <td class="p-3"><input type="checkbox" class="tenant-checkbox" data-id="{{ $tenant['id'] }}" data-phone="{{ $tenant['phone'] }}" data-name="{{ $tenant['name'] }}" data-unit="{{ $tenant['unit'] }}" data-estate="{{ $tenant['estate_name'] }}" data-waterbill="{{ $tenant['water_bill'] }}"></td>
+                                    <td class="p-3">{{ $tenant['name'] }}</td>
+                                    <td class="p-3">{{ $tenant['phone'] }}</td>
+                                    <td class="p-3">{{ $tenant['unit_number'] }}</td>
+                                    <td class="p-3">{{ $tenant['estate_name'] }}</td>
+                                    <td class="p-3">KES {{ number_format($tenant['water_bill'], 2) }}</td>
+                                </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <p class="mt-2 text-sm text-gray-600">✅ Selected: <span x-text="selectedTenantIds.length" class="font-semibold"></span> tenants</p>
+                    <p class="mt-2 text-sm text-gray-600">✅ Selected: <span id="selectedCount">0</span> tenants</p>
                 </div>
 
-                <!-- Preview -->
-                <div class="mb-6" x-show="selectedTenantIds.length && template">
+                <!-- Preview Section -->
+                <div id="previewSection" class="mb-6" style="display: none;">
                     <h3 class="text-md font-semibold text-gray-800 mb-2">📄 Preview (first 3)</h3>
-                    <div class="space-y-2 bg-gray-50 p-4 rounded-xl">
-                        <template x-for="(preview, idx) in previews" :key="idx">
-                            <div class="border-l-4 border-brand-300 pl-3 py-1">
-                                <p class="text-xs text-gray-500"><strong>To:</strong> <span x-text="preview.phone"></span></p>
-                                <p class="text-sm text-gray-800"><strong>Message:</strong> <span x-text="preview.message"></span></p>
-                            </div>
-                        </template>
-                    </div>
+                    <div id="previewContainer" class="space-y-2 bg-gray-50 p-4 rounded-xl"></div>
                 </div>
 
-                <input type="hidden" name="recipients" :value="JSON.stringify(recipientsPayload)">
-                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2" :disabled="sending">
-                    <svg x-show="sending" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    <span x-show="!sending">📲 Send SMS to Tenants</span>
-                    <span x-show="sending">Sending...</span>
-                </button>
+                <input type="hidden" name="recipients" id="recipientsJson">
+                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md">📲 Send SMS to Tenants</button>
             </form>
         </div>
     </div>
 
     <!-- Tab 2: Send Custom SMS -->
-    <div x-show="activeTab === 'custom'" x-cloak>
+    <div id="custom-tab" style="display: none;">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6" id="customSmsForm" data-ajax="false" onsubmit="return true">
+            <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6">
                 @csrf
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">📋 Load Saved Template (optional)</label>
-                    <select id="customTemplateSelect" class="w-full rounded-xl border-gray-300 shadow-sm">
-                        <option value="">-- Select Template --</option>
-                        @foreach($templates as $template)
-                            <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
-                        @endforeach
-                    </select>
-                    <p class="mt-1 text-xs text-gray-400">Select a template to pre‑fill the message, then edit if needed.</p>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">📞 Phone Number</label>
+                    <input type="text" name="phone" placeholder="e.g., 254712345678" required class="w-full rounded-xl border-gray-300 shadow-sm">
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">📞 Phone Number</label>
-                        <input type="text" name="phone" placeholder="e.g., 0712345678 or 254712345678" required class="w-full rounded-xl border-gray-300 shadow-sm">
-                        <p class="text-xs text-gray-500 mt-1">Kenyan number only</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Message Type</label>
-                        <select name="message_type" class="w-full rounded-xl border-gray-300 shadow-sm">
-                            <option value="transactional">Transactional (bills/OTPs – high priority)</option>
-                            <option value="promotional">Promotional (announcements)</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Message Type</label>
+                    <select name="message_type" class="w-full rounded-xl border-gray-300 shadow-sm">
+                        <option value="transactional">Transactional</option>
+                        <option value="promotional">Promotional</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-2">💬 Message</label>
-                    <textarea name="message" id="customMessage" rows="4" class="w-full rounded-xl border-gray-300 shadow-sm" placeholder="Enter your message here..." required></textarea>
+                    <textarea name="message" rows="4" class="w-full rounded-xl border-gray-300 shadow-sm" required></textarea>
                 </div>
-                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md transition">✉️ Send SMS Now</button>
+                <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md">✉️ Send SMS Now</button>
             </form>
         </div>
     </div>
 
     <!-- Tab 3: SMS History -->
-    <div x-show="activeTab === 'history'" x-cloak>
+    <div id="history-tab" style="display: none;">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 p-6">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="p-3">ID</th>
-                            <th class="p-3">Phone</th>
-                            <th class="p-3">Message</th>
-                            <th class="p-3">Status</th>
-                            <th class="p-3">Provider ID</th>
-                            <th class="p-3">Failure Reason</th>
-                            <th class="p-3">Sent At</th>
-                        </tr>
-                    </thead>
+                    <thead class="bg-gray-50"><tr><th>ID</th><th>Phone</th><th>Message</th><th>Status</th><th>Sent At</th></tr></thead>
                     <tbody>
                         @forelse($logs as $log)
-                        <tr class="border-t hover:bg-gray-50">
-                            <td class="p-3">{{ $log->id }}</td>
-                            <td class="p-3">{{ $log->recipient_phone }}</td>
-                            <td class="p-3">{{ Str::limit($log->message, 60) }}</td>
-                            <td class="p-3"><span class="px-2 py-1 rounded-full text-xs {{ $log->status=='sent' ? 'bg-green-100 text-green-800' : ($log->status=='failed' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800') }}">{{ $log->status }}</span></td>
-                            <td class="p-3">{{ $log->provider_message_id ?? '-' }}</td>
-                            <td class="p-3">{{ Str::limit($log->failure_reason, 30) ?? '-' }}</td>
-                            <td class="p-3">{{ $log->created_at ? $log->created_at->format('d-m-Y H:i') : '-' }}</td>
-                        </tr>
+                        <tr class="border-t"><td class="p-2">{{ $log->id }}</td><td class="p-2">{{ $log->recipient_phone }}</td><td class="p-2">{{ Str::limit($log->message, 60) }}</td><td class="p-2"><span class="badge">{{ $log->status }}</span></td><td class="p-2">{{ $log->created_at->format('d/m/Y H:i') }}</td></tr>
                         @empty
-                        <tr><td colspan="7" class="p-3 text-center text-gray-500">No logs found.</td></tr>
+                        <tr><td colspan="5" class="p-3 text-center">No logs found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -231,146 +158,181 @@
             <div class="mt-4">{{ $logs->links() }}</div>
         </div>
     </div>
+
+    <!-- Tab 4: Campaigns -->
+    <div id="campaigns-tab" style="display: none;">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 p-6">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50"><tr><th>ID</th><th>Name</th><th>Date</th><th>Recipients</th><th>Sent</th><th>Failed</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        @forelse($campaigns ?? [] as $campaign)
+                        <tr class="border-t"><td class="p-2">{{ $campaign->id }}</td><td class="p-2">{{ $campaign->name }}</td><td class="p-2">{{ $campaign->created_at->format('d/m/Y H:i') }}</td><td class="p-2">{{ $campaign->total_recipients }}</td><td class="p-2">{{ $campaign->sent_count }}</td><td class="p-2">{{ $campaign->failed_count }}</td><td class="p-2"><span class="badge">{{ $campaign->status }}</span></td><td class="p-2"><a href="{{ route('sms.campaigns.show', $campaign->id) }}" class="text-blue-600">View</a></td></tr>
+                        @empty
+                        <tr><td colspan="8">No campaigns yet.</td></tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4">{{ ($campaigns ?? collect())->links() }}</div>
+        </div>
+    </div>
 </div>
 
 <script>
-function smsBroadcast() {
-    return {
-        tenants: @json($tenants),
-        templates: @json($templates),
-        template: 'Hi @{{name}}, pay by @{{due_date}}: Water @{{water_bill}}, Sec 500, Garb 300 = Total @{{total}}. Pay via *334# or portal.',
-        selectedTemplateId: '',
-        selectedTenantIds: [],
-        showEstateFilter: false,
-        selectedEstateId: '',
-        activeTab: 'tenants',
-        sending: false,
-        customTemplateId: '',
-        customMessage: '',
-
-        get filteredTenants() {
-            if (this.selectedEstateId) {
-                return this.tenants.filter(t => t.estate_id == this.selectedEstateId);
-            }
-            return this.tenants;
-        },
-
-        get availableVariables() {
-            return ['name', 'phone', 'unit_number', 'unit', 'estate_name', 'water_bill', 'water_consumption', 'month', 'due_date', 'total'];
-        },
-
-        get recipientsPayload() {
-            const now = new Date();
-            // Due date: 5th of current month (YYYY-MM-DD)
-            const dueDate = new Date(now.getFullYear(), now.getMonth(), 5);
-            const dueDateString = dueDate.toLocaleDateString('en-CA');
-            // Billing month: previous month (e.g., "May 2026")
-            const billingMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-            const monthString = billingMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
-
-            return this.tenants
-                .filter(t => this.selectedTenantIds.includes(t.id))
-                .map(t => ({
-                    phone: t.phone,
-                    variables: {
-                        name: t.name,
-                        phone: t.phone,
-                        unit_number: t.unit_number,
-                        unit: t.unit_number,
-                        estate_name: t.estate_name,
-                        water_bill: t.water_bill.toFixed(2),
-                        water_consumption: t.water_consumption,
-                        month: monthString,
-                        due_date: dueDateString,
-                        total: t.total
-                    }
-                }));
-        },
-
-        get previews() {
-            return this.recipientsPayload.slice(0,3).map(r => {
-                let msg = this.template;
-                for (const [k,v] of Object.entries(r.variables)) {
-                    msg = msg.replace(new RegExp('@{{' + k + '}}', 'g'), v);
-                }
-                return { phone: r.phone, message: msg };
-            });
-        },
-
-        loadTemplate() {
-            if (!this.selectedTemplateId) return;
-            const selected = this.templates.find(t => t.id == this.selectedTemplateId);
-            if (selected) {
-                this.template = selected.content;
-            }
-        },
-
-        loadCustomTemplate() {
-            if (!this.customTemplateId) return;
-            const selected = this.templates.find(t => t.id == this.customTemplateId);
-            if (selected) {
-                this.customMessage = selected.content;
-            }
-        },
-
-        selectAll() {
-            this.selectedTenantIds = this.filteredTenants.map(t => t.id);
-        },
-
-        selectNone() {
-            this.selectedTenantIds = [];
-        },
-
-        toggleAll(e) {
-            if (e.target.checked) this.selectAll();
-            else this.selectNone();
-        },
-
-        toggleTenant(id, event) {
-            if (event.target.checked) {
-                if (!this.selectedTenantIds.includes(id)) this.selectedTenantIds.push(id);
-            } else {
-                this.selectedTenantIds = this.selectedTenantIds.filter(i => i !== id);
-            }
-        },
-
-        submitForm(e) {
-            if (this.selectedTenantIds.length === 0) {
-                alert('Please select at least one tenant.');
-                e.preventDefault();
-                return;
-            }
-            if (this.recipientsPayload.length === 0) {
-                alert('No valid recipients with phone numbers. Check that the selected tenants have valid Kenyan phone numbers.');
-                e.preventDefault();
-                return;
-            }
-            if (!confirm('Send SMS to ' + this.recipientsPayload.length + ' tenant(s)?')) {
-                e.preventDefault();
-                return;
-            }
-            this.sending = true;
-            e.target.closest('form').submit();
-        },
-
-        init() {}
-    };
-}
-</script>
-
-<script>
-    (function() {
-        const templateSelect = document.getElementById('customTemplateSelect');
-        const messageArea = document.getElementById('customMessage');
-        if (templateSelect && messageArea) {
-            templateSelect.addEventListener('change', function() {
-                const selectedOption = this.options[this.selectedIndex];
-                const content = selectedOption.getAttribute('data-content');
-                if (content) messageArea.value = content;
-            });
+    let activeTab = 'tenants';
+    function renderTab() {
+        document.getElementById('tenants-tab').style.display = 'none';
+        document.getElementById('custom-tab').style.display = 'none';
+        document.getElementById('history-tab').style.display = 'none';
+        document.getElementById('campaigns-tab').style.display = 'none';
+        document.getElementById('tenants-tab').style.display = activeTab === 'tenants' ? 'block' : 'none';
+        document.getElementById('custom-tab').style.display = activeTab === 'custom' ? 'block' : 'none';
+        document.getElementById('history-tab').style.display = activeTab === 'history' ? 'block' : 'none';
+        document.getElementById('campaigns-tab').style.display = activeTab === 'campaigns' ? 'block' : 'none';
+        
+        document.querySelectorAll('#tab-tenants, #tab-custom, #tab-history, #tab-campaigns').forEach(btn => {
+            btn.classList.remove('border-brand-500', 'text-brand-600');
+            btn.classList.add('border-transparent');
+        });
+        let activeBtn = document.getElementById(`tab-${activeTab}`);
+        if (activeBtn) {
+            activeBtn.classList.add('border-brand-500', 'text-brand-600');
+            activeBtn.classList.remove('border-transparent');
         }
-    })();
+    }
+    
+    // Template loader
+    document.getElementById('templateSelect')?.addEventListener('change', function() {
+        let selected = this.options[this.selectedIndex];
+        let content = selected.getAttribute('data-content');
+        if (content) {
+            document.getElementById('template').value = content;
+            updatePreview();
+        }
+    });
+    
+    let checkboxes = document.querySelectorAll('.tenant-checkbox');
+    let selectedCountSpan = document.getElementById('selectedCount');
+    let toggleAllCheckbox = document.getElementById('toggleAllCheckbox');
+    let templateTextarea = document.getElementById('template');
+    let previewSection = document.getElementById('previewSection');
+    let previewContainer = document.getElementById('previewContainer');
+    
+    function updatePreview() {
+        let template = templateTextarea ? templateTextarea.value : '';
+        let checkedBoxes = Array.from(checkboxes).filter(cb => cb.checked);
+        let selectedCount = checkedBoxes.length;
+        
+        if (selectedCount > 0 && template.trim() !== '') {
+            previewSection.style.display = 'block';
+            let previews = [];
+            let now = new Date();
+            let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
+            let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+            
+            for (let i = 0; i < Math.min(3, selectedCount); i++) {
+                let cb = checkedBoxes[i];
+                let phone = cb.getAttribute('data-phone');
+                let name = cb.getAttribute('data-name');
+                let unit = cb.getAttribute('data-unit');
+                let water_bill = parseFloat(cb.getAttribute('data-waterbill')).toFixed(2);
+                
+                let message = template
+                    .replace(/@{{name}}/g, name)
+                    .replace(/@{{unit}}/g, unit)
+                    .replace(/@{{water_bill}}/g, water_bill)
+                    .replace(/@{{due_date}}/g, dueDate)
+                    .replace(/@{{month}}/g, month);
+                
+                previews.push({ phone: phone, message: message });
+            }
+            
+            let html = '';
+            previews.forEach(p => {
+                html += `<div class="border-l-4 border-brand-300 pl-3 py-1">
+                            <p class="text-xs text-gray-500"><strong>To:</strong> ${p.phone}</p>
+                            <p class="text-sm text-gray-800"><strong>Message:</strong> ${p.message}</p>
+                         </div>`;
+            });
+            previewContainer.innerHTML = html;
+        } else {
+            previewSection.style.display = 'none';
+        }
+    }
+    
+    function updateSelectedCount() {
+        let checked = document.querySelectorAll('.tenant-checkbox:checked').length;
+        if (selectedCountSpan) selectedCountSpan.innerText = checked;
+        if (toggleAllCheckbox) toggleAllCheckbox.checked = (checked === checkboxes.length && checkboxes.length > 0);
+        updatePreview();
+    }
+    
+    checkboxes.forEach(cb => cb.addEventListener('change', updateSelectedCount));
+    if (toggleAllCheckbox) {
+        toggleAllCheckbox.addEventListener('change', function() {
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            updateSelectedCount();
+        });
+    }
+    document.getElementById('selectAllBtn')?.addEventListener('click', () => {
+        checkboxes.forEach(cb => cb.checked = true);
+        updateSelectedCount();
+    });
+    document.getElementById('selectNoneBtn')?.addEventListener('click', () => {
+        checkboxes.forEach(cb => cb.checked = false);
+        updateSelectedCount();
+    });
+    templateTextarea?.addEventListener('input', updatePreview);
+    
+    document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
+        let selected = [];
+        let template = document.getElementById('template').value;
+        if (!template.trim()) {
+            alert('Please enter a message template.');
+            e.preventDefault();
+            return false;
+        }
+        
+        let now = new Date();
+        let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
+        let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        checkboxes.forEach(cb => {
+            if (cb.checked) {
+                let phone = cb.getAttribute('data-phone');
+                if (!phone) return;
+                let name = cb.getAttribute('data-name');
+                let unit = cb.getAttribute('data-unit');
+                let water_bill = parseFloat(cb.getAttribute('data-waterbill')).toFixed(2);
+                
+                selected.push({
+                    phone: phone,
+                    variables: {
+                        name: name,
+                        unit: unit,
+                        water_bill: water_bill,
+                        due_date: dueDate,
+                        month: month
+                    }
+                });
+            }
+        });
+        
+        if (selected.length === 0) {
+            alert('Please select at least one tenant.');
+            e.preventDefault();
+            return false;
+        }
+        
+        document.getElementById('recipientsJson').value = JSON.stringify(selected);
+        return true;
+    });
+    
+    updateSelectedCount();
+    renderTab();
 </script>
-
-<style>[x-cloak]{display:none;}</style>
+<style>
+    .badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 9999px; font-size: 0.7rem; background: #e2e8f0; }
+</style>
 @endsection
