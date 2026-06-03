@@ -156,16 +156,18 @@
 @endif
 @endauth
 
-    <!-- METER READER DASHBOARD -->
-    @auth
-    @if(auth()->user()->hasRole('meter_reader'))
-        @include('partials.dashboard.meter-reader', [
-            'stats' => $stats ?? [],
-            'roleData' => $roleData ?? [],
-            'company' => $company ?? null
-        ])
-    @endif
-    @endauth
+<!-- METER READER DASHBOARD -->
+@auth
+@if(auth()->user()->hasRole('meter_reader'))
+    @include('partials.dashboard.meter-reader', [
+        'stats' => $stats ?? [],
+        'roleData' => $roleData ?? [],
+        'company' => $company ?? null,
+        'units' => $roleData['units'] ?? [],
+        'estates' => $roleData['estates'] ?? []
+    ])
+@endif
+@endauth
 
     <!-- MAINTENANCE DASHBOARD -->
     @auth
