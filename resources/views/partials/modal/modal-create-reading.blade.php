@@ -2,6 +2,7 @@
 <div id="createReadingModal" class="fixed inset-0 z-999999 hidden" style="isolation: isolate;" aria-labelledby="slideover-title" role="dialog" aria-modal="true">
     <!-- Backdrop with fade -->
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+
     
     <!-- Slideover Panel - slides in from right -->
     <div class="fixed inset-y-0 right-0 max-w-full flex">
@@ -185,8 +186,8 @@ function renderMeterReaderBulkMode() {
             </label>
             <select id="bulkEstateId" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
                 <option value="">All Estates</option>
-                @foreach($estates ?? [] as $estate)
-                <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+               @foreach($estates ?? [] as $estate)
+                    <option value="{{ is_array($estate) ? $estate['id'] : $estate->id }}">{{ is_array($estate) ? $estate['name'] : $estate->name }}</option>
                 @endforeach
             </select>
         </div>

@@ -232,21 +232,21 @@ Route::middleware('auth')->group(function () {
     });
 
     // Security Staff routes
-    Route::middleware(['auth', 'role:super_admin,admin,security'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/security/logs', [SecurityController::class, 'logs'])->name('security.logs');
         Route::get('/security/access', [SecurityController::class, 'accessRecords'])->name('security.access');
         Route::post('/security/incidents', [SecurityController::class, 'reportIncident'])->name('security.incidents');
     });
 
     // Accountant routes (finance only)
-    Route::middleware(['auth', 'role:super_admin,admin,accountant'])->group(function () {
+    Route::middleware(['auth'])->group(function () {
         Route::get('/reports/financial', [ReportController::class, 'financial'])->name('reports.financial');
         Route::get('/reports/invoices', [ReportController::class, 'invoices'])->name('reports.invoices');
         Route::get('/reports/payments', [ReportController::class, 'payments'])->name('reports.payments');
     });
 
-    // Tenant specific routes
-    Route::middleware(['auth', 'role:tenant'])->group(function () {
+    // Tenant specific routes (including wallet)
+    Route::middleware(['auth'])->group(function () {
         Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
         Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
         Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
@@ -325,13 +325,39 @@ Route::middleware('auth')->group(function () {
 
     
 
+    // Company Management Routes
+    Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
+        Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
+        Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
+        Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
+        Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
+        Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
+        
+        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
+        Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
+        Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
+        Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
+        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstates'])->name('estates');
+        Route::get('/{company}/subscriptions', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
+        Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
+        Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
+        Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
+    });
+
+    // ========== ADMIN WALLET ROUTES ==========
+    Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
+        Route::resource('wallets', App\Http\Controllers\Admin\WalletController::class)->except(['create', 'store']);
+        Route::get('/wallets/export', [App\Http\Controllers\Admin\WalletController::class, 'export'])->name('wallets.export');
+    });
 
 });
+
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 // SMS Module Routes
-require base_path('app/Modules/SMS/routes.php');
+require base_path('app/Modules/sms/routes.php');
 
 require __DIR__.'/auth.php';

@@ -479,25 +479,25 @@
         </div>
     </div>
 
-    <!-- Card 2: Total Readings -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Readings</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($roleData['readingHistory']->count() ?? 0) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
-                <svg class="fill-purple-500 dark:fill-purple-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" fill=""/>
-                </svg>
-            </div>
+<!-- Card 2: Total Readings -->
+<div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <span class="text-sm text-gray-500 dark:text-gray-400">Total Readings</span>
+            <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                {{ number_format($roleData['totalReadings'] ?? ($roleData['readingHistory']->count() ?? 0)) }}
+            </h4>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Historical records
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
+            <svg class="fill-purple-500 dark:fill-purple-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" fill=""/>
+            </svg>
         </div>
     </div>
+    <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
+        Historical records
+    </div>
+</div>
 
     <!-- Card 3: Total Consumption -->
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
