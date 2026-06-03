@@ -11,12 +11,22 @@ class SmsTemplateController extends Controller
     public function index()
     {
         $templates = SmsTemplate::latest()->paginate(10);
+        
+        // For AJAX requests, return JSON
+        if (request()->ajax()) {
+            return response()->json([
+                'templates' => $templates->items(),
+                'pagination' => [
+                    'total' => $templates->total(),
+                    'per_page' => $templates->perPage(),
+                    'current_page' => $templates->currentPage(),
+                    'last_page' => $templates->lastPage(),
+                ]
+            ]);
+        }
+        
+        // For regular requests, pass the paginated templates to the view
         return view('sms.templates.index', compact('templates'));
-    }
-
-    public function create()
-    {
-        return view('sms.templates.create');
     }
 
     public function store(Request $request)
@@ -29,19 +39,22 @@ class SmsTemplateController extends Controller
         preg_match_all('/\{\{(.*?)\}\}/', $request->content, $matches);
         $placeholders = array_unique(array_map('trim', $matches[1]));
 
-        SmsTemplate::create([
+        $template = SmsTemplate::create([
             'name' => $request->name,
             'content' => $request->content,
             'placeholders' => $placeholders,
             'created_by' => auth()->id(),
         ]);
 
-        return redirect()->route('sms.templates.index')->with('success', 'Template created.');
-    }
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Template created successfully.',
+                'template' => $template
+            ]);
+        }
 
-    public function edit(SmsTemplate $template)
-    {
-        return view('sms.templates.edit', compact('template'));
+        return redirect()->route('sms.templates.index')->with('success', 'Template created.');
     }
 
     public function update(Request $request, SmsTemplate $template)
@@ -60,12 +73,28 @@ class SmsTemplateController extends Controller
             'placeholders' => $placeholders,
         ]);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Template updated successfully.',
+                'template' => $template->fresh()
+            ]);
+        }
+
         return redirect()->route('sms.templates.index')->with('success', 'Template updated.');
     }
 
     public function destroy(SmsTemplate $template)
     {
         $template->delete();
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Template deleted successfully.'
+            ]);
+        }
+
         return redirect()->route('sms.templates.index')->with('success', 'Template deleted.');
     }
 }
