@@ -26,19 +26,22 @@ class KenyaSMS
         $this->sandbox = $kenyaSmsConfig['sandbox'] ?? true;
     }
 
-    public function sendOne(string $phone, string $message, ?string $messageType = null): array
+    /**
+     * Send a single SMS, optionally linked to a campaign.
+     */
+    public function sendOne(string $phone, string $message, ?string $messageType = null, ?int $campaignId = null): array
     {
         $phone = PhoneHelper::clean($phone);
         if (!$phone) {
             return ['success' => false, 'error' => 'Invalid Kenyan phone number'];
         }
 
-        // For testing without API
         if ($this->sandbox) {
             SmsLog::create([
                 'recipient_phone' => $phone,
                 'message' => $message,
                 'status' => 'sent',
+                'campaign_id' => $campaignId,
                 'meta' => ['sandbox' => true],
             ]);
             return ['success' => true, 'data' => ['message_id' => 'sandbox_' . time()]];
@@ -63,6 +66,7 @@ class KenyaSMS
                     'message' => $message,
                     'status' => 'sent',
                     'provider_message_id' => $body['data']['message_id'] ?? null,
+                    'campaign_id' => $campaignId,
                 ]);
                 return ['success' => true, 'data' => $body['data'] ?? []];
             } else {
@@ -71,6 +75,7 @@ class KenyaSMS
                     'message' => $message,
                     'status' => 'failed',
                     'failure_reason' => $body['error']['message'] ?? 'Unknown error',
+                    'campaign_id' => $campaignId,
                 ]);
                 return ['success' => false, 'error' => $body['error']['message'] ?? 'API error'];
             }
@@ -80,12 +85,16 @@ class KenyaSMS
                 'message' => $message,
                 'status' => 'failed',
                 'failure_reason' => $e->getMessage(),
+                'campaign_id' => $campaignId,
             ]);
             return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 
-    public function sendPersonalized(string $template, array $recipients, ?string $messageType = null): array
+    /**
+     * Send personalized bulk SMS, optionally linked to a campaign.
+     */
+    public function sendPersonalized(string $template, array $recipients, ?string $messageType = null, ?int $campaignId = null): array
     {
         $sent = 0;
         $failed = 0;
@@ -98,7 +107,7 @@ class KenyaSMS
             }
 
             $message = $this->renderTemplate($template, $recipient['variables'] ?? []);
-            $result = $this->sendOne($phone, $message, $messageType);
+            $result = $this->sendOne($phone, $message, $messageType, $campaignId);
             
             if ($result['success']) {
                 $sent++;
@@ -111,6 +120,40 @@ class KenyaSMS
             'success' => $sent > 0,
             'data' => ['sent' => $sent, 'failed' => $failed],
         ];
+    }
+
+    /**
+     * Get account balance from KenyaSMS (real endpoint)
+     */
+    public function getBalance(): array
+    {
+        if ($this->sandbox) {
+            return ['success' => true, 'balance' => 9999.00, 'currency' => 'KES'];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Accept' => 'application/json',
+            ])->get($this->baseUrl . '/account/balance');
+
+            if ($response->successful()) {
+                $data = $response->json();
+                if (isset($data['data']['balance_kes'])) {
+                    $balance = (float) $data['data']['balance_kes'];
+                    $currency = $data['data']['currency'] ?? 'KES';
+                    return ['success' => true, 'balance' => $balance, 'currency' => $currency];
+                } else {
+                    \Log::error('KenyaSMS balance response missing balance_kes', ['response' => $data]);
+                    return ['success' => false, 'error' => 'Balance not found in response'];
+                }
+            } else {
+                $error = $response->json()['error']['message'] ?? 'Failed to fetch balance';
+                return ['success' => false, 'error' => $error];
+            }
+        } catch (\Exception $e) {
+            return ['success' => false, 'error' => $e->getMessage()];
+        }
     }
 
     protected function renderTemplate(string $template, array $variables): string

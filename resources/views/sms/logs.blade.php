@@ -42,6 +42,9 @@
             <button type="submit" class="rounded-lg bg-brand-500 px-4 py-2 text-sm text-white hover:bg-brand-600">
                 Apply Filters
             </button>
+            <a href="{{ route('sms.logs.export', request()->query()) }}" class="rounded-lg bg-green-500 px-4 py-2 text-sm text-white hover:bg-green-600">
+                📥 Export CSV
+            </a>
         </div>
     </form>
 

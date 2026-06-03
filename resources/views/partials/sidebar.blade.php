@@ -297,7 +297,7 @@ document.addEventListener('alpine:init', () => {
             children: [
               {
                 label: 'Send SMS',
-                link: '/sms/send',
+                link: '/sms/broadcast',
                 page: 'smsSend'
               },
               {
@@ -549,7 +549,7 @@ document.addEventListener('alpine:init', () => {
         'water': 'water',
         'maintenance': 'maintenance',
         'security/logs': 'securityLogs',
-        'sms/send': 'smsSend',
+        'sms/broadcast': 'smsSend',
         'sms/history': 'smsHistory',
         'sms/templates': 'smsTemplates',
         'sms/settings': 'smsSettings',
