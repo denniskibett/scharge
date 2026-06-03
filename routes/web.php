@@ -11,7 +11,6 @@ use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TenantController;
-use App\Http\Controllers\UserController;
 use App\Http\Controllers\TenancyController; 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
@@ -185,7 +184,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
     });
 
-    Route::resource('users', UserController::class);
     Route::resource('expense-categories', ExpenseCategoryController::class);
     Route::resource('staff', StaffController::class);
 
@@ -358,6 +356,10 @@ Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.g
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
 // SMS Module Routes
-require base_path('app/Modules/sms/routes.php');
+require base_path('app/Modules/SMS/routes.php');
+
+Route::prefix('users')->group(function () {
+    require base_path('app/Modules/Users/routes.php');
+});
 
 require __DIR__.'/auth.php';
