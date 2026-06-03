@@ -45,7 +45,6 @@
             <form method="POST" action="{{ route('sms.send') }}" id="bulkForm" class="p-6">
                 @csrf
 
-                <!-- Template Dropdown -->
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">📋 Load Saved Template</label>
                     <select id="templateSelect" class="w-full rounded-xl border-gray-300 shadow-sm">
@@ -56,16 +55,14 @@
                     </select>
                 </div>
 
-                <!-- Message Template -->
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">✏️ Message Template</label>
                     <textarea id="template" name="template" rows="5" class="w-full rounded-xl border-gray-300 shadow-sm" placeholder="Hi @{{name}}, please pay your @{{month}} water bill by @{{due_date}}. Paybill 7263733 Acc @{{unit}} KES @{{water_bill}}">Hi @{{name}}, please pay your @{{month}} water bill by @{{due_date}}. Paybill 7263733 Acc @{{unit}} KES @{{water_bill}}</textarea>
                     <div class="flex flex-wrap gap-2 mt-2">
-                        <span class="text-xs text-gray-500">Available variables: @{{name}}, @{{unit}}, @{{water_bill}}, @{{due_date}}, @{{month}}, @{{estate_name}}</span>
+                        <span class="text-xs text-gray-500">Available variables: name, unit, water_bill, due_date, month, estate_name, prev_read, curr_read, water_consumption</span>
                     </div>
                 </div>
 
-                <!-- Message Type -->
                 <div class="mb-6">
                     <label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Message Type</label>
                     <select name="message_type" class="rounded-xl border-gray-300 shadow-sm w-full md:w-1/2">
@@ -74,7 +71,6 @@
                     </select>
                 </div>
 
-                <!-- Recipient Selection -->
                 <div class="mb-6">
                     <div class="flex flex-wrap gap-2 mb-3">
                         <button type="button" id="selectAllBtn" class="bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 rounded-lg text-sm">Select All</button>
@@ -89,7 +85,16 @@
                             <tbody id="tenantsTableBody">
                                 @foreach($tenants as $tenant)
                                 <tr class="border-t hover:bg-gray-50">
-                                    <td class="p-3"><input type="checkbox" class="tenant-checkbox" data-id="{{ $tenant['id'] }}" data-phone="{{ $tenant['phone'] }}" data-name="{{ $tenant['name'] }}" data-unit="{{ $tenant['unit'] }}" data-estate="{{ $tenant['estate_name'] }}" data-waterbill="{{ $tenant['water_bill'] }}"></td>
+                                    <td class="p-3"><input type="checkbox" class="tenant-checkbox" 
+                                        data-id="{{ $tenant['id'] }}"
+                                        data-phone="{{ $tenant['phone'] }}"
+                                        data-name="{{ $tenant['name'] }}"
+                                        data-unit="{{ $tenant['unit'] }}"
+                                        data-estate="{{ $tenant['estate_name'] }}"
+                                        data-waterbill="{{ $tenant['water_bill'] }}"
+                                        data-consumption="{{ $tenant['water_consumption'] }}"
+                                        data-prev_read="{{ $tenant['prev_read'] }}"
+                                        data-curr_read="{{ $tenant['curr_read'] }}"></td>
                                     <td class="p-3">{{ $tenant['name'] }}</td>
                                     <td class="p-3">{{ $tenant['phone'] }}</td>
                                     <td class="p-3">{{ $tenant['unit_number'] }}</td>
@@ -103,7 +108,6 @@
                     <p class="mt-2 text-sm text-gray-600">✅ Selected: <span id="selectedCount">0</span> tenants</p>
                 </div>
 
-                <!-- Preview Section -->
                 <div id="previewSection" class="mb-6" style="display: none;">
                     <h3 class="text-md font-semibold text-gray-800 mb-2">📄 Preview (first 3)</h3>
                     <div id="previewContainer" class="space-y-2 bg-gray-50 p-4 rounded-xl"></div>
@@ -120,21 +124,9 @@
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6">
                 @csrf
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">📞 Phone Number</label>
-                    <input type="text" name="phone" placeholder="e.g., 254712345678" required class="w-full rounded-xl border-gray-300 shadow-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Message Type</label>
-                    <select name="message_type" class="w-full rounded-xl border-gray-300 shadow-sm">
-                        <option value="transactional">Transactional</option>
-                        <option value="promotional">Promotional</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">💬 Message</label>
-                    <textarea name="message" rows="4" class="w-full rounded-xl border-gray-300 shadow-sm" required></textarea>
-                </div>
+                <div><label class="block text-sm font-semibold text-gray-700 mb-2">📞 Phone Number</label><input type="text" name="phone" placeholder="e.g., 254712345678" required class="w-full rounded-xl border-gray-300 shadow-sm"></div>
+                <div><label class="block text-sm font-semibold text-gray-700 mb-2">⚙️ Message Type</label><select name="message_type" class="w-full rounded-xl border-gray-300 shadow-sm"><option value="transactional">Transactional</option><option value="promotional">Promotional</option></select></div>
+                <div><label class="block text-sm font-semibold text-gray-700 mb-2">💬 Message</label><textarea name="message" rows="4" class="w-full rounded-xl border-gray-300 shadow-sm" required></textarea></div>
                 <button type="submit" class="w-full md:w-auto bg-gradient-to-r from-brand-600 to-brand-700 hover:from-brand-700 hover:to-brand-800 text-white font-bold py-3 px-8 rounded-xl shadow-md">✉️ Send SMS Now</button>
             </form>
         </div>
@@ -145,15 +137,15 @@
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100 p-6">
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-gray-50"><tr><th>ID</th><th>Phone</th><th>Message</th><th>Status</th><th>Sent At</th></tr></thead>
+                    <thead class="bg-gray-50"><tr><th>ID</th><th>Phone</th><th>Message</th><th>Status</th><th>Sent At</th></td></thead>
                     <tbody>
                         @forelse($logs as $log)
-                        <tr class="border-t"><td class="p-2">{{ $log->id }}</td><td class="p-2">{{ $log->recipient_phone }}</td><td class="p-2">{{ Str::limit($log->message, 60) }}</td><td class="p-2"><span class="badge">{{ $log->status }}</span></td><td class="p-2">{{ $log->created_at->format('d/m/Y H:i') }}</td></tr>
+                        <tr class="border-t"><td class="p-2">{{ $log->id }}<\/td><td class="p-2">{{ $log->recipient_phone }}<\/td><td class="p-2">{{ Str::limit($log->message, 60) }}<\/td><td class="p-2"><span class="badge">{{ $log->status }}</span><\/td><td class="p-2">{{ $log->created_at->format('d/m/Y H:i') }}<\/td><\/tr>
                         @empty
-                        <tr><td colspan="5" class="p-3 text-center">No logs found.</td></tr>
+                        <tr><td colspan="5" class="p-3 text-center">No logs found.∂n<\/td><\/tr>
                         @endforelse
                     </tbody>
-                </table>
+                <\/table>
             </div>
             <div class="mt-4">{{ $logs->links() }}</div>
         </div>
@@ -167,12 +159,12 @@
                     <thead class="bg-gray-50"><tr><th>ID</th><th>Name</th><th>Date</th><th>Recipients</th><th>Sent</th><th>Failed</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                         @forelse($campaigns ?? [] as $campaign)
-                        <tr class="border-t"><td class="p-2">{{ $campaign->id }}</td><td class="p-2">{{ $campaign->name }}</td><td class="p-2">{{ $campaign->created_at->format('d/m/Y H:i') }}</td><td class="p-2">{{ $campaign->total_recipients }}</td><td class="p-2">{{ $campaign->sent_count }}</td><td class="p-2">{{ $campaign->failed_count }}</td><td class="p-2"><span class="badge">{{ $campaign->status }}</span></td><td class="p-2"><a href="{{ route('sms.campaigns.show', $campaign->id) }}" class="text-blue-600">View</a></td></tr>
+                        <tr class="border-t"><td class="p-2">{{ $campaign->id }}<\/td><td class="p-2">{{ $campaign->name }}<\/td><td class="p-2">{{ $campaign->created_at->format('d/m/Y H:i') }}<\/td><td class="p-2">{{ $campaign->total_recipients }}<\/td><td class="p-2">{{ $campaign->sent_count }}<\/td><td class="p-2">{{ $campaign->failed_count }}<\/td><td class="p-2"><span class="badge">{{ $campaign->status }}</span><\/td><td class="p-2"><a href="{{ route('sms.campaigns.show', $campaign->id) }}" class="text-blue-600">View</a><\/td><\/tr>
                         @empty
-                        <tr><td colspan="8">No campaigns yet.</td></tr>
+                        <tr><td colspan="8">No campaigns yet.∂n<\/td><\/tr>
                         @endforelse
                     </tbody>
-                </table>
+                <\/table>
             </div>
             <div class="mt-4">{{ ($campaigns ?? collect())->links() }}</div>
         </div>
@@ -202,7 +194,6 @@
         }
     }
     
-    // Template loader
     document.getElementById('templateSelect')?.addEventListener('change', function() {
         let selected = this.options[this.selectedIndex];
         let content = selected.getAttribute('data-content');
@@ -237,23 +228,32 @@
                 let name = cb.getAttribute('data-name');
                 let unit = cb.getAttribute('data-unit');
                 let water_bill = parseFloat(cb.getAttribute('data-waterbill')).toFixed(2);
+                let consumption = cb.getAttribute('data-consumption');
+                let prev_read = cb.getAttribute('data-prev_read');
+                let curr_read = cb.getAttribute('data-curr_read');
+                let estate_name = cb.getAttribute('data-estate');
                 
-                let message = template
-                    .replace(/@{{name}}/g, name)
-                    .replace(/@{{unit}}/g, unit)
-                    .replace(/@{{water_bill}}/g, water_bill)
-                    .replace(/@{{due_date}}/g, dueDate)
-                    .replace(/@{{month}}/g, month);
+                let message = template;
+                message = message.replace(/\{\{name\}\}/g, name);
+                message = message.replace(/\{\{unit\}\}/g, unit);
+                message = message.replace(/\{\{unit_number\}\}/g, unit);
+                message = message.replace(/\{\{water_bill\}\}/g, water_bill);
+                message = message.replace(/\{\{water_consumption\}\}/g, consumption);
+                message = message.replace(/\{\{due_date\}\}/g, dueDate);
+                message = message.replace(/\{\{month\}\}/g, month);
+                message = message.replace(/\{\{prev_read\}\}/g, prev_read);
+                message = message.replace(/\{\{curr_read\}\}/g, curr_read);
+                message = message.replace(/\{\{estate_name\}\}/g, estate_name);
                 
                 previews.push({ phone: phone, message: message });
             }
             
             let html = '';
             previews.forEach(p => {
-                html += `<div class="border-l-4 border-brand-300 pl-3 py-1">
-                            <p class="text-xs text-gray-500"><strong>To:</strong> ${p.phone}</p>
-                            <p class="text-sm text-gray-800"><strong>Message:</strong> ${p.message}</p>
-                         </div>`;
+                html += '<div class="border-l-4 border-brand-300 pl-3 py-1">' +
+                            '<p class="text-xs text-gray-500"><strong>To:</strong> ' + p.phone + '</p>' +
+                            '<p class="text-sm text-gray-800"><strong>Message:</strong> ' + p.message + '</p>' +
+                        '</div>';
             });
             previewContainer.innerHTML = html;
         } else {
@@ -305,15 +305,24 @@
                 let name = cb.getAttribute('data-name');
                 let unit = cb.getAttribute('data-unit');
                 let water_bill = parseFloat(cb.getAttribute('data-waterbill')).toFixed(2);
+                let consumption = cb.getAttribute('data-consumption');
+                let prev_read = cb.getAttribute('data-prev_read');
+                let curr_read = cb.getAttribute('data-curr_read');
+                let estate_name = cb.getAttribute('data-estate');
                 
                 selected.push({
                     phone: phone,
                     variables: {
                         name: name,
                         unit: unit,
+                        unit_number: unit,
                         water_bill: water_bill,
+                        water_consumption: consumption,
                         due_date: dueDate,
-                        month: month
+                        month: month,
+                        prev_read: prev_read,
+                        curr_read: curr_read,
+                        estate_name: estate_name
                     }
                 });
             }

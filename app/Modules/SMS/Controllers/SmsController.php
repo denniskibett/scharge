@@ -48,6 +48,8 @@ class SmsController extends Controller
                     'estate_name' => $unit->estate->name ?? 'N/A',
                     'water_bill' => $waterBill,
                     'water_consumption' => $latestWaterReading ? (float) $latestWaterReading->consumption : 0,
+                    'prev_read' => $latestWaterReading ? (float) $latestWaterReading->previous_reading : 0,
+                    'curr_read' => $latestWaterReading ? (float) $latestWaterReading->current_reading : 0,
                     'security_fee' => $securityFee,
                     'garbage_fee' => $garbageFee,
                     'total' => $total,
