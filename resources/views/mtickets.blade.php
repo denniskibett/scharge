@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>mtickets — seamless tickets for events, flights, travel & sports</title>
+  <title>mtickets — Your Life, Your Tickets: Events, Travel & More</title>
   <!-- Google Fonts + simple CSS reset -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Swiper JS (for massive slider) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -14,12 +17,25 @@
       box-sizing: border-box;
     }
 
-    body {
-      font-family: 'Outfit', sans-serif;
-      background: #fafcff;
-      color: #1a1f2e;
-      line-height: 1.4;
+    html {
       scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: white;
+      color: #1a2c1a;
+      line-height: 1.4;
+    }
+
+    /* Core palette */
+    :root {
+      --mt-green: rgb(53, 168, 57);
+      --mt-green-dark: #2a7a2e;
+      --mt-navy: oklch(0.35 0.08 240.87);
+      --mt-navy-light: oklch(0.45 0.07 240.87);
+      --mt-soft-bg: #f8faf8;
+      --mt-card-bg: #ffffff;
     }
 
     .container {
@@ -28,14 +44,17 @@
       padding: 0 32px;
     }
 
-    /* header & nav */
+    /* header & nav - NO BG (transparent), glass buttons */
     .navbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 0;
+      padding: 24px 0;
       flex-wrap: wrap;
       gap: 20px;
+      position: relative;
+      z-index: 30;
+      background: transparent;
     }
 
     .logo {
@@ -48,7 +67,7 @@
     }
 
     .logo-icon {
-      background: linear-gradient(135deg, #2563eb, #1e40af);
+      background: var(--mt-green);
       width: 40px;
       height: 40px;
       border-radius: 20px;
@@ -61,303 +80,395 @@
     }
 
     .logo span {
-      background: linear-gradient(135deg, #1e293b, #2563eb);
+      background: linear-gradient(135deg, var(--mt-navy), var(--mt-green));
       background-clip: text;
       -webkit-background-clip: text;
       color: transparent;
     }
 
+    /* navigation links container */
     .nav-links {
       display: flex;
-      gap: 32px;
+      gap: 28px;
       font-weight: 500;
+      flex-wrap: wrap;
     }
 
     .nav-links a {
       text-decoration: none;
-      color: #334155;
+      color: #1f2a1f;
       transition: color 0.2s;
-      font-size: 1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
     }
 
     .nav-links a:hover {
-      color: #2563eb;
+      color: var(--mt-green);
     }
 
-    .btn-outline-light {
-      background: white;
-      border: 1px solid #cbd5e1;
-      padding: 8px 20px;
-      border-radius: 40px;
-      font-weight: 600;
-      color: #1e293b;
-      transition: all 0.2s;
-    }
-
-    .btn-outline-light:hover {
-      border-color: #2563eb;
-      background: #f0f9ff;
-    }
-
-    /* hero section */
-    .hero {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 48px;
-      padding: 60px 0 40px;
-    }
-
-    .hero-content {
-      flex: 1.2;
-    }
-
-    .hero-badge {
-      background: #e0f2fe;
-      color: #0369a1;
-      display: inline-block;
-      padding: 6px 14px;
-      border-radius: 60px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      margin-bottom: 24px;
-    }
-
-    .hero h1 {
-      font-size: 3.5rem;
-      font-weight: 800;
-      line-height: 1.2;
-      letter-spacing: -0.02em;
-      background: linear-gradient(to right, #0f172a, #2563eb);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      margin-bottom: 20px;
-    }
-
-    .hero p {
-      font-size: 1.2rem;
-      color: #475569;
-      max-width: 540px;
-      margin-bottom: 32px;
-    }
-
-    .hero-buttons {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-
-    .btn-primary {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 14px 32px;
+    /* GLASS BUTTON (sign in) */
+    .glass-btn {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      padding: 8px 22px;
       border-radius: 48px;
       font-weight: 600;
-      font-size: 1rem;
+      color: var(--mt-navy);
+      transition: all 0.25s ease;
       cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 6px -2px rgba(37,99,235,0.2);
+      font-family: inherit;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02);
     }
 
-    .btn-primary:hover {
-      background: #1d4ed8;
+    .glass-btn:hover {
+      background: var(--mt-green);
+      color: white;
+      border-color: var(--mt-green);
       transform: translateY(-2px);
     }
 
-    .btn-secondary {
-      background: white;
-      border: 1px solid #cbd5e1;
-      padding: 14px 32px;
-      border-radius: 48px;
-      font-weight: 600;
-      transition: all 0.2s;
+    /* ----- MASSIVE FULL-SCREEN SLIDER ----- */
+    .hero-slider-full {
+      position: relative;
+      width: 100vw;
+      left: 50%;
+      right: 50%;
+      margin-left: -50vw;
+      margin-right: -50vw;
+      margin-top: -80px;
+      margin-bottom: 60px;
+      overflow: hidden;
+      height: 100vh;
+      min-height: 700px;
     }
 
-    .hero-visual {
-      flex: 0.9;
-      background: linear-gradient(145deg, #ffffff, #f1f5f9);
-      border-radius: 48px;
-      padding: 20px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);
+    .swiper {
+      width: 100%;
+      height: 100%;
     }
 
-    .mock-card {
-      background: white;
-      border-radius: 32px;
-      padding: 18px;
-      box-shadow: 0 6px 14px rgba(0,0,0,0.03);
-      border: 1px solid #eef2ff;
+    .swiper-slide {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
     }
 
-    .mock-line {
+    .slide-bg {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scale(1);
+      transition: transform 6s ease-out;
+    }
+
+    .swiper-slide-active .slide-bg {
+      transform: scale(1.05);
+    }
+
+    .slide-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.3) 100%);
       display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: white;
+      padding: 0 24px;
+    }
+
+    .slide-category {
+      background: var(--mt-green);
+      display: inline-block;
+      padding: 8px 28px;
+      border-radius: 60px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-bottom: 24px;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+      animation: fadeInUp 0.7s ease-out;
+    }
+
+    .slide-overlay h2 {
+      font-size: 4rem;
+      font-weight: 800;
+      margin-bottom: 20px;
+      max-width: 80%;
+      text-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      line-height: 1.2;
+      animation: fadeInUp 0.7s ease-out 0.1s both;
+    }
+
+    .slide-desc {
+      font-size: 1.25rem;
+      opacity: 0.95;
+      margin-bottom: 36px;
+      max-width: 55%;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      animation: fadeInUp 0.7s ease-out 0.2s both;
+    }
+
+    .slide-btn {
+      background: white;
+      color: var(--mt-navy);
+      border: none;
+      padding: 14px 44px;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      transition: 0.25s;
+      cursor: pointer;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+      animation: fadeInUp 0.7s ease-out 0.3s both;
+    }
+
+    .slide-btn:hover {
+      background: var(--mt-green);
+      color: white;
+      transform: translateY(-4px);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px);}
+      to { opacity: 1; transform: translateY(0);}
+    }
+
+    .swiper-button-next, .swiper-button-prev { display: none !important; }
+    .swiper-pagination-bullet { background: white; opacity: 0.6; width: 10px; height: 10px; }
+    .swiper-pagination-bullet-active { background: var(--mt-green) !important; opacity: 1; transform: scale(1.2); }
+
+    /* welcome message centered */
+    .welcome-message {
+      text-align: center;
+      margin: 30px 0 56px;
+    }
+    .welcome-message h1 {
+      font-size: 3rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--mt-navy), var(--mt-green));
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .welcome-message p {
+      font-size: 1.2rem;
+      color: #4c6a4c;
+      max-width: 680px;
+      margin: 16px auto 0;
+    }
+
+    /* category anchor offset for fixed header */
+    .section-anchor {
+      scroll-margin-top: 100px;
+    }
+
+    /* category header style */
+    .category-header {
+      display: flex;
+      align-items: baseline;
       justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+      margin-top: 20px;
+      border-bottom: 2px solid #eef3ea;
+      padding-bottom: 12px;
+    }
+    .category-header h2 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--mt-navy);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .category-header a {
+      color: var(--mt-green);
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    /* EVENT CARDS: image takes 90% */
+    .event-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 32px;
+      margin-bottom: 56px;
+    }
+
+    .event-card {
+      background: var(--mt-card-bg);
+      border-radius: 32px;
+      overflow: hidden;
+      box-shadow: 0 15px 30px -12px rgba(0,0,0,0.05);
+      transition: all 0.3s ease;
+      border: 1px solid #eef3ea;
+      cursor: pointer;
+    }
+    .event-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 25px 35px -14px rgba(53, 168, 57, 0.2);
+      border-color: var(--mt-green);
+    }
+    .event-img {
+      width: 100%;
+      aspect-ratio: 1 / 0.85;
+      object-fit: cover;
+      display: block;
+    }
+    .event-info {
+      padding: 20px 22px 26px;
+      background: white;
+    }
+    .event-cat {
+      display: inline-block;
+      background: #e9f5e8;
+      color: var(--mt-green-dark);
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 5px 14px;
+      border-radius: 40px;
       margin-bottom: 12px;
     }
-
-    /* services grid */
-    .services-section {
-      padding: 80px 0;
+    .event-title {
+      font-size: 1.35rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #1e2a1e;
     }
-
-    .section-title {
-      text-align: center;
-      font-size: 2.5rem;
+    .event-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+    }
+    .price {
       font-weight: 800;
-      margin-bottom: 14px;
+      color: var(--mt-green);
+      font-size: 1.25rem;
     }
-
-    .section-sub {
-      text-align: center;
-      color: #5b6e8c;
-      max-width: 640px;
-      margin: 0 auto 56px auto;
-      font-size: 1.1rem;
+    .book-link {
+      background: var(--mt-navy);
+      color: white;
+      padding: 8px 18px;
+      border-radius: 40px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      transition: 0.2s;
+      cursor: pointer;
+      border: none;
     }
+    .book-link:hover { background: var(--mt-green); }
 
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    /* customer values */
+    .customer-values {
+      background: var(--mt-soft-bg);
+      border-radius: 60px;
+      margin: 40px auto;
+      padding: 48px 36px;
+      display: flex;
+      flex-wrap: wrap;
       gap: 32px;
+      justify-content: center;
+      text-align: center;
     }
-
-    .service-card {
+    .value-item { flex: 1; min-width: 180px; text-align: center; }
+    .value-icon {
       background: white;
-      border-radius: 36px;
-      padding: 32px 24px;
-      transition: all 0.3s ease;
-      border: 1px solid #e9edf2;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.02);
-    }
-
-    .service-card:hover {
-      transform: translateY(-10px);
-      border-color: #cbdffc;
-      box-shadow: 0 20px 30px -12px rgba(37,99,235,0.12);
-    }
-
-    .service-icon {
-      width: 64px;
-      height: 64px;
-      background: #eef4ff;
-      border-radius: 28px;
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 16px;
+      border-radius: 40px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 2rem;
-      color: #2563eb;
-      margin-bottom: 24px;
+      color: var(--mt-green);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.03);
     }
 
-    .service-card h3 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-    }
-
-    .service-card p {
-      color: #4a5a7a;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .badge-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 16px 0 8px;
-    }
-
-    .badge {
-      background: #f1f5f9;
-      padding: 4px 12px;
-      border-radius: 30px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: #1e293b;
-    }
-
-    /* how it works (simple) */
-    .steps {
-      background: linear-gradient(to bottom, #ffffff, #f8fafc);
-      padding: 70px 0;
-      border-radius: 60px 60px 0 0;
-    }
-
-    .steps-flex {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 40px;
-      margin-top: 40px;
-    }
-
-    .step-item {
+    /* trusted logos */
+    .trusted-logos {
+      margin: 60px auto 50px;
       text-align: center;
-      flex: 1;
-      min-width: 180px;
     }
-
-    .step-number {
-      background: #eef2ff;
-      color: #2563eb;
-      width: 48px;
-      height: 48px;
+    .trusted-logos h4 {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #6b8c6b;
+      letter-spacing: 1px;
+      margin-bottom: 32px;
+      text-transform: uppercase;
+    }
+    .logo-grid {
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
       justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 800;
-      border-radius: 60px;
-      margin: 0 auto 20px;
+      align-items: center;
+      gap: 48px;
     }
+    .brand-logo-item {
+      font-size: 2rem;
+      color: #8daa8d;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-logo-item i { font-size: 2.6rem; }
+    .brand-logo-item span { font-size: 0.8rem; font-weight: 500; color: #4f6b4f; }
+    .brand-logo-item:hover { color: var(--mt-green); transform: translateY(-4px); }
 
     /* CTA */
     .cta-section {
-      background: #0f172a;
+      background: var(--mt-navy);
       border-radius: 48px;
-      margin: 40px 0 70px;
+      margin: 30px 0 70px;
       padding: 56px 48px;
       text-align: center;
       color: white;
     }
-
-    .cta-section h2 {
-      font-size: 2.2rem;
+    .btn-cta {
+      background: var(--mt-green);
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      border-radius: 60px;
       font-weight: 700;
-      margin-bottom: 16px;
+      margin-top: 24px;
+      font-size: 1rem;
+      cursor: pointer;
     }
+    .btn-cta:hover { background: #3fc544; transform: scale(1.02); }
 
-    .cta-section .btn-primary {
-      background: #3b82f6;
-      margin-top: 20px;
-      box-shadow: none;
-    }
-
-    /* footer */
     footer {
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid #e6f0e4;
       padding: 40px 0;
       text-align: center;
-      color: #64748b;
+      color: #6e8b6e;
+      background: white;
     }
 
     @media (max-width: 780px) {
-      .container {
-        padding: 0 20px;
-      }
-      .hero h1 {
-        font-size: 2.4rem;
-      }
-      .service-card h3 {
-        font-size: 1.4rem;
-      }
-      .navbar {
-        flex-direction: column;
-      }
+      .container { padding: 0 20px; }
+      .hero-slider-full { height: 85vh; min-height: 550px; margin-top: -60px; }
+      .slide-overlay h2 { font-size: 2rem; max-width: 95%; }
+      .slide-desc { max-width: 85%; font-size: 1rem; }
+      .welcome-message h1 { font-size: 2rem; }
+      .navbar { flex-direction: column; }
+      .nav-links { justify-content: center; gap: 18px; }
     }
   </style>
 </head>
@@ -370,178 +481,162 @@
       <span>mtickets</span>
     </div>
     <div class="nav-links">
-      <a href="#">Home</a>
-      <a href="#">Tickets</a>
-      <a href="#">Deals</a>
-      <a href="#">Support</a>
+      <a href="#events-section">Events</a>
+      <a href="#airline-section">Airline</a>
+      <a href="#trainbus-section">Train & Bus</a>
+      <a href="#sports-section">Sports</a>
+      <a href="#stream-section">Stream</a>
     </div>
     <div>
-      <a href="#" class="btn-outline-light"><i class="fas fa-user-circle"></i> Sign in</a>
+      <button class="glass-btn"><i class="fas fa-user-circle"></i> Sign in</button>
     </div>
   </div>
 </header>
 
 <main>
-  <!-- Hero / landing intro -->
-  <div class="container">
-    <div class="hero">
-      <div class="hero-content">
-        <div class="hero-badge"><i class="fas fa-rocket"></i> trusted by 2M+ users</div>
-        <h1>One place for all your <br>journeys & experiences</h1>
-        <p>Effortlessly book event tickets, flights, train & bus journeys, movies, and sports events — all in one modern platform.</p>
-        <div class="hero-buttons">
-          <button class="btn-primary">Explore Tickets →</button>
-          <button class="btn-secondary">How it works</button>
+  <!-- MASSIVE FULL-SCREEN SLIDER -->
+  <div class="hero-slider-full">
+    <div class="swiper mySwiper">
+      <div class="swiper-wrapper">
+        <div class="swiper-slide">
+          <img class="slide-bg" src="https://picsum.photos/id/106/2400/1600" alt="Music festival">
+          <div class="slide-overlay">
+            <span class="slide-category"><i class="fas fa-music"></i> EVENT · FESTIVAL</span>
+            <h2>Glastonbury 2025 | The ultimate music pilgrimage</h2>
+            <p class="slide-desc">Iconic performances, art & community. Secure your weekend passes now.</p>
+            <button class="slide-btn">Grab tickets →</button>
+          </div>
+        </div>
+        <div class="swiper-slide">
+          <img class="slide-bg" src="https://picsum.photos/id/13/2400/1600" alt="Airplane travel">
+          <div class="slide-overlay">
+            <span class="slide-category"><i class="fas fa-plane-departure"></i> AIRLINE · FLIGHTS</span>
+            <h2>Fly smarter: Summer escapes from $39</h2>
+            <p class="slide-desc">Compare 500+ airlines, flexible change policies + carbon offset.</p>
+            <button class="slide-btn">Find cheap flights →</button>
+          </div>
+        </div>
+        <div class="swiper-slide">
+          <img class="slide-bg" src="https://picsum.photos/id/15/2400/1600" alt="Scenic train">
+          <div class="slide-overlay">
+            <span class="slide-category"><i class="fas fa-train"></i> TRAIN & BUS</span>
+            <h2>Eco travel: coast to coast by rail</h2>
+            <p class="slide-desc">Seamless digital passes, real-time updates and the best routes.</p>
+            <button class="slide-btn">Explore routes →</button>
+          </div>
+        </div>
+        <div class="swiper-slide">
+          <img class="slide-bg" src="https://picsum.photos/id/24/2400/1600" alt="Stadium sports">
+          <div class="slide-overlay">
+            <span class="slide-category"><i class="fas fa-futbol"></i> SPORTS</span>
+            <h2>Champions League Final + NBA Live</h2>
+            <p class="slide-desc">Feel the roar of live matches, premium seats available.</p>
+            <button class="slide-btn">Book now →</button>
+          </div>
         </div>
       </div>
-      <div class="hero-visual">
-        <div class="mock-card">
-          <div class="mock-line"><span><i class="fas fa-calendar-alt"></i> Tomorrowland 2025</span> <span><strong>€129</strong></span></div>
-          <div class="mock-line"><span><i class="fas fa-plane"></i> JFK → CDG</span> <span>$489</span></div>
-          <div class="mock-line"><span><i class="fas fa-train"></i> Eurostar London→Paris</span> <span>€79</span></div>
-          <div class="mock-line"><span><i class="fas fa-futbol"></i> Champions League Final</span> <span>€210</span></div>
-          <div style="height: 2px; background:#eef2ff; margin:12px 0"></div>
-          <div style="font-size:0.8rem; color:#2563eb;"><i class="fas fa-bolt"></i> instant e-tickets · best price guarantee</div>
-        </div>
-      </div>
+      <div class="swiper-pagination"></div>
     </div>
   </div>
 
-  <!-- 4 SERVICES: EVENT TICKETS, AIRLINE, TRAIN & BUS, MOVIES & SPORTS -->
-  <div class="services-section container">
-    <h2 class="section-title">Your gateway to unforgettable moments</h2>
-    <p class="section-sub">We bring you the world's biggest music festivals, flights, rail, cinema blockbusters and thrilling matches — all in one seamless flow.</p>
-    <div class="services-grid">
-      
-      <!-- service 1: event tickets (concerts, festivals) -->
-      <div class="service-card">
-        <div class="service-icon"><i class="fas fa-music"></i></div>
-        <h3>Event Tickets</h3>
-        <p>Concerts, festivals, theater & nightlife. Get premium access to sold-out shows and VIP experiences.</p>
-        <div class="badge-list">
-          <span class="badge">Coachella</span>
-          <span class="badge">Lollapalooza</span>
-          <span class="badge">Broadway</span>
-        </div>
-        <div style="margin-top: 16px;"><i class="fas fa-check-circle" style="color:#22c55e;"></i> <span style="font-size:0.9rem;">official resale trusted</span></div>
-      </div>
+  <div class="container welcome-message">
+    <h1>One place for all your journeys & experiences.</h1>
+    <p>We're here to fill your life with joy — from last-minute concert tickets to weekend getaways and family movie nights.</p>
+  </div>
 
-      <!-- service 2: airline tickets -->
-      <div class="service-card">
-        <div class="service-icon"><i class="fas fa-plane-departure"></i></div>
-        <h3>Airline Tickets</h3>
-        <p>Compare 600+ airlines, find cheap flights, and enjoy flexible cancellations. Earn miles on every booking.</p>
-        <div class="badge-list">
-          <span class="badge">Delta</span>
-          <span class="badge">Emirates</span>
-          <span class="badge">United</span>
-        </div>
-        <div style="margin-top: 16px;"><i class="fas fa-shield-alt"></i> flight protection included</div>
-      </div>
-
-      <!-- service 3: train and bus tickets -->
-      <div class="service-card">
-        <div class="service-icon"><i class="fas fa-train"></i></div>
-        <h3>Train & Bus</h3>
-        <p>Intercity, high-speed rail and green coach travel. Compare schedules, get digital passes & real-time updates.</p>
-        <div class="badge-list">
-          <span class="badge">Amtrak</span>
-          <span class="badge">SNCF</span>
-          <span class="badge">FlixBus</span>
-          <span class="badge">Eurostar</span>
-        </div>
-        <div><i class="fas fa-map-marked-alt"></i> Smart route planner</div>
-      </div>
-
-      <!-- service 4: movies and sports -->
-      <div class="service-card">
-        <div class="service-icon"><i class="fas fa-basketball-ball"></i></div>
-        <h3>Movies & Sports</h3>
-        <p>Cinema tickets, NBA, Premier League, Grand Slam tennis — catch the action live or IMAX exclusives.</p>
-        <div class="badge-list">
-          <span class="badge">IMAX</span>
-          <span class="badge">NBA Finals</span>
-          <span class="badge">FIFA WC</span>
-        </div>
-        <div><i class="fas fa-vr-cardboard"></i> 360° stadium view</div>
-      </div>
+  <!-- ========== EVENT TICKETS SECTION ========== -->
+  <div id="events-section" class="container section-anchor">
+    <div class="category-header">
+      <h2><i class="fas fa-music" style="color: var(--mt-green);"></i> Events & Festivals</h2>
+      <a href="#">View all →</a>
+    </div>
+    <div class="event-grid">
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/29/600/510" alt="Concert"><div class="event-info"><span class="event-cat">Concert</span><div class="event-title">Coldplay: Music Of The Spheres</div><div class="event-meta"><span class="price">from $79</span><button class="book-link">Tickets</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/96/600/510" alt="Festival"><div class="event-info"><span class="event-cat">Festival</span><div class="event-title">Austin City Limits 3-Day Pass</div><div class="event-meta"><span class="price">$295</span><button class="book-link">Get pass</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/107/600/510" alt="Theatre"><div class="event-info"><span class="event-cat">Theatre</span><div class="event-title">Hamilton Broadway Week</div><div class="event-meta"><span class="price">$89+</span><button class="book-link">Book now</button></div></div></div>
     </div>
   </div>
 
-  <!-- why mtickets - extra value + modern features (scraped vibe improved) -->
-  <div class="container" style="margin-bottom: 48px;">
-    <div style="background: linear-gradient(120deg, #f1f5ff, #ffffff); border-radius: 48px; padding: 48px 32px;">
-      <div style="display: flex; flex-wrap: wrap; gap: 40px; justify-content: space-between; align-items: center;">
-        <div style="flex: 1.2;">
-          <h2 style="font-size: 1.9rem; font-weight: 700;">Why modern travelers & fans choose mtickets</h2>
-          <ul style="margin-top: 24px; list-style: none;">
-            <li style="margin-bottom: 16px;"><i class="fas fa-check-circle" style="color:#2563eb; margin-right: 12px;"></i> <strong>Smart price alerts</strong> – never overpay for flights or events</li>
-            <li style="margin-bottom: 16px;"><i class="fas fa-qrcode"></i> <strong style="margin-left: 12px;">Digital vault</strong> – all tickets stored & synced across devices</li>
-            <li style="margin-bottom: 16px;"><i class="fas fa-headset"></i> <strong style="margin-left: 12px;">24/7 concierge</strong> – real humans + AI to solve issues instantly</li>
-            <li><i class="fas fa-globe"></i> <strong style="margin-left: 12px;">Global inventory</strong> – 150+ countries, 12k+ venues & partners</li>
-          </ul>
-        </div>
-        <div style="flex: 0.9; text-align: center;">
-          <i class="fas fa-chart-line" style="font-size: 5rem; color: #2563eb; opacity: 0.7;"></i>
-          <p style="margin-top: 12px; font-weight: 500;">⭐ 4.8/5 from 34k+ reviews</p>
-        </div>
-      </div>
+  <!-- ========== AIRLINE TICKETS SECTION ========== -->
+  <div id="airline-section" class="container section-anchor">
+    <div class="category-header">
+      <h2><i class="fas fa-plane-departure" style="color: var(--mt-green);"></i> Airline Tickets</h2>
+      <a href="#">View all →</a>
+    </div>
+    <div class="event-grid">
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/122/600/510" alt="Flight NYC"><div class="event-info"><span class="event-cat">International</span><div class="event-title">NYC → Tokyo | Japan Airlines</div><div class="event-meta"><span class="price">$689*</span><button class="book-link">Book flight</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/127/600/510" alt="Flight Europe"><div class="event-info"><span class="event-cat">European routes</span><div class="event-title">London → Paris | British Airways</div><div class="event-meta"><span class="price">€89</span><button class="book-link">Reserve</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/20/600/510" alt="Flight deal"><div class="event-info"><span class="event-cat">Deal</span><div class="event-title">LAX → Miami | Round trip $129</div><div class="event-meta"><span class="price">$129</span><button class="book-link">Grab</button></div></div></div>
     </div>
   </div>
 
-  <!-- quick how it works (seamless booking) -->
-  <div class="steps">
-    <div class="container">
-      <h2 class="section-title">Book in seconds, enjoy in real life</h2>
-      <p class="section-sub">From search to e-ticket, mtickets makes it effortless</p>
-      <div class="steps-flex">
-        <div class="step-item"><div class="step-number">1</div><h4>Search & compare</h4><p>Filter by date, price, category</p></div>
-        <div class="step-item"><div class="step-number">2</div><h4>Secure checkout</h4><p>Apple Pay, card, PayPal</p></div>
-        <div class="step-item"><div class="step-number">3</div><h4>Instant delivery</h4><p>QR or NFC tickets on the fly</p></div>
-        <div class="step-item"><div class="step-number">4</div><h4>Enjoy & save</h4><p>Earn mtickets points for next trip</p></div>
-      </div>
+  <!-- ========== TRAIN & BUS SECTION ========== -->
+  <div id="trainbus-section" class="container section-anchor">
+    <div class="category-header">
+      <h2><i class="fas fa-train" style="color: var(--mt-green);"></i> Train & Bus Travel</h2>
+      <a href="#">View all →</a>
+    </div>
+    <div class="event-grid">
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/121/600/510" alt="Eurostar"><div class="event-info"><span class="event-cat">High-speed rail</span><div class="event-title">Eurostar London → Paris</div><div class="event-meta"><span class="price">€49</span><button class="book-link">Reserve seat</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/111/600/510" alt="Bus"><div class="event-info"><span class="event-cat">Green travel</span><div class="event-title">FlixBus: Berlin → Amsterdam</div><div class="event-meta"><span class="price">€24</span><button class="book-link">Book bus</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/58/600/510" alt="Amtrak"><div class="event-info"><span class="event-cat">Scenic route</span><div class="event-title">Amtrak California Zephyr</div><div class="event-meta"><span class="price">$142</span><button class="book-link">Reserve</button></div></div></div>
     </div>
   </div>
 
-  <!-- large featured products / dynamic scraping section – shows actual categories we 'scrape' info from current mtickets.com (demo) -->
-  <div class="container">
-    <div style="margin: 72px 0 40px;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap;">
-        <h2 style="font-size: 1.8rem; font-weight: 700;">🔥 Trending picks (live from mtickets)</h2>
-        <a href="#" style="color:#2563eb; font-weight: 500;">view all →</a>
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 24px; margin-top: 32px;">
-        <div style="background:white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); border:1px solid #edf2f7;">
-          <i class="fas fa-ticket-alt" style="color:#2563eb; font-size: 1.6rem;"></i>
-          <h4 style="margin: 12px 0 6px;">Coldplay · Music of the Spheres</h4>
-          <span>Event tickets from $89</span>
-        </div>
-        <div style="background:white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); border:1px solid #edf2f7;">
-          <i class="fas fa-plane"></i>
-          <h4 style="margin: 12px 0 6px;">NYC → London</h4>
-          <span>Return from $429 · Virgin & Delta</span>
-        </div>
-        <div style="background:white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); border:1px solid #edf2f7;">
-          <i class="fas fa-film"></i>
-          <h4 style="margin: 12px 0 6px;">Dune: Part Two (IMAX)</h4>
-          <span>Movies tickets, premium seats</span>
-        </div>
-        <div style="background:white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.02); border:1px solid #edf2f7;">
-          <i class="fas fa-futbol"></i>
-          <h4 style="margin: 12px 0 6px;">UEFA Champions League Final</h4>
-          <span>Sports · official hospitality</span>
-        </div>
-      </div>
+  <!-- ========== SPORTS SECTION ========== -->
+  <div id="sports-section" class="container section-anchor">
+    <div class="category-header">
+      <h2><i class="fas fa-basketball-ball" style="color: var(--mt-green);"></i> Sports Events</h2>
+      <a href="#">View all →</a>
+    </div>
+    <div class="event-grid">
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/124/600/510" alt="NBA"><div class="event-info"><span class="event-cat">Basketball</span><div class="event-title">NBA Finals: Lakers vs Celtics</div><div class="event-meta"><span class="price">$210+</span><button class="book-link">Get tickets</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/131/600/510" alt="Soccer"><div class="event-info"><span class="event-cat">Football</span><div class="event-title">UEFA Champions League Final</div><div class="event-meta"><span class="price">€159</span><button class="book-link">Hospitality</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/130/600/510" alt="Tennis"><div class="event-info"><span class="event-cat">Grand Slam</span><div class="event-title">Wimbledon 2025 Centre Court</div><div class="event-meta"><span class="price">£89</span><button class="book-link">Book</button></div></div></div>
     </div>
   </div>
 
-  <!-- CTA section final -->
+  <!-- ========== STREAM (CINEMA / LIVE STREAM) SECTION ========== -->
+  <div id="stream-section" class="container section-anchor">
+    <div class="category-header">
+      <h2><i class="fas fa-film" style="color: var(--mt-green);"></i> Movies & Stream</h2>
+      <a href="#">View all →</a>
+    </div>
+    <div class="event-grid">
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/42/600/510" alt="IMAX"><div class="event-info"><span class="event-cat">IMAX</span><div class="event-title">Dune: Part Two · Premium Laser</div><div class="event-meta"><span class="price">$22.50</span><button class="book-link">Pick seat</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/90/600/510" alt="Stream"><div class="event-info"><span class="event-cat">Live stream</span><div class="event-title">Global Citizen Festival HD</div><div class="event-meta"><span class="price">$14.99</span><button class="book-link">Stream now</button></div></div></div>
+      <div class="event-card"><img class="event-img" src="https://picsum.photos/id/38/600/510" alt="Theatre"><div class="event-info"><span class="event-cat">Ballet</span><div class="event-title">The Nutcracker Live Recording</div><div class="event-meta"><span class="price">$19</span><button class="book-link">Rent</button></div></div></div>
+    </div>
+  </div>
+
+  <!-- Customer values -->
+  <div class="container customer-values">
+    <div class="value-item"><div class="value-icon"><i class="fas fa-heart"></i></div><h3>For you, not for bots</h3><p>Real humans + smart AI 24/7</p></div>
+    <div class="value-item"><div class="value-icon"><i class="fas fa-wallet"></i></div><h3>Price promise</h3><p>Best price or refund difference</p></div>
+    <div class="value-item"><div class="value-icon"><i class="fas fa-mobile-alt"></i></div><h3>All tickets in one app</h3><p>Digital vault + offline access</p></div>
+    <div class="value-item"><div class="value-icon"><i class="fas fa-gem"></i></div><h3>Earn mtickets rewards</h3><p>Points for free upgrades</p></div>
+  </div>
+
+  <!-- Trusted Logos -->
+  <div class="container trusted-logos">
+    <h4>Trusted by the world's best creators & partners</h4>
+    <div class="logo-grid">
+      <div class="brand-logo-item"><i class="fab fa-airbnb"></i><span>Airbnb</span></div>
+      <div class="brand-logo-item"><i class="fab fa-stripe"></i><span>Stripe</span></div>
+      <div class="brand-logo-item"><i class="fas fa-futbol"></i><span>UEFA</span></div>
+      <div class="brand-logo-item"><i class="fas fa-train"></i><span>SNCF</span></div>
+      <div class="brand-logo-item"><i class="fas fa-film"></i><span>IMAX</span></div>
+      <div class="brand-logo-item"><i class="fas fa-music"></i><span>Live Nation</span></div>
+    </div>
+  </div>
+
+  <!-- CTA -->
   <div class="container">
     <div class="cta-section">
-      <h2>Ready to explore more?</h2>
-      <p style="font-size: 1.1rem; margin-bottom: 8px;">Join millions of users who book smarter with mtickets.</p>
-      <button class="btn-primary" style="background:#fff; color:#0f172a; box-shadow: none;"><i class="fas fa-arrow-right"></i> Get started – it's free</button>
-      <div style="margin-top: 24px; font-size: 0.85rem;">No booking fees on selected events & travel 🎉</div>
+      <h2>Ready to make memories?</h2>
+      <p style="font-size: 1.1rem; margin-top: 8px;">Join millions of happy fans & travelers — mtickets puts you first.</p>
+      <button class="btn-cta"><i class="fas fa-smile-wink"></i> Start exploring for free</button>
+      <div style="margin-top: 20px; font-size: 0.85rem;">Zero hidden fees on thousands of events + 5% back in mtickets points</div>
     </div>
   </div>
 </main>
@@ -549,19 +644,39 @@
 <footer>
   <div class="container">
     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
-      <div>© 2025 mtickets.com — reimagined ticketing ecosystem</div>
+      <div>© 2025 mtickets — designed for you, powered by passion</div>
       <div style="display: flex; gap: 24px;">
-        <a href="#" style="color: #4b5563;"><i class="fab fa-twitter"></i></a>
-        <a href="#" style="color: #4b5563;"><i class="fab fa-instagram"></i></a>
-        <a href="#" style="color: #4b5563;"><i class="fab fa-linkedin"></i></a>
+        <a href="#" style="color: #6e8b6e;"><i class="fab fa-twitter"></i></a>
+        <a href="#" style="color: #6e8b6e;"><i class="fab fa-instagram"></i></a>
+        <a href="#" style="color: #6e8b6e;"><i class="fab fa-tiktok"></i></a>
       </div>
     </div>
-    <div style="margin-top: 28px; font-size: 0.75rem; border-top: 1px solid #eef2ff; padding-top: 24px;">
-      <p>Inspired by mtickets' original categories: event tickets, airline tickets, train & bus tickets, movies & sports tickets. A modernized concept showcasing seamless multi-sector booking experience.</p>
+    <div style="margin-top: 28px; font-size: 0.75rem; border-top: 1px solid #ecf5ea; padding-top: 24px;">
+      <p>Your experiences matter — mtickets seamlessly combines event tickets, airline tickets, train & bus journeys, movies & sports for a truly customer-first ecosystem.</p>
     </div>
   </div>
 </footer>
 
-<!-- subtle interactive hover / demo note: no dynamic backend but smooth ui -->
+<script>
+  // Swiper with autoplay, no arrows
+  const swiper = new Swiper('.mySwiper', {
+    loop: true,
+    autoplay: { delay: 6000, disableOnInteraction: false },
+    pagination: { el: '.swiper-pagination', clickable: true },
+    speed: 1000,
+  });
+
+  // smooth click handling for nav links (already smooth via css scroll-behavior)
+  // but also add demo alert for booking
+  const btns = document.querySelectorAll('.book-link, .slide-btn, .btn-cta, .glass-btn');
+  btns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      if(btn.classList.contains('glass-btn') || btn.classList.contains('book-link') || btn.classList.contains('slide-btn') || btn.classList.contains('btn-cta')) {
+        e.preventDefault();
+        alert("✨ Welcome to mtickets! Your adventure awaits — secure checkout, best price guarantee.");
+      }
+    });
+  });
+</script>
 </body>
 </html>
