@@ -21,10 +21,10 @@ class SecurityController extends Controller
         
         // Get security logs based on role
         if ($user->hasAnyRole(['super_admin', 'admin', 'security'])) {
-            $logs = SecurityLog::with(['unit', 'visitor'])
+            $accessLogs = SecurityLog::with(['unit', 'visitor'])
                 ->latest('access_time')
-                ->paginate(20);
-                
+                ->get(); // Changed from paginate to get
+            
             $pendingLogs = SecurityLog::where('status', 'pending')
                 ->with(['unit', 'visitor'])
                 ->latest('access_time')
@@ -37,10 +37,10 @@ class SecurityController extends Controller
         } else if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
             // Tenants only see logs for their unit
             $unitId = $user->tenant->activeTenancy->unit_id;
-            $logs = SecurityLog::where('unit_id', $unitId)
+            $accessLogs = SecurityLog::where('unit_id', $unitId)
                 ->with(['unit', 'visitor'])
                 ->latest('access_time')
-                ->paginate(20);
+                ->get();
                 
             $pendingLogs = collect();
             $todayLogs = SecurityLog::where('unit_id', $unitId)
@@ -49,12 +49,20 @@ class SecurityController extends Controller
                 ->latest('access_time')
                 ->get();
         } else {
-            $logs = collect();
+            $accessLogs = collect();
             $pendingLogs = collect();
             $todayLogs = collect();
         }
         
-        return view('security.dashboard', compact('logs', 'pendingLogs', 'todayLogs', 'units'));
+        // Create the roleData array that your view expects
+        $roleData = [
+            'accessLogs' => $accessLogs,
+            'pendingLogs' => $pendingLogs,
+            'todayLogs' => $todayLogs,
+            'units' => $units,
+        ];
+        
+        return view('partials.dashboard.security', compact('roleData'));
     }
     
     // Get single security log (API)
