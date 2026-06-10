@@ -1,5 +1,5 @@
 <?php
-// app/Models/InvoiceItem.php
+// app/Modules/Payments/Models/InvoiceItem.php
 
 namespace App\Modules\Payments\Models;
 
@@ -37,6 +37,44 @@ class InvoiceItem extends Model
     public function payment()
     {
         return $this->belongsTo(Payment::class, 'payment_id');
+    }
+    
+    /**
+     * Get the remaining amount for this item
+     */
+    public function getRemainingAmountAttribute(): float
+    {
+        return max(0, $this->amount - ($this->paid_amount ?? 0));
+    }
+    
+    /**
+     * Check if item is fully paid
+     */
+    public function isFullyPaid(): bool
+    {
+        return ($this->paid_amount ?? 0) >= $this->amount;
+    }
+    
+    /**
+     * Get payment percentage
+     */
+    public function getPaymentPercentageAttribute(): float
+    {
+        if ($this->amount <= 0) return 100;
+        return min(100, (($this->paid_amount ?? 0) / $this->amount) * 100);
+    }
+    
+    /**
+     * Record a payment against this item
+     */
+    public function recordPayment(float $amount, int $paymentId): bool
+    {
+        $newPaid = ($this->paid_amount ?? 0) + $amount;
+        $this->paid_amount = min($newPaid, $this->amount);
+        $this->payment_id = $paymentId;
+        $this->save();
+        
+        return $this->isFullyPaid();
     }
     
     /**
@@ -89,21 +127,5 @@ class InvoiceItem extends Model
     public function isServiceCharge()
     {
         return in_array($this->item_type, ['security', 'garbage', 'service']);
-    }
-    
-    /**
-     * Get outstanding amount
-     */
-    public function getOutstandingAttribute()
-    {
-        return $this->amount - ($this->paid_amount ?? 0);
-    }
-    
-    /**
-     * Check if item is fully paid
-     */
-    public function isFullyPaid()
-    {
-        return ($this->paid_amount ?? 0) >= $this->amount;
     }
 }

@@ -1,5 +1,5 @@
 <?php
-// app/Models/Invoice.php
+// app/Modules/Payments/Models/Invoice.php
 
 namespace App\Modules\Payments\Models;
 
@@ -16,6 +16,7 @@ class Invoice extends Model
      */
     protected $fillable = [
         'tenancy_id',
+        'invoice_number',
         'invoice_type',
         'billing_month',
         'total_amount',
@@ -35,32 +36,59 @@ class Invoice extends Model
     /**
      * Relationships
      */
-
-    // Invoice belongs to a tenancy
     public function tenancy()
     {
         return $this->belongsTo(Tenancy::class);
     }
 
-    // Invoice has many items
     public function items()
     {
         return $this->hasMany(InvoiceItem::class);
     }
 
-    // Invoice has many payments
     public function payments()
     {
         return $this->hasMany(Payment::class);
     }
 
-    public function getRemainingAmountAttribute()
+    /**
+     * Get remaining amount to be paid
+     */
+    public function getRemainingAmountAttribute(): float
     {
         $paidAmount = $this->total_paid ?? 0;
         return max(0, $this->total_amount - $paidAmount);
     }
+    
+    /**
+     * Get payment percentage
+     */
+    public function getPaymentPercentageAttribute(): float
+    {
+        if ($this->total_amount <= 0) return 100;
+        return min(100, (($this->total_paid ?? 0) / $this->total_amount) * 100);
+    }
+    
+    /**
+     * Check if invoice is fully paid
+     */
+    public function isFullyPaid(): bool
+    {
+        return $this->remaining_amount <= 0;
+    }
+    
+    /**
+     * Check if invoice has partial payment
+     */
+    public function hasPartialPayment(): bool
+    {
+        return ($this->total_paid ?? 0) > 0 && !$this->isFullyPaid();
+    }
 
-    public function updateStatus()
+    /**
+     * Update invoice status based on payment
+     */
+    public function updateStatus(): self
     {
         $totalPaid = $this->total_paid ?? 0;
         
@@ -72,7 +100,7 @@ class Invoice extends Model
             $this->status = 'unpaid';
         }
         
-        $this->save();
+        $this->saveQuietly(); // Save without triggering events
         return $this;
     }
 }

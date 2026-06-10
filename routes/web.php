@@ -259,53 +259,55 @@ Route::middleware('auth')->group(function () {
     // Tenant/Customer Wallet Routes
     Route::prefix('wallet')->name('wallet.')->group(function () {
         // Main wallet view
-        Route::get('/', [WalletController::class, 'index'])->name('index');
+        Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         
         // Balance operations
-        Route::get('/balance', [WalletController::class, 'getBalance'])->name('balance');
-        Route::post('/deposit', [WalletController::class, 'deposit'])->name('deposit');
-        Route::post('/withdraw', [WalletController::class, 'withdraw'])->name('withdraw');
+        Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'getBalance'])->name('balance');
+        Route::post('/deposit', [App\Modules\Payments\Controllers\WalletController::class, 'deposit'])->name('deposit');
+        Route::post('/withdraw', [App\Modules\Payments\Controllers\WalletController::class, 'withdraw'])->name('withdraw');
         
         // Transfer operations
-        Route::post('/transfer', [WalletController::class, 'transfer'])->name('transfer');
-        Route::get('/transfer/verify/{reference}', [WalletController::class, 'verifyTransfer'])->name('transfer.verify');
+        Route::post('/transfer', [App\Modules\Payments\Controllers\WalletController::class, 'transfer'])->name('transfer');
+        Route::get('/transfer/verify/{reference}', [App\Modules\Payments\Controllers\WalletController::class, 'verifyTransfer'])->name('transfer.verify');
         
         // Payment operations
-        Route::post('/pay-invoice/{invoice}', [WalletController::class, 'payInvoice'])->name('pay-invoice');
-        Route::post('/pay-multiple', [WalletController::class, 'payMultipleInvoices'])->name('pay-multiple');
+        Route::post('/pay-invoice/{invoice}', [App\Modules\Payments\Controllers\WalletController::class, 'payInvoice'])->name('pay-invoice');
+        Route::post('/pay-multiple', [App\Modules\Payments\Controllers\WalletController::class, 'payMultipleInvoices'])->name('pay-multiple');
         
         // Transaction history
-        Route::get('/transactions', [WalletController::class, 'transactions'])->name('transactions');
-        Route::get('/transactions/export', [WalletController::class, 'exportTransactions'])->name('transactions.export');
+        Route::get('/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'transactions'])->name('transactions');
+        Route::get('/transactions/export', [App\Modules\Payments\Controllers\WalletController::class, 'exportTransactions'])->name('transactions.export');
         
         // Statements
-        Route::get('/statement', [WalletController::class, 'statement'])->name('statement');
-        Route::get('/statement/pdf', [WalletController::class, 'downloadStatement'])->name('statement.pdf');
+        Route::get('/statement', [App\Modules\Payments\Controllers\WalletController::class, 'statement'])->name('statement');
+        Route::get('/statement/pdf', [App\Modules\Payments\Controllers\WalletController::class, 'downloadStatement'])->name('statement.pdf');
         
         // Funding sources
-        Route::get('/funding-sources', [WalletController::class, 'fundingSources'])->name('funding-sources');
-        Route::post('/funding-sources', [WalletController::class, 'addFundingSource'])->name('funding-sources.add');
-        Route::delete('/funding-sources/{source}', [WalletController::class, 'removeFundingSource'])->name('funding-sources.remove');
-        Route::put('/funding-sources/{source}/default', [WalletController::class, 'setDefaultSource'])->name('funding-sources.default');
+        Route::get('/funding-sources', [App\Modules\Payments\Controllers\WalletController::class, 'fundingSources'])->name('funding-sources');
+        Route::post('/funding-sources', [App\Modules\Payments\Controllers\WalletController::class, 'addFundingSource'])->name('funding-sources.add');
+        Route::delete('/funding-sources/{source}', [App\Modules\Payments\Controllers\WalletController::class, 'removeFundingSource'])->name('funding-sources.remove');
+        Route::put('/funding-sources/{source}/default', [App\Modules\Payments\Controllers\WalletController::class, 'setDefaultSource'])->name('funding-sources.default');
         
         // Cards management
-        Route::get('/cards', [WalletController::class, 'cards'])->name('cards');
-        Route::post('/cards', [WalletController::class, 'addCard'])->name('cards.add');
-        Route::delete('/cards/{card}', [WalletController::class, 'removeCard'])->name('cards.remove');
-        Route::put('/cards/{card}/default', [WalletController::class, 'setDefaultCard'])->name('cards.default');
+        Route::get('/cards', [App\Modules\Payments\Controllers\WalletController::class, 'cards'])->name('cards');
+        Route::post('/cards', [App\Modules\Payments\Controllers\WalletController::class, 'addCard'])->name('cards.add');
+        Route::delete('/cards/{card}', [App\Modules\Payments\Controllers\WalletController::class, 'removeCard'])->name('cards.remove');
+        Route::put('/cards/{card}/default', [App\Modules\Payments\Controllers\WalletController::class, 'setDefaultCard'])->name('cards.default');
         
         // Notifications
-        Route::post('/notifications/read', [WalletController::class, 'markNotificationsRead'])->name('notifications.read');
+        Route::post('/notifications/read', [App\Modules\Payments\Controllers\WalletController::class, 'markNotificationsRead'])->name('notifications.read');
     });
     
-    // API Routes for AJAX calls (Wallet)
     Route::prefix('api/wallet')->name('api.wallet.')->group(function () {
-        Route::get('/balance', [WalletController::class, 'apiGetBalance'])->name('balance');
-        Route::get('/transactions', [WalletController::class, 'apiGetTransactions'])->name('transactions');
-        Route::get('/statement', [WalletController::class, 'apiGetStatement'])->name('statement');
-        Route::post('/deposit', [WalletController::class, 'apiDeposit'])->name('deposit');
-        Route::post('/transfer', [WalletController::class, 'apiTransfer'])->name('transfer');
-        Route::post('/verify-pin', [WalletController::class, 'verifyPin'])->name('verify-pin');
+        Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetBalance'])->name('balance');
+        Route::get('/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTransactions'])->name('transactions');
+        Route::get('/statement', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetStatement'])->name('statement');
+        Route::post('/deposit', [App\Modules\Payments\Controllers\WalletController::class, 'apiDeposit'])->name('deposit');
+        Route::post('/transfer', [App\Modules\Payments\Controllers\WalletController::class, 'apiTransfer'])->name('transfer');
+        Route::post('/verify-pin', [App\Modules\Payments\Controllers\WalletController::class, 'verifyPin'])->name('verify-pin');
+        Route::post('/pay-invoice/{invoice}', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayInvoice'])->name('pay-invoice');
+        Route::post('/pay-multiple', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayMultipleInvoices'])->name('pay-multiple');
+        Route::get('/invoice/{invoice}/details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetInvoiceDetails'])->name('invoice.details');
     });
 
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');
@@ -398,6 +400,8 @@ Route::middleware('auth')->group(function () {
     });
 
 });
+
+
 
 
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');

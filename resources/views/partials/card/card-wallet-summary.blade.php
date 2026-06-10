@@ -604,6 +604,199 @@ function walletComponent() {
             }
         },
 
+
+        async payWithWallet(invoiceId, amount) {
+            this.loading = true;
+            this.formErrors = [];
+            
+            try {
+                const response = await fetch(`/api/wallet/pay-invoice/${invoiceId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ amount: amount })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update wallet balance
+                    this.walletBalance = result.data.new_balance;
+                    
+                    // Update the UI balance display
+                    this.updateBalanceDisplay();
+                    
+                    // Refresh transactions
+                    await this.loadTransactions();
+                    
+                    // Refresh stats
+                    this.updateStats();
+                    
+                    // Show success message
+                    this.showNotification('success', result.message);
+                    
+                    // Dispatch event for invoice list to update
+                    window.dispatchEvent(new CustomEvent('wallet-payment-completed', { 
+                        detail: result.data 
+                    }));
+                    
+                    return { success: true, data: result.data };
+                } else {
+                    this.formErrors = [result.error];
+                    this.showNotification('error', result.error);
+                    return { success: false, error: result.error };
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                this.formErrors = ['An error occurred. Please try again.'];
+                this.showNotification('error', 'An error occurred. Please try again.');
+                return { success: false, error: error.message };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async processDeposit(amount, paymentMethod, phoneNumber = null, reference = null) {
+            this.loading = true;
+            this.formErrors = [];
+            
+            try {
+                const payload = {
+                    amount: amount,
+                    payment_method: paymentMethod,
+                    reference: reference
+                };
+                
+                if (paymentMethod === 'mpesa' && phoneNumber) {
+                    payload.phone_number = phoneNumber;
+                }
+                
+                const response = await fetch('/api/wallet/deposit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.walletBalance = result.data.new_balance;
+                    this.updateBalanceDisplay();
+                    await this.loadTransactions();
+                    this.showNotification('success', result.message);
+                    return { success: true, data: result.data };
+                } else {
+                    this.formErrors = [result.error];
+                    this.showNotification('error', result.error);
+                    return { success: false, error: result.error };
+                }
+            } catch (error) {
+                console.error('Deposit error:', error);
+                this.formErrors = ['An error occurred. Please try again.'];
+                this.showNotification('error', 'An error occurred. Please try again.');
+                return { success: false, error: error.message };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async processTransfer(recipientEmail, amount, description, pin) {
+            this.loading = true;
+            this.formErrors = [];
+            
+            try {
+                const response = await fetch('/api/wallet/transfer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        recipient_email: recipientEmail,
+                        amount: amount,
+                        description: description,
+                        pin: pin
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.walletBalance = result.data.new_balance;
+                    this.updateBalanceDisplay();
+                    await this.loadTransactions();
+                    this.showNotification('success', result.message);
+                    return { success: true, data: result.data };
+                } else {
+                    this.formErrors = [result.error];
+                    this.showNotification('error', result.error);
+                    return { success: false, error: result.error };
+                }
+            } catch (error) {
+                console.error('Transfer error:', error);
+                this.formErrors = ['An error occurred. Please try again.'];
+                this.showNotification('error', 'An error occurred. Please try again.');
+                return { success: false, error: error.message };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        updateBalanceDisplay() {
+            // Update the balance display elements
+            const balanceElements = document.querySelectorAll('[data-wallet-balance]');
+            balanceElements.forEach(el => {
+                el.textContent = this.formatNumber(this.walletBalance);
+            });
+            
+            // Update any other balance displays
+            const formattedBalance = this.selectedCurrency + ' ' + this.formatNumber(this.walletBalance);
+            const formattedElements = document.querySelectorAll('[data-wallet-balance-formatted]');
+            formattedElements.forEach(el => {
+                el.textContent = formattedBalance;
+            });
+        },
+
+        showNotification(type, message) {
+            // Create a toast notification
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-6 py-3 text-white shadow-lg transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            }`;
+            toast.innerHTML = `
+                <div class="flex items-center gap-3">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                            d="${type === 'success' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}"/>
+                    </svg>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        },
+
+        async refreshWalletData() {
+            await Promise.all([
+                this.loadWalletData(),
+                this.loadTransactions()
+            ]);
+            this.updateStats();
+        },
+
         convertAmount(amount) {
             return amount * (this.exchangeRates[this.selectedCurrency] || 1);
         },
