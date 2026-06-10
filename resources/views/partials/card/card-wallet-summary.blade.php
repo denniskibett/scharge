@@ -45,8 +45,8 @@
                                 </div>
                             </div>
 
-                            {{-- Period Dropdown with Flatpickr --}}
-                            <div x-data="{ openDate: false, selectedDate: 'June 2025' }" @click.outside="openDate = false"
+                            {{-- Period Dropdown --}}
+                            <div x-data="{ openDate: false, selectedDate: 'This Month' }" @click.outside="openDate = false"
                                 class="relative">
                                 <button @click="openDate = !openDate"
                                     class="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-2.5 text-sm font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
@@ -58,9 +58,9 @@
                                     </svg>
                                 </button>
                                 <div x-show="openDate"
-                                    class="absolute right-0 z-50 mt-1.5 w-38 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                                    class="absolute right-0 z-50 mt-1.5 w-40 rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg dark:border-gray-700 dark:bg-gray-900">
                                     <template x-for="period in periods" :key="period">
-                                        <button @click="selectedDate = period; openDate = false"
+                                        <button @click="selectedDate = period; openDate = false; loadTransactionsByPeriod(period)"
                                             class="w-full rounded-lg px-2.5 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/5">
                                             <span x-text="period"></span>
                                         </button>
@@ -75,7 +75,7 @@
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Total Balance</p>
                             <h3 class="mt-1 text-3xl font-medium text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertedBalance)"></span>
+                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(walletBalance)"></span>
                             </h3>
                             <p class="mt-2 flex items-center gap-1.5 text-sm font-normal text-gray-500 dark:text-gray-400">
                                 <span class="text-success-600 flex items-center gap-1 font-medium">
@@ -85,41 +85,41 @@
                                     </svg>
                                     <span x-text="balanceChange"></span>%
                                 </span>
-                                than last month
+                                from last month
                             </p>
                         </div>
                         <div class="ml-auto w-25 sm:w-[150px]">
-                            <div id="wallet-spark-chart"></div>
+                            <canvas id="wallet-spark-chart" width="150" height="40" class="w-full"></canvas>
                         </div>
                     </div>
 
                     {{-- Expense Breakdown --}}
                     <div class="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
                         <div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Spent</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Total Spent</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertedSpent)"></span>
+                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(totalSpent)"></span>
                             </p>
                             <span class="text-success-600 text-xs">+2.5%</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Rent</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertedRent)"></span>
+                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(rentSpent)"></span>
                             </p>
                             <span class="text-error-600 text-xs">-0%</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Water Bill</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertedWater)"></span>
+                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(waterSpent)"></span>
                             </p>
                             <span class="text-error-600 text-xs">+5%</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Electricity</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertedElectricity)"></span>
+                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(electricitySpent)"></span>
                             </p>
                             <span class="text-success-600 text-xs">-12%</span>
                         </div>
@@ -130,10 +130,10 @@
                         <p class="shrink-0 text-sm text-gray-700 dark:text-gray-400">Primary Account:</p>
                         <div class="flex flex-wrap items-center gap-2">
                             <p class="shrink-0 text-lg font-medium text-gray-700 dark:text-gray-400">
-                                •••• •••• •••• 5332
+                                •••• •••• •••• {{ $walletNumber ?? '5332' }}
                             </p>
                             <div x-data="{ copied: false }" class="shrink-0">
-                                <button @click="copied = true; navigator.clipboard.writeText('•••• •••• •••• 5332'); setTimeout(() => copied = false, 2000)"
+                                <button @click="copied = true; navigator.clipboard.writeText('{{ $walletNumber ?? '•••• •••• •••• 5332' }}'); setTimeout(() => copied = false, 2000)"
                                     class="relative flex h-8 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                                     <svg x-show="!copied" width="20" height="20" fill="none" viewBox="0 0 20 20">
                                         <path d="M14.1559 14.1628H7.08724C6.39688 14.1628 5.83724 13.6032 5.83724 12.9128V5.84416M14.1559 14.1628V15.4161C14.1559 16.1065 13.5963 16.6661 12.9059 16.6661H4.58398C3.89363 16.6661 3.33398 16.1065 3.33398 15.4161V7.09416C3.33398 6.4038 3.89363 5.84416 4.58398 5.84416H5.83724M14.1559 14.1628H15.4144C16.1048 14.1628 16.6644 13.6032 16.6644 12.9128V4.58398C16.6644 3.89363 16.1048 3.33398 15.4144 3.33398H7.08724C6.39688 3.33398 5.83724 3.89363 5.83724 4.58398V5.84416"
@@ -308,7 +308,7 @@
                             <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37381C3.04199 5.87712 5.87735 3.04218 9.37533 3.04218C12.8733 3.04218 15.7087 5.87712 15.7087 9.37381C15.7087 12.8705 12.8733 15.7055 9.37533 15.7055C5.87735 15.7055 3.04199 12.8705 3.04199 9.37381ZM9.37533 1.54218C5.04926 1.54218 1.54199 5.04835 1.54199 9.37381C1.54199 13.6993 5.04926 17.2055 9.37533 17.2055C11.2676 17.2055 13.0032 16.5346 14.3572 15.4178L17.1773 18.2381C17.4702 18.531 17.945 18.5311 18.2379 18.2382C18.5308 17.9453 18.5309 17.4704 18.238 17.1775L15.4182 14.3575C16.5367 13.0035 17.2087 11.2671 17.2087 9.37381C17.2087 5.04835 13.7014 1.54218 9.37533 1.54218Z" fill=""/>
                         </svg>
                     </span>
-                    <input type="text" x-model="searchQuery" placeholder="Search transactions..."
+                    <input type="text" x-model="searchQuery" @input="filterTransactions" placeholder="Search transactions..."
                         class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-10 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-[42px] text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                 </div>
                 <button @click="openStatementModal"
@@ -332,7 +332,7 @@
                             <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Description</span>
                         </th>
                         <th class="px-6 py-3 text-left whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Category</span>
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Type</span>
                         </th>
                         <th class="px-6 py-3 text-left whitespace-nowrap">
                             <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Date</span>
@@ -349,7 +349,7 @@
                     <template x-for="transaction in paginatedTransactions" :key="transaction.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id.toString().padStart(6, '0')"></span>
+                                <span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id"></span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
@@ -359,32 +359,30 @@
                                         </svg>
                                     </div>
                                     <div>
-                                        <p class="text-theme-sm font-medium text-gray-800 dark:text-white/90" x-text="transaction.title"></p>
-                                        <p class="text-theme-xs text-gray-500 dark:text-gray-400" x-text="transaction.description"></p>
+                                        <p class="text-theme-sm font-medium text-gray-800 dark:text-white/90" x-text="transaction.description || transaction.type"></p>
+                                        <p class="text-theme-xs text-gray-500 dark:text-gray-400" x-text="transaction.meta?.description || ''"></p>
                                     </div>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="getCategoryClass(transaction.category)" x-text="transaction.category">
+                                    :class="transaction.type === 'deposit' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'"
+                                    x-text="transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'">
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="transaction.date"></span>
+                                <span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span>
                             </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap">
                                 <p class="text-theme-sm font-medium"
-                                    :class="transaction.type === 'credit' ? 'text-success-600' : 'text-error-600'">
-                                    <span x-text="transaction.type === 'credit' ? '+' : '-'"></span>
+                                    :class="transaction.type === 'deposit' ? 'text-success-600' : 'text-error-600'">
+                                    <span x-text="transaction.type === 'deposit' ? '+' : '-'"></span>
                                     <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertAmount(transaction.amount))"></span>
                                 </p>
                             </td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="transaction.status === 'completed' ? 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500' : 
-                                           (transaction.status === 'pending' ? 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-400' : 
-                                           'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500')"
-                                    x-text="transaction.status">
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500">
+                                    Completed
                                 </span>
                             </td>
                         </tr>
@@ -394,15 +392,20 @@
         </div>
 
         {{-- Empty State --}}
-        <div x-show="filteredTransactions.length === 0" class="py-12 text-center">
+        <div x-show="filteredTransactions.length === 0 && !loading" class="py-12 text-center">
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No transactions found matching your search.</p>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No transactions found.</p>
+        </div>
+
+        <div x-show="loading" class="py-12 text-center">
+            <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-brand-500 border-t-transparent"></div>
+            <p class="mt-2 text-sm text-gray-500">Loading transactions...</p>
         </div>
 
         {{-- Pagination --}}
-        <div x-show="filteredTransactions.length > 0" class="flex items-center justify-between border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+        <div x-show="filteredTransactions.length > 0 && !loading" class="flex items-center justify-between border-t border-gray-100 px-6 py-4 dark:border-gray-800">
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 Showing <span x-text="((currentPage - 1) * itemsPerPage) + 1"></span> to 
                 <span x-text="Math.min(currentPage * itemsPerPage, filteredTransactions.length)"></span> of 
@@ -433,6 +436,20 @@
 <script>
 function walletComponent() {
     return {
+        // Wallet Data (from backend)
+        walletBalance: 0,
+        walletNumber: '',
+        totalSpent: 0,
+        rentSpent: 0,
+        waterSpent: 0,
+        electricitySpent: 0,
+        balanceChange: 0,
+        
+        // Transactions
+        transactions: [],
+        filteredTransactions: [],
+        loading: false,
+        
         // Currency & Exchange Rates
         selectedCurrency: 'KES',
         exchangeRates: { USD: 0.0076, EUR: 0.0070, GBP: 0.0060, JPY: 1.18, KES: 1 },
@@ -443,62 +460,20 @@ function walletComponent() {
             { code: 'GBP', name: 'British Pound' },
             { code: 'JPY', name: 'Japanese Yen' },
         ],
-        periods: ['June 2025', 'May 2025', 'Apr 2025', 'Q1 2025', 'Last 30 Days', 'Last 7 Days'],
-
-        // Wallet Data (KES base)
-        baseBalance: 19857.00,
-        baseSpent: 3831.00,
-        baseRent: 1200.00,
-        baseWater: 85.50,
-        baseElectricity: 210.30,
-        balanceChange: 3.2,
-
-        // Cards Data - Single card per slide
-        cards: [
-            { id: 1, cardholderName: 'Musharof Chy', cardNumber: '4983', expiry: '09/29', cvc: '659', active: true, cardType: 'mastercard', bgClass: 'bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-900 dark:to-gray-950' },
-            // { id: 2, cardholderName: 'Jhon Wick', cardNumber: '1234', expiry: '12/28', cvc: '123', active: true, cardType: 'visa', bgClass: 'bg-gradient-to-br from-blue-800 to-indigo-900' },
-            // { id: 3, cardholderName: 'Adward John', cardNumber: '5678', expiry: '10/27', cvc: '987', active: false, cardType: 'mastercard', bgClass: 'bg-gradient-to-br from-gray-600 to-gray-800 dark:from-gray-700 dark:to-gray-900' }
-        ],
-
-        // Recent Transactions
-        recentTransactions: [
-            { id: 1, title: 'Payment Received', description: 'Cashback from Stellar Rewards', amount: 120.00, type: 'credit', date: 'Mar 20, 2025', category: 'Income', status: 'completed' },
-            { id: 2, title: 'Netflix Subscription', description: 'September subscription charge', amount: 36.24, type: 'debit', date: 'Sep 18, 2025', category: 'Entertainment', status: 'completed' },
-            { id: 3, title: 'Money received', description: 'Payment received via PayPal', amount: 590.00, type: 'credit', date: 'Feb 12, 2025', category: 'Income', status: 'completed' },
-            { id: 4, title: 'Google Ads', description: 'Payment received from google ads', amount: 236.24, type: 'credit', date: 'Jan 28, 2025', category: 'Income', status: 'pending' },
-            { id: 5, title: 'Money received', description: 'Payment received via PayPal', amount: 1093.00, type: 'credit', date: 'Jan 10, 2025', category: 'Income', status: 'completed' },
-            { id: 6, title: 'Electricity Bill', description: 'KPLC Monthly Payment', amount: 210.30, type: 'debit', date: 'Jan 5, 2025', category: 'Utilities', status: 'completed' },
-            { id: 7, title: 'Rent Payment', description: 'Monthly Rent - Apartment', amount: 1200.00, type: 'debit', date: 'Jan 1, 2025', category: 'Housing', status: 'completed' },
-            { id: 8, title: 'Water Bill', description: 'Nairobi Water Company', amount: 85.50, type: 'debit', date: 'Dec 28, 2024', category: 'Utilities', status: 'completed' }
-        ],
-
+        periods: ['Today', 'This Week', 'This Month', 'Last Month', 'This Quarter', 'This Year'],
+        
+        cards: @json($walletData['cards'] ?? []),
+        
         // Pagination and Search
         currentPage: 1,
         itemsPerPage: 10,
         searchQuery: '',
 
-        // Computed converted values
-        get convertedBalance() { return this.baseBalance * (this.exchangeRates[this.selectedCurrency] || 1); },
-        get convertedSpent() { return this.baseSpent * (this.exchangeRates[this.selectedCurrency] || 1); },
-        get convertedRent() { return this.baseRent * (this.exchangeRates[this.selectedCurrency] || 1); },
-        get convertedWater() { return this.baseWater * (this.exchangeRates[this.selectedCurrency] || 1); },
-        get convertedElectricity() { return this.baseElectricity * (this.exchangeRates[this.selectedCurrency] || 1); },
-
-        // Filtered transactions based on search
-        get filteredTransactions() {
-            let filtered = [...this.recentTransactions];
-            if (this.searchQuery) {
-                const query = this.searchQuery.toLowerCase();
-                filtered = filtered.filter(t => 
-                    t.title.toLowerCase().includes(query) || 
-                    t.description.toLowerCase().includes(query) ||
-                    t.category.toLowerCase().includes(query)
-                );
-            }
-            filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
-            return filtered;
+        // Computed values
+        get convertedBalance() { 
+            return this.walletBalance * (this.exchangeRates[this.selectedCurrency] || 1); 
         },
-
+        
         get totalPages() {
             return Math.ceil(this.filteredTransactions.length / this.itemsPerPage);
         },
@@ -511,17 +486,104 @@ function walletComponent() {
         init() {
             this.fetchExchangeRates();
             this.initSwiper();
-            this.initFlatpickr();
+            this.loadWalletData();
+            this.loadTransactions();
         },
-
-        getCategoryClass(category) {
-            const classes = {
-                'Income': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-                'Housing': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-                'Utilities': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-                'Entertainment': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-            };
-            return classes[category] || 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
+        
+        async loadWalletData() {
+            try {
+                const response = await fetch('/api/wallet/balance');
+                const data = await response.json();
+                if (data.success) {
+                    this.walletBalance = data.balance;
+                    this.walletNumber = data.wallet_number || '5332';
+                }
+            } catch (error) {
+                console.error('Error loading wallet data:', error);
+            }
+        },
+        
+        async loadTransactions() {
+            this.loading = true;
+            try {
+                const response = await fetch('/api/wallet/transactions?per_page=50');
+                const data = await response.json();
+                this.transactions = data.data || [];
+                this.filteredTransactions = [...this.transactions];
+                this.updateStats();
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        updateStats() {
+            // Calculate totals from transactions
+            const deposits = this.transactions.filter(t => t.type === 'deposit').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            const withdrawals = this.transactions.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            this.totalSpent = withdrawals;
+            
+            // These would come from categorized transactions in real implementation
+            this.rentSpent = 1200;
+            this.waterSpent = 85.50;
+            this.electricitySpent = 210.30;
+        },
+        
+        filterTransactions() {
+            if (!this.searchQuery) {
+                this.filteredTransactions = [...this.transactions];
+            } else {
+                const query = this.searchQuery.toLowerCase();
+                this.filteredTransactions = this.transactions.filter(t => 
+                    (t.description && t.description.toLowerCase().includes(query)) ||
+                    (t.type && t.type.toLowerCase().includes(query)) ||
+                    (t.meta?.description && t.meta.description.toLowerCase().includes(query))
+                );
+            }
+            this.currentPage = 1;
+        },
+        
+        async loadTransactionsByPeriod(period) {
+            this.loading = true;
+            let fromDate = '';
+            const today = new Date();
+            
+            switch(period) {
+                case 'Today':
+                    fromDate = today.toISOString().split('T')[0];
+                    break;
+                case 'This Week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    fromDate = weekAgo.toISOString().split('T')[0];
+                    break;
+                case 'This Month':
+                    const monthAgo = new Date(today);
+                    monthAgo.setMonth(today.getMonth() - 1);
+                    fromDate = monthAgo.toISOString().split('T')[0];
+                    break;
+                case 'Last Month':
+                    const lastMonth = new Date(today);
+                    lastMonth.setMonth(today.getMonth() - 1);
+                    fromDate = lastMonth.toISOString().split('T')[0];
+                    break;
+                default:
+                    fromDate = '';
+            }
+            
+            try {
+                const url = `/api/wallet/transactions?per_page=100${fromDate ? `&from_date=${fromDate}` : ''}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                this.transactions = data.data || [];
+                this.filteredTransactions = [...this.transactions];
+                this.currentPage = 1;
+            } catch (error) {
+                console.error('Error loading period transactions:', error);
+            } finally {
+                this.loading = false;
+            }
         },
 
         async fetchExchangeRates() {
@@ -547,10 +609,20 @@ function walletComponent() {
         },
 
         formatNumber(value) {
-            return new Intl.NumberFormat('en-KE', {
+            return parseFloat(value || 0).toLocaleString('en-KE', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
-            }).format(value || 0);
+            });
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return '—';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-KE', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
         },
 
         initSwiper() {
@@ -575,20 +647,6 @@ function walletComponent() {
             }, 100);
         },
 
-        initFlatpickr() {
-            setTimeout(() => {
-                const dateInputs = document.querySelectorAll('.flatpickr-date');
-                if (dateInputs.length && typeof flatpickr !== 'undefined') {
-                    dateInputs.forEach(input => {
-                        flatpickr(input, {
-                            dateFormat: 'Y-m-d',
-                            allowInput: true
-                        });
-                    });
-                }
-            }, 100);
-        },
-
         prevPage() {
             if (this.currentPage > 1) {
                 this.currentPage--;
@@ -601,12 +659,22 @@ function walletComponent() {
             }
         },
 
-        // Modal Triggers
-        openDepositModal() { if (window.walletDepositModal) window.walletDepositModal.openModal(); },
-        openPaymentModal() { if (window.walletPaymentModal) window.walletPaymentModal.openModal(); },
-        openScheduleModal() { if (window.walletScheduleModal) window.walletScheduleModal.openModal(); },
-        openStatementModal() { if (window.walletStatementModal) window.walletStatementModal.openModal(); },
-        openAddCardModal() { if (window.walletAddCardModal) window.walletAddCardModal.openModal(); }
+        // Modal Triggers - these will be handled by the modal components
+        openDepositModal() { 
+            if (window.walletDepositModal) window.walletDepositModal.openModal(); 
+        },
+        openPaymentModal() { 
+            if (window.walletPaymentModal) window.walletPaymentModal.openModal(); 
+        },
+        openScheduleModal() { 
+            if (window.walletScheduleModal) window.walletScheduleModal.openModal(); 
+        },
+        openStatementModal() { 
+            if (window.walletStatementModal) window.walletStatementModal.openModal(); 
+        },
+        openAddCardModal() { 
+            if (window.walletAddCardModal) window.walletAddCardModal.openModal(); 
+        }
     };
 }
 </script>

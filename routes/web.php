@@ -21,6 +21,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\WalletController; // Add this
 
 Route::get('/', function () {
     return view('welcome');
@@ -251,6 +252,62 @@ Route::middleware('auth')->group(function () {
         Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
     });
 
+    // =============================================
+    // WALLET MODULE ROUTES
+    // =============================================
+    
+    // Tenant/Customer Wallet Routes
+    Route::prefix('wallet')->name('wallet.')->group(function () {
+        // Main wallet view
+        Route::get('/', [WalletController::class, 'index'])->name('index');
+        
+        // Balance operations
+        Route::get('/balance', [WalletController::class, 'getBalance'])->name('balance');
+        Route::post('/deposit', [WalletController::class, 'deposit'])->name('deposit');
+        Route::post('/withdraw', [WalletController::class, 'withdraw'])->name('withdraw');
+        
+        // Transfer operations
+        Route::post('/transfer', [WalletController::class, 'transfer'])->name('transfer');
+        Route::get('/transfer/verify/{reference}', [WalletController::class, 'verifyTransfer'])->name('transfer.verify');
+        
+        // Payment operations
+        Route::post('/pay-invoice/{invoice}', [WalletController::class, 'payInvoice'])->name('pay-invoice');
+        Route::post('/pay-multiple', [WalletController::class, 'payMultipleInvoices'])->name('pay-multiple');
+        
+        // Transaction history
+        Route::get('/transactions', [WalletController::class, 'transactions'])->name('transactions');
+        Route::get('/transactions/export', [WalletController::class, 'exportTransactions'])->name('transactions.export');
+        
+        // Statements
+        Route::get('/statement', [WalletController::class, 'statement'])->name('statement');
+        Route::get('/statement/pdf', [WalletController::class, 'downloadStatement'])->name('statement.pdf');
+        
+        // Funding sources
+        Route::get('/funding-sources', [WalletController::class, 'fundingSources'])->name('funding-sources');
+        Route::post('/funding-sources', [WalletController::class, 'addFundingSource'])->name('funding-sources.add');
+        Route::delete('/funding-sources/{source}', [WalletController::class, 'removeFundingSource'])->name('funding-sources.remove');
+        Route::put('/funding-sources/{source}/default', [WalletController::class, 'setDefaultSource'])->name('funding-sources.default');
+        
+        // Cards management
+        Route::get('/cards', [WalletController::class, 'cards'])->name('cards');
+        Route::post('/cards', [WalletController::class, 'addCard'])->name('cards.add');
+        Route::delete('/cards/{card}', [WalletController::class, 'removeCard'])->name('cards.remove');
+        Route::put('/cards/{card}/default', [WalletController::class, 'setDefaultCard'])->name('cards.default');
+        
+        // Notifications
+        Route::post('/notifications/read', [WalletController::class, 'markNotificationsRead'])->name('notifications.read');
+    });
+    
+    // API Routes for AJAX calls (Wallet)
+    Route::prefix('api/wallet')->name('api.wallet.')->group(function () {
+        Route::get('/balance', [WalletController::class, 'apiGetBalance'])->name('balance');
+        Route::get('/transactions', [WalletController::class, 'apiGetTransactions'])->name('transactions');
+        Route::get('/statement', [WalletController::class, 'apiGetStatement'])->name('statement');
+        Route::post('/deposit', [WalletController::class, 'apiDeposit'])->name('deposit');
+        Route::post('/transfer', [WalletController::class, 'apiTransfer'])->name('transfer');
+        Route::post('/verify-pin', [WalletController::class, 'verifyPin'])->name('verify-pin');
+    });
+
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');
     Route::resource('maintenance', App\Http\Controllers\MaintenanceController::class);
     Route::get('/tenant/maintenance', [App\Http\Controllers\MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
@@ -321,32 +378,23 @@ Route::middleware('auth')->group(function () {
         Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
     });
 
-    
-
-    // Company Management Routes
-    Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
-        Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
-        Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
-        Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
-        Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
-        Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
-        
-        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
-        Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
-        Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
-        Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
-        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstates'])->name('estates');
-        Route::get('/{company}/subscriptions', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
-        Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
-        Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
-        Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
-    });
+    // Company Management Routes (duplicate removed)
+    // Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
+    //     // ... removed duplicate
+    // });
 
     // ========== ADMIN WALLET ROUTES ==========
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
-        Route::resource('wallets', App\Http\Controllers\Admin\WalletController::class)->except(['create', 'store']);
-        Route::get('/wallets/export', [App\Http\Controllers\Admin\WalletController::class, 'export'])->name('wallets.export');
+        // Admin wallet management
+        Route::get('/wallets', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('wallets.index');
+        Route::get('/wallets/{user}/details', [App\Modules\Payments\Controllers\WalletController::class, 'show'])->name('wallets.show');
+        Route::post('/wallets/{user}/adjust', [App\Modules\Payments\Controllers\WalletController::class, 'adjustBalance'])->name('wallets.adjust');
+        Route::post('/wallets/{user}/freeze', [App\Modules\Payments\Controllers\WalletController::class, 'freeze'])->name('wallets.freeze');
+        Route::post('/wallets/{user}/unfreeze', [App\Modules\Payments\Controllers\WalletController::class, 'unfreeze'])->name('wallets.unfreeze');
+        Route::get('/wallets/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'allTransactions'])->name('wallets.transactions');
+        Route::get('/wallets/export', [App\Modules\Payments\Controllers\WalletController::class, 'export'])->name('wallets.export');
+        Route::get('/wallets/report', [App\Modules\Payments\Controllers\WalletController::class, 'report'])->name('wallets.report');
+        Route::get('/wallet/transactions/export', [App\Modules\Payments\Controllers\WalletController::class, 'exportTransactions'])->name('tenant.wallet.transactions.export');
     });
 
 });

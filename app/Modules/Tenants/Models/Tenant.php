@@ -8,10 +8,12 @@ use App\Models\User;
 use App\Models\Tenancy;
 use App\Modules\Security\Models\SecurityLog;
 use App\Modules\Security\Models\Visitor;
+use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Interfaces\Wallet;
 
-class Tenant extends Model
+class Tenant extends Model implements Wallet
 {
-    use HasFactory;
+    use HasFactory, HasWallet;
 
     protected $fillable = [
         'user_id', 

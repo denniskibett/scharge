@@ -181,25 +181,24 @@
     @endauth
 
     <!-- SECURITY DASHBOARD -->
-<!-- SECURITY DASHBOARD -->
-@auth
-@if(auth()->user()->hasRole('security'))
-<div class="mt-6">
-    @include('partials.table.table-security', [
-        'logs' => $roleData['accessLogs'] ?? [],
-        'units' => $units ?? [],
-        'totalLogs' => ($roleData['accessLogs'] ?? collect())->count(),
-        'pendingCount' => ($roleData['pendingLogs'] ?? collect())->count(),
-        'approvedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
-            return in_array($log['status'], ['approved', 'granted']); 
-        })->count(),
-        'deniedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
-            return $log['status'] === 'denied'; 
-        })->count()
-    ])
-</div>
-@endif
-@endauth
+    @auth
+    @if(auth()->user()->hasRole('security'))
+    <div class="mt-6">
+        @include('partials.table.table-security', [
+            'logs' => $roleData['accessLogs'] ?? [],
+            'units' => $units ?? [],
+            'totalLogs' => ($roleData['accessLogs'] ?? collect())->count(),
+            'pendingCount' => ($roleData['pendingLogs'] ?? collect())->count(),
+            'approvedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
+                return in_array($log['status'], ['approved', 'granted']); 
+            })->count(),
+            'deniedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
+                return $log['status'] === 'denied'; 
+            })->count()
+        ])
+    </div>
+    @endif
+    @endauth
 
     <!-- CLEANING STAFF DASHBOARD -->
     @auth

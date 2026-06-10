@@ -194,28 +194,28 @@ document.addEventListener('alpine:init', () => {
         'charts', 'line_chart', 'bar_chart'
       ],
       'accountant': [
-        'dashboard', 'calendar', 'profile',
+        'dashboard', 'calendar',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'charts', 'line_chart', 'bar_chart'
       ],
       'meter_reader': [
-        'dashboard', 'profile',
+        'dashboard',
         'water', 'water_readings'
       ],
       'cleaning_staff': [
-        'dashboard', 'profile',
+        'dashboard',
         'maintenance'
       ],
       'maintenance': [
-        'dashboard', 'profile',
+        'dashboard',
         'maintenance'
       ],
       'security': [
-        'dashboard', 'profile',
+        'dashboard',
         'security', 'security_logs'
       ],
       'tenant': [
-        'dashboard', 'profile',
+        'dashboard',
         'finance', 'invoices', 'payments',
         'maintenance'
       ],

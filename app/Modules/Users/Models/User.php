@@ -10,11 +10,13 @@ use App\Models\Tenant;
 use App\Models\Tenancy;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\Company; // Add this
+use App\Models\Company;
+use Bavix\Wallet\Traits\HasWallet;
+use Bavix\Wallet\Interfaces\Wallet;
 
-class User extends Authenticatable
+class User extends Authenticatable implements Wallet
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasWallet;
 
     /**
      * The attributes that are mass assignable.
