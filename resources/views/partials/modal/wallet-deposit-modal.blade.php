@@ -71,9 +71,9 @@
                 {{-- ==================== STK PUSH / MANUAL ENTRY MODE ==================== --}}
                 <div x-show="inputMode === 'manual'" x-transition.duration.200ms>
 
-                    {{-- Tenant Account Details Section (Only in Manual Mode) --}}
+                    {{-- Tenant Account Details Section --}}
                     <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                        <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Your Account Details</h5>
+                        <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">👤 Your Account Details</h5>
                         <div class="grid grid-cols-2 gap-3 text-sm">
                             <div>
                                 <span class="text-gray-500 dark:text-gray-400">Tenant Name:</span>
@@ -94,8 +94,8 @@
                             <div class="col-span-2">
                                 <span class="text-gray-500 dark:text-gray-400">Wallet ID:</span>
                                 <div class="flex items-center gap-2 mt-1">
-                                    <code class="rounded bg-gray-200 px-2 py-1 text-sm font-mono dark:bg-gray-700" x-text="walletId"></code>
-                                    <button type="button" @click="copyToClipboard(walletId, 'Wallet ID')"
+                                    <code class="rounded bg-gray-200 px-2 py-1 text-sm font-mono dark:bg-gray-700" x-text="tenantDetails.wallet_id"></code>
+                                    <button type="button" @click="copyToClipboard(tenantDetails.wallet_id, 'Wallet ID')"
                                         class="text-brand-500 hover:text-brand-600 text-xs flex items-center gap-1">
                                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
@@ -177,49 +177,108 @@
                 {{-- ==================== PASTE TRANSACTION MESSAGE MODE ==================== --}}
                 <div x-show="inputMode === 'message'" x-transition.duration.200ms>
 
-                    {{-- Company Payment Details Section (Only in Message Mode) --}}
+                    {{-- Company Payment Details Section --}}
                     <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
                         <h5 class="mb-3 text-sm font-semibold text-blue-800 dark:text-blue-400">🏢 Company Payment Details</h5>
-                        <div class="grid grid-cols-2 gap-3 text-sm">
-                            <div class="col-span-2">
+                        
+                        <div class="space-y-4">
+                            <div>
                                 <span class="text-gray-600 dark:text-gray-400">Company Name:</span>
                                 <p class="font-medium text-gray-800 dark:text-white/90" x-text="companyDetails.name || 'Loading...'"></p>
                             </div>
-                            <div>
-                                <span class="text-gray-600 dark:text-gray-400">Paybill/Till Number:</span>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <code class="rounded bg-white px-2 py-1 text-sm font-mono dark:bg-gray-800" x-text="companyDetails.paybill || 'Not set'"></code>
-                                    <button type="button" @click="copyToClipboard(companyDetails.paybill, 'Paybill Number')"
-                                        x-show="companyDetails.paybill"
-                                        class="text-blue-600 hover:text-blue-700 text-xs flex items-center gap-1">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                        </svg>
-                                        Copy
-                                    </button>
+                            
+                            <!-- Payment Methods Display -->
+                            <template x-for="pm in companyDetails.payment_methods" :key="pm.id">
+                                <div class="rounded-lg bg-white p-3 dark:bg-gray-800">
+                                    <div class="flex items-center justify-between mb-2">
+                                        @verbatim
+                                        <span class="text-xs font-semibold uppercase" 
+                                            :class="pm.type === 'mobile_money' ? 'text-green-600' : 'text-blue-600'">
+                                            <span x-show="pm.type === 'mobile_money'">📱 Mobile Money (<span x-text="pm.provider || 'M-Pesa'"></span>)</span>
+                                            <span x-show="pm.type === 'bank'">🏦 Bank Transfer (<span x-text="pm.bank_name || pm.provider"></span>)</span>
+                                        </span>
+                                        @endverbatim
+                                        <span x-show="pm.is_default" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded dark:bg-blue-900/30 dark:text-blue-400">Default</span>
+                                    </div>
+                                    
+                                    <!-- Mobile Money Details -->
+                                    <div x-show="pm.type === 'mobile_money'" class="space-y-2 text-sm">
+                                        <div x-show="pm.paybill_number" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Paybill Number:</span>
+                                            <div class="flex items-center gap-2">
+                                                <code class="font-mono text-green-700 dark:text-green-400" x-text="pm.paybill_number"></code>
+                                                <button type="button" @click="copyToClipboard(pm.paybill_number, 'Paybill Number')"
+                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div x-show="pm.till_number" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Till Number:</span>
+                                            <div class="flex items-center gap-2">
+                                                <code class="font-mono text-green-700 dark:text-green-400" x-text="pm.till_number"></code>
+                                                <button type="button" @click="copyToClipboard(pm.till_number, 'Till Number')"
+                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Account Number (Unit):</span>
+                                            <div class="flex items-center gap-2">
+                                                <code class="font-mono text-green-700 dark:text-green-400" x-text="tenantDetails.unit || 'N/A'"></code>
+                                                <button type="button" @click="copyToClipboard(tenantDetails.unit, 'Account Number')"
+                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div x-show="pm.account_name" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Account Name:</span>
+                                            <span class="font-medium" x-text="pm.account_name"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Bank Transfer Details -->
+                                    <div x-show="pm.type === 'bank'" class="space-y-2 text-sm">
+                                        <div x-show="pm.bank_name" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Bank Name:</span>
+                                            <span class="font-medium" x-text="pm.bank_name"></span>
+                                        </div>
+                                        <div x-show="pm.account_number" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Account Number:</span>
+                                            <div class="flex items-center gap-2">
+                                                <code class="font-mono" x-text="pm.account_number"></code>
+                                                <button type="button" @click="copyToClipboard(pm.account_number, 'Account Number')"
+                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-gray-600">Reference (Unit):</span>
+                                            <div class="flex items-center gap-2">
+                                                <code class="font-mono" x-text="tenantDetails.unit || 'N/A'"></code>
+                                                <button type="button" @click="copyToClipboard(tenantDetails.unit, 'Reference')"
+                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
+                                            </div>
+                                        </div>
+                                        <div x-show="pm.account_name" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Account Name:</span>
+                                            <span class="font-medium" x-text="pm.account_name"></span>
+                                        </div>
+                                        <div x-show="pm.branch_name" class="flex justify-between items-center">
+                                            <span class="text-gray-600">Branch:</span>
+                                            <span x-text="pm.branch_name"></span>
+                                        </div>
+                                        <div x-show="pm.swift_code" class="flex justify-between items-center">
+                                            <span class="text-gray-600">SWIFT Code:</span>
+                                            <code class="font-mono" x-text="pm.swift_code"></code>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Instructions -->
+                                    <div x-show="pm.instructions" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                                        <p class="text-xs text-gray-500" x-text="pm.instructions"></p>
+                                    </div>
                                 </div>
+                            </template>
+                            
+                            <div x-show="companyDetails.payment_methods.length === 0" class="text-center text-gray-500 py-4">
+                                No payment methods configured for this company.
                             </div>
-                            <div>
-                                <span class="text-gray-600 dark:text-gray-400">Account Number:</span>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <code class="rounded bg-white px-2 py-1 text-sm font-mono dark:bg-gray-800" x-text="companyDetails.account_number || walletId"></code>
-                                    <button type="button" @click="copyToClipboard(companyDetails.account_number || walletId, 'Account Number')"
-                                        class="text-blue-600 hover:text-blue-700 text-xs flex items-center gap-1">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                        </svg>
-                                        Copy
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-3 rounded-lg bg-white p-2 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                            <p class="flex items-center gap-2">
-                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                <span>Use Paybill <strong x-text="companyDetails.paybill || '______'"></strong> with Account Number <strong x-text="companyDetails.account_number || walletId"></strong> to send money via M-Pesa</span>
-                            </p>
                         </div>
                     </div>
 
@@ -233,9 +292,9 @@
                             @input="parseTransactionMessage"
                             rows="5"
                             class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 font-mono"
-                            placeholder="Paste your M-Pesa or Bank transaction message here...&#10;&#10;Examples:&#10;1. UF86O6Y6B8 Confirmed. KSH. 750 sent to DANAFF PROPERTY MANAGEMENT LIMITED (7263733) for account D16-05 via MySafaricom App on 08-06-2026 18:02.&#10;2. Confirmed. KES 5,000.00 sent to John Doe for rent payment on 15/03/2024 at 10:30 AM. Transaction ID: ABC123XYZ"></textarea>
+                            placeholder="Paste your M-Pesa or Bank transaction message here...&#10;&#10;Example:&#10;UF86O6Y6B8 Confirmed. KSH. 750 sent to DANAFF PROPERTY MANAGEMENT LIMITED (7263733) for account D16-05 via MySafaricom App on 08-06-2026 18:02."></textarea>
                         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            <span class="font-medium">Tip:</span> Copy the entire transaction confirmation message from your phone and paste it here. The system will automatically extract all details.
+                            <span class="font-medium">Tip:</span> Copy the entire transaction confirmation message from your phone and paste it here.
                         </p>
                     </div>
 
@@ -266,7 +325,7 @@
                         </div>
                     </div>
 
-                    {{-- Validation Status / Manual Edit Suggestion --}}
+                    {{-- Validation Status --}}
                     <div x-show="parsedError && !hasParsedData" class="mb-4 rounded-lg bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
                         <div class="flex gap-2">
                             <svg class="h-5 w-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -276,7 +335,7 @@
                         </div>
                     </div>
 
-                    {{-- Manual Edit Section (if parsing is incomplete) --}}
+                    {{-- Manual Edit Section --}}
                     <div x-show="showManualEdit" class="mb-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
                         <h5 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">✏️ Edit fields below if extraction was incorrect</h5>
                         
@@ -311,7 +370,7 @@
 
                 </div>
 
-                {{-- Deposit Summary (Common for both modes) --}}
+                {{-- Deposit Summary --}}
                 <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Deposit Summary</h5>
                     <div class="space-y-2 text-sm">
@@ -369,21 +428,21 @@ document.addEventListener('alpine:init', () => {
         successMessage: '',
         
         // Input Mode
-        inputMode: 'manual', // 'manual' or 'message'
+        inputMode: 'manual',
         
         // Tenant & Company Details
         tenantDetails: {
             name: '',
             company: '',
             estate: '',
-            unit: ''
+            unit: '',
+            wallet_id: ''
         },
         companyDetails: {
             name: '',
-            paybill: '',
-            account_number: ''
+            payment_methods: [],
+            default_payment_method: null
         },
-        walletId: '',
         
         // STK Push / Manual Entry Fields
         manualAmount: '',
@@ -411,7 +470,7 @@ document.addEventListener('alpine:init', () => {
         parsedError: null,
         showManualEdit: false,
         
-        // Manual Override Fields (for message mode)
+        // Manual Override Fields
         manualAmountOverride: '',
         manualTransactionIdOverride: '',
         manualPhoneNumberOverride: '',
@@ -447,38 +506,26 @@ document.addEventListener('alpine:init', () => {
 
         async loadTenantAndCompanyDetails() {
             try {
-                const response = await fetch('/api/user/tenant-details');
+                const response = await fetch('/api/wallet/tenant-details');
                 const data = await response.json();
                 if (data.success) {
-                    this.tenantDetails = {
-                        name: data.tenant_name || '',
-                        company: data.company_name || '',
-                        estate: data.estate_name || '',
-                        unit: data.unit_number || ''
-                    };
-                    this.companyDetails = {
-                        name: data.company_name || '',
-                        paybill: data.paybill_number || '247247',
-                        account_number: data.account_number || ''
-                    };
-                    this.walletId = data.wallet_id || 'WALLET-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-                    
-                    if (!this.companyDetails.account_number) {
-                        this.companyDetails.account_number = this.walletId;
-                    }
+                    this.tenantDetails = data.tenant;
+                    this.companyDetails = data.company;
                 }
             } catch (error) {
                 console.error('Error loading tenant details:', error);
-                this.walletId = 'WALLET-' + Math.random().toString(36).substr(2, 8).toUpperCase();
-                this.companyDetails = {
-                    name: 'Property Management Ltd',
-                    paybill: '247247',
-                    account_number: this.walletId
+                this.tenantDetails = {
+                    name: 'Loading...',
+                    company: '-',
+                    estate: '-',
+                    unit: '-',
+                    wallet_id: 'WALLET-' + Math.random().toString(36).substr(2, 8).toUpperCase()
                 };
             }
         },
 
         copyToClipboard(text, label) {
+            if (!text) return;
             navigator.clipboard.writeText(text).then(() => {
                 const notification = document.createElement('div');
                 notification.className = 'fixed bottom-4 right-4 z-50 rounded-lg bg-green-500 px-4 py-2 text-white text-sm';
@@ -491,6 +538,7 @@ document.addEventListener('alpine:init', () => {
         openModal() {
             this.isOpen = true;
             this.resetForm();
+            this.loadTenantAndCompanyDetails();
             document.body.style.overflow = 'hidden';
         },
 
@@ -536,7 +584,6 @@ document.addEventListener('alpine:init', () => {
             const icons = {
                 'mpesa': '{{ asset("src/images/payment-gateway/mpesa.png") }}',
                 'bank': '{{ asset("src/images/payment-gateway/bank.png") }}',
-                'card': '{{ asset("src/images/payment-gateway/mastercard.png") }}'
             };
             return icons[method] || icons['mpesa'];
         },
@@ -649,7 +696,7 @@ document.addEventListener('alpine:init', () => {
             if (!amountMatch) amountMatch = message.match(/(?:KES|KSH)[\s\.]*([\d,]+(?:\.\d{2})?)/i);
             if (amountMatch) newParsedData.amount = parseFloat(amountMatch[1].replace(/,/g, ''));
 
-            // Date
+            // Date & Bill Month
             let dateMatch = message.match(/(?:on\s+)?(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
             if (dateMatch) {
                 const day = dateMatch[1].padStart(2, '0');
@@ -750,7 +797,7 @@ document.addEventListener('alpine:init', () => {
                     phone_number: this.getFinalPhoneNumber(),
                     transaction_message: this.inputMode === 'message' ? this.transactionMessage : null,
                     bill_month: billMonth,
-                    wallet_id: this.walletId,
+                    wallet_id: this.tenantDetails.wallet_id,
                     parsed_details: this.inputMode === 'message' ? this.parsedData : null
                 };
 

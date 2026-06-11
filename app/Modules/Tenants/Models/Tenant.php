@@ -106,4 +106,9 @@ class Tenant extends Model implements Wallet
     {
         return $this->tenancies()->where('status', 'active')->exists();
     }
+
+    public function wallet()
+    {
+        return $this->morphOne(\App\Modules\Payments\Models\Wallet::class, 'holder');
+    }
 }

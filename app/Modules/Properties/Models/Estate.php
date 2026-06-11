@@ -4,6 +4,7 @@ namespace App\Modules\Properties\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\Company;
 
 class Estate extends Model
 {
@@ -34,5 +35,10 @@ class Estate extends Model
     public function getWaterRateForUnit(Unit $unit)
     {
         return $unit->custom_water_rate ?? $this->water_rate ?? 0;
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 }

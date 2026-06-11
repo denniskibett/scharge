@@ -308,6 +308,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/pay-invoice/{invoice}', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayInvoice'])->name('pay-invoice');
         Route::post('/pay-multiple', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayMultipleInvoices'])->name('pay-multiple');
         Route::get('/invoice/{invoice}/details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetInvoiceDetails'])->name('invoice.details');
+        Route::get('/tenant-details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTenantDetails'])->name('tenant-details');
     });
 
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->middleware(['auth'])->name('units.meter-reading-data');

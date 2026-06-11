@@ -190,6 +190,7 @@ document.addEventListener('alpine:init', () => {
       'property_manager': [
         'dashboard',
         'property', 'estates', 'units', 'tenants', 'tenancies',
+        'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'maintenance',
         'charts', 'line_chart', 'bar_chart'
       ],

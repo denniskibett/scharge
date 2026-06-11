@@ -394,33 +394,33 @@ class DashboardController extends Controller
 
 
     private function getRoleSpecificData($user, $company = null)
-{
-    $roleName = $user->role ? $user->role->name : 'guest';
-    
-    switch ($roleName) {
-        case 'sysadmin':
-            return $this->getSysAdminData();
-        case 'super_admin':
-        case 'admin':
-            return $this->getAdminData($company);
-        case 'property_manager':
-            return $this->getPropertyManagerData($company);
-        case 'accountant':
-            return $this->getAccountantData($company);
-        case 'tenant':
-            return $this->getTenantData($user);
-        case 'meter_reader':
-            return $this->getMeterReaderData($company);
-        case 'cleaning_staff':
-            return $this->getCleaningStaffData();
-        case 'maintenance':
-            return $this->getMaintenanceData($company);
-        case 'security':
-            return $this->getSecurityData($company);
-        default:
-            return ['type' => 'guest'];
+    {
+        $roleName = $user->role ? $user->role->name : 'guest';
+        
+        switch ($roleName) {
+            case 'sysadmin':
+                return $this->getSysAdminData();
+            case 'super_admin':
+            case 'admin':
+                return $this->getAdminData($company);
+            case 'property_manager':
+                return $this->getPropertyManagerData($company);
+            case 'accountant':
+                return $this->getAccountantData($company);
+            case 'tenant':
+                return $this->getTenantData($user);
+            case 'meter_reader':
+                return $this->getMeterReaderData($company);
+            case 'cleaning_staff':
+                return $this->getCleaningStaffData();
+            case 'maintenance':
+                return $this->getMaintenanceData($company);
+            case 'security':
+                return $this->getSecurityData($company);
+            default:
+                return ['type' => 'guest'];
+        }
     }
-}
     
     /**
      * PROPERTY MANAGER DASHBOARD
@@ -1732,24 +1732,32 @@ private function getSecurityData($company)
     }
 
 
-    // Add this method to get wallet data for tenant
-    private function getTenantWalletData($user)
-    {
-        $tenant = $user->tenant;
-        
-        if (!$tenant) {
-            return [
-                'balance' => 0,
-                'wallet_id' => null,
-                'transactions' => [],
-                'cards' => []
-            ];
-        }
-        
-        // Get wallet balance
-        $balance = (float) $tenant->balance;
-        
-        // Get recent transactions (last 10)
+/**
+ * Get tenant details for deposit modal (API)
+ * Maps through: User -> Tenant -> ActiveTenancy -> Unit -> Estate -> Company -> CompanyPaymentMethods
+ */
+private function getTenantWalletData($user)
+{
+    $tenant = $user->tenant;
+    
+    if (!$tenant) {
+        return [
+            'balance' => 0,
+            'wallet_id' => null,
+            'transactions' => [],
+            'cards' => []
+        ];
+    }
+    
+    // Get wallet balance safely
+    $balance = 0;
+    if ($tenant->wallet) {
+        $balance = (float) $tenant->wallet->balance;
+    }
+    
+    // Get recent transactions (last 10)
+    $transactions = collect(); // Default empty collection
+    if ($tenant->transactions()) {
         $transactions = $tenant->transactions()
             ->orderBy('created_at', 'desc')
             ->take(10)
@@ -1764,28 +1772,29 @@ private function getSecurityData($company)
                     'status' => 'completed'
                 ];
             });
-        
-        // Get user's cards (from your card system - adjust as needed)
-        $cards = auth()->user()->cards ?? [
-            [
-                'id' => 1,
-                'cardholderName' => auth()->user()->name ?? 'Card Holder',
-                'cardNumber' => '4983',
-                'expiry' => '09/29',
-                'cvc' => '659',
-                'active' => true,
-                'cardType' => 'mastercard',
-                'bgClass' => 'bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-900 dark:to-gray-950'
-            ]
-        ];
-        
-        return [
-            'balance' => $balance,
-            'wallet_id' => $tenant->wallet?->uuid,
-            'transactions' => $transactions,
-            'cards' => $cards
-        ];
     }
+    
+    // Get user's cards
+    $cards = auth()->user()->cards ?? [
+        [
+            'id' => 1,
+            'cardholderName' => auth()->user()->name ?? 'Card Holder',
+            'cardNumber' => '4983',
+            'expiry' => '09/29',
+            'cvc' => '659',
+            'active' => true,
+            'cardType' => 'mastercard',
+            'bgClass' => 'bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-900 dark:to-gray-950'
+        ]
+    ];
+    
+    return [
+        'balance' => $balance,
+        'wallet_id' => $tenant->wallet?->uuid,
+        'transactions' => $transactions,
+        'cards' => $cards
+    ];
+}
 
     private function getUserCards($user)
     {
