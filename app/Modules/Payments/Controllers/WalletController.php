@@ -84,62 +84,173 @@ class WalletController extends Controller
         return view('tenant.wallet', compact('balance', 'transactions', 'pendingInvoices', 'wallet', 'walletOwner', 'cards'));
     }
     
-    /**
-     * Deposit money (API - AJAX)
-     */
-    public function apiDeposit(Request $request)
-    {
-        try {
-            $request->validate([
-                'amount' => 'required|numeric|min:1|max:500000',
-                'payment_method' => 'required|in:mpesa,bank,card',
-                'phone_number' => 'required_if:payment_method,mpesa|nullable|string',
-            ]);
-            
-            $walletOwner = $this->getWalletOwner();
-            
-            $result = $this->walletService->deposit($walletOwner, $request->amount, [
-                'description' => 'Wallet deposit via ' . ucfirst($request->payment_method),
-                'payment_method' => $request->payment_method,
-                'reference' => $request->reference ?? 'DEP-' . time(),
-                'phone_number' => $request->phone_number ?? null,
-            ]);
-            
-            if ($result['success']) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Successfully deposited KES ' . number_format($request->amount, 2),
-                    'data' => [
-                        'new_balance' => $result['balance'],
-                        'transaction_id' => $result['transaction_id'],
-                        'formatted_balance' => 'KES ' . number_format($result['balance'], 2),
-                    ]
-                ]);
-            }
-            
+public function apiDeposit(Request $request)
+{
+    try {
+        Log::info('API Deposit called', $request->all());
+        
+        $request->validate([
+            'amount' => 'required|numeric|min:1|max:500000',
+            'payment_method' => 'required|in:mpesa,bank,card',
+            'phone_number' => 'nullable|string',
+            'reference' => 'nullable|string',
+            'transaction_message' => 'nullable|string',
+            'bill_month' => 'nullable|string',
+        ]);
+        
+        $walletOwner = $this->getWalletOwner();
+        
+        // Generate unique reference for duplicate detection
+        $reference = $request->reference ?? 'DEP-' . time() . '-' . uniqid();
+        
+        // Check for duplicate using meta JSON field
+        $existingTx = Transaction::where('type', 'deposit')
+            ->where(function ($q) use ($reference) {
+                $q->where('meta->reference', $reference)
+                  ->orWhere('uuid', $reference);
+            })
+            ->first();
+
+        if ($existingTx) {
             return response()->json([
                 'success' => false,
-                'error' => $result['error'] ?? 'Deposit failed. Please try again.'
+                'error' => 'Duplicate transaction detected. This payment has already been processed.',
+                'duplicate' => true
             ], 400);
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors(),
-                'error' => 'Validation failed'
-            ], 422);
-        } catch (\Exception $e) {
-            Log::error('API Deposit failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'An error occurred. Please try again.'
-            ], 500);
         }
+        
+        $amount = (float) $request->amount;
+        
+        // Build comprehensive meta data
+        $metaData = [
+            'type' => 'wallet_deposit',
+            'payment_method' => $request->payment_method,
+            'reference' => $reference,
+            'phone_number' => $request->phone_number,
+            'bill_month' => $request->bill_month,
+            'transaction_message' => $request->transaction_message,
+            'source' => $request->inputMode ?? 'manual',
+            'deposited_at' => now()->toISOString(),
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+        ];
+        
+        // Add additional metadata based on payment method
+        if ($request->payment_method === 'mpesa') {
+            $metaData['mpesa'] = [
+                'phone_number' => $request->phone_number,
+                'stk_push_sent' => true,
+            ];
+        } elseif ($request->payment_method === 'bank') {
+            $metaData['bank'] = [
+                'reference' => $reference,
+                'narration' => $request->transaction_message,
+            ];
+        }
+        
+        // Add parsed data if in message mode
+        if ($request->transaction_message) {
+            $parsedData = $this->parseTransactionMessage($request->transaction_message);
+            $metaData['parsed_data'] = $parsedData;
+        }
+        
+        // Perform deposit using Bavix wallet with ALL data in meta
+        $transaction = $walletOwner->deposit($amount, [
+            'description' => $description = 'Wallet deposit via ' . ucfirst($request->payment_method) . 
+                             ($request->bill_month ? ' for ' . $request->bill_month : ''),
+            'meta' => $metaData,  // Store everything in meta
+        ]);
+        
+        // Update the transaction record with additional data if needed
+        $transaction->refresh();
+        
+        // Force refresh the wallet balance
+        $walletOwner->refresh();
+        $newBalance = (float) $walletOwner->balance;
+        
+        // Get the wallet to return the formatted number
+        $wallet = $walletOwner->wallet;
+        $walletId = $wallet ? $wallet->getKey() : null;
+        $walletNumber = $walletId ? str_pad((string) $walletId, 16, '0', STR_PAD_LEFT) : null;
+        
+        // Dispatch event for real-time updates
+        event(new \App\Events\WalletUpdated($walletOwner, $newBalance, $transaction));
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully deposited KES ' . number_format($amount, 2),
+            'data' => [
+                'new_balance' => $newBalance,
+                'transaction_id' => $transaction->id,
+                'transaction_uuid' => $transaction->uuid,
+                'formatted_balance' => 'KES ' . number_format($newBalance, 2),
+                'wallet_number' => $walletNumber,
+            ]
+        ]);
+        
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        return response()->json([
+            'success' => false,
+            'errors' => $e->errors(),
+            'error' => 'Validation failed'
+        ], 422);
+    } catch (\Exception $e) {
+        Log::error('API Deposit failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Parse transaction message to extract data
+ */
+private function parseTransactionMessage($message)
+{
+    $parsed = [
+        'amount' => null,
+        'transaction_id' => null,
+        'date' => null,
+        'time' => null,
+        'sender' => null,
+        'receiver' => null,
+        'phone_number' => null,
+        'paybill_number' => null,
+        'account_number' => null,
+    ];
+    
+    if (!$message) return $parsed;
+    
+    // Extract amount
+    if (preg_match('/(?:KES|KSH|KSh|Ksh)[\s\.]*([\d,]+(?:\.\d{2})?)/i', $message, $match)) {
+        $parsed['amount'] = (float) str_replace(',', '', $match[1]);
     }
     
-    /**
-     * Transfer money (API - AJAX)
-     */
+    // Extract transaction ID
+    if (preg_match('/\b([A-Z0-9]{8,12})\b/', $message, $match)) {
+        $parsed['transaction_id'] = $match[1];
+    }
+    
+    // Extract date
+    if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/', $message, $match)) {
+        $parsed['date'] = "{$match[1]}/{$match[2]}/{$match[3]}";
+    }
+    
+    // Extract phone number
+    if (preg_match('/\b(07\d{8}|01\d{8})\b/', $message, $match)) {
+        $parsed['phone_number'] = $match[1];
+    }
+    
+    // Extract paybill
+    if (preg_match('/\((\d{5,7})\)/', $message, $match)) {
+        $parsed['paybill_number'] = $match[1];
+    }
+    
+    return $parsed;
+}
+    
+   
     public function apiTransfer(Request $request)
     {
         try {
@@ -215,9 +326,7 @@ class WalletController extends Controller
         }
     }
     
-    /**
-     * Pay invoice from wallet (API - AJAX)
-     */
+   
     public function apiPayInvoice(Request $request, $invoiceId)
     {
         try {
@@ -310,10 +419,8 @@ class WalletController extends Controller
             ], 500);
         }
     }
+
     
-    /**
-     * Pay multiple invoices at once (API - AJAX)
-     */
     public function apiPayMultipleInvoices(Request $request)
     {
         try {
@@ -371,26 +478,35 @@ class WalletController extends Controller
         }
     }
     
+    public function getBalance($walletOwner): float
+    {
+        return (float) $walletOwner->balance;
+    }
+    
+
     public function apiGetBalance()
     {
         try {
             $walletOwner = $this->getWalletOwner();
-            $balance = $this->walletService->getBalance($walletOwner);
+            $walletOwner->refresh(); // Force fresh data from database
+            
+            // Clear any cached balance
+            cache()->forget('wallet_balance_' . $walletOwner->id);
+            
+            $balance = (float) $walletOwner->balance;
+            
+            // Get the actual wallet from the correct relationship
+            $wallet = $walletOwner->wallet;
             
             $walletNumber = null;
             $maskedWalletNumber = null;
             
-            if ($walletOwner instanceof Tenant && $walletOwner->wallet) {
-                $wallet = $walletOwner->wallet;
-                $walletNumber = $wallet->full_wallet_number;
-                $maskedWalletNumber = $wallet->masked_wallet_number;
-            } else if ($walletOwner->wallet) {
-                $wallet = $walletOwner->wallet;
-                $walletNumber = $wallet->full_wallet_number;
-                $maskedWalletNumber = $wallet->masked_wallet_number;
+            if ($wallet && $wallet->getKey()) {
+                $walletId = $wallet->getKey();
+                $walletNumber = str_pad((string) $walletId, 16, '0', STR_PAD_LEFT);
+                $maskedWalletNumber = '•••• •••• •••• ' . substr($walletNumber, -4);
             } else {
-                // Generate fallback
-                $walletNumber = str_pad('1', 16, '0', STR_PAD_LEFT);
+                $walletNumber = str_pad((string) $walletOwner->id, 16, '0', STR_PAD_LEFT);
                 $maskedWalletNumber = '•••• •••• •••• ' . substr($walletNumber, -4);
             }
             
@@ -409,6 +525,7 @@ class WalletController extends Controller
             ], 500);
         }
     }
+
     
     /**
      * Get transaction history (API)
@@ -732,34 +849,6 @@ class WalletController extends Controller
         }
     }
 
-    /**
-     * Deposit money (POST form submission - fallback for non-JS)
-     */
-    public function deposit(Request $request)
-    {
-        $request->validate([
-            'amount' => 'required|numeric|min:1|max:500000',
-            'payment_method' => 'required|in:mpesa,bank,card',
-            'phone_number' => 'required_if:payment_method,mpesa|nullable|string',
-        ]);
-        
-        $walletOwner = $this->getWalletOwner();
-        
-        $result = $this->walletService->deposit($walletOwner, $request->amount, [
-            'description' => 'Wallet deposit via ' . ucfirst($request->payment_method),
-            'payment_method' => $request->payment_method,
-            'reference' => $request->reference ?? 'DEP-' . time(),
-            'phone_number' => $request->phone_number ?? null,
-        ]);
-        
-        if ($result['success']) {
-            return redirect()->route('wallet.index')
-                ->with('success', 'Successfully deposited KES ' . number_format($request->amount, 2));
-        }
-        
-        return redirect()->route('wallet.index')
-            ->with('error', $result['error'] ?? 'Deposit failed. Please try again.');
-    }
     
     /**
      * Withdraw money (POST form submission)
@@ -897,7 +986,7 @@ class WalletController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        $filename = 'wallet_transactions_' . date('Y-m-d_His') . '.csv';
+        $filename = 'wallet_transactions_' . date('d-m-Y_His') . '.csv';
         
         $headers = [
             'Content-Type' => 'text/csv',
@@ -906,7 +995,7 @@ class WalletController extends Controller
         
         $callback = function() use ($transactions) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Date', 'Type', 'Amount', 'Description', 'Reference', 'Status']);
+            fputcsv($file, ['Date', 'Type', 'Amount', 'Description', 'Meta', 'Status']);
             
             foreach ($transactions as $tx) {
                 fputcsv($file, [
@@ -914,7 +1003,7 @@ class WalletController extends Controller
                     ucfirst($tx->type),
                     $tx->amount,
                     $tx->description ?? '',
-                    $tx->reference ?? '',
+                    $tx->meta ? json_encode($tx->meta) : '',
                     $tx->status ?? 'Completed',
                 ]);
             }

@@ -25,29 +25,39 @@ class WalletService
     }
     
     /**
-     * Deposit money into wallet
+     * Deposit money into wallet using Bavix - META FIRST APPROACH
      */
     public function deposit($walletOwner, float $amount, array $meta = []): array
     {
         try {
             DB::beginTransaction();
             
-            // Create the deposit transaction using bavix wallet
-            // bavix uses 'confirmed' column (0 = pending, 1 = confirmed)
+            // Check if transaction with same reference already exists in meta
+            if (isset($meta['reference'])) {
+                $existingTransaction = Transaction::where('type', 'deposit')
+                    ->where('meta->reference', $meta['reference'])
+                    ->first();
+                    
+                if ($existingTransaction) {
+                    DB::rollBack();
+                    return [
+                        'success' => false,
+                        'error' => 'Transaction with this reference already exists',
+                        'duplicate' => true
+                    ];
+                }
+            }
+            
+            // Prepare meta data with all relevant info
+            $metaData = array_merge([
+                'deposited_at' => now()->toISOString(),
+                'ip_address' => request()->ip(),
+            ], $meta);
+            
+            // Use Bavix wallet deposit with comprehensive meta
             $transaction = $walletOwner->deposit($amount, [
                 'description' => $meta['description'] ?? 'Wallet deposit',
-                'payment_method' => $meta['payment_method'] ?? null,
-                'reference' => $meta['reference'] ?? null,
-                'phone_number' => $meta['phone_number'] ?? null,
-            ]);
-            
-            // Create your custom transaction record for reference
-            $this->createCustomTransaction($walletOwner, [
-                'type' => 'deposit',
-                'amount' => $amount,
-                'reference' => $meta['reference'] ?? null,
-                'description' => $meta['description'] ?? 'Wallet deposit',
-                'wallet_transaction_id' => $transaction->id,
+                'meta' => $metaData,  // Store everything in meta
             ]);
             
             DB::commit();
@@ -56,6 +66,7 @@ class WalletService
                 'success' => true,
                 'balance' => (float) $walletOwner->balance,
                 'transaction_id' => $transaction->id,
+                'transaction_uuid' => $transaction->uuid,
             ];
         } catch (\Exception $e) {
             DB::rollBack();

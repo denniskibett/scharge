@@ -800,87 +800,90 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-        async submitDeposit() {
-            this.formErrors = [];
-            this.successMessage = '';
+async submitDeposit() {
+    this.formErrors = [];
+    this.successMessage = '';
+    
+    const amount = this.getFinalAmount();
+    if (!amount || parseFloat(amount) < 1) {
+        this.formErrors.push('Please enter a valid amount (minimum KES 1.00)');
+        return;
+    }
+    
+    const billMonth = this.getFinalBillMonth();
+    if (!billMonth) {
+        this.formErrors.push('Please select the bill month');
+        return;
+    }
+
+    this.loading = true;
+
+    try {
+        const depositData = {
+            amount: parseFloat(amount),
+            payment_method: this.getFinalPaymentMethod(),
+            reference: this.getFinalTransactionId() || 'DEP-' + Date.now(),
+            phone_number: this.getFinalPhoneNumber() || null,
+            transaction_message: this.inputMode === 'message' ? this.transactionMessage : null,
+            bill_month: billMonth,
+        };
+
+        const response = await fetch('/api/wallet/deposit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(depositData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            this.successMessage = `✅ Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
             
-            const amount = this.getFinalAmount();
-            if (!amount || parseFloat(amount) < 1) {
-                this.formErrors.push('Please enter a valid amount (minimum KES 1.00)');
-                return;
-            }
-            
-            const billMonth = this.getFinalBillMonth();
-            if (!billMonth) {
-                this.formErrors.push('Please select the bill month');
-                return;
-            }
-
-            this.loading = true;
-
-            try {
-                const depositData = {
-                    amount: parseFloat(amount),
-                    payment_method: this.getFinalPaymentMethod(),
-                    reference: this.getFinalTransactionId() || 'DEP-' + Date.now(),
-                    phone_number: this.getFinalPhoneNumber(),
-                    transaction_message: this.inputMode === 'message' ? this.transactionMessage : null,
-                    bill_month: billMonth,
-                    payment_method_id: this.selectedPaymentMethodId,
-                    parsed_details: this.inputMode === 'message' ? this.parsedData : null
-                };
-
-                if (window.walletComponent && typeof window.walletComponent.processDeposit === 'function') {
-                    const result = await window.walletComponent.processDeposit(
-                        depositData.amount,
-                        depositData.payment_method,
-                        depositData.phone_number,
-                        depositData.reference,
-                        depositData.transaction_message,
-                        depositData.bill_month
-                    );
-                    
-                    if (result.success) {
-                        this.successMessage = `Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
-                        setTimeout(() => {
-                            this.closeModal();
-                        }, 1500);
-                    } else {
-                        this.formErrors = [result.error];
-                    }
-                } else {
-                    const response = await fetch('/api/wallet/deposit', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify(depositData)
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        this.successMessage = `Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
-                        if (window.walletComponent) {
-                            window.walletComponent.walletBalance = result.data.new_balance;
-                            await window.walletComponent.loadTransactions();
-                        }
-                        setTimeout(() => {
-                            this.closeModal();
-                        }, 1500);
-                    } else {
-                        this.formErrors = [result.error];
-                    }
+            // ========== DISPATCH EVENT FOR WALLET COMPONENT ==========
+            const updateEvent = new CustomEvent('wallet-updated', {
+                detail: { 
+                    new_balance: result.data.new_balance,
+                    transaction_id: result.data.transaction_id,
+                    amount: depositData.amount
                 }
-            } catch (error) {
-                console.error('Deposit error:', error);
-                this.formErrors = ['An error occurred. Please try again.'];
-            } finally {
-                this.loading = false;
-            }
+            });
+            window.dispatchEvent(updateEvent);
+            document.dispatchEvent(updateEvent);
+            
+            // Also store in localStorage for cross-tab updates
+            localStorage.setItem('wallet_last_update', JSON.stringify({
+                balance: result.data.new_balance,
+                timestamp: Date.now()
+            }));
+            
+            // Show toast notification
+            this.showToast('success', `KES ${this.formatNumber(depositData.amount)} deposited!`);
+            
+            setTimeout(() => {
+                this.closeModal();
+            }, 2000);
+        } else {
+            this.formErrors = [result.error || result.message || 'Deposit failed. Please try again.'];
         }
+    } catch (error) {
+        console.error('Deposit error:', error);
+        this.formErrors = ['An error occurred. Please try again.'];
+    } finally {
+        this.loading = false;
+    }
+},
+
+showToast(type, message) {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-2 text-white text-sm ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+    toast.innerText = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
     }));
 });
 </script>

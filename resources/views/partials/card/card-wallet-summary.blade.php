@@ -462,6 +462,56 @@ function walletComponent(config = {}) {
             this.initSwiper();
             this.loadWalletData();
             this.loadTransactions();
+            
+            // ========== ADD THIS: Listen for wallet updates ==========
+            this.setupWalletEventListeners();
+        },
+        
+        // ========== ADD THIS NEW METHOD ==========
+        setupWalletEventListeners() {
+            // Listen for custom events from deposit modal
+            window.addEventListener('wallet-updated', (event) => {
+                console.log('Wallet updated event received:', event.detail);
+                if (event.detail && event.detail.new_balance !== undefined) {
+                    // Update balance immediately
+                    this.walletBalance = event.detail.new_balance;
+                    
+                    // Refresh transactions to show the new deposit
+                    this.loadTransactions();
+                } else {
+                    // Full refresh if no detail provided
+                    this.refreshWalletData();
+                }
+            });
+            
+            // Also listen for DOM events
+            document.addEventListener('wallet-updated', (event) => {
+                if (event.detail && event.detail.new_balance !== undefined) {
+                    this.walletBalance = event.detail.new_balance;
+                    this.loadTransactions();
+                }
+            });
+            
+            // Listen for localStorage changes (for cross-tab updates)
+            window.addEventListener('storage', (event) => {
+                if (event.key === 'wallet_last_update') {
+                    try {
+                        const data = JSON.parse(event.newValue);
+                        if (data && data.balance !== undefined) {
+                            this.walletBalance = data.balance;
+                            this.loadTransactions();
+                        }
+                    } catch (e) {}
+                }
+            });
+        },
+        
+        // ========== ADD THIS NEW METHOD ==========
+        async refreshWalletData() {
+            await Promise.all([
+                this.loadWalletData(),
+                this.loadTransactions()
+            ]);
         },
         
         async loadWalletData() {
@@ -489,67 +539,8 @@ function walletComponent(config = {}) {
                 const data = await response.json();
                 this.transactions = data.data || [];
                 this.filteredTransactions = [...this.transactions];
-                // Don't recalc stats here - keep backend values
             } catch (error) {
                 console.error('Error loading transactions:', error);
-            } finally {
-                this.loading = false;
-            }
-        },
-        
-        filterTransactions() {
-            if (!this.searchQuery) {
-                this.filteredTransactions = [...this.transactions];
-            } else {
-                const query = this.searchQuery.toLowerCase();
-                this.filteredTransactions = this.transactions.filter(t => 
-                    (t.description && t.description.toLowerCase().includes(query)) ||
-                    (t.type && t.type.toLowerCase().includes(query)) ||
-                    (t.meta?.description && t.meta.description.toLowerCase().includes(query))
-                );
-            }
-            this.currentPage = 1;
-        },
-        
-        async loadTransactionsByPeriod(period) {
-            this.loading = true;
-            let fromDate = '';
-            const today = new Date();
-            
-            switch(period) {
-                case 'Today':
-                    fromDate = today.toISOString().split('T')[0];
-                    break;
-                case 'This Week':
-                    const weekAgo = new Date(today);
-                    weekAgo.setDate(today.getDate() - 7);
-                    fromDate = weekAgo.toISOString().split('T')[0];
-                    break;
-                case 'This Month':
-                    const monthAgo = new Date(today);
-                    monthAgo.setMonth(today.getMonth() - 1);
-                    fromDate = monthAgo.toISOString().split('T')[0];
-                    break;
-                case 'Last Month':
-                    const lastMonth = new Date(today);
-                    lastMonth.setMonth(today.getMonth() - 1);
-                    fromDate = lastMonth.toISOString().split('T')[0];
-                    break;
-                default:
-                    fromDate = '';
-            }
-            
-            try {
-                const url = `/api/wallet/transactions?per_page=100${fromDate ? `&from_date=${fromDate}` : ''}`;
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const data = await response.json();
-                this.transactions = data.data || [];
-                this.filteredTransactions = [...this.transactions];
-                this.currentPage = 1;
-            } catch (error) {
-                console.error('Error loading period transactions:', error);
             } finally {
                 this.loading = false;
             }
