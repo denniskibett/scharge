@@ -87,7 +87,8 @@
                         <div>
                             <p class="text-sm text-gray-500 dark:text-gray-400">Total Balance</p>
                             <h3 class="mt-1 text-3xl font-medium text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(walletBalance)"></span>
+                                <span x-text="selectedCurrency"></span> 
+                                <span x-text="formatNumber(convertedBalance)"></span>
                             </h3>
                             <p class="mt-2 flex items-center gap-1.5 text-sm font-normal text-gray-500 dark:text-gray-400">
                                 <span class="text-success-600 flex items-center gap-1 font-medium">
@@ -110,7 +111,8 @@
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Total Spent</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(totalSpent)"></span>
+                                <span x-text="selectedCurrency"></span> 
+                                <span x-text="formatNumber(convertedTotalSpent)"></span>
                             </p>
                             <span class="text-success-600 text-xs" x-show="balanceChange >= 0">+<span x-text="balanceChange"></span>%</span>
                             <span class="text-error-600 text-xs" x-show="balanceChange < 0"><span x-text="balanceChange"></span>%</span>
@@ -118,25 +120,30 @@
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Rent</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(rentSpent)"></span>
+                                <span x-text="selectedCurrency"></span> 
+                                <span x-text="formatNumber(convertedRentSpent)"></span>
                             </p>
                             <span class="text-error-600 text-xs">-0%</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Water Bill</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(waterSpent)"></span>
+                                <span x-text="selectedCurrency"></span> 
+                                <span x-text="formatNumber(convertedWaterSpent)"></span>
                             </p>
                             <span class="text-error-600 text-xs">+5%</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Electricity</p>
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                                <span x-text="selectedCurrency"></span> <span x-text="formatNumber(electricitySpent)"></span>
+                                <span x-text="selectedCurrency"></span> 
+                                <span x-text="formatNumber(convertedElectricitySpent)"></span>
                             </p>
                             <span class="text-success-600 text-xs">-12%</span>
                         </div>
                     </div>
+
+                   
 
                     {{-- Account Details Row --}}
                     <div class="mt-6 flex flex-col gap-2 border-t border-dashed border-gray-200 pt-6 dark:border-gray-800 sm:flex-row sm:items-center">
@@ -408,6 +415,8 @@
 </div>
 
 <script>
+// Replace the entire walletComponent function with this updated version
+
 function walletComponent(config = {}) {
     return {
         // Wallet Data (from config)
@@ -430,12 +439,13 @@ function walletComponent(config = {}) {
         selectedCurrency: 'KES',
         exchangeRates: { USD: 0, EUR: 0, GBP: 0, JPY: 0, KES: 1 },
         conversionInProgress: false,
+        lastRateFetch: null,
         currencies: [
-            { code: 'KES', name: 'Kenyan Shilling' },
-            { code: 'USD', name: 'US Dollar' },
-            { code: 'EUR', name: 'Euro' },
-            { code: 'GBP', name: 'British Pound' },
-            { code: 'JPY', name: 'Japanese Yen' },
+            { code: 'KES', name: 'Kenyan Shilling', rate: 1 },
+            { code: 'USD', name: 'US Dollar', rate: 0.0076 },
+            { code: 'EUR', name: 'Euro', rate: 0.0070 },
+            { code: 'GBP', name: 'British Pound', rate: 0.0060 },
+            { code: 'JPY', name: 'Japanese Yen', rate: 1.18 },
         ],
         periods: ['Today', 'This Week', 'This Month', 'Last Month', 'This Quarter', 'This Year'],
         
@@ -444,8 +454,25 @@ function walletComponent(config = {}) {
         itemsPerPage: 10,
         searchQuery: '',
 
+        // Computed properties for converted values
         get convertedBalance() { 
-            return this.walletBalance * (this.exchangeRates[this.selectedCurrency] || 1); 
+            return this.convertAmount(this.walletBalance);
+        },
+        
+        get convertedTotalSpent() {
+            return this.convertAmount(this.totalSpent);
+        },
+        
+        get convertedRentSpent() {
+            return this.convertAmount(this.rentSpent);
+        },
+        
+        get convertedWaterSpent() {
+            return this.convertAmount(this.waterSpent);
+        },
+        
+        get convertedElectricitySpent() {
+            return this.convertAmount(this.electricitySpent);
         },
         
         get totalPages() {
@@ -462,29 +489,20 @@ function walletComponent(config = {}) {
             this.initSwiper();
             this.loadWalletData();
             this.loadTransactions();
-            
-            // ========== ADD THIS: Listen for wallet updates ==========
             this.setupWalletEventListeners();
         },
         
-        // ========== ADD THIS NEW METHOD ==========
         setupWalletEventListeners() {
-            // Listen for custom events from deposit modal
             window.addEventListener('wallet-updated', (event) => {
                 console.log('Wallet updated event received:', event.detail);
                 if (event.detail && event.detail.new_balance !== undefined) {
-                    // Update balance immediately
                     this.walletBalance = event.detail.new_balance;
-                    
-                    // Refresh transactions to show the new deposit
                     this.loadTransactions();
                 } else {
-                    // Full refresh if no detail provided
                     this.refreshWalletData();
                 }
             });
             
-            // Also listen for DOM events
             document.addEventListener('wallet-updated', (event) => {
                 if (event.detail && event.detail.new_balance !== undefined) {
                     this.walletBalance = event.detail.new_balance;
@@ -492,7 +510,6 @@ function walletComponent(config = {}) {
                 }
             });
             
-            // Listen for localStorage changes (for cross-tab updates)
             window.addEventListener('storage', (event) => {
                 if (event.key === 'wallet_last_update') {
                     try {
@@ -506,7 +523,6 @@ function walletComponent(config = {}) {
             });
         },
         
-        // ========== ADD THIS NEW METHOD ==========
         async refreshWalletData() {
             await Promise.all([
                 this.loadWalletData(),
@@ -542,8 +558,13 @@ function walletComponent(config = {}) {
                 const data = await response.json();
                 
                 if (data.success !== false) {
-                    // Handle both paginated and non-paginated responses
-                    this.transactions = data.data || data || [];
+                    let transactions = data.data || data || [];
+                    // Add converted amount to each transaction for display
+                    this.transactions = transactions.map(t => ({
+                        ...t,
+                        converted_amount: this.convertAmount(t.amount),
+                        display_amount: this.formatNumber(this.convertAmount(t.amount))
+                    }));
                     this.filteredTransactions = [...this.transactions];
                     this.currentPage = 1;
                 } else {
@@ -560,7 +581,94 @@ function walletComponent(config = {}) {
             }
         },
         
-        // Get transaction display description
+        // FIXED: Currency conversion method
+        convertAmount(amount) {
+            if (!amount && amount !== 0) return 0;
+            const rate = this.exchangeRates[this.selectedCurrency] || 1;
+            const converted = parseFloat(amount) * parseFloat(rate);
+            return isNaN(converted) ? 0 : converted;
+        },
+        
+        // FIXED: Fetch exchange rates with fallback
+        async fetchExchangeRates() {
+            try {
+                // Try free API first (no API key required)
+                const response = await fetch('https://api.exchangerate-api.com/v4/latest/KES');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.rates) {
+                        this.exchangeRates = {
+                            KES: 1,
+                            USD: data.rates.USD || 0.0076,
+                            EUR: data.rates.EUR || 0.0070,
+                            GBP: data.rates.GBP || 0.0060,
+                            JPY: data.rates.JPY || 1.18,
+                        };
+                        this.lastRateFetch = new Date();
+                        console.log('Exchange rates loaded:', this.exchangeRates);
+                        return;
+                    }
+                }
+                
+                // Fallback to Frankfurter API
+                const fallbackResponse = await fetch('https://api.frankfurter.app/latest?from=KES');
+                if (fallbackResponse.ok) {
+                    const data = await fallbackResponse.json();
+                    if (data.rates) {
+                        this.exchangeRates = {
+                            KES: 1,
+                            USD: data.rates.USD || 0.0076,
+                            EUR: data.rates.EUR || 0.0070,
+                            GBP: data.rates.GBP || 0.0060,
+                            JPY: data.rates.JPY || 1.18,
+                        };
+                        this.lastRateFetch = new Date();
+                        console.log('Exchange rates loaded (fallback):', this.exchangeRates);
+                        return;
+                    }
+                }
+                
+                // Final fallback - static rates
+                console.warn('Using fallback exchange rates');
+                this.exchangeRates = {
+                    KES: 1,
+                    USD: 0.0076,
+                    EUR: 0.0070,
+                    GBP: 0.0060,
+                    JPY: 1.18,
+                };
+                
+            } catch (error) {
+                console.error('Failed to fetch exchange rates:', error);
+                // Use fallback rates
+                this.exchangeRates = {
+                    KES: 1,
+                    USD: 0.0076,
+                    EUR: 0.0070,
+                    GBP: 0.0060,
+                    JPY: 1.18,
+                };
+            }
+        },
+        
+        // Force refresh exchange rates
+        async refreshExchangeRates() {
+            this.conversionInProgress = true;
+            await this.fetchExchangeRates();
+            // Refresh all displayed amounts
+            this.loadTransactions();
+            this.conversionInProgress = false;
+        },
+        
+        // Handle currency change
+        async changeCurrency(currencyCode) {
+            this.selectedCurrency = currencyCode;
+            // Refresh transactions to show converted amounts
+            this.loadTransactions();
+            // Optionally store preference
+            localStorage.setItem('preferred_currency', currencyCode);
+        },
+        
         getTransactionDescription(transaction) {
             if (transaction.description) {
                 return transaction.description;
@@ -573,34 +681,16 @@ function walletComponent(config = {}) {
             return transaction.type === 'deposit' ? 'Wallet Deposit' : 'Wallet Withdrawal';
         },
         
-        // Get transaction icon based on type and method
-        getTransactionIcon(transaction) {
-            if (transaction.type === 'deposit') {
-                const method = transaction.payment_method?.toLowerCase();
-                if (method === 'mpesa') {
-                    return 'M-Pesa'; // Or return an SVG/HTML
-                }
-                if (method === 'bank') {
-                    return 'Bank';
-                }
-                return 'Deposit';
-            }
-            return 'Withdrawal';
-        },
-        
-        // Get transaction amount class
         getAmountClass(transaction) {
             return transaction.type === 'deposit' 
                 ? 'text-success-600 dark:text-success-400' 
                 : 'text-error-600 dark:text-error-400';
         },
         
-        // Get transaction amount sign
         getAmountSign(transaction) {
             return transaction.type === 'deposit' ? '+' : '-';
         },
         
-        // Get transaction status badge class
         getStatusClass(transaction) {
             const status = transaction.status || (transaction.confirmed ? 'Completed' : 'Pending');
             switch(status.toLowerCase()) {
@@ -611,7 +701,6 @@ function walletComponent(config = {}) {
             }
         },
         
-        // Format date nicely
         formatDate(dateString) {
             if (!dateString) return '—';
             const date = new Date(dateString);
@@ -636,50 +725,11 @@ function walletComponent(config = {}) {
             }
         },
 
-        async fetchExchangeRates() {
-            try {
-                const response = await fetch('https://api.frankfurter.app/latest?from=KES');
-                const data = await response.json();
-                if (data.rates) {
-                    this.exchangeRates = {
-                        KES: 1,
-                        USD: data.rates.USD || 0.0076,
-                        EUR: data.rates.EUR || 0.0070,
-                        GBP: data.rates.GBP || 0.0060,
-                        JPY: data.rates.JPY || 1.18
-                    };
-                }
-            } catch (error) {
-                console.warn('Exchange rate API failed, using fallback rates:', error);
-                this.exchangeRates = {
-                    KES: 1, USD: 0.0076, EUR: 0.0070, GBP: 0.0060, JPY: 1.18
-                };
-            }
-        },
-
-        async refreshAfterTransaction() {
-            await Promise.all([
-                this.loadWalletData(),
-                this.loadTransactions()
-            ]);
-        },
-
-        convertAmount(amount) {
-            return amount * (this.exchangeRates[this.selectedCurrency] || 1);
-        },
-
         formatNumber(value) {
-            return parseFloat(value || 0).toLocaleString('en-KE', {
+            if (value === undefined || value === null) return '0.00';
+            return parseFloat(value).toLocaleString('en-KE', {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
-            });
-        },
-        
-        formatDate(dateString) {
-            if (!dateString) return '—';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-KE', {
-                year: 'numeric', month: 'short', day: 'numeric'
             });
         },
 
@@ -696,6 +746,75 @@ function walletComponent(config = {}) {
                     });
                 }
             }, 100);
+        },
+
+        filterTransactions() {
+            if (!this.searchQuery) {
+                this.filteredTransactions = [...this.transactions];
+            } else {
+                const query = this.searchQuery.toLowerCase();
+                this.filteredTransactions = this.transactions.filter(t => 
+                    (t.description && t.description.toLowerCase().includes(query)) ||
+                    (t.type && t.type.toLowerCase().includes(query)) ||
+                    (t.payment_method && t.payment_method.toLowerCase().includes(query)) ||
+                    (t.reference && t.reference.toLowerCase().includes(query))
+                );
+            }
+            this.currentPage = 1;
+        },
+        
+        async loadTransactionsByPeriod(period) {
+            this.loading = true;
+            let fromDate = '';
+            const today = new Date();
+            
+            switch(period) {
+                case 'Today':
+                    fromDate = today.toISOString().split('T')[0];
+                    break;
+                case 'This Week':
+                    const weekAgo = new Date(today);
+                    weekAgo.setDate(today.getDate() - 7);
+                    fromDate = weekAgo.toISOString().split('T')[0];
+                    break;
+                case 'This Month':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+                    break;
+                case 'Last Month':
+                    const lastMonth = new Date(today);
+                    lastMonth.setMonth(today.getMonth() - 1);
+                    fromDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1).toISOString().split('T')[0];
+                    break;
+                case 'This Quarter':
+                    const quarterStart = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
+                    fromDate = quarterStart.toISOString().split('T')[0];
+                    break;
+                case 'This Year':
+                    fromDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+                    break;
+                default:
+                    fromDate = '';
+            }
+            
+            try {
+                const url = `/api/wallet/transactions?per_page=100${fromDate ? `&from_date=${fromDate}` : ''}`;
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                let transactions = data.data || data || [];
+                this.transactions = transactions.map(t => ({
+                    ...t,
+                    converted_amount: this.convertAmount(t.amount),
+                    display_amount: this.formatNumber(this.convertAmount(t.amount))
+                }));
+                this.filteredTransactions = [...this.transactions];
+                this.currentPage = 1;
+            } catch (error) {
+                console.error('Error loading period transactions:', error);
+            } finally {
+                this.loading = false;
+            }
         },
 
         prevPage() { if (this.currentPage > 1) this.currentPage--; },

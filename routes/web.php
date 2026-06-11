@@ -381,10 +381,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
     });
 
-    // Company Management Routes (duplicate removed)
-    // Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
-    //     // ... removed duplicate
-    // });
+
 
     // ========== ADMIN WALLET ROUTES ==========
     Route::prefix('admin')->name('admin.')->middleware(['auth'])->group(function () {
@@ -398,6 +395,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/wallets/export', [App\Modules\Payments\Controllers\WalletController::class, 'export'])->name('wallets.export');
         Route::get('/wallets/report', [App\Modules\Payments\Controllers\WalletController::class, 'report'])->name('wallets.report');
         Route::get('/wallet/transactions/export', [App\Modules\Payments\Controllers\WalletController::class, 'exportTransactions'])->name('tenant.wallet.transactions.export');
+        Route::get('/api/wallet/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTransactions'])->middleware('auth');
     });
 
 });
