@@ -1,5 +1,17 @@
 {{-- resources/views/partials/card/card-wallet-summary.blade.php --}}
-<div x-data="walletComponent()" x-init="init()" class="space-y-5">
+<div x-data="walletComponent({
+    initialBalance: {{ $walletData['balance'] ?? 0 }},
+    initialFullWalletNumber: '{{ $walletData['full_wallet_number'] ?? '0000000000000000' }}',
+    initialMaskedWalletNumber: '{{ $walletData['masked_wallet_number'] ?? '•••• •••• •••• 0000' }}',
+    initialTotalSpent: {{ $walletData['total_spent'] ?? 0 }},
+    initialRentSpent: {{ $walletData['rent_spent'] ?? 0 }},
+    initialWaterSpent: {{ $walletData['water_spent'] ?? 0 }},
+    initialElectricitySpent: {{ $walletData['electricity_spent'] ?? 0 }},
+    initialBalanceChange: {{ $walletData['balance_change'] ?? 0 }},
+    cards: {{ json_encode($walletData['cards'] ?? []) }}
+})" class="space-y-5">
+    {{-- Rest of the HTML remains the same, just remove the @json from inside --}}
+    
     {{-- Two Column Layout --}}
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
         {{-- Wallet Column --}}
@@ -100,7 +112,8 @@
                             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">
                                 <span x-text="selectedCurrency"></span> <span x-text="formatNumber(totalSpent)"></span>
                             </p>
-                            <span class="text-success-600 text-xs">+2.5%</span>
+                            <span class="text-success-600 text-xs" x-show="balanceChange >= 0">+<span x-text="balanceChange"></span>%</span>
+                            <span class="text-error-600 text-xs" x-show="balanceChange < 0"><span x-text="balanceChange"></span>%</span>
                         </div>
                         <div>
                             <p class="text-xs text-gray-500 dark:text-gray-400">Rent</p>
@@ -129,20 +142,17 @@
                     <div class="mt-6 flex flex-col gap-2 border-t border-dashed border-gray-200 pt-6 dark:border-gray-800 sm:flex-row sm:items-center">
                         <p class="shrink-0 text-sm text-gray-700 dark:text-gray-400">Primary Account:</p>
                         <div class="flex flex-wrap items-center gap-2">
-                            <p class="shrink-0 text-lg font-medium text-gray-700 dark:text-gray-400">
-                                •••• •••• •••• {{ $walletNumber ?? '5332' }}
+                            <p class="shrink-0 text-lg font-medium text-gray-700 dark:text-gray-400 font-mono tracking-wide">
+                                <span x-text="maskedWalletNumber || '•••• •••• •••• 0000'"></span>
                             </p>
                             <div x-data="{ copied: false }" class="shrink-0">
-                                <button @click="copied = true; navigator.clipboard.writeText('{{ $walletNumber ?? '•••• •••• •••• 5332' }}'); setTimeout(() => copied = false, 2000)"
+                                <button @click="copied = true; navigator.clipboard.writeText(fullWalletNumber); setTimeout(() => copied = false, 2000)"
                                     class="relative flex h-8 w-9 items-center justify-center rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                                     <svg x-show="!copied" width="20" height="20" fill="none" viewBox="0 0 20 20">
-                                        <path d="M14.1559 14.1628H7.08724C6.39688 14.1628 5.83724 13.6032 5.83724 12.9128V5.84416M14.1559 14.1628V15.4161C14.1559 16.1065 13.5963 16.6661 12.9059 16.6661H4.58398C3.89363 16.6661 3.33398 16.1065 3.33398 15.4161V7.09416C3.33398 6.4038 3.89363 5.84416 4.58398 5.84416H5.83724M14.1559 14.1628H15.4144C16.1048 14.1628 16.6644 13.6032 16.6644 12.9128V4.58398C16.6644 3.89363 16.1048 3.33398 15.4144 3.33398H7.08724C6.39688 3.33398 5.83724 3.89363 5.83724 4.58398V5.84416"
-                                            stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        <path d="M14.1559 14.1628H7.08724C6.39688 14.1628 5.83724 13.6032 5.83724 12.9128V5.84416M14.1559 14.1628V15.4161C14.1559 16.1065 13.5963 16.6661 12.9059 16.6661H4.58398C3.89363 16.6661 3.33398 16.1065 3.33398 15.4161V7.09416C3.33398 6.4038 3.89363 5.84416 4.58398 5.84416H5.83724M14.1559 14.1628H15.4144C16.1048 14.1628 16.6644 13.6032 16.6644 12.9128V4.58398C16.6644 3.89363 16.1048 3.33398 15.4144 3.33398H7.08724C6.39688 3.33398 5.83724 3.89363 5.83724 4.58398V5.84416" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
-                                    <svg x-show="copied" class="text-success-500" width="20" height="20" fill="none"
-                                        viewBox="0 0 20 20">
-                                        <path d="M16.6668 5L7.50016 14.1667L3.3335 10" stroke="currentColor" stroke-width="1.5"
-                                            stroke-linecap="round" stroke-linejoin="round" />
+                                    <svg x-show="copied" class="text-success-500" width="20" height="20" fill="none" viewBox="0 0 20 20">
+                                        <path d="M16.6668 5L7.50016 14.1667L3.3335 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
                                     </svg>
                                 </button>
                             </div>
@@ -214,55 +224,52 @@
                             <div class="swiper-slide">
                                 <div class="relative flex flex-col gap-7 overflow-hidden rounded-[14px] p-6 min-h-[280px]"
                                     :class="card.bgClass">
-                                    {{-- Card Vector Background (Fallback) --}}
+                                    
                                     <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-white/10 to-transparent rounded-bl-[60px]"></div>
                                     
                                     {{-- Card Header --}}
                                     <div class="flex justify-between items-start">
                                         <div class="flex items-center gap-4">
-                                            {{-- Chip Icon --}}
-                                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                <rect width="32" height="32" rx="6" fill="url(#chipGradient)"/>
-                                                <path d="M12 12L16 8L20 12L16 16L12 12Z" fill="white" fill-opacity="0.8"/>
-                                                <defs>
-                                                    <linearGradient id="chipGradient" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-                                                        <stop stop-color="#FFD700"/>
-                                                        <stop offset="1" stop-color="#FFA500"/>
-                                                    </linearGradient>
-                                                </defs>
-                                            </svg>
+                                            <div class="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
+                                                <template x-if="card.cardType === 'mpesa'">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="12" cy="12" r="10" fill="#4CAF50"/>
+                                                        <path d="M8 12L11 15L16 9" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                                                    </svg>
+                                                </template>
+                                                <template x-if="card.cardType === 'airtel'">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <circle cx="12" cy="12" r="10" fill="#E91E63"/>
+                                                        <text x="12" y="16" text-anchor="middle" fill="white" font-size="10" font-weight="bold">A</text>
+                                                    </svg>
+                                                </template>
+                                            </div>
                                             
-                                            {{-- Status Badge --}}
                                             <span class="flex h-6 shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
                                                 :class="card.active ? 'bg-success-500/10 text-success-500' : 'bg-white/10 text-gray-400'"
                                                 x-text="card.active ? 'Active' : 'Inactive'"></span>
                                         </div>
                                         <div>
-                                            {{-- Card Type Icon Fallback --}}
-                                            <div class="h-8 w-12 rounded bg-white/10 flex items-center justify-center">
-                                                <span class="text-white text-xs font-bold" x-text="card.cardType === 'mastercard' ? 'MC' : 'VISA'"></span>
-                                            </div>
+                                            <span class="text-white text-xs font-bold" x-text="card.display_name || (card.cardType === 'mpesa' ? 'M-Pesa' : 'Airtel Money')"></span>
                                         </div>
                                     </div>
                                     
-                                    {{-- Cardholder Name --}}
                                     <div>
                                         <h3 class="text-base font-normal text-white" x-text="card.cardholderName"></h3>
                                     </div>
                                     
-                                    {{-- Card Details Footer --}}
                                     <div class="flex justify-between gap-4">
                                         <div class="flex-1">
-                                            <p class="text-xs text-white/60">Card Number</p>
-                                            <p class="text-base font-normal text-white font-mono tracking-wide" x-text="'•••• •••• •••• ' + card.cardNumber"></p>
+                                            <p class="text-xs text-white/60">Phone Number</p>
+                                            <p class="text-base font-normal text-white font-mono tracking-wide" x-text="card.cardNumber ? '•••• •••• •••• ' + card.cardNumber : 'Not set'"></p>
                                         </div>
                                         <div>
                                             <p class="text-xs text-white/60">EXP</p>
-                                            <p class="text-base font-normal text-white font-mono" x-text="card.expiry"></p>
+                                            <p class="text-base font-normal text-white font-mono" x-text="card.expiry || '--'"></p>
                                         </div>
                                         <div>
                                             <p class="text-xs text-white/60">CVC</p>
-                                            <p class="text-base font-normal text-white font-mono" x-text="card.cvc"></p>
+                                            <p class="text-base font-normal text-white font-mono" x-text="card.cvc || '--'"></p>
                                         </div>
                                     </div>
                                 </div>
@@ -271,7 +278,6 @@
                     </div>
                 </div>
 
-                {{-- Virtual Card and Navigation Section --}}
                 <div class="flex items-center justify-between border-b border-dashed border-gray-200 pt-4 pb-6 dark:border-gray-800">
                     <h3 class="text-lg font-medium text-gray-800 dark:text-white/90">Virtual Card</h3>
                     <div class="flex gap-1.5">
@@ -325,32 +331,18 @@
             <table class="min-w-full">
                 <thead class="border-y border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
                     <tr>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">
-                            <span class="text-theme-xs block font-medium text-gray-500 dark:text-gray-400">Transaction ID</span>
-                        </th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Description</span>
-                        </th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Type</span>
-                        </th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Date</span>
-                        </th>
-                        <th class="px-6 py-3 text-right whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Amount</span>
-                        </th>
-                        <th class="px-6 py-3 text-center whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Status</span>
-                        </th>
+                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs block font-medium text-gray-500 dark:text-gray-400">Transaction ID</span></th>
+                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Description</span></th>
+                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Type</span></th>
+                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Date</span></th>
+                        <th class="px-6 py-3 text-right whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Amount</span></th>
+                        <th class="px-6 py-3 text-center whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Status</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     <template x-for="transaction in paginatedTransactions" :key="transaction.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id"></span>
-                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id"></span></td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
                                     <div class="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-gray-200 shadow-xs dark:border-gray-800 bg-gray-100 dark:bg-gray-800">
@@ -367,23 +359,17 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
                                     :class="transaction.type === 'deposit' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'"
-                                    x-text="transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'">
-                                </span>
+                                    x-text="transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span>
-                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span></td>
                             <td class="px-6 py-4 text-right whitespace-nowrap">
-                                <p class="text-theme-sm font-medium"
-                                    :class="transaction.type === 'deposit' ? 'text-success-600' : 'text-error-600'">
+                                <p class="text-theme-sm font-medium" :class="transaction.type === 'deposit' ? 'text-success-600' : 'text-error-600'">
                                     <span x-text="transaction.type === 'deposit' ? '+' : '-'"></span>
                                     <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertAmount(transaction.amount))"></span>
                                 </p>
                             </td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500">
-                                    Completed
-                                </span>
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500">Completed</span>
                             </td>
                         </tr>
                     </template>
@@ -391,7 +377,6 @@
             </table>
         </div>
 
-        {{-- Empty State --}}
         <div x-show="filteredTransactions.length === 0 && !loading" class="py-12 text-center">
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -404,23 +389,12 @@
             <p class="mt-2 text-sm text-gray-500">Loading transactions...</p>
         </div>
 
-        {{-- Pagination --}}
         <div x-show="filteredTransactions.length > 0 && !loading" class="flex items-center justify-between border-t border-gray-100 px-6 py-4 dark:border-gray-800">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Showing <span x-text="((currentPage - 1) * itemsPerPage) + 1"></span> to 
-                <span x-text="Math.min(currentPage * itemsPerPage, filteredTransactions.length)"></span> of 
-                <span x-text="filteredTransactions.length"></span> entries
-            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Showing <span x-text="((currentPage - 1) * itemsPerPage) + 1"></span> to <span x-text="Math.min(currentPage * itemsPerPage, filteredTransactions.length)"></span> of <span x-text="filteredTransactions.length"></span> entries</p>
             <div class="flex gap-2">
-                <button @click="prevPage" :disabled="currentPage === 1"
-                    class="rounded-lg border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700">
-                    Previous
-                </button>
+                <button @click="prevPage" :disabled="currentPage === 1" class="rounded-lg border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700">Previous</button>
                 <span class="px-3 py-1 text-sm" x-text="`Page ${currentPage} of ${totalPages}`"></span>
-                <button @click="nextPage" :disabled="currentPage === totalPages"
-                    class="rounded-lg border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700">
-                    Next
-                </button>
+                <button @click="nextPage" :disabled="currentPage === totalPages" class="rounded-lg border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700">Next</button>
             </div>
         </div>
     </div>
@@ -434,17 +408,19 @@
 </div>
 
 <script>
-function walletComponent() {
+function walletComponent(config = {}) {
     return {
-        // Wallet Data (from backend)
-        walletBalance: 0,
-        walletNumber: '',
-        totalSpent: 0,
-        rentSpent: 0,
-        waterSpent: 0,
-        electricitySpent: 0,
-        balanceChange: 0,
-        
+        // Wallet Data (from config)
+        walletBalance: config.initialBalance || 0,
+        fullWalletNumber: config.initialFullWalletNumber || '0000000000000000',
+        maskedWalletNumber: config.initialMaskedWalletNumber || '•••• •••• •••• 0000',
+        totalSpent: config.initialTotalSpent || 0,
+        rentSpent: config.initialRentSpent || 0,
+        waterSpent: config.initialWaterSpent || 0,
+        electricitySpent: config.initialElectricitySpent || 0,
+        balanceChange: config.initialBalanceChange || 0,
+        cards: config.cards || [],
+
         // Transactions
         transactions: [],
         filteredTransactions: [],
@@ -452,7 +428,8 @@ function walletComponent() {
         
         // Currency & Exchange Rates
         selectedCurrency: 'KES',
-        exchangeRates: { USD: 0.0076, EUR: 0.0070, GBP: 0.0060, JPY: 1.18, KES: 1 },
+        exchangeRates: { USD: 0, EUR: 0, GBP: 0, JPY: 0, KES: 1 },
+        conversionInProgress: false,
         currencies: [
             { code: 'KES', name: 'Kenyan Shilling' },
             { code: 'USD', name: 'US Dollar' },
@@ -462,14 +439,11 @@ function walletComponent() {
         ],
         periods: ['Today', 'This Week', 'This Month', 'Last Month', 'This Quarter', 'This Year'],
         
-        cards: @json($walletData['cards'] ?? []),
-        
         // Pagination and Search
         currentPage: 1,
         itemsPerPage: 10,
         searchQuery: '',
 
-        // Computed values
         get convertedBalance() { 
             return this.walletBalance * (this.exchangeRates[this.selectedCurrency] || 1); 
         },
@@ -492,11 +466,14 @@ function walletComponent() {
         
         async loadWalletData() {
             try {
-                const response = await fetch('/api/wallet/balance');
+                const response = await fetch('/api/wallet/balance', {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
                 const data = await response.json();
                 if (data.success) {
                     this.walletBalance = data.balance;
-                    this.walletNumber = data.wallet_number || '5332';
+                    this.fullWalletNumber = data.wallet_number || this.fullWalletNumber;
+                    this.maskedWalletNumber = data.masked_wallet_number || this.maskedWalletNumber;
                 }
             } catch (error) {
                 console.error('Error loading wallet data:', error);
@@ -506,28 +483,18 @@ function walletComponent() {
         async loadTransactions() {
             this.loading = true;
             try {
-                const response = await fetch('/api/wallet/transactions?per_page=50');
+                const response = await fetch('/api/wallet/transactions?per_page=50', {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
                 const data = await response.json();
                 this.transactions = data.data || [];
                 this.filteredTransactions = [...this.transactions];
-                this.updateStats();
+                // Don't recalc stats here - keep backend values
             } catch (error) {
                 console.error('Error loading transactions:', error);
             } finally {
                 this.loading = false;
             }
-        },
-        
-        updateStats() {
-            // Calculate totals from transactions
-            const deposits = this.transactions.filter(t => t.type === 'deposit').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            const withdrawals = this.transactions.filter(t => t.type === 'withdraw').reduce((sum, t) => sum + parseFloat(t.amount), 0);
-            this.totalSpent = withdrawals;
-            
-            // These would come from categorized transactions in real implementation
-            this.rentSpent = 1200;
-            this.waterSpent = 85.50;
-            this.electricitySpent = 210.30;
         },
         
         filterTransactions() {
@@ -574,7 +541,9 @@ function walletComponent() {
             
             try {
                 const url = `/api/wallet/transactions?per_page=100${fromDate ? `&from_date=${fromDate}` : ''}`;
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
                 const data = await response.json();
                 this.transactions = data.data || [];
                 this.filteredTransactions = [...this.transactions];
@@ -588,213 +557,30 @@ function walletComponent() {
 
         async fetchExchangeRates() {
             try {
-                const response = await fetch('https://api.exchangerate-api.com/v4/latest/KES');
+                const response = await fetch('https://api.frankfurter.app/latest?from=KES');
                 const data = await response.json();
                 if (data.rates) {
                     this.exchangeRates = {
                         KES: 1,
-                        USD: data.rates.USD,
-                        EUR: data.rates.EUR,
-                        GBP: data.rates.GBP,
-                        JPY: data.rates.JPY
+                        USD: data.rates.USD || 0.0076,
+                        EUR: data.rates.EUR || 0.0070,
+                        GBP: data.rates.GBP || 0.0060,
+                        JPY: data.rates.JPY || 1.18
                     };
                 }
             } catch (error) {
                 console.warn('Exchange rate API failed, using fallback rates:', error);
-            }
-        },
-
-
-        async payWithWallet(invoiceId, amount) {
-            this.loading = true;
-            this.formErrors = [];
-            
-            try {
-                const response = await fetch(`/api/wallet/pay-invoice/${invoiceId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({ amount: amount })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Update wallet balance
-                    this.walletBalance = result.data.new_balance;
-                    
-                    // Update the UI balance display
-                    this.updateBalanceDisplay();
-                    
-                    // Refresh transactions
-                    await this.loadTransactions();
-                    
-                    // Refresh stats
-                    this.updateStats();
-                    
-                    // Show success message
-                    this.showNotification('success', result.message);
-                    
-                    // Dispatch event for invoice list to update
-                    window.dispatchEvent(new CustomEvent('wallet-payment-completed', { 
-                        detail: result.data 
-                    }));
-                    
-                    return { success: true, data: result.data };
-                } else {
-                    this.formErrors = [result.error];
-                    this.showNotification('error', result.error);
-                    return { success: false, error: result.error };
-                }
-            } catch (error) {
-                console.error('Payment error:', error);
-                this.formErrors = ['An error occurred. Please try again.'];
-                this.showNotification('error', 'An error occurred. Please try again.');
-                return { success: false, error: error.message };
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async processDeposit(amount, paymentMethod, phoneNumber = null, reference = null) {
-            this.loading = true;
-            this.formErrors = [];
-            
-            try {
-                const payload = {
-                    amount: amount,
-                    payment_method: paymentMethod,
-                    reference: reference
+                this.exchangeRates = {
+                    KES: 1, USD: 0.0076, EUR: 0.0070, GBP: 0.0060, JPY: 1.18
                 };
-                
-                if (paymentMethod === 'mpesa' && phoneNumber) {
-                    payload.phone_number = phoneNumber;
-                }
-                
-                const response = await fetch('/api/wallet/deposit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    this.walletBalance = result.data.new_balance;
-                    this.updateBalanceDisplay();
-                    await this.loadTransactions();
-                    this.showNotification('success', result.message);
-                    return { success: true, data: result.data };
-                } else {
-                    this.formErrors = [result.error];
-                    this.showNotification('error', result.error);
-                    return { success: false, error: result.error };
-                }
-            } catch (error) {
-                console.error('Deposit error:', error);
-                this.formErrors = ['An error occurred. Please try again.'];
-                this.showNotification('error', 'An error occurred. Please try again.');
-                return { success: false, error: error.message };
-            } finally {
-                this.loading = false;
             }
         },
 
-        async processTransfer(recipientEmail, amount, description, pin) {
-            this.loading = true;
-            this.formErrors = [];
-            
-            try {
-                const response = await fetch('/api/wallet/transfer', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        recipient_email: recipientEmail,
-                        amount: amount,
-                        description: description,
-                        pin: pin
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    this.walletBalance = result.data.new_balance;
-                    this.updateBalanceDisplay();
-                    await this.loadTransactions();
-                    this.showNotification('success', result.message);
-                    return { success: true, data: result.data };
-                } else {
-                    this.formErrors = [result.error];
-                    this.showNotification('error', result.error);
-                    return { success: false, error: result.error };
-                }
-            } catch (error) {
-                console.error('Transfer error:', error);
-                this.formErrors = ['An error occurred. Please try again.'];
-                this.showNotification('error', 'An error occurred. Please try again.');
-                return { success: false, error: error.message };
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        updateBalanceDisplay() {
-            // Update the balance display elements
-            const balanceElements = document.querySelectorAll('[data-wallet-balance]');
-            balanceElements.forEach(el => {
-                el.textContent = this.formatNumber(this.walletBalance);
-            });
-            
-            // Update any other balance displays
-            const formattedBalance = this.selectedCurrency + ' ' + this.formatNumber(this.walletBalance);
-            const formattedElements = document.querySelectorAll('[data-wallet-balance-formatted]');
-            formattedElements.forEach(el => {
-                el.textContent = formattedBalance;
-            });
-        },
-
-        showNotification(type, message) {
-            // Create a toast notification
-            const toast = document.createElement('div');
-            toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-6 py-3 text-white shadow-lg transition-all duration-300 ${
-                type === 'success' ? 'bg-green-500' : 'bg-red-500'
-            }`;
-            toast.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                            d="${type === 'success' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}"/>
-                    </svg>
-                    <span>${message}</span>
-                </div>
-            `;
-            
-            document.body.appendChild(toast);
-            
-            setTimeout(() => {
-                toast.style.opacity = '0';
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
-        },
-
-        async refreshWalletData() {
+        async refreshAfterTransaction() {
             await Promise.all([
                 this.loadWalletData(),
                 this.loadTransactions()
             ]);
-            this.updateStats();
         },
 
         convertAmount(amount) {
@@ -812,26 +598,17 @@ function walletComponent() {
             if (!dateString) return '—';
             const date = new Date(dateString);
             return date.toLocaleDateString('en-KE', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
+                year: 'numeric', month: 'short', day: 'numeric'
             });
         },
 
         initSwiper() {
             setTimeout(() => {
                 if (typeof Swiper !== 'undefined' && document.querySelector('.my-cards-slider')) {
-                    if (this.swiperInstance) {
-                        this.swiperInstance.destroy(true, true);
-                    }
-                    
+                    if (this.swiperInstance) this.swiperInstance.destroy(true, true);
                     this.swiperInstance = new Swiper('.my-cards-slider', {
-                        slidesPerView: 1,
-                        spaceBetween: 20,
-                        navigation: { 
-                            nextEl: '#card-slider-next', 
-                            prevEl: '#card-slider-prev' 
-                        },
+                        slidesPerView: 1, spaceBetween: 20,
+                        navigation: { nextEl: '#card-slider-next', prevEl: '#card-slider-prev' },
                         loop: this.cards.length > 1,
                         autoplay: this.cards.length > 1 ? { delay: 5000, disableOnInteraction: false } : false,
                         speed: 400
@@ -840,34 +617,15 @@ function walletComponent() {
             }, 100);
         },
 
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-            }
-        },
+        prevPage() { if (this.currentPage > 1) this.currentPage--; },
+        nextPage() { if (this.currentPage < this.totalPages) this.currentPage++; },
 
-        nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-            }
-        },
-
-        // Modal Triggers - these will be handled by the modal components
-        openDepositModal() { 
-            if (window.walletDepositModal) window.walletDepositModal.openModal(); 
-        },
-        openPaymentModal() { 
-            if (window.walletPaymentModal) window.walletPaymentModal.openModal(); 
-        },
-        openScheduleModal() { 
-            if (window.walletScheduleModal) window.walletScheduleModal.openModal(); 
-        },
-        openStatementModal() { 
-            if (window.walletStatementModal) window.walletStatementModal.openModal(); 
-        },
-        openAddCardModal() { 
-            if (window.walletAddCardModal) window.walletAddCardModal.openModal(); 
-        }
+        // Modal Triggers
+        openDepositModal() { if (window.walletDepositModal) window.walletDepositModal.openModal(); },
+        openPaymentModal() { if (window.walletPaymentModal) window.walletPaymentModal.openModal(); },
+        openScheduleModal() { if (window.walletScheduleModal) window.walletScheduleModal.openModal(); },
+        openStatementModal() { if (window.walletStatementModal) window.walletStatementModal.openModal(); },
+        openAddCardModal() { if (window.walletAddCardModal) window.walletAddCardModal.openModal(); }
     };
 }
 </script>

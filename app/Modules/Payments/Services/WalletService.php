@@ -33,6 +33,7 @@ class WalletService
             DB::beginTransaction();
             
             // Create the deposit transaction using bavix wallet
+            // bavix uses 'confirmed' column (0 = pending, 1 = confirmed)
             $transaction = $walletOwner->deposit($amount, [
                 'description' => $meta['description'] ?? 'Wallet deposit',
                 'payment_method' => $meta['payment_method'] ?? null,
@@ -110,6 +111,16 @@ class WalletService
                 'error' => $e->getMessage(),
             ];
         }
+    }
+    
+    /**
+     * Get available balance (only confirmed transactions)
+     */
+    public function getAvailableBalance($walletOwner): float
+    {
+        // In bavix, balance only includes confirmed transactions
+        // The wallet's balance property already reflects only confirmed transactions
+        return (float) $walletOwner->balance;
     }
     
     /**

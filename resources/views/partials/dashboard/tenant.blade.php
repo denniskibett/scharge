@@ -120,7 +120,8 @@
 
         <!-- Wallet Summary Card - Add this -->
         <div class="mb-6">
-            @include('partials.card.card-wallet-summary', ['walletData' => $walletData ?? []])
+            @include('partials.card.card-wallet-summary', ['walletData' => $walletData])
+
         </div>
 
         <!-- Tabs -->

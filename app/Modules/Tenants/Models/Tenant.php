@@ -1,4 +1,5 @@
 <?php
+// app/Modules/Tenants/Models/Tenant.php
 
 namespace App\Modules\Tenants\Models;
 
@@ -42,20 +43,17 @@ class Tenant extends Model implements Wallet
         return $this->hasOne(Tenancy::class, 'tenant_id')->where('status', 'active');
     }
 
-    // Get current unit
     public function getCurrentUnitAttribute()
     {
         $activeTenancy = $this->activeTenancy;
         return $activeTenancy ? $activeTenancy->unit : null;
     }
 
-    // Get all visitors registered by this tenant
     public function registeredVisitors()
     {
         return $this->hasMany(Visitor::class, 'registered_by_tenant_id');
     }
 
-    // Get all security logs for this tenant's unit
     public function securityLogs()
     {
         $unit = $this->current_unit;
@@ -65,7 +63,6 @@ class Tenant extends Model implements Wallet
         return SecurityLog::where('unit_id', $unit->id)->latest('access_time');
     }
 
-    // Get active visitors (valid and not expired)
     public function getActiveVisitorsAttribute()
     {
         return $this->registeredVisitors()
@@ -77,38 +74,53 @@ class Tenant extends Model implements Wallet
             ->get();
     }
 
-    // Get full name
     public function getNameAttribute()
     {
         return $this->user->name ?? 'Unknown';
     }
 
-    // Get email
     public function getEmailAttribute()
     {
         return $this->user->email ?? null;
     }
 
-    // Get phone
     public function getPhoneAttribute()
     {
         return $this->user->phone ?? null;
     }
 
-    // Get phone2
     public function getPhone2Attribute()
     {
         return $this->user->phone2 ?? null;
     }
 
-    // Check if tenant has active tenancy
     public function hasActiveTenancy()
     {
         return $this->tenancies()->where('status', 'active')->exists();
     }
 
-    public function wallet()
+    /**
+     * Get formatted wallet ID (16-digit padded from Bavix wallet ID)
+     */
+    public function getFormattedWalletIdAttribute()
     {
-        return $this->morphOne(\App\Modules\Payments\Models\Wallet::class, 'holder');
+        $wallet = $this->wallet;
+        
+        if ($wallet) {
+            // Pad the wallet ID to 16 digits
+            return str_pad((string) $wallet->getKey(), 16, '0', STR_PAD_LEFT);
+        }
+        
+        return str_pad((string) $this->id, 16, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Get masked wallet number for display
+     */
+    public function getMaskedWalletNumberAttribute()
+    {
+        $full = $this->formatted_wallet_id;
+        $last4 = substr($full, -4);
+        return '•••• •••• •••• ' . $last4;
     }
 }

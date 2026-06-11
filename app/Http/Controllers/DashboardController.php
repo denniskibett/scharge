@@ -502,8 +502,19 @@ class DashboardController extends Controller
         $stats = $this->getCommonStats($user);
         $roleData = $this->getRoleSpecificData($user, $company);
         
-        // Get wallet data
+        // THIS MUST BE CALLED - Get wallet data
         $walletData = $this->getTenantWalletData($user);
+        
+        // DEBUG - Log the wallet data to see what's coming through
+        \Log::info('Wallet Data in tenantDashboard', [
+            'balance' => $walletData['balance'],
+            'total_spent' => $walletData['total_spent'],
+            'rent_spent' => $walletData['rent_spent'],
+            'water_spent' => $walletData['water_spent'],
+            'electricity_spent' => $walletData['electricity_spent'],
+            'balance_change' => $walletData['balance_change'],
+            'full_wallet_number' => $walletData['full_wallet_number'],
+        ]);
         
         $outstandingBalance = $roleData['outstandingBalance'] ?? 0;
         $totalPaid = $roleData['totalPaid'] ?? 0;
@@ -1731,11 +1742,6 @@ private function getSecurityData($company)
             ->toArray();
     }
 
-
-/**
- * Get tenant details for deposit modal (API)
- * Maps through: User -> Tenant -> ActiveTenancy -> Unit -> Estate -> Company -> CompanyPaymentMethods
- */
 private function getTenantWalletData($user)
 {
     $tenant = $user->tenant;
@@ -1744,21 +1750,70 @@ private function getTenantWalletData($user)
         return [
             'balance' => 0,
             'wallet_id' => null,
+            'wallet_number' => null,
+            'masked_wallet_number' => null,
+            'full_wallet_number' => null,
+            'total_spent' => 0,
+            'rent_spent' => 0,
+            'water_spent' => 0,
+            'electricity_spent' => 0,
+            'balance_change' => 0,
             'transactions' => [],
             'cards' => []
         ];
     }
     
-    // Get wallet balance safely
-    $balance = 0;
-    if ($tenant->wallet) {
-        $balance = (float) $tenant->wallet->balance;
+    // Get wallet from Bavix (auto-created by HasWallet trait)
+    $wallet = $tenant->wallet;
+    
+    // Get wallet balance - this is from Bavix
+    $balance = (float) $tenant->balance;
+    
+    // Get wallet ID from Bavix wallet
+    $walletId = $wallet ? $wallet->getKey() : null;
+    $fullWalletNumber = $walletId ? str_pad((string) $walletId, 16, '0', STR_PAD_LEFT) : str_pad((string) $tenant->id, 16, '0', STR_PAD_LEFT);
+    $maskedWalletNumber = '•••• •••• •••• ' . substr($fullWalletNumber, -4);
+    
+    // Calculate spent amounts from invoice payments
+    $totalSpent = 0;
+    $rentSpent = 0;
+    $waterSpent = 0;
+    $electricitySpent = 0;
+    
+    $payments = Payment::whereHas('invoice', function($q) use ($tenant) {
+            $q->whereHas('tenancy', function($sq) use ($tenant) {
+                $sq->where('tenant_id', $tenant->id);
+            });
+        })
+        ->where('status', 'verified')
+        ->get();
+    
+    foreach ($payments as $payment) {
+        $totalSpent += $payment->amount;
+        
+        $invoiceItems = InvoiceItem::where('payment_id', $payment->id)->get();
+        
+        foreach ($invoiceItems as $item) {
+            switch ($item->item_type) {
+                case 'rent':
+                    $rentSpent += $item->paid_amount ?? $item->amount;
+                    break;
+                case 'water':
+                    $waterSpent += $item->paid_amount ?? $item->amount;
+                    break;
+                case 'power':
+                case 'electricity':
+                    $electricitySpent += $item->paid_amount ?? $item->amount;
+                    break;
+            }
+        }
     }
     
-    // Get recent transactions (last 10)
-    $transactions = collect(); // Default empty collection
+    // Get recent transactions from Bavix
+    $transactions = collect();
     if ($tenant->transactions()) {
         $transactions = $tenant->transactions()
+            ->where('confirmed', 1)
             ->orderBy('created_at', 'desc')
             ->take(10)
             ->get()
@@ -1769,31 +1824,99 @@ private function getTenantWalletData($user)
                     'amount' => (float) $tx->amount,
                     'description' => $tx->meta['description'] ?? ($tx->type === 'deposit' ? 'Deposit' : 'Withdrawal'),
                     'created_at' => $tx->created_at->toIso8601String(),
-                    'status' => 'completed'
+                    'confirmed' => (bool) $tx->confirmed,
                 ];
             });
     }
     
-    // Get user's cards
-    $cards = auth()->user()->cards ?? [
+    // Calculate balance change
+    $balanceChange = $this->calculateBalanceChange($tenant);
+    
+    // Cards (keep as is)
+    $userPhone = $user->phone ?? '0000000000';
+    $formattedPhone = substr($userPhone, -4);
+    
+    $cards = [
         [
             'id' => 1,
-            'cardholderName' => auth()->user()->name ?? 'Card Holder',
-            'cardNumber' => '4983',
-            'expiry' => '09/29',
-            'cvc' => '659',
+            'cardholderName' => $user->name ?? 'Card Holder',
+            'cardNumber' => $formattedPhone,
+            'full_card_number' => $userPhone,
+            'expiry' => '--',
+            'cvc' => '--',
             'active' => true,
-            'cardType' => 'mastercard',
-            'bgClass' => 'bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-900 dark:to-gray-950'
+            'cardType' => 'mpesa',
+            'payment_method_id' => null,
+            'bgClass' => 'bg-gradient-to-br from-green-600 to-green-800 dark:from-green-800 dark:to-green-950',
+            'logo' => 'mpesa',
+            'display_name' => 'M-Pesa',
         ]
     ];
     
     return [
         'balance' => $balance,
-        'wallet_id' => $tenant->wallet?->uuid,
+        'wallet_id' => $wallet->uuid ?? null,
+        'wallet_number' => $fullWalletNumber,
+        'masked_wallet_number' => $maskedWalletNumber,
+        'full_wallet_number' => $fullWalletNumber,
+        'total_spent' => $totalSpent,
+        'rent_spent' => $rentSpent,
+        'water_spent' => $waterSpent,
+        'electricity_spent' => $electricitySpent,
+        'balance_change' => $balanceChange,
         'transactions' => $transactions,
-        'cards' => $cards
+        'cards' => $cards,
+        'user_phone' => $userPhone,
     ];
+}
+
+private function calculateBalanceChange($tenant)
+{
+    $now = now();
+    $currentMonth = $now->month;
+    $currentYear = $now->year;
+    $lastMonth = $now->copy()->subMonth()->month;
+    $lastMonthYear = $now->copy()->subMonth()->year;
+    
+    $currentMonthDeposits = $tenant->transactions()
+        ->where('type', 'deposit')
+        ->where('confirmed', 1)
+        ->whereMonth('created_at', $currentMonth)
+        ->whereYear('created_at', $currentYear)
+        ->sum('amount');
+    
+    $currentMonthWithdrawals = $tenant->transactions()
+        ->where('type', 'withdraw')
+        ->where('confirmed', 1)
+        ->whereMonth('created_at', $currentMonth)
+        ->whereYear('created_at', $currentYear)
+        ->sum('amount');
+    
+    $currentMonthNet = $currentMonthDeposits - $currentMonthWithdrawals;
+    
+    $lastMonthDeposits = $tenant->transactions()
+        ->where('type', 'deposit')
+        ->where('confirmed', 1)
+        ->whereMonth('created_at', $lastMonth)
+        ->whereYear('created_at', $lastMonthYear)
+        ->sum('amount');
+    
+    $lastMonthWithdrawals = $tenant->transactions()
+        ->where('type', 'withdraw')
+        ->where('confirmed', 1)
+        ->whereMonth('created_at', $lastMonth)
+        ->whereYear('created_at', $lastMonthYear)
+        ->sum('amount');
+    
+    $lastMonthNet = $lastMonthDeposits - $lastMonthWithdrawals;
+    
+    if ($lastMonthNet > 0) {
+        return round((($currentMonthNet - $lastMonthNet) / $lastMonthNet) * 100, 1);
+    } elseif ($currentMonthNet > 0) {
+        return 100;
+    }
+    
+    return 0;
 }
 
     private function getUserCards($user)

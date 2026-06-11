@@ -71,41 +71,33 @@
                 {{-- ==================== STK PUSH / MANUAL ENTRY MODE ==================== --}}
                 <div x-show="inputMode === 'manual'" x-transition.duration.200ms>
 
-                    {{-- Tenant Account Details Section --}}
-                    <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                        <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">👤 Your Account Details</h5>
-                        <div class="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Tenant Name:</span>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenantDetails.name || 'Loading...'"></p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Company:</span>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenantDetails.company || '-'"></p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Estate:</span>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenantDetails.estate || '-'"></p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 dark:text-gray-400">Unit Number:</span>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenantDetails.unit || '-'"></p>
-                            </div>
-                            <div class="col-span-2">
-                                <span class="text-gray-500 dark:text-gray-400">Wallet ID:</span>
-                                <div class="flex items-center gap-2 mt-1">
-                                    <code class="rounded bg-gray-200 px-2 py-1 text-sm font-mono dark:bg-gray-700" x-text="tenantDetails.wallet_id"></code>
-                                    <button type="button" @click="copyToClipboard(tenantDetails.wallet_id, 'Wallet ID')"
-                                        class="text-brand-500 hover:text-brand-600 text-xs flex items-center gap-1">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                                        </svg>
-                                        Copy
-                                    </button>
-                                </div>
+                {{-- Tenant Account Details Section --}}
+                <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                    <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">👤 Your Account Details</h5>
+                    <div class="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">Tenant Name:</span>
+                            <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenantDetails.name || 'Loading...'"></p>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 dark:text-gray-400">Unit Number:</span>
+                            <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenantDetails.unit || '-'"></p>
+                        </div>
+                        <div class="col-span-2">
+                            <span class="text-gray-500 dark:text-gray-400">Wallet ID:</span>
+                            <div class="flex items-center gap-2 mt-1">
+                                <code class="rounded bg-gray-200 px-2 py-1 text-sm font-mono dark:bg-gray-700" x-text="tenantDetails.masked_wallet_number || tenantDetails.wallet_number"></code>
+                                <button type="button" @click="copyToClipboard(tenantDetails.wallet_number, 'Wallet ID')"
+                                    class="text-brand-500 hover:text-brand-600 text-xs flex items-center gap-1">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Copy
+                                </button>
                             </div>
                         </div>
                     </div>
+                </div>
 
                     {{-- Amount --}}
                     <div class="mb-4">
@@ -179,100 +171,114 @@
 
                     {{-- Company Payment Details Section --}}
                     <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-                        <h5 class="mb-3 text-sm font-semibold text-blue-800 dark:text-blue-400">🏢 Company Payment Details</h5>
                         
-                        <div class="space-y-4">
-                            <div>
-                                <span class="text-gray-600 dark:text-gray-400">Company Name:</span>
-                                <p class="font-medium text-gray-800 dark:text-white/90" x-text="companyDetails.name || 'Loading...'"></p>
+                        {{-- Payment To - Wallet Section --}}
+                        <div class="mb-4 pb-4 border-b border-blue-200 dark:border-blue-800">
+                            <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400 flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                                Payment To (My Wallet)
+                            </h5>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="text-base font-bold text-gray-800 dark:text-white/90 font-mono" x-text="tenantDetails.wallet_number || 'Loading...'"></div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">Use this as account number when sending payment</div>
+                                </div>
+                                <button type="button" @click="copyToClipboard(tenantDetails.wallet_number, 'Wallet Number')"
+                                    class="text-blue-600 hover:text-blue-700 text-xs flex items-center gap-1 px-2 py-1 rounded border border-blue-300 hover:bg-blue-100 dark:border-blue-600 dark:hover:bg-blue-900/30">
+                                    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Copy
+                                </button>
                             </div>
-                            
-                            <!-- Payment Methods Display -->
+                        </div>
+                        
+                        {{-- Payment To - Estate & Company Section --}}
+                        <div class="mb-4 pb-4 border-b border-blue-200 dark:border-blue-800">
+                            <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400 flex items-center gap-2">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                                Payment To (Property)
+                            </h5>
+                            <div>
+                                <div class="text-base font-bold text-gray-800 dark:text-white/90" x-text="companyDetails.estate_name || 'Loading...'"></div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400" x-text="companyDetails.name"></div>
+                            </div>
+                        </div>
+                        
+                        {{-- Select Payment Method Section --}}
+                        <h5 class="mb-3 text-sm font-semibold text-blue-800 dark:text-blue-400 flex items-center gap-2">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Select Payment Method
+                        </h5>
+                        
+                        <div class="space-y-2">
                             <template x-for="pm in companyDetails.payment_methods" :key="pm.id">
-                                <div class="rounded-lg bg-white p-3 dark:bg-gray-800">
-                                    <div class="flex items-center justify-between mb-2">
-                                        @verbatim
-                                        <span class="text-xs font-semibold uppercase" 
-                                            :class="pm.type === 'mobile_money' ? 'text-green-600' : 'text-blue-600'">
-                                            <span x-show="pm.type === 'mobile_money'">📱 Mobile Money (<span x-text="pm.provider || 'M-Pesa'"></span>)</span>
-                                            <span x-show="pm.type === 'bank'">🏦 Bank Transfer (<span x-text="pm.bank_name || pm.provider"></span>)</span>
-                                        </span>
-                                        @endverbatim
-                                        <span x-show="pm.is_default" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded dark:bg-blue-900/30 dark:text-blue-400">Default</span>
-                                    </div>
-                                    
-                                    <!-- Mobile Money Details -->
-                                    <div x-show="pm.type === 'mobile_money'" class="space-y-2 text-sm">
-                                        <div x-show="pm.paybill_number" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Paybill Number:</span>
-                                            <div class="flex items-center gap-2">
-                                                <code class="font-mono text-green-700 dark:text-green-400" x-text="pm.paybill_number"></code>
-                                                <button type="button" @click="copyToClipboard(pm.paybill_number, 'Paybill Number')"
-                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
+                                <div @click="selectedPaymentMethod = pm; selectedPaymentMethodId = pm.id; updatePaymentMethodDetails(pm)" 
+                                    class="cursor-pointer rounded-lg border-2 p-3 transition-all"
+                                    :class="selectedPaymentMethodId === pm.id ? 'border-blue-500 bg-blue-100 dark:border-blue-400 dark:bg-blue-900/40' : 'border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-800 hover:border-blue-300'">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <!-- Icon based on payment method type -->
+                                            <div class="h-10 w-10 rounded-full flex items-center justify-center"
+                                                :class="pm.type === 'mobile_money' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-blue-100 dark:bg-blue-900/30'">
+                                                <!-- Mobile Money Icon -->
+                                                <template x-if="pm.type === 'mobile_money'">
+                                                    <svg class="h-5 w-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 9l-3-3-3 3m6 6l-3 3-3-3"/>
+                                                    </svg>
+                                                </template>
+                                                <!-- Bank Icon -->
+                                                <template x-if="pm.type === 'bank'">
+                                                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m-7-5h14"/>
+                                                    </svg>
+                                                </template>
+                                                <!-- Card Icon -->
+                                                <template x-if="pm.type === 'card'">
+                                                    <svg class="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                                    </svg>
+                                                </template>
+                                            </div>
+                                            <div>
+                                                <div class="font-medium text-gray-800 dark:text-white/90" x-text="pm.display_name || (pm.type === 'mobile_money' ? 'Mobile Money' : (pm.type === 'bank' ? 'Bank Transfer' : 'Card Payment'))"></div>
+                                                <div class="text-xs text-gray-500" x-show="pm.type === 'mobile_money' && pm.paybill_number">
+                                                    Paybill: <span class="font-mono" x-text="pm.paybill_number"></span>
+                                                </div>
+                                                <div class="text-xs text-gray-500" x-show="pm.type === 'mobile_money' && pm.till_number">
+                                                    Till Number: <span class="font-mono" x-text="pm.till_number"></span>
+                                                </div>
+                                                <div class="text-xs text-gray-500" x-show="pm.type === 'mobile_money' && pm.account_number">
+                                                    Account: <span class="font-mono" x-text="pm.account_number"></span>
+                                                </div>
+                                                <div class="text-xs text-gray-500" x-show="pm.type === 'bank' && pm.account_number">
+                                                    Account: <span class="font-mono" x-text="pm.account_number"></span>
+                                                </div>
+                                                <div class="text-xs text-gray-500" x-show="pm.type === 'bank' && pm.bank_name">
+                                                    Bank: <span x-text="pm.bank_name"></span>
+                                                </div>
+                                                <div class="text-xs text-gray-500" x-show="pm.account_name">
+                                                    Account Name: <span x-text="pm.account_name"></span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div x-show="pm.till_number" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Till Number:</span>
-                                            <div class="flex items-center gap-2">
-                                                <code class="font-mono text-green-700 dark:text-green-400" x-text="pm.till_number"></code>
-                                                <button type="button" @click="copyToClipboard(pm.till_number, 'Till Number')"
-                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
-                                            </div>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-gray-600">Account Number (Unit):</span>
-                                            <div class="flex items-center gap-2">
-                                                <code class="font-mono text-green-700 dark:text-green-400" x-text="tenantDetails.unit || 'N/A'"></code>
-                                                <button type="button" @click="copyToClipboard(tenantDetails.unit, 'Account Number')"
-                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
-                                            </div>
-                                        </div>
-                                        <div x-show="pm.account_name" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Account Name:</span>
-                                            <span class="font-medium" x-text="pm.account_name"></span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Bank Transfer Details -->
-                                    <div x-show="pm.type === 'bank'" class="space-y-2 text-sm">
-                                        <div x-show="pm.bank_name" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Bank Name:</span>
-                                            <span class="font-medium" x-text="pm.bank_name"></span>
-                                        </div>
-                                        <div x-show="pm.account_number" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Account Number:</span>
-                                            <div class="flex items-center gap-2">
-                                                <code class="font-mono" x-text="pm.account_number"></code>
-                                                <button type="button" @click="copyToClipboard(pm.account_number, 'Account Number')"
-                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
-                                            </div>
-                                        </div>
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-gray-600">Reference (Unit):</span>
-                                            <div class="flex items-center gap-2">
-                                                <code class="font-mono" x-text="tenantDetails.unit || 'N/A'"></code>
-                                                <button type="button" @click="copyToClipboard(tenantDetails.unit, 'Reference')"
-                                                    class="text-blue-600 text-xs hover:underline">Copy</button>
-                                            </div>
-                                        </div>
-                                        <div x-show="pm.account_name" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Account Name:</span>
-                                            <span class="font-medium" x-text="pm.account_name"></span>
-                                        </div>
-                                        <div x-show="pm.branch_name" class="flex justify-between items-center">
-                                            <span class="text-gray-600">Branch:</span>
-                                            <span x-text="pm.branch_name"></span>
-                                        </div>
-                                        <div x-show="pm.swift_code" class="flex justify-between items-center">
-                                            <span class="text-gray-600">SWIFT Code:</span>
-                                            <code class="font-mono" x-text="pm.swift_code"></code>
+                                        <!-- Selected Checkmark -->
+                                        <div x-show="selectedPaymentMethodId === pm.id">
+                                            <svg class="h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                            </svg>
                                         </div>
                                     </div>
-                                    
                                     <!-- Instructions -->
-                                    <div x-show="pm.instructions" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                                        <p class="text-xs text-gray-500" x-text="pm.instructions"></p>
-                                    </div>
+                                    <div x-show="pm.instructions" class="mt-2 pt-2 text-xs text-gray-500 border-t border-gray-200 dark:border-gray-700" x-text="pm.instructions"></div>
                                 </div>
                             </template>
                             
@@ -280,6 +286,9 @@
                                 No payment methods configured for this company.
                             </div>
                         </div>
+                        
+                        <!-- Hidden input to store selected payment method ID -->
+                        <input type="hidden" x-model="selectedPaymentMethodId" name="payment_method_id">
                     </div>
 
                     {{-- Transaction Message Textarea --}}
@@ -436,10 +445,13 @@ document.addEventListener('alpine:init', () => {
             company: '',
             estate: '',
             unit: '',
-            wallet_id: ''
+            wallet_id: '',
+            wallet_number: '',
+            masked_wallet_number: ''
         },
         companyDetails: {
             name: '',
+            estate_name: '',
             payment_methods: [],
             default_payment_method: null
         },
@@ -450,6 +462,10 @@ document.addEventListener('alpine:init', () => {
         phoneNumber: '',
         reference: '',
         billMonth: new Date().toISOString().slice(0, 7),
+        
+        // Selected Payment Method
+        selectedPaymentMethod: null,
+        selectedPaymentMethodId: null,
         
         // Transaction Message Parsing
         transactionMessage: '',
@@ -509,19 +525,30 @@ document.addEventListener('alpine:init', () => {
                 const response = await fetch('/api/wallet/tenant-details');
                 const data = await response.json();
                 if (data.success) {
-                    this.tenantDetails = data.tenant;
-                    this.companyDetails = data.company;
+                    this.tenantDetails = {
+                        name: data.tenant.name,
+                        company: data.tenant.company,
+                        estate: data.tenant.estate,
+                        unit: data.tenant.unit,
+                        wallet_id: data.tenant.wallet_id,
+                        wallet_number: data.tenant.wallet_number,
+                        masked_wallet_number: data.tenant.masked_wallet_number
+                    };
+                    this.companyDetails = {
+                        name: data.company.name,
+                        estate_name: data.company.estate_name,
+                        payment_methods: data.company.payment_methods,
+                        default_payment_method: data.company.default_payment_method
+                    };
                 }
             } catch (error) {
                 console.error('Error loading tenant details:', error);
-                this.tenantDetails = {
-                    name: 'Loading...',
-                    company: '-',
-                    estate: '-',
-                    unit: '-',
-                    wallet_id: 'WALLET-' + Math.random().toString(36).substr(2, 8).toUpperCase()
-                };
             }
+        },
+
+        updatePaymentMethodDetails(pm) {
+            // Store selected payment method for reference
+            console.log('Selected payment method:', pm);
         },
 
         copyToClipboard(text, label) {
@@ -556,6 +583,8 @@ document.addEventListener('alpine:init', () => {
             this.reference = '';
             this.billMonth = new Date().toISOString().slice(0, 7);
             this.transactionMessage = '';
+            this.selectedPaymentMethod = null;
+            this.selectedPaymentMethodId = null;
             this.parsedData = {
                 amount: null,
                 transaction_id: null,
@@ -797,7 +826,7 @@ document.addEventListener('alpine:init', () => {
                     phone_number: this.getFinalPhoneNumber(),
                     transaction_message: this.inputMode === 'message' ? this.transactionMessage : null,
                     bill_month: billMonth,
-                    wallet_id: this.tenantDetails.wallet_id,
+                    payment_method_id: this.selectedPaymentMethodId,
                     parsed_details: this.inputMode === 'message' ? this.parsedData : null
                 };
 

@@ -371,20 +371,34 @@ class WalletController extends Controller
         }
     }
     
-    /**
-     * Get wallet balance (API)
-     */
     public function apiGetBalance()
     {
         try {
             $walletOwner = $this->getWalletOwner();
             $balance = $this->walletService->getBalance($walletOwner);
-            $walletNumber = $walletOwner->wallet?->uuid ?? substr($walletOwner->id . time(), -8);
+            
+            $walletNumber = null;
+            $maskedWalletNumber = null;
+            
+            if ($walletOwner instanceof Tenant && $walletOwner->wallet) {
+                $wallet = $walletOwner->wallet;
+                $walletNumber = $wallet->full_wallet_number;
+                $maskedWalletNumber = $wallet->masked_wallet_number;
+            } else if ($walletOwner->wallet) {
+                $wallet = $walletOwner->wallet;
+                $walletNumber = $wallet->full_wallet_number;
+                $maskedWalletNumber = $wallet->masked_wallet_number;
+            } else {
+                // Generate fallback
+                $walletNumber = str_pad('1', 16, '0', STR_PAD_LEFT);
+                $maskedWalletNumber = '•••• •••• •••• ' . substr($walletNumber, -4);
+            }
             
             return response()->json([
                 'success' => true,
                 'balance' => $balance,
                 'wallet_number' => $walletNumber,
+                'masked_wallet_number' => $maskedWalletNumber,
                 'formatted' => 'KES ' . number_format($balance, 2),
             ]);
         } catch (\Exception $e) {
@@ -540,7 +554,6 @@ class WalletController extends Controller
     
     /**
      * Get tenant details for deposit modal (API)
-     * Maps through: User -> Tenant -> ActiveTenancy -> Unit -> Estate -> Company -> CompanyPaymentMethods
      */
     public function apiGetTenantDetails()
     {
@@ -549,9 +562,7 @@ class WalletController extends Controller
             
             Log::info('API Get Tenant Details called', ['user_id' => $user->id, 'user_role' => $user->role?->name]);
             
-            // Check if user is tenant and has tenant record
             if (!$user->isTenant()) {
-                Log::warning('User is not a tenant', ['user_id' => $user->id]);
                 return response()->json([
                     'success' => false,
                     'error' => 'User is not a tenant'
@@ -560,16 +571,21 @@ class WalletController extends Controller
             
             $tenant = $user->tenant;
             if (!$tenant) {
-                Log::warning('No tenant record found for user', ['user_id' => $user->id]);
                 return response()->json([
                     'success' => false,
                     'error' => 'No tenant record found'
                 ], 400);
             }
             
-            Log::info('Tenant found', ['tenant_id' => $tenant->id]);
-            
             $activeTenancy = $tenant->activeTenancy;
+            
+            // Get wallet from Bavix
+            $wallet = $tenant->wallet;
+            $walletId = $wallet ? $wallet->getKey() : null;
+            
+            // Generate wallet number (16-digit padded from wallet ID)
+            $fullWalletNumber = $walletId ? str_pad((string) $walletId, 16, '0', STR_PAD_LEFT) : str_pad((string) $tenant->id, 16, '0', STR_PAD_LEFT);
+            $maskedWalletNumber = '•••• •••• •••• ' . substr($fullWalletNumber, -4);
             
             // Initialize default values
             $tenantDetails = [
@@ -577,52 +593,38 @@ class WalletController extends Controller
                 'company' => null,
                 'estate' => null,
                 'unit' => null,
-                'wallet_id' => null,
+                'wallet_id' => $wallet?->uuid ?? null,
+                'wallet_number' => $fullWalletNumber,
+                'masked_wallet_number' => $maskedWalletNumber,
             ];
             
             $companyDetails = [
                 'name' => null,
+                'estate_name' => null,
                 'payment_methods' => [],
                 'default_payment_method' => null,
             ];
             
-            // Get wallet ID from tenant's wallet (holder_type = Tenant, holder_id = tenant.id)
-            if ($tenant->wallet) {
-                $tenantDetails['wallet_id'] = $tenant->wallet->uuid;
-                Log::info('Wallet found', ['wallet_uuid' => $tenant->wallet->uuid]);
-            } else {
-                // Generate fallback wallet ID
-                $tenantDetails['wallet_id'] = 'WLT-' . strtoupper(substr($user->id . time(), -8));
-                Log::info('No wallet found, generated fallback', ['wallet_id' => $tenantDetails['wallet_id']]);
-            }
-            
             // Get unit and estate information from active tenancy
             if ($activeTenancy) {
-                Log::info('Active tenancy found', ['tenancy_id' => $activeTenancy->id]);
-                
                 $unit = $activeTenancy->unit;
                 if ($unit) {
                     $tenantDetails['unit'] = $unit->unit_number;
-                    Log::info('Unit found', ['unit_id' => $unit->id, 'unit_number' => $unit->unit_number]);
                     
                     $estate = $unit->estate;
                     if ($estate) {
                         $tenantDetails['estate'] = $estate->name;
-                        Log::info('Estate found', ['estate_id' => $estate->id, 'estate_name' => $estate->name]);
+                        $companyDetails['estate_name'] = $estate->name;
                         
-                        // Get company from estate
                         $company = $estate->company;
                         if ($company) {
                             $tenantDetails['company'] = $company->name;
                             $companyDetails['name'] = $company->name;
-                            Log::info('Company found', ['company_id' => $company->id, 'company_name' => $company->name]);
                             
-                            // Get company payment methods from company_payment_methods table
+                            // Get company payment methods
                             $paymentMethods = CompanyPaymentMethod::where('company_id', $company->id)
                                 ->where('is_active', true)
                                 ->get();
-                            
-                            Log::info('Payment methods found', ['count' => $paymentMethods->count()]);
                             
                             foreach ($paymentMethods as $pm) {
                                 $methodData = [
@@ -638,6 +640,7 @@ class WalletController extends Controller
                                     'swift_code' => $pm->swift_code,
                                     'instructions' => $pm->instructions,
                                     'is_default' => (bool) $pm->is_default,
+                                    'display_name' => $pm->type === 'mobile_money' ? 'M-Pesa Paybill' : 'Bank Transfer',
                                 ];
                                 
                                 $companyDetails['payment_methods'][] = $methodData;
@@ -647,21 +650,12 @@ class WalletController extends Controller
                                 }
                             }
                             
-                            // If no default, use first active method
                             if (!$companyDetails['default_payment_method'] && count($companyDetails['payment_methods']) > 0) {
                                 $companyDetails['default_payment_method'] = $companyDetails['payment_methods'][0];
                             }
-                        } else {
-                            Log::warning('No company found for estate', ['estate_id' => $estate->id]);
                         }
-                    } else {
-                        Log::warning('No estate found for unit', ['unit_id' => $unit->id]);
                     }
-                } else {
-                    Log::warning('No unit found for active tenancy', ['tenancy_id' => $activeTenancy->id]);
                 }
-            } else {
-                Log::warning('No active tenancy found for tenant', ['tenant_id' => $tenant->id]);
             }
             
             return response()->json([
@@ -671,9 +665,7 @@ class WalletController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            Log::error('API Get Tenant Details failed: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            Log::error('API Get Tenant Details failed: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Failed to fetch tenant details: ' . $e->getMessage()
