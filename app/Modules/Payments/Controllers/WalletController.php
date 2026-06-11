@@ -537,29 +537,44 @@ private function parseTransactionMessage($message)
             
             $perPage = $request->get('per_page', 15);
             
-            $query = Transaction::where(function($q) use ($walletOwner) {
-                if ($walletOwner instanceof User) {
-                    $q->where('user_id', $walletOwner->id);
-                } elseif ($walletOwner instanceof Tenant) {
-                    $q->where('tenant_id', $walletOwner->id);
-                }
+            // Get transactions from Bavix wallet (this is the correct source)
+            $transactions = $walletOwner->transactions()
+                ->orderBy('created_at', 'desc')
+                ->paginate($perPage);
+            
+            // Format the transactions for frontend
+            $formattedTransactions = $transactions->through(function($tx) {
+                return [
+                    'id' => $tx->id,
+                    'uuid' => $tx->uuid,
+                    'type' => $tx->type,
+                    'amount' => (float) $tx->amount,
+                    'confirmed' => (bool) $tx->confirmed,
+                    'created_at' => $tx->created_at,
+                    'updated_at' => $tx->updated_at,
+                    'description' => $tx->description,
+                    // Extract data from meta JSON
+                    'payment_method' => $tx->meta['payment_method'] ?? ($tx->type === 'deposit' ? 'Unknown' : 'Wallet'),
+                    'reference' => $tx->meta['reference'] ?? substr($tx->uuid, 0, 8),
+                    'phone_number' => $tx->meta['phone_number'] ?? null,
+                    'bill_month' => $tx->meta['bill_month'] ?? null,
+                    'transaction_message' => $tx->meta['transaction_message'] ?? null,
+                    'parsed_data' => $tx->meta['parsed_data'] ?? null,
+                    'status' => $tx->confirmed ? 'Completed' : 'Pending',
+                    'meta' => $tx->meta, // Full meta for debugging
+                ];
             });
             
-            if ($request->from_date) {
-                $query->whereDate('created_at', '>=', $request->from_date);
-            }
-            
-            if ($request->to_date) {
-                $query->whereDate('created_at', '<=', $request->to_date);
-            }
-            
-            if ($request->type && $request->type !== 'all') {
-                $query->where('type', $request->type);
-            }
-            
-            $transactions = $query->orderBy('created_at', 'desc')->paginate($perPage);
-            
-            return response()->json($transactions);
+            return response()->json([
+                'success' => true,
+                'data' => $formattedTransactions->items(),
+                'current_page' => $transactions->currentPage(),
+                'per_page' => $transactions->perPage(),
+                'total' => $transactions->total(),
+                'last_page' => $transactions->lastPage(),
+                'from' => $transactions->firstItem(),
+                'to' => $transactions->lastItem(),
+            ]);
             
         } catch (\Exception $e) {
             Log::error('API Get Transactions failed: ' . $e->getMessage());

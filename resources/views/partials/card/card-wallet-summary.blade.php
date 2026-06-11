@@ -534,15 +534,105 @@ function walletComponent(config = {}) {
             this.loading = true;
             try {
                 const response = await fetch('/api/wallet/transactions?per_page=50', {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: { 
+                        'Accept': 'application/json', 
+                        'X-Requested-With': 'XMLHttpRequest' 
+                    }
                 });
                 const data = await response.json();
-                this.transactions = data.data || [];
-                this.filteredTransactions = [...this.transactions];
+                
+                if (data.success !== false) {
+                    // Handle both paginated and non-paginated responses
+                    this.transactions = data.data || data || [];
+                    this.filteredTransactions = [...this.transactions];
+                    this.currentPage = 1;
+                } else {
+                    console.error('Failed to load transactions:', data.error);
+                    this.transactions = [];
+                    this.filteredTransactions = [];
+                }
             } catch (error) {
                 console.error('Error loading transactions:', error);
+                this.transactions = [];
+                this.filteredTransactions = [];
             } finally {
                 this.loading = false;
+            }
+        },
+        
+        // Get transaction display description
+        getTransactionDescription(transaction) {
+            if (transaction.description) {
+                return transaction.description;
+            }
+            if (transaction.type === 'deposit') {
+                const method = transaction.payment_method || 'Unknown';
+                const month = transaction.bill_month || '';
+                return `Deposit via ${method}${month ? ` for ${month}` : ''}`;
+            }
+            return transaction.type === 'deposit' ? 'Wallet Deposit' : 'Wallet Withdrawal';
+        },
+        
+        // Get transaction icon based on type and method
+        getTransactionIcon(transaction) {
+            if (transaction.type === 'deposit') {
+                const method = transaction.payment_method?.toLowerCase();
+                if (method === 'mpesa') {
+                    return 'M-Pesa'; // Or return an SVG/HTML
+                }
+                if (method === 'bank') {
+                    return 'Bank';
+                }
+                return 'Deposit';
+            }
+            return 'Withdrawal';
+        },
+        
+        // Get transaction amount class
+        getAmountClass(transaction) {
+            return transaction.type === 'deposit' 
+                ? 'text-success-600 dark:text-success-400' 
+                : 'text-error-600 dark:text-error-400';
+        },
+        
+        // Get transaction amount sign
+        getAmountSign(transaction) {
+            return transaction.type === 'deposit' ? '+' : '-';
+        },
+        
+        // Get transaction status badge class
+        getStatusClass(transaction) {
+            const status = transaction.status || (transaction.confirmed ? 'Completed' : 'Pending');
+            switch(status.toLowerCase()) {
+                case 'completed': return 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500';
+                case 'pending': return 'bg-warning-50 text-warning-600 dark:bg-warning-500/15 dark:text-warning-500';
+                case 'failed': return 'bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500';
+                default: return 'bg-gray-50 text-gray-600 dark:bg-gray-500/15 dark:text-gray-400';
+            }
+        },
+        
+        // Format date nicely
+        formatDate(dateString) {
+            if (!dateString) return '—';
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) {
+                return 'Today, ' + date.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+            } else if (diffDays === 1) {
+                return 'Yesterday, ' + date.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+            } else if (diffDays < 7) {
+                return date.toLocaleDateString('en-KE', { weekday: 'short' }) + ', ' + 
+                       date.toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' });
+            } else {
+                return date.toLocaleDateString('en-KE', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             }
         },
 
