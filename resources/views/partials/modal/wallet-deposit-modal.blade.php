@@ -35,7 +35,7 @@
             <form @submit.prevent="submitDeposit">
                 @csrf
                 <h4 class="mb-2 text-lg font-medium text-gray-800 dark:text-white/90">Deposit Funds</h4>
-                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Add money to your wallet via M-Pesa or Bank Transfer</p>
+                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Add money to your wallet via M-Pesa, Bank Transfer, or Manual Top-up</p>
 
                 {{-- Error Messages --}}
                 <template x-if="formErrors.length > 0">
@@ -54,7 +54,7 @@
                     <p x-text="successMessage"></p>
                 </div>
 
-                {{-- Toggle between Manual (STK Push) and Message Paste --}}
+                {{-- Toggle between Manual (STK Push), Message Paste, and Manual Top-up --}}
                 <div class="mb-6 flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
                     <button type="button" @click="inputMode = 'manual'"
                         class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
@@ -65,6 +65,11 @@
                         class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
                         :class="inputMode === 'message' ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'">
                         📋 Paste Transaction Message
+                    </button>
+                    <button type="button" @click="inputMode = 'manual_topup'"
+                        class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
+                        :class="inputMode === 'manual_topup' ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'">
+                        💰 Manual Top-up
                     </button>
                 </div>
 
@@ -379,6 +384,49 @@
 
                 </div>
 
+                {{-- ==================== MANUAL TOP-UP MODE (NEW - PENDING APPROVAL) ==================== --}}
+                <div x-show="inputMode === 'manual_topup'" x-transition.duration.200ms>
+                    <div class="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                        <h5 class="mb-3 text-sm font-semibold text-yellow-800 dark:text-yellow-400 flex items-center gap-2">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Manual Top-up (Pending Approval)
+                        </h5>
+                        <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                            ⚠️ Manual top-ups require accountant approval before funds are added to your wallet.
+                            This is typically used for rent credits, adjustments, or cash payments.
+                        </p>
+                        
+                        {{-- Amount --}}
+                        <div class="mb-4">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount *</label>
+                            <div class="relative">
+                                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                    <span class="text-gray-500 dark:text-gray-400">KES</span>
+                                </div>
+                                <input type="number" step="0.01" x-model="manualTopupAmount" placeholder="0.00"
+                                    class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-16 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            </div>
+                        </div>
+                        
+                        {{-- Notes --}}
+                        <div class="mb-4">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Notes / Reason *</label>
+                            <textarea x-model="manualTopupNotes" rows="3" placeholder="e.g., Rent credit for June, Cash payment received, Adjustment for overpayment, etc."
+                                class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
+                            <p class="mt-1 text-xs text-yellow-600 dark:text-yellow-400">This will be reviewed by the accountant before approval.</p>
+                        </div>
+                        
+                        {{-- Bill Month --}}
+                        <div class="mb-4">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Bill Month *</label>
+                            <input type="month" x-model="manualTopupBillMonth" required
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Deposit Summary --}}
                 <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Deposit Summary</h5>
@@ -400,6 +448,18 @@
                         <div class="flex justify-between items-center">
                             <span class="text-gray-600 dark:text-gray-400">Bill Month:</span>
                             <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="getFinalBillMonth()"></span>
+                        </div>
+                        <div x-show="inputMode === 'manual_topup' && manualTopupNotes" class="flex justify-between items-start">
+                            <span class="text-gray-600 dark:text-gray-400">Notes:</span>
+                            <span class="text-sm text-gray-700 dark:text-gray-300 text-right max-w-[200px]" x-text="manualTopupNotes"></span>
+                        </div>
+                        <div x-show="inputMode === 'message' && !getFinalTransactionId()" class="flex justify-between items-center">
+                            <span class="text-gray-600 dark:text-gray-400">Status:</span>
+                            <span class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Pending Approval</span>
+                        </div>
+                        <div x-show="inputMode === 'manual_topup'" class="flex justify-between items-center">
+                            <span class="text-gray-600 dark:text-gray-400">Status:</span>
+                            <span class="text-sm font-medium text-yellow-600 dark:text-yellow-400">Pending Accountant Approval</span>
                         </div>
                     </div>
                 </div>
@@ -492,6 +552,11 @@ document.addEventListener('alpine:init', () => {
         manualPhoneNumberOverride: '',
         manualBillMonthOverride: '',
 
+        // NEW: Manual Top-up Fields
+        manualTopupAmount: '',
+        manualTopupNotes: '',
+        manualTopupBillMonth: new Date().toISOString().slice(0, 7),
+
         // Computed Properties
         get hasParsedData() {
             return this.parsedData.amount !== null || 
@@ -506,11 +571,17 @@ document.addEventListener('alpine:init', () => {
                 if (this.paymentMethod === 'mpesa' && this.phoneNumber && !/^07[0-9]{8}$/.test(this.phoneNumber)) return false;
                 if (!this.billMonth) return false;
                 return true;
-            } else {
+            } else if (this.inputMode === 'message') {
                 const amount = this.getFinalAmount();
                 const billMonth = this.getFinalBillMonth();
                 return amount && parseFloat(amount) > 0 && billMonth;
+            } else if (this.inputMode === 'manual_topup') {
+                if (!this.manualTopupAmount || parseFloat(this.manualTopupAmount) < 1) return false;
+                if (!this.manualTopupNotes || this.manualTopupNotes.trim() === '') return false;
+                if (!this.manualTopupBillMonth) return false;
+                return true;
             }
+            return false;
         },
 
         // Methods
@@ -547,7 +618,6 @@ document.addEventListener('alpine:init', () => {
         },
 
         updatePaymentMethodDetails(pm) {
-            // Store selected payment method for reference
             console.log('Selected payment method:', pm);
         },
 
@@ -605,6 +675,10 @@ document.addEventListener('alpine:init', () => {
             this.manualTransactionIdOverride = '';
             this.manualPhoneNumberOverride = '';
             this.manualBillMonthOverride = new Date().toISOString().slice(0, 7);
+            // Reset manual top-up fields
+            this.manualTopupAmount = '';
+            this.manualTopupNotes = '';
+            this.manualTopupBillMonth = new Date().toISOString().slice(0, 7);
             this.formErrors = [];
             this.successMessage = '';
         },
@@ -628,48 +702,58 @@ document.addEventListener('alpine:init', () => {
         getFinalAmount() {
             if (this.inputMode === 'manual') {
                 return this.manualAmount || 0;
-            } else {
+            } else if (this.inputMode === 'message') {
                 if (this.showManualEdit && this.manualAmountOverride) {
                     return this.manualAmountOverride;
                 }
                 return this.parsedData.amount || 0;
+            } else if (this.inputMode === 'manual_topup') {
+                return this.manualTopupAmount || 0;
             }
+            return 0;
         },
 
         getFinalTransactionId() {
             if (this.inputMode === 'manual') {
                 return this.reference;
-            } else {
+            } else if (this.inputMode === 'message') {
                 if (this.showManualEdit && this.manualTransactionIdOverride) {
                     return this.manualTransactionIdOverride;
                 }
                 return this.parsedData.transaction_id;
+            } else if (this.inputMode === 'manual_topup') {
+                return 'MANUAL-' + Date.now();
             }
+            return null;
         },
 
         getFinalPaymentMethod() {
             if (this.inputMode === 'manual') {
                 return this.paymentMethod;
-            } else {
-                return 'mpesa';
+            } else if (this.inputMode === 'message') {
+                return 'message';
+            } else if (this.inputMode === 'manual_topup') {
+                return 'manual';
             }
+            return 'mpesa';
         },
 
         getFinalPhoneNumber() {
             if (this.inputMode === 'manual') {
                 return this.phoneNumber;
-            } else {
+            } else if (this.inputMode === 'message') {
                 if (this.showManualEdit && this.manualPhoneNumberOverride) {
                     return this.manualPhoneNumberOverride;
                 }
                 return this.parsedData.phone_number;
             }
+            return null;
         },
 
         getFinalBillMonth() {
             if (this.inputMode === 'manual') {
                 return this.billMonth;
-            } else {
+            } else if (this.inputMode === 'message') {
                 if (this.showManualEdit && this.manualBillMonthOverride) {
                     return this.manualBillMonthOverride;
                 }
@@ -683,7 +767,10 @@ document.addEventListener('alpine:init', () => {
                     }
                 }
                 return new Date().toISOString().slice(0, 7);
+            } else if (this.inputMode === 'manual_topup') {
+                return this.manualTopupBillMonth;
             }
+            return new Date().toISOString().slice(0, 7);
         },
 
         parseTransactionMessage() {
@@ -800,90 +887,122 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-async submitDeposit() {
-    this.formErrors = [];
-    this.successMessage = '';
-    
-    const amount = this.getFinalAmount();
-    if (!amount || parseFloat(amount) < 1) {
-        this.formErrors.push('Please enter a valid amount (minimum KES 1.00)');
-        return;
-    }
-    
-    const billMonth = this.getFinalBillMonth();
-    if (!billMonth) {
-        this.formErrors.push('Please select the bill month');
-        return;
-    }
-
-    this.loading = true;
-
-    try {
-        const depositData = {
-            amount: parseFloat(amount),
-            payment_method: this.getFinalPaymentMethod(),
-            reference: this.getFinalTransactionId() || 'DEP-' + Date.now(),
-            phone_number: this.getFinalPhoneNumber() || null,
-            transaction_message: this.inputMode === 'message' ? this.transactionMessage : null,
-            bill_month: billMonth,
-        };
-
-        const response = await fetch('/api/wallet/deposit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify(depositData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            this.successMessage = `✅ Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
+        async submitDeposit() {
+            this.formErrors = [];
+            this.successMessage = '';
             
-            // ========== DISPATCH EVENT FOR WALLET COMPONENT ==========
-            const updateEvent = new CustomEvent('wallet-updated', {
-                detail: { 
-                    new_balance: result.data.new_balance,
-                    transaction_id: result.data.transaction_id,
-                    amount: depositData.amount
+            const amount = this.getFinalAmount();
+            if (!amount || parseFloat(amount) < 1) {
+                this.formErrors.push('Please enter a valid amount (minimum KES 1.00)');
+                return;
+            }
+            
+            const billMonth = this.getFinalBillMonth();
+            if (!billMonth) {
+                this.formErrors.push('Please select the bill month');
+                return;
+            }
+
+            // Additional validation for manual top-up
+            if (this.inputMode === 'manual_topup') {
+                if (!this.manualTopupNotes || this.manualTopupNotes.trim() === '') {
+                    this.formErrors.push('Please provide notes/reason for manual top-up');
+                    return;
                 }
-            });
-            window.dispatchEvent(updateEvent);
-            document.dispatchEvent(updateEvent);
-            
-            // Also store in localStorage for cross-tab updates
-            localStorage.setItem('wallet_last_update', JSON.stringify({
-                balance: result.data.new_balance,
-                timestamp: Date.now()
-            }));
-            
-            // Show toast notification
-            this.showToast('success', `KES ${this.formatNumber(depositData.amount)} deposited!`);
-            
-            setTimeout(() => {
-                this.closeModal();
-            }, 2000);
-        } else {
-            this.formErrors = [result.error || result.message || 'Deposit failed. Please try again.'];
-        }
-    } catch (error) {
-        console.error('Deposit error:', error);
-        this.formErrors = ['An error occurred. Please try again.'];
-    } finally {
-        this.loading = false;
-    }
-},
+                if (parseFloat(this.manualTopupAmount) < 1) {
+                    this.formErrors.push('Please enter a valid amount (minimum KES 1.00)');
+                    return;
+                }
+            }
 
-showToast(type, message) {
-    const toast = document.createElement('div');
-    toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-2 text-white text-sm ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-    toast.innerText = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
-}
+            this.loading = true;
+
+            try {
+                const paymentMethod = this.getFinalPaymentMethod();
+                
+                // Log what we're sending for debugging
+                console.log('Submitting deposit with:', {
+                    inputMode: this.inputMode,
+                    paymentMethod: paymentMethod,
+                    amount: amount,
+                    billMonth: billMonth
+                });
+                
+                const depositData = {
+                    amount: parseFloat(amount),
+                    payment_method: paymentMethod,  // This should be 'manual' for manual_topup
+                    reference: this.getFinalTransactionId() || 'DEP-' + Date.now(),
+                    phone_number: this.getFinalPhoneNumber() || null,
+                    transaction_message: this.inputMode === 'message' ? this.transactionMessage : null,
+                    bill_month: billMonth,
+                };
+                
+                // Add notes for manual top-up
+                if (this.inputMode === 'manual_topup') {
+                    depositData.notes = this.manualTopupNotes;
+                }
+
+                console.log('Sending deposit data:', depositData);
+
+                const response = await fetch('/api/wallet/deposit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(depositData)
+                });
+                
+                const result = await response.json();
+                console.log('Deposit response:', result);
+                
+                if (result.success) {
+                    if (result.data.requires_approval) {
+                        this.successMessage = `✅ Deposit request submitted! Amount KES ${this.formatNumber(depositData.amount)} is pending approval by accountant.`;
+                        this.showToast('info', `KES ${this.formatNumber(depositData.amount)} pending approval`);
+                    } else {
+                        this.successMessage = `✅ Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
+                        this.showToast('success', `KES ${this.formatNumber(depositData.amount)} deposited!`);
+                    }
+                    
+                    const updateEvent = new CustomEvent('wallet-updated', {
+                        detail: { 
+                            new_balance: result.data.new_balance,
+                            transaction_id: result.data.transaction_id,
+                            amount: depositData.amount,
+                            requires_approval: result.data.requires_approval
+                        }
+                    });
+                    window.dispatchEvent(updateEvent);
+                    document.dispatchEvent(updateEvent);
+                    
+                    localStorage.setItem('wallet_last_update', JSON.stringify({
+                        balance: result.data.new_balance,
+                        timestamp: Date.now()
+                    }));
+                    
+                    setTimeout(() => {
+                        this.closeModal();
+                    }, 2500);
+                } else {
+                    this.formErrors = [result.error || result.message || 'Deposit failed. Please try again.'];
+                }
+            } catch (error) {
+                console.error('Deposit error:', error);
+                this.formErrors = ['An error occurred. Please try again.'];
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-2 text-white text-sm ${type === 'success' ? 'bg-green-500' : type === 'info' ? 'bg-blue-500' : 'bg-red-500'}`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
     }));
 });
 </script>

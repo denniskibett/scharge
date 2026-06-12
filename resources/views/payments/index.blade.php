@@ -3,7 +3,6 @@
 @section('content')
 <!-- Include all modal partials from the correct path -->
 @include('partials.modal.payments-create-modal')
-@include('partials.modal.payments-edit-modal')
 @include('partials.modal.payments-show-modal')
 @include('partials.modal.payments-delete-modal')
 
@@ -54,7 +53,10 @@
               <p class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Payer</p>
             </th>
             <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-              Invoice
+              Invoice #
+            </th>
+            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
+              Unit
             </th>
             <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
               Amount
@@ -63,10 +65,10 @@
               Payment Method
             </th>
             <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-              Transaction ID
+              Reference
             </th>
             <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
-              Paid To
+              Status
             </th>
             <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
               Payment Date
@@ -81,7 +83,7 @@
         <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
           <template x-if="filteredPayments.length === 0">
             <tr>
-              <td colspan="8" class="p-4 text-center">
+              <td colspan="9" class="p-4 text-center">
                 <span class="text-sm text-gray-500 dark:text-gray-400">No payments found.</span>
               </td>
             </tr>
@@ -90,31 +92,44 @@
           <template x-for="payment in filteredPayments" :key="payment.id">
             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
               <td class="p-4 whitespace-nowrap">
+                <div>
                   <a
-                      :href="`{{ url('payments') }}/${payment.id}`"
-                      @click="window.paymentShowModal?.openModal(payment)"
-                      class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                      x-text="payment.payer_name || 'N/A'"
+                    :href="`{{ url('payments') }}/${payment.id}`"
+                    @click="window.paymentShowModal?.openModal(payment)"
+                    class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
+                    x-text="payment.tenant_name || payment.payer_name || 'N/A'"
                   ></a>
-              </td>
+                  <p class="text-xs text-gray-400 dark:text-gray-500" x-show="payment.unit_number" x-text="'Unit: ' + payment.unit_number"></p>
+                </div>
+               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="text-sm text-gray-500 dark:text-gray-400" x-text="payment.invoice_label ? payment.invoice_label : '-'"></span>
-              </td>
+                <span class="text-sm text-gray-700 dark:text-gray-400" x-text="payment.invoice_label || '-'"></span>
+               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-400" x-text="formatCurrency(payment.amount)"></span>
-              </td>
+                <span class="text-sm text-gray-500 dark:text-gray-400" x-text="payment.paid_to || '-'"></span>
+               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-500 text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="capitalize(payment.payment_method)"></span>
-              </td>
+                <span class="text-sm font-semibold text-gray-800 dark:text-white/90" x-text="formatCurrency(payment.amount)"></span>
+               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="text-sm text-gray-700 dark:text-gray-400" x-text="payment.transaction_id || '-'"></span>
-              </td>
+                <span class="bg-brand-50 dark:bg-brand-500/15 text-brand-700 dark:text-brand-500 text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="payment.payment_method_label || capitalize(payment.payment_method)"></span>
+               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="text-sm text-gray-700 dark:text-gray-400" x-text="payment.paid_to || '-'"></span>
-              </td>
+                <div>
+                  <span class="text-xs font-mono text-gray-500 dark:text-gray-400" x-text="payment.transaction_reference || '-'"></span>
+                  <p class="text-xs text-gray-400 dark:text-gray-500" x-show="payment.external_reference" x-text="'Ext: ' + payment.external_reference"></p>
+                </div>
+               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="text-sm text-gray-700 dark:text-gray-400" x-text="formatDate(payment.payment_datetime)"></span>
-              </td>
+                <span 
+                  class="text-theme-xs rounded-full px-2 py-0.5 font-medium"
+                  :class="payment.status_badge?.class || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'"
+                  x-text="payment.status_badge?.label || capitalize(payment.status)"
+                ></span>
+               </td>
+              <td class="p-4 whitespace-nowrap">
+                <span class="text-sm text-gray-700 dark:text-gray-400" x-text="formatDate(payment.payment_datetime || payment.created_at)"></span>
+               </td>
               <td class="p-4 whitespace-nowrap">
                 <div class="flex items-center gap-2">
                   <button 
@@ -124,20 +139,22 @@
                   </button>
                   <button 
                     @click="window.paymentEditModal?.openModal(payment)"
-                    class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-yellow-500 hover:bg-yellow-50 hover:text-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-500/5 dark:hover:text-yellow-300">
+                    class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-yellow-500 hover:bg-yellow-50 hover:text-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-500/5 dark:hover:text-yellow-300"
+                    :disabled="payment.status === 'refunded' || payment.status === 'cancelled'">
                     Edit
                   </button>
                   <button 
                     @click="window.paymentDeleteModal?.openModal(payment)"
-                    class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/5 dark:hover:text-red-300">
+                    class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/5 dark:hover:text-red-300"
+                    :disabled="payment.status === 'refunded'">
                     Delete
                   </button>
                 </div>
-              </td>
-            </tr>
+               </td>
+             </tr>
           </template>
         </tbody>
-      </table>
+       </table>
     </div>
     
     <div class="border-t border-gray-200 px-5 py-4 dark:border-gray-800">
@@ -147,6 +164,12 @@
             Total of
             <span class="text-gray-800 dark:text-white/90" x-text="filteredPayments.length"></span>
             payments
+          </span>
+        </div>
+        <div>
+          <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">
+            Total Amount:
+            <span class="text-gray-800 dark:text-white/90 font-semibold" x-text="formatCurrency(totalAmount)"></span>
           </span>
         </div>
       </div>
@@ -161,6 +184,10 @@ document.addEventListener('alpine:init', () => {
     searchTerm: '',
     filteredPayments: [],
     
+    get totalAmount() {
+      return this.filteredPayments.reduce((sum, payment) => sum + parseFloat(payment.amount || 0), 0);
+    },
+    
     init() {
       this.filteredPayments = this.payments;
     },
@@ -173,15 +200,21 @@ document.addEventListener('alpine:init', () => {
       
       const term = this.searchTerm.toLowerCase();
       this.filteredPayments = this.payments.filter(payment => {
-        return Object.values(payment).some(value => 
-          String(value).toLowerCase().includes(term)
+        return (
+          (payment.tenant_name && payment.tenant_name.toLowerCase().includes(term)) ||
+          (payment.payer_name && payment.payer_name.toLowerCase().includes(term)) ||
+          (payment.invoice_number && payment.invoice_number.toLowerCase().includes(term)) ||
+          (payment.unit_number && payment.unit_number.toLowerCase().includes(term)) ||
+          (payment.transaction_reference && payment.transaction_reference.toLowerCase().includes(term)) ||
+          (payment.payment_method && payment.payment_method.toLowerCase().includes(term)) ||
+          (payment.status && payment.status.toLowerCase().includes(term))
         );
       });
     },
     
     formatCurrency(amount) {
-      const symbol = "{{ SystemHelper::currencySymbol() }} ";
-      if (!amount) return symbol + "0.00";
+      const symbol = "{{ SystemHelper::currencySymbol() ?? 'KES ' }}";
+      if (!amount && amount !== 0) return symbol + "0.00";
       return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     
@@ -199,7 +232,7 @@ document.addEventListener('alpine:init', () => {
     
     capitalize(text) {
       if (!text) return '';
-      return text.charAt(0).toUpperCase() + text.slice(1);
+      return text.charAt(0).toUpperCase() + text.slice(1).replace(/_/g, ' ');
     }
   }));
 });
@@ -281,6 +314,11 @@ document.addEventListener('alpine:init', () => {
 
 .scale-100 {
   transform: scale(1);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
 @endpush

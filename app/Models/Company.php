@@ -124,47 +124,4 @@ class Company extends Model
         
         return max(0, $maxUsers - $currentUsers);
     }
-
-    // Add wallet relationship
-    public function wallet()
-    {
-        return $this->morphOne(Wallet::class, 'holder');
-    }
-
-    // Add method to get available funds
-    public function getAvailableFundsAttribute()
-    {
-        return $this->wallet?->balance ?? 0;
-    }
-
-    // Add method to withdraw to bank
-    public function withdrawToBank(float $amount, array $bankDetails): array
-    {
-        if (!$this->wallet || $this->wallet->balance < $amount) {
-            return ['success' => false, 'error' => 'Insufficient funds'];
-        }
-        
-        DB::beginTransaction();
-        try {
-            $transaction = $this->wallet->withdraw($amount, [
-                'description' => 'Withdrawal to bank account',
-                'bank_details' => $bankDetails,
-                'type' => 'bank_transfer'
-            ]);
-            
-            // Dispatch job to actually send money to bank
-            dispatch(new ProcessBankWithdrawal($this, $amount, $bankDetails, $transaction));
-            
-            DB::commit();
-            
-            return [
-                'success' => true,
-                'transaction_id' => $transaction->id,
-                'message' => 'Withdrawal initiated successfully'
-            ];
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
-    }
 }

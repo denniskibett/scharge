@@ -396,9 +396,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/wallets/report', [App\Modules\Payments\Controllers\WalletController::class, 'report'])->name('wallets.report');
         Route::get('/wallet/transactions/export', [App\Modules\Payments\Controllers\WalletController::class, 'exportTransactions'])->name('tenant.wallet.transactions.export');
         Route::get('/api/wallet/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTransactions'])->middleware('auth');
+        Route::get('/api/wallet/pending-invoices', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetPendingInvoices'])->middleware('auth');
+        Route::post('/api/wallet/pay-multiple-invoices', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayMultipleInvoices'])->middleware('auth');
+        Route::get('/api/wallet/pending-invoices', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetPendingInvoices'])->middleware('auth');
+        Route::post('/api/wallet/pay-invoice/{invoiceId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayInvoice'])->middleware('auth');
     });
 
-});
+}); 
 
 
 

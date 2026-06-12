@@ -34,7 +34,8 @@
         <div class="p-6 lg:p-8">
             <form @submit.prevent="submitPayment">
                 @csrf
-                <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Send Money</h4>
+                <h4 class="mb-2 text-lg font-medium text-gray-800 dark:text-white/90">Pay Invoices</h4>
+                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Use your wallet balance to pay pending invoices</p>
 
                 {{-- Error Messages --}}
                 <template x-if="formErrors.length > 0">
@@ -47,84 +48,213 @@
                     </div>
                 </template>
 
-                {{-- Recipient Email --}}
-                <div class="mb-4">
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Recipient Email *</label>
-                    <input type="email" x-model="recipientEmail" placeholder="recipient@example.com"
-                        class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                {{-- Debug/Error Logs Section --}}
+                <div x-show="errorLogs.length > 0" class="mb-6 rounded-lg bg-yellow-50 p-4 text-sm dark:bg-yellow-900/20">
+                    <div class="flex items-center justify-between mb-2">
+                        <h5 class="font-semibold text-yellow-800 dark:text-yellow-400">🔍 Debug Information</h5>
+                        <button @click="errorLogs = []" class="text-xs text-yellow-600 hover:text-yellow-800">Clear</button>
+                    </div>
+                    <div class="space-y-1 max-h-32 overflow-y-auto">
+                        <template x-for="log in errorLogs" :key="log.timestamp">
+                            <p class="text-xs font-mono" :class="log.type === 'error' ? 'text-red-600' : 'text-yellow-700'">
+                                <span x-text="new Date(log.timestamp).toLocaleTimeString()"></span> - 
+                                <span x-text="log.message"></span>
+                            </p>
+                        </template>
+                    </div>
                 </div>
 
-                {{-- Amount --}}
-                <div class="mb-4">
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount *</label>
-                    <div class="relative">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <span class="text-gray-500 dark:text-gray-400">KES</span>
+                {{-- Success Message --}}
+                <div x-show="successMessage" x-transition
+                    class="mb-6 rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                    <p x-text="successMessage"></p>
+                </div>
+
+                {{-- Wallet Balance Summary --}}
+                <div class="mb-6 p-4 bg-gradient-to-r from-brand-50 to-brand-100 dark:from-brand-900/20 dark:to-brand-800/20 rounded-xl">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">Your Wallet Balance</p>
+                            <p class="text-2xl font-bold text-brand-600 dark:text-brand-400" x-text="formattedWalletBalance"></p>
                         </div>
-                        <input type="number" step="0.01" x-model="amount" placeholder="0.00" required
-                            @input="validateAmount"
-                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-16 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    </div>
-                    <p x-show="amountExceedsBalance" class="mt-1 text-xs text-red-600">Amount exceeds available balance</p>
-                </div>
-
-                {{-- Available Balance --}}
-                <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-gray-600 dark:text-gray-400">Available Balance:</span>
-                        <span class="font-semibold text-gray-900 dark:text-white" x-text="formattedAvailableBalance"></span>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Available for payment</p>
+                            <button type="button" @click="refreshBalance" class="text-brand-500 hover:text-brand-600 text-sm flex items-center gap-1 mt-1">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Refresh
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                {{-- Description --}}
-                <div class="mb-4">
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Description (Optional)</label>
-                    <textarea x-model="description" rows="2" placeholder="Add a note or reference for this transfer"
-                        class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
-                </div>
-
-                {{-- PIN Confirmation --}}
+                {{-- Pending Invoices Section --}}
                 <div class="mb-6">
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Confirm with PIN *</label>
-                    <input type="password" x-model="pin" placeholder="Enter 4-digit PIN" maxlength="4"
-                        class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-center text-2xl tracking-widest text-gray-800 shadow-theme-xs focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    <label class="mb-3 block text-sm font-medium text-gray-700 dark:text-gray-400">Select Invoice to Pay</label>
+                    
+                    <div x-show="loadingInvoices" class="text-center py-8">
+                        <div class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-brand-500 border-t-transparent"></div>
+                        <p class="mt-2 text-sm text-gray-500">Loading your invoices...</p>
+                    </div>
+
+                    {{-- Network/Connection Error State --}}
+                    <div x-show="!loadingInvoices && connectionError" class="text-center py-8 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                        <svg class="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.66 0 3-4.03 3-9s-1.34-9-3-9m0 18c-1.66 0-3-4.03-3-9s1.34-9 3-9"/>
+                        </svg>
+                        <p class="mt-2 text-sm font-medium text-red-800 dark:text-red-400">Connection Error</p>
+                        <p class="text-xs text-red-600 dark:text-red-300 mt-1" x-text="connectionErrorMessage"></p>
+                        <button @click="fetchPendingInvoices" class="mt-3 text-sm text-brand-500 hover:text-brand-600">Try Again</button>
+                    </div>
+
+                    {{-- No Invoices State --}}
+                    <div x-show="!loadingInvoices && !connectionError && pendingInvoices.length === 0" class="text-center py-8 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No pending invoices found.</p>
+                        <p class="text-xs text-gray-400">All your invoices are paid up to date!</p>
+                        <button @click="fetchPendingInvoices" class="mt-3 text-xs text-brand-500 hover:text-brand-600">Refresh</button>
+                    </div>
+
+                    {{-- Invoices List --}}
+                    <div x-show="!loadingInvoices && !connectionError && pendingInvoices.length > 0" class="space-y-4">
+                        <template x-for="invoice in pendingInvoices" :key="invoice.id">
+                            <div @click="selectInvoice(invoice)"
+                                class="cursor-pointer rounded-lg border-2 p-4 transition-all"
+                                :class="selectedInvoiceId === invoice.id ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 hover:border-gray-300 dark:border-gray-700'">
+                                
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h5 class="font-semibold text-gray-800 dark:text-white/90" x-text="invoice.invoice_number || 'INV-' + invoice.id"></h5>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                                            Billing Month: <span x-text="formatMonth(invoice.billing_month)"></span>
+                                        </p>
+                                    </div>
+                                    <span class="inline-flex rounded-full px-2 py-1 text-xs font-medium"
+                                        :class="invoice.status === 'unpaid' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'"
+                                        x-text="invoice.status === 'unpaid' ? 'Unpaid' : 'Partial'"></span>
+                                </div>
+
+                                {{-- Invoice Items --}}
+                                <div class="space-y-2 mb-3">
+                                    <template x-for="item in invoice.items" :key="item.id">
+                                        <div class="flex justify-between items-center text-sm">
+                                            <div class="flex-1">
+                                                <span class="text-gray-600 dark:text-gray-400" x-text="item.description"></span>
+                                                <span class="text-xs text-gray-400 ml-2" x-show="item.item_type" x-text="'(' + item.item_type + ')'"></span>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="font-medium text-gray-800 dark:text-white/90">
+                                                    KES <span x-text="formatNumber(item.amount)"></span>
+                                                </div>
+                                                <div x-show="item.paid_amount > 0" class="text-xs text-green-600 dark:text-green-400">
+                                                    Paid: KES <span x-text="formatNumber(item.paid_amount)"></span>
+                                                </div>
+                                                <div x-show="item.remaining_amount > 0 && item.remaining_amount < item.amount" class="text-xs text-orange-500">
+                                                    Remaining: KES <span x-text="formatNumber(item.remaining_amount)"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                {{-- Invoice Summary --}}
+                                <div class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-2">
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-gray-600 dark:text-gray-400">Total Amount:</span>
+                                        <span class="font-semibold text-gray-800 dark:text-white/90">KES <span x-text="formatNumber(invoice.total_amount)"></span></span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm mt-1">
+                                        <span class="text-gray-600 dark:text-gray-400">Paid:</span>
+                                        <span class="text-green-600 dark:text-green-400">KES <span x-text="formatNumber(invoice.total_paid)"></span></span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-sm mt-1 font-semibold">
+                                        <span class="text-gray-700 dark:text-gray-300">Remaining:</span>
+                                        <span class="text-brand-600 dark:text-brand-400">KES <span x-text="formatNumber(invoice.remaining_amount)"></span></span>
+                                    </div>
+                                    <div class="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                                        <div class="bg-brand-500 h-1.5 rounded-full transition-all duration-300"
+                                            :style="{ width: invoice.payment_percentage + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
 
-                {{-- Transfer Summary --}}
-                <div class="mb-6 p-4 bg-brand-50 dark:bg-brand-900/20 rounded-lg">
-                    <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Transfer Summary</h5>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Amount:</span>
-                            <span class="font-medium text-gray-900 dark:text-white">KES <span x-text="formatNumber(amount)"></span></span>
+                {{-- Payment Amount Section (shown when invoice selected) --}}
+                <div x-show="selectedInvoice" class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                    <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Payment Amount</h5>
+                    
+                    <div class="mb-4">
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount to Pay *</label>
+                        <div class="relative">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span class="text-gray-500 dark:text-gray-400">KES</span>
+                            </div>
+                            <input type="number" step="0.01" x-model="paymentAmount" 
+                                :max="maxPaymentAmount" :min="1"
+                                @input="validatePaymentAmount"
+                                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-16 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600 dark:text-gray-400">Recipient:</span>
-                            <span class="font-medium text-gray-900 dark:text-white" x-text="recipientEmail || '—'"></span>
+                        <div class="flex justify-between mt-1">
+                            <p class="text-xs text-gray-500">Remaining balance on invoice: KES <span x-text="formatNumber(selectedInvoiceRemaining)"></span></p>
+                            <button type="button" @click="paymentAmount = maxPaymentAmount" class="text-xs text-brand-500 hover:text-brand-600">
+                                Pay Full Amount
+                            </button>
                         </div>
-                        <div class="border-t border-brand-200 dark:border-brand-800 pt-2 mt-2">
-                            <div class="flex justify-between font-semibold">
-                                <span>Total Debit:</span>
-                                <span class="text-brand-600 dark:text-brand-400">KES <span x-text="formatNumber(amount)"></span></span>
+                    </div>
+
+                    {{-- Payment Summary --}}
+                    <div class="mt-4 p-3 bg-white dark:bg-gray-900 rounded-lg">
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Payment Amount:</span>
+                                <span class="font-semibold text-gray-800 dark:text-white/90">KES <span x-text="formatNumber(paymentAmount || 0)"></span></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600 dark:text-gray-400">Wallet Balance After:</span>
+                                <span :class="paymentAmount > walletBalance ? 'text-red-600' : 'text-green-600'">
+                                    KES <span x-text="formatNumber(walletBalance - (paymentAmount || 0))"></span>
+                                </span>
+                            </div>
+                            <div x-show="paymentAmount > walletBalance" class="text-red-600 text-xs mt-1">
+                                ⚠️ Insufficient balance. Please deposit more funds.
                             </div>
                         </div>
                     </div>
                 </div>
 
+                {{-- Payment Method Section --}}
+                <div x-show="selectedInvoice" class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h5 class="text-sm font-semibold text-blue-800 dark:text-blue-400 mb-2 flex items-center gap-2">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                        Payment Method: Wallet Balance
+                    </h5>
+                    <p class="text-sm text-blue-700 dark:text-blue-300">
+                        Funds will be deducted from your wallet and credited to the property management account.
+                    </p>
+                </div>
+
+                {{-- Submit Button --}}
                 <div class="flex gap-3">
                     <button type="button" @click="closeModal"
                         class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-900">
                         Cancel
                     </button>
-                    <button type="submit" :disabled="loading || !isFormValid"
+                    <button type="submit" :disabled="loading || !isPaymentValid"
                         class="flex-1 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span x-show="!loading">Send Money</span>
+                        <span x-show="!loading">Pay Now</span>
                         <span x-show="loading" class="flex items-center justify-center gap-2">
                             <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Processing...
+                            Processing Payment...
                         </span>
                     </button>
                 </div>
@@ -136,156 +266,334 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('walletPaymentModal', () => ({
+        // Modal State
         isOpen: false,
-        recipientEmail: '',
-        amount: '',
-        description: '',
-        pin: '',
-        formErrors: [],
         loading: false,
-        availableBalance: 0,
-
-        get amountExceedsBalance() {
-            return parseFloat(this.amount || 0) > this.availableBalance;
+        loadingInvoices: false,
+        formErrors: [],
+        successMessage: '',
+        
+        // Error Logging
+        errorLogs: [],
+        connectionError: false,
+        connectionErrorMessage: '',
+        
+        // Wallet
+        walletBalance: 0,
+        
+        // Invoices
+        pendingInvoices: [],
+        selectedInvoiceId: null,
+        selectedInvoice: null,
+        
+        // Payment
+        paymentAmount: '',
+        
+        // Computed
+        get formattedWalletBalance() {
+            return 'KES ' + this.formatNumber(this.walletBalance);
         },
-
-        get formattedAvailableBalance() {
-            return 'KES ' + this.formatNumber(this.availableBalance);
+        
+        get selectedInvoiceRemaining() {
+            return this.selectedInvoice ? this.selectedInvoice.remaining_amount : 0;
         },
-
-        get isFormValid() {
-            if (this.amountExceedsBalance) return false;
-            if (!this.amount || parseFloat(this.amount) <= 0) return false;
-            if (!this.recipientEmail || !this.recipientEmail.includes('@')) return false;
-            if (!this.pin || this.pin.length < 4) return false;
+        
+        get maxPaymentAmount() {
+            if (!this.selectedInvoice) return 0;
+            return Math.min(this.selectedInvoice.remaining_amount, this.walletBalance);
+        },
+        
+        get isPaymentValid() {
+            if (!this.selectedInvoice) return false;
+            if (!this.paymentAmount || parseFloat(this.paymentAmount) <= 0) return false;
+            if (parseFloat(this.paymentAmount) > this.selectedInvoice.remaining_amount) return false;
+            if (parseFloat(this.paymentAmount) > this.walletBalance) return false;
             return true;
         },
-
+        
+        // Logging Methods
+        addErrorLog(message, type = 'error') {
+            this.errorLogs.unshift({
+                message: message,
+                type: type,
+                timestamp: Date.now()
+            });
+            // Keep only last 20 logs
+            if (this.errorLogs.length > 20) this.errorLogs.pop();
+            console.log(`[${type.toUpperCase()}]`, message);
+        },
+        
+        // Methods
         init() {
             window.walletPaymentModal = this;
+            this.addErrorLog('Payment modal initialized', 'info');
         },
-
+        
         async openModal() {
             this.isOpen = true;
             this.resetForm();
-            await this.fetchBalance();
+            this.addErrorLog('Opening payment modal', 'info');
+            await this.fetchWalletBalance();
+            await this.fetchPendingInvoices();
             document.body.style.overflow = 'hidden';
         },
-
+        
         closeModal() {
             this.isOpen = false;
+            this.resetForm();
             document.body.style.overflow = '';
+            this.addErrorLog('Payment modal closed', 'info');
         },
-
+        
         resetForm() {
-            this.recipientEmail = '';
-            this.amount = '';
-            this.description = '';
-            this.pin = '';
             this.formErrors = [];
+            this.successMessage = '';
+            this.selectedInvoiceId = null;
+            this.selectedInvoice = null;
+            this.paymentAmount = '';
+            this.connectionError = false;
+            this.connectionErrorMessage = '';
         },
-
-        async fetchBalance() {
+        
+        async fetchWalletBalance() {
             try {
-                const response = await fetch('/api/wallet/balance');
+                this.addErrorLog('Fetching wallet balance...', 'info');
+                const response = await fetch('/api/wallet/balance', {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
                 if (data.success) {
-                    this.availableBalance = data.balance;
+                    this.walletBalance = data.balance;
+                    this.addErrorLog(`Wallet balance loaded: KES ${this.formatNumber(data.balance)}`, 'info');
+                } else {
+                    this.addErrorLog(`Failed to load balance: ${data.error || 'Unknown error'}`, 'error');
                 }
             } catch (error) {
                 console.error('Error fetching balance:', error);
+                this.addErrorLog(`Balance fetch error: ${error.message}`, 'error');
+                this.formErrors.push('Could not fetch wallet balance. Please refresh the page.');
             }
         },
-
-        validateAmount() {
-            if (this.amountExceedsBalance) {
-                this.formErrors = ['Amount exceeds available balance'];
-            } else {
-                this.formErrors = [];
-            }
-        },
-
-        formatNumber(value) {
-            return parseFloat(value || 0).toLocaleString('en-KE', { 
-                minimumFractionDigits: 2, 
-                maximumFractionDigits: 2 
-            });
-        },
-
-        async submitPayment() {
-            this.formErrors = [];
+        
+        async fetchPendingInvoices() {
+            this.loadingInvoices = true;
+            this.connectionError = false;
+            this.connectionErrorMessage = '';
+            this.addErrorLog('Fetching pending invoices...', 'info');
             
-            if (!this.isFormValid) {
-                if (this.amountExceedsBalance) {
-                    this.formErrors.push('Amount exceeds available balance');
-                }
-                if (!this.recipientEmail) {
-                    this.formErrors.push('Please enter recipient email');
-                }
-                if (!this.pin || this.pin.length < 4) {
-                    this.formErrors.push('Please enter your 4-digit PIN');
-                }
-                if (!this.amount || parseFloat(this.amount) <= 0) {
-                    this.formErrors.push('Please enter a valid amount');
-                }
-                return;
-            }
-
-            this.loading = true;
-
             try {
-                if (window.walletComponent && typeof window.walletComponent.processTransfer === 'function') {
-                    const result = await window.walletComponent.processTransfer(
-                        this.recipientEmail,
-                        this.amount,
-                        this.description,
-                        this.pin
-                    );
+                const response = await fetch('/admin/api/wallet/pending-invoices', {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                
+                this.addErrorLog(`API Response Status: ${response.status} ${response.statusText}`, 'info');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                this.addErrorLog(`API Response Data: ${JSON.stringify(data, null, 2).substring(0, 500)}`, 'info');
+                
+                if (data.success) {
+                    this.pendingInvoices = data.invoices || [];
+                    this.addErrorLog(`Successfully loaded ${this.pendingInvoices.length} pending invoice(s)`, 'info');
                     
-                    if (result.success) {
-                        setTimeout(() => {
-                            this.closeModal();
-                        }, 1500);
+                    if (this.pendingInvoices.length === 0) {
+                        this.addErrorLog('No pending invoices found for this tenant', 'info');
                     } else {
-                        this.formErrors = [result.error];
+                        this.pendingInvoices.forEach((inv, idx) => {
+                            this.addErrorLog(`Invoice ${idx + 1}: #${inv.invoice_number} - KES ${inv.remaining_amount} (${inv.status})`, 'info');
+                        });
                     }
                 } else {
-                    // Fallback to direct API call
-                    const response = await fetch('/api/wallet/transfer', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            recipient_email: this.recipientEmail,
-                            amount: this.amount,
-                            description: this.description,
-                            pin: this.pin
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        if (window.walletComponent) {
-                            window.walletComponent.walletBalance = result.data.new_balance;
-                            await window.walletComponent.loadTransactions();
-                        }
-                        setTimeout(() => {
-                            this.closeModal();
-                        }, 1500);
-                    } else {
-                        this.formErrors = [result.error];
-                    }
+                    this.addErrorLog(`API returned error: ${data.error || 'Unknown error'}`, 'error');
+                    this.connectionError = true;
+                    this.connectionErrorMessage = data.error || 'Failed to load invoices. Please try again.';
+                    this.pendingInvoices = [];
                 }
             } catch (error) {
-                console.error('Transfer error:', error);
-                this.formErrors = ['An error occurred. Please try again.'];
+                console.error('Error fetching invoices:', error);
+                this.addErrorLog(`Invoice fetch error: ${error.message}`, 'error');
+                this.connectionError = true;
+                this.connectionErrorMessage = error.message || 'Network error. Please check your connection.';
+                this.pendingInvoices = [];
             } finally {
-                this.loading = false;
+                this.loadingInvoices = false;
             }
+        },
+        
+        selectInvoice(invoice) {
+            this.addErrorLog(`Selected invoice: #${invoice.invoice_number} - Remaining: KES ${invoice.remaining_amount}`, 'info');
+            
+            if (this.selectedInvoiceId === invoice.id) {
+                this.selectedInvoiceId = null;
+                this.selectedInvoice = null;
+                this.paymentAmount = '';
+                this.addErrorLog('Invoice deselected', 'info');
+            } else {
+                this.selectedInvoiceId = invoice.id;
+                this.selectedInvoice = invoice;
+                this.paymentAmount = invoice.remaining_amount;
+                this.addErrorLog(`Payment amount set to KES ${this.paymentAmount}`, 'info');
+            }
+            this.formErrors = [];
+        },
+        
+        validatePaymentAmount() {
+            if (!this.selectedInvoice) return;
+            
+            let amount = parseFloat(this.paymentAmount);
+            
+            if (isNaN(amount) || amount <= 0) {
+                this.addErrorLog(`Invalid amount entered: ${this.paymentAmount}`, 'error');
+                this.formErrors = ['Please enter a valid amount'];
+                return;
+            }
+            
+            if (amount > this.selectedInvoice.remaining_amount) {
+                this.addErrorLog(`Amount KES ${amount} exceeds remaining balance KES ${this.selectedInvoice.remaining_amount}`, 'error');
+                this.formErrors = [`Amount cannot exceed remaining balance of KES ${this.formatNumber(this.selectedInvoice.remaining_amount)}`];
+                return;
+            }
+            
+            if (amount > this.walletBalance) {
+                this.addErrorLog(`Amount KES ${amount} exceeds wallet balance KES ${this.walletBalance}`, 'error');
+                this.formErrors = [`Insufficient wallet balance. Available: KES ${this.formatNumber(this.walletBalance)}`];
+                return;
+            }
+            
+            this.addErrorLog(`Payment amount validated: KES ${amount}`, 'info');
+            this.formErrors = [];
+        },
+        
+        async refreshBalance() {
+            this.addErrorLog('Manually refreshing balance...', 'info');
+            await this.fetchWalletBalance();
+            this.validatePaymentAmount();
+        },
+        
+async submitPayment() {
+    this.formErrors = [];
+    this.successMessage = '';
+    
+    if (!this.selectedInvoice) {
+        this.addErrorLog('Payment attempted without selecting an invoice', 'error');
+        this.formErrors.push('Please select an invoice to pay');
+        return;
+    }
+    
+    if (!this.isPaymentValid) {
+        this.addErrorLog('Payment validation failed', 'error');
+        this.validatePaymentAmount();
+        return;
+    }
+    
+    this.loading = true;
+    this.addErrorLog(`Initiating payment of KES ${this.paymentAmount} for invoice #${this.selectedInvoice.invoice_number}`, 'info');
+    
+    try {
+        // FIXED: Remove '/admin' from URL
+        const response = await fetch(`/api/wallet/pay-invoice/${this.selectedInvoice.id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                amount: parseFloat(this.paymentAmount)
+            })
+        });
+        
+        this.addErrorLog(`Payment API Response Status: ${response.status}`, 'info');
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+        }
+        
+        const result = await response.json();
+        this.addErrorLog(`Payment API Response: ${JSON.stringify(result, null, 2).substring(0, 500)}`, 'info');
+        
+        if (result.success) {
+            this.successMessage = result.message || `Successfully paid KES ${this.formatNumber(this.paymentAmount)}!`;
+            this.addErrorLog(`Payment successful! New balance: KES ${result.data.new_balance}`, 'info');
+            
+            // Update wallet balance
+            if (result.data.new_balance !== undefined) {
+                this.walletBalance = result.data.new_balance;
+            }
+            
+            // Refresh wallet component
+            const updateEvent = new CustomEvent('wallet-updated', {
+                detail: { new_balance: result.data.new_balance }
+            });
+            window.dispatchEvent(updateEvent);
+            document.dispatchEvent(updateEvent);
+            
+            // Refresh invoice list
+            await this.fetchPendingInvoices();
+            
+            // Clear selection if invoice is now paid
+            if (result.data.invoice && result.data.invoice.status === 'paid') {
+                this.addErrorLog(`Invoice #${this.selectedInvoice.invoice_number} is now fully paid`, 'info');
+                this.selectedInvoice = null;
+                this.selectedInvoiceId = null;
+                this.paymentAmount = '';
+            } else if (this.selectedInvoice) {
+                // Update the selected invoice with new data
+                const updatedInvoice = this.pendingInvoices.find(i => i.id === this.selectedInvoice.id);
+                if (updatedInvoice) {
+                    this.selectedInvoice = updatedInvoice;
+                    this.paymentAmount = updatedInvoice.remaining_amount;
+                    this.addErrorLog(`Invoice updated. Remaining: KES ${updatedInvoice.remaining_amount}`, 'info');
+                }
+            }
+            
+            this.showToast('success', `Payment of KES ${this.formatNumber(this.paymentAmount)} completed!`);
+            
+            setTimeout(() => {
+                this.closeModal();
+            }, 2000);
+        } else {
+            this.addErrorLog(`Payment failed: ${result.error || 'Unknown error'}`, 'error');
+            this.formErrors = [result.error || 'Payment failed. Please try again.'];
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        this.addErrorLog(`Payment exception: ${error.message}`, 'error');
+        this.formErrors = [`Error: ${error.message}`];
+    } finally {
+        this.loading = false;
+    }
+},
+        
+        formatNumber(value) {
+            if (!value && value !== 0) return '0.00';
+            return parseFloat(value).toLocaleString('en-KE', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        },
+        
+        formatMonth(dateString) {
+            if (!dateString) return '—';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-KE', { year: 'numeric', month: 'long' });
+        },
+        
+        showToast(type, message) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-2 text-white text-sm ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            toast.innerText = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
         }
     }));
 });
