@@ -3,7 +3,6 @@
 @section('content')
 <!-- Include all modal partials from the correct path -->
 @include('partials.modal.payments-create-modal')
-@include('partials.modal.payments-show-modal')
 @include('partials.modal.payments-delete-modal')
 
 <div x-data="paymentsPage" x-init="init()" x-cloak>
@@ -34,7 +33,7 @@
         </div>
         <div>
           <button 
-            @click="window.paymentCreateModal?.openModal()"
+            @click="window.paymentCreateModal?.openCreateModal()"
             class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 whitespace-nowrap text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 4.16667V15.8333M4.16667 10H15.8333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -93,12 +92,7 @@
             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
               <td class="p-4 whitespace-nowrap">
                 <div>
-                  <a
-                    :href="`{{ url('payments') }}/${payment.id}`"
-                    @click="window.paymentShowModal?.openModal(payment)"
-                    class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    x-text="payment.tenant_name || payment.payer_name || 'N/A'"
-                  ></a>
+                  <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="payment.tenant_name || payment.payer_name || 'N/A'"></span>
                   <p class="text-xs text-gray-400 dark:text-gray-500" x-show="payment.unit_number" x-text="'Unit: ' + payment.unit_number"></p>
                 </div>
                </td>
@@ -138,7 +132,7 @@
                     View
                   </button>
                   <button 
-                    @click="window.paymentEditModal?.openModal(payment)"
+                    @click="window.paymentCreateModal?.openEditModal(payment)"
                     class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-yellow-500 hover:bg-yellow-50 hover:text-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-500/5 dark:hover:text-yellow-300"
                     :disabled="payment.status === 'refunded' || payment.status === 'cancelled'">
                     Edit
@@ -150,7 +144,7 @@
                     Delete
                   </button>
                 </div>
-               </td>
+               </tr>
              </tr>
           </template>
         </tbody>
