@@ -152,13 +152,18 @@
             type="number"
             step="0.01"
             x-model="form.amount"
-            :max="maxAmount"
+            min="0.01"
             required
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-12 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
             placeholder="0.00"
           />
         </div>
-        <p class="mt-1 text-xs text-gray-500" x-show="selectedInvoiceRemaining">Maximum: <span x-text="formatCurrency(selectedInvoiceRemaining)"></span></p>
+        <p class="mt-1 text-xs text-gray-500">
+          Invoice due: <span x-text="formatCurrency(selectedInvoiceRemaining)"></span>
+          <span x-show="parseFloat(form.amount) > selectedInvoiceRemaining" class="text-green-600 ml-2">
+            Excess will be added to wallet
+          </span>
+        </p>
       </div>
 
       <!-- Payment Method -->
@@ -214,9 +219,22 @@
         <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Payment Summary</h5>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between">
-            <span class="text-gray-600 dark:text-gray-400">Amount to Pay:</span>
+            <span class="text-gray-600 dark:text-gray-400">Total Payment:</span>
             <span class="font-semibold text-brand-600 dark:text-brand-400" x-text="formatCurrency(form.amount)"></span>
           </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Invoice Amount Due:</span>
+            <span class="text-gray-800 dark:text-white/90" x-text="formatCurrency(selectedInvoiceRemaining)"></span>
+          </div>
+          
+          <!-- Show excess calculation -->
+          <template x-if="parseFloat(form.amount) > selectedInvoiceRemaining">
+            <div class="flex justify-between text-green-600">
+              <span>Excess (Added to Wallet):</span>
+              <span class="font-semibold" x-text="formatCurrency(parseFloat(form.amount) - selectedInvoiceRemaining)"></span>
+            </div>
+          </template>
+          
           <div class="flex justify-between">
             <span class="text-gray-600 dark:text-gray-400">Payment Method:</span>
             <span class="text-gray-800 dark:text-white/90" x-text="getPaymentMethodLabel(form.payment_method)"></span>
@@ -228,8 +246,12 @@
           <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
             <div class="flex justify-between">
               <span class="text-gray-700 dark:text-gray-300">Invoice Status After:</span>
-              <span x-show="selectedInvoiceRemaining <= form.amount" class="text-green-600">Fully Paid</span>
-              <span x-show="selectedInvoiceRemaining > form.amount" class="text-yellow-600">Partially Paid</span>
+              <span x-show="selectedInvoiceRemaining <= parseFloat(form.amount)" class="text-green-600">Fully Paid</span>
+              <span x-show="selectedInvoiceRemaining > parseFloat(form.amount)" class="text-yellow-600">Partially Paid</span>
+            </div>
+            <div class="flex justify-between mt-1" x-show="parseFloat(form.amount) > selectedInvoiceRemaining">
+              <span class="text-gray-700 dark:text-gray-300">Wallet Balance Added:</span>
+              <span class="text-green-600" x-text="formatCurrency(parseFloat(form.amount) - selectedInvoiceRemaining)"></span>
             </div>
           </div>
         </div>
@@ -293,7 +315,8 @@ document.addEventListener('alpine:init', () => {
       if (!this.form.tenant_id && !this.preSelectedInvoice) return false;
       if (!this.form.invoice_id && !this.preSelectedInvoice) return false;
       if (!this.form.amount || parseFloat(this.form.amount) <= 0) return false;
-      if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) return false;
+      // Remove the check that prevents overpayment - allow any amount >= 0.01
+      // if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) return false;
       if (!this.form.payment_datetime) return false;
       if (!this.form.payment_method) return false;
       return true;
@@ -317,8 +340,6 @@ document.addEventListener('alpine:init', () => {
     openPaymentModalForInvoice(invoice) {
         console.log('=== openPaymentModalForInvoice called ===');
         console.log('Received invoice data:', invoice);
-        console.log('Invoice ID:', invoice.id);
-        console.log('Invoice tenant_id:', invoice.tenant_id);
         
         if (!invoice || !invoice.id) {
             console.error('Invalid invoice data:', invoice);
@@ -335,16 +356,21 @@ document.addEventListener('alpine:init', () => {
         // Populate form with invoice data
         this.form.tenant_id = invoice.tenant_id;
         this.form.invoice_id = invoice.id;
-        this.form.amount = invoice.remaining_amount || invoice.total_amount;
+        this.form.amount = invoice.remaining_amount || invoice.total_amount || 0;
         this.form.payment_datetime = new Date().toISOString().slice(0, 16);
         this.form.external_reference = '';
         this.form.notes = '';
         this.form.payment_method = 'cash';
         
         console.log('Form populated:', this.form);
+        console.log('Tenant ID:', this.form.tenant_id);
+        console.log('Invoice ID:', this.form.invoice_id);
+        console.log('Amount:', this.form.amount);
         
         // Fetch additional invoice details if needed
-        this.fetchInvoiceDetails(invoice.id);
+        if (invoice.id) {
+            this.fetchInvoiceDetails(invoice.id);
+        }
         
         this.isOpen = true;
         document.body.style.overflow = 'hidden';
@@ -491,89 +517,136 @@ document.addEventListener('alpine:init', () => {
       return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     
-    async submitForm() {
-      this.formErrors = [];
-      this.successMessage = '';
-      
-      if (!this.isFormValid) {
-        if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
-          this.formErrors.push('Please enter a valid amount');
-        }
-        if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
-          this.formErrors.push(`Amount cannot exceed remaining balance of ${this.formatCurrency(this.selectedInvoiceRemaining)}`);
-        }
-        return;
-      }
-      
-      this.loading = true;
-      
-      try {
-        let url, method, body;
-        
-        if (this.isEditMode) {
-          url = `/payments/${this.currentPaymentId}`;
-          method = 'PUT';
-          body = JSON.stringify({
-            status: this.form.status,
-            is_reconciled: this.form.status === 'completed' ? 1 : 0,
-            notes: this.form.notes
-          });
-        } else {
-          url = '/payments';
-          method = 'POST';
-          body = JSON.stringify({
-            tenant_id: this.preSelectedInvoice?.tenant_id || this.form.tenant_id,
-            invoice_id: this.preSelectedInvoice?.id || this.form.invoice_id,
-            amount: parseFloat(this.form.amount),
-            payment_method: this.form.payment_method,
-            external_reference: this.form.external_reference,
-            payment_datetime: this.form.payment_datetime,
-            notes: this.form.notes
-          });
-        }
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-          },
-          body: body
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-          if (this.isEditMode) {
-            this.successMessage = 'Payment updated successfully!';
-          } else {
-            this.successMessage = data.message || 'Payment processed successfully! Invoice has been paid.';
-          }
-          
-          // Dispatch wallet update event
-          if (data.data?.wallet_balance !== undefined) {
-            const updateEvent = new CustomEvent('wallet-updated', {
-              detail: { new_balance: data.data.wallet_balance }
-            });
-            window.dispatchEvent(updateEvent);
-            document.dispatchEvent(updateEvent);
-          }
-          
-          setTimeout(() => {
-            this.closeModal();
-            window.location.reload();
-          }, 2000);
-        } else {
-          this.formErrors = [data.message || data.error || 'Failed to process payment'];
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        this.formErrors = ['An error occurred. Please try again.'];
-      } finally {
-        this.loading = false;
-      }
+async submitForm() {
+  this.formErrors = [];
+  this.successMessage = '';
+  
+  const tenantId = this.preSelectedInvoice?.tenant_id || this.form.tenant_id;
+  const invoiceId = this.preSelectedInvoice?.id || this.form.invoice_id;
+  
+  if (!tenantId) {
+    this.formErrors.push('Please select a tenant');
+    return;
+  }
+  
+  if (!invoiceId) {
+    this.formErrors.push('Please select an invoice to pay');
+    return;
+  }
+  
+  if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
+    this.formErrors.push('Please enter a valid amount');
+    return;
+  }
+  
+  // Allow overpayment - show warning, don't block
+  if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
+    const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
+    if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
+      return;
     }
+  }
+  
+  if (!this.form.payment_datetime) {
+    this.formErrors.push('Please select payment date');
+    return;
+  }
+  
+  if (!this.form.payment_method) {
+    this.formErrors.push('Please select payment method');
+    return;
+  }
+  
+  this.loading = true;
+  
+  try {
+    let url, method, body;
+    
+    if (this.isEditMode) {
+      url = `/payments/${this.currentPaymentId}`;
+      method = 'PUT';
+      body = JSON.stringify({
+        status: this.form.status,
+        is_reconciled: this.form.status === 'completed' ? 1 : 0,
+        notes: this.form.notes
+      });
+    } else {
+      url = '/payments';
+      method = 'POST';
+      body = JSON.stringify({
+        tenant_id: tenantId,
+        invoice_id: invoiceId,
+        amount: parseFloat(this.form.amount),
+        payment_method: this.form.payment_method,
+        external_reference: this.form.external_reference,
+        payment_datetime: this.form.payment_datetime,
+        notes: this.form.notes
+      });
+    }
+    
+    console.log('Sending payment request:', { url, method, body });
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        'Accept': 'application/json'
+      },
+      body: body
+    });
+    
+    const data = await response.json();
+    console.log('Payment response:', data);
+    
+    if (response.ok && data.success) {
+      if (this.isEditMode) {
+        this.successMessage = 'Payment updated successfully!';
+      } else {
+        // Build success message based on what happened
+        const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
+        const amountToWallet = data.data?.amount_added_to_wallet || 0;
+        
+        if (amountToWallet > 0 && amountPaid > 0) {
+          this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
+        } else if (amountPaid > 0) {
+          this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
+        } else {
+          this.successMessage = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
+        }
+      }
+      
+      // Dispatch wallet update event
+      if (data.data?.wallet_balance !== undefined) {
+        const updateEvent = new CustomEvent('wallet-updated', {
+          detail: { new_balance: data.data.wallet_balance }
+        });
+        window.dispatchEvent(updateEvent);
+        document.dispatchEvent(updateEvent);
+      }
+      
+      setTimeout(() => {
+        this.closeModal();
+        window.location.reload();
+      }, 2000);
+    } else {
+      this.formErrors = [data.message || data.error || 'Failed to process payment'];
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    this.formErrors = ['An error occurred. Please try again.'];
+  } finally {
+    this.loading = false;
+  }
+},
+
+formatNumber(value) {
+  if (!value && value !== 0) return '0.00';
+  return parseFloat(value).toLocaleString('en-KE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
   }));
 });
 </script>

@@ -459,9 +459,10 @@ class WalletService
         return $query->orderBy('created_at', 'desc')->paginate($perPage);
     }
 
+
     /**
      * Process a direct payment (deposit + pay invoice in one transaction)
-     * This is for accountant manual entries, cash payments, etc.
+     * Supports overpayment - excess amount stays in wallet
      */
     public function processDirectPayment(
         Tenant $tenant,
@@ -476,87 +477,132 @@ class WalletService
             
             // 1. Validate the payment
             $remainingInvoiceAmount = $invoice->remaining_amount;
-            if ($amount > $remainingInvoiceAmount) {
-                throw new \Exception("Payment amount exceeds remaining invoice amount");
-            }
+            
+            // Calculate how much goes to invoice vs wallet
+            $amountToPayInvoice = min($amount, $remainingInvoiceAmount);
+            $amountToRemainInWallet = $amount - $amountToPayInvoice;
             
             // Get balances before any operations
             $balanceBeforeDeposit = (float) $tenant->balance;
             
-            // 2. DEPOSIT to tenant's wallet (confirmed immediately)
+            // 2. DEPOSIT full amount to tenant's wallet
             $depositTransaction = $tenant->deposit($amount, [
-                'description' => 'Direct payment deposit for invoice ' . ($invoice->invoice_number ?? 'INV-' . $invoice->id),
+                'description' => 'Direct payment deposit of KES ' . number_format($amount, 2) . 
+                                ' (' . ($amountToPayInvoice > 0 ? 'KES ' . number_format($amountToPayInvoice, 2) . ' for invoice' : '') .
+                                ($amountToRemainInWallet > 0 ? ', KES ' . number_format($amountToRemainInWallet, 2) . ' to wallet' : '') . ')',
                 'invoice_id' => $invoice->id,
                 'meta' => array_merge($meta, [
                     'type' => 'direct_payment_deposit',
                     'payment_method' => $paymentMethod,
                     'external_reference' => $externalReference,
                     'is_direct_payment' => true,
+                    'total_amount' => $amount,
+                    'invoice_payment_amount' => $amountToPayInvoice,
+                    'wallet_credit_amount' => $amountToRemainInWallet,
                 ])
             ]);
             
             $balanceAfterDeposit = (float) $tenant->balance;
             
-            // 3. WITHDRAW from tenant's wallet to pay invoice
-            $withdrawalTransaction = $tenant->withdraw($amount, [
-                'description' => 'Invoice payment - ' . ($invoice->invoice_number ?? 'INV-' . $invoice->id),
-                'invoice_id' => $invoice->id,
-                'meta' => array_merge($meta, [
-                    'type' => 'invoice_payment',
-                    'payment_method' => $paymentMethod,
-                    'external_reference' => $externalReference,
-                    'is_direct_payment' => true,
-                    'balance_before' => $balanceAfterDeposit,
-                ])
-            ]);
+            // 3. WITHDRAW only the invoice amount (not the full amount)
+            $withdrawalTransaction = null;
+            $balanceAfterWithdrawal = $balanceAfterDeposit;
             
-            $balanceAfterWithdrawal = (float) $tenant->balance;
+            if ($amountToPayInvoice > 0) {
+                $withdrawalTransaction = $tenant->withdraw($amountToPayInvoice, [
+                    'description' => 'Invoice payment - ' . ($invoice->invoice_number ?? 'INV-' . $invoice->id),
+                    'invoice_id' => $invoice->id,
+                    'meta' => array_merge($meta, [
+                        'type' => 'invoice_payment',
+                        'payment_method' => $paymentMethod,
+                        'external_reference' => $externalReference,
+                        'is_direct_payment' => true,
+                        'balance_before' => $balanceAfterDeposit,
+                        'amount_paid_to_invoice' => $amountToPayInvoice,
+                    ])
+                ]);
+                
+                $balanceAfterWithdrawal = (float) $tenant->balance;
+            }
             
             // 4. Create Payment record (direct, completed)
             $payment = Payment::recordDirectPayment(
                 tenant: $tenant,
                 invoice: $invoice,
-                amount: $amount,
+                amount: $amountToPayInvoice,  // Only the invoice portion
                 paymentMethod: $paymentMethod,
                 externalReference: $externalReference,
                 user: auth()->user(),
                 meta: array_merge($meta, [
+                    'total_deposited' => $amount,
+                    'amount_paid_to_invoice' => $amountToPayInvoice,
+                    'amount_added_to_wallet' => $amountToRemainInWallet,
                     'deposit_transaction_id' => $depositTransaction->id,
                     'deposit_transaction_uuid' => $depositTransaction->uuid,
-                    'withdrawal_transaction_id' => $withdrawalTransaction->id,
-                    'withdrawal_transaction_uuid' => $withdrawalTransaction->uuid,
+                    'withdrawal_transaction_id' => $withdrawalTransaction?->id,
+                    'withdrawal_transaction_uuid' => $withdrawalTransaction?->uuid,
                     'balance_before_deposit' => $balanceBeforeDeposit,
                     'balance_after_deposit' => $balanceAfterDeposit,
                     'balance_after_withdrawal' => $balanceAfterWithdrawal,
+                    'has_excess_wallet_balance' => $amountToRemainInWallet > 0,
                 ])
             );
             
-            // 5. Distribute payment across invoice items
-            $allocations = $this->distributePaymentToItemsDirect(
-                $invoice,
-                $amount,
-                $payment->id
-            );
+            // 5. Distribute payment across invoice items (only if paying invoice)
+            $allocations = [];
+            if ($amountToPayInvoice > 0) {
+                $allocations = $this->distributePaymentToItemsDirect(
+                    $invoice,
+                    $amountToPayInvoice,
+                    $payment->id
+                );
+            }
             
-            // 6. Update invoice totals and status
-            $this->updateInvoiceAfterPayment($invoice);
+            // 6. Update invoice totals and status (only if paying invoice)
+            if ($amountToPayInvoice > 0) {
+                $this->updateInvoiceAfterPayment($invoice);
+            }
             
             DB::commit();
+            
+            // Build response message
+            $message = '';
+            if ($amountToPayInvoice > 0 && $amountToRemainInWallet > 0) {
+                $message = sprintf(
+                    'Payment processed! KES %s paid towards invoice #%s. KES %s added to wallet balance.',
+                    number_format($amountToPayInvoice, 2),
+                    $invoice->invoice_number ?? $invoice->id,
+                    number_format($amountToRemainInWallet, 2)
+                );
+            } elseif ($amountToPayInvoice > 0) {
+                $message = sprintf(
+                    'Invoice #%s fully paid! KES %s deducted from payment.',
+                    $invoice->invoice_number ?? $invoice->id,
+                    number_format($amountToPayInvoice, 2)
+                );
+            } else {
+                $message = sprintf(
+                    'KES %s added to wallet balance. No invoice payment processed.',
+                    number_format($amountToRemainInWallet, 2)
+                );
+            }
             
             return [
                 'success' => true,
                 'payment_id' => $payment->id,
                 'payment' => $payment,
                 'deposit_transaction_id' => $depositTransaction->id,
-                'withdrawal_transaction_id' => $withdrawalTransaction->id,
-                'invoice' => [
+                'withdrawal_transaction_id' => $withdrawalTransaction?->id,
+                'invoice' => $amountToPayInvoice > 0 ? [
                     'id' => $invoice->id,
                     'remaining_amount' => $invoice->refresh()->remaining_amount,
                     'total_paid' => $invoice->total_paid,
                     'status' => $invoice->status,
-                ],
+                ] : null,
                 'allocations' => $allocations,
                 'wallet_balance' => $balanceAfterWithdrawal,
+                'amount_paid_to_invoice' => $amountToPayInvoice,
+                'amount_added_to_wallet' => $amountToRemainInWallet,
             ];
             
         } catch (\Exception $e) {
