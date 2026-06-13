@@ -1,4 +1,4 @@
-<!-- PAYMENT MODAL (Create & Edit combined) -->
+<!-- PAYMENT MODAL (Create & Edit combined) - ACCOUNTANT DIRECT PAYMENT -->
 <div x-data="paymentModal" x-init="init()">
   <!-- Backdrop -->
   <template x-if="isOpen">
@@ -59,38 +59,91 @@
         </div>
       </template>
 
-      <!-- Tenant Selection -->
-      <div class="mb-5">
-        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tenant *</label>
+      <!-- Invoice Summary (when opened from invoice) -->
+      <div x-show="preSelectedInvoice" class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+        <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400">📄 Invoice Details</h5>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <span class="text-gray-600 dark:text-gray-400">Invoice #:</span>
+            <p class="font-medium text-gray-800 dark:text-white/90" x-text="preSelectedInvoice?.invoice_number"></p>
+          </div>
+          <div>
+            <span class="text-gray-600 dark:text-gray-400">Tenant:</span>
+            <p class="font-medium text-gray-800 dark:text-white/90" x-text="preSelectedInvoice?.tenant_name"></p>
+          </div>
+          <div>
+            <span class="text-gray-600 dark:text-gray-400">Unit:</span>
+            <p class="font-medium text-gray-800 dark:text-white/90" x-text="preSelectedInvoice?.unit_number"></p>
+          </div>
+          <div>
+            <span class="text-gray-600 dark:text-gray-400">Billing Month:</span>
+            <p class="font-medium text-gray-800 dark:text-white/90" x-text="preSelectedInvoice?.billing_month_formatted"></p>
+          </div>
+          <div class="col-span-2">
+            <span class="text-gray-600 dark:text-gray-400">Remaining Amount:</span>
+            <p class="font-semibold text-brand-600 dark:text-brand-400" x-text="formatCurrency(preSelectedInvoice?.remaining_amount)"></p>
+          </div>
+        </div>
+        
+        <!-- Invoice Items Breakdown -->
+        <div x-show="preSelectedInvoice?.items?.length > 0" class="mt-3 pt-2 border-t border-blue-200 dark:border-blue-800">
+          <p class="text-xs font-semibold text-blue-800 dark:text-blue-400 mb-2">Invoice Items:</p>
+          <div class="space-y-1">
+            <template x-for="item in preSelectedInvoice?.items" :key="item.id">
+              <div class="flex justify-between text-xs">
+                <span class="text-gray-600 dark:text-gray-400" x-text="item.description"></span>
+                <span class="font-medium text-gray-800 dark:text-white/90" x-text="formatCurrency(item.amount)"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tenant Selection (hidden when invoice pre-selected) -->
+      <div class="mb-5" x-show="!preSelectedInvoice">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Select Tenant *</label>
         <select
           x-model="form.tenant_id"
-          required
+          @change="loadTenantInvoices"
+          :required="!preSelectedInvoice"
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
           <option value="">Select Tenant</option>
           @foreach($tenants ?? [] as $tenant)
-            <option value="{{ $tenant['id'] }}">{{ $tenant['name'] }} ({{ $tenant['unit_number'] ?? 'No Unit' }})</option>
+            <option value="{{ $tenant['id'] }}" data-unit="{{ $tenant['unit_number'] }}">{{ $tenant['name'] }} ({{ $tenant['unit_number'] ?? 'No Unit' }})</option>
           @endforeach
         </select>
       </div>
 
-      <!-- Invoice Selection -->
-      <div class="mb-5">
-        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Invoice (Optional)</label>
+      <!-- Invoice Selection (hidden when invoice pre-selected) -->
+      <div class="mb-5" x-show="!preSelectedInvoice && tenantInvoices.length > 0">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Select Invoice to Pay *</label>
         <select
           x-model="form.invoice_id"
+          @change="selectInvoiceForPayment"
+          :required="!preSelectedInvoice"
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
-          <option value="">-- Select Invoice (Auto-allocate if empty) --</option>
-          <template x-for="invoice in availableInvoices" :key="invoice.id">
-            <option :value="invoice.id" x-text="invoice.label"></option>
+          <option value="">Select Invoice</option>
+          <template x-for="invoice in tenantInvoices" :key="invoice.id">
+            <option :value="invoice.id" x-text="invoice.invoice_number + ' - ' + formatCurrency(invoice.remaining_amount) + ' (' + invoice.status + ')'"></option>
           </template>
         </select>
       </div>
 
+      <!-- Hidden inputs for pre-selected invoice values -->
+      <input type="hidden" x-model="form.tenant_id" x-if="preSelectedInvoice">
+      <input type="hidden" x-model="form.invoice_id" x-if="preSelectedInvoice">
+
+      <div class="mb-5" x-show="!preSelectedInvoice && tenantInvoices.length === 0 && form.tenant_id">
+        <div class="rounded-lg bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
+          No pending invoices found for this tenant.
+        </div>
+      </div>
+
       <!-- Amount -->
       <div class="mb-5">
-        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount *</label>
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Payment Amount *</label>
         <div class="relative">
           <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
             <span class="text-gray-500 dark:text-gray-400">{{ \App\Helpers\SystemHelper::currencySymbol() }}</span>
@@ -99,11 +152,13 @@
             type="number"
             step="0.01"
             x-model="form.amount"
+            :max="maxAmount"
             required
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-12 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
             placeholder="0.00"
           />
         </div>
+        <p class="mt-1 text-xs text-gray-500" x-show="selectedInvoiceRemaining">Maximum: <span x-text="formatCurrency(selectedInvoiceRemaining)"></span></p>
       </div>
 
       <!-- Payment Method -->
@@ -114,51 +169,22 @@
           required
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
-          <option value="wallet">Wallet Balance</option>
-          <option value="mpesa_stk">M-Pesa STK Push</option>
-          <option value="mpesa_paybill">M-Pesa Paybill</option>
-          <option value="bank_transfer">Bank Transfer</option>
-          <option value="cash">Cash</option>
-          <option value="manual_topup">Manual Top-up</option>
-          <option value="message_paste">Transaction Message</option>
+          <option value="cash">💰 Cash</option>
+          <option value="bank_transfer">🏦 Bank Transfer</option>
+          <option value="mpesa_paybill">📱 M-Pesa Paybill</option>
+          <option value="manual_topup">📝 Manual Top-up</option>
         </select>
       </div>
 
-      <!-- Transaction Reference -->
+      <!-- External Reference -->
       <div class="mb-5">
-        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Transaction Reference</label>
-        <input
-          type="text"
-          x-model="form.transaction_reference"
-          class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 font-mono shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-          placeholder="e.g., TXN-12345 or M-Pesa code"
-        />
-      </div>
-
-      <!-- External Reference (for M-Pesa/Bank) -->
-      <div class="mb-5" x-show="form.payment_method !== 'wallet'">
-        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">External Reference</label>
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Reference / Receipt Number</label>
         <input
           type="text"
           x-model="form.external_reference"
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-          placeholder="M-Pesa receipt number or Bank transaction ID"
+          placeholder="Receipt number, M-Pesa code, or Bank transaction ID"
         />
-      </div>
-
-      <!-- Status (for admin/accountant) -->
-      <div class="mb-5" x-show="!isTenant">
-        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Status</label>
-        <select
-          x-model="form.status"
-          class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
-        >
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="refunded">Refunded</option>
-        </select>
       </div>
 
       <!-- Payment Date -->
@@ -183,6 +209,32 @@
         ></textarea>
       </div>
 
+      <!-- Summary -->
+      <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+        <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Payment Summary</h5>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Amount to Pay:</span>
+            <span class="font-semibold text-brand-600 dark:text-brand-400" x-text="formatCurrency(form.amount)"></span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-gray-600 dark:text-gray-400">Payment Method:</span>
+            <span class="text-gray-800 dark:text-white/90" x-text="getPaymentMethodLabel(form.payment_method)"></span>
+          </div>
+          <div class="flex justify-between" x-show="form.external_reference">
+            <span class="text-gray-600 dark:text-gray-400">Reference:</span>
+            <span class="text-gray-800 dark:text-white/90 font-mono text-xs" x-text="form.external_reference"></span>
+          </div>
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+            <div class="flex justify-between">
+              <span class="text-gray-700 dark:text-gray-300">Invoice Status After:</span>
+              <span x-show="selectedInvoiceRemaining <= form.amount" class="text-green-600">Fully Paid</span>
+              <span x-show="selectedInvoiceRemaining > form.amount" class="text-yellow-600">Partially Paid</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Footer Buttons -->
       <div class="sticky bottom-0 mt-8 flex items-center justify-end gap-3 border-t border-gray-200 bg-white pt-4 dark:border-gray-700 dark:bg-gray-900">
         <button
@@ -194,10 +246,10 @@
         </button>
         <button
           type="submit"
-          :disabled="loading"
+          :disabled="loading || !isFormValid"
           class="flex justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span x-show="!loading" x-text="isEditMode ? 'Update Payment' : 'Create Payment'"></span>
+          <span x-show="!loading" x-text="isEditMode ? 'Update Payment' : 'Process Payment'"></span>
           <span x-show="loading">Processing...</span>
         </button>
       </div>
@@ -212,15 +264,15 @@ document.addEventListener('alpine:init', () => {
     isEditMode: false,
     isTenant: {{ auth()->user()->hasRole('tenant') ? 'true' : 'false' }},
     currentPaymentId: null,
-    availableInvoices: @json($invoices ?? []),
+    preSelectedInvoice: null,
+    selectedInvoiceData: null,
+    tenantInvoices: [],
     form: {
       tenant_id: '',
       invoice_id: '',
       amount: '',
-      payment_method: 'mpesa_stk',
-      transaction_reference: '',
+      payment_method: 'cash',
       external_reference: '',
-      status: 'pending',
       payment_datetime: new Date().toISOString().slice(0, 16),
       notes: ''
     },
@@ -229,18 +281,122 @@ document.addEventListener('alpine:init', () => {
     successMessage: '',
     loading: false,
     
+    get maxAmount() {
+      return this.selectedInvoiceData?.remaining_amount || 0;
+    },
+    
+    get selectedInvoiceRemaining() {
+      return this.selectedInvoiceData?.remaining_amount || 0;
+    },
+    
+    get isFormValid() {
+      if (!this.form.tenant_id && !this.preSelectedInvoice) return false;
+      if (!this.form.invoice_id && !this.preSelectedInvoice) return false;
+      if (!this.form.amount || parseFloat(this.form.amount) <= 0) return false;
+      if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) return false;
+      if (!this.form.payment_datetime) return false;
+      if (!this.form.payment_method) return false;
+      return true;
+    },
+    
     init() {
       window.paymentCreateModal = this;
-      window.paymentEditModal = this;
     },
     
     openCreateModal() {
       this.isEditMode = false;
       this.currentPaymentId = null;
+      this.preSelectedInvoice = null;
+      this.selectedInvoiceData = null;
       this.formMethod = 'POST';
       this.resetForm();
       this.isOpen = true;
       document.body.style.overflow = 'hidden';
+    },
+    
+    openPaymentModalForInvoice(invoice) {
+        console.log('=== openPaymentModalForInvoice called ===');
+        console.log('Received invoice data:', invoice);
+        console.log('Invoice ID:', invoice.id);
+        console.log('Invoice tenant_id:', invoice.tenant_id);
+        
+        if (!invoice || !invoice.id) {
+            console.error('Invalid invoice data:', invoice);
+            alert('Could not process payment: Invalid invoice data');
+            return;
+        }
+        
+        this.isEditMode = false;
+        this.currentPaymentId = null;
+        this.preSelectedInvoice = invoice;
+        this.selectedInvoiceData = invoice;
+        this.formMethod = 'POST';
+        
+        // Populate form with invoice data
+        this.form.tenant_id = invoice.tenant_id;
+        this.form.invoice_id = invoice.id;
+        this.form.amount = invoice.remaining_amount || invoice.total_amount;
+        this.form.payment_datetime = new Date().toISOString().slice(0, 16);
+        this.form.external_reference = '';
+        this.form.notes = '';
+        this.form.payment_method = 'cash';
+        
+        console.log('Form populated:', this.form);
+        
+        // Fetch additional invoice details if needed
+        this.fetchInvoiceDetails(invoice.id);
+        
+        this.isOpen = true;
+        document.body.style.overflow = 'hidden';
+    },
+
+    async fetchInvoiceDetails(invoiceId) {
+        console.log('Fetching invoice details for ID:', invoiceId);
+        
+        if (!invoiceId) {
+            console.error('No invoice ID provided for fetching details');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/invoices/${invoiceId}/details`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            console.log('Fetch response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Invoice details response:', data);
+            
+            if (data.success) {
+                this.selectedInvoiceData = data.invoice;
+                
+                // Update form with invoice data
+                this.form.tenant_id = data.invoice.tenant_id;
+                this.form.invoice_id = data.invoice.id;
+                this.form.amount = data.invoice.remaining_amount;
+                
+                // Also update preSelectedInvoice to show correct data
+                if (this.preSelectedInvoice) {
+                    this.preSelectedInvoice = {
+                        ...this.preSelectedInvoice,
+                        ...data.invoice
+                    };
+                }
+            } else {
+                console.warn('Failed to fetch invoice details:', data.error);
+            }
+        } catch (error) {
+            console.error('Error fetching invoice details:', error);
+            this.formErrors = ['Could not load invoice details. Please try again.'];
+        }
     },
     
     openEditModal(payment) {
@@ -251,10 +407,8 @@ document.addEventListener('alpine:init', () => {
         tenant_id: payment.tenant_id || '',
         invoice_id: payment.invoice_id || '',
         amount: payment.amount || '',
-        payment_method: payment.payment_method || 'mpesa_stk',
-        transaction_reference: payment.transaction_reference || '',
+        payment_method: payment.payment_method || 'cash',
         external_reference: payment.external_reference || '',
-        status: payment.status || 'pending',
         payment_datetime: payment.payment_datetime || payment.created_at ? new Date(payment.created_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
         notes: payment.meta?.notes || ''
       };
@@ -266,6 +420,8 @@ document.addEventListener('alpine:init', () => {
       this.isOpen = false;
       this.isEditMode = false;
       this.currentPaymentId = null;
+      this.preSelectedInvoice = null;
+      this.selectedInvoiceData = null;
       this.formErrors = [];
       this.successMessage = '';
       this.loading = false;
@@ -277,62 +433,139 @@ document.addEventListener('alpine:init', () => {
         tenant_id: '',
         invoice_id: '',
         amount: '',
-        payment_method: 'mpesa_stk',
-        transaction_reference: '',
+        payment_method: 'cash',
         external_reference: '',
-        status: 'pending',
         payment_datetime: new Date().toISOString().slice(0, 16),
         notes: ''
       };
+      this.tenantInvoices = [];
+      this.selectedInvoiceData = null;
       this.formErrors = [];
       this.successMessage = '';
+    },
+    
+    async loadTenantInvoices() {
+      if (!this.form.tenant_id) {
+        this.tenantInvoices = [];
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/payments/tenant/${this.form.tenant_id}/invoices`, {
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          this.tenantInvoices = data.invoices;
+        }
+      } catch (error) {
+        console.error('Error loading tenant invoices:', error);
+      }
+    },
+    
+    selectInvoiceForPayment() {
+      const selected = this.tenantInvoices.find(inv => inv.id == this.form.invoice_id);
+      if (selected) {
+        this.selectedInvoiceData = selected;
+        this.form.amount = selected.remaining_amount;
+      }
+    },
+    
+    getPaymentMethodLabel(method) {
+      const labels = {
+        'cash': 'Cash',
+        'bank_transfer': 'Bank Transfer',
+        'mpesa_paybill': 'M-Pesa Paybill',
+        'manual_topup': 'Manual Top-up'
+      };
+      return labels[method] || method;
+    },
+    
+    formatCurrency(amount) {
+      const symbol = "{{ \App\Helpers\SystemHelper::currencySymbol() ?? 'KES ' }}";
+      if (!amount && amount !== 0) return symbol + "0.00";
+      return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     
     async submitForm() {
       this.formErrors = [];
       this.successMessage = '';
       
-      if (!this.form.tenant_id) {
-        this.formErrors.push('Please select a tenant');
-        return;
-      }
-      
-      if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
-        this.formErrors.push('Please enter a valid amount');
-        return;
-      }
-      
-      if (!this.form.payment_datetime) {
-        this.formErrors.push('Please select payment date');
+      if (!this.isFormValid) {
+        if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
+          this.formErrors.push('Please enter a valid amount');
+        }
+        if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
+          this.formErrors.push(`Amount cannot exceed remaining balance of ${this.formatCurrency(this.selectedInvoiceRemaining)}`);
+        }
         return;
       }
       
       this.loading = true;
       
       try {
-        const url = this.isEditMode ? `/payments/${this.currentPaymentId}` : '/payments';
-        const method = this.isEditMode ? 'PUT' : 'POST';
+        let url, method, body;
+        
+        if (this.isEditMode) {
+          url = `/payments/${this.currentPaymentId}`;
+          method = 'PUT';
+          body = JSON.stringify({
+            status: this.form.status,
+            is_reconciled: this.form.status === 'completed' ? 1 : 0,
+            notes: this.form.notes
+          });
+        } else {
+          url = '/payments';
+          method = 'POST';
+          body = JSON.stringify({
+            tenant_id: this.preSelectedInvoice?.tenant_id || this.form.tenant_id,
+            invoice_id: this.preSelectedInvoice?.id || this.form.invoice_id,
+            amount: parseFloat(this.form.amount),
+            payment_method: this.form.payment_method,
+            external_reference: this.form.external_reference,
+            payment_datetime: this.form.payment_datetime,
+            notes: this.form.notes
+          });
+        }
         
         const response = await fetch(url, {
           method: method,
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             'Accept': 'application/json'
           },
-          body: JSON.stringify(this.form)
+          body: body
         });
         
         const data = await response.json();
         
         if (response.ok && data.success) {
-          this.successMessage = this.isEditMode ? 'Payment updated successfully!' : 'Payment created successfully!';
+          if (this.isEditMode) {
+            this.successMessage = 'Payment updated successfully!';
+          } else {
+            this.successMessage = data.message || 'Payment processed successfully! Invoice has been paid.';
+          }
+          
+          // Dispatch wallet update event
+          if (data.data?.wallet_balance !== undefined) {
+            const updateEvent = new CustomEvent('wallet-updated', {
+              detail: { new_balance: data.data.wallet_balance }
+            });
+            window.dispatchEvent(updateEvent);
+            document.dispatchEvent(updateEvent);
+          }
+          
           setTimeout(() => {
             this.closeModal();
             window.location.reload();
-          }, 1500);
+          }, 2000);
         } else {
-          this.formErrors = [data.message || data.error || 'Failed to save payment'];
+          this.formErrors = [data.message || data.error || 'Failed to process payment'];
         }
       } catch (error) {
         console.error('Error:', error);

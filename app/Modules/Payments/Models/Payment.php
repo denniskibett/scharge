@@ -290,4 +290,39 @@ class Payment extends Model
             'meta' => $meta,
         ]);
     }
+
+
+    /**
+     * Record a direct payment that automatically deposits to wallet and pays invoice
+     */
+    public static function recordDirectPayment(
+        Tenant $tenant,
+        Invoice $invoice,
+        float $amount,
+        string $paymentMethod,
+        string $externalReference,
+        ?User $user = null,
+        array $meta = []
+    ): self {
+        return self::create([
+            'tenant_id' => $tenant->id,
+            'user_id' => $user?->id ?? auth()->id(),
+            'invoice_id' => $invoice->id,
+            'invoice_item_id' => null, // Will be updated during distribution
+            'payment_method' => $paymentMethod,
+            'source' => $meta['source'] ?? self::SOURCE_ADMIN,
+            'amount' => $amount,
+            'external_reference' => $externalReference,
+            'transaction_reference' => $meta['transaction_reference'] ?? null,
+            'status' => self::STATUS_COMPLETED, // Directly completed
+            'is_reconciled' => true, // Auto-reconciled by accountant
+            'reconciled_at' => now(),
+            'reconciled_by' => $user?->id ?? auth()->id(),
+            'meta' => array_merge($meta, [
+                'direct_payment' => true,
+                'auto_processed' => true,
+                'processed_at' => now()->toISOString(),
+            ]),
+        ]);
+    }
 }

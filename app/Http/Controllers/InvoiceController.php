@@ -51,8 +51,12 @@ class InvoiceController extends Controller
 
         
         $mappedInvoices = $invoices->map(function($invoice) {
+            $paidAmount = (float) $invoice->payments->sum('amount');
+            $remainingAmount = (float) ($invoice->total_amount - $paidAmount);
+            
             return [
                 'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number ?? 'INV-' . str_pad($invoice->id, 6, '0', STR_PAD_LEFT),
                 'tenant_name' => $invoice->tenancy->tenant->user->name ?? '-',
                 'tenant_id' => $invoice->tenancy->tenant_id ?? null,
                 'unit_number' => $invoice->tenancy->unit->unit_number ?? '-',
@@ -60,11 +64,23 @@ class InvoiceController extends Controller
                 'invoice_type' => $invoice->invoice_type,
                 'billing_month' => $invoice->billing_month,
                 'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
-                'total_amount' => $invoice->total_amount,
+                'total_amount' => (float) $invoice->total_amount,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
                 'status' => $invoice->status,
                 'tenancy_id' => $invoice->tenancy_id,
                 'created_at' => $invoice->created_at ? $invoice->created_at->getTimestamp() * 1000 : null,
                 'created_at_formatted' => $invoice->created_at ? $invoice->created_at->format('M d, Y') : '-',
+                'items' => $invoice->items->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'description' => $item->description,
+                        'item_type' => $item->item_type,
+                        'amount' => (float) $item->amount,
+                        'paid_amount' => (float) ($item->paid_amount ?? 0),
+                        'remaining_amount' => (float) ($item->amount - ($item->paid_amount ?? 0)),
+                    ];
+                })->toArray(),
             ];
         });
         
@@ -1185,399 +1201,416 @@ public function show(Invoice $invoice)
         ]);
     }
 
-    /**
- * Get billing history with gaps detection
- */
-public function getBillingHistory(Tenancy $tenancy)
-{
-    $invoices = Invoice::where('tenancy_id', $tenancy->id)
-        ->where('invoice_type', 'monthly')
-        ->where('status', '!=', 'cancelled')
-        ->orderBy('billing_month', 'asc')
-        ->get();
-    
-    $moveInDate = Carbon::parse($tenancy->move_in_date);
-    $currentDate = Carbon::now();
-    $expectedMonths = [];
-    
-    // Generate expected months from move_in_date to current date
-    $startMonth = $moveInDate->copy()->startOfMonth();
-    $endMonth = $currentDate->copy()->startOfMonth();
-    
-    while ($startMonth <= $endMonth) {
-        $expectedMonths[] = $startMonth->format('Y-m');
-        $startMonth->addMonth();
-    }
-    
-    // Find existing months
-    $existingMonths = $invoices->map(function($invoice) {
-        return Carbon::parse($invoice->billing_month)->format('Y-m');
-    })->toArray();
-    
-    // Find missing months
-    $missingMonths = array_diff($expectedMonths, $existingMonths);
-    
-    // Group invoices by month (to detect duplicates)
-    $invoicesByMonth = [];
-    foreach ($invoices as $invoice) {
-        $month = Carbon::parse($invoice->billing_month)->format('Y-m');
-        if (!isset($invoicesByMonth[$month])) {
-            $invoicesByMonth[$month] = [];
+    public function getBillingHistory(Tenancy $tenancy)
+    {
+        $invoices = Invoice::where('tenancy_id', $tenancy->id)
+            ->where('invoice_type', 'monthly')
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('billing_month', 'asc')
+            ->get();
+        
+        $moveInDate = Carbon::parse($tenancy->move_in_date);
+        $currentDate = Carbon::now();
+        $expectedMonths = [];
+        
+        // Generate expected months from move_in_date to current date
+        $startMonth = $moveInDate->copy()->startOfMonth();
+        $endMonth = $currentDate->copy()->startOfMonth();
+        
+        while ($startMonth <= $endMonth) {
+            $expectedMonths[] = $startMonth->format('Y-m');
+            $startMonth->addMonth();
         }
-        $invoicesByMonth[$month][] = [
-            'id' => $invoice->id,
-            'total_amount' => $invoice->total_amount,
-            'status' => $invoice->status,
-            'items' => $invoice->items->map(function($item) {
-                return [
-                    'description' => $item->description,
-                    'item_type' => $item->item_type,
-                    'amount' => $item->amount
-                ];
-            })
-        ];
-    }
-    
-    // Check for duplicates
-    $duplicateMonths = [];
-    foreach ($invoicesByMonth as $month => $monthInvoices) {
-        if (count($monthInvoices) > 1) {
-            $duplicateMonths[$month] = $monthInvoices;
-        }
-    }
-    
-    return response()->json([
-        'success' => true,
-        'move_in_date' => $moveInDate->format('Y-m-d'),
-        'move_in_date_formatted' => $moveInDate->format('F Y'),
-        'current_date' => $currentDate->format('Y-m-d'),
-        'expected_months' => $expectedMonths,
-        'existing_months' => $existingMonths,
-        'missing_months' => $missingMonths,
-        'has_gaps' => count($missingMonths) > 0,
-        'duplicate_months' => $duplicateMonths,
-        'invoices_by_month' => $invoicesByMonth,
-        'next_expected_month' => !empty($expectedMonths) ? end($expectedMonths) : null,
-        'next_billing_month' => $this->getNextBillingMonth($tenancy),
-    ]);
-}
-
-/**
- * Generate invoices for all missing months
- */
-public function generateMissingInvoices(Request $request, Tenancy $tenancy)
-{
-    try {
-        $validated = $request->validate([
-            'months' => 'required|array',
-            'months.*' => 'date_format:Y-m',
-            'items' => 'required|array',
-            'items.*.description' => 'required|string',
-            'items.*.item_type' => 'required|string',
-            'items.*.amount' => 'required|numeric|min:0',
-        ]);
         
-        $generatedInvoices = [];
-        $errors = [];
+        // Find existing months
+        $existingMonths = $invoices->map(function($invoice) {
+            return Carbon::parse($invoice->billing_month)->format('Y-m');
+        })->toArray();
         
-        DB::beginTransaction();
+        // Find missing months
+        $missingMonths = array_diff($expectedMonths, $existingMonths);
         
-        foreach ($validated['months'] as $month) {
-            // Check if invoice already exists for this month
-            $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
-                ->where('invoice_type', 'monthly')
-                ->where('billing_month', $month . '-01')
-                ->first();
-            
-            if ($existingInvoice) {
-                $errors[] = "Invoice for {$month} already exists. Skipping.";
-                continue;
+        // Group invoices by month (to detect duplicates)
+        $invoicesByMonth = [];
+        foreach ($invoices as $invoice) {
+            $month = Carbon::parse($invoice->billing_month)->format('Y-m');
+            if (!isset($invoicesByMonth[$month])) {
+                $invoicesByMonth[$month] = [];
             }
-            
-            $totalAmount = array_sum(array_column($validated['items'], 'amount'));
-            
-            $invoice = Invoice::create([
-                'tenancy_id' => $tenancy->id,
-                'invoice_type' => 'monthly',
-                'billing_month' => $month . '-01',
-                'total_amount' => $totalAmount,
-                'status' => 'unpaid',
-                'notes' => "Generated for missing month: {$month}",
+            $invoicesByMonth[$month][] = [
+                'id' => $invoice->id,
+                'total_amount' => $invoice->total_amount,
+                'status' => $invoice->status,
+                'items' => $invoice->items->map(function($item) {
+                    return [
+                        'description' => $item->description,
+                        'item_type' => $item->item_type,
+                        'amount' => $item->amount
+                    ];
+                })
+            ];
+        }
+        
+        // Check for duplicates
+        $duplicateMonths = [];
+        foreach ($invoicesByMonth as $month => $monthInvoices) {
+            if (count($monthInvoices) > 1) {
+                $duplicateMonths[$month] = $monthInvoices;
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'move_in_date' => $moveInDate->format('Y-m-d'),
+            'move_in_date_formatted' => $moveInDate->format('F Y'),
+            'current_date' => $currentDate->format('Y-m-d'),
+            'expected_months' => $expectedMonths,
+            'existing_months' => $existingMonths,
+            'missing_months' => $missingMonths,
+            'has_gaps' => count($missingMonths) > 0,
+            'duplicate_months' => $duplicateMonths,
+            'invoices_by_month' => $invoicesByMonth,
+            'next_expected_month' => !empty($expectedMonths) ? end($expectedMonths) : null,
+            'next_billing_month' => $this->getNextBillingMonth($tenancy),
+        ]);
+    }
+
+    /**
+     * Generate invoices for all missing months
+     */
+    public function generateMissingInvoices(Request $request, Tenancy $tenancy)
+    {
+        try {
+            $validated = $request->validate([
+                'months' => 'required|array',
+                'months.*' => 'date_format:Y-m',
+                'items' => 'required|array',
+                'items.*.description' => 'required|string',
+                'items.*.item_type' => 'required|string',
+                'items.*.amount' => 'required|numeric|min:0',
             ]);
             
-            foreach ($validated['items'] as $item) {
-                $invoice->items()->create([
-                    'item_type' => $item['item_type'],
-                    'description' => $item['description'],
-                    'amount' => $item['amount'],
+            $generatedInvoices = [];
+            $errors = [];
+            
+            DB::beginTransaction();
+            
+            foreach ($validated['months'] as $month) {
+                // Check if invoice already exists for this month
+                $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
+                    ->where('invoice_type', 'monthly')
+                    ->where('billing_month', $month . '-01')
+                    ->first();
+                
+                if ($existingInvoice) {
+                    $errors[] = "Invoice for {$month} already exists. Skipping.";
+                    continue;
+                }
+                
+                $totalAmount = array_sum(array_column($validated['items'], 'amount'));
+                
+                $invoice = Invoice::create([
+                    'tenancy_id' => $tenancy->id,
+                    'invoice_type' => 'monthly',
+                    'billing_month' => $month . '-01',
+                    'total_amount' => $totalAmount,
+                    'status' => 'unpaid',
+                    'notes' => "Generated for missing month: {$month}",
+                ]);
+                
+                foreach ($validated['items'] as $item) {
+                    $invoice->items()->create([
+                        'item_type' => $item['item_type'],
+                        'description' => $item['description'],
+                        'amount' => $item['amount'],
+                    ]);
+                }
+                
+                $generatedInvoices[] = $invoice->load('items');
+            }
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Generated " . count($generatedInvoices) . " invoices for missing months",
+                'generated_count' => count($generatedInvoices),
+                'error_count' => count($errors),
+                'errors' => $errors,
+                'invoices' => $generatedInvoices,
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating invoices: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getInvoiceDetails(Invoice $invoice)
+    {
+        try {
+            $invoice->load([
+                'tenancy.tenant.user', 
+                'tenancy.unit.estate', 
+                'items', 
+                'payments'
+            ]);
+            
+            // Calculate remaining amount
+            $paidAmount = (float) $invoice->payments->sum('amount');
+            $remainingAmount = (float) ($invoice->total_amount - $paidAmount);
+            
+            return response()->json([
+                'success' => true,
+                'invoice' => [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number ?? 'INV-' . str_pad($invoice->id, 6, '0', STR_PAD_LEFT),
+                    'tenant_id' => $invoice->tenancy->tenant_id,
+                    'tenant_name' => $invoice->tenancy->tenant->user->name ?? 'Unknown',
+                    'unit_number' => $invoice->tenancy->unit->unit_number ?? 'N/A',
+                    'unit_id' => $invoice->tenancy->unit_id,
+                    'estate_name' => $invoice->tenancy->unit->estate->name ?? 'N/A',
+                    'billing_month' => $invoice->billing_month,
+                    'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('F Y') : '-',
+                    'total_amount' => (float) $invoice->total_amount,
+                    'paid_amount' => (float) $paidAmount,
+                    'remaining_amount' => $remainingAmount,
+                    'status' => $invoice->status,
+                    'payment_percentage' => $invoice->payment_percentage,
+                    'items' => $invoice->items->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'description' => $item->description,
+                            'item_type' => $item->item_type,
+                            'amount' => (float) $item->amount,
+                            'paid_amount' => (float) ($item->paid_amount ?? 0),
+                            'remaining_amount' => (float) ($item->amount - ($item->paid_amount ?? 0)),
+                        ];
+                    }),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching invoice details: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch invoice details: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function generateMissingInvoicesBulk(Request $request, Tenancy $tenancy)
+    {
+        try {
+            $validated = $request->validate([
+                'months_data' => 'required|array',
+                'months_data.*.month' => 'required|date_format:Y-m',
+                'months_data.*.items' => 'required|array|min:1',
+                'months_data.*.items.*.description' => 'required|string',
+                'months_data.*.items.*.item_type' => 'required|string',
+                'months_data.*.items.*.amount' => 'required|numeric|min:0',
+            ]);
+            
+            $generatedInvoices = [];
+            $errors = [];
+            $waterReadingUpdates = [];
+            
+            DB::beginTransaction();
+            
+            foreach ($validated['months_data'] as $monthData) {
+                $month = $monthData['month'];
+                
+                // Check if invoice already exists for this month
+                $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
+                    ->where('invoice_type', 'monthly')
+                    ->where('billing_month', $month . '-01')
+                    ->first();
+                
+                if ($existingInvoice) {
+                    $errors[] = "Invoice for {$month} already exists. Skipping.";
+                    continue;
+                }
+                
+                $totalAmount = array_sum(array_column($monthData['items'], 'amount'));
+                
+                $invoice = Invoice::create([
+                    'tenancy_id' => $tenancy->id,
+                    'invoice_type' => 'monthly',
+                    'billing_month' => $month . '-01',
+                    'total_amount' => $totalAmount,
+                    'status' => 'unpaid',
+                    'notes' => "Generated for missing month: {$month}",
+                ]);
+                
+                foreach ($monthData['items'] as $item) {
+                    $itemData = [
+                        'item_type' => $item['item_type'],
+                        'description' => $item['description'],
+                        'amount' => $item['amount'],
+                    ];
+                    
+                    // Add metadata for water items
+                    if ($item['item_type'] === 'water' && isset($item['metadata'])) {
+                        $itemData['metadata'] = $item['metadata'];
+                        
+                        // Track water reading updates for the unit
+                        if (isset($item['metadata']['current_reading'])) {
+                            $waterReadingUpdates[$month] = [
+                                'current_reading' => $item['metadata']['current_reading'],
+                                'previous_reading' => $item['metadata']['previous_reading'] ?? $tenancy->unit->previous_water_reading,
+                            ];
+                        }
+                    }
+                    
+                    $invoice->items()->create($itemData);
+                }
+                
+                $generatedInvoices[] = $invoice->load('items');
+            }
+            
+            // Update water readings for the unit if any water invoices were generated
+            if (!empty($waterReadingUpdates)) {
+                $lastUpdate = end($waterReadingUpdates);
+                $tenancy->unit->update([
+                    'previous_water_reading' => $lastUpdate['current_reading'],
+                    'current_water_reading' => 0,
+                    'last_reading_date' => now(),
                 ]);
             }
             
-            $generatedInvoices[] = $invoice->load('items');
-        }
-        
-        DB::commit();
-        
-        return response()->json([
-            'success' => true,
-            'message' => "Generated " . count($generatedInvoices) . " invoices for missing months",
-            'generated_count' => count($generatedInvoices),
-            'error_count' => count($errors),
-            'errors' => $errors,
-            'invoices' => $generatedInvoices,
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Error generating invoices: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Get invoice details with items for display
- */
-public function getInvoiceDetails(Invoice $invoice)
-{
-    $invoice->load('items', 'tenancy.tenant', 'tenancy.unit');
-    
-    return response()->json([
-        'success' => true,
-        'invoice' => [
-            'id' => $invoice->id,
-            'invoice_number' => $invoice->invoice_number ?? 'INV-' . str_pad($invoice->id, 6, '0', STR_PAD_LEFT),
-            'billing_month' => $invoice->billing_month,
-            'billing_month_formatted' => Carbon::parse($invoice->billing_month)->format('F Y'),
-            'total_amount' => $invoice->total_amount,
-            'status' => $invoice->status,
-            'created_at' => $invoice->created_at->format('Y-m-d H:i:s'),
-            'items' => $invoice->items->map(function($item) {
-                return [
-                    'id' => $item->id,
-                    'description' => $item->description,
-                    'item_type' => $item->item_type,
-                    'amount' => $item->amount,
-                ];
-            }),
-            'tenant_name' => $invoice->tenancy->tenant->user->name ?? 'Unknown',
-            'unit_number' => $invoice->tenancy->unit->unit_number ?? 'N/A',
-        ]
-    ]);
-}
-
-public function generateMissingInvoicesBulk(Request $request, Tenancy $tenancy)
-{
-    try {
-        $validated = $request->validate([
-            'months_data' => 'required|array',
-            'months_data.*.month' => 'required|date_format:Y-m',
-            'months_data.*.items' => 'required|array|min:1',
-            'months_data.*.items.*.description' => 'required|string',
-            'months_data.*.items.*.item_type' => 'required|string',
-            'months_data.*.items.*.amount' => 'required|numeric|min:0',
-        ]);
-        
-        $generatedInvoices = [];
-        $errors = [];
-        $waterReadingUpdates = [];
-        
-        DB::beginTransaction();
-        
-        foreach ($validated['months_data'] as $monthData) {
-            $month = $monthData['month'];
+            DB::commit();
             
-            // Check if invoice already exists for this month
-            $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
+            return response()->json([
+                'success' => true,
+                'message' => "Generated " . count($generatedInvoices) . " invoices for missing months",
+                'generated_count' => count($generatedInvoices),
+                'error_count' => count($errors),
+                'errors' => $errors,
+                'invoices' => $generatedInvoices,
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Bulk missing invoices error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'tenancy_id' => $tenancy->id
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating invoices: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    public function resolveDuplicateInvoices(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'month' => 'required|date_format:Y-m',
+                'tenancy_id' => 'required|exists:tenancies,id',
+                'keep_invoice_id' => 'required|exists:invoices,id'
+            ]);
+            
+            $month = $validated['month'] . '-01';
+            $tenancyId = $validated['tenancy_id'];
+            $keepInvoiceId = $validated['keep_invoice_id'];
+            
+            // Find all duplicates for this month
+            $duplicates = Invoice::where('tenancy_id', $tenancyId)
                 ->where('invoice_type', 'monthly')
-                ->where('billing_month', $month . '-01')
-                ->first();
+                ->where('billing_month', $month)
+                ->where('id', '!=', $keepInvoiceId)
+                ->get();
             
-            if ($existingInvoice) {
-                $errors[] = "Invoice for {$month} already exists. Skipping.";
-                continue;
+            $deletedCount = 0;
+            
+            DB::beginTransaction();
+            
+            foreach ($duplicates as $duplicate) {
+                // Delete associated items first
+                $duplicate->items()->delete();
+                // Delete any payments
+                $duplicate->payments()->delete();
+                // Delete the invoice
+                $duplicate->delete();
+                $deletedCount++;
             }
             
-            $totalAmount = array_sum(array_column($monthData['items'], 'amount'));
+            DB::commit();
             
-            $invoice = Invoice::create([
-                'tenancy_id' => $tenancy->id,
-                'invoice_type' => 'monthly',
-                'billing_month' => $month . '-01',
-                'total_amount' => $totalAmount,
-                'status' => 'unpaid',
-                'notes' => "Generated for missing month: {$month}",
+            return response()->json([
+                'success' => true,
+                'message' => "Kept invoice #{$keepInvoiceId} and deleted {$deletedCount} duplicate invoice(s).",
+                'deleted_count' => $deletedCount
             ]);
             
-            foreach ($monthData['items'] as $item) {
-                $itemData = [
-                    'item_type' => $item['item_type'],
-                    'description' => $item['description'],
-                    'amount' => $item['amount'],
-                ];
-                
-                // Add metadata for water items
-                if ($item['item_type'] === 'water' && isset($item['metadata'])) {
-                    $itemData['metadata'] = $item['metadata'];
-                    
-                    // Track water reading updates for the unit
-                    if (isset($item['metadata']['current_reading'])) {
-                        $waterReadingUpdates[$month] = [
-                            'current_reading' => $item['metadata']['current_reading'],
-                            'previous_reading' => $item['metadata']['previous_reading'] ?? $tenancy->unit->previous_water_reading,
-                        ];
-                    }
-                }
-                
-                $invoice->items()->create($itemData);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error resolving duplicates: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Resolve duplicate invoices by keeping one and deleting others
+     */
+    public function resolveDuplicates(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'month' => 'required|string',
+                'tenancy_id' => 'required|exists:tenancies,id',
+                'keep_invoice_id' => 'required|exists:invoices,id'
+            ]);
+            
+            $month = $validated['month'] . '-01';
+            $tenancyId = $validated['tenancy_id'];
+            $keepInvoiceId = $validated['keep_invoice_id'];
+            
+            // Find all duplicates for this month
+            $duplicates = Invoice::where('tenancy_id', $tenancyId)
+                ->where('invoice_type', 'monthly')
+                ->where('billing_month', $month)
+                ->where('id', '!=', $keepInvoiceId)
+                ->get();
+            
+            $deletedCount = 0;
+            
+            DB::beginTransaction();
+            
+            foreach ($duplicates as $duplicate) {
+                // Delete associated items
+                $duplicate->items()->delete();
+                // Delete any payments
+                $duplicate->payments()->delete();
+                // Delete the invoice
+                $duplicate->delete();
+                $deletedCount++;
             }
             
-            $generatedInvoices[] = $invoice->load('items');
-        }
-        
-        // Update water readings for the unit if any water invoices were generated
-        if (!empty($waterReadingUpdates)) {
-            $lastUpdate = end($waterReadingUpdates);
-            $tenancy->unit->update([
-                'previous_water_reading' => $lastUpdate['current_reading'],
-                'current_water_reading' => 0,
-                'last_reading_date' => now(),
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Kept invoice #{$keepInvoiceId} and deleted {$deletedCount} duplicate invoice(s).",
+                'deleted_count' => $deletedCount
             ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Duplicate resolution error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error resolving duplicates: ' . $e->getMessage()
+            ], 500);
         }
-        
-        DB::commit();
-        
-        return response()->json([
-            'success' => true,
-            'message' => "Generated " . count($generatedInvoices) . " invoices for missing months",
-            'generated_count' => count($generatedInvoices),
-            'error_count' => count($errors),
-            'errors' => $errors,
-            'invoices' => $generatedInvoices,
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Bulk missing invoices error: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'tenancy_id' => $tenancy->id
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Error generating invoices: ' . $e->getMessage()
-        ], 500);
     }
-}
-
-// In InvoiceController.php
-
-public function resolveDuplicateInvoices(Request $request)
-{
-    try {
-        $validated = $request->validate([
-            'month' => 'required|date_format:Y-m',
-            'tenancy_id' => 'required|exists:tenancies,id',
-            'keep_invoice_id' => 'required|exists:invoices,id'
-        ]);
-        
-        $month = $validated['month'] . '-01';
-        $tenancyId = $validated['tenancy_id'];
-        $keepInvoiceId = $validated['keep_invoice_id'];
-        
-        // Find all duplicates for this month
-        $duplicates = Invoice::where('tenancy_id', $tenancyId)
-            ->where('invoice_type', 'monthly')
-            ->where('billing_month', $month)
-            ->where('id', '!=', $keepInvoiceId)
-            ->get();
-        
-        $deletedCount = 0;
-        
-        DB::beginTransaction();
-        
-        foreach ($duplicates as $duplicate) {
-            // Delete associated items first
-            $duplicate->items()->delete();
-            // Delete any payments
-            $duplicate->payments()->delete();
-            // Delete the invoice
-            $duplicate->delete();
-            $deletedCount++;
-        }
-        
-        DB::commit();
-        
-        return response()->json([
-            'success' => true,
-            'message' => "Kept invoice #{$keepInvoiceId} and deleted {$deletedCount} duplicate invoice(s).",
-            'deleted_count' => $deletedCount
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Error resolving duplicates: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Resolve duplicate invoices by keeping one and deleting others
- */
-public function resolveDuplicates(Request $request)
-{
-    try {
-        $validated = $request->validate([
-            'month' => 'required|string',
-            'tenancy_id' => 'required|exists:tenancies,id',
-            'keep_invoice_id' => 'required|exists:invoices,id'
-        ]);
-        
-        $month = $validated['month'] . '-01';
-        $tenancyId = $validated['tenancy_id'];
-        $keepInvoiceId = $validated['keep_invoice_id'];
-        
-        // Find all duplicates for this month
-        $duplicates = Invoice::where('tenancy_id', $tenancyId)
-            ->where('invoice_type', 'monthly')
-            ->where('billing_month', $month)
-            ->where('id', '!=', $keepInvoiceId)
-            ->get();
-        
-        $deletedCount = 0;
-        
-        DB::beginTransaction();
-        
-        foreach ($duplicates as $duplicate) {
-            // Delete associated items
-            $duplicate->items()->delete();
-            // Delete any payments
-            $duplicate->payments()->delete();
-            // Delete the invoice
-            $duplicate->delete();
-            $deletedCount++;
-        }
-        
-        DB::commit();
-        
-        return response()->json([
-            'success' => true,
-            'message' => "Kept invoice #{$keepInvoiceId} and deleted {$deletedCount} duplicate invoice(s).",
-            'deleted_count' => $deletedCount
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Duplicate resolution error: ' . $e->getMessage());
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Error resolving duplicates: ' . $e->getMessage()
-        ], 500);
-    }
-}
 
 }

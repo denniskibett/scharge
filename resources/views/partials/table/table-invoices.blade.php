@@ -392,9 +392,12 @@ document.addEventListener('alpine:init', () => {
         },
         
         // Methods
-        async init() {
-            await this.fetchInvoices();
-        },
+async init() {
+    await this.fetchInvoices();
+    console.log('Loaded invoices:', this.invoices);
+    console.log('First invoice ID:', this.invoices[0]?.id);
+    console.log('First invoice tenant_id:', this.invoices[0]?.tenant_id);
+},
         
         async fetchInvoices() {
             this.loading = true;
@@ -511,8 +514,19 @@ document.addEventListener('alpine:init', () => {
         },
         
         openPaymentModal(invoice) {
+            console.log('Invoice data received:', invoice);
+            console.log('Invoice ID:', invoice.id);
+            
+            if (!invoice.id) {
+                console.error('Invoice missing ID field:', invoice);
+                alert('Cannot process payment: Invoice ID is missing');
+                return;
+            }
+            
             if (window.paymentCreateModal) {
-                window.paymentCreateModal.openModal(invoice);
+                window.paymentCreateModal.openPaymentModalForInvoice(invoice);
+            } else {
+                console.error('paymentCreateModal not found');
             }
         },
         

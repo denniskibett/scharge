@@ -402,6 +402,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/api/wallet/pay-invoice/{invoiceId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiPayInvoice'])->middleware('auth');
     });
 
+    Route::get('/payments/tenant/{tenantId}/invoices', [PaymentController::class, 'getTenantInvoices'])->name('payments.tenant.invoices');
+    Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
+
 }); 
 
 
