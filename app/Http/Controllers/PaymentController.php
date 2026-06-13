@@ -211,18 +211,12 @@ public function store(Request $request)
             ], 400);
         }
         
-        // REMOVE THIS BLOCK - Allow overpayments
-        // if ($request->amount > $invoice->remaining_amount) {
-        //     return response()->json([
-        //         'success' => false,
-        //         'message' => 'Payment amount exceeds remaining invoice amount'
-        //     ], 400);
-        // }
-        
-        // Optional: Add warning but don't block
+        // Allow overpayments - remove the blocking check
+        // Just log it for audit
         if ($request->amount > $invoice->remaining_amount) {
             \Log::info('Overpayment detected', [
                 'invoice_id' => $invoice->id,
+                'tenant_id' => $tenant->id,
                 'remaining' => $invoice->remaining_amount,
                 'paid' => $request->amount,
                 'excess' => $request->amount - $invoice->remaining_amount
@@ -248,12 +242,12 @@ public function store(Request $request)
         if ($result['success']) {
             return response()->json([
                 'success' => true,
-                'message' => 'Payment processed successfully!',
+                'message' => $result['message'] ?? 'Payment processed successfully!',
                 'data' => [
                     'payment_id' => $result['payment_id'],
                     'wallet_balance' => $result['wallet_balance'],
-                    'amount_paid_to_invoice' => $result['amount_paid_to_invoice'] ?? $request->amount,
-                    'amount_added_to_wallet' => $result['amount_added_to_wallet'] ?? 0,
+                    'amount_paid_to_invoice' => $result['amount_paid_to_invoice'],
+                    'amount_added_to_wallet' => $result['amount_added_to_wallet'],
                     'invoice' => $result['invoice'],
                 ]
             ]);

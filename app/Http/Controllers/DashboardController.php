@@ -787,7 +787,7 @@ class DashboardController extends Controller
         $maintenanceRequests = Maintenance::where('tenant_id', $tenant->id)
             ->with('unit')
             ->latest()
-            ->take(10)
+            // ->take(10)
             ->get()
             ->map(function ($request) {
                 return [
@@ -868,7 +868,7 @@ class DashboardController extends Controller
         $recentInvoices = Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))
             ->with(['tenancy.tenant.user', 'tenancy.unit', 'items', 'payments'])
             ->latest()
-            ->take(10)
+            // ->take(10)
             ->get()
             ->map(function ($invoice) {
                 $lastPayment = $invoice->payments->last();
@@ -904,7 +904,7 @@ class DashboardController extends Controller
         $recentPayments = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))
             ->with(['invoice.tenancy.tenant.user', 'invoice.tenancy.unit'])
             ->latest('created_at')
-            ->take(10)
+            // ->take(10)
             ->get()
             ->map(function ($payment) {
                 return [
@@ -969,7 +969,7 @@ class DashboardController extends Controller
             ->where('status', 'unpaid')
             ->where('billing_month', '<=', Carbon::now()->subMonth()->format('Y-m-01'))
             ->with(['tenancy.tenant.user', 'tenancy.unit', 'items', 'payments'])
-            ->take(10)
+            // ->take(10)
             ->get()
             ->map(function ($invoice) {
                 $lastPayment = $invoice->payments->last();
@@ -1007,7 +1007,7 @@ class DashboardController extends Controller
         $recentTransactions = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))
             ->with(['invoice.tenancy.tenant.user', 'invoice.tenancy.unit', 'tenant.user'])
             ->latest('created_at')
-            ->take(15)
+            // ->take(15)
             ->get()
             ->map(function ($payment) {
                 return [
