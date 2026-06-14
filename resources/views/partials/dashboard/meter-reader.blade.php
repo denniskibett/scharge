@@ -119,6 +119,8 @@
             </div>
         </div>
 
+        @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'meter_reader'])])
+
         <!-- Tabs -->
         <div class="mt-6">
             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">

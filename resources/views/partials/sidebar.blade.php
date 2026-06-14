@@ -173,7 +173,7 @@ document.addEventListener('alpine:init', () => {
         'ui_elements', 'alerts', 'avatars', 'badges', 'buttons', 'images', 'videos'
       ],
       'admin': [
-        'dashboard', 'calendar',
+        'dashboard',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
@@ -195,7 +195,7 @@ document.addEventListener('alpine:init', () => {
         'charts', 'line_chart', 'bar_chart'
       ],
       'accountant': [
-        'dashboard', 'calendar',
+        'dashboard', 
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'charts', 'line_chart', 'bar_chart'
       ],

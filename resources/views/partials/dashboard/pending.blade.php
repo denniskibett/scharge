@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 {{-- resources/views/partials/dashboard/pending.blade.php --}}
-=======
-{{-- resources/views/dashboard/pending.blade.php --}}
->>>>>>> origin/feature/sms-module-complete
 @extends('layouts.app')
 
 @section('title', 'Account Pending Verification')
@@ -36,7 +32,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                         </svg>
                     </div>
-<<<<<<< HEAD
                 @elseif($status === 'no_company' && $user->hasRole('sysadmin'))
                     <div class="mx-auto w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center">
                         <svg class="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,8 +39,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                         </svg>
                     </div>
-=======
->>>>>>> origin/feature/sms-module-complete
                 @else
                     <div class="mx-auto w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center">
                         <svg class="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +50,6 @@
             
             <!-- Title -->
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90 text-center mb-3">
-<<<<<<< HEAD
                 @if($user->hasRole('sysadmin') && $status === 'no_company')
                     System Administrator Access
                 @else
@@ -72,12 +64,6 @@
                 @else
                     {{ $message }}
                 @endif
-=======
-                Account Pending Verification
-            </h2>
-            <p class="text-gray-600 dark:text-gray-400 text-center mb-6">
-                {{ $message }}
->>>>>>> origin/feature/sms-module-complete
             </p>
             
             <!-- User Info Card -->
@@ -107,7 +93,6 @@
                         </span>
                     </div>
                 </div>
-<<<<<<< HEAD
                 
                 <!-- Show Company Info if available -->
                 @if($user->company)
@@ -121,13 +106,10 @@
                     </div>
                 </div>
                 @endif
-=======
->>>>>>> origin/feature/sms-module-complete
             </div>
             
             <!-- Status Badge -->
             <div class="text-center mb-8">
-<<<<<<< HEAD
                 @if($user->hasRole('sysadmin') && $status === 'no_company')
                     <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -136,9 +118,6 @@
                         System Administrator - Full Access
                     </span>
                 @elseif($status === 'pending_both')
-=======
-                @if($status === 'pending_both')
->>>>>>> origin/feature/sms-module-complete
                     <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -169,7 +148,6 @@
                 @endif
             </div>
             
-<<<<<<< HEAD
             <!-- Action Buttons -->
             <div class="flex justify-center gap-4">
                 <!-- For sysadmin with no company - give option to access dashboard -->
@@ -184,23 +162,13 @@
                 @endif
                 
                 <!-- Sign Out Button -->
-=======
-            <!-- Sign Out Button (styled as Go Back Home) -->
-            <div class="flex justify-center">
->>>>>>> origin/feature/sms-module-complete
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 rounded-lg border border-gray-300 bg-white text-gray-700 font-medium hover:bg-gray-50 hover:text-gray-800 transition-all duration-200 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-<<<<<<< HEAD
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                         </svg>
                         Sign Out
-=======
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-                        </svg>
-                        Go Back Home
->>>>>>> origin/feature/sms-module-complete
                     </button>
                 </form>
             </div>

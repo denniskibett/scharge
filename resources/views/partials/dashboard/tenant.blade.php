@@ -118,6 +118,8 @@
             </div>
         </div>
 
+        @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'tenant'])])
+
         <!-- Wallet Summary Card - Add this -->
         <div class="mb-6">
             @include('partials.card.card-wallet-summary', ['walletData' => $walletData])

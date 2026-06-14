@@ -1,802 +1,697 @@
-<!-- Card Dashboard Component - Role-Aware Metric Cards -->
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-6">
+{{-- resources/views/partials/card/card-dashboard.blade.php --}}
+@props(['cardData' => []])
+
+@php
+    $roleName = $cardData['user_role'] ?? 'guest';
+@endphp
+
+<div class="grid grid-cols-1 gap-4 md:gap-6 mb-6"
+     style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">      
+    {{-- ===== REUSABLE CARD COMPONENTS ===== --}}
     
-    <!-- ========== SUPER ADMIN / ADMIN CARDS (6 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasAnyRole(['super_admin', 'admin']))
-    
-    <!-- Card 1: Total Units -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- Total Units Card (Used by: admin, property_manager) --}}
+    @if(in_array($roleName, ['admin', 'property_manager']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Units</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_units'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_units'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H18C19.1046 2 20 2.89543 20 4V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4ZM6 4H18V20H6V4ZM8 6H16V8H8V6ZM8 10H12V12H8V10Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 flex items-center gap-3 text-xs">
+        <div class="mt-3 flex items-center gap-3 text-xs">
             <div class="flex items-center gap-1">
                 <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Occupied: {{ number_format($stats['occupied_units'] ?? 0) }}</span>
+                <span class="text-gray-500">Occupied:</span> 
+                 <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-500/15 dark:text-green-500">
+                    {{ number_format($cardData['occupied_units'] ?? 0) }}
+                </span>
             </div>
             <div class="flex items-center gap-1">
                 <span class="h-2 w-2 rounded-full bg-yellow-500"></span>
-                <span>Vacant: {{ number_format($stats['vacant_units'] ?? 0) }}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card 2: Total Tenants -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_tenants'] ?? 0) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
-                <svg class="fill-blue-500 dark:fill-blue-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12ZM12 14C8.68629 14 6 16.6863 6 20H18C18 16.6863 15.3137 14 12 14Z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4">
-            <div class="flex items-center gap-1 text-xs">
-                <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Active Leases: {{ number_format($stats['active_tenancies'] ?? 0) }}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card 3: Total Revenue -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    KES {{ number_format($stats['total_revenue'] ?? 0, 2) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                <svg class="fill-green-500 dark:fill-green-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Net Income: KES {{ number_format($stats['net_income'] ?? 0, 2) }}
-        </div>
-    </div>
-
-    <!-- Card 4: Invoices -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Invoices</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_invoices'] ?? 0) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">
-                <svg class="fill-orange-500 dark:fill-orange-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4H20V20H4V4ZM6 6V18H18V6H6ZM8 8H16V10H8V8ZM8 12H12V14H8V12Z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 flex items-center gap-3 text-xs">
-            <div class="flex items-center gap-1">
-                <span class="h-2 w-2 rounded-full bg-red-500"></span>
-                <span>Unpaid: {{ number_format($stats['unpaid_invoices'] ?? 0) }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Paid: {{ number_format($stats['paid_invoices'] ?? 0) }}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card 5: Water Consumption -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_consumption'] ?? 0, 0) }} m³
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-500/15">
-                <svg class="fill-cyan-500 dark:fill-cyan-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 13c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            This month: {{ number_format($stats['monthly_consumption'] ?? 0, 0) }} m³
-        </div>
-    </div>
-
-    <!-- Card 6: Occupancy Rate -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Occupancy Rate</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['occupancy_rate'] ?? 0, 1) }}%
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
-                <svg class="fill-purple-500 dark:fill-purple-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3 3H21V21H3V3ZM5 5V19H19V5H5ZM7 7H17V9H7V7ZM7 11H12V13H7V11Z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-3">
-            <div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                <div class="h-1.5 rounded-full bg-brand-500" style="width: {{ $stats['occupancy_rate'] ?? 0 }}%"></div>
+                <span class="text-gray-500">Vacant: </span>
+                <span class="rounded-full bg-yellow-50 px-2 py-0.5 text-xs font-medium text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-500">
+                    {{ number_format($cardData['vacant_units'] ?? 0) }}
+                </span>
             </div>
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== PROPERTY MANAGER CARDS (5 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('property_manager'))
-    
-    <!-- Card 1: Total Units -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- Total Tenants Card (Used by: admin, property_manager) --}}
+    @if(in_array($roleName, ['admin', 'property_manager']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Units</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_units'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_tenants'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H18C19.1046 2 20 2.89543 20 4V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4ZM6 4H18V20H6V4Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 flex items-center gap-3 text-xs">
-            <div class="flex items-center gap-1">
-                <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Occupied: {{ number_format($stats['occupied_units'] ?? 0) }}</span>
+        <div class="mt-3 flex items-center gap-2">
+            <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-500/15 dark:text-green-500">
+                {{ number_format($cardData['active_tenancies'] ?? 0) }}
+            </span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">active leases</span>
+        </div>
+    </div>
+    @endif
+
+    {{-- Total Revenue Card (Used by: admin, accountant) --}}
+    @if(in_array($roleName, ['admin', 'accountant']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    KES {{ number_format($cardData['total_revenue'] ?? 0, 2) }}
+                </h4>
             </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+                <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">
+                Net Income
+                <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-500/15 dark:text-green-500">
+                    KES {{ number_format($cardData['net_income'] ?? 0, 2) }}
+                </span>
+            </span>
+        </div>
+    </div>
+    @endif
+
+    {{-- Invoices Card (Used by: admin, accountant) --}}
+    @if(in_array($roleName, ['admin', 'accountant']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Invoices</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_invoices'] ?? 0) }}
+                </h4>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900">
+                <svg class="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center gap-3 text-xs">
             <div class="flex items-center gap-1">
                 <span class="h-2 w-2 rounded-full bg-red-500"></span>
-                <span>Vacant: {{ number_format($stats['vacant_units'] ?? 0) }}</span>
+                <span class="text-gray-500">Unpaid: </span>
+                <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 dark:bg-red-500/15 dark:text-red-500">
+                    {{ number_format($cardData['unpaid_invoices'] ?? 0) }}
+                </span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                <span class="text-gray-500">Paid: </span>
+                <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600 dark:bg-green-500/15 dark:text-green-500">
+                    {{ number_format($cardData['paid_invoices'] ?? 0) }}
+                </span>
             </div>
         </div>
     </div>
+    @endif
 
-    <!-- Card 2: Total Tenants -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- Water Consumption Card (Used by: admin, property_manager) --}}
+    @if(in_array($roleName, ['admin', 'property_manager']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_tenants'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_consumption'] ?? 0, 0) }} m³
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
-                <svg class="fill-blue-500 dark:fill-blue-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 12C14.2091 12 16 10.2091 16 8C16 5.79086 14.2091 4 12 4C9.79086 4 8 5.79086 8 8C8 10.2091 9.79086 12 12 12ZM12 14C8.68629 14 6 16.6863 6 20H18C18 16.6863 15.3137 14 12 14Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 dark:bg-cyan-900">
+                <svg class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Active Leases: {{ number_format($stats['active_tenancies'] ?? 0) }}
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">
+                This month: {{ number_format($cardData['monthly_consumption'] ?? 0, 0) }} m³
+                @if($roleName === 'property_manager')
+                    | Units needing reading: {{ number_format($cardData['units_needing_reading'] ?? 0) }}
+                @endif
+            </span>
         </div>
     </div>
+    @endif
 
-    <!-- Card 3: Occupancy Rate -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- Occupancy Rate Card (Used by: admin, property_manager) --}}
+    @if(in_array($roleName, ['admin', 'property_manager']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Occupancy Rate</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['occupancy_rate'] ?? 0, 1) }}%
+                <p class="text-sm text-gray-500 dark:text-gray-400">Occupancy Rate</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['occupancy_rate'] ?? 0, 1) }}%
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                <svg class="fill-green-500 dark:fill-green-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3 3H21V21H3V3ZM5 5V19H19V5H5ZM7 7H17V9H7V7ZM7 11H12V13H7V11Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
+                <svg class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
             </div>
         </div>
         <div class="mt-3">
-            <div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                <div class="h-1.5 rounded-full bg-green-500" style="width: {{ $stats['occupancy_rate'] ?? 0 }}%"></div>
+            <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                <div class="h-2 rounded-full bg-purple-600" style="width: {{ $cardData['occupancy_rate'] ?? 0 }}%"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- Card 4: Water Consumption -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_consumption'] ?? 0, 0) }} m³
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-500/15">
-                <svg class="fill-cyan-500 dark:fill-cyan-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 13c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Units needing reading: {{ number_format($stats['units_needing_reading'] ?? 0) }}
-        </div>
-    </div>
-
-    <!-- Card 5: Maintenance Requests -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Maintenance</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format(count($roleData['maintenanceRequests'] ?? [])) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">
-                <svg class="fill-orange-500 dark:fill-orange-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L15 4.56 17 2l3 3-2 3zm-10 0H6.81L5 6l2-3 3 3zM4 10h5v6H4v-6zm7 0h5v6h-5v-6z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Open Requests
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== ACCOUNTANT CARDS (4 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('accountant'))
-    
-    <!-- Card 1: Total Revenue -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- Collection Rate Card (Used by: accountant only) --}}
+    @if($roleName === 'accountant')
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    KES {{ number_format($stats['total_revenue'] ?? 0, 2) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['collection_rate'] ?? 0, 1) }}%
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                <svg class="fill-green-500 dark:fill-green-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Net Income: KES {{ number_format($stats['net_income'] ?? 0, 2) }}
-        </div>
-    </div>
-
-    <!-- Card 2: Total Invoices -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Invoices</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_invoices'] ?? 0) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">
-                <svg class="fill-orange-500 dark:fill-orange-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4H20V20H4V4ZM6 6V18H18V6H6ZM8 8H16V10H8V8ZM8 12H12V14H8V12Z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 flex items-center gap-3 text-xs">
-            <div class="flex items-center gap-1">
-                <span class="h-2 w-2 rounded-full bg-red-500"></span>
-                <span>Unpaid: {{ number_format($stats['unpaid_invoices'] ?? 0) }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                <span>Paid: {{ number_format($stats['paid_invoices'] ?? 0) }}</span>
-            </div>
-        </div>
-    </div>
-
-    <!-- Card 3: Collection Rate -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['collection_rate'] ?? 0, 1) }}%
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
-                <svg class="fill-blue-500 dark:fill-blue-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M3 3H21V21H3V3ZM5 5V19H19V5H5ZM7 7H17V9H7V7ZM7 11H12V13H7V11Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
                 </svg>
             </div>
         </div>
         <div class="mt-3">
-            <div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                <div class="h-1.5 rounded-full bg-blue-500" style="width: {{ $stats['collection_rate'] ?? 0 }}%"></div>
+            <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                <div class="h-2 rounded-full bg-blue-600" style="width: {{ $cardData['collection_rate'] ?? 0 }}%"></div>
             </div>
-        </div>
-    </div>
-
-    <!-- Card 4: Outstanding Amount -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-        <div class="flex items-center justify-between">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Outstanding</span>
-                <h4 class="mt-2 text-title-sm font-bold text-red-600 dark:text-red-500">
-                    KES {{ number_format($stats['outstanding_invoices'] ?? 0, 2) }}
-                </h4>
-            </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/15">
-                <svg class="fill-red-500 dark:fill-red-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill=""/>
-                </svg>
-            </div>
-        </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Requires attention
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== TENANT CARDS (4 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('tenant'))
-    
-    <!-- Card 1: Current Water Usage -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- Outstanding Amount Card (Used by: accountant only) --}}
+    @if($roleName === 'accountant')
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Outstanding</p>
+                <h4 class="mt-2 text-2xl font-bold text-red-600 dark:text-red-500">
+                    KES {{ number_format($cardData['outstanding_amount'] ?? 0, 2) }}
+                </h4>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+                <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+            <span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600 dark:bg-red-500/15 dark:text-red-500">
+                Requires attention
+            </span>
+        </div>
+    </div>
+    @endif
+
+    {{-- Maintenance Requests Card (Used by: property_manager only) --}}
+    @if($roleName === 'property_manager')
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Maintenance</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['open_maintenance'] ?? 0) }}
+                </h4>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900">
+                <svg class="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L15 4.56 17 2l3 3-2 3zm-10 0H6.81L5 6l2-3 3 3zM4 10h5v6H4v-6zm7 0h5v6h-5v-6z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Open Requests</span>
+        </div>
+    </div>
+    @endif
+
+    {{-- ===== TENANT SPECIFIC CARDS ===== --}}
+    @if($roleName === 'tenant')
+    <!-- Current Water Usage -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
                 <div class="flex items-center gap-2 mb-1">
-                    <span class="text-sm text-gray-500 dark:text-gray-400">Water Usage</span>
-                    <span class="px-2 py-0.5 rounded-lg text-xs font-medium bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400">{{ \Carbon\Carbon::now()->format('M Y') }}</span>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Water Usage</p>
+                    <span class="rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600 dark:bg-cyan-500/15 dark:text-cyan-500">
+                        {{ \Carbon\Carbon::now()->format('M Y') }}
+                    </span>
                 </div>
-                <h4 class="text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['tenant_consumption'] ?? 0, 2) }} m³
+                <h4 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['tenant_consumption'] ?? 0, 2) }} m³
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-500/15">
-                <svg class="fill-cyan-500 dark:fill-cyan-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 13c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 dark:bg-cyan-900">
+                <svg class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                 </svg>
             </div>
         </div>
         <div class="mt-3 grid grid-cols-2 gap-2">
             <div class="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
                 <p class="text-xs text-gray-500">Previous</p>
-                <p class="text-sm font-semibold">{{ number_format($stats['tenant_previous_reading'] ?? 0, 2) }} m³</p>
+                <p class="text-sm font-semibold">{{ number_format($cardData['tenant_previous_reading'] ?? 0, 2) }} m³</p>
             </div>
             <div class="rounded-lg bg-gray-50 p-2 dark:bg-gray-800">
                 <p class="text-xs text-gray-500">Current</p>
-                <p class="text-sm font-semibold">{{ number_format($stats['tenant_current_reading'] ?? 0, 2) }} m³</p>
+                <p class="text-sm font-semibold">{{ number_format($cardData['tenant_current_reading'] ?? 0, 2) }} m³</p>
             </div>
         </div>
     </div>
 
-    <!-- Card 2: Outstanding Balance -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <!-- Outstanding Balance -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Outstanding Balance</span>
-                <h4 class="mt-2 text-title-sm font-bold text-red-600 dark:text-red-500">
-                    KES {{ number_format($outstandingBalance ?? 0, 2) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Outstanding Balance</p>
+                <h4 class="mt-2 text-2xl font-bold text-red-600 dark:text-red-500">
+                    KES {{ number_format($cardData['outstanding_balance'] ?? 0, 2) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/15">
-                <svg class="fill-red-500 dark:fill-red-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+                <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Total Paid: KES {{ number_format($totalPaid ?? 0, 2) }}
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Total Paid: KES {{ number_format($cardData['total_paid'] ?? 0, 2) }}</span>
         </div>
     </div>
 
-    <!-- Card 3: Your Unit -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <!-- Your Unit -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Your Unit</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ $stats['tenant_unit_number'] ?? 'N/A' }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Your Unit</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ $cardData['tenant_unit_number'] ?? 'N/A' }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H18C19.1046 2 20 2.89543 20 4V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4ZM6 4H18V20H6V4Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Billing: {{ ucfirst($stats['tenant_water_billing_type'] ?? 'consumption') }}
+        <div class="mt-3 flex items-center gap-2">
+            <span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-500">
+                {{ ucfirst($cardData['tenant_water_billing_type'] ?? 'consumption') }}
+            </span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">billing type</span>
         </div>
     </div>
 
-    <!-- Card 4: Maintenance Requests -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <!-- Maintenance Requests -->
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Maintenance</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format(count($roleData['maintenanceRequests'] ?? [])) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Maintenance</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['tenant_maintenance_count'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">
-                <svg class="fill-orange-500 dark:fill-orange-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L15 4.56 17 2l3 3-2 3zm-10 0H6.81L5 6l2-3 3 3zM4 10h5v6H4v-6zm7 0h5v6h-5v-6z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900">
+                <svg class="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L15 4.56 17 2l3 3-2 3zm-10 0H6.81L5 6l2-3 3 3zM4 10h5v6H4v-6zm7 0h5v6h-5v-6z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Active requests
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Active requests</span>
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== METER READER CARDS (4 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('meter_reader'))
-    
-    <!-- Card 1: Pending Readings -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- ===== METER READER CARDS ===== --}}
+    @if($roleName === 'meter_reader')
+    @php
+        $totalUnits = $cardData['total_units'] ?? 0;
+        $pendingUnits = $cardData['units_needing_reading'] ?? 0;
+        $completedUnits = $totalUnits - $pendingUnits;
+        $progressPercent = $totalUnits > 0 ? ($completedUnits / $totalUnits) * 100 : 0;
+    @endphp
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Pending Readings</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['units_needing_reading'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Pending Readings</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['units_needing_reading'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-500/15">
-                <svg class="fill-cyan-500 dark:fill-cyan-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm0 13c-2.33 0-4.31-1.46-5.11-3.5h10.22c-.8 2.04-2.78 3.5-5.11 3.5z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 dark:bg-cyan-900">
+                <svg class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path>
                 </svg>
             </div>
         </div>
         <div class="mt-3">
-            <div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                <div class="h-1.5 rounded-full bg-cyan-500" style="width: {{ $stats['total_units'] > 0 ? (($stats['total_units'] - ($stats['units_needing_reading'] ?? 0)) / ($stats['total_units'] ?? 1) * 100) : 0 }}%"></div>
+            <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                <div class="h-2 rounded-full bg-cyan-600" style="width: {{ $progressPercent }}%"></div>
             </div>
             <div class="mt-2 text-xs text-gray-500">Completion Progress</div>
         </div>
     </div>
 
-<!-- Card 2: Total Readings -->
-<div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <span class="text-sm text-gray-500 dark:text-gray-400">Total Readings</span>
-            <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                {{ number_format($roleData['totalReadings'] ?? ($roleData['readingHistory']->count() ?? 0)) }}
-            </h4>
-        </div>
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
-            <svg class="fill-purple-500 dark:fill-purple-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" clip-rule="evenodd" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" fill=""/>
-            </svg>
-        </div>
-    </div>
-    <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-        Historical records
-    </div>
-</div>
-
-    <!-- Card 3: Total Consumption -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Consumption</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_consumption'] ?? 0, 0) }} m³
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Readings</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_readings_count'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                <svg class="fill-green-500 dark:fill-green-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
+                <svg class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            All-time usage
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Historical records</span>
         </div>
     </div>
 
-    <!-- Card 4: Total Units -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Units</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_units'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Consumption</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_consumption'] ?? 0, 0) }} m³
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H18C19.1046 2 20 2.89543 20 4V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+                <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Active units monitored
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">All-time usage</span>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_units'] ?? 0) }}
+                </h4>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Active units monitored</span>
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== MAINTENANCE CARDS (4 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('maintenance'))
-    
-    <!-- Card 1: Open Requests -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- ===== MAINTENANCE STAFF CARDS ===== --}}
+    @if($roleName === 'maintenance')
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Open Requests</span>
-                <h4 class="mt-2 text-title-sm font-bold text-red-600 dark:text-red-500">
-                    {{ number_format($roleData['openRequests']->count() ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Open Requests</p>
+                <h4 class="mt-2 text-2xl font-bold text-red-600 dark:text-red-500">
+                    {{ number_format($cardData['maintenance_open'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/15">
-                <svg class="fill-red-500 dark:fill-red-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+                <svg class="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Needs immediate attention
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Needs immediate attention</span>
         </div>
     </div>
 
-    <!-- Card 2: In Progress -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">In Progress</span>
-                <h4 class="mt-2 text-title-sm font-bold text-yellow-600 dark:text-yellow-500">
-                    {{ number_format($roleData['inProgressRequests']->count() ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">In Progress</p>
+                <h4 class="mt-2 text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                    {{ number_format($cardData['maintenance_in_progress'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 dark:bg-yellow-500/15">
-                <svg class="fill-yellow-500 dark:fill-yellow-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900">
+                <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Currently being worked on
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Currently being worked on</span>
         </div>
     </div>
 
-    <!-- Card 3: Completed (This Month) -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Completed</span>
-                <h4 class="mt-2 text-title-sm font-bold text-green-600 dark:text-green-500">
-                    {{ number_format($roleData['completedRequests']->count() ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                <h4 class="mt-2 text-2xl font-bold text-green-600 dark:text-green-500">
+                    {{ number_format($cardData['maintenance_completed'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                <svg class="fill-green-500 dark:fill-green-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+                <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Resolved this month
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Resolved this month</span>
         </div>
     </div>
 
-    <!-- Card 4: Total Requests -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Requests</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format(($roleData['openRequests']->count() ?? 0) + ($roleData['inProgressRequests']->count() ?? 0) + ($roleData['completedRequests']->count() ?? 0)) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['maintenance_total'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            All time requests
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">All time requests</span>
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== SECURITY CARDS (4 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('security'))
-    
-    <!-- Card 1: Pending Approvals -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- ===== SECURITY CARDS ===== --}}
+    @if($roleName === 'security')
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Pending Approvals</span>
-                <h4 class="mt-2 text-title-sm font-bold text-yellow-600 dark:text-yellow-500">
-                    {{ number_format($roleData['pendingLogs']->count() ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approvals</p>
+                <h4 class="mt-2 text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                    {{ number_format($cardData['security_pending'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 dark:bg-yellow-500/15">
-                <svg class="fill-yellow-500 dark:fill-yellow-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zM11 8h2v6h-2V8zm0 8h2v2h-2v-2z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900">
+                <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Requiring verification
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Requiring verification</span>
         </div>
     </div>
 
-    <!-- Card 2: Today's Visits -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Today's Visits</span>
-                <h4 class="mt-2 text-title-sm font-bold text-blue-600 dark:text-blue-500">
-                    {{ number_format($roleData['todayLogs']->count() ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Today's Visits</p>
+                <h4 class="mt-2 text-2xl font-bold text-blue-600 dark:text-blue-500">
+                    {{ number_format($cardData['security_today'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
-                <svg class="fill-blue-500 dark:fill-blue-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm4 12h-4v3h-2v-3H8v-2h4V9h2v4h4v2z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
+                <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Scheduled for today
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Scheduled for today</span>
         </div>
     </div>
 
-    <!-- Card 3: Total Logs -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Logs</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($roleData['accessLogs']->count() ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Logs</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['security_total_logs'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
-                <svg class="fill-purple-500 dark:fill-purple-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M20 8h-2.81c-.45-.8-1.07-1.5-1.82-2L15 4.56 17 2l3 3-2 3zm-10 0H6.81L5 6l2-3 3 3zM4 10h5v6H4v-6zm7 0h5v6h-5v-6z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
+                <svg class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Total access records
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Total access records</span>
         </div>
     </div>
 
-    <!-- Card 4: Total Units -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Units</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_units'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_units'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H18C19.1046 2 20 2.89543 20 4V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Under security monitoring
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Under security monitoring</span>
         </div>
     </div>
     @endif
-    @endauth
 
-    <!-- ========== CLEANING STAFF CARDS (4 cards) ========== -->
-    @auth
-    @if(auth()->user()->hasRole('cleaning_staff'))
-    
-    <!-- Card 1: Pending Tasks -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    {{-- ===== CLEANING STAFF CARDS ===== --}}
+    @if($roleName === 'cleaning_staff')
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Pending Tasks</span>
-                <h4 class="mt-2 text-title-sm font-bold text-yellow-600 dark:text-yellow-500">
-                    {{ number_format(count($roleData['cleaningTasks'] ?? [])) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Pending Tasks</p>
+                <h4 class="mt-2 text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+                    {{ number_format($cardData['cleaning_pending'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-50 dark:bg-yellow-500/15">
-                <svg class="fill-yellow-500 dark:fill-yellow-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900">
+                <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Awaiting completion
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Awaiting completion</span>
         </div>
     </div>
 
-    <!-- Card 2: Completed Tasks -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Completed</span>
-                <h4 class="mt-2 text-title-sm font-bold text-green-600 dark:text-green-500">
-                    {{ number_format(0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Completed</p>
+                <h4 class="mt-2 text-2xl font-bold text-green-600 dark:text-green-500">
+                    {{ number_format($cardData['cleaning_completed'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                <svg class="fill-green-500 dark:fill-green-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+                <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Tasks done this month
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Tasks done this month</span>
         </div>
     </div>
 
-    <!-- Card 3: Total Units -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total Units</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($stats['total_units'] ?? 0) }}
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    {{ number_format($cardData['total_units'] ?? 0) }}
                 </h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-50 dark:bg-brand-500/15">
-                <svg class="fill-brand-500 dark:fill-brand-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M4 4C4 2.89543 4.89543 2 6 2H18C19.1046 2 20 2.89543 20 4V20C20 21.1046 19.1046 22 18 22H6C4.89543 22 4 21.1046 4 20V4Z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Units to maintain
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Units to maintain</span>
         </div>
     </div>
 
-    <!-- Card 4: Weekly Schedule -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Weekly Schedule</span>
-                <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                    Active
-                </h4>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Weekly Schedule</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">Active</h4>
             </div>
-            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-500/15">
-                <svg class="fill-cyan-500 dark:fill-cyan-500" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path fill-rule="evenodd" clip-rule="evenodd" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM7 12h5v5H7v-5z" fill=""/>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-100 dark:bg-cyan-900">
+                <svg class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                 </svg>
             </div>
         </div>
-        <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
-            Regular cleaning schedule
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Regular cleaning schedule</span>
         </div>
     </div>
     @endif
-    @endauth
+
+    {{-- ===== DEFAULT FALLBACK ===== --}}
+    @if(!in_array($roleName, ['admin', 'property_manager', 'accountant', 'tenant', 'meter_reader', 'maintenance', 'security', 'cleaning_staff']))
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Welcome</p>
+                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">{{ ucfirst($roleName) }}</h4>
+            </div>
+            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900">
+                <svg class="h-6 w-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Welcome to your dashboard</span>
+        </div>
+    </div>
+    @endif
 
 </div>

@@ -218,8 +218,8 @@ class UserSeeder extends Seeder
         
         $this->command->newLine();
         $this->command->info('🔑 Quick Login Emails:');
-        $this->command->info('   Super Admin: admin@sharet.africa');
-        $this->command->info('   Admin: administrator@sharet.africa');
+        $this->command->info('   Super Admin: sysadmin@sharet.africa');
+        $this->command->info('   Admin: admin@sharet.africa');
         $this->command->info('   Property Manager: property.manager@sharet.africa');
         $this->command->info('   Accountant: accountant@sharet.africa');
         $this->command->info('   Meter Reader: meter.reader@sharet.africa');

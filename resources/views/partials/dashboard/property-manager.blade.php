@@ -52,7 +52,7 @@
         </div>
 
         <!-- Stats Cards -->
-        @include('partials.card.card-dashboard', ['stats' => $stats])
+        @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'property_manager'])])
 
         <!-- Tabs -->
         <div class="mt-6">
