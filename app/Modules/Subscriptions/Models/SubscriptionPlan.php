@@ -29,9 +29,48 @@ class SubscriptionPlan extends Model
         return $this->hasMany(CompanySubscription::class, 'plan_id');
     }
 
-    public function getPriceForCycle($cycle = 'monthly')
+    /**
+     * Calculate monthly price based on number of active units
+     */
+    public function calculateMonthlyPrice($unitCount)
     {
-        return $cycle === 'monthly' ? $this->price_monthly : $this->price_yearly;
+        $features = $this->features_json;
+        
+        // Check if using per-unit pricing
+        if (isset($features['pricing_type']) && $features['pricing_type'] === 'per_unit') {
+            $pricePerUnit = $features['price_per_unit'] ?? 0;
+            return $pricePerUnit * $unitCount;
+        }
+        
+        // Fixed pricing
+        return $this->price_monthly;
+    }
+
+    /**
+     * Calculate yearly price based on number of active units
+     */
+    public function calculateYearlyPrice($unitCount)
+    {
+        $features = $this->features_json;
+        
+        // Check if using per-unit pricing
+        if (isset($features['pricing_type']) && $features['pricing_type'] === 'per_unit') {
+            $pricePerUnit = $features['price_per_unit'] ?? 0;
+            // 10% discount for yearly billing
+            $yearlyDiscount = 0.90;
+            return ($pricePerUnit * $unitCount * 12) * $yearlyDiscount;
+        }
+        
+        // Fixed pricing
+        return $this->price_yearly;
+    }
+
+    public function getPriceForCycle($cycle = 'monthly', $unitCount = null)
+    {
+        if ($cycle === 'monthly') {
+            return $unitCount ? $this->calculateMonthlyPrice($unitCount) : $this->price_monthly;
+        }
+        return $unitCount ? $this->calculateYearlyPrice($unitCount) : $this->price_yearly;
     }
 
     public function scopeActive($query)

@@ -342,6 +342,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
     });
 
+
     // =============================================
     // SUBSCRIPTION MODULE ROUTES - Admin Section
     // =============================================
@@ -349,16 +350,25 @@ Route::middleware('auth')->group(function () {
         
         // API Routes for AJAX calls
         Route::prefix('api')->name('api.')->group(function () {
-            Route::get('/plans/data', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'getData'])->name('plans.data');
-            Route::get('/plans/{plan}', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'show'])->name('plans.show');
-            Route::get('/plans/{plan}/subscribers', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'getSubscribers'])->name('plans.subscribers');
+            Route::get('/plans/data', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getPlansData'])->name('plans.data');
+            Route::get('/plans/{plan}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getPlan'])->name('plans.show');
+            Route::get('/plans/{plan}/subscribers', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
         });
         
         // Subscription Plans CRUD
-        Route::get('/plans', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'index'])->name('plans.index');
-        Route::post('/plans', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'store'])->name('plans.store');
-        Route::put('/plans/{plan}', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'update'])->name('plans.update');
-        Route::delete('/plans/{plan}', [App\Modules\Subscriptions\Controllers\Admin\PlanController::class, 'destroy'])->name('plans.destroy');
+        Route::get('/plans', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'plansIndex'])->name('plans.index');
+        Route::post('/plans', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'storePlan'])->name('plans.store');
+        Route::put('/plans/{plan}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'updatePlan'])->name('plans.update');
+        Route::delete('/plans/{plan}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'deletePlan'])->name('plans.destroy');
+        
+        // Company Subscriptions
+        Route::get('/', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'index'])->name('index');
+        Route::get('/company/{company}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'show'])->name('show');
+        Route::post('/company/{company}/subscribe', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'subscribe'])->name('subscribe');
+        Route::post('/subscription/{subscription}/cancel', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'cancel'])->name('cancel');
+        Route::post('/subscription/{subscription}/resume', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'resume'])->name('resume');
+        Route::get('/subscription/{subscription}/invoices', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'invoices'])->name('invoices');
+        Route::get('/invoice/{invoice}/download', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'downloadInvoice'])->name('invoice.download');
     });
 
     // Company Management Routes
@@ -369,6 +379,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
+
+        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
+        Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
+        Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
         
         Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
         Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');

@@ -117,13 +117,31 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400" x-text="plan.slug"></p>
                             </div>
                         </td>
+                        <!-- Updated Pricing Column -->
                         <td class="p-4 whitespace-nowrap">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_monthly)"></p>
-                            <p class="text-xs text-gray-500" x-text="'/month'"></p>
+                            <div x-show="plan.pricing_type === 'per_unit'">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                    KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
+                                </p>
+                                <p class="text-xs text-gray-500">per unit / month</p>
+                            </div>
+                            <div x-show="plan.pricing_type !== 'per_unit'">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_monthly)"></p>
+                                <p class="text-xs text-gray-500">/month</p>
+                            </div>
                         </td>
+                        <!-- Updated Yearly Price Column -->
                         <td class="p-4 whitespace-nowrap">
-                            <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_yearly)"></p>
-                            <p class="text-xs text-gray-500" x-text="'/year'"></p>
+                            <div x-show="plan.pricing_type === 'per_unit'">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                    KES <span x-text="(plan.price_per_unit * 12 * 0.9)?.toLocaleString() || 0"></span>
+                                </p>
+                                <p class="text-xs text-gray-500">per unit / year (10% off)</p>
+                            </div>
+                            <div x-show="plan.pricing_type !== 'per_unit'">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_yearly)"></p>
+                                <p class="text-xs text-gray-500">/year</p>
+                            </div>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.trial_days + ' days'"></p>

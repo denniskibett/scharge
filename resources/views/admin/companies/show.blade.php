@@ -83,12 +83,12 @@
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</span>
-                    <h3 class="mt-2 text-xl font-bold text-gray-800 dark:text-white/90" x-text="formatCurrency(stats.totalRevenue)">0</h3>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</span>
+                    <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="stats.totalTenants">0</h3>
                 </div>
-                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
-                    <svg class="h-6 w-6 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
+                    <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                 </div>
             </div>
@@ -130,11 +130,11 @@
                     </svg>
                     Company Staff (<span x-text="stats.totalStaff">0</span>)
                 </button>
-                <button @click="activeTab = 'estates'; loadEstates()" :class="activeTab === 'estates' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                <button @click="activeTab = 'estates'; loadEstatesAndTenants()" :class="activeTab === 'estates' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
-                    Estates (<span x-text="stats.totalEstates">0</span>)
+                    Estates & Tenants (<span x-text="stats.totalEstates">0</span>)
                 </button>
                 <button @click="activeTab = 'subscriptions'; loadSubscriptions()" :class="activeTab === 'subscriptions' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -213,7 +213,7 @@
                 </div>
             </div>
             
-            <!-- Company Staff Tab (Non-tenant users) -->
+            <!-- Company Staff Tab -->
             <div x-show="activeTab === 'staff'" x-cloak>
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Company Staff</h3>
@@ -276,44 +276,111 @@
                 </div>
             </div>
             
-            <!-- Estates Tab -->
+            <!-- Estates & Tenants Tab - Hierarchical View -->
             <div x-show="activeTab === 'estates'" x-cloak>
-                <div class="flex justify-between items-center mb-4">
+                <div class="mb-4">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Estates under {{ $company->name }}</h3>
-                    <div class="flex gap-2">
-                        <input type="text" x-model="estateSearch" @input="currentEstatePage = 1" placeholder="Search estates..." class="rounded-lg border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-800">
-                    </div>
+                    <p class="text-sm text-gray-500 mt-1">Click on any estate to view its units and tenants</p>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                        <thead class="bg-gray-50 dark:bg-gray-900">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estate Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Units</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Occupied</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-                            <template x-for="estate in paginatedEstates" :key="estate.id">
-                                <tr>
-                                    <td class="px-4 py-3 text-sm" x-text="'#' + estate.id"></td>
-                                    <td class="px-4 py-3 text-sm font-medium" x-text="estate.name"></td>
-                                    <td class="px-4 py-3 text-sm" x-text="estate.location || '-'"></td>
-                                    <td class="px-4 py-3 text-sm" x-text="estate.total_units"></td>
-                                    <td class="px-4 py-3 text-sm" x-text="estate.occupied_units"></td>
-                                    <td class="px-4 py-3">
-                                        <a :href="`/estates/${estate.id}`" class="text-blue-600 hover:text-blue-900 mr-2">View</a>
-                                    </td>
-                                </tr>
-                            </template>
-                            <tr x-show="filteredEstates.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No estates found for this company.专业
-                            </td>
-                        </tbody>
-                    </table>
+                
+                <div class="space-y-4">
+                    <!-- Estate Cards -->
+                    <div x-show="estates.length === 0" class="text-center py-8 text-gray-500">
+                        No estates found for this company.
+                    </div>
+                    
+                    <template x-for="estate in estates" :key="estate.id">
+                        <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                            <!-- Estate Header -->
+                            <div class="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition" @click="toggleEstate(estate.id)">
+                                <div class="flex justify-between items-center">
+                                    <div class="flex items-center gap-3">
+                                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                        <div>
+                                            <h4 class="font-semibold text-gray-900 dark:text-white" x-text="estate.name"></h4>
+                                            <p class="text-sm text-gray-500" x-text="estate.location || 'No location specified'"></p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4">
+                                        <div class="text-sm text-gray-500">
+                                            <span class="font-semibold text-gray-700" x-text="estate.total_units"></span> units
+                                            <span class="mx-1">•</span>
+                                            <span class="font-semibold text-gray-700" x-text="estate.occupied_units"></span> occupied
+                                        </div>
+                                        <svg class="w-5 h-5 text-gray-400 transition-transform" :class="{'rotate-180': openEstates.includes(estate.id)}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Estate Content (Units & Tenants) -->
+                            <div x-show="openEstates.includes(estate.id)" x-collapse class="border-t border-gray-200 dark:border-gray-700">
+                                <div class="p-4 bg-white dark:bg-gray-900">
+                                    <h5 class="text-md font-medium text-gray-800 dark:text-gray-200 mb-3">Units & Tenants</h5>
+                                    
+                                    <!-- Units Table -->
+                                    <div class="overflow-x-auto">
+                                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+                                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                                <tr>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unit Number</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Rent Amount</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Current Tenant</th>
+                                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                                                <template x-for="unit in estate.units" :key="unit.id">
+                                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                                        <td class="px-4 py-2 text-sm font-medium text-gray-900 dark:text-white" x-text="unit.unit_number"></td>
+                                                        <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400" x-text="unit.unit_type || '-'"></td>
+                                                        <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400" x-text="formatCurrency(unit.rent_amount)"></td>
+                                                        <td class="px-4 py-2">
+                                                            <span :class="unit.status === 'occupied' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'" class="px-2 py-1 text-xs rounded-full" x-text="unit.status"></span>
+                                                        </td>
+                                                        <td class="px-4 py-2 text-sm">
+                                                            <div x-show="unit.current_tenant">
+                                                                <div class="font-medium text-gray-900 dark:text-white" x-text="unit.current_tenant.name"></div>
+                                                                <div class="text-xs text-gray-500" x-text="unit.current_tenant.email"></div>
+                                                            </div>
+                                                            <span x-show="!unit.current_tenant" class="text-gray-400">Vacant</span>
+                                                        </td>
+                                                        <td class="px-4 py-2 text-sm">
+                                                            <div x-show="unit.current_tenant">
+                                                                <a :href="'tel:' + unit.current_tenant.phone" class="text-blue-600 hover:text-blue-800" x-text="unit.current_tenant.phone || '-'"></a>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </template>
+                                                <tr x-show="estate.units.length === 0">
+                                                    <td colspan="6" class="px-4 py-4 text-center text-gray-500">No units found in this estate.</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <!-- Summary Section -->
+                                    <div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                                        <div class="flex gap-4 text-sm">
+                                            <div>
+                                                <span class="text-gray-500">Total Monthly Rent:</span>
+                                                <span class="font-semibold text-gray-900 dark:text-white ml-2" x-text="formatCurrency(estate.total_monthly_rent || 0)"></span>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Occupancy Rate:</span>
+                                                <span class="font-semibold text-gray-900 dark:text-white ml-2" x-text="estate.occupancy_rate + '%'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
             
@@ -348,7 +415,7 @@
                                 </tr>
                             </template>
                             <tr x-show="subscriptions.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No subscription history found.专业
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No subscription history found.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -396,7 +463,7 @@
                                 </tr>
                             </template>
                             <tr x-show="filteredInvoices.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No invoices found.专业
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No invoices found.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -443,8 +510,8 @@
                                 </tr>
                             </template>
                             <tr x-show="payments.length === 0">
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No payments found.专业
-                            </td>
+                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No payments found.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -594,6 +661,7 @@ document.addEventListener('alpine:init', () => {
             totalStaff: 0,
             totalEstates: 0,
             totalUnits: 0,
+            totalTenants: 0,
             totalRevenue: 0,
             totalInvoices: 0,
             totalPayments: 0
@@ -619,11 +687,9 @@ document.addEventListener('alpine:init', () => {
             password: ''
         },
         
-        // Estates
+        // Estates data with nested units and tenants
         estates: [],
-        estateSearch: '',
-        estateCurrentPage: 1,
-        estateItemsPerPage: 10,
+        openEstates: [],
         
         // Subscriptions
         subscriptions: [],
@@ -680,28 +746,6 @@ document.addEventListener('alpine:init', () => {
             return Math.min(this.staffCurrentPage * this.staffItemsPerPage, this.filteredStaff.length);
         },
         
-        // Estates computed properties
-        get filteredEstates() {
-            let filtered = this.estates;
-            if (this.estateSearch) {
-                const search = this.estateSearch.toLowerCase();
-                filtered = filtered.filter(e => 
-                    e.name?.toLowerCase().includes(search) ||
-                    e.location?.toLowerCase().includes(search)
-                );
-            }
-            return filtered;
-        },
-        
-        get paginatedEstates() {
-            const start = (this.estateCurrentPage - 1) * this.estateItemsPerPage;
-            return this.filteredEstates.slice(start, start + this.estateItemsPerPage);
-        },
-        
-        get estateTotalPages() {
-            return Math.ceil(this.filteredEstates.length / this.estateItemsPerPage);
-        },
-        
         // Invoices computed properties
         get filteredInvoices() {
             let filtered = this.invoices;
@@ -739,7 +783,7 @@ document.addEventListener('alpine:init', () => {
         // Methods
         init() {
             this.loadStaff();
-            this.loadEstates();
+            this.loadEstatesAndTenants();
             this.loadSubscriptions();
             this.loadInvoices();
             this.loadPayments();
@@ -790,6 +834,15 @@ document.addEventListener('alpine:init', () => {
                 password: ''
             };
             this.showAddStaffModal = true;
+        },
+        
+        toggleEstate(estateId) {
+            const index = this.openEstates.indexOf(estateId);
+            if (index === -1) {
+                this.openEstates.push(estateId);
+            } else {
+                this.openEstates.splice(index, 1);
+            }
         },
         
         async toggleStatus() {
@@ -860,6 +913,30 @@ document.addEventListener('alpine:init', () => {
             } catch (error) {
                 console.error('Error loading staff:', error);
                 this.staff = [];
+            }
+        },
+        
+        async loadEstatesAndTenants() {
+            try {
+                const response = await fetch(`/admin/companies/${companyId}/estates-with-tenants`, {
+                    headers: { 
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                this.estates = data.estates || [];
+                this.stats.totalEstates = this.estates.length;
+                this.stats.totalUnits = data.total_units || 0;
+                this.stats.totalTenants = data.total_tenants || 0;
+                
+                // Auto-open first estate if any
+                if (this.estates.length > 0 && this.openEstates.length === 0) {
+                    this.openEstates.push(this.estates[0].id);
+                }
+            } catch (error) {
+                console.error('Error loading estates:', error);
+                this.estates = [];
             }
         },
         
@@ -936,20 +1013,6 @@ document.addEventListener('alpine:init', () => {
         staffNextPage() {
             if (this.staffCurrentPage < this.staffTotalPages) {
                 this.staffCurrentPage++;
-            }
-        },
-        
-        async loadEstates() {
-            try {
-                const response = await fetch(`/admin/companies/${companyId}/estates`, {
-                    headers: { 'X-CSRF-TOKEN': csrfToken }
-                });
-                const data = await response.json();
-                this.estates = data.estates || [];
-                this.stats.totalEstates = data.total || 0;
-                this.stats.totalUnits = data.total_units || 0;
-            } catch (error) {
-                console.error('Error loading estates:', error);
             }
         },
         
