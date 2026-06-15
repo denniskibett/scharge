@@ -102,6 +102,9 @@
         </div>
     </div>
 
+
+        
+
     <!-- Security Logs Table -->
     <div class="mt-6">
         @include('partials.table.table-security', [

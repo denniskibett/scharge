@@ -146,6 +146,8 @@
             </div>
         </div>
 
+        @include('partials.card.card-revenue-trends', ['revenueTrends' => $stats['revenue_trends'] ?? []])
+
         <!-- Tab Navigation -->
         <div class="mt-6">
             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">

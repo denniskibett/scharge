@@ -52,6 +52,15 @@
             </div>
         </div>
 
+        {{-- @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'maintenance_staff'])]) --}}
+
+         <!-- Tabs -->
+         <div class="mt-6">
+             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                 <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
+                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">My Maintenance Tasks</h3>
+                     <p class="text-sm text-gray-500 dark:text-gray-400">Tasks assigned to you for maintenance and repairs</p>
+
         <!-- Tabs -->
         <div class="mt-6">
             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
