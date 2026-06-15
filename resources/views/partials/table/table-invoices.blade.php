@@ -140,7 +140,7 @@
                                             </span>
                                         </span>
                                     </label>
-                                    <a :href="`/invoices/${invoice.id}`" class="text-theme-xs font-medium text-gray-700 group-hover:underline dark:text-gray-400" x-text="'#' + invoice.id"></a>
+                                    <a :href="'/invoices/' + invoice.id" class="text-theme-xs font-medium text-gray-700 group-hover:underline dark:text-gray-400" x-text="'#' + invoice.id"></a>
                                 </div>
                             </td>
                             <td class="p-4 whitespace-nowrap">
@@ -242,7 +242,7 @@
     </div>
 </div>
 
-<!-- Include Modals -->
+<!-- Include Modals AFTER the table content but ensure they are in the DOM -->
 @include('partials.modal.invoice-create-modal')
 @include('partials.modal.invoice-bulk-modal', ['mappedActiveTenancies' => $mappedActiveTenancies ?? collect()])
 @include('partials.modal.payments-create-modal', ['invoices' => $paymentInvoices ?? []])
@@ -392,12 +392,9 @@ document.addEventListener('alpine:init', () => {
         },
         
         // Methods
-async init() {
-    await this.fetchInvoices();
-    console.log('Loaded invoices:', this.invoices);
-    console.log('First invoice ID:', this.invoices[0]?.id);
-    console.log('First invoice tenant_id:', this.invoices[0]?.tenant_id);
-},
+        async init() {
+            await this.fetchInvoices();
+        },
         
         async fetchInvoices() {
             this.loading = true;
@@ -514,8 +511,8 @@ async init() {
         },
         
         openPaymentModal(invoice) {
-            console.log('Invoice data received:', invoice);
-            console.log('Invoice ID:', invoice.id);
+            console.log('Opening payment modal for invoice:', invoice.id);
+            console.log('paymentCreateModal exists?', !!window.paymentCreateModal);
             
             if (!invoice.id) {
                 console.error('Invoice missing ID field:', invoice);
@@ -523,10 +520,26 @@ async init() {
                 return;
             }
             
-            if (window.paymentCreateModal) {
+            // Try to use the global modal reference
+            if (window.paymentCreateModal && typeof window.paymentCreateModal.openPaymentModalForInvoice === 'function') {
                 window.paymentCreateModal.openPaymentModalForInvoice(invoice);
             } else {
-                console.error('paymentCreateModal not found');
+                // Fallback: Wait for modal to be ready
+                console.log('Modal not ready yet, waiting...');
+                const checkInterval = setInterval(() => {
+                    if (window.paymentCreateModal && typeof window.paymentCreateModal.openPaymentModalForInvoice === 'function') {
+                        clearInterval(checkInterval);
+                        window.paymentCreateModal.openPaymentModalForInvoice(invoice);
+                    }
+                }, 100);
+                
+                // Timeout after 5 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    if (!window.paymentCreateModal || typeof window.paymentCreateModal.openPaymentModalForInvoice !== 'function') {
+                        alert('Payment system is not ready. Please refresh the page and try again.');
+                    }
+                }, 5000);
             }
         },
         

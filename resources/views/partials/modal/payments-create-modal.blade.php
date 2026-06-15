@@ -323,7 +323,34 @@ document.addEventListener('alpine:init', () => {
     },
     
     init() {
-      window.paymentCreateModal = this;
+        // Register the global reference
+        window.paymentCreateModal = this;
+        
+        // Log that the modal is ready
+        console.log('Payment modal initialized with methods:', {
+            openPaymentModalForInvoice: typeof this.openPaymentModalForInvoice,
+            openCreateModal: typeof this.openCreateModal,
+            openEditModal: typeof this.openEditModal
+        });
+        
+        // Also dispatch an event to notify that modal is ready
+        window.dispatchEvent(new CustomEvent('paymentModalReady'));
+        
+        // Listen for global events from the table
+        window.addEventListener('open-payment-modal', (event) => {
+            console.log('Received open-payment-modal event:', event.detail);
+            if (event.detail && event.detail.invoice) {
+                this.openPaymentModalForInvoice(event.detail.invoice);
+            }
+        });
+        
+        // Also listen for Alpine events
+        document.addEventListener('open-payment-modal', (event) => {
+            console.log('Received document open-payment-modal event:', event.detail);
+            if (event.detail && event.detail.invoice) {
+                this.openPaymentModalForInvoice(event.detail.invoice);
+            }
+        });
     },
     
     openCreateModal() {
