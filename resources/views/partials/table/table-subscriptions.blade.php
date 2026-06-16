@@ -58,6 +58,7 @@
         </div>
         <h3 class="mt-2 text-sm font-medium text-red-600 dark:text-red-400">Error Loading Plans</h3>
         <p class="mt-1 text-sm text-gray-500" x-text="errorMessage || 'Could not load subscription plans. Please check your connection.'"></p>
+        <p class="mt-1 text-xs text-gray-400" x-text="errorDetails || ''"></p>
         <div class="mt-6">
             <button @click="loadPlans()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
                 Retry
@@ -121,7 +122,7 @@
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody>
                 <template x-for="plan in paginatedPlans" :key="plan.id">
                     <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer" @click="goToShowPage(plan.id)">
                         <td class="p-4 whitespace-nowrap">
@@ -133,7 +134,6 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400" x-text="plan.slug"></p>
                             </div>
                         </td>
-                        <!-- Monthly Price Column -->
                         <td class="p-4 whitespace-nowrap">
                             <div x-show="plan.pricing_type === 'per_unit'">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
@@ -149,7 +149,6 @@
                                 <p class="text-xs text-gray-500">/month</p>
                             </div>
                         </td>
-                        <!-- Yearly Price Column -->
                         <td class="p-4 whitespace-nowrap">
                             <div x-show="plan.pricing_type === 'per_unit'">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
@@ -162,11 +161,6 @@
                                 <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_yearly)"></p>
                                 <p class="text-xs text-gray-500">/year</p>
                             </div>
-                        </td>
-                        <!-- Unit Range Column -->
-                        <td class="p-4 whitespace-nowrap">
-                            <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.unit_range || 'Unlimited'"></p>
-                            <p class="text-xs text-gray-500">units allowed</p>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.trial_days + ' days'"></p>
@@ -273,6 +267,7 @@ document.addEventListener('alpine:init', () => {
         loading: true,
         error: false,
         errorMessage: '',
+        errorDetails: '',
         
         get statusCounts() {
             return {
@@ -343,18 +338,23 @@ document.addEventListener('alpine:init', () => {
             this.loading = true;
             this.error = false;
             this.errorMessage = '';
+            this.errorDetails = '';
             
             try {
                 console.log('Loading subscription plans...');
-                // FIX: Added /api/ to the URL
                 const response = await fetch('/admin/subscriptions/api/plans/data', {
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfTokenSubscriptions
                     }
                 });
                 
+                console.log('Response status:', response.status);
+                
                 if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Response error:', text);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
@@ -372,6 +372,7 @@ document.addEventListener('alpine:init', () => {
                 console.error('Error fetching plans:', error);
                 this.error = true;
                 this.errorMessage = error.message || 'Could not load subscription plans. Please check your connection.';
+                this.errorDetails = error.stack || '';
                 this.plans = [];
             } finally {
                 this.loading = false;

@@ -342,11 +342,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
     });
 
-
     // =============================================
     // SUBSCRIPTION MODULE ROUTES - Admin Section
     // =============================================
-    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth', 'role:super_admin,admin'])->group(function () {
+    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth'])->group(function () {
         
         // API Routes for AJAX calls
         Route::prefix('api')->name('api.')->group(function () {
@@ -355,7 +354,6 @@ Route::middleware('auth')->group(function () {
             Route::get('/plans/{plan}/subscribers', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
             Route::get('/company-subscriptions', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
             Route::get('/company-subscription/{id}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getCompanySubscription'])->name('company-subscription.show');
-
         });
         
         // Subscription Plans CRUD
@@ -374,7 +372,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/invoice/{invoice}/download', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'downloadInvoice'])->name('invoice.download');
     });
 
-// Company Management Routes - UPDATED VERSION
+
+    // Company Management Routes - UPDATED VERSION
 Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
     Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
