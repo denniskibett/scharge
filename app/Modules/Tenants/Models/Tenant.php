@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\Tenancy;
+use App\Modules\Properties\Models\Unit;
 use App\Modules\Security\Models\SecurityLog;
 use App\Modules\Security\Models\Visitor;
 use Bavix\Wallet\Traits\HasWallet;
@@ -122,5 +123,17 @@ class Tenant extends Model implements Wallet
         $full = $this->formatted_wallet_id;
         $last4 = substr($full, -4);
         return '•••• •••• •••• ' . $last4;
+    }
+
+    public function unit()
+    {
+        return $this->hasOneThrough(
+            Unit::class,
+            Tenancy::class,
+            'tenant_id',
+            'id',
+            'id',
+            'unit_id'
+        );
     }
 }

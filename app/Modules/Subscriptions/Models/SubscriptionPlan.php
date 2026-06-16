@@ -24,9 +24,51 @@ class SubscriptionPlan extends Model
         'price_yearly' => 'decimal:2'
     ];
 
+    /**
+     * Get the subscriptions for this plan
+     * Use \App\Models\CompanySubscription directly since it extends this model
+     */
     public function subscriptions()
     {
-        return $this->hasMany(CompanySubscription::class, 'plan_id');
+        return $this->hasMany(\App\Models\CompanySubscription::class, 'plan_id');
+    }
+
+    /**
+     * Get pricing type (fixed or per_unit)
+     */
+    public function getPricingTypeAttribute()
+    {
+        $features = $this->features_json ?? [];
+        return $features['pricing_type'] ?? 'fixed';
+    }
+
+    /**
+     * Get price per unit from features
+     */
+    public function getPricePerUnitAttribute()
+    {
+        $features = $this->features_json ?? [];
+        return $features['price_per_unit'] ?? 0;
+    }
+
+    /**
+     * Get the features list
+     */
+    public function getFeaturesListAttribute()
+    {
+        $features = $this->features_json ?? [];
+        return $features['features_list'] ?? [];
+    }
+
+    /**
+     * Get the display price for the plan
+     */
+    public function getDisplayPriceAttribute()
+    {
+        if ($this->pricing_type === 'per_unit') {
+            return 'KES ' . number_format($this->price_per_unit, 0) . ' / unit / month';
+        }
+        return 'KES ' . number_format($this->price_monthly, 0) . ' / month';
     }
 
     /**
@@ -34,16 +76,14 @@ class SubscriptionPlan extends Model
      */
     public function calculateMonthlyPrice($unitCount)
     {
-        $features = $this->features_json;
+        $features = $this->features_json ?? [];
         
-        // Check if using per-unit pricing
         if (isset($features['pricing_type']) && $features['pricing_type'] === 'per_unit') {
             $pricePerUnit = $features['price_per_unit'] ?? 0;
             return $pricePerUnit * $unitCount;
         }
         
-        // Fixed pricing
-        return $this->price_monthly;
+        return (float) $this->price_monthly;
     }
 
     /**
@@ -51,26 +91,26 @@ class SubscriptionPlan extends Model
      */
     public function calculateYearlyPrice($unitCount)
     {
-        $features = $this->features_json;
+        $features = $this->features_json ?? [];
         
-        // Check if using per-unit pricing
         if (isset($features['pricing_type']) && $features['pricing_type'] === 'per_unit') {
             $pricePerUnit = $features['price_per_unit'] ?? 0;
-            // 10% discount for yearly billing
             $yearlyDiscount = 0.90;
             return ($pricePerUnit * $unitCount * 12) * $yearlyDiscount;
         }
         
-        // Fixed pricing
-        return $this->price_yearly;
+        return (float) $this->price_yearly;
     }
 
+    /**
+     * Get price for a specific cycle with optional unit count
+     */
     public function getPriceForCycle($cycle = 'monthly', $unitCount = null)
     {
         if ($cycle === 'monthly') {
-            return $unitCount ? $this->calculateMonthlyPrice($unitCount) : $this->price_monthly;
+            return $unitCount ? $this->calculateMonthlyPrice($unitCount) : (float) $this->price_monthly;
         }
-        return $unitCount ? $this->calculateYearlyPrice($unitCount) : $this->price_yearly;
+        return $unitCount ? $this->calculateYearlyPrice($unitCount) : (float) $this->price_yearly;
     }
 
     public function scopeActive($query)
@@ -81,5 +121,26 @@ class SubscriptionPlan extends Model
     public function scopeOrdered($query)
     {
         return $query->orderBy('display_order')->orderBy('price_monthly');
+    }
+
+    /**
+     * Get min and max unit count for display
+     */
+    public function getUnitRangeAttribute()
+    {
+        $features = $this->features_json ?? [];
+        $maxUnits = $features['max_units'] ?? 0;
+        
+        if ($maxUnits === 0) {
+            return 'Unlimited';
+        }
+        
+        $previousPlan = self::where('display_order', '<', $this->display_order)
+            ->orderBy('display_order', 'desc')
+            ->first();
+        
+        $minUnits = $previousPlan ? ($previousPlan->features_json['max_units'] ?? 0) + 1 : 1;
+        
+        return $minUnits . ' - ' . number_format($maxUnits);
     }
 }

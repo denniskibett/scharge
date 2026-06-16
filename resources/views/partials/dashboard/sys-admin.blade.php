@@ -146,31 +146,114 @@
             </div>
         </div>
 
-        @include('partials.card.card-revenue-trends', ['revenueTrends' => $stats['revenue_trends'] ?? []])
+        <!-- Subscription Stats Card -->
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Active Subscriptions</span>
+                    <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        {{ number_format($subscriptionStats['active'] ?? 0) }}
+                    </h4>
+                </div>
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-50 dark:bg-purple-500/15">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                    </svg>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap items-center gap-3 text-xs">
+                <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                    <span>Active: {{ number_format($subscriptionStats['active'] ?? 0) }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 rounded-full bg-blue-500"></span>
+                    <span>Trial: {{ number_format($subscriptionStats['trial'] ?? 0) }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 rounded-full bg-yellow-500"></span>
+                    <span>Past Due: {{ number_format($subscriptionStats['past_due'] ?? 0) }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 rounded-full bg-red-500"></span>
+                    <span>Cancelled: {{ number_format($subscriptionStats['cancelled'] ?? 0) }}</span>
+                </div>
+                <div class="flex items-center gap-1">
+                    <span class="h-2 w-2 rounded-full bg-gray-500"></span>
+                    <span>Expired: {{ number_format($subscriptionStats['expired'] ?? 0) }}</span>
+                </div>
+            </div>
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between text-xs">
+                    <span class="text-gray-500">MRR: <strong class="text-gray-900 dark:text-white">KES {{ number_format($subscriptionStats['total_mrr'] ?? 0, 0) }}</strong></span>
+                    <span class="text-gray-500">Monthly: {{ number_format($subscriptionStats['monthly_cycle'] ?? 0) }}</span>
+                    <span class="text-gray-500">Yearly: {{ number_format($subscriptionStats['yearly_cycle'] ?? 0) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Revenue by Plan Chart -->
+        @if(!empty($subscriptionStats['revenue_by_plan']))
+        <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 mb-6">
+            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Revenue by Plan</h4>
+            <div class="space-y-3">
+                @foreach($subscriptionStats['revenue_by_plan'] as $plan)
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ $plan['plan_name'] }}</span>
+                        <span class="text-gray-600 dark:text-gray-400">
+                            {{ number_format($plan['count']) }} companies · 
+                            {{ number_format($plan['avg_units']) }} avg units · 
+                            KES {{ number_format($plan['revenue'], 0) }}
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                        <div class="bg-purple-600 h-2 rounded-full" style="width: {{ ($plan['revenue'] / max(array_column($subscriptionStats['revenue_by_plan'], 'revenue'))) * 100 }}%"></div>
+                    </div>
+                </div>
+                @endforeach
+            </div>
+        </div>
+        @endif
 
         <!-- Tab Navigation -->
         <div class="mt-6">
             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
                     <div class="flex flex-wrap gap-2">
+                        <!-- Tab 1: Companies -->
                         <button @click="activeTab = 'companies'" :class="activeTab === 'companies' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                             <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                             </svg>
                             Companies
                         </button>
+                        
+                        <!-- Tab 2: Pending Users -->
                         <button @click="activeTab = 'users'" :class="activeTab === 'users' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                             <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                             </svg>
                             Pending Users
                         </button>
-                        <button @click="activeTab = 'subscriptions'" :class="activeTab === 'subscriptions' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                        
+                        <!-- Tab 3: Subscription Plans -->
+                        <button @click="activeTab = 'subscription_plans'" :class="activeTab === 'subscription_plans' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                             <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                             </svg>
-                            Subscriptions
+                            Plans
                         </button>
+                        
+                        <!-- Tab 4: Company Subscriptions -->
+                        <button @click="activeTab = 'company_subscriptions'" :class="activeTab === 'company_subscriptions' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                            <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            Company Subs
+                        </button>
+                        
+                        <!-- Tab 5: System Settings -->
                         <button @click="activeTab = 'system'" :class="activeTab === 'system' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                             <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -182,12 +265,12 @@
                 </div>
                 
                 <div class="p-5">
-                    <!-- Companies Tab -->
+                    <!-- Companies Tab Content -->
                     <div x-show="activeTab === 'companies'">
                         @include('partials.table.table-companies', ['companies' => $companies ?? []])
                     </div>
                     
-                    <!-- Pending Users Tab -->
+                    <!-- Pending Users Tab Content -->
                     <div x-show="activeTab === 'users'">
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -253,12 +336,41 @@
                         </div>
                     </div>
                     
-                    <!-- Subscriptions Tab -->
-                    <div x-show="activeTab === 'subscriptions'">
+                    <!-- SUBSCRIPTION PLANS TAB CONTENT -->
+                    <div x-show="activeTab === 'subscription_plans'">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">Subscription Plans</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Manage available subscription plans and pricing tiers</p>
+                            </div>
+                            <a href="{{ route('admin.subscriptions.plans.index') }}" class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                </svg>
+                                Manage Plans
+                            </a>
+                        </div>
                         @include('partials.table.table-subscriptions')
                     </div>
                     
-                    <!-- System Settings Tab -->
+                    <!-- COMPANY SUBSCRIPTIONS TAB CONTENT -->
+                    <div x-show="activeTab === 'company_subscriptions'">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">Company Subscriptions</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">View which companies are subscribed to which plans</p>
+                            </div>
+                            <a href="{{ route('admin.subscriptions.index') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                                View All
+                            </a>
+                        </div>
+                        @include('partials.table.table-subscriptions-company')
+                    </div>
+                    
+                    <!-- System Settings Tab Content -->
                     <div x-show="activeTab === 'system'">
                         <div class="space-y-6">
                             <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800/50">

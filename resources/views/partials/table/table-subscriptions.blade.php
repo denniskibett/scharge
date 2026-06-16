@@ -49,8 +49,24 @@
         <span class="ml-3 text-gray-500">Loading subscription plans...</span>
     </div>
     
+    <!-- Error State -->
+    <div x-show="!loading && error" class="text-center py-12">
+        <div class="mx-auto h-12 w-12 text-red-500">
+            <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        <h3 class="mt-2 text-sm font-medium text-red-600 dark:text-red-400">Error Loading Plans</h3>
+        <p class="mt-1 text-sm text-gray-500" x-text="errorMessage || 'Could not load subscription plans. Please check your connection.'"></p>
+        <div class="mt-6">
+            <button @click="loadPlans()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                Retry
+            </button>
+        </div>
+    </div>
+    
     <!-- Table Content -->
-    <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
+    <div x-show="!loading && !error" class="custom-scrollbar overflow-x-auto">
         <table class="w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
@@ -117,31 +133,40 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400" x-text="plan.slug"></p>
                             </div>
                         </td>
-                        <!-- Updated Pricing Column -->
+                        <!-- Monthly Price Column -->
                         <td class="p-4 whitespace-nowrap">
                             <div x-show="plan.pricing_type === 'per_unit'">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                    KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
+                                    KES <span x-text="plan.display_monthly?.toLocaleString() || 0"></span>
                                 </p>
-                                <p class="text-xs text-gray-500">per unit / month</p>
+                                <p class="text-xs text-gray-500">
+                                    <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span> × units/month
+                                </p>
+                                <p class="text-xs text-gray-400">(based on 100 units)</p>
                             </div>
                             <div x-show="plan.pricing_type !== 'per_unit'">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_monthly)"></p>
                                 <p class="text-xs text-gray-500">/month</p>
                             </div>
                         </td>
-                        <!-- Updated Yearly Price Column -->
+                        <!-- Yearly Price Column -->
                         <td class="p-4 whitespace-nowrap">
                             <div x-show="plan.pricing_type === 'per_unit'">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                    KES <span x-text="(plan.price_per_unit * 12 * 0.9)?.toLocaleString() || 0"></span>
+                                    KES <span x-text="plan.display_yearly?.toLocaleString() || 0"></span>
                                 </p>
                                 <p class="text-xs text-gray-500">per unit / year (10% off)</p>
+                                <p class="text-xs text-gray-400">(based on 100 units)</p>
                             </div>
                             <div x-show="plan.pricing_type !== 'per_unit'">
                                 <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_yearly)"></p>
                                 <p class="text-xs text-gray-500">/year</p>
                             </div>
+                        </td>
+                        <!-- Unit Range Column -->
+                        <td class="p-4 whitespace-nowrap">
+                            <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.unit_range || 'Unlimited'"></p>
+                            <p class="text-xs text-gray-500">units allowed</p>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.trial_days + ' days'"></p>
@@ -189,7 +214,7 @@
     </div>
     
     <!-- Empty State -->
-    <div x-show="!loading && filteredPlans.length === 0" class="text-center py-12">
+    <div x-show="!loading && !error && filteredPlans.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
@@ -203,7 +228,7 @@
     </div>
     
     <!-- Pagination -->
-    <div x-show="!loading && filteredPlans.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
+    <div x-show="!loading && !error && filteredPlans.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
         <div class="pb-3 sm:pb-0">
             <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">
                 Showing <span x-text="((currentPage - 1) * itemsPerPage) + (paginatedPlans.length ? 1 : 0)"></span>
@@ -246,6 +271,8 @@ document.addEventListener('alpine:init', () => {
         filterStatus: 'all',
         searchQuery: '',
         loading: true,
+        error: false,
+        errorMessage: '',
         
         get statusCounts() {
             return {
@@ -314,21 +341,37 @@ document.addEventListener('alpine:init', () => {
         
         async loadPlans() {
             this.loading = true;
+            this.error = false;
+            this.errorMessage = '';
+            
             try {
-                const response = await fetch('/admin/subscriptions/plans/data', {
+                console.log('Loading subscription plans...');
+                // FIX: Added /api/ to the URL
+                const response = await fetch('/admin/subscriptions/api/plans/data', {
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 });
-                if (response.ok) {
-                    const result = await response.json();
-                    this.plans = result.plans;
-                } else {
-                    this.plans = [];
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
+                const result = await response.json();
+                console.log('Plans response:', result);
+                
+                if (result.success) {
+                    this.plans = result.plans || [];
+                    console.log('Loaded ' + this.plans.length + ' plans');
+                } else {
+                    throw new Error(result.message || 'Failed to load plans');
+                }
+                
             } catch (error) {
                 console.error('Error fetching plans:', error);
+                this.error = true;
+                this.errorMessage = error.message || 'Could not load subscription plans. Please check your connection.';
                 this.plans = [];
             } finally {
                 this.loading = false;
