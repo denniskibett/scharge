@@ -34,8 +34,9 @@
             class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
         </div>
         <div>
+          <!-- FIXED: Added @click to call the method -->
           <button 
-            @click="window.payeeCreateModal?.openModal()"
+            @click="openCreateModal()"
             class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 whitespace-nowrap text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M10 4.16667V15.8333M4.16667 10H15.8333" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -52,8 +53,12 @@
           <tr class="border-b border-gray-200 dark:border-gray-700">
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID Number</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">KRA PIN</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">NSSF</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SHA</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
           </tr>
@@ -61,7 +66,7 @@
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
           <template x-if="filteredPayees.length === 0">
             <tr>
-              <td colspan="6" class="px-4 py-8 text-center">
+              <td colspan="10" class="px-4 py-8 text-center">
                 <div class="flex flex-col items-center justify-center">
                   <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -92,8 +97,12 @@
                   <span x-text="payee.type.charAt(0).toUpperCase() + payee.type.slice(1)"></span>
                 </span>
               </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.id_number || '-'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.phone || '-'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.email || '-'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.kra_pin || '-'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.nssf_number || '-'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.sha_number || '-'"></td>
               <td class="px-4 py-3 whitespace-nowrap">
                 <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300" x-text="payee.expenses_count || 0"></span>
               </td>
@@ -155,6 +164,22 @@ document.addEventListener('alpine:init', () => {
     
     init() {
       this.filteredPayees = this.payees;
+      
+      // Log to verify Alpine is working
+      console.log('payeesPage initialized');
+    },
+    
+    // ✅ ADDED: Method to open the create modal
+    openCreateModal() {
+      console.log('Opening create modal...');
+      console.log('payeeCreateModal exists?', !!window.payeeCreateModal);
+      
+      if (window.payeeCreateModal && typeof window.payeeCreateModal.openModal === 'function') {
+        window.payeeCreateModal.openModal();
+      } else {
+        console.error('payeeCreateModal not found on window');
+        alert('Please refresh the page and try again.');
+      }
     },
     
     filterPayees() {
@@ -168,7 +193,11 @@ document.addEventListener('alpine:init', () => {
         return (payee.name?.toLowerCase().includes(term) ||
                 payee.type?.toLowerCase().includes(term) ||
                 payee.phone?.toLowerCase().includes(term) ||
-                payee.email?.toLowerCase().includes(term));
+                payee.email?.toLowerCase().includes(term) ||
+                payee.id_number?.toLowerCase().includes(term) ||
+                payee.kra_pin?.toLowerCase().includes(term) ||
+                payee.nssf_number?.toLowerCase().includes(term) ||
+                payee.sha_number?.toLowerCase().includes(term));
       });
     },
     
@@ -177,6 +206,23 @@ document.addEventListener('alpine:init', () => {
       return text.charAt(0).toUpperCase() + text.slice(1);
     }
   }));
+});
+</script>
+
+<!-- ✅ ADDED: Fallback script if Alpine doesn't work -->
+<script>
+// This will run after Alpine tries to register
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM loaded, checking Alpine...');
+  
+  // If Alpine isn't available after 2 seconds, show a fallback
+  setTimeout(function() {
+    if (typeof Alpine === 'undefined') {
+      console.warn('Alpine is not available!');
+    } else {
+      console.log('Alpine is available:', typeof Alpine);
+    }
+  }, 1000);
 });
 </script>
 @endsection

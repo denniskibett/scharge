@@ -35,7 +35,7 @@
         </svg>
       </button>
 
-      <form action="{{ route('expenses.store') }}" method="POST" @submit="validateForm">
+      <form @submit.prevent="submitForm()">
         @csrf
         <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
           Add New Expense
@@ -169,9 +169,17 @@
           </button>
           <button
             type="submit"
-            class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 sm:w-auto"
+            :disabled="loading"
+            class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
           >
-            Save Expense
+            <span x-show="!loading">Save Expense</span>
+            <span x-show="loading" class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Saving...
+            </span>
           </button>
         </div>
       </form>
@@ -183,6 +191,7 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('expenseCreateModal', () => ({
     isOpen: false,
+    loading: false,
     formData: {
       estate_id: '',
       payee_id: '',
@@ -205,12 +214,15 @@ document.addEventListener('alpine:init', () => {
     openModal() {
       this.isOpen = true;
       this.resetForm();
+      this.formErrors = [];
+      this.loading = false;
       document.body.style.overflow = 'hidden';
     },
     
     closeModal() {
       this.isOpen = false;
       this.formErrors = [];
+      this.loading = false;
       document.body.style.overflow = '';
     },
     
@@ -225,9 +237,10 @@ document.addEventListener('alpine:init', () => {
         status: 'pending',
         description: ''
       };
+      this.formErrors = [];
     },
     
-    validateForm(event) {
+    validateForm() {
       this.formErrors = [];
       
       if (!this.formData.estate_id) {
@@ -250,12 +263,73 @@ document.addEventListener('alpine:init', () => {
         this.formErrors.push('Please select a date');
       }
       
-      if (this.formErrors.length > 0) {
-        event.preventDefault();
-        const modalContent = event.target.closest('.overflow-y-auto');
+      return this.formErrors.length === 0;
+    },
+
+    async submitForm() {
+      if (!this.validateForm()) {
+        const modalContent = document.querySelector('.overflow-y-auto');
         if (modalContent) {
           modalContent.scrollTop = 0;
         }
+        return;
+      }
+
+      this.loading = true;
+      this.formErrors = [];
+      
+      try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        
+        if (!csrfToken) {
+          this.formErrors = ['CSRF token not found. Please refresh the page.'];
+          this.loading = false;
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('estate_id', this.formData.estate_id);
+        formData.append('payee_id', this.formData.payee_id);
+        formData.append('expense_category_id', this.formData.expense_category_id);
+        formData.append('amount', this.formData.amount);
+        formData.append('expense_date', this.formData.expense_date);
+        formData.append('status', this.formData.status);
+        formData.append('description', this.formData.description || '');
+
+        const response = await fetch('{{ route("expenses.store") }}', {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          this.closeModal();
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          if (data.errors) {
+            this.formErrors = Object.values(data.errors).flat();
+          } else {
+            this.formErrors = [data.message || 'Failed to create expense. Please try again.'];
+          }
+          const modalContent = document.querySelector('.overflow-y-auto');
+          if (modalContent) {
+            modalContent.scrollTop = 0;
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        this.formErrors = ['Network error. Please check your connection and try again.'];
+      } finally {
+        this.loading = false;
       }
     }
   }));

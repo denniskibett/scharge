@@ -1,6 +1,6 @@
 <!-- EDIT PAYEE SLIDEOVER MODAL -->
 <div x-data="payeeEditModal" x-init="init()">
-  <!-- Backdrop with 50% opacity and frost effect -->
+  <!-- Backdrop -->
   <template x-if="isOpen">
     <div 
       @click="closeModal()"
@@ -14,7 +14,7 @@
     ></div>
   </template>
 
-  <!-- Modal Content - Slides from Right -->
+  <!-- Modal Content -->
   <div x-show="isOpen" 
        x-transition:enter="transition transform ease-out duration-300"
        x-transition:enter-start="translate-x-full"
@@ -36,8 +36,8 @@
         </svg>
       </button>
 
-      <form :action="`/payees/${currentPayee?.id}`" method="POST" @submit="validateForm">
-        @csrf @method('PUT')
+      <form @submit.prevent="submitForm()">
+        @csrf
         <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
           Edit Payee
         </h4>
@@ -66,7 +66,7 @@
               placeholder="Enter payee name"
             />
           </div>
-          
+
           <!-- Type -->
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Type *</label>
@@ -76,13 +76,12 @@
               required
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
             >
-              <option value="">Select Type</option>
               <option value="staff">Staff</option>
               <option value="vendor">Vendor</option>
               <option value="utility">Utility</option>
             </select>
           </div>
-          
+
           <!-- Phone -->
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Phone</label>
@@ -106,6 +105,18 @@
               placeholder="Enter email address"
             />
           </div>
+
+          <!-- KRA PIN - NEW FIELD -->
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">KRA PIN</label>
+            <input 
+              x-model="formData.kra_pin"
+              type="text"
+              name="kra_pin"
+              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+              placeholder="Enter KRA PIN (e.g., A123456789Z)"
+            />
+          </div>
         </div>
 
         <div class="flex items-center justify-end w-full gap-3 mt-6">
@@ -118,9 +129,17 @@
           </button>
           <button
             type="submit"
-            class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 sm:w-auto"
+            :disabled="loading"
+            class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
           >
-            Update Payee
+            <span x-show="!loading">Update Payee</span>
+            <span x-show="loading" class="flex items-center gap-2">
+              <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Updating...
+            </span>
           </button>
         </div>
       </form>
@@ -132,12 +151,14 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('payeeEditModal', () => ({
     isOpen: false,
+    loading: false,
     currentPayee: null,
     formData: {
       name: '',
       type: '',
       phone: '',
-      email: ''
+      email: '',
+      kra_pin: ''  // ← ADDED
     },
     formErrors: [],
     
@@ -149,13 +170,15 @@ document.addEventListener('alpine:init', () => {
       this.currentPayee = payee;
       this.isOpen = true;
       this.formErrors = [];
+      this.loading = false;
       
       if (payee) {
         this.formData = {
           name: payee.name || '',
           type: payee.type || '',
           phone: payee.phone || '',
-          email: payee.email || ''
+          email: payee.email || '',
+          kra_pin: payee.kra_pin || ''  // ← ADDED
         };
       }
       
@@ -166,10 +189,22 @@ document.addEventListener('alpine:init', () => {
       this.isOpen = false;
       this.currentPayee = null;
       this.formErrors = [];
+      this.loading = false;
       document.body.style.overflow = '';
     },
     
-    validateForm(event) {
+    resetForm() {
+      this.formData = {
+        name: '',
+        type: '',
+        phone: '',
+        email: '',
+        kra_pin: ''  // ← ADDED
+      };
+      this.formErrors = [];
+    },
+    
+    validateForm() {
       this.formErrors = [];
       
       if (!this.formData.name || this.formData.name.trim() === '') {
@@ -184,17 +219,77 @@ document.addEventListener('alpine:init', () => {
         this.formErrors.push('Please enter a valid email address');
       }
       
-      if (this.formErrors.length > 0) {
-        event.preventDefault();
-        const modalContent = event.target.closest('.overflow-y-auto');
-        if (modalContent) {
-          modalContent.scrollTop = 0;
-        }
-      }
+      return this.formErrors.length === 0;
     },
     
     isValidEmail(email) {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    },
+
+    async submitForm() {
+      if (!this.validateForm()) {
+        const modalContent = document.querySelector('.overflow-y-auto');
+        if (modalContent) {
+          modalContent.scrollTop = 0;
+        }
+        return;
+      }
+
+      this.loading = true;
+      this.formErrors = [];
+      
+      try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+        
+        if (!csrfToken) {
+          this.formErrors = ['CSRF token not found. Please refresh the page.'];
+          this.loading = false;
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append('_method', 'PUT');
+        formData.append('name', this.formData.name);
+        formData.append('type', this.formData.type);
+        formData.append('phone', this.formData.phone || '');
+        formData.append('email', this.formData.email || '');
+        formData.append('kra_pin', this.formData.kra_pin || '');  // ← ADDED
+
+        const response = await fetch(`/payees/${this.currentPayee.id}`, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          credentials: 'same-origin',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          this.closeModal();
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          if (data.errors) {
+            this.formErrors = Object.values(data.errors).flat();
+          } else {
+            this.formErrors = [data.message || 'Failed to update payee. Please try again.'];
+          }
+          const modalContent = document.querySelector('.overflow-y-auto');
+          if (modalContent) {
+            modalContent.scrollTop = 0;
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        this.formErrors = ['Network error. Please check your connection and try again.'];
+      } finally {
+        this.loading = false;
+      }
     }
   }));
 });

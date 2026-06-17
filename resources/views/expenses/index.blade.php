@@ -6,7 +6,7 @@
 @include('partials.modal.expenses-edit-modal')
 @include('partials.modal.expenses-show-modal')
 @include('partials.modal.expenses-delete-modal')
-{{-- @include('partials.modal.expense-categories-create-modal') --}}
+@include('partials.modal.categories-create-modal')
 
 <div x-data="expensesPage" x-init="init()" x-cloak>
   <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -44,7 +44,7 @@
             Add Expense
           </button>
           <button 
-            @click="window.expenseCategoryCreateModal?.openModal()"
+            @click="window.categoryCreateModal?.openModal()"
             class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 whitespace-nowrap text-gray-700 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
               <path d="M4 4H16V6H4V4Z" fill="currentColor"/>
@@ -87,18 +87,29 @@
           
           <template x-for="expense in filteredExpenses" :key="expense.id">
             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-800">
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.estate_name"></td>
+              <!-- Estate - FIXED -->
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.estate?.name || 'N/A'"></td>
+              
+              <!-- Payee - FIXED -->
               <td class="px-4 py-3 whitespace-nowrap">
                 <a
                   href="javascript:void(0)"
-                  @click="window.payeeShowModal?.openModal({id: expense.payee_id, name: expense.payee_name, type: expense.payee_type})"
+                  @click="window.payeeShowModal?.openModal({id: expense.payee_id, name: expense.payee?.name, type: expense.payee?.type})"
                   class="text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
-                  x-text="expense.payee_name"
+                  x-text="expense.payee?.name || 'N/A'"
                 ></a>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.category_name"></td>
+              
+              <!-- Category - FIXED -->
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.category?.name || 'N/A'"></td>
+              
+              <!-- Amount -->
               <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90" x-text="formatCurrency(expense.amount)"></td>
+              
+              <!-- Date -->
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="formatDate(expense.expense_date)"></td>
+              
+              <!-- Status -->
               <td class="px-4 py-3 whitespace-nowrap">
                 <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
                       :class="{
@@ -108,9 +119,13 @@
                   <span x-text="expense.status.charAt(0).toUpperCase() + expense.status.slice(1)"></span>
                 </span>
               </td>
+              
+              <!-- Payments -->
               <td class="px-4 py-3 whitespace-nowrap">
-                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300" x-text="expense.payments_count || 0"></span>
+                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300" x-text="expense.payments?.length || 0"></span>
               </td>
+              
+              <!-- Actions -->
               <td class="px-4 py-3 whitespace-nowrap">
                 <div class="flex items-center gap-2">
                   <button 
@@ -185,9 +200,9 @@ document.addEventListener('alpine:init', () => {
       
       const term = this.searchTerm.toLowerCase();
       this.filteredExpenses = this.expenses.filter(expense => {
-        return (expense.estate_name?.toLowerCase().includes(term) ||
-                expense.payee_name?.toLowerCase().includes(term) ||
-                expense.category_name?.toLowerCase().includes(term) ||
+        return (expense.estate?.name?.toLowerCase().includes(term) ||
+                expense.payee?.name?.toLowerCase().includes(term) ||
+                expense.category?.name?.toLowerCase().includes(term) ||
                 expense.status?.toLowerCase().includes(term) ||
                 expense.amount?.toString().includes(term));
       });

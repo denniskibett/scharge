@@ -1,5 +1,5 @@
-<!-- CREATE PAYEE MODAL -->
-<div x-data="payeeCreateModal" x-init="init()">
+<!-- CREATE CATEGORY SLIDEOVER MODAL -->
+<div x-data="categoryCreateModal" x-init="init()">
   <!-- Backdrop -->
   <template x-if="isOpen">
     <div 
@@ -26,6 +26,7 @@
        class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
        style="width: 38rem; max-width: calc(100% - 2rem);">
     <div class="p-6 lg:p-10">
+      <!-- close btn -->
       <button
         @click="closeModal()"
         class="group absolute right-3 top-3 z-99999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
@@ -38,7 +39,7 @@
       <form @submit.prevent="submitForm()">
         @csrf
         <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
-          Add New Payee
+          Add New Expense Category
         </h4>
 
         <!-- Form Errors -->
@@ -52,106 +53,30 @@
           </div>
         </template>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+        <div class="grid grid-cols-1 gap-y-5">
           <!-- Name -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Name *</label>
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Category Name *</label>
             <input 
               x-model="formData.name"
               type="text"
               name="name"
               required
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter payee name"
+              placeholder="Enter category name"
             />
           </div>
 
-          <!-- Type -->
+          <!-- Description -->
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Type *</label>
-            <select 
-              x-model="formData.type"
-              name="type"
-              required
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-            >
-              <option value="">Select Type</option>
-              <option value="staff">Staff</option>
-              <option value="vendor">Vendor</option>
-              <option value="utility">Utility</option>
-            </select>
-          </div>
-
-          <!-- ID Number -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">ID Number</label>
-            <input 
-              x-model="formData.id_number"
-              type="text"
-              name="id_number"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter ID number"
-            />
-          </div>
-
-          <!-- Phone -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Phone</label>
-            <input 
-              x-model="formData.phone"
-              type="text"
-              name="phone"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter phone number"
-            />
-          </div>
-          
-          <!-- Email -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Email</label>
-            <input 
-              x-model="formData.email"
-              type="email"
-              name="email"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter email address"
-            />
-          </div>
-
-          <!-- KRA PIN -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">KRA PIN</label>
-            <input 
-              x-model="formData.kra_pin"
-              type="text"
-              name="kra_pin"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter KRA PIN (e.g., A123456789Z)"
-            />
-          </div>
-
-          <!-- NSSF Number -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">NSSF Number</label>
-            <input 
-              x-model="formData.nssf_number"
-              type="text"
-              name="nssf_number"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter NSSF number"
-            />
-          </div>
-
-          <!-- SHA Number -->
-          <div>
-            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">SHA Number</label>
-            <input 
-              x-model="formData.sha_number"
-              type="text"
-              name="sha_number"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
-              placeholder="Enter SHA number"
-            />
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Description</label>
+            <textarea 
+              x-model="formData.description"
+              name="description"
+              rows="3"
+              class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+              placeholder="Enter category description (optional)"
+            ></textarea>
           </div>
         </div>
 
@@ -168,7 +93,7 @@
             :disabled="loading"
             class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
           >
-            <span x-show="!loading">Save Payee</span>
+            <span x-show="!loading">Save Category</span>
             <span x-show="loading" class="flex items-center gap-2">
               <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -185,29 +110,20 @@
 
 <script>
 document.addEventListener('alpine:init', () => {
-  Alpine.data('payeeCreateModal', () => ({
+  Alpine.data('categoryCreateModal', () => ({
     isOpen: false,
     loading: false,
     formData: {
       name: '',
-      type: '',
-      phone: '',
-      email: '',
-      id_number: '',
-      kra_pin: '',
-      nssf_number: '',
-      sha_number: ''
+      description: ''
     },
     formErrors: [],
     
     init() {
-      // ✅ THIS REGISTERS THE MODAL GLOBALLY
-      window.payeeCreateModal = this;
-      console.log('✅ payeeCreateModal registered to window!');
+      window.categoryCreateModal = this;
     },
     
     openModal() {
-      console.log('🔓 Opening payeeCreateModal...');
       this.isOpen = true;
       this.resetForm();
       this.formErrors = [];
@@ -216,7 +132,6 @@ document.addEventListener('alpine:init', () => {
     },
     
     closeModal() {
-      console.log('🔒 Closing payeeCreateModal...');
       this.isOpen = false;
       this.formErrors = [];
       this.loading = false;
@@ -226,13 +141,7 @@ document.addEventListener('alpine:init', () => {
     resetForm() {
       this.formData = {
         name: '',
-        type: '',
-        phone: '',
-        email: '',
-        id_number: '',
-        kra_pin: '',
-        nssf_number: '',
-        sha_number: ''
+        description: ''
       };
       this.formErrors = [];
     },
@@ -241,22 +150,10 @@ document.addEventListener('alpine:init', () => {
       this.formErrors = [];
       
       if (!this.formData.name || this.formData.name.trim() === '') {
-        this.formErrors.push('Please enter a name');
-      }
-      
-      if (!this.formData.type) {
-        this.formErrors.push('Please select a type');
-      }
-      
-      if (this.formData.email && !this.isValidEmail(this.formData.email)) {
-        this.formErrors.push('Please enter a valid email address');
+        this.formErrors.push('Please enter a category name');
       }
       
       return this.formErrors.length === 0;
-    },
-    
-    isValidEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     },
 
     async submitForm() {
@@ -282,15 +179,9 @@ document.addEventListener('alpine:init', () => {
 
         const formData = new FormData();
         formData.append('name', this.formData.name);
-        formData.append('type', this.formData.type);
-        formData.append('phone', this.formData.phone || '');
-        formData.append('email', this.formData.email || '');
-        formData.append('id_number', this.formData.id_number || '');
-        formData.append('kra_pin', this.formData.kra_pin || '');
-        formData.append('nssf_number', this.formData.nssf_number || '');
-        formData.append('sha_number', this.formData.sha_number || '');
+        formData.append('description', this.formData.description || '');
 
-        const response = await fetch('/payees', {
+        const response = await fetch('{{ route("expense-categories.store") }}', {
           method: 'POST',
           headers: {
             'X-CSRF-TOKEN': csrfToken,
@@ -312,7 +203,7 @@ document.addEventListener('alpine:init', () => {
           if (data.errors) {
             this.formErrors = Object.values(data.errors).flat();
           } else {
-            this.formErrors = [data.message || 'Failed to create payee. Please try again.'];
+            this.formErrors = [data.message || 'Failed to create category. Please try again.'];
           }
           const modalContent = document.querySelector('.overflow-y-auto');
           if (modalContent) {
