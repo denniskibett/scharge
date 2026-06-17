@@ -5,11 +5,120 @@ namespace App\Modules\Subscriptions\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Subscriptions\Models\SubscriptionPlan;
+use App\Modules\Subscriptions\Models\CompanySubscription;
+use App\Modules\Subscriptions\Models\Region;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionController extends Controller
 {
+
+    /**
+     * Display a specific subscription plan
+     * Route: /admin/subscriptions/company/{plan}
+     */
+    public function show(SubscriptionPlan $plan)
+    {
+        try {
+            // Load relationships
+            $plan->load(['region.county', 'subcounty']);
+            
+            // Get subscriber count
+            $subscriberCount = $plan->subscriptions()
+                ->whereIn('status', ['active', 'trial'])
+                ->count();
+            
+            // Get active subscribers with company details
+            $subscribers = $plan->subscriptions()
+                ->whereIn('status', ['active', 'trial'])
+                ->with(['company'])
+                ->get()
+                ->map(function($subscription) {
+                    $company = $subscription->company;
+                    return [
+                        'id' => $subscription->id,
+                        'company_id' => $company?->id,
+                        'company_name' => $company?->name ?? 'N/A',
+                        'company_email' => $company?->email ?? 'N/A',
+                        'status' => $subscription->status,
+                        'billing_cycle' => $subscription->billing_cycle,
+                        'unit_count' => $subscription->unit_count ?? 0,
+                        'starts_at' => $subscription->starts_at,
+                        'ends_at' => $subscription->ends_at,
+                        'auto_renew' => $subscription->auto_renew,
+                    ];
+                });
+            
+            // Calculate revenue from this plan
+            $totalRevenue = 0;
+            $activeSubscriptions = $plan->subscriptions()
+                ->where('status', 'active')
+                ->with(['company'])
+                ->get();
+            
+            foreach ($activeSubscriptions as $subscription) {
+                $company = $subscription->company;
+                if ($company) {
+                    $unitCount = \App\Models\Unit::where('company_id', $company->id)
+                        ->whereIn('status', ['occupied', 'available'])
+                        ->count();
+                    $totalRevenue += $plan->calculateMonthlyPrice($unitCount);
+                }
+            }
+            
+            // Get all available regions for dropdown (if needed)
+            $regions = Region::active()
+                ->ordered()
+                ->get()
+                ->map(function($region) {
+                    return [
+                        'id' => $region->id,
+                        'name' => $region->name,
+                        'display_name' => $region->display_name,
+                    ];
+                });
+            
+            // Prepare plan data for view
+            $planData = [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'slug' => $plan->slug,
+                'description' => $plan->description,
+                'region_id' => $plan->region_id,
+                'region_name' => $plan->region?->name,
+                'county_name' => $plan->region?->county?->county_name,
+                'subcounty_id' => $plan->subcounty_id,
+                'subcounty_name' => $plan->subcounty?->ward ?? $plan->subcounty?->constituency_name,
+                'price_per_unit' => (float) $plan->price_per_unit,
+                'min_units' => (int) $plan->min_units,
+                'max_units' => (int) $plan->max_units,
+                'unit_range' => $plan->unit_range,
+                'trial_days' => $plan->trial_days,
+                'discount_percentage' => (float) $plan->discount_percentage,
+                'features' => $plan->features ?? [],
+                'is_active' => (bool) $plan->is_active,
+                'display_order' => $plan->display_order,
+                'created_at' => $plan->created_at?->format('M d, Y H:i'),
+                'updated_at' => $plan->updated_at?->format('M d, Y H:i'),
+                'subscriber_count' => $subscriberCount,
+                'total_revenue' => $totalRevenue,
+            ];
+            
+            return view('subscriptions::show', compact('planData', 'subscribers', 'regions'));
+            
+        } catch (\Exception $e) {
+            Log::error('Error showing subscription plan: ' . $e->getMessage(), [
+                'plan_id' => $plan->id ?? null,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return redirect()->route('admin.subscriptions.plans.index')
+                ->with('error', 'Error loading plan details: ' . $e->getMessage());
+        }
+    }
+
+
     /**
      * Get plans data for AJAX (Alpine.js table)
      * Route: /admin/subscriptions/api/plans/data
@@ -292,7 +401,14 @@ class SubscriptionController extends Controller
     public function plansIndex()
     {
         $plans = SubscriptionPlan::orderBy('display_order')->get();
-        return view('subscriptions::plans', compact('plans'));
+        $currentSubscription = auth()->user()->currentSubscription;
+        $company = auth()->user()->company;
+        $pricingType = $plans->first()?->features_json['pricing_type'] ?? 'fixed';
+        $subscriptionHistory = $company->subscriptions()->with('plan')->orderBy('created_at', 'desc')->get();
+        $invoices = \App\Models\Invoice::where('company_id', $company->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return view('subscriptions.show', compact('plans', 'currentSubscription', 'company', 'pricingType', 'subscriptionHistory', 'invoices'));
     }
 
     /**
@@ -313,6 +429,40 @@ class SubscriptionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error loading subscribers'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get regions for dropdown
+     * Route: /admin/subscriptions/api/regions
+     */
+    public function getRegions()
+    {
+        try {
+            $regions = Region::with('county')
+                ->active()
+                ->ordered()
+                ->get()
+                ->map(function($region) {
+                    return [
+                        'id' => $region->id,
+                        'name' => $region->name,
+                        'county_id' => $region->county_id,
+                        'county_name' => $region->county?->county_name,
+                        'display_name' => $region->display_name,
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'regions' => $regions
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in getRegions: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading regions: ' . $e->getMessage()
             ], 500);
         }
     }
