@@ -8,14 +8,19 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Manage region-based subscription plans and pricing</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <!-- Region Filter -->
-            <div class="hidden h-11 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 lg:inline-flex dark:bg-gray-900">
-                <button @click="filterRegion = 'all'; currentPage = 1" :class="filterRegion === 'all' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
-                    All (<span x-text="regions.length"></span>)
-                </button>
-                <template x-for="region in regions" :key="region.id">
-                    <button @click="filterRegion = region.id; currentPage = 1" :class="filterRegion === region.id ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium" x-text="region.name"></button>
-                </template>
+            <!-- Region Filter - Dropdown -->
+            <div class="relative">
+                <select x-model="filterRegion" @change="currentPage = 1" class="h-11 w-full min-w-[180px] rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-10 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 appearance-none cursor-pointer">
+                    <option value="all">All Regions (<span x-text="regions.length"></span>)</option>
+                    <template x-for="region in regions" :key="region.id">
+                        <option :value="region.id" x-text="region.display_name || region.name"></option>
+                    </template>
+                </select>
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
             </div>
 
             <!-- Search -->
@@ -68,8 +73,8 @@
         <table class="w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('id')">
-                        <div class="flex items-center gap-3">
+                    <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('id')">
+                        <div class="flex items-center gap-2">
                             <p>ID</p>
                             <span class="flex flex-col gap-0.5">
                                 <svg :class="sortBy === 'id' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
@@ -77,17 +82,19 @@
                             </span>
                         </div>
                     </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('display_name')">
-                        <div class="flex items-center gap-3">
-                            <p>Region / Plan</p>
+                    <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('name')">
+                        <div class="flex items-center gap-2">
+                            <p>Plan Name</p>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'display_name' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'display_name' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'name' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'name' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_per_unit')">
-                        <div class="flex items-center gap-3">
+                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Region</th>
+                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Subcounty</th>
+                    <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_per_unit')">
+                        <div class="flex items-center gap-2">
                             <p>Price/Unit</p>
                             <span class="flex flex-col gap-0.5">
                                 <svg :class="sortBy === 'price_per_unit' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
@@ -95,17 +102,8 @@
                             </span>
                         </div>
                     </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('min_units')">
-                        <div class="flex items-center gap-3">
-                            <p>Unit Range</p>
-                            <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'min_units' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'min_units' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
-                            </span>
-                        </div>
-                    </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('trial_days')">
-                        <div class="flex items-center gap-3">
+                    <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('trial_days')">
+                        <div class="flex items-center gap-2">
                             <p>Trial</p>
                             <span class="flex flex-col gap-0.5">
                                 <svg :class="sortBy === 'trial_days' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
@@ -113,92 +111,116 @@
                             </span>
                         </div>
                     </th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Discount</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Features</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Status</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Subscribers</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
+                    <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('discount_percentage')">
+                        <div class="flex items-center gap-2">
+                            <p>Discount</p>
+                            <span class="flex flex-col gap-0.5">
+                                <svg :class="sortBy === 'discount_percentage' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'discount_percentage' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Features</th>
+                    <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('is_active')">
+                        <div class="flex items-center gap-2">
+                            <p>Status</p>
+                            <span class="flex flex-col gap-0.5">
+                                <svg :class="sortBy === 'is_active' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'is_active' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                            </span>
+                        </div>
+                    </th>
+                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Subscribers</th>
+                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <template x-for="plan in paginatedPlans" :key="plan.id">
-                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer" @click="goToShowPage(plan.id)">
-                        <td class="p-4 whitespace-nowrap">
-                            <span class="text-theme-xs font-medium text-gray-700 dark:text-gray-400" x-text="'#' + plan.id"></span>
+                    <tr class="border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                        <td class="p-3 whitespace-nowrap">
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400" x-text="'#' + plan.id"></span>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
+                        <td class="p-3">
                             <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" x-text="plan.region_name"></span>
-                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-400" x-text="plan.name"></span>
-                                </div>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="plan.slug"></p>
-                                <p x-show="plan.county_name" class="text-xs text-gray-400 dark:text-gray-500" x-text="'County: ' + plan.county_name"></p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white" x-text="plan.name"></p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500" x-text="plan.slug"></p>
                             </div>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
+                        <td class="p-3 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" x-text="plan.region_name || 'N/A'"></span>
+                        </td>
+                        <td class="p-3 whitespace-nowrap">
+                            <span class="text-xs text-gray-600 dark:text-gray-400" x-text="plan.subcounty_name || 'N/A'"></span>
+                        </td>
+                        <td class="p-3 whitespace-nowrap">
                             <div>
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
                                     KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
                                 </p>
-                                <p class="text-xs text-gray-500">per unit / month</p>
-                                <p x-show="plan.discount_percentage > 0" class="text-xs text-green-600 dark:text-green-400">
-                                    <span x-text="plan.discount_percentage"></span>% off yearly
-                                </p>
+                                <p class="text-xs text-gray-400">per unit / month</p>
                             </div>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
-                            <div>
-                                <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.unit_range || 'Unlimited'"></p>
-                                <p class="text-xs text-gray-500">units allowed</p>
-                                <p x-show="plan.max_units === 0" class="text-xs text-purple-600 dark:text-purple-400">♾️ Unlimited</p>
-                            </div>
-                        </td>
-                        <td class="p-4 whitespace-nowrap">
-                            <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.trial_days + ' days'"></p>
+                        <td class="p-3 whitespace-nowrap">
+                            <span class="text-sm text-gray-700 dark:text-gray-300" x-text="plan.trial_days + ' days'"></span>
                             <p x-show="plan.trial_days === 0" class="text-xs text-gray-400">No trial</p>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
+                        <td class="p-3 whitespace-nowrap">
                             <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                 <span x-text="plan.discount_percentage || 0"></span>%
                             </span>
-                            <p x-show="plan.discount_percentage > 0" class="text-xs text-green-600 dark:text-green-400 mt-1">yearly discount</p>
                         </td>
-                        <td class="p-4">
+                        <td class="p-3">
                             <div class="flex flex-wrap gap-1 max-w-xs">
-                                <template x-for="(feature, index) in plan.features?.slice(0, 2)" :key="index">
+                                <template x-for="(feature, index) in (plan.features || []).slice(0, 2)" :key="index">
                                     <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" x-text="feature"></span>
                                 </template>
-                                <span x-show="plan.features?.length > 2" class="text-xs text-gray-500" x-text="'+ ' + (plan.features.length - 2) + ' more'"></span>
-                                <span x-show="!plan.features || plan.features.length === 0" class="text-xs text-gray-400">No features</span>
+                                <span x-show="(plan.features || []).length > 2" class="text-xs text-gray-500" x-text="'+ ' + ((plan.features || []).length - 2) + ' more'"></span>
+                                <span x-show="!(plan.features || []).length" class="text-xs text-gray-400">No features</span>
                             </div>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
+                        <td class="p-3 whitespace-nowrap">
                             <span :class="plan.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'" class="text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="plan.is_active ? 'Active' : 'Inactive'"></span>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
+                        <td class="p-3 whitespace-nowrap">
                             <button @click.stop="viewSubscribers(plan.id)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 transition">
                                 <span x-text="plan.subscribers_count || 0"></span> companies
                             </button>
                         </td>
-                        <td class="p-4 whitespace-nowrap">
+                        <td class="p-3 whitespace-nowrap">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <div x-data="dropdown()" class="relative" @click.stop>
-                                    <button @click="toggle" class="text-gray-500 dark:text-gray-400">
-                                        <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                    <button @click="toggle" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                                             <path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill=""/>
                                         </svg>
                                     </button>
-                                    <div x-show="open" @click.outside="open = false" class="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-10 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800" x-ref="dropdown">
-                                        <!-- View - Links to show page -->
-                                        <a :href="'/admin/subscriptions/company/' + plan.id" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                                    <div x-show="open" @click.outside="open = false" class="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-10 w-48 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800" x-ref="dropdown">
+                                        <!-- View - Links to show page using RESTful route -->
+                                        <a :href="'/admin/subscriptions/plans/' + plan.id" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                            </svg>
                                             View Details
                                         </a>
-                                        <button @click="openEditModal(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Edit</button>
+                                        <button @click="openEditModal(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                            </svg>
+                                            Edit
+                                        </button>
                                         <button @click="togglePlanStatus(plan)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium" :class="plan.is_active ? 'text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10' : 'text-green-500 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:hover:bg-green-500/10'">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                            </svg>
                                             <span x-text="plan.is_active ? 'Deactivate' : 'Activate'"></span>
                                         </button>
-                                        <button @click="deletePlan(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">Delete</button>
+                                        <button @click="deletePlan(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                            Delete
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -251,7 +273,6 @@
 
 <!-- Include Modals -->
 @include('partials.modal.subscriptions-create-modal')
-@include('partials.modal.subscriptions-show-modal')
 
 <script>
 const csrfTokenSubscriptions = "{{ csrf_token() }}";
@@ -272,14 +293,6 @@ document.addEventListener('alpine:init', () => {
         errorMessage: '',
         errorDetails: '',
         
-        get statusCounts() {
-            return {
-                all: this.plans.length,
-                active: this.plans.filter(p => p.is_active).length,
-                inactive: this.plans.filter(p => !p.is_active).length
-            };
-        },
-        
         get filteredPlans() {
             let filtered = this.plans;
             
@@ -296,7 +309,7 @@ document.addEventListener('alpine:init', () => {
                     p.slug?.toLowerCase().includes(query) ||
                     p.description?.toLowerCase().includes(query) ||
                     p.region_name?.toLowerCase().includes(query) ||
-                    p.county_name?.toLowerCase().includes(query)
+                    p.subcounty_name?.toLowerCase().includes(query)
                 );
             }
             return filtered;
@@ -387,11 +400,6 @@ document.addEventListener('alpine:init', () => {
             }
         },
         
-        formatCurrency(value) {
-            if (!value && value !== 0) return 'KES 0';
-            return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 0 }).format(value);
-        },
-        
         sort(field) {
             if (this.sortBy === field) {
                 this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
@@ -413,11 +421,6 @@ document.addEventListener('alpine:init', () => {
         
         previousPage() { 
             if (this.currentPage > 1) this.currentPage--; 
-        },
-        
-        goToShowPage(planId) {
-            // Navigate to the show page for this plan
-            window.location.href = `/admin/subscriptions/company/${planId}`;
         },
         
         openCreateModal() {
@@ -492,16 +495,17 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewSubscribers(planId) {
-            if (window.subscriptionsShowModal) {
-                window.subscriptionsShowModal.openModal(planId);
-            }
+            // Navigate to the plan show page with subscribers section
+            window.location.href = `/admin/subscriptions/plans/${planId}#subscribers`;
         }
     }));
     
     // Dropdown Component
     Alpine.data('dropdown', () => ({
         open: false,
-        toggle() { this.open = !this.open; }
+        toggle() { 
+            this.open = !this.open; 
+        }
     }));
 });
 </script>
