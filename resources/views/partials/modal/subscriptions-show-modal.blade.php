@@ -19,8 +19,8 @@
                             </svg>
                         </div>
                         <div>
-                            <h3 class="text-lg font-medium text-white" x-text="plan.name + ' - Subscribers'"></h3>
-                            <p class="text-sm text-purple-100">Companies subscribed to this plan</p>
+                            <h3 class="text-lg font-medium text-white" x-text="plan.display_name || plan.name + ' - Subscribers'"></h3>
+                            <p class="text-sm text-purple-100" x-text="plan.region_name ? plan.region_name + ' - ' + plan.name : 'Companies subscribed to this plan'"></p>
                         </div>
                     </div>
                     <button @click="closeModal()" class="text-white hover:text-gray-200">
@@ -34,14 +34,18 @@
             <!-- Modal Body -->
             <div class="px-6 py-4">
                 <!-- Plan Details Summary -->
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl dark:bg-gray-700/50">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl dark:bg-gray-700/50">
                     <div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Monthly Price</p>
-                        <p class="text-lg font-bold text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_monthly)"></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Price Per Unit</p>
+                        <p class="text-lg font-bold text-gray-900 dark:text-white">
+                            KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
+                        </p>
+                        <p class="text-xs text-gray-400">per unit / month</p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Yearly Price</p>
-                        <p class="text-lg font-bold text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_yearly)"></p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Unit Range</p>
+                        <p class="text-lg font-bold text-gray-900 dark:text-white" x-text="plan.unit_range || 'Unlimited'"></p>
+                        <p class="text-xs text-gray-400">units allowed</p>
                     </div>
                     <div>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Trial Days</p>
@@ -53,11 +57,31 @@
                     </div>
                 </div>
 
+                <!-- Plan Info -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Region</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="plan.region_name || 'N/A'"></p>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">County</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="plan.county_name || 'N/A'"></p>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Discount</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="plan.discount_percentage + '%'"></p>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-3">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                        <span :class="plan.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="inline-flex px-2 py-0.5 text-xs rounded-full" x-text="plan.is_active ? 'Active' : 'Inactive'"></span>
+                    </div>
+                </div>
+
                 <!-- Features List -->
                 <div class="mb-6">
                     <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Features</h4>
                     <div class="flex flex-wrap gap-2">
-                        <template x-for="feature in plan.features_json" :key="feature">
+                        <template x-for="feature in plan.features" :key="feature">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -65,7 +89,7 @@
                                 <span x-text="feature"></span>
                             </span>
                         </template>
-                        <span x-show="!plan.features_json || plan.features_json.length === 0" class="text-sm text-gray-500">No features listed</span>
+                        <span x-show="!plan.features || plan.features.length === 0" class="text-sm text-gray-500">No features listed</span>
                     </div>
                 </div>
 
@@ -134,10 +158,15 @@ document.addEventListener('alpine:init', () => {
         planId: null,
         plan: {
             name: '',
-            price_monthly: 0,
-            price_yearly: 0,
+            display_name: '',
+            region_name: '',
+            county_name: '',
+            price_per_unit: 0,
+            unit_range: '',
             trial_days: 0,
-            features_json: []
+            discount_percentage: 0,
+            is_active: true,
+            features: []
         },
         subscribers: [],
         
@@ -176,7 +205,18 @@ document.addEventListener('alpine:init', () => {
         closeModal() {
             this.showModal = false;
             this.planId = null;
-            this.plan = { name: '', price_monthly: 0, price_yearly: 0, trial_days: 0, features_json: [] };
+            this.plan = {
+                name: '',
+                display_name: '',
+                region_name: '',
+                county_name: '',
+                price_per_unit: 0,
+                unit_range: '',
+                trial_days: 0,
+                discount_percentage: 0,
+                is_active: true,
+                features: []
+            };
             this.subscribers = [];
         },
         
@@ -184,7 +224,7 @@ document.addEventListener('alpine:init', () => {
             if (!this.planId) return;
             
             try {
-                const response = await fetch(`/admin/subscriptions/plans/${this.planId}/subscribers`, {
+                const response = await fetch(`/admin/subscriptions/api/plans/${this.planId}/subscribers`, {
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
@@ -193,8 +233,8 @@ document.addEventListener('alpine:init', () => {
                 
                 if (response.ok) {
                     const data = await response.json();
-                    this.plan = data.plan;
-                    this.subscribers = data.subscribers;
+                    this.plan = data.plan || {};
+                    this.subscribers = data.subscribers || [];
                 }
             } catch (error) {
                 console.error('Error loading plan details:', error);

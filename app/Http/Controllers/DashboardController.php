@@ -17,6 +17,10 @@ use App\Models\SecurityLog;
 use App\Models\WaterReading;
 use App\Models\Company;
 use App\Models\Estate;
+use App\Helpers\SystemHelper;
+use App\Modules\Subscriptions\Models\CompanySubscription;
+use App\Modules\Subscriptions\Models\SubscriptionPlan;
+use App\Modules\Subscriptions\Models\SubscriptionInvoice;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -116,11 +120,12 @@ class DashboardController extends Controller
 /**
  * SYS ADMIN DASHBOARD
  */
+
 private function sysAdminDashboard()
 {
     $user = auth()->user();
     
-    // Get subscription statistics
+    // Get subscription statistics - GLOBAL
     $subscriptionStats = $this->getSubscriptionStats();
     
     $stats = [
@@ -130,15 +135,14 @@ private function sysAdminDashboard()
         'total_users' => User::count(),
         'verified_users' => User::whereNotNull('email_verified_at')->count(),
         'pending_verification_users' => User::whereNull('email_verified_at')->count(),
-        'total_units' => \App\Models\Unit::count(),
-        'total_tenants' => \App\Models\Tenant::count(),
-        'total_revenue' => \App\Models\Payment::sum('amount'),
+        'total_units' => Unit::count(),
+        'total_tenants' => Tenant::count(),
+        'total_revenue' => Payment::sum('amount'),
         'monthly_recurring_revenue' => $this->calculateMRR(),
-        // Add subscription stats
         'subscription_stats' => $subscriptionStats,
     ];
     
-    // Get pending users (email not verified)
+    // Get ALL pending users (GLOBAL)
     $pendingUsers = User::whereNull('email_verified_at')
         ->with('role', 'company')
         ->orderBy('created_at', 'desc')
@@ -154,43 +158,7 @@ private function sysAdminDashboard()
             ];
         });
     
-    // Get users pending company assignment (verified but no company)
-    $pendingCompanyUsers = User::whereNotNull('email_verified_at')
-        ->where('status', 0)
-        ->whereNull('company_id')
-        ->whereDoesntHave('role', function($q) {
-            $q->where('name', 'sysadmin');
-        })
-        ->with('role')
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role_name' => $user->role->name ?? 'N/A',
-                'created_at_formatted' => $user->created_at ? $user->created_at->format('M d, Y') : '-',
-            ];
-        });
-    
-    // Get inactive users
-    $inactiveUsers = User::where('status', 1)
-        ->with('role', 'company')
-        ->orderBy('updated_at', 'desc')
-        ->get()
-        ->map(function($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role_name' => $user->role->name ?? 'N/A',
-                'company_name' => $user->company->name ?? null,
-                'updated_at_formatted' => $user->updated_at ? $user->updated_at->format('M d, Y') : '-',
-            ];
-        });
-    
-    // Get companies with subscription data
+    // Get ALL companies with subscription data (GLOBAL)
     $companies = Company::with(['currentSubscription.plan'])
         ->select('id', 'name', 'email', 'phone', 'is_active', 'subscription_status', 'created_at')
         ->withCount(['users', 'units'])
@@ -200,6 +168,11 @@ private function sysAdminDashboard()
             $subscription = $company->currentSubscription;
             $plan = $subscription ? $subscription->plan : null;
             $features = $plan ? ($plan->features_json ?? []) : [];
+            
+            // Count units for this company (BOTH occupied and available)
+            $unitCount = Unit::where('company_id', $company->id)
+                ->whereIn('status', ['occupied', 'available'])
+                ->count();
             
             return [
                 'id' => $company->id,
@@ -214,14 +187,16 @@ private function sysAdminDashboard()
                 'subscription_ends_at' => $subscription && $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
                 'pricing_type' => $features['pricing_type'] ?? 'fixed',
                 'price_per_unit' => $features['price_per_unit'] ?? null,
+                'unit_count' => $unitCount,
+                'monthly_price' => $plan ? $plan->calculateMonthlyPrice($unitCount) : 0,
                 'users_count' => $company->users_count ?? 0,
                 'units_count' => $company->units_count ?? 0,
                 'created_at' => $company->created_at ? $company->created_at->format('Y-m-d') : null,
             ];
         });
     
-    // Get subscription plans data for the subscriptions tab
-    $subscriptionPlans = \App\Modules\Subscriptions\Models\SubscriptionPlan::withCount('subscriptions')
+    // Get ALL subscription plans (GLOBAL)
+    $subscriptionPlans = SubscriptionPlan::withCount('subscriptions')
         ->orderBy('display_order')
         ->get()
         ->map(function($plan) {
@@ -250,8 +225,8 @@ private function sysAdminDashboard()
             ];
         });
     
-    // Get active subscriptions with company details
-    $activeSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'active')
+    // Get ALL active subscriptions (GLOBAL)
+    $activeSubscriptions = CompanySubscription::where('status', 'active')
         ->where(function($q) {
             $q->whereNull('ends_at')
               ->orWhere('ends_at', '>', now());
@@ -263,8 +238,8 @@ private function sysAdminDashboard()
             $plan = $subscription->plan;
             $features = $plan ? ($plan->features_json ?? []) : [];
             
-            // Calculate actual price based on company's active units
-            $unitCount = $company ? \App\Models\Unit::where('company_id', $company->id)
+            // Calculate actual price based on company's active units (BOTH occupied and available)
+            $unitCount = $company ? Unit::where('company_id', $company->id)
                 ->whereIn('status', ['occupied', 'available'])
                 ->count() : 0;
             
@@ -292,8 +267,8 @@ private function sysAdminDashboard()
             ];
         });
     
-    // Get expiring subscriptions (next 30 days)
-    $expiringSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'active')
+    // Get expiring subscriptions (GLOBAL - next 30 days)
+    $expiringSubscriptions = CompanySubscription::where('status', 'active')
         ->whereNotNull('ends_at')
         ->where('ends_at', '>', now())
         ->where('ends_at', '<=', now()->addDays(30))
@@ -309,71 +284,56 @@ private function sysAdminDashboard()
             ];
         });
     
-    // Get subscription revenue by plan
-    $revenueByPlan = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'active')
-        ->where(function($q) {
-            $q->whereNull('ends_at')
-              ->orWhere('ends_at', '>', now());
-        })
-        ->with(['company', 'plan'])
-        ->get()
-        ->groupBy(function($subscription) {
-            return $subscription->plan ? $subscription->plan->name : 'No Plan';
-        })
-        ->map(function($subscriptions, $planName) {
-            $total = 0;
-            foreach ($subscriptions as $subscription) {
-                $company = $subscription->company;
-                $plan = $subscription->plan;
-                $unitCount = $company ? \App\Models\Unit::where('company_id', $company->id)
-                    ->whereIn('status', ['occupied', 'available'])
-                    ->count() : 0;
-                $total += $plan ? $plan->calculateMonthlyPrice($unitCount) : 0;
-            }
-            return [
-                'plan_name' => $planName,
-                'count' => $subscriptions->count(),
-                'revenue' => $total,
-            ];
-        })->values();
+    // Get revenue by plan (GLOBAL)
+    $revenueByPlan = $this->getRevenueByPlan();
     
-    // Use SystemHelper for system settings
+    // System settings (GLOBAL)
     $systemSettings = [
-        'default_water_rate' => \App\Helpers\SystemHelper::get('settings.water.default_rate', 50),
-        'invoice_due_days' => \App\Helpers\SystemHelper::get('settings.invoice.due_days', 30),
-        'late_fee_percentage' => \App\Helpers\SystemHelper::get('settings.invoice.late_fee_percentage', 5),
-        'maintenance_sla_days' => \App\Helpers\SystemHelper::get('settings.maintenance.sla_days', 3),
+        'default_water_rate' => SystemHelper::get('settings.water.default_rate', 50),
+        'invoice_due_days' => SystemHelper::get('settings.invoice.due_days', 30),
+        'late_fee_percentage' => SystemHelper::get('settings.invoice.late_fee_percentage', 5),
+        'maintenance_sla_days' => SystemHelper::get('settings.maintenance.sla_days', 3),
     ];
     
+    // ==========================================
+    // THIS IS WHERE THE VARIABLES ARE PASSED
+    // ==========================================
     return view('partials.dashboard.sys-admin', compact(
-        'user', 'stats', 'companies', 
-        'pendingUsers', 'pendingCompanyUsers', 'inactiveUsers',
-        'systemSettings', 'subscriptionPlans', 'activeSubscriptions',
-        'expiringSubscriptions', 'revenueByPlan', 'subscriptionStats'
+        'user',      // Current authenticated user
+        'stats',     // Dashboard statistics (total companies, users, etc.)
+        'companies', // All companies with their subscription data
+        'pendingUsers', // Users pending verification
+        'systemSettings', // System-wide settings
+        'subscriptionPlans', // All subscription plans
+        'activeSubscriptions', // All active subscriptions
+        'expiringSubscriptions', // Subscriptions expiring in 30 days
+        'revenueByPlan', // Revenue breakdown by plan
+        'subscriptionStats' // Detailed subscription statistics
     ));
 }
 
+
 /**
- * Get comprehensive subscription statistics
+ * Get comprehensive subscription statistics with proper per-unit calculations
  */
 private function getSubscriptionStats()
 {
-    $totalSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::count();
-    $activeSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'active')
+    $totalSubscriptions = CompanySubscription::count();
+    $activeSubscriptions = CompanySubscription::where('status', 'active')
         ->where(function($q) {
             $q->whereNull('ends_at')
               ->orWhere('ends_at', '>', now());
         })
         ->count();
     
-    $trialSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'trial')
+    $trialSubscriptions = CompanySubscription::where('status', 'trial')
         ->where(function($q) {
             $q->whereNull('trial_ends_at')
               ->orWhere('trial_ends_at', '>', now());
         })
         ->count();
     
-    $expiredSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where(function($q) {
+    $expiredSubscriptions = CompanySubscription::where(function($q) {
             $q->where('status', 'expired')
               ->orWhere(function($sq) {
                   $sq->where('status', 'active')
@@ -383,29 +343,73 @@ private function getSubscriptionStats()
         })
         ->count();
     
-    $cancelledSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'cancelled')
+    $cancelledSubscriptions = CompanySubscription::where('status', 'cancelled')
         ->count();
     
-    $monthlySubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('billing_cycle', 'monthly')
+    $monthlySubscriptions = CompanySubscription::where('billing_cycle', 'monthly')
         ->where('status', 'active')
         ->count();
     
-    $yearlySubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('billing_cycle', 'yearly')
+    $yearlySubscriptions = CompanySubscription::where('billing_cycle', 'yearly')
         ->where('status', 'active')
         ->count();
     
-    // Get plans distribution
+    // Get plans distribution with proper pricing
     $plansDistribution = \App\Modules\Subscriptions\Models\SubscriptionPlan::withCount(['subscriptions' => function($q) {
         $q->where('status', 'active');
     }])->get()->map(function($plan) {
+        // Get the plan features
+        $features = $plan->features_json ?? [];
+        $pricingType = $features['pricing_type'] ?? 'fixed';
+        $pricePerUnit = $features['price_per_unit'] ?? 0;
+        $maxUnits = $features['max_units'] ?? 0;
+        
+        // Calculate average unit count for this plan's subscribers
+        $subscribers = $plan->subscriptions()->where('status', 'active')->get();
+        $totalUnits = 0;
+        $totalRevenue = 0;
+        
+        foreach ($subscribers as $subscription) {
+            $company = $subscription->company;
+            if ($company) {
+                // Count BOTH active and available units for maximum coverage
+                $unitCount = \App\Models\Unit::where('company_id', $company->id)
+                    ->whereIn('status', ['occupied', 'available'])
+                    ->count();
+                
+                $totalUnits += $unitCount;
+                
+                if ($pricingType === 'per_unit') {
+                    $monthlyPrice = $pricePerUnit * $unitCount;
+                } else {
+                    $monthlyPrice = $plan->price_monthly;
+                }
+                
+                $totalRevenue += $monthlyPrice;
+            }
+        }
+        
+        $avgUnits = $subscribers->count() > 0 ? round($totalUnits / $subscribers->count()) : 0;
+        $avgRevenue = $subscribers->count() > 0 ? round($totalRevenue / $subscribers->count()) : 0;
+        
         return [
             'name' => $plan->name,
             'count' => $plan->subscriptions_count,
+            'pricing_type' => $pricingType,
+            'price_per_unit' => $pricePerUnit,
+            'max_units' => $maxUnits === 0 ? 'Unlimited' : number_format($maxUnits),
+            'avg_units' => $avgUnits,
+            'avg_revenue' => $avgRevenue,
+            'monthly_price' => (float) $plan->price_monthly,
+            'yearly_price' => (float) $plan->price_yearly,
         ];
     });
     
-    // Calculate total MRR
+    // Calculate total MRR with proper per-unit calculation
     $mrr = $this->calculateMRR();
+    
+    // Get revenue by plan with proper per-unit calculation
+    $revenueByPlan = $this->getRevenueByPlan();
     
     return [
         'total' => $totalSubscriptions,
@@ -417,15 +421,17 @@ private function getSubscriptionStats()
         'yearly_cycle' => $yearlySubscriptions,
         'plans_distribution' => $plansDistribution,
         'total_mrr' => $mrr,
+        'revenue_by_plan' => $revenueByPlan,
     ];
 }
 
 /**
- * Calculate Monthly Recurring Revenue
+ * Calculate Monthly Recurring Revenue with per-unit pricing
+ * FIXED: Counts BOTH active and available units for maximum coverage
  */
 private function calculateMRR()
 {
-    $activeSubscriptions = \App\Modules\Subscriptions\Models\CompanySubscription::where('status', 'active')
+    $activeSubscriptions = CompanySubscription::where('status', 'active')
         ->where(function($q) {
             $q->whereNull('ends_at')
               ->orWhere('ends_at', '>', now());
@@ -439,22 +445,95 @@ private function calculateMRR()
         $company = $subscription->company;
         $plan = $subscription->plan;
         
-        if (!$plan) continue;
+        if (!$company || !$plan) continue;
         
-        // Calculate number of active units for this company
-        $unitCount = $company ? \App\Models\Unit::where('company_id', $company->id)
+        // FIXED: Count BOTH active AND available units for maximum coverage
+        $unitCount = \App\Models\Unit::where('company_id', $company->id)
             ->whereIn('status', ['occupied', 'available'])
-            ->count() : 0;
+            ->count();
+        
+        $features = $plan->features_json ?? [];
+        $pricingType = $features['pricing_type'] ?? 'fixed';
+        
+        if ($pricingType === 'per_unit') {
+            $pricePerUnit = $features['price_per_unit'] ?? 0;
+            $monthlyPrice = $pricePerUnit * $unitCount;
+        } else {
+            $monthlyPrice = (float) $plan->price_monthly;
+        }
         
         if ($subscription->billing_cycle === 'monthly') {
-            $mrr += $plan->calculateMonthlyPrice($unitCount);
+            $mrr += $monthlyPrice;
         } elseif ($subscription->billing_cycle === 'yearly') {
-            $mrr += ($plan->calculateYearlyPrice($unitCount) / 12);
+            $mrr += ($monthlyPrice * 12 * 0.9) / 12; // 10% discount for yearly
         }
     }
     
     return $mrr;
 }
+
+/**
+ * Get revenue breakdown by plan with per-unit pricing
+ */
+private function getRevenueByPlan()
+{
+    $activeSubscriptions = CompanySubscription::where('status', 'active')
+        ->where(function($q) {
+            $q->whereNull('ends_at')
+              ->orWhere('ends_at', '>', now());
+        })
+        ->with(['company', 'plan'])
+        ->get();
+    
+    $revenueByPlan = [];
+    
+    foreach ($activeSubscriptions as $subscription) {
+        $company = $subscription->company;
+        $plan = $subscription->plan;
+        
+        if (!$company || !$plan) continue;
+        
+        $planName = $plan->name;
+        
+        // Count BOTH active and available units
+        $unitCount = \App\Models\Unit::where('company_id', $company->id)
+            ->whereIn('status', ['occupied', 'available'])
+            ->count();
+        
+        $features = $plan->features_json ?? [];
+        $pricingType = $features['pricing_type'] ?? 'fixed';
+        
+        if ($pricingType === 'per_unit') {
+            $pricePerUnit = $features['price_per_unit'] ?? 0;
+            $monthlyPrice = $pricePerUnit * $unitCount;
+        } else {
+            $monthlyPrice = (float) $plan->price_monthly;
+        }
+        
+        if (!isset($revenueByPlan[$planName])) {
+            $revenueByPlan[$planName] = [
+                'plan_name' => $planName,
+                'count' => 0,
+                'revenue' => 0,
+                'total_units' => 0,
+                'avg_units' => 0
+            ];
+        }
+        
+        $revenueByPlan[$planName]['count']++;
+        $revenueByPlan[$planName]['revenue'] += $monthlyPrice;
+        $revenueByPlan[$planName]['total_units'] += $unitCount;
+    }
+    
+    // Calculate averages
+    foreach ($revenueByPlan as &$plan) {
+        $plan['avg_units'] = $plan['count'] > 0 ? round($plan['total_units'] / $plan['count']) : 0;
+    }
+    
+    return array_values($revenueByPlan);
+}
+
+
 
 
     

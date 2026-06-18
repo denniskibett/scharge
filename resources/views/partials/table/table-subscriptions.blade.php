@@ -5,20 +5,17 @@
     <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
         <div>
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Subscription Plans</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Manage subscription plans and pricing</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage region-based subscription plans and pricing</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <!-- Status Filter -->
+            <!-- Region Filter -->
             <div class="hidden h-11 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 lg:inline-flex dark:bg-gray-900">
-                <button @click="filterStatus = 'all'; currentPage = 1" :class="filterStatus === 'all' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
-                    All (<span x-text="statusCounts.all"></span>)
+                <button @click="filterRegion = 'all'; currentPage = 1" :class="filterRegion === 'all' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
+                    All (<span x-text="regions.length"></span>)
                 </button>
-                <button @click="filterStatus = 'active'; currentPage = 1" :class="filterStatus === 'active' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
-                    Active (<span x-text="statusCounts.active"></span>)
-                </button>
-                <button @click="filterStatus = 'inactive'; currentPage = 1" :class="filterStatus === 'inactive' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
-                    Inactive (<span x-text="statusCounts.inactive"></span>)
-                </button>
+                <template x-for="region in regions" :key="region.id">
+                    <button @click="filterRegion = region.id; currentPage = 1" :class="filterRegion === region.id ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium" x-text="region.name"></button>
+                </template>
             </div>
 
             <!-- Search -->
@@ -49,8 +46,25 @@
         <span class="ml-3 text-gray-500">Loading subscription plans...</span>
     </div>
     
+    <!-- Error State -->
+    <div x-show="!loading && error" class="text-center py-12">
+        <div class="mx-auto h-12 w-12 text-red-500">
+            <svg class="h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        <h3 class="mt-2 text-sm font-medium text-red-600 dark:text-red-400">Error Loading Plans</h3>
+        <p class="mt-1 text-sm text-gray-500" x-text="errorMessage || 'Could not load subscription plans. Please check your connection.'"></p>
+        <p class="mt-1 text-xs text-gray-400" x-text="errorDetails || ''"></p>
+        <div class="mt-6">
+            <button @click="loadPlans()" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                Retry
+            </button>
+        </div>
+    </div>
+    
     <!-- Table Content -->
-    <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
+    <div x-show="!loading && !error" class="custom-scrollbar overflow-x-auto">
         <table class="w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
@@ -63,49 +77,50 @@
                             </span>
                         </div>
                     </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('name')">
+                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('display_name')">
                         <div class="flex items-center gap-3">
-                            <p>Plan Name</p>
+                            <p>Region / Plan</p>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'name' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'name' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'display_name' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'display_name' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_monthly')">
+                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_per_unit')">
                         <div class="flex items-center gap-3">
-                            <p>Monthly Price</p>
+                            <p>Price/Unit</p>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'price_monthly' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'price_monthly' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'price_per_unit' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'price_per_unit' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
-                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_yearly')">
+                    <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('min_units')">
                         <div class="flex items-center gap-3">
-                            <p>Yearly Price</p>
+                            <p>Unit Range</p>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortBy === 'price_yearly' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortBy === 'price_yearly' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'min_units' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortBy === 'min_units' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
                     <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('trial_days')">
                         <div class="flex items-center gap-3">
-                            <p>Trial Days</p>
+                            <p>Trial</p>
                             <span class="flex flex-col gap-0.5">
                                 <svg :class="sortBy === 'trial_days' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
                                 <svg :class="sortBy === 'trial_days' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Discount</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Features</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Status</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Subscribers</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
                 </tr>
             </thead>
-            <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody>
                 <template x-for="plan in paginatedPlans" :key="plan.id">
                     <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer" @click="goToShowPage(plan.id)">
                         <td class="p-4 whitespace-nowrap">
@@ -113,46 +128,49 @@
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <div>
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-400" x-text="plan.name"></span>
-                                <p class="text-xs text-gray-500 dark:text-gray-400" x-text="plan.slug"></p>
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" x-text="plan.region_name"></span>
+                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-400" x-text="plan.name"></span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="plan.slug"></p>
+                                <p x-show="plan.county_name" class="text-xs text-gray-400 dark:text-gray-500" x-text="'County: ' + plan.county_name"></p>
                             </div>
                         </td>
-                        <!-- Updated Pricing Column -->
                         <td class="p-4 whitespace-nowrap">
-                            <div x-show="plan.pricing_type === 'per_unit'">
+                            <div>
                                 <p class="text-sm font-medium text-gray-900 dark:text-white">
                                     KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
                                 </p>
                                 <p class="text-xs text-gray-500">per unit / month</p>
-                            </div>
-                            <div x-show="plan.pricing_type !== 'per_unit'">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_monthly)"></p>
-                                <p class="text-xs text-gray-500">/month</p>
+                                <p x-show="plan.discount_percentage > 0" class="text-xs text-green-600 dark:text-green-400">
+                                    <span x-text="plan.discount_percentage"></span>% off yearly
+                                </p>
                             </div>
                         </td>
-                        <!-- Updated Yearly Price Column -->
                         <td class="p-4 whitespace-nowrap">
-                            <div x-show="plan.pricing_type === 'per_unit'">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                    KES <span x-text="(plan.price_per_unit * 12 * 0.9)?.toLocaleString() || 0"></span>
-                                </p>
-                                <p class="text-xs text-gray-500">per unit / year (10% off)</p>
-                            </div>
-                            <div x-show="plan.pricing_type !== 'per_unit'">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white" x-text="formatCurrency(plan.price_yearly)"></p>
-                                <p class="text-xs text-gray-500">/year</p>
+                            <div>
+                                <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.unit_range || 'Unlimited'"></p>
+                                <p class="text-xs text-gray-500">units allowed</p>
+                                <p x-show="plan.max_units === 0" class="text-xs text-purple-600 dark:text-purple-400">♾️ Unlimited</p>
                             </div>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <p class="text-sm text-gray-700 dark:text-gray-400" x-text="plan.trial_days + ' days'"></p>
+                            <p x-show="plan.trial_days === 0" class="text-xs text-gray-400">No trial</p>
+                        </td>
+                        <td class="p-4 whitespace-nowrap">
+                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                                <span x-text="plan.discount_percentage || 0"></span>%
+                            </span>
+                            <p x-show="plan.discount_percentage > 0" class="text-xs text-green-600 dark:text-green-400 mt-1">yearly discount</p>
                         </td>
                         <td class="p-4">
                             <div class="flex flex-wrap gap-1 max-w-xs">
-                                <template x-for="(feature, index) in plan.features_json?.slice(0, 2)" :key="index">
+                                <template x-for="(feature, index) in plan.features?.slice(0, 2)" :key="index">
                                     <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" x-text="feature"></span>
                                 </template>
-                                <span x-show="plan.features_json?.length > 2" class="text-xs text-gray-500" x-text="'+ ' + (plan.features_json.length - 2) + ' more'"></span>
-                                <span x-show="!plan.features_json || plan.features_json.length === 0" class="text-xs text-gray-400">No features</span>
+                                <span x-show="plan.features?.length > 2" class="text-xs text-gray-500" x-text="'+ ' + (plan.features.length - 2) + ' more'"></span>
+                                <span x-show="!plan.features || plan.features.length === 0" class="text-xs text-gray-400">No features</span>
                             </div>
                         </td>
                         <td class="p-4 whitespace-nowrap">
@@ -172,7 +190,10 @@
                                         </svg>
                                     </button>
                                     <div x-show="open" @click.outside="open = false" class="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-10 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800" x-ref="dropdown">
-                                        <button @click="goToShowPage(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">View</button>
+                                        <!-- View - Links to show page -->
+                                        <a :href="'/admin/subscriptions/company/' + plan.id" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                                            View Details
+                                        </a>
                                         <button @click="openEditModal(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Edit</button>
                                         <button @click="togglePlanStatus(plan)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium" :class="plan.is_active ? 'text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10' : 'text-green-500 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:hover:bg-green-500/10'">
                                             <span x-text="plan.is_active ? 'Deactivate' : 'Activate'"></span>
@@ -189,7 +210,7 @@
     </div>
     
     <!-- Empty State -->
-    <div x-show="!loading && filteredPlans.length === 0" class="text-center py-12">
+    <div x-show="!loading && !error && filteredPlans.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
         </svg>
@@ -203,7 +224,7 @@
     </div>
     
     <!-- Pagination -->
-    <div x-show="!loading && filteredPlans.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
+    <div x-show="!loading && !error && filteredPlans.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
         <div class="pb-3 sm:pb-0">
             <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">
                 Showing <span x-text="((currentPage - 1) * itemsPerPage) + (paginatedPlans.length ? 1 : 0)"></span>
@@ -239,13 +260,17 @@ document.addEventListener('alpine:init', () => {
     // Subscriptions Table Component
     Alpine.data('subscriptionsTable', () => ({
         plans: [],
+        regions: [],
         sortBy: 'display_order',
         sortDirection: 'asc',
         currentPage: 1,
         itemsPerPage: 10,
-        filterStatus: 'all',
+        filterRegion: 'all',
         searchQuery: '',
         loading: true,
+        error: false,
+        errorMessage: '',
+        errorDetails: '',
         
         get statusCounts() {
             return {
@@ -257,17 +282,21 @@ document.addEventListener('alpine:init', () => {
         
         get filteredPlans() {
             let filtered = this.plans;
-            if (this.filterStatus === 'active') {
-                filtered = filtered.filter(p => p.is_active);
-            } else if (this.filterStatus === 'inactive') {
-                filtered = filtered.filter(p => !p.is_active);
+            
+            // Filter by region
+            if (this.filterRegion !== 'all') {
+                filtered = filtered.filter(p => p.region_id === this.filterRegion);
             }
+            
+            // Search
             if (this.searchQuery) {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(p => 
                     p.name?.toLowerCase().includes(query) ||
                     p.slug?.toLowerCase().includes(query) ||
-                    p.description?.toLowerCase().includes(query)
+                    p.description?.toLowerCase().includes(query) ||
+                    p.region_name?.toLowerCase().includes(query) ||
+                    p.county_name?.toLowerCase().includes(query)
                 );
             }
             return filtered;
@@ -314,21 +343,44 @@ document.addEventListener('alpine:init', () => {
         
         async loadPlans() {
             this.loading = true;
+            this.error = false;
+            this.errorMessage = '';
+            this.errorDetails = '';
+            
             try {
-                const response = await fetch('/admin/subscriptions/plans/data', {
+                console.log('Loading subscription plans...');
+                const response = await fetch('/admin/subscriptions/api/plans/data', {
                     headers: {
                         'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfTokenSubscriptions
                     }
                 });
-                if (response.ok) {
-                    const result = await response.json();
-                    this.plans = result.plans;
-                } else {
-                    this.plans = [];
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Response error:', text);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
+                
+                const result = await response.json();
+                console.log('Plans response:', result);
+                
+                if (result.success) {
+                    this.plans = result.plans || [];
+                    this.regions = result.regions || [];
+                    console.log('Loaded ' + this.plans.length + ' plans from ' + this.regions.length + ' regions');
+                } else {
+                    throw new Error(result.message || 'Failed to load plans');
+                }
+                
             } catch (error) {
                 console.error('Error fetching plans:', error);
+                this.error = true;
+                this.errorMessage = error.message || 'Could not load subscription plans. Please check your connection.';
+                this.errorDetails = error.stack || '';
                 this.plans = [];
             } finally {
                 this.loading = false;
@@ -364,7 +416,8 @@ document.addEventListener('alpine:init', () => {
         },
         
         goToShowPage(planId) {
-            window.location.href = `/admin/subscriptions/plans/${planId}`;
+            // Navigate to the show page for this plan
+            window.location.href = `/admin/subscriptions/company/${planId}`;
         },
         
         openCreateModal() {
@@ -389,7 +442,10 @@ document.addEventListener('alpine:init', () => {
                         'X-CSRF-TOKEN': csrfTokenSubscriptions,
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ ...plan, is_active: newStatus })
+                    body: JSON.stringify({ 
+                        ...plan, 
+                        is_active: newStatus 
+                    })
                 });
                 
                 const result = await response.json();
@@ -397,6 +453,7 @@ document.addEventListener('alpine:init', () => {
                 if (result.success) {
                     plan.is_active = newStatus;
                     await this.loadPlans();
+                    alert(result.message || 'Plan status updated successfully!');
                 } else {
                     alert(result.message || 'Error updating plan status');
                 }

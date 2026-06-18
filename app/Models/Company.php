@@ -124,4 +124,5 @@ class Company extends Model
         
         return max(0, $maxUsers - $currentUsers);
     }
+
 }

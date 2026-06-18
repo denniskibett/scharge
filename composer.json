@@ -11,6 +11,7 @@
     "require": {
         "php": "^8.2",
         "bavix/laravel-wallet": "^11.5",
+        "kdbz/kenya-county": "^1.0",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "league/iso3166": "^4.3",
