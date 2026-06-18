@@ -16,18 +16,15 @@ class SubscriptionPlan extends Model
     protected $table = 'subscription_plans';
 
     protected $fillable = [
-        'name', 'slug', 'description', 'region_id', 'subcounty_id',
-        'price_per_unit', 'min_units', 'max_units',
-        'trial_days', 'discount_percentage', 'features',
-        'is_active', 'display_order'
+        'name', 'slug', 'description', 'region_id', 'subcounty',
+        'price_per_unit', 'trial_days', 'discount_percentage',
+        'is_active', 'features'
     ];
 
     protected $casts = [
         'features' => 'array',
         'is_active' => 'boolean',
         'price_per_unit' => 'decimal:2',
-        'min_units' => 'integer',
-        'max_units' => 'integer',
         'discount_percentage' => 'decimal:2',
         'trial_days' => 'integer'
     ];
@@ -45,11 +42,12 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Get the subcounty that owns this plan
+     * Get the subcounty (ward) by constituency name
+     * Note: This returns the first matching subcounty
      */
-    public function subcounty()
+    public function subcountyRelation()
     {
-        return $this->belongsTo(Subcounty::class, 'subcounty_id');
+        return $this->belongsTo(Subcounty::class, 'subcounty', 'constituency_name');
     }
 
     /**
@@ -78,7 +76,7 @@ class SubscriptionPlan extends Model
      */
     public function calculateMonthlyPrice($unitCount)
     {
-        return $this->price_per_unit * max($unitCount, $this->min_units ?? 1);
+        return $this->price_per_unit * max($unitCount, 1);
     }
 
     /**
@@ -111,53 +109,8 @@ class SubscriptionPlan extends Model
     }
 
     // =============================================
-    // VALIDATION METHODS
-    // =============================================
-
-    /**
-     * Check if unit count is within plan limits
-     */
-    public function isWithinUnitLimit($unitCount)
-    {
-        if ($this->max_units > 0 && $unitCount > $this->max_units) {
-            return false;
-        }
-        if ($unitCount < $this->min_units) {
-            return false;
-        }
-        return true;
-    }
-
-    /**
-     * Get the minimum units for this plan
-     */
-    public function getMinUnitsForDisplay()
-    {
-        return $this->min_units ?: 1;
-    }
-
-    /**
-     * Get the maximum units for this plan
-     */
-    public function getMaxUnitsForDisplay()
-    {
-        return $this->max_units ?: 'Unlimited';
-    }
-
-    // =============================================
     // DISPLAY ATTRIBUTES
     // =============================================
-
-    /**
-     * Get unit range for display
-     */
-    public function getUnitRangeAttribute()
-    {
-        if ($this->max_units === 0) {
-            return $this->min_units . '+ units';
-        }
-        return $this->min_units . ' - ' . number_format($this->max_units) . ' units';
-    }
 
     /**
      * Get display name with region
@@ -190,37 +143,6 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Get features list
-     */
-    public function getFeaturesListAttribute()
-    {
-        return $this->features ?? [];
-    }
-
-    /**
-     * Get features as HTML bullet list
-     */
-    public function getFeaturesHtmlAttribute()
-    {
-        if (empty($this->features)) {
-            return '<p class="text-sm text-gray-400">No features listed</p>';
-        }
-        
-        $html = '<ul class="space-y-1.5">';
-        foreach ($this->features as $feature) {
-            $html .= '<li class="flex items-start gap-2.5">';
-            $html .= '<svg class="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
-            $html .= '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>';
-            $html .= '</svg>';
-            $html .= '<span class="text-sm text-gray-600 dark:text-gray-300">' . htmlspecialchars($feature) . '</span>';
-            $html .= '</li>';
-        }
-        $html .= '</ul>';
-        
-        return $html;
-    }
-
-    /**
      * Get region name attribute (shortcut)
      */
     public function getRegionNameAttribute()
@@ -237,19 +159,44 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Get subcounty name attribute (shortcut)
-     */
-    public function getSubcountyNameAttribute()
-    {
-        return $this->subcounty?->name;
-    }
-
-    /**
      * Get subscriber count
      */
     public function getSubscriberCountAttribute()
     {
         return $this->activeSubscriptions()->count();
+    }
+
+    /**
+     * Get product capabilities from features
+     */
+    public function getProductCapabilitiesAttribute()
+    {
+        $features = $this->features ?? [];
+        return $features['product_capabilities'] ?? [
+            'max_units' => 0,
+            'max_users' => 0,
+            'max_tenants' => 0,
+            'storage_gb' => 0,
+            'max_properties' => 0
+        ];
+    }
+
+    /**
+     * Get business features from features
+     */
+    public function getBusinessFeaturesAttribute()
+    {
+        $features = $this->features ?? [];
+        return $features['business_features'] ?? [];
+    }
+
+    /**
+     * Get wards from features
+     */
+    public function getWardsAttribute()
+    {
+        $features = $this->features ?? [];
+        return $features['wards'] ?? [];
     }
 
     // =============================================
@@ -265,11 +212,11 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Scope by subcounty
+     * Scope by constituency
      */
-    public function scopeForSubcounty($query, $subcountyId)
+    public function scopeForConstituency($query, $constituencyName)
     {
-        return $query->where('subcounty_id', $subcountyId);
+        return $query->where('subcounty', $constituencyName);
     }
 
     /**
@@ -281,32 +228,10 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Scope ordered by region then display order
+     * Scope ordered by region then id
      */
     public function scopeOrdered($query)
     {
-        return $query->orderBy('region_id')->orderBy('display_order');
-    }
-
-    /**
-     * Scope for plans that support a given unit count
-     */
-    public function scopeSupportsUnitCount($query, $unitCount)
-    {
-        return $query->where(function($q) use ($unitCount) {
-            $q->where('min_units', '<=', $unitCount)
-              ->where(function($sub) use ($unitCount) {
-                  $sub->where('max_units', '>=', $unitCount)
-                      ->orWhere('max_units', 0);
-              });
-        });
-    }
-
-    /**
-     * Scope with region and subcounty relations eager loaded
-     */
-    public function scopeWithRelations($query)
-    {
-        return $query->with(['region', 'subcounty', 'activeSubscriptions']);
+        return $query->orderBy('region_id')->orderBy('id', 'desc');
     }
 }

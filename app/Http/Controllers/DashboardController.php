@@ -197,7 +197,7 @@ private function sysAdminDashboard()
     
     // Get ALL subscription plans (GLOBAL)
     $subscriptionPlans = SubscriptionPlan::withCount('subscriptions')
-        ->orderBy('display_order')
+        ->orderBy('region_id')
         ->get()
         ->map(function($plan) {
             $features = $plan->features_json ?? [];
@@ -209,7 +209,7 @@ private function sysAdminDashboard()
                 'price_monthly' => (float) $plan->price_monthly,
                 'price_yearly' => (float) $plan->price_yearly,
                 'trial_days' => $plan->trial_days,
-                'display_order' => $plan->display_order,
+                'region_id' => $plan->region_id,
                 'is_active' => (bool) $plan->is_active,
                 'features' => $features['features_list'] ?? [],
                 'subscribers_count' => $plan->subscriptions_count,

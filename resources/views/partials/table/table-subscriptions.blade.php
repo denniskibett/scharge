@@ -8,19 +8,20 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Manage region-based subscription plans and pricing</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <!-- Region Filter - Dropdown -->
+            <!-- Region Filter - DROPDOWN -->
             <div class="relative">
-                <select x-model="filterRegion" @change="currentPage = 1" class="h-11 w-full min-w-[180px] rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-10 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20 appearance-none cursor-pointer">
+                <select x-model="filterRegion" @change="currentPage = 1" 
+                    class="h-11 w-full min-w-[180px] rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
                     <option value="all">All Regions (<span x-text="regions.length"></span>)</option>
                     <template x-for="region in regions" :key="region.id">
                         <option :value="region.id" x-text="region.display_name || region.name"></option>
                     </template>
                 </select>
-                <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
-                </div>
+                </span>
             </div>
 
             <!-- Search -->
@@ -30,7 +31,8 @@
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z" fill=""/>
                     </svg>
                 </span>
-                <input type="text" placeholder="Search plans..." x-model="searchQuery" @input="currentPage = 1" class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"/>
+                <input type="text" placeholder="Search plans..." x-model="searchQuery" @input="currentPage = 1" 
+                    class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"/>
             </div>
             
             <!-- Action Buttons -->
@@ -92,7 +94,12 @@
                         </div>
                     </th>
                     <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Region</th>
-                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Subcounty</th>
+                    <td class="p-3">
+                        <div>
+                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" x-text="plan.subcounty || 'N/A'"></span>
+                            <p x-show="plan.ward_names" class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="'Wards: ' + plan.ward_names"></p>
+                        </div>
+                    </td>
                     <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_per_unit')">
                         <div class="flex items-center gap-2">
                             <p>Price/Unit</p>
@@ -150,7 +157,7 @@
                             <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" x-text="plan.region_name || 'N/A'"></span>
                         </td>
                         <td class="p-3 whitespace-nowrap">
-                            <span class="text-xs text-gray-600 dark:text-gray-400" x-text="plan.subcounty_name || 'N/A'"></span>
+                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" x-text="plan.subcounty_name || 'N/A'"></span>
                         </td>
                         <td class="p-3 whitespace-nowrap">
                             <div>
@@ -186,41 +193,24 @@
                                 <span x-text="plan.subscribers_count || 0"></span> companies
                             </button>
                         </td>
-                        <td class="p-3 whitespace-nowrap">
+                        <td class="p-4 whitespace-nowrap">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <div x-data="dropdown()" class="relative" @click.stop>
-                                    <button @click="toggle" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                    <button @click="toggle" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition">
+                                        <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none">
                                             <path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill=""/>
                                         </svg>
                                     </button>
-                                    <div x-show="open" @click.outside="open = false" class="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-10 w-48 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800" x-ref="dropdown">
-                                        <!-- View - Links to show page using RESTful route -->
+                                    <div x-show="open" @click.outside="open = false" class="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800" x-ref="dropdown">
+                                        <!-- View - Links to show page -->
                                         <a :href="'/admin/subscriptions/plans/' + plan.id" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                            </svg>
                                             View Details
                                         </a>
-                                        <button @click="openEditModal(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                            Edit
-                                        </button>
+                                        <button @click="openEditModal(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Edit</button>
                                         <button @click="togglePlanStatus(plan)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium" :class="plan.is_active ? 'text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10' : 'text-green-500 hover:bg-green-50 hover:text-green-700 dark:text-green-400 dark:hover:bg-green-500/10'">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                                            </svg>
                                             <span x-text="plan.is_active ? 'Deactivate' : 'Activate'"></span>
                                         </button>
-                                        <button @click="deletePlan(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">
-                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                            </svg>
-                                            Delete
-                                        </button>
+                                        <button @click="deletePlan(plan.id)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">Delete</button>
                                     </div>
                                 </div>
                             </div>
@@ -495,7 +485,6 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewSubscribers(planId) {
-            // Navigate to the plan show page with subscribers section
             window.location.href = `/admin/subscriptions/plans/${planId}#subscribers`;
         }
     }));
@@ -503,9 +492,7 @@ document.addEventListener('alpine:init', () => {
     // Dropdown Component
     Alpine.data('dropdown', () => ({
         open: false,
-        toggle() { 
-            this.open = !this.open; 
-        }
+        toggle() { this.open = !this.open; }
     }));
 });
 </script>

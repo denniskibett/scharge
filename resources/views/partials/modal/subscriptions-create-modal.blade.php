@@ -45,21 +45,23 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Region <span class="text-red-500">*</span></label>
-                                    <select x-model="form.region_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" required>
+                                    <select x-model="form.region_id" @change="onRegionChange()" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" required>
                                         <option value="">Select Region</option>
                                         <template x-for="region in regions" :key="region.id">
                                             <option :value="region.id" x-text="region.display_name || region.name"></option>
                                         </template>
                                     </select>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-show="selectedCountyName">County: <span class="font-medium" x-text="selectedCountyName"></span></p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subcounty</label>
-                                    <select x-model="form.subcounty_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
-                                        <option value="">Optional</option>
-                                        <template x-for="subcounty in subcounties" :key="subcounty.id">
-                                            <option :value="subcounty.id" x-text="subcounty.name"></option>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Constituency <span class="text-red-500">*</span></label>
+                                    <select x-model="form.subcounty" @change="onConstituencyChange()" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" required>
+                                        <option value="">Select Constituency</option>
+                                        <template x-for="subcounty in filteredSubcounties" :key="subcounty.id">
+                                            <option :value="subcounty.subcounty" x-text="subcounty.display_name"></option>
                                         </template>
                                     </select>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-show="filteredSubcounties.length === 0 && form.region_id">No subcounties found for this county</p>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Plan Name <span class="text-red-500">*</span></label>
@@ -72,9 +74,9 @@
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Slug <span class="text-red-500">*</span></label>
                                     <input type="text" x-model="form.slug" 
                                         class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                                        placeholder="e.g., kileleshwa-starter"
+                                        placeholder="e.g., nairobi-cbd-starter"
                                         required>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unique identifier, region-plan combination</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unique identifier</p>
                                 </div>
                             </div>
                             <div class="mt-4">
@@ -85,13 +87,149 @@
                             </div>
                         </div>
 
-                        <!-- Pricing & Limits -->
+                        <!-- Wards Selection -->
+                        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                                Wards Covered
+                                <span class="ml-2 text-xs bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 px-2 py-0.5 rounded-full" x-text="selectedWards.length + ' selected'"></span>
+                            </h4>
+                            
+                            <div x-show="!form.subcounty" class="text-center py-4 text-gray-500 dark:text-gray-400">
+                                <svg class="mx-auto h-8 w-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm">Select a constituency first to load available wards</p>
+                            </div>
+                            
+                            <div x-show="form.subcounty && loadingWards" class="text-center py-4">
+                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+                                <p class="text-sm text-gray-500 mt-2">Loading wards...</p>
+                            </div>
+                            
+                            <div x-show="form.subcounty && !loadingWards && availableWards.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+                                <svg class="mx-auto h-8 w-8 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm">No wards found for this constituency</p>
+                            </div>
+                            
+                            <div x-show="form.subcounty && !loadingWards && availableWards.length > 0">
+                                <!-- Select All / Deselect All -->
+                                <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400" x-text="availableWards.length + ' wards available'"></span>
+                                    <div class="flex gap-2">
+                                        <button type="button" @click="selectAllWards()" class="text-xs text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 font-medium">
+                                            Select All
+                                        </button>
+                                        <span class="text-gray-300 dark:text-gray-600">|</span>
+                                        <button type="button" @click="deselectAllWards()" class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 font-medium">
+                                            Deselect All
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Wards Table -->
+                                <div class="overflow-x-auto max-h-48 overflow-y-auto">
+                                    <table class="w-full text-sm">
+                                        <thead class="sticky top-0 bg-gray-50 dark:bg-gray-800/80">
+                                            <tr class="border-b border-gray-200 dark:border-gray-700">
+                                                <th class="text-left py-2 px-3 text-gray-600 dark:text-gray-400 font-medium w-10">
+                                                    <input type="checkbox" @change="toggleAllWards()" :checked="selectedWards.length === availableWards.length && availableWards.length > 0"
+                                                        class="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500">
+                                                </th>
+                                                <th class="text-left py-2 px-3 text-gray-600 dark:text-gray-400 font-medium">Ward Name</th>
+                                                <th class="text-left py-2 px-3 text-gray-600 dark:text-gray-400 font-medium">Alias</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <template x-for="ward in availableWards" :key="ward.id">
+                                                <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                                                    <td class="py-2 px-3">
+                                                        <input type="checkbox" :value="ward.id" x-model="selectedWards"
+                                                            class="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500">
+                                                    </td>
+                                                    <td class="py-2 px-3 text-gray-700 dark:text-gray-300" x-text="ward.ward"></td>
+                                                    <td class="py-2 px-3 text-gray-500 dark:text-gray-400" x-text="ward.alias || '-'"></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Selected Wards Summary -->
+                                <div class="mt-3 flex flex-wrap gap-1.5">
+                                    <template x-for="wardId in selectedWards" :key="wardId">
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                                            <span x-text="getWardName(wardId)"></span>
+                                            <button type="button" @click="removeWard(wardId)" class="hover:text-purple-600 dark:hover:text-purple-300">
+                                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                </svg>
+                                            </button>
+                                        </span>
+                                    </template>
+                                    <span x-show="selectedWards.length === 0" class="text-xs text-gray-400">No wards selected</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Product Capabilities -->
                         <div class="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-purple-200 dark:border-purple-800/30">
                             <h4 class="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
                                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                                </svg>
+                                Product Capabilities
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Max Units</label>
+                                    <input type="number" x-model="form.product_capabilities.max_units" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                        placeholder="0 = Unlimited">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum units allowed</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Max Users</label>
+                                    <input type="number" x-model="form.product_capabilities.max_users" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                        placeholder="0 = Unlimited">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum user accounts</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Max Tenants</label>
+                                    <input type="number" x-model="form.product_capabilities.max_tenants" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                        placeholder="0 = Unlimited">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum tenant records</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Storage (GB)</label>
+                                    <input type="number" x-model="form.product_capabilities.storage_gb" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                        placeholder="0 = Unlimited">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Storage in GB</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Max Properties</label>
+                                    <input type="number" x-model="form.product_capabilities.max_properties" 
+                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+                                        placeholder="0 = Unlimited">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum properties</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pricing & Additional Settings -->
+                        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
-                                Pricing & Limits
+                                Pricing & Settings
                             </h4>
                             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div>
@@ -106,32 +244,6 @@
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Per unit per month</p>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Min Units</label>
-                                    <input type="number" x-model="form.min_units" 
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                                        placeholder="1">
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum units required</p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Max Units</label>
-                                    <input type="number" x-model="form.max_units" 
-                                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                                        placeholder="0 = Unlimited">
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">0 = Unlimited</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Additional Settings -->
-                        <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                            <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                </svg>
-                                Additional Settings
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Trial Days</label>
                                     <input type="number" x-model="form.trial_days" 
                                         class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
@@ -145,13 +257,6 @@
                                         placeholder="0">
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Yearly billing discount</p>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Display Order</label>
-                                    <input type="number" x-model="form.display_order" 
-                                        class="w-32 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-                                        placeholder="0">
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Lower numbers appear first</p>
-                                </div>
                             </div>
                             <div class="mt-4 flex items-center space-x-3">
                                 <div class="relative inline-flex items-center">
@@ -163,27 +268,27 @@
                             </div>
                         </div>
 
-                        <!-- Features List -->
+                        <!-- Business Features -->
                         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                             <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                                 </svg>
-                                Features & Benefits
+                                Business Features
                             </h4>
                             <div x-data="{ newFeature: '' }" class="space-y-3">
                                 <div class="flex gap-2">
                                     <input type="text" x-model="newFeature" 
                                         class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
                                         placeholder="Enter a feature (e.g., 24/7 Support)"
-                                        @keydown.enter.prevent="if(newFeature.trim()) { addFeature(newFeature); newFeature = ''; }">
-                                    <button type="button" @click="if(newFeature.trim()) { addFeature(newFeature); newFeature = ''; }" 
+                                        @keydown.enter.prevent="if(newFeature.trim()) { addBusinessFeature(newFeature); newFeature = ''; }">
+                                    <button type="button" @click="if(newFeature.trim()) { addBusinessFeature(newFeature); newFeature = ''; }" 
                                         class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition shadow-sm hover:shadow-md">
                                         Add
                                     </button>
                                 </div>
                                 <div class="space-y-2 max-h-40 overflow-y-auto">
-                                    <template x-for="(feature, index) in form.features" :key="index">
+                                    <template x-for="(feature, index) in form.business_features" :key="index">
                                         <div class="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg px-4 py-2.5 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition">
                                             <span class="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                                 <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -191,15 +296,40 @@
                                                 </svg>
                                                 <span x-text="feature"></span>
                                             </span>
-                                            <button type="button" @click="removeFeature(index)" class="text-red-400 hover:text-red-600 transition p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
+                                            <button type="button" @click="removeBusinessFeature(index)" class="text-red-400 hover:text-red-600 transition p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                                 </svg>
                                             </button>
                                         </div>
                                     </template>
-                                    <p x-show="form.features.length === 0" class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
+                                    <p x-show="form.business_features.length === 0" class="text-sm text-gray-400 dark:text-gray-500 text-center py-4">
                                         No features added yet. Add features to highlight plan benefits.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Price Preview -->
+                        <div x-show="form.price_per_unit > 0" class="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800/30">
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📊 Price Preview:</p>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <div class="bg-white dark:bg-gray-800/50 rounded p-2 text-center">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Per Unit</p>
+                                    <p class="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                        KES <span x-text="form.price_per_unit?.toLocaleString() || 0"></span>
+                                    </p>
+                                </div>
+                                <div class="bg-white dark:bg-gray-800/50 rounded p-2 text-center">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Monthly (min 1 unit)</p>
+                                    <p class="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                        KES <span x-text="(form.price_per_unit || 0).toLocaleString()"></span>
+                                    </p>
+                                </div>
+                                <div class="bg-white dark:bg-gray-800/50 rounded p-2 text-center">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Yearly</p>
+                                    <p class="text-lg font-bold text-purple-600 dark:text-purple-400">
+                                        KES <span x-text="((form.price_per_unit || 0) * 12 * (1 - (form.discount_percentage || 0) / 100)).toLocaleString()"></span>
                                     </p>
                                 </div>
                             </div>
@@ -238,22 +368,31 @@ document.addEventListener('alpine:init', () => {
         editingId: null,
         saving: false,
         regions: [],
-        subcounties: [],
+        allSubcounties: [],
+        filteredSubcounties: [],
+        availableWards: [],
+        selectedWards: [],
+        loadingWards: false,
+        selectedCountyName: '',
         
         form: {
             region_id: '',
-            subcounty_id: '',
+            subcounty: '',
             name: '',
             slug: '',
             description: '',
             price_per_unit: 0,
-            min_units: 1,
-            max_units: 0,
             trial_days: 0,
             discount_percentage: 0,
-            display_order: 0,
             is_active: true,
-            features: []
+            product_capabilities: {
+                max_units: 0,
+                max_users: 0,
+                max_tenants: 0,
+                storage_gb: 0,
+                max_properties: 0
+            },
+            business_features: []
         },
         
         init() {
@@ -289,21 +428,101 @@ document.addEventListener('alpine:init', () => {
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    this.subcounties = data.subcounties || [];
+                    this.allSubcounties = data.subcounties || [];
+                    this.filteredSubcounties = this.allSubcounties;
                 }
             } catch (error) {
                 console.error('Error loading subcounties:', error);
             }
         },
         
-        addFeature(feature) {
-            if (feature.trim()) {
-                this.form.features.push(feature.trim());
+        onRegionChange() {
+            const selectedRegion = this.regions.find(r => r.id === parseInt(this.form.region_id));
+            
+            if (selectedRegion && selectedRegion.county_id) {
+                this.filteredSubcounties = this.allSubcounties.filter(
+                    s => s.county_id === selectedRegion.county_id
+                );
+                this.selectedCountyName = selectedRegion.county_name || '';
+                
+                // Reset constituency if not in filtered list
+                const stillValid = this.filteredSubcounties.some(
+                    s => s.subcounty === this.form.subcounty
+                );
+                if (!stillValid) {
+                    this.form.subcounty = '';
+                    this.availableWards = [];
+                    this.selectedWards = [];
+                }
+            } else {
+                this.filteredSubcounties = this.allSubcounties;
+                this.selectedCountyName = '';
             }
         },
         
-        removeFeature(index) {
-            this.form.features.splice(index, 1);
+        async onConstituencyChange() {
+            this.selectedWards = [];
+            this.availableWards = [];
+            
+            if (!this.form.subcounty) {
+                return;
+            }
+            
+            this.loadingWards = true;
+            
+            try {
+                const response = await fetch(`/admin/subscriptions/api/subcounties/${encodeURIComponent(this.form.subcounty)}/wards`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    this.availableWards = data.wards || [];
+                }
+            } catch (error) {
+                console.error('Error loading wards:', error);
+                this.availableWards = [];
+            } finally {
+                this.loadingWards = false;
+            }
+        },
+        
+        selectAllWards() {
+            this.selectedWards = this.availableWards.map(w => w.id);
+        },
+        
+        deselectAllWards() {
+            this.selectedWards = [];
+        },
+        
+        toggleAllWards() {
+            if (this.selectedWards.length === this.availableWards.length) {
+                this.deselectAllWards();
+            } else {
+                this.selectAllWards();
+            }
+        },
+        
+        getWardName(wardId) {
+            const ward = this.availableWards.find(w => w.id === wardId);
+            return ward ? ward.ward : 'Unknown';
+        },
+        
+        removeWard(wardId) {
+            this.selectedWards = this.selectedWards.filter(id => id !== wardId);
+        },
+        
+        addBusinessFeature(feature) {
+            if (feature.trim()) {
+                this.form.business_features.push(feature.trim());
+            }
+        },
+        
+        removeBusinessFeature(index) {
+            this.form.business_features.splice(index, 1);
         },
         
         openModal(planId = null) {
@@ -329,19 +548,27 @@ document.addEventListener('alpine:init', () => {
         resetForm() {
             this.form = {
                 region_id: '',
-                subcounty_id: '',
+                subcounty: '',
                 name: '',
                 slug: '',
                 description: '',
                 price_per_unit: 0,
-                min_units: 1,
-                max_units: 0,
                 trial_days: 0,
                 discount_percentage: 0,
-                display_order: 0,
                 is_active: true,
-                features: []
+                product_capabilities: {
+                    max_units: 0,
+                    max_users: 0,
+                    max_tenants: 0,
+                    storage_gb: 0,
+                    max_properties: 0
+                },
+                business_features: []
             };
+            this.selectedWards = [];
+            this.availableWards = [];
+            this.filteredSubcounties = this.allSubcounties;
+            this.selectedCountyName = '';
         },
         
         async loadPlan(planId) {
@@ -355,21 +582,67 @@ document.addEventListener('alpine:init', () => {
                 
                 if (response.ok) {
                     const plan = await response.json();
-                    this.form = {
-                        region_id: plan.region_id || '',
-                        subcounty_id: plan.subcounty_id || '',
-                        name: plan.name || '',
-                        slug: plan.slug || '',
-                        description: plan.description || '',
-                        price_per_unit: parseFloat(plan.price_per_unit) || 0,
-                        min_units: parseInt(plan.min_units) || 1,
-                        max_units: parseInt(plan.max_units) || 0,
-                        trial_days: parseInt(plan.trial_days) || 0,
-                        discount_percentage: parseFloat(plan.discount_percentage) || 0,
-                        display_order: parseInt(plan.display_order) || 0,
-                        is_active: plan.is_active !== undefined ? plan.is_active : true,
-                        features: plan.features || []
+                    
+                    // Set all form fields
+                    this.form.region_id = plan.region_id || '';
+                    this.form.subcounty = plan.subcounty || '';
+                    this.form.name = plan.name || '';
+                    this.form.slug = plan.slug || '';
+                    this.form.description = plan.description || '';
+                    this.form.price_per_unit = parseFloat(plan.price_per_unit) || 0;
+                    this.form.trial_days = parseInt(plan.trial_days) || 0;
+                    this.form.discount_percentage = parseFloat(plan.discount_percentage) || 0;
+                    this.form.is_active = plan.is_active !== undefined ? plan.is_active : true;
+                    this.form.product_capabilities = plan.product_capabilities || {
+                        max_units: 0,
+                        max_users: 0,
+                        max_tenants: 0,
+                        storage_gb: 0,
+                        max_properties: 0
                     };
+                    this.form.business_features = plan.business_features || [];
+                    
+                    // Set selected wards
+                    this.selectedWards = plan.wards || [];
+                    
+                    // IMPORTANT: Filter subcounties based on region first
+                    if (this.form.region_id) {
+                        const selectedRegion = this.regions.find(r => r.id === parseInt(this.form.region_id));
+                        if (selectedRegion && selectedRegion.county_id) {
+                            this.filteredSubcounties = this.allSubcounties.filter(
+                                s => s.county_id === selectedRegion.county_id
+                            );
+                            this.selectedCountyName = selectedRegion.county_name || '';
+                        }
+                    }
+                    
+                    // IMPORTANT: Load wards if constituency is set
+                    if (this.form.subcounty) {
+                        this.loadingWards = true;
+                        try {
+                            const wardsResponse = await fetch(`/admin/subscriptions/api/subcounties/${encodeURIComponent(this.form.subcounty)}/wards`, {
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            });
+                            
+                            if (wardsResponse.ok) {
+                                const wardsData = await wardsResponse.json();
+                                this.availableWards = wardsData.wards || [];
+                                
+                                // Re-select previously selected wards
+                                if (plan.wards && plan.wards.length > 0) {
+                                    this.selectedWards = plan.wards;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error loading wards in edit mode:', error);
+                            this.availableWards = [];
+                        } finally {
+                            this.loadingWards = false;
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error loading plan:', error);
@@ -393,18 +666,17 @@ document.addEventListener('alpine:init', () => {
             try {
                 const payload = {
                     region_id: parseInt(this.form.region_id),
-                    subcounty_id: this.form.subcounty_id ? parseInt(this.form.subcounty_id) : null,
+                    subcounty: this.form.subcounty || null,
+                    wards: this.selectedWards,
                     name: this.form.name,
                     slug: this.form.slug,
                     description: this.form.description || null,
                     price_per_unit: parseFloat(this.form.price_per_unit),
-                    min_units: parseInt(this.form.min_units) || 1,
-                    max_units: parseInt(this.form.max_units) || 0,
                     trial_days: parseInt(this.form.trial_days) || 0,
                     discount_percentage: parseFloat(this.form.discount_percentage) || 0,
-                    display_order: parseInt(this.form.display_order) || 0,
                     is_active: this.form.is_active,
-                    features: this.form.features
+                    product_capabilities: this.form.product_capabilities,
+                    business_features: this.form.business_features
                 };
                 
                 const url = this.isEditing 

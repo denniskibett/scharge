@@ -373,6 +373,7 @@ Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware([
         Route::get('/plans/{plan}/subscribers', [SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
         Route::get('/regions', [SubscriptionController::class, 'getRegions'])->name('regions');
         Route::get('/subcounties', [SubscriptionController::class, 'getSubcounties'])->name('subcounties');
+        Route::get('/subcounties/{subcounty}/wards', [SubscriptionController::class, 'getWards'])->name('wards');
         Route::get('/company-subscriptions', [SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
     });
 });
