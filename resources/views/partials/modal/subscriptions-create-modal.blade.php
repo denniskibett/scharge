@@ -48,10 +48,18 @@
                                     <select x-model="form.region_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition" required>
                                         <option value="">Select Region</option>
                                         <template x-for="region in regions" :key="region.id">
-                                            <option :value="region.id" x-text="region.display_name"></option>
+                                            <option :value="region.id" x-text="region.display_name || region.name"></option>
                                         </template>
                                     </select>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Select the region/county for this plan</p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subcounty</label>
+                                    <select x-model="form.subcounty_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
+                                        <option value="">Optional</option>
+                                        <template x-for="subcounty in subcounties" :key="subcounty.id">
+                                            <option :value="subcounty.id" x-text="subcounty.name"></option>
+                                        </template>
+                                    </select>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Plan Name <span class="text-red-500">*</span></label>
@@ -110,35 +118,6 @@
                                         class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
                                         placeholder="0 = Unlimited">
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">0 = Unlimited</p>
-                                </div>
-                            </div>
-
-                            <!-- Preview Calculation -->
-                            <div x-show="form.price_per_unit > 0 && form.min_units > 0" class="mt-4 bg-white dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📊 Preview Calculation:</p>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded p-2 text-center">
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Min Units</p>
-                                        <p class="text-lg font-bold text-purple-600 dark:text-purple-400" x-text="form.min_units || 0"></p>
-                                    </div>
-                                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded p-2 text-center">
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Monthly Price</p>
-                                        <p class="text-lg font-bold text-purple-600 dark:text-purple-400">
-                                            KES <span x-text="(form.price_per_unit * (form.min_units || 1)).toLocaleString()"></span>
-                                        </p>
-                                    </div>
-                                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded p-2 text-center">
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Yearly Price</p>
-                                        <p class="text-lg font-bold text-purple-600 dark:text-purple-400">
-                                            KES <span x-text="((form.price_per_unit * (form.min_units || 1) * 12) * (1 - (form.discount_percentage || 0) / 100)).toLocaleString()"></span>
-                                        </p>
-                                    </div>
-                                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded p-2 text-center">
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">Discount</p>
-                                        <p class="text-lg font-bold text-green-600 dark:text-green-400">
-                                            <span x-text="form.discount_percentage || 0"></span>%
-                                        </p>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -259,9 +238,11 @@ document.addEventListener('alpine:init', () => {
         editingId: null,
         saving: false,
         regions: [],
+        subcounties: [],
         
         form: {
             region_id: '',
+            subcounty_id: '',
             name: '',
             slug: '',
             description: '',
@@ -278,6 +259,7 @@ document.addEventListener('alpine:init', () => {
         init() {
             window.subscriptionsCreateModal = this;
             this.loadRegions();
+            this.loadSubcounties();
         },
         
         async loadRegions() {
@@ -294,6 +276,23 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (error) {
                 console.error('Error loading regions:', error);
+            }
+        },
+        
+        async loadSubcounties() {
+            try {
+                const response = await fetch('/admin/subscriptions/api/subcounties', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    this.subcounties = data.subcounties || [];
+                }
+            } catch (error) {
+                console.error('Error loading subcounties:', error);
             }
         },
         
@@ -330,6 +329,7 @@ document.addEventListener('alpine:init', () => {
         resetForm() {
             this.form = {
                 region_id: '',
+                subcounty_id: '',
                 name: '',
                 slug: '',
                 description: '',
@@ -357,6 +357,7 @@ document.addEventListener('alpine:init', () => {
                     const plan = await response.json();
                     this.form = {
                         region_id: plan.region_id || '',
+                        subcounty_id: plan.subcounty_id || '',
                         name: plan.name || '',
                         slug: plan.slug || '',
                         description: plan.description || '',
@@ -392,6 +393,7 @@ document.addEventListener('alpine:init', () => {
             try {
                 const payload = {
                     region_id: parseInt(this.form.region_id),
+                    subcounty_id: this.form.subcounty_id ? parseInt(this.form.subcounty_id) : null,
                     name: this.form.name,
                     slug: this.form.slug,
                     description: this.form.description || null,

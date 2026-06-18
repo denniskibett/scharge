@@ -22,6 +22,7 @@ use App\Http\Controllers\WaterReadingController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\WalletController; // Add this
+use App\Modules\Subscriptions\Controllers\SubscriptionController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -342,62 +343,66 @@ Route::middleware('auth')->group(function () {
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
     });
 
+// =============================================
+// SUBSCRIPTION MODULE ROUTES - Admin Section
+// =============================================
+Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth'])->group(function () {
+    
     // =============================================
-    // SUBSCRIPTION MODULE ROUTES - Admin Section
+    // RESTful Resource Routes for Plans
     // =============================================
-    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware(['auth'])->group(function () {
-        
-        // API Routes for AJAX calls
-        Route::prefix('api')->name('api.')->group(function () {
-            Route::get('/plans/data', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getPlansData'])->name('plans.data');
-            Route::get('/plans/{plan}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getPlan'])->name('plans.show');
-            Route::get('/plans/{plan}/subscribers', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
-            Route::get('/company-subscriptions', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
-            Route::get('/company-subscription/{id}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'getCompanySubscription'])->name('company-subscription.show');
-        });
-        
-        // Subscription Plans CRUD
-        Route::get('/plans', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'plansIndex'])->name('plans.index');
-        Route::post('/plans', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'storePlan'])->name('plans.store');
-        Route::put('/plans/{plan}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'updatePlan'])->name('plans.update');
-        Route::delete('/plans/{plan}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'deletePlan'])->name('plans.destroy');
-        
-        // Company Subscriptions
-        Route::get('/', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'index'])->name('index');
-        Route::get('/company/{company}', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'show'])->name('show');
-        Route::post('/company/{company}/subscribe', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'subscribe'])->name('subscribe');
-        Route::post('/subscription/{subscription}/cancel', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'cancel'])->name('cancel');
-        Route::post('/subscription/{subscription}/resume', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'resume'])->name('resume');
-        Route::get('/subscription/{subscription}/invoices', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'invoices'])->name('invoices');
-        Route::get('/invoice/{invoice}/download', [App\Modules\Subscriptions\Controllers\SubscriptionController::class, 'downloadInvoice'])->name('invoice.download');
+    Route::resource('plans', SubscriptionController::class)
+        ->parameters(['plans' => 'plan'])
+        ->only(['index', 'show', 'store', 'update', 'destroy']);
+    
+    // =============================================
+    // Custom Routes
+    // =============================================
+    // Main view - alias for plans.index
+    Route::get('/', [SubscriptionController::class, 'index'])->name('index');
+    
+    // Company subscription dashboard
+    Route::get('/company/{company}/dashboard', [SubscriptionController::class, 'companyShow'])->name('company.dashboard');
+    
+    // =============================================
+    // API Routes for AJAX calls
+    // =============================================
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/plans/data', [SubscriptionController::class, 'getPlansData'])->name('plans.data');
+        Route::get('/plans/{plan}', [SubscriptionController::class, 'getPlan'])->name('plans.show');
+        Route::get('/plans/{plan}/subscribers', [SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
+        Route::get('/regions', [SubscriptionController::class, 'getRegions'])->name('regions');
+        Route::get('/subcounties', [SubscriptionController::class, 'getSubcounties'])->name('subcounties');
+        Route::get('/company-subscriptions', [SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
     });
+});
 
 
     // Company Management Routes - UPDATED VERSION
-Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
-    Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
-    Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
-    Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
-    
-    // IMPORTANT: These specific routes MUST come BEFORE the {company} parameter route
-    Route::get('/{company}/estates-with-tenants', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstatesWithTenants'])->name('estates-with-tenants');
-    Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstates'])->name('estates');
-    Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
-    Route::get('/{company}/subscriptions', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
-    Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
-    Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
-    Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
-    
-    // User management routes
-    Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
-    Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
-    Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
-    
-    // This MUST be last - the catch-all company route
-    Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
-    Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
-    Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
-});
+    Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
+        Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
+        Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
+        
+        // IMPORTANT: These specific routes MUST come BEFORE the {company} parameter route
+        Route::get('/{company}/estates-with-tenants', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstatesWithTenants'])->name('estates-with-tenants');
+        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstates'])->name('estates');
+        Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
+        Route::get('/{company}/subscriptions', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
+        Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
+        Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
+        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
+        
+        // User management routes
+        Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
+        Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
+        Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
+        
+        // This MUST be last - the catch-all company route
+        Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
+        Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
+        Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
+    });
 
 
 

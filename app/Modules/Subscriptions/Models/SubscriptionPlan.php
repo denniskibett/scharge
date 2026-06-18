@@ -60,6 +60,15 @@ class SubscriptionPlan extends Model
         return $this->hasMany(CompanySubscription::class, 'plan_id');
     }
 
+    /**
+     * Get active subscriptions count
+     */
+    public function activeSubscriptions()
+    {
+        return $this->hasMany(CompanySubscription::class, 'plan_id')
+            ->whereIn('status', ['trial', 'active']);
+    }
+
     // =============================================
     // PRICE CALCULATION METHODS
     // =============================================
@@ -69,7 +78,7 @@ class SubscriptionPlan extends Model
      */
     public function calculateMonthlyPrice($unitCount)
     {
-        return $this->price_per_unit * max($unitCount, $this->min_units);
+        return $this->price_per_unit * max($unitCount, $this->min_units ?? 1);
     }
 
     /**
@@ -227,6 +236,22 @@ class SubscriptionPlan extends Model
         return $this->region?->county?->county_name;
     }
 
+    /**
+     * Get subcounty name attribute (shortcut)
+     */
+    public function getSubcountyNameAttribute()
+    {
+        return $this->subcounty?->name;
+    }
+
+    /**
+     * Get subscriber count
+     */
+    public function getSubscriberCountAttribute()
+    {
+        return $this->activeSubscriptions()->count();
+    }
+
     // =============================================
     // SCOPES
     // =============================================
@@ -278,178 +303,10 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Scope for plans with min units less than or equal to given count
+     * Scope with region and subcounty relations eager loaded
      */
-    public function scopeMinUnitsLessThanOrEqual($query, $unitCount)
+    public function scopeWithRelations($query)
     {
-        return $query->where('min_units', '<=', $unitCount);
-    }
-
-    /**
-     * Scope for plans with max units greater than or equal to given count or unlimited
-     */
-    public function scopeMaxUnitsGreaterThanOrEqual($query, $unitCount)
-    {
-        return $query->where(function($q) use ($unitCount) {
-            $q->where('max_units', '>=', $unitCount)
-              ->orWhere('max_units', 0);
-        });
-    }
-
-    // =============================================
-    // HELPER METHODS
-    // =============================================
-
-    /**
-     * Get all available features as a mapped list with descriptions
-     */
-    public static function getAvailableFeatures()
-    {
-        return [
-            'Basic reporting' => 'Generate and export basic reports',
-            'Advanced reporting & analytics' => 'Advanced analytics with custom reports',
-            'Email support' => 'Standard email support during business hours',
-            'Priority email & phone support' => 'Priority support with phone access',
-            '24/7 priority support' => 'Round-the-clock priority support',
-            'Mobile app access' => 'Full mobile application access',
-            'Tenant portal' => 'Self-service tenant web portal',
-            'Maintenance management' => 'Track and manage maintenance requests',
-            'Water billing integration' => 'Integration with water billing system',
-            'API access' => 'REST API for custom integrations',
-            'SMS notifications' => 'Automated SMS alerts and notifications',
-            'Dedicated account manager' => 'Personal account manager assigned',
-            'Custom branding' => 'White-label with your company branding',
-            'Custom reporting' => 'Build custom reports with data filters',
-            'Income management' => 'Track and manage all income streams',
-            'Expense management' => 'Track and categorize all expenses',
-            'Gate management' => 'Gate access control and visitor management',
-            'Property management' => 'Comprehensive property management tools',
-            'Tenant management' => 'Complete tenant lifecycle management',
-            'Lease management' => 'Lease agreement and renewal management',
-            'Document management' => 'Store and manage property documents',
-            'Payment processing' => 'Online payment collection and reconciliation',
-            'Automated invoicing' => 'Automated invoice generation and delivery',
-        ];
-    }
-
-    /**
-     * Get recommended plans for a company based on unit count and region
-     */
-    public static function getRecommendedPlans($regionId, $unitCount)
-    {
-        return self::forRegion($regionId)
-            ->active()
-            ->supportsUnitCount($unitCount)
-            ->ordered()
-            ->get()
-            ->map(function($plan) use ($unitCount) {
-                return [
-                    'plan' => $plan,
-                    'monthly_price' => $plan->calculateMonthlyPrice($unitCount),
-                    'yearly_price' => $plan->calculateYearlyPrice($unitCount),
-                    'is_recommended' => $unitCount >= $plan->min_units && ($plan->max_units === 0 || $unitCount <= $plan->max_units)
-                ];
-            });
-    }
-
-    /**
-     * Get the next plan up (for upgrades)
-     */
-    public function getNextPlan()
-    {
-        return self::where('region_id', $this->region_id)
-            ->where('display_order', '>', $this->display_order)
-            ->orderBy('display_order')
-            ->first();
-    }
-
-    /**
-     * Get the previous plan down (for downgrades)
-     */
-    public function getPreviousPlan()
-    {
-        return self::where('region_id', $this->region_id)
-            ->where('display_order', '<', $this->display_order)
-            ->orderBy('display_order', 'desc')
-            ->first();
-    }
-
-    /**
-     * Check if this plan has any active subscriptions
-     */
-    public function hasActiveSubscriptions()
-    {
-        return $this->subscriptions()
-            ->whereIn('status', ['active', 'trial'])
-            ->exists();
-    }
-
-    /**
-     * Get subscriber count
-     */
-    public function getSubscriberCountAttribute()
-    {
-        return $this->subscriptions()
-            ->whereIn('status', ['active', 'trial'])
-            ->count();
-    }
-
-    /**
-     * Get total revenue from this plan
-     */
-    public function getTotalRevenueAttribute()
-    {
-        $total = 0;
-        $subscriptions = $this->subscriptions()
-            ->whereIn('status', ['active', 'trial'])
-            ->with('company')
-            ->get();
-        
-        foreach ($subscriptions as $subscription) {
-            $company = $subscription->company;
-            if ($company) {
-                $unitCount = \App\Models\Unit::where('company_id', $company->id)
-                    ->whereIn('status', ['occupied', 'available'])
-                    ->count();
-                $total += $this->calculateMonthlyPrice($unitCount);
-            }
-        }
-        
-        return $total;
-    }
-
-    /**
-     * Get the plan's features as a comma-separated string
-     */
-    public function getFeaturesStringAttribute()
-    {
-        return implode(', ', $this->features ?? []);
-    }
-
-    /**
-     * Check if plan has a specific feature
-     */
-    public function hasFeature($feature)
-    {
-        return in_array($feature, $this->features ?? []);
-    }
-
-    /**
-     * Get all plans grouped by region
-     */
-    public static function getPlansGroupedByRegion()
-    {
-        return self::with('region')
-            ->active()
-            ->ordered()
-            ->get()
-            ->groupBy('region_id')
-            ->map(function($plans, $regionId) {
-                $region = $plans->first()->region;
-                return [
-                    'region' => $region,
-                    'plans' => $plans
-                ];
-            });
+        return $query->with(['region', 'subcounty', 'activeSubscriptions']);
     }
 }
