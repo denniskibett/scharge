@@ -342,6 +342,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/visitors', [SecurityController::class, 'getVisitorsByTenant'])->name('visitors');
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
     });
+
 // =============================================
 // SUBSCRIPTION MODULE ROUTES - Admin Section
 // =============================================
@@ -363,6 +364,35 @@ Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware([
     // Company subscription dashboard
     Route::get('/company/{company}/dashboard', [SubscriptionController::class, 'companyShow'])->name('company.dashboard');
     
+    // Plan features update
+    Route::put('/plans/{plan}/features', [SubscriptionController::class, 'updateFeatures'])->name('plans.features');
+    
+    // Assign companies to plan
+    Route::get('/api/plans/{plan}/available-companies', [SubscriptionController::class, 'getAvailableCompanies'])->name('api.plans.available-companies');
+    Route::post('/plans/{plan}/assign-companies', [SubscriptionController::class, 'assignCompanies'])->name('plans.assign-companies');
+    
+    // Account managers
+    Route::get('/api/users', [SubscriptionController::class, 'getUsers'])->name('api.users');
+    Route::get('/api/counties', [SubscriptionController::class, 'getCounties'])->name('api.counties');
+    Route::get('/api/subcounties', [SubscriptionController::class, 'getSubcounties'])->name('api.subcounties');
+    Route::get('/api/subcounties/{countyId}', [SubscriptionController::class, 'getSubcountiesByCounty'])->name('api.subcounties.by-county');
+    Route::get('/api/estates', [SubscriptionController::class, 'getEstates'])->name('api.estates');
+    Route::get('/api/managers/{manager}', [SubscriptionController::class, 'getManager'])->name('api.manager');
+    Route::post('/plans/{plan}/managers', [SubscriptionController::class, 'assignManager'])->name('plans.managers.assign');
+    Route::put('/managers/{manager}', [SubscriptionController::class, 'updateManager'])->name('managers.update');
+    Route::delete('/plans/{plan}/managers/{manager}', [SubscriptionController::class, 'removeManager'])->name('plans.managers.remove');
+    
+    // Invoices
+    Route::get('/api/companies', [SubscriptionController::class, 'getCompanies'])->name('api.companies');
+    Route::get('/api/invoices/{invoice}', [SubscriptionController::class, 'getInvoice'])->name('api.invoice');
+    Route::post('/plans/{plan}/invoices', [SubscriptionController::class, 'generateInvoice'])->name('plans.invoices.generate');
+    Route::put('/invoices/{invoice}', [SubscriptionController::class, 'updateInvoice'])->name('invoices.update');
+    Route::post('/invoices/{invoice}/mark-paid', [SubscriptionController::class, 'markInvoicePaid'])->name('invoices.mark-paid');
+    
+    // Subscription management
+    Route::post('/subscription/{subscription}/cancel', [SubscriptionController::class, 'cancelSubscription'])->name('subscription.cancel');
+    Route::post('/subscription/{subscription}/resume', [SubscriptionController::class, 'resumeSubscription'])->name('subscription.resume');
+    
     // =============================================
     // API Routes for AJAX calls
     // =============================================
@@ -373,7 +403,6 @@ Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware([
         Route::get('/company-subscriptions', [SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
     });
 });
-
 
     // Company Management Routes - UPDATED VERSION
     Route::prefix('admin/companies')->name('admin.companies.')->middleware(['auth'])->group(function () {

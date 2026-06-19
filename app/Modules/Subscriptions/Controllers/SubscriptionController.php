@@ -7,11 +7,16 @@ use App\Http\Controllers\Controller;
 use App\Modules\Subscriptions\Models\SubscriptionPlan;
 use App\Modules\Subscriptions\Models\CompanySubscription;
 use App\Modules\Subscriptions\Models\SubscriptionInvoice;
-use App\Modules\Subscriptions\Models\RegionalAccountManager;
+use App\Modules\Subscriptions\Models\AccountManager;
 use App\Models\Company;
+use App\Models\User;
 use App\Models\Unit;
+use App\Models\County;
+use App\Models\Subcounty;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class SubscriptionController extends Controller
 {
@@ -32,7 +37,7 @@ class SubscriptionController extends Controller
      * Display a specific subscription plan (Admin Show)
      * Route: GET /admin/subscriptions/plans/{plan}
      */
-public function show($id)
+    public function show($id)
     {
         try {
             $plan = SubscriptionPlan::findOrFail($id);
@@ -103,7 +108,7 @@ public function show($id)
                 ->filter();
             
             // =============================================
-            // FIX: Get Account Managers for this plan
+            // Get Account Managers for this plan
             // =============================================
             $accountManagers = collect();
             
@@ -111,7 +116,7 @@ public function show($id)
             if (isset($features['account_managers']) && is_array($features['account_managers'])) {
                 $managerIds = $features['account_managers'];
                 if (!empty($managerIds)) {
-                    $accountManagers = RegionalAccountManager::with(['user', 'region'])
+                    $accountManagers = AccountManager::with(['user', 'region'])
                         ->whereIn('id', $managerIds)
                         ->where('is_active', true)
                         ->get();
@@ -120,7 +125,7 @@ public function show($id)
             
             // If no account managers in features, try to get from region
             if ($accountManagers->isEmpty() && isset($features['region_id'])) {
-                $accountManagers = RegionalAccountManager::with(['user', 'region'])
+                $accountManagers = AccountManager::with(['user', 'region'])
                     ->where('region_id', $features['region_id'])
                     ->where('is_active', true)
                     ->get();
@@ -128,7 +133,7 @@ public function show($id)
             
             // If still empty, get all active account managers
             if ($accountManagers->isEmpty()) {
-                $accountManagers = RegionalAccountManager::with(['user', 'region'])
+                $accountManagers = AccountManager::with(['user', 'region'])
                     ->where('is_active', true)
                     ->limit(5)
                     ->get();
@@ -146,9 +151,7 @@ public function show($id)
             // Get business features
             $businessFeatures = $features['business_features'] ?? [];
             
-            // =============================================
-            // FIX: Get first company safely
-            // =============================================
+            // Get first company safely
             $firstCompany = null;
             if ($companies->isNotEmpty()) {
                 $firstCompany = $companies->first();
@@ -185,7 +188,7 @@ public function show($id)
                 'companies', 
                 'invoices',
                 'accountManagers',
-                'firstCompany'  // Pass to view (can be null)
+                'firstCompany'
             ));
             
         } catch (\Exception $e) {
@@ -200,7 +203,6 @@ public function show($id)
         }
     }
 
-
     /**
      * Get plans data for AJAX - OPTIMIZED with eager loading
      * Route: GET /admin/subscriptions/api/plans/data
@@ -210,7 +212,6 @@ public function show($id)
         try {
             Log::info('=== getPlansData called ===');
             
-            // Single query with eager loading - NO N+1
             $plans = SubscriptionPlan::withCount(['subscriptions as active_subscriptions_count' => function($query) {
                 $query->whereIn('status', ['active', 'trial']);
             }])
@@ -228,9 +229,7 @@ public function show($id)
                 ]);
             }
             
-            // Pre-parse features once - avoid repeated JSON decoding
             $formattedPlans = $plans->map(function($plan) {
-                // Parse features once
                 $features = is_string($plan->features) 
                     ? json_decode($plan->features, true) ?? [] 
                     : ($plan->features ?? []);
@@ -244,7 +243,7 @@ public function show($id)
                 return [
                     'id' => $plan->id,
                     'name' => $plan->name,
-                    'slug' => $plan->slug,  // KEEP SLUG
+                    'slug' => $plan->slug,
                     'description' => $plan->description,
                     'price_per_unit' => (float) $plan->price_per_unit,
                     'trial_days' => (int) $plan->trial_days,
@@ -333,81 +332,6 @@ public function show($id)
     }
 
     /**
-     * Display the company subscription show page (Dashboard)
-     * Route: GET /admin/subscriptions/company/{company}/dashboard
-     */
-    public function companyShow(Company $company)
-    {
-        try {
-            // Get current subscription
-            $currentSubscription = $company->subscriptions()
-                ->with(['plan'])
-                ->whereIn('status', ['active', 'trial'])
-                ->first();
-            
-            // Get subscription history
-            $subscriptionHistory = $company->subscriptions()
-                ->with(['plan'])
-                ->orderBy('created_at', 'desc')
-                ->get();
-            
-            // Get unit count
-            $unitCount = Unit::where('company_id', $company->id)
-                ->whereIn('status', ['occupied', 'available'])
-                ->count();
-            
-            // Calculate current price
-            $currentPrice = 0;
-            $pricePerUnit = 0;
-            
-            if ($currentSubscription && $currentSubscription->plan) {
-                $plan = $currentSubscription->plan;
-                $currentPrice = $plan->calculateMonthlyPrice($unitCount);
-                $pricePerUnit = $plan->price_per_unit;
-            }
-            
-            // Get invoices
-            $invoices = SubscriptionInvoice::where('company_id', $company->id)
-                ->orderBy('created_at', 'desc')
-                ->get();
-            
-            // Get all plans for subscription
-            $plans = SubscriptionPlan::where('is_active', true)
-                ->orderBy('price_per_unit')
-                ->get();
-            
-            return view('subscriptions.company-show', compact(
-                'company', 
-                'currentSubscription', 
-                'subscriptionHistory', 
-                'unitCount', 
-                'currentPrice',
-                'pricePerUnit',
-                'invoices',
-                'plans'
-            ));
-            
-        } catch (\Exception $e) {
-            Log::error('Error in companyShow: ' . $e->getMessage());
-            return redirect()->route('admin.companies.show', $company)
-                ->with('error', 'Error loading subscription details: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Display all plans for selection (Admin Plans Index)
-     * Route: GET /admin/subscriptions/plans
-     */
-    public function plansIndex()
-    {
-        $plans = SubscriptionPlan::orderBy('price_per_unit')
-            ->orderBy('id', 'desc')
-            ->get();
-        return view('subscriptions.index', compact('plans'));
-    }
-
-
-    /**
      * Store a new subscription plan
      * Route: POST /admin/subscriptions/plans
      */
@@ -426,7 +350,6 @@ public function show($id)
                 'business_features' => 'nullable|array',
             ]);
             
-            // Prepare features array
             $features = [
                 'product_capabilities' => $request->input('product_capabilities', [
                     'max_units' => 0,
@@ -485,7 +408,6 @@ public function show($id)
                 'business_features' => 'nullable|array',
             ]);
             
-            // Prepare features array
             $features = [
                 'product_capabilities' => $request->input('product_capabilities', [
                     'max_units' => 0,
@@ -553,6 +475,508 @@ public function show($id)
                 'message' => 'Error deleting plan: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update plan features
+     * Route: PUT /admin/subscriptions/plans/{plan}/features
+     */
+    public function updateFeatures(Request $request, $id)
+    {
+        try {
+            $plan = SubscriptionPlan::findOrFail($id);
+            
+            $request->validate([
+                'business_features' => 'nullable|array',
+            ]);
+            
+            $features = $plan->features;
+            if (is_string($features)) {
+                $features = json_decode($features, true) ?? [];
+            }
+            if (!is_array($features)) {
+                $features = [];
+            }
+            
+            $features['business_features'] = $request->input('business_features', []);
+            
+            $plan->update([
+                'features' => json_encode($features),
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Features updated successfully',
+                'business_features' => $features['business_features']
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in updateFeatures: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating features: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get available companies for invoice generation
+     * Route: GET /admin/subscriptions/api/plans/{plan}/available-companies
+     */
+    public function getAvailableCompanies($planId)
+    {
+        try {
+            $plan = SubscriptionPlan::findOrFail($planId);
+            
+            // Get companies that are subscribed to this plan (active or trial)
+            $companies = CompanySubscription::where('plan_id', $planId)
+                ->whereIn('status', ['active', 'trial'])
+                ->with(['company'])
+                ->get()
+                ->map(function($subscription) use ($plan) {
+                    $company = $subscription->company;
+                    if (!$company) return null;
+                    
+                    // Get unit count for this company
+                    $unitCount = Unit::where('company_id', $company->id)
+                        ->whereIn('status', ['occupied', 'available'])
+                        ->count();
+                    
+                    // Get subscription details
+                    $subscriptionData = [
+                        'id' => $subscription->id,
+                        'billing_cycle' => $subscription->billing_cycle,
+                        'status' => $subscription->status,
+                        'unit_count' => $subscription->unit_count ?? $unitCount,
+                        'starts_at' => $subscription->starts_at,
+                        'ends_at' => $subscription->ends_at,
+                    ];
+                    
+                    return [
+                        'id' => $company->id,
+                        'name' => $company->name,
+                        'email' => $company->email,
+                        'phone' => $company->phone,
+                        'unit_count' => $unitCount,
+                        'subscription' => $subscriptionData,
+                    ];
+                })
+                ->filter()
+                ->values();
+            
+            return response()->json([
+                'success' => true,
+                'companies' => $companies,
+                'price_per_unit' => (float) $plan->price_per_unit,
+                'plan_name' => $plan->name,
+                'plan_id' => $plan->id,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getAvailableCompanies: ' . $e->getMessage(), [
+                'plan_id' => $planId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading companies: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Assign companies to a plan
+     * Route: POST /admin/subscriptions/plans/{plan}/assign-companies
+     */
+    public function assignCompanies(Request $request, $planId)
+    {
+        try {
+            $request->validate([
+                'companies' => 'required|array',
+                'companies.*.company_id' => 'required|exists:companies,id',
+                'companies.*.unit_count' => 'nullable|integer|min:0',
+                'billing_cycle' => 'in:monthly,yearly',
+                'auto_renew' => 'boolean',
+            ]);
+            
+            $plan = SubscriptionPlan::findOrFail($planId);
+            
+            $assignedCount = 0;
+            $totalUnits = 0;
+            $totalRevenue = 0;
+            
+            foreach ($request->input('companies') as $companyData) {
+                $companyId = $companyData['company_id'];
+                
+                // Get unit count from the request, or calculate if not provided
+                $unitCount = $companyData['unit_count'] ?? Unit::where('company_id', $companyId)
+                    ->whereIn('status', ['occupied', 'available'])
+                    ->count();
+                
+                // Calculate price based on unit count
+                $calculatedPrice = $plan->price_per_unit * $unitCount;
+                
+                // Check if company already has an active subscription
+                $existing = CompanySubscription::where('company_id', $companyId)
+                    ->whereIn('status', ['active', 'trial'])
+                    ->first();
+                
+                if ($existing) {
+                    // Update existing subscription
+                    $existing->update([
+                        'plan_id' => $planId,
+                        'billing_cycle' => $request->input('billing_cycle', 'monthly'),
+                        'unit_count' => $unitCount,
+                        'auto_renew' => $request->input('auto_renew', true),
+                        'status' => 'active',
+                        'calculated_price' => $calculatedPrice,
+                        'starts_at' => now(),
+                        'ends_at' => $request->input('billing_cycle', 'monthly') === 'yearly' 
+                            ? now()->addYear() 
+                            : now()->addMonth(),
+                    ]);
+                } else {
+                    // Create new subscription
+                    CompanySubscription::create([
+                        'company_id' => $companyId,
+                        'plan_id' => $planId,
+                        'billing_cycle' => $request->input('billing_cycle', 'monthly'),
+                        'unit_count' => $unitCount,
+                        'auto_renew' => $request->input('auto_renew', true),
+                        'status' => 'active',
+                        'calculated_price' => $calculatedPrice,
+                        'starts_at' => now(),
+                        'ends_at' => $request->input('billing_cycle', 'monthly') === 'yearly' 
+                            ? now()->addYear() 
+                            : now()->addMonth(),
+                    ]);
+                }
+                
+                $assignedCount++;
+                $totalUnits += $unitCount;
+                $totalRevenue += $calculatedPrice;
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => "{$assignedCount} company(ies) assigned successfully",
+                'assigned_count' => $assignedCount,
+                'total_units' => $totalUnits,
+                'total_revenue' => $totalRevenue
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in assignCompanies: ' . $e->getMessage(), [
+                'plan_id' => $planId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error assigning companies: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get users for account manager assignment
+     * Route: GET /admin/subscriptions/api/users
+     */
+    public function getUsers()
+    {
+        try {
+            $users = User::where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'email']);
+            
+            return response()->json([
+                'success' => true,
+                'users' => $users
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getUsers: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading users: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get companies for invoice generation
+     * Route: GET /admin/subscriptions/api/companies
+     */
+    public function getCompanies()
+    {
+        try {
+            $companies = Company::orderBy('name')
+                ->get(['id', 'name', 'email']);
+            
+            return response()->json([
+                'success' => true,
+                'companies' => $companies
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getCompanies: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading companies: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get invoice for editing
+     * Route: GET /admin/subscriptions/api/invoices/{invoice}
+     */
+    public function getInvoice($id)
+    {
+        try {
+            $invoice = SubscriptionInvoice::with(['subscription.company'])
+                ->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'id' => $invoice->id,
+                'company_id' => $invoice->subscription?->company_id,
+                'amount' => (float) $invoice->amount,
+                'due_date' => $invoice->due_date?->format('Y-m-d'),
+                'status' => $invoice->status,
+                'currency' => $invoice->currency,
+                'payment_method' => $invoice->payment_method,
+                'invoice_number' => $invoice->invoice_number,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getInvoice: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading invoice: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Generate invoice for a plan
+     * Route: POST /admin/subscriptions/plans/{plan}/invoices
+     */
+    public function generateInvoice(Request $request, $planId)
+    {
+        try {
+            $request->validate([
+                'company_id' => 'required|exists:companies,id',
+                'amount' => 'required|numeric|min:0.01',
+                'billing_start' => 'required|date',
+                'billing_end' => 'required|date|after_or_equal:billing_start',
+                'due_date' => 'required|date|after:today',
+                'status' => 'in:pending,paid,failed',
+                'currency' => 'nullable|string|max:3',
+                'payment_method' => 'nullable|string|max:50',
+            ]);
+            
+            $plan = SubscriptionPlan::findOrFail($planId);
+            $companyId = $request->input('company_id');
+            
+            // Get or create subscription for this company
+            $subscription = CompanySubscription::firstOrCreate(
+                [
+                    'company_id' => $companyId,
+                    'plan_id' => $planId,
+                ],
+                [
+                    'status' => 'active',
+                    'billing_cycle' => 'monthly',
+                    'unit_count' => Unit::where('company_id', $companyId)
+                        ->whereIn('status', ['occupied', 'available'])
+                        ->count(),
+                    'calculated_price' => $request->input('amount'),
+                    'starts_at' => now(),
+                    'ends_at' => now()->addMonth(),
+                    'auto_renew' => true,
+                ]
+            );
+            
+            // Generate unique invoice number
+            $invoiceNumber = 'INV-' . strtoupper(substr($plan->slug, 0, 5)) . '-' . date('Ymd') . '-' . str_pad(SubscriptionInvoice::count() + 1, 4, '0', STR_PAD_LEFT);
+            
+            $invoice = SubscriptionInvoice::create([
+                'company_subscription_id' => $subscription->id,
+                'invoice_number' => $invoiceNumber,
+                'amount' => $request->input('amount'),
+                'currency' => $request->input('currency', 'KES'),
+                'status' => $request->input('status', 'pending'),
+                'payment_method' => $request->input('payment_method'),
+                'due_date' => $request->input('due_date'),
+                'invoice_json' => [
+                    'plan_name' => $plan->name,
+                    'plan_slug' => $plan->slug,
+                    'price_per_unit' => $plan->price_per_unit,
+                    'billing_start' => $request->input('billing_start'),
+                    'billing_end' => $request->input('billing_end'),
+                    'unit_count' => $subscription->unit_count,
+                    'calculated_amount' => $request->input('amount'),
+                    'generated_at' => now()->toIso8601String(),
+                ],
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice generated successfully',
+                'invoice' => $invoice
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in generateInvoice: ' . $e->getMessage(), [
+                'plan_id' => $planId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error generating invoice: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update invoice
+     * Route: PUT /admin/subscriptions/invoices/{invoice}
+     */
+    public function updateInvoice(Request $request, $id)
+    {
+        try {
+            $invoice = SubscriptionInvoice::findOrFail($id);
+            
+            $request->validate([
+                'amount' => 'nullable|numeric|min:0',
+                'due_date' => 'nullable|date',
+                'status' => 'nullable|in:pending,paid,failed,refunded',
+                'payment_method' => 'nullable|string|max:50',
+            ]);
+            
+            $invoice->update($request->only(['amount', 'due_date', 'status', 'payment_method']));
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice updated successfully',
+                'invoice' => $invoice
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in updateInvoice: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating invoice: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark invoice as paid
+     * Route: POST /admin/subscriptions/invoices/{invoice}/mark-paid
+     */
+    public function markInvoicePaid($id)
+    {
+        try {
+            $invoice = SubscriptionInvoice::findOrFail($id);
+            
+            $invoice->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Invoice marked as paid successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in markInvoicePaid: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error marking invoice as paid: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the company subscription show page (Dashboard)
+     * Route: GET /admin/subscriptions/company/{company}/dashboard
+     */
+    public function companyShow(Company $company)
+    {
+        try {
+            // Get current subscription
+            $currentSubscription = $company->subscriptions()
+                ->with(['plan'])
+                ->whereIn('status', ['active', 'trial'])
+                ->first();
+            
+            // Get subscription history
+            $subscriptionHistory = $company->subscriptions()
+                ->with(['plan'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+            
+            // Get unit count
+            $unitCount = Unit::where('company_id', $company->id)
+                ->whereIn('status', ['occupied', 'available'])
+                ->count();
+            
+            // Calculate current price
+            $currentPrice = 0;
+            $pricePerUnit = 0;
+            
+            if ($currentSubscription && $currentSubscription->plan) {
+                $plan = $currentSubscription->plan;
+                $currentPrice = $plan->calculateMonthlyPrice($unitCount);
+                $pricePerUnit = $plan->price_per_unit;
+            }
+            
+            // Get invoices
+            $invoices = SubscriptionInvoice::whereHas('subscription', function($q) use ($company) {
+                $q->where('company_id', $company->id);
+            })->orderBy('created_at', 'desc')->get();
+            
+            // Get all plans for subscription
+            $plans = SubscriptionPlan::where('is_active', true)
+                ->orderBy('price_per_unit')
+                ->get();
+            
+            return view('subscriptions.company-show', compact(
+                'company', 
+                'currentSubscription', 
+                'subscriptionHistory', 
+                'unitCount', 
+                'currentPrice',
+                'pricePerUnit',
+                'invoices',
+                'plans'
+            ));
+            
+        } catch (\Exception $e) {
+            Log::error('Error in companyShow: ' . $e->getMessage());
+            return redirect()->route('admin.companies.show', $company)
+                ->with('error', 'Error loading subscription details: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Display all plans for selection (Admin Plans Index)
+     * Route: GET /admin/subscriptions/plans
+     */
+    public function plansIndex()
+    {
+        $plans = SubscriptionPlan::orderBy('price_per_unit')
+            ->orderBy('id', 'desc')
+            ->get();
+        return view('subscriptions.index', compact('plans'));
     }
 
     /**
@@ -625,6 +1049,421 @@ public function show($id)
             return response()->json([
                 'success' => false,
                 'message' => 'Error loading subscriptions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a subscription
+     * Route: POST /admin/subscriptions/subscription/{subscription}/cancel
+     */
+    public function cancelSubscription(Request $request, $id)
+    {
+        try {
+            $subscription = CompanySubscription::findOrFail($id);
+            
+            $immediate = $request->input('immediate', false);
+            
+            if ($immediate) {
+                $subscription->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    'ends_at' => now(),
+                ]);
+            } else {
+                $subscription->update([
+                    'status' => 'cancelled',
+                    'cancelled_at' => now(),
+                    // Keep ends_at as is for end of billing cycle
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Subscription cancelled successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in cancelSubscription: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error cancelling subscription: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Resume a cancelled subscription
+     * Route: POST /admin/subscriptions/subscription/{subscription}/resume
+     */
+    public function resumeSubscription($id)
+    {
+        try {
+            $subscription = CompanySubscription::findOrFail($id);
+            
+            $subscription->update([
+                'status' => 'active',
+                'cancelled_at' => null,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Subscription resumed successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in resumeSubscription: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error resuming subscription: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    /**
+ * Get counties
+ * Route: GET /admin/subscriptions/api/counties
+ */
+public function getCounties()
+{
+    try {
+        $counties = County::orderBy('name')
+            ->get(['id', 'name']);
+        
+        return response()->json([
+            'success' => true,
+            'counties' => $counties
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Error in getCounties: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error loading counties: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Get subcounties
+ * Route: GET /admin/subscriptions/api/subcounties
+ */
+public function getSubcounties()
+{
+    try {
+        $subcounties = Subcounty::with(['county'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'county_id']);
+        
+        return response()->json([
+            'success' => true,
+            'subcounties' => $subcounties
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Error in getSubcounties: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error loading subcounties: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Get subcounties by county
+ * Route: GET /admin/subscriptions/api/subcounties/{countyId}
+ */
+public function getSubcountiesByCounty($countyId)
+{
+    try {
+        $subcounties = Subcounty::where('county_id', $countyId)
+            ->orderBy('name')
+            ->get(['id', 'name', 'county_id']);
+        
+        return response()->json([
+            'success' => true,
+            'subcounties' => $subcounties
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Error in getSubcountiesByCounty: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error loading subcounties: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Get estates
+ * Route: GET /admin/subscriptions/api/estates
+ */
+public function getEstates(Request $request)
+{
+    try {
+        $query = Estate::with(['subcounty.county'])
+            ->orderBy('name');
+        
+        // Filter by subcounty if provided
+        if ($request->has('subcounty_id') && $request->subcounty_id) {
+            $query->where('subcounty_id', $request->subcounty_id);
+        }
+        
+        $estates = $query->get(['id', 'name', 'subcounty_id']);
+        
+        return response()->json([
+            'success' => true,
+            'estates' => $estates
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Error in getEstates: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error loading estates: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Get account manager
+ * Route: GET /admin/subscriptions/api/managers/{manager}
+ */
+public function getManager($id)
+{
+    try {
+        $manager = AccountManager::with(['user', 'subcounty.county'])
+            ->findOrFail($id);
+        
+        return response()->json([
+            'success' => true,
+            'id' => $manager->id,
+            'user_id' => $manager->user_id,
+            'subcounty_id' => $manager->subcounty_id,
+            'title' => $manager->title,
+            'is_primary' => (bool) $manager->is_primary,
+            'is_active' => (bool) $manager->is_active,
+            'user_name' => $manager->user?->name,
+            'user_email' => $manager->user?->email,
+            'subcounty_name' => $manager->subcounty?->name,
+            'county_id' => $manager->subcounty?->county_id,
+            'county_name' => $manager->subcounty?->county?->name,
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Error in getManager: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error loading manager: ' . $e->getMessage()
+        ], 404);
+    }
+}
+
+/**
+ * Assign account manager to plan with county/subcounty
+ * Route: POST /admin/subscriptions/plans/{plan}/managers
+ */
+public function assignManager(Request $request, $planId)
+{
+    try {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'subcounty_id' => 'required|exists:subcounties,id',
+            'title' => 'nullable|string|max:255',
+            'is_primary' => 'boolean',
+            'is_active' => 'boolean',
+        ]);
+        
+        $plan = SubscriptionPlan::findOrFail($planId);
+        
+        // Get user details
+        $user = User::findOrFail($request->input('user_id'));
+        
+        // Check if user already has a manager record
+        $existingManager = AccountManager::where('user_id', $user->id)->first();
+        
+        if ($existingManager) {
+            // Update existing manager
+            $existingManager->update([
+                'subcounty_id' => $request->input('subcounty_id'),
+                'title' => $request->input('title', 'Account Manager'),
+                'is_primary' => $request->input('is_primary', false),
+                'is_active' => $request->input('is_active', true),
+            ]);
+            $manager = $existingManager;
+        } else {
+            // Create new account manager
+            $manager = AccountManager::create([
+                'user_id' => $user->id,
+                'subcounty_id' => $request->input('subcounty_id'),
+                'title' => $request->input('title', 'Account Manager'),
+                'is_primary' => $request->input('is_primary', false),
+                'is_active' => $request->input('is_active', true),
+            ]);
+        }
+        
+        // Add manager to plan features
+        $features = $plan->features;
+        if (is_string($features)) {
+            $features = json_decode($features, true) ?? [];
+        }
+        if (!is_array($features)) {
+            $features = [];
+        }
+        
+        if (!isset($features['account_managers']) || !is_array($features['account_managers'])) {
+            $features['account_managers'] = [];
+        }
+        
+        if (!in_array($manager->id, $features['account_managers'])) {
+            $features['account_managers'][] = $manager->id;
+        }
+        
+        // Store the subcounty mapping
+        if (!isset($features['manager_mappings']) || !is_array($features['manager_mappings'])) {
+            $features['manager_mappings'] = [];
+        }
+        
+        $features['manager_mappings'][$manager->id] = [
+            'subcounty_id' => $request->input('subcounty_id'),
+            'user_id' => $user->id,
+            'user_name' => $user->name,
+            'user_email' => $user->email,
+            'assigned_at' => now()->toIso8601String(),
+        ];
+        
+        $plan->update([
+            'features' => json_encode($features),
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Account manager assigned successfully',
+            'manager' => $manager,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Error in assignManager: ' . $e->getMessage(), [
+            'plan_id' => $planId,
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error assigning manager: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+    /**
+     * Update account manager
+     * Route: PUT /admin/subscriptions/managers/{manager}
+     */
+    public function updateManager(Request $request, $id)
+    {
+        try {
+            $manager = AccountManager::with(['user', 'subcounty'])
+                ->findOrFail($id);
+            
+            $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'subcounty_id' => 'required|exists:subcounties,id',
+                'title' => 'nullable|string|max:255',
+                'is_primary' => 'boolean',
+                'is_active' => 'boolean',
+            ]);
+            
+            $user = User::findOrFail($request->input('user_id'));
+            
+            // Update the manager
+            $manager->update([
+                'user_id' => $user->id,
+                'subcounty_id' => $request->input('subcounty_id'),
+                'title' => $request->input('title', 'Account Manager'),
+                'is_primary' => $request->input('is_primary', false),
+                'is_active' => $request->input('is_active', true),
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Account manager updated successfully',
+                'manager' => $manager,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in updateManager: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error updating manager: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove account manager from plan
+     * Route: DELETE /admin/subscriptions/plans/{plan}/managers/{manager}
+     */
+    public function removeManager($planId, $managerId)
+    {
+        try {
+            $plan = SubscriptionPlan::findOrFail($planId);
+            
+            // Remove manager from plan features
+            $features = $plan->features;
+            if (is_string($features)) {
+                $features = json_decode($features, true) ?? [];
+            }
+            if (!is_array($features)) {
+                $features = [];
+            }
+            
+            if (isset($features['account_managers']) && is_array($features['account_managers'])) {
+                $features['account_managers'] = array_filter(
+                    $features['account_managers'],
+                    function($id) use ($managerId) {
+                        return $id != $managerId;
+                    }
+                );
+                $features['account_managers'] = array_values($features['account_managers']);
+            }
+            
+            // Remove manager mapping
+            if (isset($features['manager_mappings']) && is_array($features['manager_mappings'])) {
+                unset($features['manager_mappings'][$managerId]);
+            }
+            
+            $plan->update([
+                'features' => json_encode($features),
+            ]);
+            
+            // Deactivate the manager
+            $manager = AccountManager::find($managerId);
+            if ($manager) {
+                $manager->update(['is_active' => false]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Account manager removed successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in removeManager: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error removing manager: ' . $e->getMessage()
             ], 500);
         }
     }
