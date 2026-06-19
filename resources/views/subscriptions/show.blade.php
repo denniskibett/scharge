@@ -33,7 +33,7 @@
                     <a href="{{ route('admin.subscriptions.plans.index') }}" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white ml-1 md:ml-2">Plans</a>
                 </div>
             </li>
-            @if($firstCompany)
+            @if(isset($firstCompany) && $firstCompany)
             <li>
                 <div class="flex items-center">
                     <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
@@ -84,76 +84,13 @@
         </div>
     </div>
 
-    <!-- Stats Cards Grid -->
-    <div class="grid grid-cols-1 gap-4 md:gap-6 mb-6"
-         style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-        
-        {{-- Region Card --}}
-        @include('partials.card.card-subscription', [
-            'label' => 'Region',
-            'value' => $planData['region_name'] ?? 'N/A',
-            'subValue' => $planData['county_name'] ?? '',
-            'icon' => 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z',
-            'iconBg' => 'bg-purple-100 dark:bg-purple-900',
-            'iconColor' => 'text-purple-600 dark:text-purple-400',
-            'extraInfo' => '<span class="text-gray-500">Subcounty:</span> <span class="rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300">' . ($planData['subcounty_name'] ?? 'N/A') . '</span>'
-        ])
-
-        {{-- Price Per Unit Card --}}
-        @include('partials.card.card-subscription', [
-            'label' => 'Price Per Unit',
-            'value' => 'KES ' . number_format($planData['price_per_unit'] ?? 0, 0),
-            'subValue' => 'per unit / month',
-            'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-            'iconBg' => 'bg-green-100 dark:bg-green-900',
-            'iconColor' => 'text-green-600 dark:text-green-400',
-            'extraInfo' => '<span class="text-gray-500">Unit Range:</span> <span class="rounded-full bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">' . ($planData['unit_range'] ?? 'Unlimited') . '</span>'
-        ])
-
-        {{-- Monthly Price Card --}}
-        @include('partials.card.card-subscription', [
-            'label' => 'Monthly Price',
-            'value' => 'KES ' . number_format($planData['monthly_price'] ?? 0, 0),
-            'subValue' => 'based on min units',
-            'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
-            'iconBg' => 'bg-purple-100 dark:bg-purple-900',
-            'iconColor' => 'text-purple-600 dark:text-purple-400',
-            'extraInfo' => '<span class="text-gray-500">Min Units:</span> <span class="rounded-full bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-400">' . ($planData['min_units'] ?? 1) . '</span>'
-        ])
-
-        {{-- Yearly Price Card --}}
-        @include('partials.card.card-subscription', [
-            'label' => 'Yearly Price',
-            'value' => 'KES ' . number_format($planData['yearly_price'] ?? 0, 0),
-            'subValue' => 'with ' . ($planData['discount_percentage'] ?? 0) . '% discount',
-            'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
-            'iconBg' => 'bg-indigo-100 dark:bg-indigo-900',
-            'iconColor' => 'text-indigo-600 dark:text-indigo-400',
-            'extraInfo' => '<span class="text-gray-500">Savings:</span> <span class="rounded-full bg-green-50 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">KES ' . number_format((($planData['monthly_price'] ?? 0) * 12) - ($planData['yearly_price'] ?? 0), 0) . '</span>'
-        ])
-
-        {{-- Trial Card --}}
-        @include('partials.card.card-subscription', [
-            'label' => 'Trial Period',
-            'value' => ($planData['trial_days'] ?? 0) . ' days',
-            'subValue' => ($planData['trial_days'] ?? 0) > 0 ? 'Free trial available' : 'No trial',
-            'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
-            'iconBg' => 'bg-cyan-100 dark:bg-cyan-900',
-            'iconColor' => 'text-cyan-600 dark:text-cyan-400',
-            'extraInfo' => '<span class="text-gray-500">Display Order:</span> <span class="rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-xs font-medium text-gray-700 dark:text-gray-300">' . ($planData['display_order'] ?? 0) . '</span>'
-        ])
-
-        {{-- Subscribers Card --}}
-        @include('partials.card.card-subscription', [
-            'label' => 'Active Subscribers',
-            'value' => number_format($planData['subscriber_count'] ?? 0),
-            'subValue' => 'companies using this plan',
-            'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z',
-            'iconBg' => 'bg-blue-100 dark:bg-blue-900',
-            'iconColor' => 'text-blue-600 dark:text-blue-400',
-            'extraInfo' => '<span class="text-gray-500">Total Revenue:</span> <span class="rounded-full bg-green-50 dark:bg-green-900/30 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">KES ' . number_format($planData['total_revenue'] ?? 0, 0) . '</span>'
-        ])
-    </div>
+    <!-- Stats Cards Grid - Using the Card Component -->
+    @include('partials.card.card-subscription', [
+        'planData' => $planData,
+        'invoices' => $invoices,
+        'companies' => $companies,
+        'accountManagers' => $accountManagers,
+    ])
 
     <!-- Main Card with Tabs -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -167,7 +104,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
                     Features
-                    <span class="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{{ count($planData['features_list'] ?? []) }}</span>
+                    <span class="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{{ count($planData['business_features'] ?? []) }}</span>
                 </button>
                 <button @click="activeTab = 'invoices'" 
                     :class="activeTab === 'invoices' ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-900/10' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'"
@@ -206,11 +143,11 @@
                 <div>
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Features & Benefits</h3>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ count($planData['features_list'] ?? []) }} features included</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ count($planData['business_features'] ?? []) }} features included</span>
                     </div>
-                    @if(!empty($planData['features_list']) && count($planData['features_list']) > 0)
+                    @if(!empty($planData['business_features']) && count($planData['business_features']) > 0)
                         <ul class="space-y-3">
-                            @foreach($planData['features_list'] as $feature)
+                            @foreach($planData['business_features'] as $feature)
                                 <li class="flex items-start gap-3 text-gray-700 dark:text-gray-300 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                                     <svg class="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>

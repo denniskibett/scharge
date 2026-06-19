@@ -1,29 +1,13 @@
 {{-- resources/views/partials/table/table-subscriptions.blade.php --}}
-<!-- Subscriptions Table - Pure Alpine.js Component -->
+<!-- Subscriptions Table - Optimized -->
 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-data="subscriptionsTable()" x-init="init()">
     <!-- Table Header -->
     <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
         <div>
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Subscription Plans</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">Manage region-based subscription plans and pricing</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Manage per-unit subscription plans and pricing</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <!-- Region Filter - DROPDOWN -->
-            <div class="relative">
-                <select x-model="filterRegion" @change="currentPage = 1" 
-                    class="h-11 w-full min-w-[180px] rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition">
-                    <option value="all">All Regions (<span x-text="regions.length"></span>)</option>
-                    <template x-for="region in regions" :key="region.id">
-                        <option :value="region.id" x-text="region.display_name || region.name"></option>
-                    </template>
-                </select>
-                <span class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
-                </span>
-            </div>
-
             <!-- Search -->
             <div class="relative">
                 <span class="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
@@ -93,13 +77,6 @@
                             </span>
                         </div>
                     </th>
-                    <th class="p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Region</th>
-                    <td class="p-3">
-                        <div>
-                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" x-text="plan.subcounty || 'N/A'"></span>
-                            <p x-show="plan.ward_names" class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="'Wards: ' + plan.ward_names"></p>
-                        </div>
-                    </td>
                     <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('price_per_unit')">
                         <div class="flex items-center gap-2">
                             <p>Price/Unit</p>
@@ -150,22 +127,13 @@
                         <td class="p-3">
                             <div>
                                 <p class="text-sm font-medium text-gray-800 dark:text-white" x-text="plan.name"></p>
-                                <p class="text-xs text-gray-400 dark:text-gray-500" x-text="plan.slug"></p>
                             </div>
                         </td>
-                        <td class="p-3 whitespace-nowrap">
-                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400" x-text="plan.region_name || 'N/A'"></span>
-                        </td>
-                        <td class="p-3 whitespace-nowrap">
-                            <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" x-text="plan.subcounty_name || 'N/A'"></span>
-                        </td>
-                        <td class="p-3 whitespace-nowrap">
-                            <div>
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                    KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
-                                </p>
-                                <p class="text-xs text-gray-400">per unit / month</p>
-                            </div>
+                        <td class="p-3 whitespace-nowrap text-sm">
+                            <span class="font-medium text-gray-900 dark:text-white">
+                                KES <span x-text="plan.price_per_unit?.toLocaleString() || 0"></span>
+                            </span>
+                            <span class="text-gray-500">/ unit / month</span>
                         </td>
                         <td class="p-3 whitespace-nowrap">
                             <span class="text-sm text-gray-700 dark:text-gray-300" x-text="plan.trial_days + ' days'"></span>
@@ -202,7 +170,6 @@
                                         </svg>
                                     </button>
                                     <div x-show="open" @click.outside="open = false" class="shadow-theme-lg dark:bg-gray-dark absolute right-0 z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800" x-ref="dropdown">
-                                        <!-- View - Links to show page -->
                                         <a :href="'/admin/subscriptions/plans/' + plan.id" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
                                             View Details
                                         </a>
@@ -268,57 +235,55 @@
 const csrfTokenSubscriptions = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {
-    // Subscriptions Table Component
+    // Subscriptions Table Component - OPTIMIZED
     Alpine.data('subscriptionsTable', () => ({
         plans: [],
-        regions: [],
-        sortBy: 'display_order',
+        sortBy: 'price_per_unit',
         sortDirection: 'asc',
         currentPage: 1,
         itemsPerPage: 10,
-        filterRegion: 'all',
         searchQuery: '',
         loading: true,
         error: false,
         errorMessage: '',
         errorDetails: '',
         
+        // Computed properties - optimized
         get filteredPlans() {
             let filtered = this.plans;
-            
-            // Filter by region
-            if (this.filterRegion !== 'all') {
-                filtered = filtered.filter(p => p.region_id === this.filterRegion);
-            }
-            
-            // Search
             if (this.searchQuery) {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(p => 
-                    p.name?.toLowerCase().includes(query) ||
-                    p.slug?.toLowerCase().includes(query) ||
-                    p.description?.toLowerCase().includes(query) ||
-                    p.region_name?.toLowerCase().includes(query) ||
-                    p.subcounty_name?.toLowerCase().includes(query)
+                    (p.name && p.name.toLowerCase().includes(query)) ||
+                    (p.description && p.description.toLowerCase().includes(query))
                 );
             }
             return filtered;
         },
         
         get sortedPlans() {
-            return this.filteredPlans.slice().sort((a, b) => {
-                let valA = a[this.sortBy];
-                let valB = b[this.sortBy];
+            const sorted = [...this.filteredPlans];
+            const field = this.sortBy;
+            const direction = this.sortDirection === 'asc' ? 1 : -1;
+            
+            sorted.sort((a, b) => {
+                let valA = a[field];
+                let valB = b[field];
+                
+                if (valA === null || valA === undefined) return direction;
+                if (valB === null || valB === undefined) return -direction;
+                
                 if (typeof valA === 'string') {
                     valA = valA.toLowerCase();
                     valB = valB.toLowerCase();
                 }
-                if (valA === null || valA === undefined) return 1;
-                if (valB === null || valB === undefined) return -1;
-                if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1;
-                if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1;
+                
+                if (valA < valB) return -direction;
+                if (valA > valB) return direction;
                 return 0;
             });
+            
+            return sorted;
         },
         
         get paginatedPlans() {
@@ -327,7 +292,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         get totalPages() {
-            return Math.ceil(this.filteredPlans.length / this.itemsPerPage);
+            return Math.ceil(this.filteredPlans.length / this.itemsPerPage) || 1;
         },
         
         get visiblePages() {
@@ -347,11 +312,8 @@ document.addEventListener('alpine:init', () => {
         async loadPlans() {
             this.loading = true;
             this.error = false;
-            this.errorMessage = '';
-            this.errorDetails = '';
             
             try {
-                console.log('Loading subscription plans...');
                 const response = await fetch('/admin/subscriptions/api/plans/data', {
                     headers: {
                         'Accept': 'application/json',
@@ -360,21 +322,14 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
                 
-                console.log('Response status:', response.status);
-                
                 if (!response.ok) {
-                    const text = await response.text();
-                    console.error('Response error:', text);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
                 const result = await response.json();
-                console.log('Plans response:', result);
                 
                 if (result.success) {
                     this.plans = result.plans || [];
-                    this.regions = result.regions || [];
-                    console.log('Loaded ' + this.plans.length + ' plans from ' + this.regions.length + ' regions');
                 } else {
                     throw new Error(result.message || 'Failed to load plans');
                 }
@@ -382,7 +337,7 @@ document.addEventListener('alpine:init', () => {
             } catch (error) {
                 console.error('Error fetching plans:', error);
                 this.error = true;
-                this.errorMessage = error.message || 'Could not load subscription plans. Please check your connection.';
+                this.errorMessage = error.message || 'Could not load subscription plans.';
                 this.errorDetails = error.stack || '';
                 this.plans = [];
             } finally {

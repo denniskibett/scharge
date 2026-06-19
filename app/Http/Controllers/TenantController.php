@@ -118,7 +118,7 @@ class TenantController extends Controller
             $payments = Payment::whereHas('invoice', function($query) use ($activeTenancy) {
                     $query->where('tenancy_id', $activeTenancy->id);
                 })
-                ->orderBy('payment_datetime', 'desc')
+                ->orderBy('created_at', 'desc')
                 ->get();
             
             $totalPaid = $payments->sum('amount');
@@ -431,7 +431,6 @@ public function store(Request $request)
             'transaction_message' => 'nullable|string',
             'paid_to' => 'nullable|string|max:255',
             'payer_name' => 'nullable|string|max:255',
-            'payment_datetime' => 'required|date',
             'payment_month' => 'required|string|max:255',
         ]);
 
@@ -453,7 +452,6 @@ public function store(Request $request)
             'transaction_message' => $validated['transaction_message'],
             'paid_to' => $validated['paid_to'],
             'payer_name' => $validated['payer_name'],
-            'payment_datetime' => $validated['payment_datetime'],
             'payment_month' => $validated['payment_month'],
         ]);
 

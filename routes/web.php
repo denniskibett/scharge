@@ -342,7 +342,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/visitors', [SecurityController::class, 'getVisitorsByTenant'])->name('visitors');
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
     });
-
 // =============================================
 // SUBSCRIPTION MODULE ROUTES - Admin Section
 // =============================================
@@ -371,9 +370,6 @@ Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware([
         Route::get('/plans/data', [SubscriptionController::class, 'getPlansData'])->name('plans.data');
         Route::get('/plans/{plan}', [SubscriptionController::class, 'getPlan'])->name('plans.show');
         Route::get('/plans/{plan}/subscribers', [SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
-        Route::get('/regions', [SubscriptionController::class, 'getRegions'])->name('regions');
-        Route::get('/subcounties', [SubscriptionController::class, 'getSubcounties'])->name('subcounties');
-        Route::get('/subcounties/{subcounty}/wards', [SubscriptionController::class, 'getWards'])->name('wards');
         Route::get('/company-subscriptions', [SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
     });
 });

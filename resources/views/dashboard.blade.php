@@ -101,9 +101,9 @@
     @endif
     @endauth
 
-    <!-- ADMIN / SUPER ADMIN DASHBOARD -->
+    <!-- ADMIN DASHBOARD -->
     @auth
-    @if(auth()->user()->hasRole('admin') || auth()->user()->hasRole('super_admin'))
+    @if(auth()->user()->hasRole('admin'))
         @include('partials.dashboard.admin', [
             'stats' => $stats ?? [],
             'roleData' => $roleData ?? [],

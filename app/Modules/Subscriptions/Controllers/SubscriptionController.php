@@ -6,41 +6,36 @@ namespace App\Modules\Subscriptions\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Subscriptions\Models\SubscriptionPlan;
 use App\Modules\Subscriptions\Models\CompanySubscription;
-use App\Modules\Subscriptions\Models\Region;
 use App\Modules\Subscriptions\Models\SubscriptionInvoice;
 use App\Modules\Subscriptions\Models\RegionalAccountManager;
 use App\Models\Company;
 use App\Models\Unit;
-use App\Models\Subcounty;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class SubscriptionController extends Controller
 {
-
     /**
      * Display the subscriptions index page (Admin)
      * Route: GET /admin/subscriptions
      */
     public function index()
     {
-        $plans = SubscriptionPlan::with(['region'])
+        $plans = SubscriptionPlan::orderBy('price_per_unit')
             ->orderBy('id', 'desc')
             ->get();
         
-        $regions = Region::active()->ordered()->get();
-        
-        return view('subscriptions.index', compact('plans', 'regions'));
+        return view('subscriptions.index', compact('plans'));
     }
 
     /**
      * Display a specific subscription plan (Admin Show)
      * Route: GET /admin/subscriptions/plans/{plan}
      */
-    public function show($id)
+public function show($id)
     {
         try {
-            $plan = SubscriptionPlan::with(['region.county'])->findOrFail($id);
+            $plan = SubscriptionPlan::findOrFail($id);
             
             // Parse features
             $features = $plan->features ?? [];
@@ -94,18 +89,12 @@ class SubscriptionController extends Controller
                 }
             }
             
-            // Get regional account managers for this region
-            $accountManagers = RegionalAccountManager::with('user')
-                ->where('region_id', $plan->region_id)
-                ->where('is_active', true)
-                ->get();
-            
             // Get invoices for this plan
             $invoices = SubscriptionInvoice::whereHas('subscription', function($query) use ($plan) {
                 $query->where('plan_id', $plan->id);
             })->orderBy('created_at', 'desc')->get();
             
-            // Get companies using this plan - safely
+            // Get companies using this plan
             $companies = CompanySubscription::with('company')
                 ->where('plan_id', $plan->id)
                 ->whereIn('status', ['trial', 'active'])
@@ -113,23 +102,37 @@ class SubscriptionController extends Controller
                 ->pluck('company')
                 ->filter();
             
-            // Get the first company for breadcrumb (if exists)
-            $firstCompany = $companies->isNotEmpty() ? $companies->first() : null;
+            // =============================================
+            // FIX: Get Account Managers for this plan
+            // =============================================
+            $accountManagers = collect();
             
-            // Get all available regions for dropdown (if needed)
-            $regions = Region::active()
-                ->ordered()
-                ->get()
-                ->map(function($region) {
-                    return [
-                        'id' => $region->id,
-                        'name' => $region->name,
-                        'display_name' => $region->display_name,
-                    ];
-                });
+            // Try to get account managers from plan features
+            if (isset($features['account_managers']) && is_array($features['account_managers'])) {
+                $managerIds = $features['account_managers'];
+                if (!empty($managerIds)) {
+                    $accountManagers = RegionalAccountManager::with(['user', 'region'])
+                        ->whereIn('id', $managerIds)
+                        ->where('is_active', true)
+                        ->get();
+                }
+            }
             
-            // Get wards from features
-            $wards = $features['wards'] ?? [];
+            // If no account managers in features, try to get from region
+            if ($accountManagers->isEmpty() && isset($features['region_id'])) {
+                $accountManagers = RegionalAccountManager::with(['user', 'region'])
+                    ->where('region_id', $features['region_id'])
+                    ->where('is_active', true)
+                    ->get();
+            }
+            
+            // If still empty, get all active account managers
+            if ($accountManagers->isEmpty()) {
+                $accountManagers = RegionalAccountManager::with(['user', 'region'])
+                    ->where('is_active', true)
+                    ->limit(5)
+                    ->get();
+            }
             
             // Get product capabilities
             $productCapabilities = $features['product_capabilities'] ?? [
@@ -143,19 +146,20 @@ class SubscriptionController extends Controller
             // Get business features
             $businessFeatures = $features['business_features'] ?? [];
             
-            // Prepare plan data for view - USE subcounty field
+            // =============================================
+            // FIX: Get first company safely
+            // =============================================
+            $firstCompany = null;
+            if ($companies->isNotEmpty()) {
+                $firstCompany = $companies->first();
+            }
+            
+            // Prepare plan data for view
             $planData = [
                 'id' => $plan->id,
                 'name' => $plan->name,
                 'slug' => $plan->slug,
                 'description' => $plan->description,
-                'region_id' => $plan->region_id,
-                'region_name' => $plan->region?->name,
-                'county_name' => $plan->region?->county?->county_name,
-                'subcounty' => $plan->subcounty,
-                'wards' => $wards,
-                'product_capabilities' => $productCapabilities,
-                'business_features' => $businessFeatures,
                 'price_per_unit' => (float) $plan->price_per_unit,
                 'trial_days' => $plan->trial_days,
                 'discount_percentage' => (float) $plan->discount_percentage,
@@ -166,16 +170,22 @@ class SubscriptionController extends Controller
                 'total_revenue' => $totalRevenue,
                 'monthly_price' => $plan->calculateMonthlyPrice(1),
                 'yearly_price' => $plan->calculateYearlyPrice(1),
+                'product_capabilities' => $productCapabilities,
+                'business_features' => $businessFeatures,
+                'price_tier' => $plan->price_tier_label,
+                'price_tier_color' => $plan->price_tier_color,
+                'region_id' => $features['region_id'] ?? null,
+                'region_name' => $features['region_name'] ?? 'N/A',
+                'account_managers' => $accountManagers,
             ];
             
             return view('subscriptions.show', compact(
                 'planData', 
                 'subscribers', 
-                'regions', 
-                'accountManagers', 
                 'companies', 
                 'invoices',
-                'firstCompany'
+                'accountManagers',
+                'firstCompany'  // Pass to view (can be null)
             ));
             
         } catch (\Exception $e) {
@@ -187,6 +197,138 @@ class SubscriptionController extends Controller
             
             return redirect()->route('admin.subscriptions.plans.index')
                 ->with('error', 'Error loading plan details: ' . $e->getMessage());
+        }
+    }
+
+
+    /**
+     * Get plans data for AJAX - OPTIMIZED with eager loading
+     * Route: GET /admin/subscriptions/api/plans/data
+     */
+    public function getPlansData()
+    {
+        try {
+            Log::info('=== getPlansData called ===');
+            
+            // Single query with eager loading - NO N+1
+            $plans = SubscriptionPlan::withCount(['subscriptions as active_subscriptions_count' => function($query) {
+                $query->whereIn('status', ['active', 'trial']);
+            }])
+            ->orderBy('price_per_unit')
+            ->orderBy('id', 'desc')
+            ->get();
+            
+            Log::info('Plans found: ' . $plans->count());
+            
+            if ($plans->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'plans' => [],
+                    'stats' => ['total' => 0, 'active' => 0, 'inactive' => 0]
+                ]);
+            }
+            
+            // Pre-parse features once - avoid repeated JSON decoding
+            $formattedPlans = $plans->map(function($plan) {
+                // Parse features once
+                $features = is_string($plan->features) 
+                    ? json_decode($plan->features, true) ?? [] 
+                    : ($plan->features ?? []);
+                
+                if (!is_array($features)) {
+                    $features = [];
+                }
+                
+                $businessFeatures = $features['business_features'] ?? [];
+                
+                return [
+                    'id' => $plan->id,
+                    'name' => $plan->name,
+                    'slug' => $plan->slug,  // KEEP SLUG
+                    'description' => $plan->description,
+                    'price_per_unit' => (float) $plan->price_per_unit,
+                    'trial_days' => (int) $plan->trial_days,
+                    'discount_percentage' => (float) $plan->discount_percentage,
+                    'features' => $businessFeatures,
+                    'is_active' => (bool) $plan->is_active,
+                    'subscribers_count' => (int) $plan->active_subscriptions_count ?? 0,
+                    'price_monthly' => $plan->calculateMonthlyPrice(1),
+                    'price_yearly' => $plan->calculateYearlyPrice(1),
+                    'price_tier' => $plan->price_tier_label,
+                    'price_tier_color' => $plan->price_tier_color,
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'plans' => $formattedPlans,
+                'stats' => [
+                    'total' => $plans->count(),
+                    'active' => $plans->where('is_active', true)->count(),
+                    'inactive' => $plans->where('is_active', false)->count(),
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getPlansData: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+                'plans' => [],
+                'stats' => ['total' => 0, 'active' => 0, 'inactive' => 0]
+            ], 500);
+        }
+    }
+
+    /**
+     * Get single plan for editing
+     * Route: GET /admin/subscriptions/api/plans/{plan}
+     */
+    public function getPlan($id)
+    {
+        try {
+            $plan = SubscriptionPlan::findOrFail($id);
+            
+            $features = $plan->features;
+            if (is_string($features)) {
+                $features = json_decode($features, true) ?? [];
+            }
+            if (!is_array($features)) {
+                $features = [];
+            }
+            
+            return response()->json([
+                'success' => true,
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'slug' => $plan->slug,
+                'description' => $plan->description,
+                'price_per_unit' => (float) $plan->price_per_unit,
+                'trial_days' => (int) $plan->trial_days,
+                'discount_percentage' => (float) $plan->discount_percentage,
+                'is_active' => (bool) $plan->is_active,
+                'product_capabilities' => $features['product_capabilities'] ?? [
+                    'max_units' => 0,
+                    'max_users' => 0,
+                    'max_tenants' => 0,
+                    'storage_gb' => 0,
+                    'max_properties' => 0
+                ],
+                'business_features' => $features['business_features'] ?? [],
+                'region_id' => $features['region_id'] ?? null,
+                'region_name' => $features['region_name'] ?? null,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getPlan: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Plan not found: ' . $e->getMessage()
+            ], 404);
         }
     }
 
@@ -216,15 +358,12 @@ class SubscriptionController extends Controller
             
             // Calculate current price
             $currentPrice = 0;
-            $pricingType = 'fixed';
             $pricePerUnit = 0;
             
             if ($currentSubscription && $currentSubscription->plan) {
                 $plan = $currentSubscription->plan;
                 $currentPrice = $plan->calculateMonthlyPrice($unitCount);
-                $features = is_array($plan->features) ? $plan->features : json_decode($plan->features, true) ?? [];
-                $pricingType = $features['pricing_type'] ?? 'fixed';
-                $pricePerUnit = $features['price_per_unit'] ?? $plan->price_per_unit;
+                $pricePerUnit = $plan->price_per_unit;
             }
             
             // Get invoices
@@ -233,9 +372,8 @@ class SubscriptionController extends Controller
                 ->get();
             
             // Get all plans for subscription
-            $plans = SubscriptionPlan::with(['region'])
-                ->active()
-                ->orderBy('id', 'desc')
+            $plans = SubscriptionPlan::where('is_active', true)
+                ->orderBy('price_per_unit')
                 ->get();
             
             return view('subscriptions.company-show', compact(
@@ -244,7 +382,6 @@ class SubscriptionController extends Controller
                 'subscriptionHistory', 
                 'unitCount', 
                 'currentPrice',
-                'pricingType',
                 'pricePerUnit',
                 'invoices',
                 'plans'
@@ -263,287 +400,12 @@ class SubscriptionController extends Controller
      */
     public function plansIndex()
     {
-        $plans = SubscriptionPlan::with(['region'])
+        $plans = SubscriptionPlan::orderBy('price_per_unit')
             ->orderBy('id', 'desc')
             ->get();
-        
-        $regions = Region::active()->ordered()->get();
-        
-        return view('subscriptions.index', compact('plans', 'regions'));
+        return view('subscriptions.index', compact('plans'));
     }
 
-    /**
-     * Get plans data for AJAX (Alpine.js table)
-     * Route: GET /admin/subscriptions/api/plans/data
-     */
-    public function getPlansData()
-    {
-        try {
-            Log::info('=== getPlansData called ===');
-            
-            $plans = SubscriptionPlan::with(['region'])
-                ->withCount(['subscriptions as active_subscriptions_count' => function($query) {
-                    $query->whereIn('status', ['active', 'trial']);
-                }])
-                ->orderBy('id', 'desc')
-                ->get();
-            
-            Log::info('Plans found: ' . $plans->count());
-            
-            if ($plans->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'plans' => [],
-                    'regions' => [],
-                    'stats' => ['total' => 0, 'active' => 0, 'inactive' => 0],
-                    'message' => 'No plans found.'
-                ]);
-            }
-            
-            $formattedPlans = $plans->map(function($plan) {
-                // Parse features - handle both array and JSON string
-                $features = $plan->features;
-                if (is_string($features)) {
-                    $features = json_decode($features, true) ?? [];
-                }
-                if (!is_array($features)) {
-                    $features = [];
-                }
-                
-                // Get business features
-                $businessFeatures = $features['business_features'] ?? [];
-                
-                // Get ward names for display (comma separated)
-                $wardIds = $features['wards'] ?? [];
-                $wardNames = [];
-                if (!empty($wardIds)) {
-                    $wardNames = Subcounty::whereIn('id', $wardIds)->pluck('ward')->toArray();
-                }
-                
-                return [
-                    'id' => $plan->id,
-                    'name' => $plan->name,
-                    'slug' => $plan->slug,
-                    'description' => $plan->description,
-                    'region_id' => $plan->region_id,
-                    'region_name' => $plan->region?->name,
-                    'subcounty' => $plan->subcounty,
-                    'subcounty_name' => $plan->subcounty,
-                    'price_per_unit' => (float) $plan->price_per_unit,
-                    'trial_days' => (int) $plan->trial_days,
-                    'discount_percentage' => (float) $plan->discount_percentage,
-                    'features' => $businessFeatures,
-                    'ward_names' => implode(', ', $wardNames),
-                    'is_active' => (bool) $plan->is_active,
-                    'subscribers_count' => (int) $plan->active_subscriptions_count ?? 0,
-                    'pricing_type' => $features['pricing_type'] ?? 'fixed',
-                    'price_monthly' => $plan->calculateMonthlyPrice(1),
-                    'price_yearly' => $plan->calculateYearlyPrice(1),
-                    'created_at' => $plan->created_at?->format('Y-m-d H:i:s'),
-                    'updated_at' => $plan->updated_at?->format('Y-m-d H:i:s'),
-                ];
-            });
-            
-            // Get regions for filter
-            $regions = Region::active()
-                ->ordered()
-                ->get()
-                ->map(function($region) {
-                    return [
-                        'id' => $region->id,
-                        'name' => $region->name,
-                        'display_name' => $region->display_name,
-                    ];
-                });
-            
-            return response()->json([
-                'success' => true,
-                'plans' => $formattedPlans,
-                'regions' => $regions,
-                'stats' => [
-                    'total' => $plans->count(),
-                    'active' => $plans->where('is_active', true)->count(),
-                    'inactive' => $plans->where('is_active', false)->count(),
-                ]
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Error in getPlansData: ' . $e->getMessage(), [
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage(),
-                'plans' => [],
-                'regions' => [],
-                'stats' => ['total' => 0, 'active' => 0, 'inactive' => 0]
-            ], 500);
-        }
-    }
-
-    /**
-     * Get single plan for editing
-     * Route: GET /admin/subscriptions/api/plans/{plan}
-     */
-    public function getPlan($id)
-    {
-        try {
-            $plan = SubscriptionPlan::with(['region'])->findOrFail($id);
-            
-            // Parse features
-            $features = $plan->features;
-            if (is_string($features)) {
-                $features = json_decode($features, true) ?? [];
-            }
-            if (!is_array($features)) {
-                $features = [];
-            }
-            
-            return response()->json([
-                'success' => true,
-                'id' => $plan->id,
-                'region_id' => $plan->region_id,
-                'subcounty' => $plan->subcounty,
-                'wards' => $features['wards'] ?? [],
-                'name' => $plan->name,
-                'slug' => $plan->slug,
-                'description' => $plan->description,
-                'price_per_unit' => (float) $plan->price_per_unit,
-                'trial_days' => (int) $plan->trial_days,
-                'discount_percentage' => (float) $plan->discount_percentage,
-                'is_active' => (bool) $plan->is_active,
-                'product_capabilities' => $features['product_capabilities'] ?? [
-                    'max_units' => 0,
-                    'max_users' => 0,
-                    'max_tenants' => 0,
-                    'storage_gb' => 0,
-                    'max_properties' => 0
-                ],
-                'business_features' => $features['business_features'] ?? [],
-                'pricing_type' => $features['pricing_type'] ?? 'fixed',
-                'price_monthly' => $plan->calculateMonthlyPrice(1),
-                'price_yearly' => $plan->calculateYearlyPrice(1),
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Error in getPlan: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Plan not found: ' . $e->getMessage()
-            ], 404);
-        }
-    }
-
-    /**
-     * Get subcounties for dropdown
-     * Route: GET /admin/subscriptions/api/subcounties
-     */
-    public function getSubcounties(Request $request)
-    {
-        try {
-            $countyId = $request->input('county_id');
-            
-            $query = Subcounty::select('id', 'county_id', 'constituency_name', 'ward', 'alias')
-                ->orderBy('constituency_name');
-            
-            // Filter by county if provided
-            if ($countyId) {
-                $query->where('county_id', $countyId);
-            }
-            
-            $subcounties = $query->get()->map(function($subcounty) {
-                return [
-                    'id' => $subcounty->id,
-                    'county_id' => $subcounty->county_id,
-                    'subcounty' => $subcounty->constituency_name,
-                    'ward' => $subcounty->ward,
-                    'alias' => $subcounty->alias,
-                    'display_name' => $subcounty->constituency_name . ' - ' . $subcounty->ward,
-                ];
-            });
-            
-            // Get unique constituencies (group by constituency_name)
-            $uniqueConstituencies = $subcounties->unique('subcounty')->values();
-            
-            return response()->json([
-                'success' => true,
-                'subcounties' => $uniqueConstituencies
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error in getSubcounties: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error loading subcounties: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get wards for a subcounty
-     * Route: GET /admin/subscriptions/api/subcounties/{subcounty}/wards
-     */
-    public function getWards($subcounty)
-    {
-        try {
-            $wards = Subcounty::where('constituency_name', $subcounty)
-                ->orderBy('ward')
-                ->get()
-                ->map(function($subcounty) {
-                    return [
-                        'id' => $subcounty->id,
-                        'ward' => $subcounty->ward,
-                        'alias' => $subcounty->alias,
-                    ];
-                });
-            
-            return response()->json([
-                'success' => true,
-                'wards' => $wards
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error in getWards: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error loading wards: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get regions for dropdown
-     * Route: GET /admin/subscriptions/api/regions
-     */
-    public function getRegions()
-    {
-        try {
-            $regions = Region::with('county')
-                ->active()
-                ->ordered()
-                ->get()
-                ->map(function($region) {
-                    return [
-                        'id' => $region->id,
-                        'name' => $region->name,
-                        'county_id' => $region->county_id,
-                        'county_name' => $region->county?->county_name,
-                        'display_name' => $region->display_name,
-                    ];
-                });
-            
-            return response()->json([
-                'success' => true,
-                'regions' => $regions
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error in getRegions: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Error loading regions: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Store a new subscription plan
@@ -553,10 +415,6 @@ class SubscriptionController extends Controller
     {
         try {
             $validated = $request->validate([
-                'region_id' => 'required|exists:regions,id',
-                'subcounty' => 'nullable|string|max:100',
-                'wards' => 'nullable|array',
-                'wards.*' => 'integer',
                 'name' => 'required|string|max:255',
                 'slug' => 'required|string|max:255|unique:subscription_plans,slug',
                 'description' => 'nullable|string',
@@ -570,9 +428,6 @@ class SubscriptionController extends Controller
             
             // Prepare features array
             $features = [
-                'pricing_type' => 'per_unit',
-                'price_per_unit' => (float) $validated['price_per_unit'],
-                'wards' => $validated['wards'] ?? [],
                 'product_capabilities' => $request->input('product_capabilities', [
                     'max_units' => 0,
                     'max_users' => 0,
@@ -584,8 +439,6 @@ class SubscriptionController extends Controller
             ];
             
             $plan = SubscriptionPlan::create([
-                'region_id' => $validated['region_id'],
-                'subcounty' => $validated['subcounty'] ?? null,
                 'name' => $validated['name'],
                 'slug' => $validated['slug'],
                 'description' => $validated['description'] ?? null,
@@ -621,10 +474,6 @@ class SubscriptionController extends Controller
             $plan = SubscriptionPlan::findOrFail($id);
             
             $validated = $request->validate([
-                'region_id' => 'required|exists:regions,id',
-                'subcounty' => 'nullable|string|max:100',
-                'wards' => 'nullable|array',
-                'wards.*' => 'integer',
                 'name' => 'required|string|max:255',
                 'slug' => 'required|string|max:255|unique:subscription_plans,slug,' . $id,
                 'description' => 'nullable|string',
@@ -638,9 +487,6 @@ class SubscriptionController extends Controller
             
             // Prepare features array
             $features = [
-                'pricing_type' => 'per_unit',
-                'price_per_unit' => (float) $validated['price_per_unit'],
-                'wards' => $validated['wards'] ?? [],
                 'product_capabilities' => $request->input('product_capabilities', [
                     'max_units' => 0,
                     'max_users' => 0,
@@ -652,8 +498,6 @@ class SubscriptionController extends Controller
             ];
             
             $plan->update([
-                'region_id' => $validated['region_id'],
-                'subcounty' => $validated['subcounty'] ?? null,
                 'name' => $validated['name'],
                 'slug' => $validated['slug'],
                 'description' => $validated['description'] ?? null,

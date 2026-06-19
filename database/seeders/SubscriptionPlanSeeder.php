@@ -1,11 +1,11 @@
 <?php
+// database/seeders/SubscriptionPlanSeeder.php
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Modules\Subscriptions\Models\SubscriptionPlan;
-use App\Modules\Subscriptions\Models\Region;
+use Illuminate\Support\Str;
 
 class SubscriptionPlanSeeder extends Seeder
 {
@@ -14,240 +14,352 @@ class SubscriptionPlanSeeder extends Seeder
      */
     public function run(): void
     {
-        // Get all regions
-        $regions = Region::with('county')->get();
-
-        // Define plans for each region
-        $plans = [];
+        // =============================================
+        // RESIDENTIAL BANDS (Service Charge)
+        // =============================================
+        $residentialBands = [
+            [
+                'price' => 40,
+                'name' => 'Economy Residential',
+                'slug' => 'residential-40',
+                'description' => 'Basic residential service charge band. Ideal for low-cost housing units.',
+                'features' => [
+                    'Water supply (basic)',
+                    'Garbage collection (weekly)',
+                    'Security patrol (basic)',
+                ],
+                'unit_types' => ['apartment', 'bedsitter', 'studio'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 60,
+                'name' => 'Standard Residential',
+                'slug' => 'residential-60',
+                'description' => 'Standard residential service charge band. Suitable for mid-range apartments.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice weekly)',
+                    'Security patrol (regular)',
+                    'Common area cleaning',
+                ],
+                'unit_types' => ['apartment', 'townhouse', 'bedsitter'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 100,
+                'name' => 'Premium Residential',
+                'slug' => 'residential-100',
+                'description' => 'Premium residential service charge band. For quality apartments with amenities.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                ],
+                'unit_types' => ['apartment', 'penthouse', 'townhouse'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 150,
+                'name' => 'Luxury Residential',
+                'slug' => 'residential-150',
+                'description' => 'Luxury residential service charge band. Premium apartments with full amenities.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                ],
+                'unit_types' => ['penthouse', 'apartment', 'villa'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 200,
+                'name' => 'Executive Residential',
+                'slug' => 'residential-200',
+                'description' => 'Executive residential service charge band. High-end apartments with premium services.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                    'Valet parking',
+                    'Clubhouse access',
+                ],
+                'unit_types' => ['penthouse', 'villa', 'apartment'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 250,
+                'name' => 'Prestige Residential',
+                'slug' => 'residential-250',
+                'description' => 'Prestige residential service charge band. Ultra-luxury units with exclusive services.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                    'Valet parking',
+                    'Clubhouse access',
+                    'Private elevator access',
+                    'Butler service',
+                ],
+                'unit_types' => ['penthouse', 'villa', 'mansion'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 350,
+                'name' => 'Elite Residential',
+                'slug' => 'residential-350',
+                'description' => 'Elite residential service charge band. Prime residential units with luxury amenities.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                    'Valet parking',
+                    'Clubhouse access',
+                    'Private elevator access',
+                    'Butler service',
+                    'Spa access',
+                    'Private cinema room',
+                ],
+                'unit_types' => ['penthouse', 'villa', 'mansion'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 500,
+                'name' => 'Ultra-Premium Residential',
+                'slug' => 'residential-500',
+                'description' => 'Ultra-premium residential service charge band. Top-tier luxury living.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                    'Valet parking',
+                    'Clubhouse access',
+                    'Private elevator access',
+                    'Butler service',
+                    'Spa access',
+                    'Private cinema room',
+                    'Private dining room',
+                    'Guest suite access',
+                ],
+                'unit_types' => ['penthouse', 'villa', 'mansion'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 800,
+                'name' => 'Luxury Estates',
+                'slug' => 'residential-800',
+                'description' => 'Luxury estates service charge band. For luxury apartments in prime locations.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                    'Valet parking',
+                    'Clubhouse access',
+                    'Private elevator access',
+                    'Butler service',
+                    'Spa access',
+                    'Private cinema room',
+                    'Private dining room',
+                    'Guest suite access',
+                    'Helicopter pad access',
+                    'Wine cellar access',
+                ],
+                'unit_types' => ['penthouse', 'villa', 'mansion'],
+                'property_types' => ['residential'],
+            ],
+            [
+                'price' => 1000,
+                'name' => 'Royal Estates',
+                'slug' => 'residential-1000',
+                'description' => 'Royal estates service charge band. Ultra-luxury living with exclusive amenities.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice daily)',
+                    'Security patrol (24/7)',
+                    'Common area cleaning',
+                    'Swimming pool maintenance',
+                    'Gym access',
+                    'Landscaping & gardening',
+                    'Concierge service',
+                    'Valet parking',
+                    'Clubhouse access',
+                    'Private elevator access',
+                    'Butler service',
+                    'Spa access',
+                    'Private cinema room',
+                    'Private dining room',
+                    'Guest suite access',
+                    'Helicopter pad access',
+                    'Wine cellar access',
+                    'Private chef service',
+                    'Personal assistant service',
+                ],
+                'unit_types' => ['penthouse', 'villa', 'mansion', 'estate'],
+                'property_types' => ['residential'],
+            ],
+        ];
 
         // =============================================
-        // NAIROBI REGIONS - Premium Areas
+        // COMMERCIAL BANDS
         // =============================================
-        $premiumNairobi = ['kileleshwa', 'kilimani', 'westlands', 'karen', 'lavington', 'runda', 'gigiri'];
-        $standardNairobi = ['langata', 'embakasi', 'kasarani', 'roysambu', 'embakasi', 'syokimau'];
+        $commercialBands = [
+            [
+                'price' => 350,
+                'name' => 'Warehouse Standard',
+                'slug' => 'commercial-350',
+                'description' => 'Standard warehouse service charge.',
+                'features' => [
+                    'Water supply (basic)',
+                    'Garbage collection (weekly)',
+                    'Security (24/7)',
+                    'Yard cleaning',
+                    'Loading bay access',
+                    'Forklift charging station',
+                ],
+                'unit_types' => ['warehouse', 'storage'],
+                'property_types' => ['commercial', 'industrial'],
+            ],
+            [
+                'price' => 500,
+                'name' => 'Industrial Warehouse',
+                'slug' => 'commercial-500',
+                'description' => 'Premium industrial warehouse service charge.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (twice weekly)',
+                    'Security (24/7)',
+                    'Yard cleaning',
+                    'Loading bay access',
+                    'Forklift charging station',
+                    'Weighbridge access',
+                    '3-phase power access',
+                ],
+                'unit_types' => ['warehouse', 'industrial', 'storage'],
+                'property_types' => ['commercial', 'industrial'],
+            ],
+            [
+                'price' => 800,
+                'name' => 'Mixed-Use Commercial',
+                'slug' => 'commercial-800',
+                'description' => 'Mixed-use commercial service charge for complex developments.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (daily)',
+                    'Security (24/7)',
+                    'Common area cleaning',
+                    'Parking (reserved)',
+                    'Bathroom cleaning',
+                    'Elevator maintenance',
+                    'HVAC maintenance',
+                    'Reception service',
+                    'Conference room booking',
+                    'Landscaping & gardening',
+                    'Loading bay access',
+                ],
+                'unit_types' => ['complex', 'mixed-use', 'commercial'],
+                'property_types' => ['commercial', 'mixed-use'],
+            ],
+            [
+                'price' => 1000,
+                'name' => 'Premium Complex',
+                'slug' => 'commercial-1000',
+                'description' => 'Premium complex service charge for high-end commercial developments.',
+                'features' => [
+                    'Water supply (metered)',
+                    'Garbage collection (daily)',
+                    'Security (24/7)',
+                    'Common area cleaning',
+                    'Parking (reserved)',
+                    'Bathroom cleaning',
+                    'Elevator maintenance',
+                    'HVAC maintenance',
+                    'Reception service',
+                    'Conference room booking',
+                    'Landscaping & gardening',
+                    'Loading bay access',
+                    'Weighbridge access',
+                    'Event space access',
+                    'Helipad access',
+                ],
+                'unit_types' => ['complex', 'mixed-use', 'commercial'],
+                'property_types' => ['commercial', 'mixed-use'],
+            ],
+        ];
 
-        foreach ($regions as $region) {
-            // Skip if region doesn't have a county
-            if (!$region->county) continue;
+        // =============================================
+        // CREATE PLANS
+        // =============================================
+        $allBands = array_merge($residentialBands, $commercialBands);
 
-            // Determine pricing based on county and region
-            $starterPrice = 0;
-            $professionalPrice = 0;
-            $enterprisePrice = 0;
-
-            // Nairobi County
-            if ($region->county->county_name === 'Nairobi') {
-                if (in_array($region->slug, $premiumNairobi)) {
-                    $starterPrice = 350;
-                    $professionalPrice = 300;
-                    $enterprisePrice = 250;
-                } elseif (in_array($region->slug, $standardNairobi)) {
-                    $starterPrice = 200;
-                    $professionalPrice = 150;
-                    $enterprisePrice = 120;
-                } else {
-                    // Default Nairobi pricing
-                    $starterPrice = 250;
-                    $professionalPrice = 200;
-                    $enterprisePrice = 150;
-                }
-            }
-            // Kajiado County
-            elseif ($region->county->county_name === 'Kajiado') {
-                $starterPrice = 100;
-                $professionalPrice = 80;
-                $enterprisePrice = 65;
-            }
-            // Kiambu County
-            elseif ($region->county->county_name === 'Kiambu') {
-                $starterPrice = 75;
-                $professionalPrice = 60;
-                $enterprisePrice = 50;
-            }
-            // Machakos County
-            elseif ($region->county->county_name === 'Machakos') {
-                $starterPrice = 80;
-                $professionalPrice = 65;
-                $enterprisePrice = 50;
-            }
-            // Mombasa County
-            elseif ($region->county->county_name === 'Mombasa') {
-                $starterPrice = 200;
-                $professionalPrice = 160;
-                $enterprisePrice = 130;
-            }
-            // Kisumu County
-            elseif ($region->county->county_name === 'Kisumu') {
-                $starterPrice = 120;
-                $professionalPrice = 100;
-                $enterprisePrice = 80;
-            }
-            // Nakuru County
-            elseif ($region->county->county_name === 'Nakuru') {
-                $starterPrice = 120;
-                $professionalPrice = 100;
-                $enterprisePrice = 80;
-            }
-            // Uasin Gishu County (Eldoret)
-            elseif ($region->county->county_name === 'Uasin Gishu') {
-                $starterPrice = 120;
-                $professionalPrice = 100;
-                $enterprisePrice = 80;
-            }
-            // Default pricing for other counties
-            else {
-                $starterPrice = 100;
-                $professionalPrice = 80;
-                $enterprisePrice = 65;
-            }
-
-            // Create Starter Plan
-            $plans[] = [
-                'name' => 'Starter',
-                'slug' => $region->slug . '-starter',
-                'description' => 'Perfect for small property owners in ' . $region->name . '. Up to 50 units.',
-                'trial_days' => 14,
-                'features_json' => json_encode([
-                    'max_properties' => 1,
-                    'max_units' => 50,
-                    'max_users' => 3,
-                    'max_tenants' => 100,
-                    'storage_gb' => 5,
-                    'features_list' => [
-                        'Up to 50 rental units',
-                        'Basic reporting',
-                        'Email support',
-                        'Mobile app access',
-                        'Tenant portal',
-                        'Basic income & expense tracking'
-                    ],
-                    'pricing_type' => 'per_unit',
-                    'price_per_unit' => $starterPrice
-                ]),
-                'is_active' => 1,
-                'display_order' => 1,
-                'region_id' => $region->id,
-                'subcounty_id' => null,
-                'price_per_unit' => $starterPrice,
-                'discount_percentage' => 10.00,
-                'features' => json_encode([
-                    'Basic property management reporting',
-                    'Email support during business hours',
-                    'Mobile app access for tenants and staff',
-                    'Tenant self-service portal',
-                    'Up to 50 rental units management',
-                    'Basic income & expense tracking'
-                ])
-            ];
-
-            // Create Professional Plan
-            $plans[] = [
-                'name' => 'Professional',
-                'slug' => $region->slug . '-professional',
-                'description' => 'Ideal for growing property portfolios in ' . $region->name . '. Up to 200 units.',
-                'trial_days' => 14,
-                'features_json' => json_encode([
-                    'max_properties' => 5,
-                    'max_units' => 200,
-                    'max_users' => 10,
-                    'max_tenants' => 1000,
-                    'storage_gb' => 20,
-                    'features_list' => [
-                        'Up to 200 rental units',
-                        'Advanced reporting & analytics',
-                        'Priority email & phone support',
-                        'Mobile app access',
-                        'Tenant portal',
-                        'Maintenance management',
-                        'Water billing integration',
-                        'Advanced income & expense tracking',
-                        'SMS notification for payments'
-                    ],
-                    'pricing_type' => 'per_unit',
-                    'price_per_unit' => $professionalPrice
-                ]),
-                'is_active' => 1,
-                'display_order' => 2,
-                'region_id' => $region->id,
-                'subcounty_id' => null,
-                'price_per_unit' => $professionalPrice,
-                'discount_percentage' => 12.00,
-                'features' => json_encode([
-                    'Advanced reporting & analytics dashboards',
-                    'Priority email & phone support',
-                    'Mobile app access for all users',
-                    'Tenant self-service portal with payment',
-                    'Maintenance request management',
-                    'Water billing integration',
-                    'Up to 200 rental units management',
-                    'Advanced income & expense tracking',
-                    'SMS notification for payments'
-                ])
-            ];
-
-            // Create Enterprise Plan
-            $plans[] = [
-                'name' => 'Enterprise',
-                'slug' => $region->slug . '-enterprise',
-                'description' => 'For large property portfolios in ' . $region->name . '. Unlimited units.',
-                'trial_days' => 30,
-                'features_json' => json_encode([
-                    'max_properties' => 0,
-                    'max_units' => 0,
+        foreach ($allBands as $band) {
+            // Build the features JSON with all data
+            $featuresData = [
+                // The visible features (what shows in the table)
+                'business_features' => $band['features'],
+                
+                // Pricing band metadata (stored but not displayed as features)
+                'band_type' => $band['property_types'][0] ?? 'residential',
+                'unit_types' => $band['unit_types'],
+                'property_types' => $band['property_types'],
+                
+                // Product capabilities (limits)
+                'product_capabilities' => [
+                    'max_units' => 0, // Unlimited by default
                     'max_users' => 0,
                     'max_tenants' => 0,
-                    'storage_gb' => 100,
-                    'features_list' => [
-                        'Unlimited rental units',
-                        'Custom reporting',
-                        '24/7 priority support',
-                        'Mobile app access',
-                        'Tenant portal',
-                        'Maintenance management',
-                        'Water billing integration',
-                        'API access',
-                        'SMS notifications',
-                        'Dedicated account manager',
-                        'Custom branding',
-                        'Gate & access control integration'
-                    ],
-                    'pricing_type' => 'per_unit',
-                    'price_per_unit' => $enterprisePrice
-                ]),
-                'is_active' => 1,
-                'display_order' => 3,
-                'region_id' => $region->id,
-                'subcounty_id' => null,
-                'price_per_unit' => $enterprisePrice,
-                'discount_percentage' => 15.00,
-                'features' => json_encode([
-                    'Custom reporting & business intelligence',
-                    '24/7 priority support with dedicated team',
-                    'Mobile app access with all features',
-                    'Tenant self-service portal with full automation',
-                    'Maintenance management with AI routing',
-                    'Water billing integration with automated invoices',
-                    'API access for custom integrations',
-                    'SMS notifications with two-way communication',
-                    'Dedicated account manager',
-                    'Custom branding & white-label',
-                    'Unlimited rental units',
-                    'Gate & access control integration'
-                ])
+                    'storage_gb' => 0,
+                    'max_properties' => 0,
+                ],
+                
+                // For service charge bands
+                'band_price' => $band['price'],
+                'band_name' => $band['name'],
             ];
+
+            SubscriptionPlan::create([
+                'name' => $band['name'],
+                'slug' => $band['slug'],
+                'description' => $band['description'],
+                'price_per_unit' => $band['price'],
+                'trial_days' => 14, // 14-day trial for all plans
+                'discount_percentage' => 10, // 10% yearly discount
+                'is_active' => true,
+                'features' => json_encode($featuresData),
+            ]);
         }
 
-        // Insert or update plans
-        $count = 0;
-        foreach ($plans as $plan) {
-            SubscriptionPlan::updateOrCreate(
-                ['slug' => $plan['slug']],
-                $plan
-            );
-            $count++;
-        }
-
-        $this->command->info('Subscription plans seeded successfully!');
-        $this->command->info('Total plans: ' . $count);
+        $this->command->info('✅ Created ' . count($allBands) . ' subscription plans with pricing bands');
     }
 }

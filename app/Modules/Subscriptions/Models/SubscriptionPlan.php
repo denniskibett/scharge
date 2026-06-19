@@ -5,8 +5,6 @@ namespace App\Modules\Subscriptions\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\Subcounty;
-use App\Modules\Subscriptions\Models\Region;
 use App\Modules\Subscriptions\Models\CompanySubscription;
 
 class SubscriptionPlan extends Model
@@ -16,9 +14,9 @@ class SubscriptionPlan extends Model
     protected $table = 'subscription_plans';
 
     protected $fillable = [
-        'name', 'slug', 'description', 'region_id', 'subcounty',
-        'price_per_unit', 'trial_days', 'discount_percentage',
-        'is_active', 'features'
+        'name', 'slug', 'description', 'price_per_unit', 
+        'trial_days', 'discount_percentage', 'is_active', 
+        'features'
     ];
 
     protected $casts = [
@@ -26,29 +24,12 @@ class SubscriptionPlan extends Model
         'is_active' => 'boolean',
         'price_per_unit' => 'decimal:2',
         'discount_percentage' => 'decimal:2',
-        'trial_days' => 'integer'
+        'trial_days' => 'integer',
     ];
 
     // =============================================
     // RELATIONSHIPS
     // =============================================
-
-    /**
-     * Get the region that owns this plan
-     */
-    public function region()
-    {
-        return $this->belongsTo(Region::class);
-    }
-
-    /**
-     * Get the subcounty (ward) by constituency name
-     * Note: This returns the first matching subcounty
-     */
-    public function subcountyRelation()
-    {
-        return $this->belongsTo(Subcounty::class, 'subcounty', 'constituency_name');
-    }
 
     /**
      * Get the subscriptions for this plan
@@ -113,49 +94,11 @@ class SubscriptionPlan extends Model
     // =============================================
 
     /**
-     * Get display name with region
-     */
-    public function getDisplayNameAttribute()
-    {
-        if ($this->region) {
-            return $this->region->name . ' - ' . $this->name;
-        }
-        return $this->name;
-    }
-
-    /**
-     * Get full display name with region and pricing
-     */
-    public function getFullDisplayAttribute()
-    {
-        if ($this->region) {
-            return $this->region->name . ' - ' . $this->name . ' (KES ' . number_format($this->price_per_unit, 0) . '/unit)';
-        }
-        return $this->name . ' (KES ' . number_format($this->price_per_unit, 0) . '/unit)';
-    }
-
-    /**
      * Get formatted price per unit
      */
     public function getFormattedPricePerUnitAttribute()
     {
         return 'KES ' . number_format($this->price_per_unit, 0) . '/unit';
-    }
-
-    /**
-     * Get region name attribute (shortcut)
-     */
-    public function getRegionNameAttribute()
-    {
-        return $this->region?->name;
-    }
-
-    /**
-     * Get county name attribute (shortcut)
-     */
-    public function getCountyNameAttribute()
-    {
-        return $this->region?->county?->county_name;
     }
 
     /**
@@ -191,33 +134,40 @@ class SubscriptionPlan extends Model
     }
 
     /**
-     * Get wards from features
+     * Get price tier label
      */
-    public function getWardsAttribute()
+    public function getPriceTierLabelAttribute()
     {
-        $features = $this->features ?? [];
-        return $features['wards'] ?? [];
+        if ($this->price_per_unit <= 500) {
+            return 'Starter';
+        } elseif ($this->price_per_unit <= 1000) {
+            return 'Growth';
+        } elseif ($this->price_per_unit <= 2000) {
+            return 'Professional';
+        } else {
+            return 'Enterprise';
+        }
+    }
+
+    /**
+     * Get color badge for price tier
+     */
+    public function getPriceTierColorAttribute()
+    {
+        if ($this->price_per_unit <= 500) {
+            return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        } elseif ($this->price_per_unit <= 1000) {
+            return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400';
+        } elseif ($this->price_per_unit <= 2000) {
+            return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400';
+        } else {
+            return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400';
+        }
     }
 
     // =============================================
     // SCOPES
     // =============================================
-
-    /**
-     * Scope by region
-     */
-    public function scopeForRegion($query, $regionId)
-    {
-        return $query->where('region_id', $regionId);
-    }
-
-    /**
-     * Scope by constituency
-     */
-    public function scopeForConstituency($query, $constituencyName)
-    {
-        return $query->where('subcounty', $constituencyName);
-    }
 
     /**
      * Scope for active plans
@@ -227,11 +177,12 @@ class SubscriptionPlan extends Model
         return $query->where('is_active', true);
     }
 
+
     /**
-     * Scope ordered by region then id
+     * Scope for price range
      */
-    public function scopeOrdered($query)
+    public function scopePriceRange($query, $min, $max)
     {
-        return $query->orderBy('region_id')->orderBy('id', 'desc');
+        return $query->whereBetween('price_per_unit', [$min, $max]);
     }
 }
