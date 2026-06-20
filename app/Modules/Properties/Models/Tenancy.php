@@ -39,7 +39,7 @@ class Tenancy extends Model
 
     public function payments()
     {
-        return $this->hasMany(Payment::class, 'tenancy_id');
+        return $this->hasManyThrough(Payment::class, Invoice::class, 'tenancy_id', 'invoice_id', 'id', 'id');
     }
     
     public function invoices()

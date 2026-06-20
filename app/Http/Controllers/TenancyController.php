@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Tenancy;
+use App\Modules\Properties\Models\Tenancy;
+use App\Models\Payment;
 use App\Models\User;
 use App\Models\Unit;
 use App\Models\Tenant;
@@ -177,22 +178,22 @@ class TenancyController extends Controller
     public function show(Tenancy $tenancy)
     {
         // Load only essential relationships with counts
-        $tenancy->loadCount(['invoices', 'payments']);
+        $tenancy->loadCount(['invoices']);
         
         // Load basic tenant and unit info (select only needed columns)
         $tenancy->load([
             'tenant' => function ($query) {
                 $query->select('id', 'user_id', 'notes')
-                      ->with(['user' => function ($q) {
-                          $q->select('id', 'name', 'email', 'phone');
-                      }]);
+                    ->with(['user' => function ($q) {
+                        $q->select('id', 'name', 'email', 'phone');
+                    }]);
             },
             'unit' => function ($query) {
                 $query->select('id', 'estate_id', 'unit_number', 'unit_type', 'rent_amount', 'status',
-                              'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
-                      ->with(['estate' => function ($q) {
-                          $q->select('id', 'name', 'location');
-                      }]);
+                            'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
+                    ->with(['estate' => function ($q) {
+                        $q->select('id', 'name', 'location');
+                    }]);
             },
             'payments' => function ($query) {
                 $query->latest()->limit(50)->with('invoice');
@@ -204,9 +205,9 @@ class TenancyController extends Controller
             ->with([
                 'tenant' => function ($query) {
                     $query->select('id', 'user_id')
-                          ->with(['user' => function ($q) {
-                              $q->select('id', 'name');
-                          }]);
+                        ->with(['user' => function ($q) {
+                            $q->select('id', 'name');
+                        }]);
                 }
             ])
             ->select('id', 'tenant_id', 'move_in_date', 'move_out_date', 'status')
@@ -221,15 +222,20 @@ class TenancyController extends Controller
         
         // Calculate financial summary without loading all invoices
         $totalInvoiced = $tenancy->invoices()->sum('total_amount');
-        $totalPaid = $tenancy->payments()->sum('amount');
+        
+        // FIXED: Get payments through invoices instead of directly by tenancy_id
+        $totalPaid = Payment::whereHas('invoice', function($query) use ($tenancy) {
+            $query->where('tenancy_id', $tenancy->id);
+        })->sum('amount');
+        
         $balance = $totalInvoiced - $totalPaid;
         
         // Calculate total monthly payment including utilities
         $totalMonthlyPayment = ($tenancy->unit->rent_amount ?? 0) + 
-                               ($tenancy->unit->water_charge ?? 0) + 
-                               ($tenancy->unit->service_charge ?? 0) + 
-                               ($tenancy->unit->garbage_charge ?? 0) + 
-                               ($tenancy->unit->security_charge ?? 0);
+                            ($tenancy->unit->water_charge ?? 0) + 
+                            ($tenancy->unit->service_charge ?? 0) + 
+                            ($tenancy->unit->garbage_charge ?? 0) + 
+                            ($tenancy->unit->security_charge ?? 0);
         
         return view('tenancies.show', compact(
             'tenancy', 
