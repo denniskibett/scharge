@@ -21,11 +21,48 @@ class PayeeController extends Controller
 
     public function store(Request $request)
     {
+        if ($request->ajax() || $request->wantsJson()) {
+            try {
+                $validated = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'type' => 'required|in:staff,vendor,utility',
+                    'phone' => 'nullable|string|max:20',
+                    'email' => 'nullable|email|max:255',
+                    'id_number' => 'nullable|string|max:20',
+                    'kra_pin' => 'nullable|string|max:50',
+                    'nssf_number' => 'nullable|string|max:20',
+                    'sha_number' => 'nullable|string|max:20',
+                ]);
+
+                $payee = Payee::create($validated);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payee created successfully!',
+                    'data' => $payee
+                ], 201);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $e->errors()
+                ], 422);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create payee: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
         $validated = $request->validate([
-            'name'=>'required|string',
-            'type'=>'required|in:staff,vendor,utility',
-            'phone'=>'nullable|string',
-            'email'=>'nullable|email',
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:staff,vendor,utility',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'id_number' => 'nullable|string|max:20',
+            'kra_pin' => 'nullable|string|max:50',
+            'nssf_number' => 'nullable|string|max:20',
+            'sha_number' => 'nullable|string|max:20',
         ]);
 
         Payee::create($validated);
@@ -34,19 +71,81 @@ class PayeeController extends Controller
 
     public function update(Request $request, Payee $payee)
     {
+        if ($request->ajax() || $request->wantsJson()) {
+            try {
+                $validated = $request->validate([
+                    'name' => 'required|string|max:255',
+                    'type' => 'required|in:staff,vendor,utility',
+                    'phone' => 'nullable|string|max:20',
+                    'email' => 'nullable|email|max:255',
+                    'id_number' => 'nullable|string|max:20',
+                    'kra_pin' => 'nullable|string|max:50',
+                    'nssf_number' => 'nullable|string|max:20',
+                    'sha_number' => 'nullable|string|max:20',
+                ]);
+
+                $payee->update($validated);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payee updated successfully!',
+                    'data' => $payee
+                ]);
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => $e->errors()
+                ], 422);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update payee: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
         $validated = $request->validate([
-            'name'=>'required|string',
-            'type'=>'required|in:staff,vendor,utility',
-            'phone'=>'nullable|string',
-            'email'=>'nullable|email',
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:staff,vendor,utility',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'id_number' => 'nullable|string|max:20',
+            'kra_pin' => 'nullable|string|max:50',
+            'nssf_number' => 'nullable|string|max:20',
+            'sha_number' => 'nullable|string|max:20',
         ]);
 
         $payee->update($validated);
         return redirect()->route('payees.index')->with('success', 'Payee updated successfully!');
     }
 
-    public function destroy(Payee $payee)
+    public function destroy(Request $request, Payee $payee)
     {
+        if ($payee->expenses()->count() > 0) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete this payee because they have ' . $payee->expenses()->count() . ' associated expense(s).'
+                ], 400);
+            }
+            return redirect()->back()->with('error', 'Cannot delete this payee because they have associated expenses.');
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            try {
+                $payee->delete();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payee deleted successfully!'
+                ]);
+            } catch (\Exception $e) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete payee: ' . $e->getMessage()
+                ], 500);
+            }
+        }
+
         $payee->delete();
         return redirect()->route('payees.index')->with('success', 'Payee deleted successfully!');
     }

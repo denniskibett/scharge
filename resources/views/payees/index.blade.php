@@ -52,8 +52,12 @@
           <tr class="border-b border-gray-200 dark:border-gray-700">
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID Number</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">KRA PIN</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">NSSF</th>
+            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">SHA</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Expenses</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
           </tr>
@@ -61,7 +65,7 @@
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
           <template x-if="filteredPayees.length === 0">
             <tr>
-              <td colspan="6" class="px-4 py-8 text-center">
+              <td colspan="10" class="px-4 py-8 text-center">
                 <div class="flex flex-col items-center justify-center">
                   <svg class="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -92,8 +96,12 @@
                   <span x-text="payee.type.charAt(0).toUpperCase() + payee.type.slice(1)"></span>
                 </span>
               </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.id_number || '-'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.phone || '-'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.email || '-'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.kra_pin || '-'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.nssf_number || '-'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300" x-text="payee.sha_number || '-'"></td>
               <td class="px-4 py-3 whitespace-nowrap">
                 <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300" x-text="payee.expenses_count || 0"></span>
               </td>
@@ -102,26 +110,16 @@
                   <button 
                     @click="window.payeeShowModal?.openModal(payee)"
                     class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                    </svg>
                     View
                   </button>
                   <button 
                     @click="window.payeeEditModal?.openModal(payee)"
                     class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-yellow-500 hover:bg-yellow-50 hover:text-yellow-700 dark:text-yellow-400 dark:hover:bg-yellow-500/5 dark:hover:text-yellow-300">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
                     Edit
                   </button>
                   <button 
                     @click="window.payeeDeleteModal?.openModal(payee)"
                     class="text-theme-xs flex items-center gap-1 rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/5 dark:hover:text-red-300">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
                     Delete
                   </button>
                 </div>
@@ -168,7 +166,11 @@ document.addEventListener('alpine:init', () => {
         return (payee.name?.toLowerCase().includes(term) ||
                 payee.type?.toLowerCase().includes(term) ||
                 payee.phone?.toLowerCase().includes(term) ||
-                payee.email?.toLowerCase().includes(term));
+                payee.email?.toLowerCase().includes(term) ||
+                payee.id_number?.toLowerCase().includes(term) ||
+                payee.kra_pin?.toLowerCase().includes(term) ||
+                payee.nssf_number?.toLowerCase().includes(term) ||
+                payee.sha_number?.toLowerCase().includes(term));
       });
     },
     
@@ -186,74 +188,54 @@ document.addEventListener('alpine:init', () => {
 [x-cloak] {
   display: none !important;
 }
-
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: #9ca3af #f3f4f6;
 }
-
 .custom-scrollbar::-webkit-scrollbar {
   height: 8px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #f3f4f6;
   border-radius: 4px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #9ca3af;
   border-radius: 4px;
 }
-
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
-
 .dark .custom-scrollbar {
   scrollbar-color: #4b5563 #1f2937;
 }
-
 .dark .custom-scrollbar::-webkit-scrollbar-track {
   background: #1f2937;
 }
-
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
   background: #4b5563;
 }
-
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #6b7280;
 }
-
-/* Z-index utilities */
 .z-99998 {
   z-index: 99998 !important;
 }
-
 .z-99999 {
   z-index: 99999 !important;
 }
-
-/* Backdrop blur */
 .backdrop-blur-\[32px\] {
   backdrop-filter: blur(32px);
 }
-
-/* Slideover transitions */
 .translate-x-full {
   transform: translateX(100%);
 }
-
 .translate-x-0 {
   transform: translateX(0);
 }
-
-/* Scale transitions for centered modals */
 .scale-95 {
   transform: scale(0.95);
 }
-
 .scale-100 {
   transform: scale(1);
 }

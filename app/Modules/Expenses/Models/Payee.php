@@ -7,7 +7,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Payee extends Model
 {
-    protected $fillable = ['name','type','phone','email'];
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'type',
+        'phone',
+        'email',
+        'id_number',
+        'kra_pin',
+        'nssf_number',
+        'sha_number'
+    ];
 
     public function expenses()
     {
