@@ -256,149 +256,298 @@ class WalletController extends Controller
         return $transaction;
     }
 
-    /**
-     * Approve a pending deposit (Accountant only)
-     */
-    public function apiApproveDeposit(Request $request, $transactionId)
-    {
-        try {
-            // Check if user is accountant
-            $user = Auth::user();
+/**
+ * Approve a pending deposit (Accountant only)
+ */
+public function apiApproveDeposit(Request $request, $transactionId)
+{
+    try {
+        \Log::info('=== API Approve Deposit Called ===', [
+            'transaction_id' => $transactionId,
+            'user_id' => Auth::id()
+        ]);
+        
+        // Check if user is accountant
+        $user = Auth::user();
+        
+        if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized. Only accountants can approve deposits.'
+            ], 403);
+        }
+        
+        // Get the transaction from Bavix wallet model
+        $transaction = \Bavix\Wallet\Models\Transaction::findOrFail($transactionId);
+        
+        \Log::info('Transaction found:', [
+            'id' => $transaction->id,
+            'confirmed' => $transaction->confirmed,
+            'payable_type' => $transaction->payable_type,
+            'payable_id' => $transaction->payable_id,
+            'amount' => $transaction->amount
+        ]);
+        
+        if ($transaction->confirmed) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Transaction already confirmed'
+            ], 400);
+        }
+        
+        // Find the wallet owner
+        $walletOwner = null;
+        $payableType = $transaction->payable_type;
+        $payableId = $transaction->payable_id;
+        
+        \Log::info('Looking for wallet owner', [
+            'payable_type' => $payableType,
+            'payable_id' => $payableId
+        ]);
+        
+        // Try to find the tenant using the correct model
+        if ($payableType === 'App\Models\Tenant' || $payableType === 'App\Modules\Tenants\Models\Tenant') {
+            // Use the actual tenant model that implements Wallet
+            $tenantModel = $payableType === 'App\Models\Tenant' 
+                ? \App\Models\Tenant::class 
+                : \App\Modules\Tenants\Models\Tenant::class;
             
-            // Check if user has accountant role
-            if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Unauthorized. Only accountants can approve deposits.'
-                ], 403);
-            }
-            
-            $transaction = Transaction::findOrFail($transactionId);
-            
-            if ($transaction->confirmed) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Transaction already confirmed'
-                ], 400);
-            }
-            
-            // Get the wallet owner from the transaction
-            $walletOwner = $transaction->payable;
+            $walletOwner = $tenantModel::with('user')->find($payableId);
             
             if (!$walletOwner) {
+                \Log::error('Tenant not found', [
+                    'payable_type' => $payableType,
+                    'payable_id' => $payableId
+                ]);
                 return response()->json([
                     'success' => false,
-                    'error' => 'Cannot find wallet owner for this transaction'
+                    'error' => 'Cannot find tenant for this transaction.'
                 ], 400);
             }
             
-            $amount = (float) $transaction->amount;
-            
-            // Process the actual deposit
-            $depositTx = $walletOwner->deposit($amount, [
-                'description' => $transaction->description ?? 'Approved deposit',
-                'meta' => array_merge($transaction->meta, [
-                    'approved_at' => now()->toISOString(),
-                    'approved_by' => $user->id,
-                    'approved_by_name' => $user->name,
-                    'original_transaction_id' => $transaction->id,
-                ])
+            \Log::info('Tenant found:', [
+                'tenant_id' => $walletOwner->id,
+                'tenant_name' => $walletOwner->user?->name ?? 'Unknown'
             ]);
-            
-            // Update the original transaction
-            $transaction->confirmed = true;
-            $transaction->meta = array_merge($transaction->meta, [
+        } else {
+            return response()->json([
+                'success' => false,
+                'error' => 'Unknown payable type: ' . $payableType
+            ], 400);
+        }
+        
+        $amount = (float) $transaction->amount;
+        
+        // Ensure the wallet exists
+        $wallet = $walletOwner->wallet;
+        
+        if (!$wallet) {
+            \Log::info('Creating wallet for tenant', ['tenant_id' => $walletOwner->id]);
+            $wallet = $walletOwner->createWallet([
+                'name' => ($walletOwner->user?->name ?? 'Tenant') . "'s Wallet",
+                'slug' => 'wallet-' . $walletOwner->id . '-' . time(),
+                'description' => 'Main wallet for ' . ($walletOwner->user?->name ?? 'Tenant'),
+            ]);
+        }
+        
+        \Log::info('Wallet found/created:', [
+            'wallet_id' => $wallet->id,
+            'current_balance' => $wallet->balance
+        ]);
+        
+        // Process the deposit using the wallet owner
+        $depositTx = $walletOwner->deposit($amount, [
+            'description' => $transaction->description ?? 'Approved deposit',
+            'meta' => array_merge($transaction->meta ?? [], [
                 'approved_at' => now()->toISOString(),
                 'approved_by' => $user->id,
                 'approved_by_name' => $user->name,
-                'bavix_transaction_id' => $depositTx->id,
+                'original_transaction_id' => $transaction->id,
+                'original_transaction_uuid' => $transaction->uuid,
+            ])
+        ]);
+        
+        \Log::info('Deposit processed:', [
+            'deposit_tx_id' => $depositTx->id,
+            'new_balance' => $walletOwner->balance
+        ]);
+        
+        // Update the original transaction
+        $transaction->confirmed = true;
+        $transaction->meta = array_merge($transaction->meta ?? [], [
+            'approved_at' => now()->toISOString(),
+            'approved_by' => $user->id,
+            'approved_by_name' => $user->name,
+            'bavix_transaction_id' => $depositTx->id,
+            'status' => 'completed'
+        ]);
+        $transaction->save();
+        
+        $walletOwner->refresh();
+        $newBalance = (float) $walletOwner->balance;
+        
+        // Update payment record if it exists
+        $this->updatePaymentRecordForApproval($transaction, $user);
+        
+        // Dispatch event for real-time updates
+        event(new \App\Events\WalletUpdated($walletOwner, $newBalance, $depositTx));
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Deposit approved successfully! KES ' . number_format($amount, 2) . ' added to wallet.',
+            'data' => [
+                'new_balance' => $newBalance,
+                'formatted_balance' => 'KES ' . number_format($newBalance, 2),
+                'tenant_name' => $walletOwner->user?->name ?? 'Unknown',
+                'transaction_id' => $depositTx->id,
+            ]
+        ]);
+        
+    } catch (\Bavix\Wallet\Exceptions\WalletNotFound $e) {
+        \Log::error('Wallet not found error: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => 'Wallet not found. Please ensure the tenant has a wallet.'
+        ], 400);
+    } catch (\Exception $e) {
+        \Log::error('API Approve Deposit failed: ' . $e->getMessage(), [
+            'transaction_id' => $transactionId,
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'success' => false,
+            'error' => 'Failed to approve deposit: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
+/**
+ * Update payment record when a deposit is approved
+ */
+private function updatePaymentRecordForApproval($transaction, $user)
+{
+    try {
+        $meta = $transaction->meta ?? [];
+        $reference = $meta['reference'] ?? $transaction->uuid;
+        
+        \Log::info('Looking for payment record', ['reference' => $reference]);
+        
+        $payment = \App\Models\Payment::where('transaction_reference', $reference)
+            ->orWhere('external_reference', $reference)
+            ->first();
+        
+        if ($payment) {
+            $payment->status = 'completed';
+            $payment->is_reconciled = true;
+            $payment->reconciled_at = now();
+            $payment->reconciled_by = $user->id;
+            $payment->meta = array_merge($payment->meta ?? [], [
+                'approved_at' => now()->toISOString(),
+                'approved_by' => $user->id,
+                'approved_by_name' => $user->name,
+                'bavix_transaction_id' => $transaction->id,
             ]);
-            $transaction->save();
+            $payment->save();
             
-            $walletOwner->refresh();
-            $newBalance = (float) $walletOwner->balance;
-            
-            // Dispatch event for real-time updates
-            event(new \App\Events\WalletUpdated($walletOwner, $newBalance, $depositTx));
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Deposit approved successfully',
-                'data' => [
-                    'new_balance' => $newBalance,
-                    'formatted_balance' => 'KES ' . number_format($newBalance, 2),
-                ]
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('API Approve Deposit failed: ' . $e->getMessage());
+            \Log::info('Payment record updated', ['payment_id' => $payment->id]);
+        } else {
+            \Log::warning('No payment record found for reference', ['reference' => $reference]);
+        }
+    } catch (\Exception $e) {
+        \Log::warning('Could not update payment record: ' . $e->getMessage());
+    }
+}
+
+
+
+/**
+ * Get pending deposits for accountant approval
+ */
+public function apiGetPendingDeposits(Request $request)
+{
+    try {
+        $user = Auth::user();
+        
+        // Check if user is accountant
+        if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
+                'error' => 'Unauthorized'
+            ], 403);
         }
-    }
-
-    /**
-     * Get pending deposits for accountant approval
-     */
-    public function apiGetPendingDeposits(Request $request)
-    {
-        try {
-            $user = Auth::user();
+        
+        // Get company ID from user
+        $companyId = $user->company_id;
+        
+        // Get tenant IDs for this company
+        $tenantIds = \App\Modules\Tenants\Models\Tenant::whereHas('activeTenancy.unit.estate', function($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        })->pluck('id')->toArray();
+        
+        // Find pending transactions for tenants in this company
+        $pendingDeposits = \Bavix\Wallet\Models\Transaction::where('type', 'deposit')
+            ->where('confirmed', false)
+            ->where(function($query) use ($tenantIds) {
+                $query->where(function($q) use ($tenantIds) {
+                    $q->where('payable_type', 'App\Modules\Tenants\Models\Tenant')
+                      ->whereIn('payable_id', $tenantIds);
+                })->orWhere(function($q) use ($tenantIds) {
+                    $q->where('payable_type', 'App\Models\Tenant')
+                      ->whereIn('payable_id', $tenantIds);
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        // Format the response
+        $formatted = $pendingDeposits->map(function($tx) {
+            // Get tenant from payable relationship or manually
+            $tenant = $tx->payable;
             
-            // Check if user is accountant
-            if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Unauthorized'
-                ], 403);
+            if (!$tenant) {
+                // Try to find tenant manually
+                $payableType = $tx->payable_type;
+                $payableId = $tx->payable_id;
+                
+                if ($payableType === 'App\Models\Tenant' || $payableType === 'App\Modules\Tenants\Models\Tenant') {
+                    $tenantClass = $payableType === 'App\Models\Tenant' 
+                        ? \App\Models\Tenant::class 
+                        : \App\Modules\Tenants\Models\Tenant::class;
+                    $tenant = $tenantClass::with('user', 'activeTenancy.unit')->find($payableId);
+                }
             }
             
-            // Get company ID from user
-            $companyId = $user->company_id;
+            $meta = $tx->meta ?? [];
             
-            // Find pending transactions for tenants in this company
-            $pendingDeposits = Transaction::where('type', 'deposit')
-                ->where('confirmed', false)
-                ->whereHas('payable', function($q) use ($companyId) {
-                    $q->whereHas('activeTenancy.unit.estate', function($q2) use ($companyId) {
-                        $q2->where('company_id', $companyId);
-                    });
-                })
-                ->orderBy('created_at', 'desc')
-                ->paginate(20);
-            
-            // Format the response
-            $formatted = $pendingDeposits->through(function($tx) {
-                $tenant = $tx->payable;
-                return [
-                    'id' => $tx->id,
-                    'amount' => (float) $tx->amount,
-                    'tenant_name' => $tenant->name ?? 'Unknown',
-                    'tenant_unit' => $tenant->activeTenancy?->unit?->unit_number ?? 'Unknown',
-                    'payment_method' => $tx->meta['payment_method'] ?? 'unknown',
-                    'bill_month' => $tx->meta['bill_month'] ?? null,
-                    'notes' => $tx->meta['notes'] ?? $tx->meta['transaction_message'] ?? null,
-                    'created_at' => $tx->created_at,
-                    'meta' => $tx->meta,
-                ];
-            });
-            
-            return response()->json([
-                'success' => true,
-                'data' => $formatted->items(),
-                'total' => $pendingDeposits->total(),
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('API Get Pending Deposits failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to fetch pending deposits'
-            ], 500);
-        }
+            return [
+                'id' => $tx->id,
+                'amount' => (float) $tx->amount,
+                'tenant_name' => $tenant?->user?->name ?? 'Unknown',
+                'tenant_unit' => $tenant?->activeTenancy?->unit?->unit_number ?? 'Unknown',
+                'payment_method' => $meta['payment_method'] ?? 'unknown',
+                'bill_month' => $meta['bill_month'] ?? null,
+                'notes' => $meta['notes'] ?? $meta['transaction_message'] ?? null,
+                'created_at' => $tx->created_at,
+                'meta' => $meta,
+                'tenant_id' => $tenant?->id ?? null,
+                'reference' => $meta['reference'] ?? null,
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $formatted->values()->toArray(),
+            'total' => $formatted->count(),
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('API Get Pending Deposits failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => 'Failed to fetch pending deposits'
+        ], 500);
     }
+}
 
     /**
      * Parse transaction message to extract data
@@ -736,59 +885,109 @@ class WalletController extends Controller
     }
 
     
-    public function apiGetTransactions(Request $request)
-    {
-        try {
-            $walletOwner = $this->getWalletOwner();
+/**
+ * Get transaction history (API)
+ */
+public function apiGetTransactions(Request $request)
+{
+    try {
+        $walletOwner = $this->getWalletOwner();
+        
+        $perPage = $request->get('per_page', 15);
+        $includePending = $request->get('include_pending', true);
+        
+        $query = $walletOwner->transactions()
+            ->orderBy('created_at', 'desc');
+        
+        // Only exclude pending if explicitly requested
+        if (!$includePending) {
+            $query->where('confirmed', true);
+        }
+        
+        $transactions = $query->paginate($perPage);
+        
+        $formattedTransactions = $transactions->through(function($tx) {
+            // Determine status based on confirmed flag and meta
+            $status = 'Completed';
+            $requiresApproval = false;
             
-            $perPage = $request->get('per_page', 15);
-            $includePending = $request->get('include_pending', true);
-            
-            $query = $walletOwner->transactions()
-                ->orderBy('created_at', 'desc');
-            
-            if (!$includePending) {
-                $query->where('confirmed', true);
+            if (!$tx->confirmed) {
+                $meta = $tx->meta ?? [];
+                $status = $meta['status'] ?? 'Pending Approval';
+                $requiresApproval = true;
+                
+                // Check if it's a manual top-up
+                if (($meta['payment_method'] ?? '') === 'manual') {
+                    $status = 'Pending Approval (Manual Top-up)';
+                } elseif (($meta['payment_method'] ?? '') === 'message') {
+                    $status = 'Pending Approval (Transaction Message)';
+                }
             }
             
-            $transactions = $query->paginate($perPage);
-            
-            $formattedTransactions = $transactions->through(function($tx) {
-                return [
-                    'id' => $tx->id,
-                    'uuid' => $tx->uuid,
-                    'type' => $tx->type,
-                    'amount' => (float) $tx->amount,
-                    'confirmed' => (bool) $tx->confirmed,
-                    'created_at' => $tx->created_at,
-                    'description' => $tx->description,
-                    'payment_method' => $tx->meta['payment_method'] ?? ($tx->type === 'deposit' ? 'Unknown' : 'Wallet'),
-                    'reference' => $tx->meta['reference'] ?? substr($tx->uuid, 0, 8),
-                    'phone_number' => $tx->meta['phone_number'] ?? null,
-                    'bill_month' => $tx->meta['bill_month'] ?? null,
-                    'status' => $tx->confirmed ? 'Completed' : 'Pending Approval',
-                    'requires_approval' => !$tx->confirmed,
-                    'meta' => $tx->meta,
-                ];
-            });
-            
-            return response()->json([
-                'success' => true,
-                'data' => $formattedTransactions->items(),
-                'current_page' => $transactions->currentPage(),
-                'per_page' => $transactions->perPage(),
-                'total' => $transactions->total(),
-                'last_page' => $transactions->lastPage(),
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('API Get Transactions failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => 'Failed to fetch transactions'
-            ], 500);
-        }
+            return [
+                'id' => $tx->id,
+                'uuid' => $tx->uuid,
+                'type' => $tx->type,
+                'amount' => (float) $tx->amount,
+                'confirmed' => (bool) $tx->confirmed,
+                'created_at' => $tx->created_at,
+                'description' => $tx->description ?? $this->getTransactionDescription($tx),
+                'payment_method' => $tx->meta['payment_method'] ?? ($tx->type === 'deposit' ? 'Unknown' : 'Wallet'),
+                'reference' => $tx->meta['reference'] ?? substr($tx->uuid, 0, 8),
+                'phone_number' => $tx->meta['phone_number'] ?? null,
+                'bill_month' => $tx->meta['bill_month'] ?? null,
+                'status' => $status,
+                'requires_approval' => $requiresApproval,
+                'is_pending' => !$tx->confirmed,
+                'meta' => $tx->meta,
+                'notes' => $tx->meta['notes'] ?? null,
+                'initiated_by' => $tx->meta['initiated_by_name'] ?? null,
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'data' => $formattedTransactions->items(),
+            'current_page' => $transactions->currentPage(),
+            'per_page' => $transactions->perPage(),
+            'total' => $transactions->total(),
+            'last_page' => $transactions->lastPage(),
+            'from' => $transactions->firstItem(),
+            'to' => $transactions->lastItem(),
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('API Get Transactions failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'error' => 'Failed to fetch transactions'
+        ], 500);
     }
+}
+
+/**
+ * Get transaction description from meta
+ */
+private function getTransactionDescription($tx): string
+{
+    $meta = $tx->meta ?? [];
+    
+    if ($tx->type === 'deposit') {
+        if (($meta['payment_method'] ?? '') === 'manual') {
+            return 'Manual Top-up - ' . ($meta['notes'] ?? 'Pending Approval');
+        }
+        if (($meta['payment_method'] ?? '') === 'message') {
+            return 'Transaction Message - ' . ($meta['bill_month'] ?? '');
+        }
+        return 'Wallet Deposit';
+    }
+    
+    if ($tx->type === 'withdraw') {
+        return 'Wallet Withdrawal';
+    }
+    
+    return $tx->description ?? 'Transaction';
+}
     
     /**
      * Get statement data (API)
@@ -1355,6 +1554,55 @@ class WalletController extends Controller
                     'file' => $e->getFile(),
                     'line' => $e->getLine()
                 ]
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject a pending deposit
+     */
+    public function apiRejectDeposit(Request $request, $transactionId)
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check if user is accountant
+            if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized. Only accountants can reject deposits.'
+                ], 403);
+            }
+            
+            $transaction = Transaction::findOrFail($transactionId);
+            
+            if ($transaction->confirmed) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Transaction already confirmed'
+                ], 400);
+            }
+            
+            // Update the transaction as rejected
+            $transaction->confirmed = false;
+            $transaction->meta = array_merge($transaction->meta ?? [], [
+                'rejected_at' => now()->toISOString(),
+                'rejected_by' => $user->id,
+                'rejected_by_name' => $user->name,
+                'status' => 'rejected'
+            ]);
+            $transaction->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Deposit rejected successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('API Reject Deposit failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
             ], 500);
         }
     }

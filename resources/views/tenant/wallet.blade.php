@@ -124,8 +124,13 @@
                                     <td class="px-6 py-4">
                                         <span x-show="tx.type === 'deposit'" class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Deposit</span>
                                         <span x-show="tx.type === 'withdraw'" class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Withdrawal</span>
+                                        <span x-show="tx.is_pending" class="ml-1 inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Pending</span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400" x-text="tx.meta?.description || tx.description || '—'"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                        <span x-text="tx.meta?.description || tx.description || '—'"></span>
+                                        <span x-show="tx.is_pending" class="block text-xs text-yellow-600 dark:text-yellow-400">Awaiting approval</span>
+                                        <span x-show="tx.notes" class="block text-xs text-gray-500 dark:text-gray-400" x-text="tx.notes"></span>
+                                    </td>
                                     <td class="px-6 py-4 text-right">
                                         <span x-show="tx.type === 'deposit'" class="text-green-600 dark:text-green-400 font-medium">
                                             + KES <span x-text="formatNumber(tx.amount)"></span>
@@ -133,6 +138,7 @@
                                         <span x-show="tx.type !== 'deposit'" class="text-red-600 dark:text-red-400 font-medium">
                                             - KES <span x-text="formatNumber(tx.amount)"></span>
                                         </span>
+                                        <span x-show="tx.is_pending" class="block text-xs text-yellow-600 dark:text-yellow-400">(Pending)</span>
                                     </td>
                                 </tr>
                             </template>

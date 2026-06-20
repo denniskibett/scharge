@@ -349,17 +349,28 @@
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     <template x-for="transaction in paginatedTransactions" :key="transaction.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            <td class="px-6 py-4 whitespace-nowrap"><span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id"></span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id"></span>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
-                                    <div class="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-gray-200 shadow-xs dark:border-gray-800 bg-gray-100 dark:bg-gray-800">
-                                        <svg class="size-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    <div class="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-gray-200 shadow-xs dark:border-gray-800"
+                                        :class="transaction.type === 'deposit' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'">
+                                        <svg x-show="transaction.type === 'deposit'" class="size-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                                        </svg>
+                                        <svg x-show="transaction.type !== 'deposit'" class="size-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4m0 0l6-6m-6 6l6 6"/>
                                         </svg>
                                     </div>
                                     <div>
                                         <p class="text-theme-sm font-medium text-gray-800 dark:text-white/90" x-text="transaction.description || transaction.type"></p>
-                                        <p class="text-theme-xs text-gray-500 dark:text-gray-400" x-text="transaction.meta?.description || ''"></p>
+                                        <!-- Show pending badge -->
+                                        <span x-show="transaction.is_pending" class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                            Pending Approval
+                                        </span>
+                                        <p class="text-theme-xs text-gray-500 dark:text-gray-400" x-show="transaction.notes" x-text="transaction.notes"></p>
+                                        <p class="text-theme-xs text-gray-500 dark:text-gray-400" x-show="transaction.initiated_by" x-text="'By: ' + transaction.initiated_by"></p>
                                     </div>
                                 </div>
                             </td>
@@ -368,15 +379,24 @@
                                     :class="transaction.type === 'deposit' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'"
                                     x-text="transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap"><span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span>
+                            </td>
                             <td class="px-6 py-4 text-right whitespace-nowrap">
                                 <p class="text-theme-sm font-medium" :class="transaction.type === 'deposit' ? 'text-success-600' : 'text-error-600'">
                                     <span x-text="transaction.type === 'deposit' ? '+' : '-'"></span>
-                                    <span x-text="selectedCurrency"></span> <span x-text="formatNumber(convertAmount(transaction.amount))"></span>
+                                    <span x-text="selectedCurrency"></span> 
+                                    <span x-text="formatNumber(convertAmount(transaction.amount))"></span>
+                                </p>
+                                <p x-show="transaction.is_pending" class="text-theme-xs text-yellow-600 dark:text-yellow-400">
+                                    Awaiting approval
                                 </p>
                             </td>
                             <td class="px-6 py-4 text-center whitespace-nowrap">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500">Completed</span>
+                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                                    :class="transaction.is_pending ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-500' : 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'"
+                                    x-text="transaction.is_pending ? 'Pending' : 'Completed'">
+                                </span>
                             </td>
                         </tr>
                     </template>
