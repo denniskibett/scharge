@@ -121,7 +121,7 @@
             <input
               type="text"
               placeholder="Search or type command..."
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 xl:w-[430px]"
+              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring focus:ring-primary-20 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-primary xl:w-[430px]"
             />
 
             <button
@@ -188,10 +188,10 @@
           >
             <span
               :class="!notifying ? 'hidden' : 'flex'"
-              class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-orange-400"
+              class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-primary"
             >
               <span
-                class="absolute -z-1 inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"
+                class="absolute -z-1 inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"
               ></span>
             </span>
             <svg

@@ -66,7 +66,7 @@
                 <a
                   :href="item.children ? '#' : item.link"
                   @click="item.children ? toggleSelected(item.name) : $event.preventDefault() || setActive(item.page, item.label, item.link)"
-                  class="menu-item group"
+                  class="relative flex items-center gap-3 rounded-lg px-4 py-2.5 font-medium duration-300 ease-in-out cursor-pointer"
                   :class="getItemClasses(item)"
                 >
                   <!-- Icon -->
@@ -82,7 +82,7 @@
                       fill-rule="evenodd"
                       clip-rule="evenodd"
                       :d="item.icon"
-                      fill=""
+                      class="fill-current"
                     />
                   </svg>
 
@@ -96,7 +96,7 @@
                   <!-- Dropdown Arrow -->
                   <svg
                     x-show="item.children"
-                    class="menu-item-arrow absolute right-2.5 top-1/2 -translate-y-1/2 stroke-current"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 stroke-current w-5 h-5"
                     :class="[getArrowClasses(item), sidebarToggle ? 'lg:hidden' : '' ]"
                     width="20"
                     height="20"
@@ -106,7 +106,6 @@
                   >
                     <path
                       d="M4.79175 7.39584L10.0001 12.6042L15.2084 7.39585"
-                      stroke=""
                       stroke-width="1.5"
                       stroke-linecap="round"
                       stroke-linejoin="round"
@@ -121,15 +120,15 @@
                 >
                   <ul
                     :class="sidebarToggle ? 'lg:hidden' : 'flex'"
-                    class="flex flex-col gap-1 mt-2 menu-dropdown pl-9"
+                    class="flex flex-col gap-1 mt-2 pl-9"
                   >
                     <template x-for="(child, childIndex) in item.children" :key="childIndex">
                       <li x-show="hasPermission(child)">
                         <a
                           :href="child.link"
                           @click="setActive(child.page, child.label, child.link)"
-                          class="menu-dropdown-item group"
-                          :class="isActive(child.page) ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'"
+                          class="relative flex items-center rounded-lg px-4 py-2.5 font-medium duration-300 ease-in-out cursor-pointer"
+                          :class="isActive(child.page) ? 'text-sm text-primary bg-primary-10' : 'text-sm text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary-10'"
                           x-text="child.label"
                         ></a>
                       </li>
@@ -150,7 +149,7 @@
 <script>
 document.addEventListener('alpine:init', () => {
   Alpine.data('sidebarMenu', () => ({
-    selected: Alpine.$persist('Dashboard'),
+    selected: Alpine.$persist(''), // Start with no dropdowns open
     activePage: Alpine.$persist('dashboard'),
     activeItemLabel: Alpine.$persist('Dashboard'),
     userRole: '{{ auth()->user()->role->name ?? "guest" }}',
@@ -599,13 +598,11 @@ document.addEventListener('alpine:init', () => {
         .map(group => {
           const filteredItems = group.items
             .map(item => {
-              // Filter children if they exist
               if (item.children) {
                 const filteredChildren = item.children.filter(child => 
                   userPermissions.includes(child.permission)
                 );
                 
-                // Only include parent if it has children with permissions OR parent itself is permitted
                 if (filteredChildren.length > 0 || userPermissions.includes(item.permission)) {
                   return {
                     ...item,
@@ -614,35 +611,29 @@ document.addEventListener('alpine:init', () => {
                 }
                 return null;
               }
-              // For items without children, check if permission exists
               return userPermissions.includes(item.permission) ? item : null;
             })
             .filter(item => item !== null);
           
-          // Only include group if it has items
           return filteredItems.length > 0 ? { ...group, items: filteredItems } : null;
         })
         .filter(group => group !== null);
     },
 
-    // Initialize
     init() {
       this.setInitialActivePage();
     },
 
-    // Permission check
     hasPermission(item) {
       const userPermissions = this.rolePermissions[this.userRole] || this.rolePermissions['guest'];
       
       if (item.children) {
-        // For parent items, check if any child has permission
         return item.children.some(child => userPermissions.includes(child.permission));
       }
       
       return userPermissions.includes(item.permission);
     },
 
-    // Helper Methods
     toggleSelected(itemName) {
       this.selected = this.selected === itemName ? '' : itemName;
     },
@@ -651,14 +642,16 @@ document.addEventListener('alpine:init', () => {
       this.activePage = page;
       this.activeItemLabel = label;
       
-      this.setSelectedFromPage(page);
+      // Find and open the parent dropdown if this page belongs to a parent
+      const parentItem = this.findParentItem(page);
+      if (parentItem) {
+        this.selected = parentItem.name; // Open the parent dropdown
+      } else {
+        // If no parent (like Dashboard), close any open dropdowns
+        this.selected = '';
+      }
       
       if (link && link !== '#') {
-        const parentItem = this.findParentItem(page);
-        if (parentItem) {
-          this.selected = parentItem.name;
-        }
-        
         setTimeout(() => {
           window.location.href = link;
         }, 50);
@@ -680,64 +673,105 @@ document.addEventListener('alpine:init', () => {
       return null;
     },
     
-    setSelectedFromPage(page) {
+    findParentItem(page) {
+      if (!page) return null;
+      
       for (const group of this.menuData) {
         for (const item of group.items) {
           if (item.children) {
             for (const child of item.children) {
               if (child.page === page) {
-                this.selected = item.name;
-                return;
+                return item;
               }
             }
           }
         }
       }
+      return null;
     },
 
     setInitialActivePage() {
-      const path = window.location.pathname.split('/').pop();
-      const pageMap = {
-        'dashboard': 'dashboard',
-        'calendar': 'calendar',
-        'profile': 'profile',
-        'estates': 'estates',
-        'units': 'units',
-        'tenants': 'tenants',
-        'tenancies': 'tenancies',
-        'invoices': 'invoices',
-        'payments': 'payments',
-        'payees': 'payees',
-        'expenses': 'expenses',
-        'water': 'water',
-        'maintenance': 'maintenance',
-        'security/logs': 'securityLogs',
-        'sms/broadcast': 'smsSend',
-        'sms/history': 'smsHistory',
-        'sms/templates': 'smsTemplates',
-        'sms/settings': 'smsSettings',
-        'admin/companies': 'companies',
-        'users': 'users',
-        'staff': 'staff',
-        'roles': 'roles',
-        'system': 'system',
-        'form-elements': 'formElements',
-        'basic-tables': 'basicTables',
-        'blank': 'blank',
-        '404': 'page404',
-        'line-chart': 'lineChart',
-        'bar-chart': 'barChart',
-        'alerts': 'alerts',
-        'avatars': 'avatars',
-        'badge': 'badge',
-        'buttons': 'buttons',
-        'images': 'images',
-        'videos': 'videos'
+      // Get the current path
+      const path = window.location.pathname;
+      
+      // Handle different path patterns
+      let pageKey = 'dashboard';
+      
+      // Check for exact matches first
+      const exactMatches = {
+        '/dashboard': 'dashboard',
+        '/calendar': 'calendar',
+        '/profile': 'profile',
+        '/estates': 'estates',
+        '/units': 'units',
+        '/tenants': 'tenants',
+        '/tenancies': 'tenancies',
+        '/invoices': 'invoices',
+        '/payments': 'payments',
+        '/payees': 'payees',
+        '/expenses': 'expenses',
+        '/water': 'water',
+        '/maintenance': 'maintenance',
+        '/security/logs': 'securityLogs',
+        '/sms/broadcast': 'smsSend',
+        '/sms/history': 'smsHistory',
+        '/sms/templates': 'smsTemplates',
+        '/sms/settings': 'smsSettings',
+        '/admin/companies': 'companies',
+        '/users': 'users',
+        '/staff': 'staff',
+        '/roles': 'roles',
+        '/system': 'system',
+        '/system/clear-cache': 'clearCache',
+        '/form-elements': 'formElements',
+        '/basic-tables': 'basicTables',
+        '/blank': 'blank',
+        '/404': 'page404',
+        '/line-chart': 'lineChart',
+        '/bar-chart': 'barChart',
+        '/alerts': 'alerts',
+        '/avatars': 'avatars',
+        '/badge': 'badge',
+        '/buttons': 'buttons',
+        '/images': 'images',
+        '/videos': 'videos'
       };
       
-      if (path && pageMap[path]) {
-        this.activePage = pageMap[path];
-        this.setActiveItemLabel(this.activePage);
+      // Check if the path matches any exact key
+      let page = exactMatches[path];
+      
+      // If not found, try to match by checking if path contains certain patterns
+      if (!page) {
+        if (path.includes('/sms/')) {
+          // Handle SMS sub-pages
+          if (path.includes('/broadcast')) page = 'smsSend';
+          else if (path.includes('/history')) page = 'smsHistory';
+          else if (path.includes('/templates')) page = 'smsTemplates';
+          else if (path.includes('/settings')) page = 'smsSettings';
+          else page = 'smsSend';
+        } else if (path.includes('/water/')) {
+          // Handle water sub-pages
+          if (path.includes('/reports')) page = 'waterReports';
+          else page = 'water';
+        } else if (path.includes('/security/')) {
+          page = 'securityLogs';
+        } else if (path.includes('/admin/')) {
+          page = 'companies';
+        } else {
+          // Default to dashboard
+          page = 'dashboard';
+        }
+      }
+      
+      this.activePage = page;
+      this.setActiveItemLabel(page);
+      
+      // Find and open the parent dropdown if this page belongs to a parent
+      const parentItem = this.findParentItem(page);
+      if (parentItem) {
+        this.selected = parentItem.name; // Open the parent dropdown
+      } else {
+        this.selected = ''; // Close all dropdowns by default
       }
     },
 
@@ -765,38 +799,68 @@ document.addEventListener('alpine:init', () => {
     },
 
     isActive(page) {
+      // Ensure we only return true for exact page matches
+      // and ignore undefined/null values
+      if (!page) return false;
       return this.activePage === page;
     },
 
     getItemClasses(item) {
+      // For items without children (leaf items)
       if (!item.children) {
-        return this.isActive(item.page) 
-          ? 'menu-item-active' 
-          : 'menu-item-inactive';
-      } else {
-        return (this.selected === item.name) || this.isChildActive(item)
-          ? 'menu-item-active' 
-          : 'menu-item-inactive';
+        // Only active if the page matches exactly
+        if (this.isActive(item.page)) {
+          return 'text-sm bg-primary-10 text-primary';
+        }
+        return 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
+      } 
+      // For items with children (parent items)
+      else {
+        // A parent item is active ONLY IF:
+        // 1. It has a page property AND that page is active, OR
+        // 2. A child is active AND the parent has been selected/opened
+        const hasActiveChild = this.isChildActive(item);
+        
+        // Only mark parent as active if it's explicitly selected or has an active child
+        // AND we're on a page that belongs to this parent
+        const isParentActive = (this.selected === item.name) && hasActiveChild;
+        
+        // Special case: Don't mark parent as active if no child is active
+        // This prevents parent items from being active by default
+        if (!hasActiveChild) {
+          return 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
+        }
+        
+        return isParentActive || hasActiveChild
+          ? 'text-sm bg-primary-10 text-primary' 
+          : 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
       }
     },
 
     getIconClasses(item) {
       if (!item.children) {
         return this.isActive(item.page)
-          ? 'menu-item-icon-active'
-          : 'menu-item-icon-inactive';
+          ? 'text-sm text-primary fill-current'
+          : 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
       } else {
-        return (this.selected === item.name) || this.isChildActive(item)
-          ? 'menu-item-icon-active'
-          : 'menu-item-icon-inactive';
+        const hasActiveChild = this.isChildActive(item);
+        const isParentActive = (this.selected === item.name) && hasActiveChild;
+        
+        if (!hasActiveChild) {
+          return 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
+        }
+        
+        return isParentActive || hasActiveChild
+          ? 'text-sm text-primary fill-current'
+          : 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
       }
     },
 
     getArrowClasses(item) {
       if (!item.children) return '';
       return this.selected === item.name 
-        ? 'menu-item-arrow-active' 
-        : 'menu-item-arrow-inactive';
+        ? 'rotate-180 text-primary' 
+        : 'text-sm text-gray-600 dark:text-gray-400';
     },
 
     isChildActive(item) {
