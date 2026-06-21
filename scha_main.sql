@@ -195,8 +195,6 @@ CREATE TABLE `company_subscriptions` (
   `plan_id` bigint unsigned NOT NULL,
   `status` enum('trial','active','cancelled','past_due','expired') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'trial',
   `billing_cycle` enum('monthly','yearly') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'monthly',
-  `unit_count` int NOT NULL DEFAULT '0',
-  `calculated_price` decimal(10,2) NOT NULL DEFAULT '0.00',
   `starts_at` timestamp NULL DEFAULT NULL,
   `ends_at` timestamp NULL DEFAULT NULL,
   `trial_ends_at` timestamp NULL DEFAULT NULL,
@@ -221,7 +219,7 @@ CREATE TABLE `company_subscriptions` (
 
 LOCK TABLES `company_subscriptions` WRITE;
 /*!40000 ALTER TABLE `company_subscriptions` DISABLE KEYS */;
-INSERT INTO `company_subscriptions` VALUES (1,1,5,'active','monthly',0,0.00,'2026-06-19 12:13:25','2026-07-19 12:13:25',NULL,NULL,1,NULL,'2026-06-19 12:13:25','2026-06-19 12:13:25');
+INSERT INTO `company_subscriptions` VALUES (1,1,5,'active','monthly','2026-06-19 12:13:25','2026-07-19 12:13:25',NULL,NULL,1,NULL,'2026-06-19 12:13:25','2026-06-19 12:13:25');
 /*!40000 ALTER TABLE `company_subscriptions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -886,7 +884,7 @@ CREATE TABLE `sessions` (
 
 LOCK TABLES `sessions` WRITE;
 /*!40000 ALTER TABLE `sessions` DISABLE KEYS */;
-INSERT INTO `sessions` VALUES ('czQXv76Vt8oeEZG5bS09wlNvJmmYfx0gMh8YTKQ3',NULL,'127.0.0.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','YTo0OntzOjY6Il90b2tlbiI7czo0MDoiVmFxc1JOZW1MWVNGSnM4SnR4REJUdXkwZEhiMWJ6eW9CVzIydE1EayI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozMToiaHR0cDovL2xvY2FsaG9zdDo4MDAwL2Rhc2hib2FyZCI7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjMxOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvZGFzaGJvYXJkIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319fQ==',1782032865),('pspUL5pcHjEB038wRNP0Lf1aZc8QKeeKv7bSOaB9',23,'127.0.0.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','YTo1OntzOjY6Il90b2tlbiI7czo0MDoiVUt4RzYxcHIxY0ZkaVVRQmdkWDNHSjJuOTVOR0Q1QXNPNlJaWUlFSCI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQ4OiJodHRwOi8vbG9jYWxob3N0OjgwMDAvdGVuYW5jaWVzLzYwNS9pbnZvaWNlLWRhdGEiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aToyMzt9',1782036460);
+INSERT INTO `sessions` VALUES ('D9lca8PWOahaYqZ8R9bmIUvJqaPguMg4Z3gN1Bra',1,'127.0.0.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','YTo1OntzOjY6Il90b2tlbiI7czo0MDoiSnFsc3pVT3FMdHBxY0ViTGpTUVQzM0xCVGllcWZDdUQwODhJYkh2MSI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjMxOiJodHRwOi8vbG9jYWxob3N0OjgwMDAvZGFzaGJvYXJkIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6MTt9',1782063497),('SbDJfkGrrS9bjug4ai5rGWlZChqfqFvxmAkS1SqS',NULL,'127.0.0.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','YTo0OntzOjY6Il90b2tlbiI7czo0MDoiY3hhaXJWVExlbkVDbkJLY3ZERnNUV2REcjJPSlpHM3UwTzNKaXNIRSI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozMToiaHR0cDovL2xvY2FsaG9zdDo4MDAwL2Rhc2hib2FyZCI7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjI3OiJodHRwOi8vbG9jYWxob3N0OjgwMDAvbG9naW4iO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX19',1782060895),('TAucHSarNqitPyMWs3NMssLe2Pjxhx9qPKHWaq0u',NULL,'127.0.0.1','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36','YTo0OntzOjY6Il90b2tlbiI7czo0MDoiY0ZyOEFpVXF6VHJnN05zT24zUXFtS08wTUJwMm9lOWxudGZLUVdoSiI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czozMDoiaHR0cDovL2xvY2FsaG9zdDo4MDAwL3VuaXRzLzUzIjt9czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mjc6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9sb2dpbiI7fXM6NjoiX2ZsYXNoIjthOjI6e3M6Mzoib2xkIjthOjA6e31zOjM6Im5ldyI7YTowOnt9fX0=',1782060895);
 /*!40000 ALTER TABLE `sessions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1555,4 +1553,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-21 13:08:41
+-- Dump completed on 2026-06-21 20:38:51
