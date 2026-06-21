@@ -77,29 +77,60 @@
           </div>
         </div>
 
-        <!-- Standard Monthly Charges Card -->
-        <div x-show="hasAnyStandardCharges" class="mb-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-          <h5 class="text-sm font-semibold text-green-800 dark:text-green-400 mb-2">Standard Monthly Charges</h5>
-          <div class="space-y-1 text-sm">
-            <div x-show="standardCharges.rent > 0" class="flex justify-between">
-              <span class="text-green-700 dark:text-green-500">Monthly Rent:</span>
-              <span class="font-medium text-green-800 dark:text-green-400">KES <span x-text="formatNumber(standardCharges.rent)"></span></span>
-            </div>
-            <div x-show="standardCharges.service > 0" class="flex justify-between">
-              <span class="text-green-700 dark:text-green-500">Service Charge:</span>
-              <span class="font-medium text-green-800 dark:text-green-400">KES <span x-text="formatNumber(standardCharges.service)"></span></span>
-            </div>
-            <div x-show="standardCharges.garbage > 0" class="flex justify-between">
-              <span class="text-green-700 dark:text-green-500">Garbage Collection:</span>
-              <span class="font-medium text-green-800 dark:text-green-400">KES <span x-text="formatNumber(standardCharges.garbage)"></span></span>
-            </div>
-            <div x-show="standardCharges.security > 0" class="flex justify-between">
-              <span class="text-green-700 dark:text-green-500">Security Service:</span>
-              <span class="font-medium text-green-800 dark:text-green-400">KES <span x-text="formatNumber(standardCharges.security)"></span></span>
-            </div>
-            <div x-show="showWaterSection && waterRate > 0" class="flex justify-between">
-              <span class="text-green-700 dark:text-green-500">Water Rate:</span>
-              <span class="font-medium text-green-800 dark:text-green-400">KES <span x-text="formatNumber(waterRate)"></span> / unit</span>
+        <!-- Utility Charges Section - NEW DROPDOWN BASED -->
+        <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div class="flex items-center justify-between mb-3">
+            <h5 class="text-sm font-semibold text-blue-800 dark:text-blue-400">Add Utility Charges</h5>
+            <span class="text-xs text-blue-600 dark:text-blue-300">Select a utility to auto-populate</span>
+          </div>
+          
+          <!-- Utility Dropdown -->
+          <div class="mb-3">
+            <select 
+              x-model="selectedUtility"
+              @change="addUtilityToInvoice"
+              class="dark:bg-dark-900 w-full rounded-lg border border-blue-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-500 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-blue-700 dark:bg-gray-900 dark:text-white/90"
+            >
+              <option value="">-- Select Utility to Add --</option>
+              <option x-show="standardCharges.rent > 0" value="rent">Rent (KES <span x-text="formatNumber(standardCharges.rent)"></span>)</option>
+              <option x-show="standardCharges.service > 0" value="service">Service Charge (KES <span x-text="formatNumber(standardCharges.service)"></span>)</option>
+              <option x-show="standardCharges.garbage > 0" value="garbage">Garbage Collection (KES <span x-text="formatNumber(standardCharges.garbage)"></span>)</option>
+              <option x-show="standardCharges.security > 0" value="security">Security Service (KES <span x-text="formatNumber(standardCharges.security)"></span>)</option>
+            </select>
+          </div>
+
+          <!-- Quick Add Buttons for available utilities -->
+          <div class="flex flex-wrap gap-2">
+            <template x-for="(amount, type) in standardCharges" :key="type">
+              <button 
+                x-show="amount > 0 && !isUtilityInInvoice(type)"
+                @click="addSpecificUtility(type)"
+                type="button"
+                class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-full bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-400 transition-colors"
+                x-text="getUtilityLabel(type) + ': KES ' + formatNumber(amount)"
+              ></button>
+            </template>
+          </div>
+          
+          <!-- Added Utilities Summary -->
+          <div x-show="addedUtilities.length > 0" class="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+            <p class="text-xs font-medium text-blue-700 dark:text-blue-400 mb-2">Added Utilities (System Generated):</p>
+            <div class="space-y-1">
+              <template x-for="util in addedUtilities" :key="util.type">
+                <div class="flex items-center justify-between text-sm bg-white dark:bg-gray-700/50 rounded px-3 py-1.5">
+                  <span class="text-gray-700 dark:text-gray-300" x-text="getUtilityLabel(util.type)"></span>
+                  <div class="flex items-center gap-3">
+                    <span class="font-medium text-gray-800 dark:text-white/90">KES <span x-text="formatNumber(util.amount)"></span></span>
+                    <button 
+                      @click="removeUtility(util.type)"
+                      type="button"
+                      class="text-red-500 hover:text-red-700 text-xs"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -128,7 +159,7 @@
           </button>
         </div>
 
-        <!-- Duplicate Invoice Alert with Fix Action -->
+        <!-- Duplicate Invoice Alert -->
         <div x-show="hasDuplicateInvoices" class="mb-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-3">
@@ -156,7 +187,7 @@
           </div>
         </div>
 
-        <!-- Next Billing Month Info (only when no missing months and invoices not all generated) -->
+        <!-- Next Billing Month Info -->
         <div x-show="nextBillingMonth && !forceGenerateMode && missingMonthsFiltered.length === 0 && !allInvoicesGenerated" class="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
           <div class="flex items-center justify-between">
             <div>
@@ -240,11 +271,11 @@
           <p x-show="monthWarning" class="mt-1 text-xs text-red-600 dark:text-red-400" x-text="monthWarning"></p>
         </div>
 
-        <!-- Invoice Items -->
+        <!-- Invoice Items (Manual Items) -->
         <div class="mb-4">
           <div class="flex items-center justify-between mb-3">
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
-              Invoice Items
+              Manual Invoice Items
             </label>
             <button
               type="button"
@@ -267,14 +298,16 @@
                     type="text"
                     x-model="item.description"
                     placeholder="Description"
-                    :disabled="allInvoicesGenerated && !forceGenerateMode"
+                    :disabled="allInvoicesGenerated && !forceGenerateMode || isSystemItem(item)"
+                    :class="isSystemItem(item) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''"
                     class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div class="col-span-3">
                   <select
                     x-model="item.item_type"
-                    :disabled="allInvoicesGenerated && !forceGenerateMode"
+                    :disabled="allInvoicesGenerated && !forceGenerateMode || isSystemItem(item)"
+                    :class="isSystemItem(item) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''"
                     class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="rent">Rent</option>
@@ -295,7 +328,8 @@
                       step="0.01"
                       x-model="item.amount"
                       placeholder="0.00"
-                      :disabled="allInvoicesGenerated && !forceGenerateMode"
+                      :disabled="allInvoicesGenerated && !forceGenerateMode || isSystemItem(item)"
+                      :class="isSystemItem(item) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''"
                       class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-12 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
                   </div>
@@ -304,7 +338,7 @@
                   <button
                     type="button"
                     @click="removeItem(index)"
-                    x-show="form.items.length > 1"
+                    x-show="!isSystemItem(item)"
                     :disabled="allInvoicesGenerated && !forceGenerateMode"
                     class="text-red-600 hover:text-red-800 disabled:opacity-50"
                   >
@@ -318,7 +352,7 @@
           </div>
         </div>
 
-        <!-- Smart Water Reading Section - IMPROVED UI -->
+        <!-- Smart Water Reading Section -->
         <div x-show="showWaterSection && form.billing_month && !allInvoicesGenerated" class="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
           <div class="flex items-center justify-between mb-3">
             <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90">Water Meter Reading</h5>
@@ -329,7 +363,7 @@
           
           <!-- Water Reading Inputs -->
           <div class="space-y-4">
-            <!-- Previous Reading (Read-only) -->
+            <!-- Previous Reading -->
             <div>
               <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Previous Reading (units)</label>
               <div class="relative">
@@ -347,7 +381,7 @@
               </div>
             </div>
             
-            <!-- Current Reading (Editable) -->
+            <!-- Current Reading -->
             <div>
               <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Current Reading (units) *</label>
               <div class="relative">
@@ -632,6 +666,10 @@ document.addEventListener('alpine:init', () => {
       security: 0
     },
     
+    // Added utilities tracking
+    addedUtilities: [],
+    selectedUtility: '',
+    
     // Missing months
     missingMonthsFiltered: [],
     selectedMissingMonths: [],
@@ -641,7 +679,7 @@ document.addEventListener('alpine:init', () => {
     waterSequentialWarning: false,
     hasWaterSequentialError: false,
     
-    // Water data - OLD UI (display only)
+    // Water data
     showWaterSection: false,
     waterSource: 'estate',
     previousReading: 0,
@@ -683,6 +721,61 @@ document.addEventListener('alpine:init', () => {
              (this.showWaterSection && this.waterRate > 0);
     },
     
+    getUtilityLabel(type) {
+      const labels = {
+        rent: 'Rent',
+        service: 'Service Charge',
+        garbage: 'Garbage Collection',
+        security: 'Security Service'
+      };
+      return labels[type] || type;
+    },
+    
+    isUtilityInInvoice(type) {
+      return this.form.items.some(item => item.item_type === type && item._isSystem === true);
+    },
+    
+    isSystemItem(item) {
+      return item._isSystem === true;
+    },
+    
+    addUtilityToInvoice() {
+      if (!this.selectedUtility) return;
+      this.addSpecificUtility(this.selectedUtility);
+      this.selectedUtility = '';
+    },
+    
+    addSpecificUtility(type) {
+      const amount = this.standardCharges[type];
+      if (!amount || amount <= 0) return;
+      if (this.isUtilityInInvoice(type)) return;
+      
+      const label = this.getUtilityLabel(type);
+      
+      this.form.items.push({
+        description: label,
+        item_type: type,
+        amount: amount,
+        _isSystem: true,
+        _isReadOnly: true
+      });
+      
+      // Track added utilities
+      if (!this.addedUtilities.some(u => u.type === type)) {
+        this.addedUtilities.push({ type, amount });
+      }
+      
+      // Remove from quick add buttons
+      this.$nextTick(() => {
+        this.formErrors = [];
+      });
+    },
+    
+    removeUtility(type) {
+      this.form.items = this.form.items.filter(item => item.item_type !== type || !item._isSystem);
+      this.addedUtilities = this.addedUtilities.filter(u => u.type !== type);
+    },
+    
     async openModal(tenancyId) {
       this.tenancyId = tenancyId;
       this.isOpen = true;
@@ -693,6 +786,7 @@ document.addEventListener('alpine:init', () => {
       this.selectedMissingMonths = [];
       this.selectAllMissing = false;
       this.allInvoicesGenerated = false;
+      this.addedUtilities = [];
       
       await this.fetchTenancyData();
       await this.checkExistingInvoices();
@@ -758,7 +852,6 @@ document.addEventListener('alpine:init', () => {
         if (data.success) {
           const currentYearMonth = new Date().toISOString().slice(0, 7);
           
-          // Filter out months that already have invoices
           this.missingMonthsFiltered = (data.missing_months || [])
             .filter(m => m !== currentYearMonth)
             .map(month => ({
@@ -766,17 +859,14 @@ document.addEventListener('alpine:init', () => {
               label: this.formatMonthDisplay(month)
             }));
           
-          // Sort chronologically
           this.missingMonthsFiltered.sort((a, b) => a.value.localeCompare(b.value));
           
           this.hasDuplicateInvoices = Object.keys(data.duplicate_months || {}).length > 0;
           this.duplicateMonths = data.duplicate_months || {};
           
-          // Initialize water readings for missing months (sequential)
           if (this.showWaterSection && this.missingMonthsFiltered.length > 0) {
             let lastReading = this.previousReading;
             
-            // Check the last invoice with water reading
             const lastWaterInvoice = this.existingInvoices
               .filter(inv => inv.items && inv.items.some(i => i.item_type === 'water'))
               .sort((a, b) => new Date(b.billing_month) - new Date(a.billing_month))[0];
@@ -789,15 +879,13 @@ document.addEventListener('alpine:init', () => {
               }
             }
             
-            // Initialize sequential readings
             this.missingMonthsFiltered.forEach((month, index) => {
-              const previousReadingForMonth = lastReading;
               const estimatedConsumption = 10;
-              const currentReadingForMonth = previousReadingForMonth + estimatedConsumption;
+              const currentReadingForMonth = lastReading + estimatedConsumption;
               const charge = estimatedConsumption * this.waterRate;
               
               this.waterReadings[month.value] = {
-                previous: previousReadingForMonth,
+                previous: lastReading,
                 current: currentReadingForMonth,
                 consumption: estimatedConsumption,
                 charge: charge,
@@ -1015,14 +1103,12 @@ document.addEventListener('alpine:init', () => {
     },
     
     async determineNextBillingMonth() {
-      // Get all monthly invoice months
       const billingMonths = this.existingInvoices
         .filter(inv => inv.billing_month && inv.invoice_type === 'monthly')
         .map(inv => inv.billing_month.slice(0, 7));
       
       billingMonths.sort();
       
-      // Get move-in date start month
       let expectedStartMonth = null;
       if (this.tenancyData?.move_in_date) {
         const moveInDate = new Date(this.tenancyData.move_in_date);
@@ -1037,7 +1123,6 @@ document.addEventListener('alpine:init', () => {
         expectedStartMonth = new Date().toISOString().slice(0, 7);
       }
       
-      // Find the first missing month (gap)
       const currentMonthDate = new Date();
       currentMonthDate.setDate(1);
       let checkDate = new Date(expectedStartMonth + '-01');
@@ -1052,7 +1137,6 @@ document.addEventListener('alpine:init', () => {
         checkDate.setMonth(checkDate.getMonth() + 1);
       }
       
-      // If missing months exist, show them first
       if (this.missingMonthsFiltered.length > 0 || foundGap) {
         this.nextBillingMonth = null;
         this.nextBillingMonthFormatted = null;
@@ -1060,7 +1144,6 @@ document.addEventListener('alpine:init', () => {
         return;
       }
       
-      // Calculate next billing month from latest invoice
       if (billingMonths.length > 0) {
         const latestMonth = billingMonths[billingMonths.length - 1];
         const latestDate = new Date(latestMonth + '-01');
@@ -1068,7 +1151,6 @@ document.addEventListener('alpine:init', () => {
         nextDate.setMonth(nextDate.getMonth() + 1);
         const nextMonth = nextDate.toISOString().slice(0, 7);
         
-        // Check if next month is beyond current month
         const nextMonthDate = new Date(nextMonth + '-01');
         
         if (nextMonthDate > currentMonthDate) {
@@ -1083,49 +1165,10 @@ document.addEventListener('alpine:init', () => {
         this.nextBillingMonthFormatted = this.formatMonthDisplay(nextMonth);
         this.form.billing_month = nextMonth;
       } else {
-        // No invoices - use expected start month
         this.allInvoicesGenerated = false;
         this.nextBillingMonth = expectedStartMonth;
         this.nextBillingMonthFormatted = this.formatMonthDisplay(expectedStartMonth);
         this.form.billing_month = expectedStartMonth;
-      }
-      
-      this.addStandardChargesToForm();
-    },
-    
-    addStandardChargesToForm() {
-      if (this.form.items.length > 0 || this.allInvoicesGenerated) return;
-      
-      if (this.standardCharges.rent > 0) {
-        this.form.items.push({
-          description: 'Monthly Rent',
-          item_type: 'rent',
-          amount: this.standardCharges.rent
-        });
-      }
-      
-      if (this.standardCharges.service > 0) {
-        this.form.items.push({
-          description: 'Service Charge',
-          item_type: 'service',
-          amount: this.standardCharges.service
-        });
-      }
-      
-      if (this.standardCharges.garbage > 0) {
-        this.form.items.push({
-          description: 'Garbage Collection',
-          item_type: 'garbage',
-          amount: this.standardCharges.garbage
-        });
-      }
-      
-      if (this.standardCharges.security > 0) {
-        this.form.items.push({
-          description: 'Security Service',
-          item_type: 'security',
-          amount: this.standardCharges.security
-        });
       }
     },
     
@@ -1179,12 +1222,14 @@ document.addEventListener('alpine:init', () => {
       const waterRateNum = parseFloat(this.waterRate) || 0;
       
       if (waterCharge > 0 && consumptionNum > 0) {
-        this.form.items = this.form.items.filter(item => item.item_type !== 'water');
+        this.form.items = this.form.items.filter(item => item.item_type !== 'water' || !item._isSystem);
         
         const newItem = {
           description: `Water Consumption (${consumptionNum.toFixed(2)} units @ KES ${waterRateNum.toFixed(2)}/unit)`,
           item_type: 'water',
           amount: waterCharge,
+          _isSystem: true,
+          _isReadOnly: true,
           metadata: {
             previous_reading: this.previousReading,
             current_reading: this.currentReadingInput,
@@ -1194,17 +1239,12 @@ document.addEventListener('alpine:init', () => {
         };
         
         this.form.items = [...this.form.items, newItem];
-        
-        if (window.successModal) {
-          window.successModal.simple('Water Added', `Water charge of KES ${waterCharge.toFixed(2)} added to invoice`);
-        }
       }
     },
     
     openDuplicateResolution(month, invoices) {
       this.duplicateMonth = month;
       this.duplicateMonthFormatted = this.formatMonthDisplay(month);
-      // Ensure invoices have items loaded
       this.duplicateInvoicesList = invoices.map(inv => ({
         ...inv,
         items: inv.items || [],
@@ -1240,11 +1280,9 @@ document.addEventListener('alpine:init', () => {
           if (window.successModal) {
             window.successModal.show('Success', data.message);
           }
-          // Refresh all data
           await this.checkExistingInvoices();
           await this.fetchBillingHistory();
           await this.determineNextBillingMonth();
-          // Refresh the page after a short delay to show updated state
           setTimeout(() => window.location.reload(), 1500);
         } else {
           this.formErrors = [data.message];
@@ -1258,10 +1296,20 @@ document.addEventListener('alpine:init', () => {
     },
     
     addItem() {
-      this.form.items.push({ description: '', item_type: 'other', amount: '' });
+      this.form.items.push({ 
+        description: '', 
+        item_type: 'other', 
+        amount: '',
+        _isSystem: false,
+        _isReadOnly: false
+      });
     },
     
     removeItem(index) {
+      const item = this.form.items[index];
+      if (item && item._isSystem) {
+        this.addedUtilities = this.addedUtilities.filter(u => u.type !== item.item_type);
+      }
       if (this.form.items.length > 0) {
         this.form.items.splice(index, 1);
       }
@@ -1306,11 +1354,13 @@ document.addEventListener('alpine:init', () => {
       }
       
       this.form.items.forEach((item, index) => {
-        if (!item.description || !item.description.trim()) {
-          this.formErrors.push(`Item ${index + 1}: Description is required`);
-        }
-        if (!item.amount || parseFloat(item.amount) <= 0) {
-          this.formErrors.push(`Item ${index + 1}: Please enter a valid amount`);
+        if (!item._isSystem) {
+          if (!item.description || !item.description.trim()) {
+            this.formErrors.push(`Item ${index + 1}: Description is required`);
+          }
+          if (!item.amount || parseFloat(item.amount) <= 0) {
+            this.formErrors.push(`Item ${index + 1}: Please enter a valid amount`);
+          }
         }
       });
       
@@ -1401,6 +1451,8 @@ document.addEventListener('alpine:init', () => {
       this.showDuplicateResolution = false;
       this.waterReadings = {};
       this.allInvoicesGenerated = false;
+      this.addedUtilities = [];
+      this.form.items = [];
       document.body.style.overflow = '';
     },
     
@@ -1414,6 +1466,7 @@ document.addEventListener('alpine:init', () => {
       this.currentReadingInput = 0;
       this.consumption = 0;
       this.calculatedWaterCharge = 0;
+      this.addedUtilities = [];
     }
   }));
 });

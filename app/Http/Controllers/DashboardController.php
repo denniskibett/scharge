@@ -109,177 +109,188 @@ class DashboardController extends Controller
         return view('partials.dashboard.pending', compact('user', 'status', 'message'));
     }
     
-    /**
-     * SYS ADMIN DASHBOARD
-     */
-    private function sysAdminDashboard()
-    {
-        $user = auth()->user();
-        $subscriptionStats = $this->getSubscriptionStats();
-        
-        $stats = [
-            'total_companies' => Company::count(),
-            'active_companies' => Company::where('subscription_status', 'active')->orWhere('is_active', true)->count(),
-            'pending_companies' => Company::where('subscription_status', 'pending')->count(),
-            'total_users' => User::count(),
-            'verified_users' => User::whereNotNull('email_verified_at')->count(),
-            'pending_verification_users' => User::whereNull('email_verified_at')->count(),
-            'total_units' => Unit::count(),
-            'total_tenants' => Tenant::count(),
-            'total_revenue' => Payment::sum('amount'),
-            'monthly_recurring_revenue' => $this->calculateMRR(),
-            'subscription_stats' => $subscriptionStats,
-        ];
-        
-        $pendingUsers = User::whereNull('email_verified_at')
-            ->with('role', 'company')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'role_name' => $user->role->name ?? 'N/A',
-                    'company_name' => $user->company->name ?? null,
-                    'created_at_formatted' => $user->created_at ? $user->created_at->format('M d, Y') : '-',
-                ];
-            });
-        
-        $companies = Company::with(['currentSubscription.plan'])
-            ->select('id', 'name', 'email', 'phone', 'is_active', 'subscription_status', 'created_at')
-            ->withCount(['users', 'units'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($company) {
-                $subscription = $company->currentSubscription;
-                $plan = $subscription ? $subscription->plan : null;
-                $features = $plan ? ($plan->features_json ?? []) : [];
-                
-                $unitCount = Unit::where('company_id', $company->id)
-                    ->whereIn('status', ['occupied', 'available'])
-                    ->count();
-                
-                return [
-                    'id' => $company->id,
-                    'name' => $company->name,
-                    'email' => $company->email,
-                    'phone' => $company->phone,
-                    'is_active' => (bool) $company->is_active,
-                    'subscription_status' => $company->subscription_status,
-                    'subscription_plan' => $plan ? $plan->name : 'No Plan',
-                    'subscription_plan_slug' => $plan ? $plan->slug : null,
-                    'billing_cycle' => $subscription ? $subscription->billing_cycle : null,
-                    'subscription_ends_at' => $subscription && $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
-                    'pricing_type' => $features['pricing_type'] ?? 'fixed',
-                    'price_per_unit' => $features['price_per_unit'] ?? null,
-                    'unit_count' => $unitCount,
-                    'monthly_price' => $plan ? $plan->calculateMonthlyPrice($unitCount) : 0,
-                    'users_count' => $company->users_count ?? 0,
-                    'units_count' => $company->units_count ?? 0,
-                    'created_at' => $company->created_at ? $company->created_at->format('Y-m-d') : null,
-                ];
-            });
-        
-        $subscriptionPlans = SubscriptionPlan::withCount('subscriptions')
-            ->orderBy('display_order')
-            ->get()
-            ->map(function($plan) {
-                $features = $plan->features_json ?? [];
-                return [
-                    'id' => $plan->id,
-                    'name' => $plan->name,
-                    'slug' => $plan->slug,
-                    'description' => $plan->description,
-                    'price_monthly' => (float) $plan->price_monthly,
-                    'price_yearly' => (float) $plan->price_yearly,
-                    'trial_days' => $plan->trial_days,
-                    'display_order' => $plan->display_order,
-                    'is_active' => (bool) $plan->is_active,
-                    'features' => $features['features_list'] ?? [],
-                    'subscribers_count' => $plan->subscriptions_count,
-                    'pricing_type' => $features['pricing_type'] ?? 'fixed',
-                    'price_per_unit' => $features['price_per_unit'] ?? null,
-                    'limits' => [
-                        'max_properties' => $features['max_properties'] ?? 0,
-                        'max_units' => $features['max_units'] ?? 0,
-                        'max_users' => $features['max_users'] ?? 0,
-                        'max_tenants' => $features['max_tenants'] ?? 0,
-                        'storage_gb' => $features['storage_gb'] ?? 0,
-                    ]
-                ];
-            });
-        
-        $activeSubscriptions = CompanySubscription::where('status', 'active')
-            ->where(function($q) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
-            })
-            ->with(['company', 'plan'])
-            ->get()
-            ->map(function($subscription) {
-                $company = $subscription->company;
-                $plan = $subscription->plan;
-                $features = $plan ? ($plan->features_json ?? []) : [];
-                
-                $unitCount = $company ? Unit::where('company_id', $company->id)
-                    ->whereIn('status', ['occupied', 'available'])
-                    ->count() : 0;
-                
-                $monthlyPrice = $plan ? $plan->calculateMonthlyPrice($unitCount) : 0;
-                $yearlyPrice = $plan ? $plan->calculateYearlyPrice($unitCount) : 0;
-                
-                return [
-                    'id' => $subscription->id,
-                    'company_id' => $company ? $company->id : null,
-                    'company_name' => $company ? $company->name : 'N/A',
-                    'plan_id' => $plan ? $plan->id : null,
-                    'plan_name' => $plan ? $plan->name : 'N/A',
-                    'billing_cycle' => $subscription->billing_cycle,
-                    'status' => $subscription->status,
-                    'unit_count' => $unitCount,
-                    'monthly_price' => $monthlyPrice,
-                    'yearly_price' => $yearlyPrice,
-                    'pricing_type' => $features['pricing_type'] ?? 'fixed',
-                    'price_per_unit' => $features['price_per_unit'] ?? null,
-                    'starts_at' => $subscription->starts_at ? $subscription->starts_at->format('Y-m-d') : null,
-                    'ends_at' => $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
-                    'trial_ends_at' => $subscription->trial_ends_at ? $subscription->trial_ends_at->format('Y-m-d') : null,
-                    'auto_renew' => (bool) $subscription->auto_renew,
-                    'created_at' => $subscription->created_at ? $subscription->created_at->format('Y-m-d') : null,
-                ];
-            });
-        
-        $expiringSubscriptions = CompanySubscription::where('status', 'active')
-            ->whereNotNull('ends_at')
-            ->where('ends_at', '>', now())
-            ->where('ends_at', '<=', now()->addDays(30))
-            ->with(['company', 'plan'])
-            ->get()
-            ->map(function($subscription) {
-                return [
-                    'id' => $subscription->id,
-                    'company_name' => $subscription->company ? $subscription->company->name : 'N/A',
-                    'plan_name' => $subscription->plan ? $subscription->plan->name : 'N/A',
-                    'ends_at' => $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
-                    'days_remaining' => $subscription->ends_at ? now()->diffInDays($subscription->ends_at, false) : 0,
-                ];
-            });
-        
-        $revenueByPlan = $this->getRevenueByPlan();
-        
-        $systemSettings = [
-            'default_water_rate' => SystemHelper::get('settings.water.default_rate', 50),
-            'invoice_due_days' => SystemHelper::get('settings.invoice.due_days', 30),
-            'late_fee_percentage' => SystemHelper::get('settings.invoice.late_fee_percentage', 5),
-            'maintenance_sla_days' => SystemHelper::get('settings.maintenance.sla_days', 3),
-        ];
-        
-        return view('partials.dashboard.sys-admin', compact(
-            'user', 'stats', 'companies', 'pendingUsers',
-            'systemSettings', 'subscriptionPlans', 'activeSubscriptions',
-            'expiringSubscriptions', 'revenueByPlan', 'subscriptionStats'
-        ));
+/**
+ * SYS ADMIN DASHBOARD
+ */
+private function sysAdminDashboard()
+{
+    $user = auth()->user();
+    $subscriptionStats = $this->getSubscriptionStats();
+    
+    $stats = [
+        'total_companies' => Company::count(),
+        'active_companies' => Company::where('subscription_status', 'active')->orWhere('is_active', true)->count(),
+        'pending_companies' => Company::where('subscription_status', 'pending')->count(),
+        'total_users' => User::count(),
+        'verified_users' => User::whereNotNull('email_verified_at')->count(),
+        'pending_verification_users' => User::whereNull('email_verified_at')->count(),
+        'total_units' => Unit::count(),
+        'total_tenants' => Tenant::count(),
+        'total_revenue' => Payment::sum('amount'),
+        'monthly_recurring_revenue' => $this->calculateMRR(),
+        'subscription_stats' => $subscriptionStats,
+    ];
+    
+    // ================================================================
+    // FIX: Calculate max revenue safely in controller
+    // ================================================================
+    $maxRevenue = 0;
+    if (!empty($subscriptionStats['revenue_by_plan']) && count($subscriptionStats['revenue_by_plan']) > 0) {
+        $revenues = array_column($subscriptionStats['revenue_by_plan'], 'revenue');
+        $maxRevenue = !empty($revenues) ? max($revenues) : 1;
+    } else {
+        $maxRevenue = 1; // Fallback to avoid division by zero
     }
+    
+    $pendingUsers = User::whereNull('email_verified_at')
+        ->with('role', 'company')
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($user) {
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role_name' => $user->role->name ?? 'N/A',
+                'company_name' => $user->company->name ?? null,
+                'created_at_formatted' => $user->created_at ? $user->created_at->format('M d, Y') : '-',
+            ];
+        });
+    
+    $companies = Company::with(['currentSubscription.plan'])
+        ->select('id', 'name', 'email', 'phone', 'is_active', 'subscription_status', 'created_at')
+        ->withCount(['users', 'units'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($company) {
+            $subscription = $company->currentSubscription;
+            $plan = $subscription ? $subscription->plan : null;
+            $features = $plan ? ($plan->features_json ?? []) : [];
+            
+            $unitCount = Unit::where('company_id', $company->id)
+                ->whereIn('status', ['occupied', 'available'])
+                ->count();
+            
+            return [
+                'id' => $company->id,
+                'name' => $company->name,
+                'email' => $company->email,
+                'phone' => $company->phone,
+                'is_active' => (bool) $company->is_active,
+                'subscription_status' => $company->subscription_status,
+                'subscription_plan' => $plan ? $plan->name : 'No Plan',
+                'subscription_plan_slug' => $plan ? $plan->slug : null,
+                'billing_cycle' => $subscription ? $subscription->billing_cycle : null,
+                'subscription_ends_at' => $subscription && $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
+                'pricing_type' => $features['pricing_type'] ?? 'fixed',
+                'price_per_unit' => $features['price_per_unit'] ?? null,
+                'unit_count' => $unitCount,
+                'monthly_price' => $plan ? $plan->calculateMonthlyPrice($unitCount) : 0,
+                'users_count' => $company->users_count ?? 0,
+                'units_count' => $company->units_count ?? 0,
+                'created_at' => $company->created_at ? $company->created_at->format('Y-m-d') : null,
+            ];
+        });
+    
+    $subscriptionPlans = SubscriptionPlan::withCount('subscriptions')
+        ->orderBy('price_per_unit')
+        ->get()
+        ->map(function($plan) {
+            $features = $plan->features_json ?? [];
+            return [
+                'id' => $plan->id,
+                'name' => $plan->name,
+                'slug' => $plan->slug,
+                'description' => $plan->description,
+                'price_monthly' => (float) $plan->price_monthly,
+                'price_yearly' => (float) $plan->price_yearly,
+                'trial_days' => $plan->trial_days,
+                'is_active' => (bool) $plan->is_active,
+                'features' => $features['features_list'] ?? [],
+                'subscribers_count' => $plan->subscriptions_count,
+                'pricing_type' => $features['pricing_type'] ?? 'fixed',
+                'price_per_unit' => $features['price_per_unit'] ?? null,
+                'limits' => [
+                    'max_properties' => $features['max_properties'] ?? 0,
+                    'max_units' => $features['max_units'] ?? 0,
+                    'max_users' => $features['max_users'] ?? 0,
+                    'max_tenants' => $features['max_tenants'] ?? 0,
+                    'storage_gb' => $features['storage_gb'] ?? 0,
+                ]
+            ];
+        });
+    
+    $activeSubscriptions = CompanySubscription::where('status', 'active')
+        ->where(function($q) {
+            $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
+        })
+        ->with(['company', 'plan'])
+        ->get()
+        ->map(function($subscription) {
+            $company = $subscription->company;
+            $plan = $subscription->plan;
+            $features = $plan ? ($plan->features_json ?? []) : [];
+            
+            $unitCount = $company ? Unit::where('company_id', $company->id)
+                ->whereIn('status', ['occupied', 'available'])
+                ->count() : 0;
+            
+            $monthlyPrice = $plan ? $plan->calculateMonthlyPrice($unitCount) : 0;
+            $yearlyPrice = $plan ? $plan->calculateYearlyPrice($unitCount) : 0;
+            
+            return [
+                'id' => $subscription->id,
+                'company_id' => $company ? $company->id : null,
+                'company_name' => $company ? $company->name : 'N/A',
+                'plan_id' => $plan ? $plan->id : null,
+                'plan_name' => $plan ? $plan->name : 'N/A',
+                'billing_cycle' => $subscription->billing_cycle,
+                'status' => $subscription->status,
+                'unit_count' => $unitCount,
+                'monthly_price' => $monthlyPrice,
+                'yearly_price' => $yearlyPrice,
+                'pricing_type' => $features['pricing_type'] ?? 'fixed',
+                'price_per_unit' => $features['price_per_unit'] ?? null,
+                'starts_at' => $subscription->starts_at ? $subscription->starts_at->format('Y-m-d') : null,
+                'ends_at' => $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
+                'trial_ends_at' => $subscription->trial_ends_at ? $subscription->trial_ends_at->format('Y-m-d') : null,
+                'auto_renew' => (bool) $subscription->auto_renew,
+                'created_at' => $subscription->created_at ? $subscription->created_at->format('Y-m-d') : null,
+            ];
+        });
+    
+    $expiringSubscriptions = CompanySubscription::where('status', 'active')
+        ->whereNotNull('ends_at')
+        ->where('ends_at', '>', now())
+        ->where('ends_at', '<=', now()->addDays(30))
+        ->with(['company', 'plan'])
+        ->get()
+        ->map(function($subscription) {
+            return [
+                'id' => $subscription->id,
+                'company_name' => $subscription->company ? $subscription->company->name : 'N/A',
+                'plan_name' => $subscription->plan ? $subscription->plan->name : 'N/A',
+                'ends_at' => $subscription->ends_at ? $subscription->ends_at->format('Y-m-d') : null,
+                'days_remaining' => $subscription->ends_at ? now()->diffInDays($subscription->ends_at, false) : 0,
+            ];
+        });
+    
+    $revenueByPlan = $this->getRevenueByPlan();
+    
+    $systemSettings = [
+        'default_water_rate' => SystemHelper::get('settings.water.default_rate', 50),
+        'invoice_due_days' => SystemHelper::get('settings.invoice.due_days', 30),
+        'late_fee_percentage' => SystemHelper::get('settings.invoice.late_fee_percentage', 5),
+        'maintenance_sla_days' => SystemHelper::get('settings.maintenance.sla_days', 3),
+    ];
+    
+    return view('partials.dashboard.sys-admin', compact(
+        'user', 'stats', 'companies', 'pendingUsers',
+        'systemSettings', 'subscriptionPlans', 'activeSubscriptions',
+        'expiringSubscriptions', 'revenueByPlan', 'subscriptionStats',
+        'maxRevenue' // Pass the calculated max revenue to the view
+    ));
+}
 
     private function getSubscriptionStats()
     {
@@ -365,46 +376,68 @@ class DashboardController extends Controller
         ];
     }
 
-    private function calculateMRR()
-    {
-        $activeSubscriptions = CompanySubscription::where('status', 'active')
-            ->where(function($q) {
-                $q->whereNull('ends_at')->orWhere('ends_at', '>', now());
-            })
-            ->with(['company', 'plan'])
-            ->get();
+private function calculateMRR()
+{
+    // Get all active subscriptions
+    $activeSubscriptions = CompanySubscription::where('status', 'active')
+        ->where(function($q) {
+            $q->whereNull('ends_at')
+              ->orWhere('ends_at', '>', now());
+        })
+        ->with(['company', 'plan'])
+        ->get();
+    
+    \Log::info('MRR Calculation - Active Subscriptions Count: ' . $activeSubscriptions->count());
+    
+    $mrr = 0;
+    $debugData = [];
+    
+    foreach ($activeSubscriptions as $subscription) {
+        $company = $subscription->company;
+        $plan = $subscription->plan;
         
-        $mrr = 0;
-        
-        foreach ($activeSubscriptions as $subscription) {
-            $company = $subscription->company;
-            $plan = $subscription->plan;
-            
-            if (!$company || !$plan) continue;
-            
-            $unitCount = Unit::where('company_id', $company->id)
-                ->whereIn('status', ['occupied', 'available'])
-                ->count();
-            
-            $features = $plan->features_json ?? [];
-            $pricingType = $features['pricing_type'] ?? 'fixed';
-            
-            if ($pricingType === 'per_unit') {
-                $pricePerUnit = $features['price_per_unit'] ?? 0;
-                $monthlyPrice = $pricePerUnit * $unitCount;
-            } else {
-                $monthlyPrice = (float) $plan->price_monthly;
-            }
-            
-            if ($subscription->billing_cycle === 'monthly') {
-                $mrr += $monthlyPrice;
-            } elseif ($subscription->billing_cycle === 'yearly') {
-                $mrr += ($monthlyPrice * 12 * 0.9) / 12;
-            }
+        if (!$company || !$plan) {
+            \Log::warning('MRR: Skipping subscription - missing company or plan', [
+                'subscription_id' => $subscription->id,
+                'has_company' => (bool) $company,
+                'has_plan' => (bool) $plan,
+            ]);
+            continue;
         }
         
-        return $mrr;
+        $totalUnits = Unit::where('company_id', $company->id)
+            ->whereIn('status', ['occupied', 'available'])
+            ->count();
+        
+        $pricePerUnit = (float) $plan->price_per_unit;
+        $monthlyPrice = $pricePerUnit * $totalUnits;
+        
+        $subscriptionMrr = $monthlyPrice;
+        if ($subscription->billing_cycle === 'yearly') {
+            $subscriptionMrr = ($monthlyPrice * 12 * 0.9) / 12;
+        }
+        
+        $mrr += $subscriptionMrr;
+        
+        $debugData[] = [
+            'company' => $company->name,
+            'plan' => $plan->name,
+            'price_per_unit' => $pricePerUnit,
+            'total_units' => $totalUnits,
+            'monthly_price' => $monthlyPrice,
+            'billing_cycle' => $subscription->billing_cycle,
+            'mrr_contribution' => $subscriptionMrr,
+        ];
     }
+    
+    \Log::info('MRR Calculation Debug:', [
+        'total_mrr' => $mrr,
+        'subscriptions_count' => $activeSubscriptions->count(),
+        'details' => $debugData,
+    ]);
+    
+    return $mrr;
+}
 
     private function getRevenueByPlan()
     {

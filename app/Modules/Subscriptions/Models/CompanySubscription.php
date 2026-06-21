@@ -20,8 +20,6 @@ class CompanySubscription extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'auto_renew' => 'boolean',
-        'unit_count' => 'integer',
-        'calculated_price' => 'decimal:2'
     ];
     
     protected $fillable = [
@@ -29,8 +27,7 @@ class CompanySubscription extends Model
         'plan_id',
         'status',
         'billing_cycle',
-        'unit_count',
-        'calculated_price',
+        'price_per_unit',
         'starts_at',
         'ends_at',
         'trial_ends_at',

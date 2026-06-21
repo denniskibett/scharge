@@ -193,7 +193,7 @@
         </div>
 
         <!-- Revenue by Plan Chart -->
-        @if(!empty($subscriptionStats['revenue_by_plan']))
+        @if(!empty($subscriptionStats['revenue_by_plan']) && count($subscriptionStats['revenue_by_plan']) > 0)
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 mb-6">
             <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Revenue by Plan</h4>
             <div class="space-y-3">
@@ -203,12 +203,17 @@
                         <span class="font-medium text-gray-700 dark:text-gray-300">{{ $plan['plan_name'] }}</span>
                         <span class="text-gray-600 dark:text-gray-400">
                             {{ number_format($plan['count']) }} companies · 
-                            {{ number_format($plan['avg_units']) }} avg units · 
-                            KES {{ number_format($plan['revenue'], 0) }}
+                            {{ number_format($plan['avg_units'] ?? 0) }} avg units · 
+                            KES {{ number_format($plan['revenue'] ?? 0, 0) }}
                         </span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                        <div class="bg-purple-600 h-2 rounded-full" style="width: {{ ($plan['revenue'] / max(array_column($subscriptionStats['revenue_by_plan'], 'revenue'))) * 100 }}%"></div>
+                        @php
+                            $percentage = $maxRevenue > 0 ? min(100, (($plan['revenue'] ?? 0) / $maxRevenue) * 100) : 0;
+                        @endphp
+                        <div class="bg-purple-600 h-2 rounded-full" 
+                            style="width: {{ max(0, $percentage) }}%">
+                        </div>
                     </div>
                 </div>
                 @endforeach
