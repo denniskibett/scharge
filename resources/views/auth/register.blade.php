@@ -24,9 +24,45 @@
             ->map(fn($file) => 'resources/js/components/'.$file->getRelativePathname())
             ->values()
             ->all();
+        
+        // Get system colors
+        $primaryColor = SystemHelper::primaryColor();
+        $secondaryColor = SystemHelper::secondaryColor();
     @endphp
 
     @vite($components)
+
+    <!-- Dynamic Styles for System Colors -->
+    <style>
+        :root {
+            --brand-50: <?php echo $primaryColor; ?>0d;
+            --brand-100: <?php echo $primaryColor; ?>1a;
+            --brand-200: <?php echo $primaryColor; ?>33;
+            --brand-300: <?php echo $primaryColor; ?>4d;
+            --brand-400: <?php echo $primaryColor; ?>66;
+            --brand-500: <?php echo $primaryColor; ?>;
+            --brand-600: <?php echo $primaryColor; ?>cc;
+            --brand-700: <?php echo $primaryColor; ?>99;
+            --brand-800: <?php echo $primaryColor; ?>66;
+            --brand-900: <?php echo $primaryColor; ?>33;
+            --brand-950: <?php echo $primaryColor; ?>1a;
+        }
+
+        .bg-brand-500 { background-color: var(--brand-500) !important; }
+        .bg-brand-600 { background-color: var(--brand-600) !important; }
+        .bg-brand-950 { background-color: var(--brand-950) !important; }
+        .border-brand-300 { border-color: var(--brand-300) !important; }
+        .border-brand-500 { border-color: var(--brand-500) !important; }
+        .text-brand-400 { color: var(--brand-400) !important; }
+        .text-brand-500 { color: var(--brand-500) !important; }
+        .text-brand-600 { color: var(--brand-600) !important; }
+        .hover\:bg-brand-600:hover { background-color: var(--brand-600) !important; }
+        .hover\:text-brand-600:hover { color: var(--brand-600) !important; }
+        .focus\:border-brand-300:focus { border-color: var(--brand-300) !important; }
+        .focus\:ring-brand-500\/10:focus { --tw-ring-color: var(--brand-500) !important; }
+        .dark\:focus\:border-brand-800:focus { border-color: var(--brand-800) !important; }
+        .dark\:text-brand-400 { color: var(--brand-400) !important; }
+    </style>
   </head>
   <body
     x-data="{ page: 'comingSoon', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
@@ -379,7 +415,11 @@
         <!-- ===== Common Grid Shape End ===== -->
         <div class="flex max-w-xs flex-col items-center">
           <a href="{{ route('dashboard') }}" class="mb-4 block">
-            <img src="{{ SystemHelper::authLogoUrl() }}" alt="{{ SystemHelper::appName() }}" />
+              <img
+                class=" dark:block h-40 w-auto"
+                src="{{ SystemHelper::logoUrl(true) ?? asset('images/logo/auth-logo-dark.svg') }}"
+                alt="{{ SystemHelper::appName() }} Logo"
+            />
           </a>
           <p class="text-center text-gray-400 dark:text-white/60">
             {{ SystemHelper::slogan() }}
