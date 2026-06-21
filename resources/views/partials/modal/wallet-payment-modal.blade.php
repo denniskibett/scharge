@@ -387,7 +387,7 @@ document.addEventListener('alpine:init', () => {
             this.addErrorLog('Fetching pending invoices...', 'info');
             
             try {
-                const response = await fetch('/admin/api/wallet/pending-invoices', {
+                const response = await fetch('/api/wallet/pending-invoices', {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 
