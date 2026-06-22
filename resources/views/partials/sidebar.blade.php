@@ -178,25 +178,19 @@ document.addEventListener('alpine:init', () => {
         'water', 'water_readings', 'water_reports',
         'maintenance',
         'security', 'security_logs',
-        'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
+        'sms', 'sms_send', 'sms_history', 'sms_templates',
         'users', 'staff',
-        'forms', 'form_elements',
-        'tables', 'basic_tables',
-        'pages', 'blank_page', '404_page',
-        'charts', 'line_chart', 'bar_chart',
-        'ui_elements', 'alerts', 'avatars', 'badges', 'buttons', 'images', 'videos'
       ],
       'property_manager': [
         'dashboard',
         'property', 'estates', 'units', 'tenants', 'tenancies',
-        'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
+        'sms', 'sms_send', 'sms_history', 'sms_templates', 
         'maintenance',
-        'charts', 'line_chart', 'bar_chart'
       ],
       'accountant': [
         'dashboard', 
         'finance', 'invoices', 'payments', 'payees', 'expenses',
-        'charts', 'line_chart', 'bar_chart'
+        'users', 'staff',
       ],
       'meter_reader': [
         'dashboard',
@@ -217,7 +211,9 @@ document.addEventListener('alpine:init', () => {
       'tenant': [
         'dashboard',
         'finance', 'invoices', 'payments',
-        'maintenance'
+        'property', 'tenancies',
+        'maintenance',
+        'security', 'security_logs'
       ],
       'guest': [
         'dashboard'
