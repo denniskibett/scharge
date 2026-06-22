@@ -674,7 +674,7 @@
                                 'enabled' => in_array($page, ['home', 'about', 'services', 'contact']),
                                 'title' => ucfirst(str_replace('_', ' ', $page)),
                                 'slug' => $page === 'home' ? '' : str_replace('_', '-', $page),
-                                'content' => '',
+                                'content' => '', // <-- ADD THIS LINE
                                 'meta_title' => '',
                                 'meta_description' => '',
                                 'meta_keywords' => '',
@@ -688,8 +688,8 @@
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="hidden" name="page_{{ $page }}_enabled" value="0">
                                         <input type="checkbox" name="page_{{ $page }}_enabled" value="1" 
-                                               class="sr-only peer" 
-                                               {{ old("page_{$page}_enabled", $pageData['enabled']) ? 'checked' : '' }}>
+                                            class="sr-only peer" 
+                                            {{ old("page_{$page}_enabled", $pageData['enabled']) ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                                     </label>
                                     <span class="text-sm font-medium text-gray-800 dark:text-white">
@@ -700,8 +700,8 @@
                                     <label class="relative inline-flex items-center cursor-pointer">
                                         <input type="hidden" name="page_{{ $page }}_show_in_menu" value="0">
                                         <input type="checkbox" name="page_{{ $page }}_show_in_menu" value="1" 
-                                               class="sr-only peer" 
-                                               {{ old("page_{$page}_show_in_menu", $pageData['show_in_menu']) ? 'checked' : '' }}>
+                                            class="sr-only peer" 
+                                            {{ old("page_{$page}_show_in_menu", $pageData['show_in_menu']) ? 'checked' : '' }}>
                                         <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                                     </label>
                                     <span class="text-xs text-gray-500 dark:text-gray-400">Show in Menu</span>
@@ -714,24 +714,24 @@
                                             Title
                                         </label>
                                         <input type="text" name="page_{{ $page }}_title" 
-                                               value="{{ old("page_{$page}_title", $pageData['title']) }}"
-                                               class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm">
+                                            value="{{ old("page_{$page}_title", $pageData['title']) }}"
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                                             Slug
                                         </label>
                                         <input type="text" name="page_{{ $page }}_slug" 
-                                               value="{{ old("page_{$page}_slug", $pageData['slug']) }}"
-                                               class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm">
+                                            value="{{ old("page_{$page}_slug", $pageData['slug']) }}"
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                                             Order
                                         </label>
                                         <input type="number" name="page_{{ $page }}_order" 
-                                               value="{{ old("page_{$page}_order", $pageData['order']) }}" min="1" max="99"
-                                               class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm">
+                                            value="{{ old("page_{$page}_order", $pageData['order']) }}" min="1" max="99"
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
                                     </div>
                                 </div>
                                 <div>
@@ -739,7 +739,7 @@
                                         Content
                                     </label>
                                     <textarea name="page_{{ $page }}_content" rows="3"
-                                              class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm">{{ old("page_{$page}_content", $pageData['content']) }}</textarea>
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">{{ old("page_{$page}_content", $pageData['content'] ?? '') }}</textarea>
                                 </div>
                             </div>
                         </div>

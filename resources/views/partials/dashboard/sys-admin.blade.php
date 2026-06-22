@@ -258,14 +258,7 @@
                             Company Subs
                         </button>
                         
-                        <!-- Tab 5: System Settings -->
-                        <button @click="activeTab = 'system'" :class="activeTab === 'system' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            System Settings
-                        </button>
+                        <!-- System Settings Tab REMOVED -->
                     </div>
                 </div>
                 
@@ -372,74 +365,89 @@
                                 View All
                             </a>
                         </div>
-                        @include('partials.table.table-subscriptions-company')
-                    </div>
-                    
-                    <!-- System Settings Tab Content -->
-                    <div x-show="activeTab === 'system'">
-                        <div class="space-y-6">
-                            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800/50">
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">System Configuration</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default Water Rate (KES/m³)</label>
-                                        <input type="number" id="defaultWaterRate" value="{{ $systemSettings['default_water_rate'] ?? 50 }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Invoice Due Days</label>
-                                        <input type="number" id="dueDays" value="{{ $systemSettings['invoice_due_days'] ?? 30 }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Late Fee Percentage</label>
-                                        <input type="number" id="lateFee" value="{{ $systemSettings['late_fee_percentage'] ?? 5 }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 py-2">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Maintenance SLA (Days)</label>
-                                        <input type="number" id="maintenanceSla" value="{{ $systemSettings['maintenance_sla_days'] ?? 3 }}" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white px-3 py-2">
-                                    </div>
-                                </div>
-                                <div class="mt-6">
-                                    <button onclick="saveSystemSettings()" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-purple-700 transition">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
-                                        </svg>
-                                        Save Settings
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800/50">
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-4">System Health</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl dark:bg-gray-900/50">
-                                        <div>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">Database Status</p>
-                                            <p class="text-green-600 font-medium">Connected</p>
-                                        </div>
-                                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl dark:bg-gray-900/50">
-                                        <div>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">Cache Status</p>
-                                            <p class="text-green-600 font-medium">Operational</p>
-                                        </div>
-                                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl dark:bg-gray-900/50">
-                                        <div>
-                                            <p class="text-sm text-gray-500 dark:text-gray-400">Queue Worker</p>
-                                            <p class="text-green-600 font-medium">Running</p>
-                                        </div>
-                                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                            </div>
+                        
+                        <!-- Server-side rendered table -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-800">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plan</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Billing Cycle</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Starts</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ends</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Auto Renew</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                    @forelse($activeSubscriptions ?? [] as $subscription)
+                                    <tr>
+                                        <td class="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
+                                            {{ $subscription['company_name'] ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <span class="inline-flex px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                                {{ $subscription['plan_name'] ?? 'N/A' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex px-2 py-1 text-xs rounded-full 
+                                                @if($subscription['status'] === 'active') bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                                @elseif($subscription['status'] === 'trial') bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400
+                                                @elseif($subscription['status'] === 'past_due') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                                                @elseif($subscription['status'] === 'cancelled') bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400
+                                                @else bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400
+                                                @endif">
+                                                {{ ucfirst($subscription['status'] ?? 'N/A') }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <span class="capitalize">{{ $subscription['billing_cycle'] ?? 'N/A' }}</span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            {{ $subscription['starts_at'] ?? '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            {{ $subscription['ends_at'] ?? 'Never' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                                            <span class="inline-flex px-2 py-1 text-xs rounded-full 
+                                                @if($subscription['auto_renew']) bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                                                @else bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400
+                                                @endif">
+                                                {{ $subscription['auto_renew'] ? 'Yes' : 'No' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm">
+                                            <div class="flex gap-2">
+                                                @if($subscription['company_id'])
+                                                <a href="{{ route('admin.companies.show', $subscription['company_id']) }}" 
+                                                   class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">
+                                                    View Company
+                                                </a>
+                                                @endif
+                                                <button onclick="cancelSubscription({{ $subscription['id'] }})" 
+                                                        class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="8" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                            </svg>
+                                            <h3 class="mt-2 text-sm font-medium">No active subscriptions</h3>
+                                            <p class="mt-1 text-sm">No companies have active subscriptions yet.</p>
+                                        </td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -518,34 +526,29 @@ function assignCompany(userId) {
     }
 }
 
-function saveSystemSettings() {
-    const settings = {
-        default_water_rate: document.getElementById('defaultWaterRate')?.value || 50,
-        invoice_due_days: document.getElementById('dueDays')?.value || 30,
-        late_fee_percentage: document.getElementById('lateFee')?.value || 5,
-        maintenance_sla_days: document.getElementById('maintenanceSla')?.value || 3
-    };
-    
-    fetch('/system/update', {
-        method: 'PUT',
-        headers: {
-            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(settings)
-    }).then(response => response.json())
-      .then(data => {
-          if (data.success) {
-              alert('Settings saved successfully!');
-          } else {
-              alert(data.message || 'Failed to save settings');
-          }
-      })
-      .catch(error => {
-          console.error('Error:', error);
-          alert('An error occurred while saving settings');
-      });
+function cancelSubscription(subscriptionId) {
+    if (confirm('Are you sure you want to cancel this subscription?')) {
+        fetch(`/admin/subscriptions/subscription/${subscriptionId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  alert('Subscription cancelled successfully!');
+                  location.reload();
+              } else {
+                  alert(data.message || 'Failed to cancel subscription');
+              }
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              alert('An error occurred while cancelling the subscription');
+          });
+    }
 }
 </script>
 @endsection
