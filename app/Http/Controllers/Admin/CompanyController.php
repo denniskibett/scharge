@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use App\Modules\Subscriptions\Models\CompanySubscription;
 use App\Modules\Subscriptions\Models\SubscriptionPlan;
+use App\Modules\Subscriptions\Models\SubscriptionInvoice;
+use App\Modules\Expenses\Models\Expense;
 
 class CompanyController extends Controller
 {
@@ -48,7 +50,6 @@ class CompanyController extends Controller
                 : 0,
         ];
         
-        // Format companies data for the frontend
         $formattedCompanies = $companies->map(function($company) {
             return [
                 'id' => $company->id,
@@ -105,156 +106,395 @@ class CompanyController extends Controller
         // Get available roles for staff selection (exclude sysadmin and tenant)
         $availableRoles = Role::whereNotIn('name', ['sysadmin', 'tenant'])->get();
         
-        return view('admin.companies.show', compact('company', 'subscription', 'availableRoles'));
+        // Get stats for the company
+        $stats = $this->getCompanyStats($company);
+        
+        // Get estates data for the view
+        $estatesData = $this->getEstatesForView($company);
+        
+        // Get tenancies data for the view (active only)
+        $tenanciesData = $this->getTenanciesForView($company);
+        
+        // Get subscription invoices for the view
+        $subscriptionInvoices = $this->getSubscriptionInvoicesForView($company);
+        
+        // Get total invoice amount
+        $totalInvoiceAmount = $this->getTotalInvoiceAmount($company);
+        
+        // Get plan ID for the generate button
+        $planId = $subscription?->plan_id ?? null;
+        
+        // Get users for the staff table (non-tenant users with company_id)
+        $usersData = $this->getUsersForView($company);
+        
+        return view('admin.companies.show', compact(
+            'company', 
+            'subscription', 
+            'availableRoles', 
+            'stats',
+            'estatesData',
+            'tenanciesData',
+            'subscriptionInvoices',
+            'totalInvoiceAmount',
+            'planId',
+            'usersData'
+        ));
     }
     
     /**
-     * Get company estates with their units and tenants (for AJAX)
+     * Get users for view (staff only - non-tenant users with company_id)
      */
-    public function getCompanyEstatesWithTenants($id)
+    private function getUsersForView($company)
     {
-        $company = Company::findOrFail($id);
-        
-        // Get all estates for this company
-        $estates = Estate::where('company_id', $company->id)
-            ->with(['units' => function($q) {
-                $q->with(['currentTenant.user']);
-            }])
-            ->get();
-        
-        $totalUnits = 0;
-        $totalTenants = 0;
-        
-        $formattedEstates = $estates->map(function($estate) use (&$totalUnits, &$totalTenants) {
-            $totalUnits += $estate->units->count();
-            $occupiedUnits = $estate->units->where('status', 'occupied')->count();
-            $totalMonthlyRent = $estate->units->sum('rent_amount');
-            
-            // Count tenants in this estate
-            $estateTenants = $estate->units->filter(function($unit) {
-                return !is_null($unit->currentTenant);
-            })->count();
-            $totalTenants += $estateTenants;
-            
+        return User::where('company_id', $company->id)
+            ->whereHas('role', function($q) {
+                $q->where('name', '!=', 'tenant');
+            })
+            ->with('role')
+            ->get()
+            ->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '-',
+                    'role' => $user->role->name ?? 'unknown',
+                    'role_name' => ucfirst(str_replace('_', ' ', $user->role->name ?? 'unknown')),
+                    'company_id' => $user->company_id,
+                    'company_name' => $user->company->name ?? '-',
+                    'is_active' => $user->status === 0,
+                    'email_verified_at' => $user->email_verified_at,
+                    'created_at' => $user->created_at ? $user->created_at->toISOString() : null,
+                ];
+            });
+    }
+    
+    /**
+     * Get total invoice amount for subscription invoices
+     */
+    private function getTotalInvoiceAmount($company)
+    {
+        return SubscriptionInvoice::whereHas('subscription', function ($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })->sum('amount') ?? 0;
+    }
+    
+    /**
+     * Get subscription invoices for view
+     */
+    private function getSubscriptionInvoicesForView($company)
+    {
+        return SubscriptionInvoice::whereHas('subscription', function ($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })
+        ->with(['subscription.plan'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($invoice) {
             return [
-                'id' => $estate->id,
-                'name' => $estate->name,
-                'location' => $estate->location ?? 'No location specified',
-                'total_units' => $estate->units->count(),
-                'occupied_units' => $occupiedUnits,
-                'occupancy_rate' => $estate->units->count() > 0 
-                    ? round(($occupiedUnits / $estate->units->count()) * 100, 1) 
-                    : 0,
-                'total_monthly_rent' => (float) $totalMonthlyRent,
-                'units' => $estate->units->map(function($unit) {
-                    $tenant = $unit->currentTenant;
-                    return [
-                        'id' => $unit->id,
-                        'unit_number' => $unit->unit_number,
-                        'unit_type' => $unit->unit_type ?? '-',
-                        'rent_amount' => (float) ($unit->rent_amount ?? 0),
-                        'status' => $unit->status ?? 'vacant',
-                        'current_tenant' => $tenant ? [
-                            'name' => $tenant->user->name ?? 'N/A',
-                            'email' => $tenant->user->email ?? 'N/A',
-                            'phone' => $tenant->user->phone ?? '-',
-                        ] : null,
-                    ];
-                }),
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number ?? '#'.$invoice->id,
+                'amount' => (float) $invoice->amount,
+                'status' => $invoice->status ?? 'pending',
+                'due_date' => $invoice->due_date ? $invoice->due_date->toISOString() : null,
+                'created_at' => $invoice->created_at ? $invoice->created_at->toISOString() : null,
+                'company_name' => $invoice->subscription?->company?->name ?? 'N/A',
+                'plan_name' => $invoice->subscription?->plan?->name ?? 'N/A',
             ];
         });
-        
-        return response()->json([
-            'success' => true,
-            'estates' => $formattedEstates,
-            'total_units' => $totalUnits,
-            'total_tenants' => $totalTenants,
-        ]);
     }
     
     /**
-     * Get company estates (simple list)
+     * Get company statistics
      */
-    public function getCompanyEstates($id)
+    private function getCompanyStats($company)
     {
-        $company = Company::findOrFail($id);
+        // Staff count (users with company_id that are NOT tenant role)
+        $totalStaff = User::where('company_id', $company->id)
+            ->whereHas('role', function($q) {
+                $q->where('name', '!=', 'tenant');
+            })
+            ->count();
         
-        $estates = $company->estates()->withCount('units')->get();
-        $totalUnits = $company->units()->count();
+        // Estates count
+        $totalEstates = Estate::where('company_id', $company->id)->count();
         
-        return response()->json([
-            'estates' => $estates->map(function($estate) {
+        // Units count
+        $totalUnits = Unit::whereHas('estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })->count();
+        
+        // Active tenancies count (status = active)
+        $totalTenants = Tenancy::whereHas('unit.estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })->where('status', 'active')->count();
+        
+        // Invoices count
+        $totalInvoices = Invoice::whereHas('tenancy.unit.estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })->count();
+        
+        // Expenses count
+        $totalExpenses = Expense::whereHas('estate', function ($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })->count();
+        
+        // Total revenue
+        $totalRevenue = Payment::whereHas('invoice.tenancy.unit.estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })->sum('amount');
+        
+        return [
+            'totalStaff' => $totalStaff,
+            'totalEstates' => $totalEstates,
+            'totalUnits' => $totalUnits,
+            'totalTenants' => $totalTenants,
+            'totalInvoices' => $totalInvoices,
+            'totalExpenses' => $totalExpenses,
+            'totalRevenue' => (float) $totalRevenue,
+        ];
+    }
+    
+    /**
+     * Get estates for view
+     */
+    private function getEstatesForView($company)
+    {
+        return Estate::where('company_id', $company->id)
+            ->withCount('units')
+            ->get()
+            ->map(function($estate) {
                 return [
                     'id' => $estate->id,
                     'name' => $estate->name,
-                    'location' => $estate->location,
-                    'total_units' => $estate->units_count,
+                    'location' => $estate->location ?? '-',
+                    'units_count' => $estate->units_count,
                     'occupied_units' => $estate->units()->where('status', 'occupied')->count(),
+                    'created_at' => $estate->created_at ? $estate->created_at->toISOString() : null,
                 ];
-            }),
-            'total' => $estates->count(),
-            'total_units' => $totalUnits,
-        ]);
+            });
     }
     
     /**
-     * Get company staff (non-tenant users)
+     * Get tenancies for view - ACTIVE ONLY
      */
-    public function getCompanyStaff($id)
+    private function getTenanciesForView($company)
+    {
+        return Tenancy::whereHas('unit.estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })
+        ->with(['tenant.user', 'unit.estate'])
+        ->where('status', 'active')  // ONLY ACTIVE TENANCIES
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($tenancy) {
+            return [
+                'id' => $tenancy->id,
+                'tenant_name' => $tenancy->tenant->user->name ?? 'N/A',
+                'tenant_phone' => $tenancy->tenant->user->phone ?? '-',
+                'unit_number' => $tenancy->unit->unit_number ?? 'N/A',
+                'unit_type' => $tenancy->unit->unit_type ?? '-',
+                'estate_name' => $tenancy->unit->estate->name ?? 'N/A',
+                'estate_id' => $tenancy->unit->estate_id ?? null,
+                'move_in_date' => $tenancy->move_in_date ? $tenancy->move_in_date->toISOString() : null,
+                'move_out_date' => $tenancy->move_out_date ? $tenancy->move_out_date->toISOString() : null,
+                'duration' => $tenancy->move_in_date ? $tenancy->move_in_date->diffInMonths(now()) . ' months' : '-',
+                'status' => $tenancy->status ?? 'active',
+            ];
+        });
+    }
+    
+    /**
+     * Get estates data (AJAX)
+     */
+    public function getEstates($id)
     {
         $company = Company::findOrFail($id);
         
-        $staff = $company->users()
-            ->with('role')
-            ->whereHas('role', function($q) {
-                $q->whereNotIn('name', ['tenant']);
-            })
+        $estates = Estate::where('company_id', $company->id)
+            ->withCount('units')
             ->get()
-            ->map(function($user) {
-                $roleBadges = [
-                    'super_admin' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-                    'admin' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-                    'property_manager' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-                    'accountant' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-                    'meter_reader' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-                    'maintenance' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-                    'security' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-                    'cleaning_staff' => 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-400',
-                ];
-                
-                $roleName = $user->role->name ?? 'unknown';
-                
+            ->map(function($estate) {
                 return [
-                    'id' => $user->id,
-                    'full_name' => $user->name,
-                    'email' => $user->email,
-                    'phone' => $user->phone ?? '-',
-                    'role_name' => ucfirst(str_replace('_', ' ', $roleName)),
-                    'role_badge' => $roleBadges[$roleName] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
-                    'created_at_formatted' => $user->created_at ? $user->created_at->format('M d, Y') : '-',
+                    'id' => $estate->id,
+                    'name' => $estate->name,
+                    'location' => $estate->location ?? '-',
+                    'units_count' => $estate->units_count,
+                    'occupied_units' => $estate->units()->where('status', 'occupied')->count(),
+                    'created_at' => $estate->created_at ? $estate->created_at->toISOString() : null,
                 ];
             });
         
         return response()->json([
             'success' => true,
-            'staff' => $staff,
-            'total' => $staff->count(),
+            'estates' => $estates
         ]);
     }
     
     /**
-     * Get company subscriptions history
+     * Get tenancies data (AJAX) - ACTIVE ONLY
+     */
+    public function getTenancies($id)
+    {
+        $company = Company::findOrFail($id);
+        
+        $tenancies = Tenancy::whereHas('unit.estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })
+        ->with(['tenant.user', 'unit.estate'])
+        ->where('status', 'active')  // ONLY ACTIVE TENANCIES
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($tenancy) {
+            return [
+                'id' => $tenancy->id,
+                'tenant_name' => $tenancy->tenant->user->name ?? 'N/A',
+                'tenant_phone' => $tenancy->tenant->user->phone ?? '-',
+                'unit_number' => $tenancy->unit->unit_number ?? 'N/A',
+                'unit_type' => $tenancy->unit->unit_type ?? '-',
+                'estate_name' => $tenancy->unit->estate->name ?? 'N/A',
+                'estate_id' => $tenancy->unit->estate_id ?? null,
+                'move_in_date' => $tenancy->move_in_date ? $tenancy->move_in_date->toISOString() : null,
+                'move_out_date' => $tenancy->move_out_date ? $tenancy->move_out_date->toISOString() : null,
+                'duration' => $tenancy->move_in_date ? $tenancy->move_in_date->diffInMonths(now()) . ' months' : '-',
+                'status' => $tenancy->status ?? 'active',
+            ];
+        });
+        
+        return response()->json([
+            'success' => true,
+            'tenancies' => $tenancies
+        ]);
+    }
+    
+    /**
+     * Get users data (AJAX) - staff only (non-tenant users with company_id)
+     */
+    public function getCompanyUsers($id)
+    {
+        $company = Company::findOrFail($id);
+        
+        $users = User::where('company_id', $company->id)
+            ->whereHas('role', function($q) {
+                $q->where('name', '!=', 'tenant');
+            })
+            ->with('role')
+            ->get()
+            ->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'phone' => $user->phone ?? '-',
+                    'role' => $user->role->name ?? 'unknown',
+                    'role_name' => ucfirst(str_replace('_', ' ', $user->role->name ?? 'unknown')),
+                    'company_id' => $user->company_id,
+                    'company_name' => $user->company->name ?? '-',
+                    'is_active' => $user->status === 0,
+                    'email_verified_at' => $user->email_verified_at,
+                    'created_at' => $user->created_at ? $user->created_at->toISOString() : null,
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'users' => $users,
+            'total' => $users->count(),
+        ]);
+    }
+    
+    /**
+     * Get company staff (non-tenant users only) - alias for getCompanyUsers
+     */
+    public function getCompanyStaff($id)
+    {
+        return $this->getCompanyUsers($id);
+    }
+    
+    /**
+     * Get subscription invoices for the company (AJAX)
+     */
+    public function getCompanySubscriptionInvoices($id)
+    {
+        $company = Company::findOrFail($id);
+        
+        $invoices = SubscriptionInvoice::whereHas('subscription', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })
+        ->with(['subscription.plan'])
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->map(function($invoice) {
+            return [
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number ?? '#'.$invoice->id,
+                'company_name' => $invoice->subscription?->company?->name ?? 'N/A',
+                'plan_name' => $invoice->subscription?->plan?->name ?? 'N/A',
+                'amount' => (float) $invoice->amount,
+                'status' => $invoice->status ?? 'pending',
+                'due_date' => $invoice->due_date ? $invoice->due_date->toISOString() : null,
+                'created_at' => $invoice->created_at ? $invoice->created_at->toISOString() : null,
+            ];
+        });
+        
+        $totalAmount = $invoices->sum('amount');
+        
+        return response()->json([
+            'success' => true,
+            'invoices' => $invoices,
+            'total_amount' => (float) $totalAmount,
+        ]);
+    }
+    
+    /**
+     * Get company expenses
+     */
+    public function getCompanyExpenses($id)
+    {
+        $company = Company::findOrFail($id);
+        
+        $expenses = Expense::whereHas('estate', function($q) use ($company) {
+            $q->where('company_id', $company->id);
+        })
+        ->with(['estate', 'payee', 'category'])
+        ->orderBy('expense_date', 'desc')
+        ->get()
+        ->map(function($expense) {
+            return [
+                'id' => $expense->id,
+                'estate_name' => $expense->estate->name ?? 'N/A',
+                'payee_name' => $expense->payee->name ?? 'N/A',
+                'category_name' => $expense->category->name ?? 'Uncategorized',
+                'amount' => (float) $expense->amount,
+                'description' => $expense->description ?? '-',
+                'expense_date' => $expense->expense_date ? $expense->expense_date->toISOString() : null,
+                'status' => $expense->status ?? 'pending',
+                'created_at' => $expense->created_at ? $expense->created_at->toISOString() : null,
+            ];
+        });
+        
+        $totalExpenses = $expenses->sum('amount');
+        
+        return response()->json([
+            'success' => true,
+            'expenses' => $expenses,
+            'total_expenses' => (float) $totalExpenses,
+        ]);
+    }
+    
+    /**
+     * Get company subscriptions (active only)
      */
     public function getCompanySubscriptions($id)
     {
         $company = Company::findOrFail($id);
         
         $subscriptions = CompanySubscription::where('company_id', $company->id)
+            ->where('status', 'active')  // ACTIVE ONLY
             ->with('plan')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($subscription) {
-                // Calculate amount based on billing cycle and plan
                 $amount = 0;
                 if ($subscription->plan) {
                     if ($subscription->billing_cycle === 'monthly') {
@@ -282,7 +522,7 @@ class CompanyController extends Controller
     }
     
     /**
-     * Get company invoices
+     * Get company invoices (tenant invoices)
      */
     public function getCompanyInvoices($id)
     {
@@ -315,38 +555,6 @@ class CompanyController extends Controller
     }
     
     /**
-     * Get company payments
-     */
-    public function getCompanyPayments($id)
-    {
-        $company = Company::findOrFail($id);
-        
-        $payments = Payment::whereHas('invoice.tenancy.unit.estate', function($q) use ($company) {
-                $q->where('company_id', $company->id);
-            })
-            ->with(['invoice.tenancy.tenant.user', 'invoice.tenancy.unit'])
-            ->orderBy('payment_datetime', 'desc')
-            ->get()
-            ->map(function($payment) {
-                return [
-                    'id' => $payment->id,
-                    'tenant_name' => $payment->invoice->tenancy->tenant->user->name ?? 'N/A',
-                    'invoice_id' => $payment->invoice_id,
-                    'amount' => (float) $payment->amount,
-                    'payment_method' => $payment->payment_method ?? 'N/A',
-                    'payment_datetime' => $payment->payment_datetime 
-                        ? $payment->payment_datetime->toISOString() 
-                        : ($payment->created_at ? $payment->created_at->toISOString() : null),
-                ];
-            });
-        
-        return response()->json([
-            'success' => true,
-            'payments' => $payments,
-        ]);
-    }
-    
-    /**
      * Add a user to a company (staff)
      */
     public function addUser(Request $request, $id)
@@ -363,7 +571,6 @@ class CompanyController extends Controller
                 'password' => 'required|string|min:8',
             ]);
             
-            // Check if role is allowed (exclude sysadmin and tenant)
             $role = Role::find($validated['role_id']);
             if (in_array($role->name, ['sysadmin', 'tenant'])) {
                 return response()->json([
@@ -381,7 +588,7 @@ class CompanyController extends Controller
                 'role_id' => $validated['role_id'],
                 'company_id' => $company->id,
                 'password' => Hash::make($validated['password']),
-                'status' => 0, // Active
+                'status' => 0,
                 'email_verified_at' => now(),
             ]);
             
@@ -514,14 +721,6 @@ class CompanyController extends Controller
                 'message' => 'Failed to update user role: ' . $e->getMessage()
             ], 500);
         }
-    }
-    
-    /**
-     * Get company users (staff)
-     */
-    public function getCompanyUsers($id)
-    {
-        return $this->getCompanyStaff($id);
     }
     
     /**
@@ -674,7 +873,6 @@ class CompanyController extends Controller
         try {
             $company = Company::findOrFail($id);
             
-            // Check if company has users before deleting
             if ($company->users()->count() > 0) {
                 return response()->json([
                     'success' => false,
@@ -682,7 +880,6 @@ class CompanyController extends Controller
                 ], 422);
             }
             
-            // Check if company has estates
             if ($company->estates()->count() > 0) {
                 return response()->json([
                     'success' => false,

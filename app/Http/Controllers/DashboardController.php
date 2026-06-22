@@ -372,66 +372,66 @@ private function sysAdminDashboard()
         ];
     }
 
-private function calculateMRR()
-{
-    // Get all active subscriptions
-    $activeSubscriptions = CompanySubscription::where('status', 'active')
-        ->where(function($q) {
-            $q->whereNull('ends_at')
-              ->orWhere('ends_at', '>', now());
-        })
-        ->with(['company', 'plan'])
-        ->get();
-    
-    \Log::info('MRR Calculation - Active Subscriptions Count: ' . $activeSubscriptions->count());
-    
-    $mrr = 0;
-    $debugData = [];
-    
-    foreach ($activeSubscriptions as $subscription) {
-        $company = $subscription->company;
-        $plan = $subscription->plan;
+    private function calculateMRR()
+    {
+        // Get all active subscriptions
+        $activeSubscriptions = CompanySubscription::where('status', 'active')
+            ->where(function($q) {
+                $q->whereNull('ends_at')
+                ->orWhere('ends_at', '>', now());
+            })
+            ->with(['company', 'plan'])
+            ->get();
         
-        if (!$company || !$plan) {
-            \Log::warning('MRR: Skipping subscription - missing company or plan', [
-                'subscription_id' => $subscription->id,
-                'has_company' => (bool) $company,
-                'has_plan' => (bool) $plan,
-            ]);
-            continue;
+        \Log::info('MRR Calculation - Active Subscriptions Count: ' . $activeSubscriptions->count());
+        
+        $mrr = 0;
+        $debugData = [];
+        
+        foreach ($activeSubscriptions as $subscription) {
+            $company = $subscription->company;
+            $plan = $subscription->plan;
+            
+            if (!$company || !$plan) {
+                \Log::warning('MRR: Skipping subscription - missing company or plan', [
+                    'subscription_id' => $subscription->id,
+                    'has_company' => (bool) $company,
+                    'has_plan' => (bool) $plan,
+                ]);
+                continue;
+            }
+            
+            $totalUnits = Unit::where('company_id', $company->id)
+                ->whereIn('status', ['occupied', 'available'])
+                ->count();
+            
+            $pricePerUnit = (float) $plan->price_per_unit;
+            $monthlyPrice = $pricePerUnit * $totalUnits;
+            
+            $subscriptionMrr = $monthlyPrice;
+            if ($subscription->billing_cycle === 'yearly') {
+                $subscriptionMrr = ($monthlyPrice * 12 * 0.9) / 12;
+            }
+            
+            $mrr += $subscriptionMrr;
+            
+            $debugData[] = [
+                'company' => $company->name,
+                'plan' => $plan->name,
+                'price_per_unit' => $pricePerUnit,
+                'billing_cycle' => $subscription->billing_cycle,
+                'mrr_contribution' => $subscriptionMrr,
+            ];
         }
         
-        $totalUnits = Unit::where('company_id', $company->id)
-            ->whereIn('status', ['occupied', 'available'])
-            ->count();
+        \Log::info('MRR Calculation Debug:', [
+            'total_mrr' => $mrr,
+            'subscriptions_count' => $activeSubscriptions->count(),
+            'details' => $debugData,
+        ]);
         
-        $pricePerUnit = (float) $plan->price_per_unit;
-        $monthlyPrice = $pricePerUnit * $totalUnits;
-        
-        $subscriptionMrr = $monthlyPrice;
-        if ($subscription->billing_cycle === 'yearly') {
-            $subscriptionMrr = ($monthlyPrice * 12 * 0.9) / 12;
-        }
-        
-        $mrr += $subscriptionMrr;
-        
-        $debugData[] = [
-            'company' => $company->name,
-            'plan' => $plan->name,
-            'price_per_unit' => $pricePerUnit,
-            'billing_cycle' => $subscription->billing_cycle,
-            'mrr_contribution' => $subscriptionMrr,
-        ];
+        return $mrr;
     }
-    
-    \Log::info('MRR Calculation Debug:', [
-        'total_mrr' => $mrr,
-        'subscriptions_count' => $activeSubscriptions->count(),
-        'details' => $debugData,
-    ]);
-    
-    return $mrr;
-}
 
     private function getRevenueByPlan()
     {

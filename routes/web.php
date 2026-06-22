@@ -445,6 +445,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
         Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
         Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
+        Route::get('/{company}/expenses', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyExpenses'])->name('expenses');
         
         // User management
         Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
@@ -455,6 +456,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
+
+
     });
 
     // ============================================
