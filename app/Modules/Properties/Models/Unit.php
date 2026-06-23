@@ -4,6 +4,7 @@ namespace App\Modules\Properties\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\WaterReading;
 
 class Unit extends Model
 {

@@ -487,169 +487,259 @@ private function sysAdminDashboard()
         return array_values($revenueByPlan);
     }
     
-    /**
-     * ADMIN DASHBOARD
-     */
-    private function adminDashboard()
-    {
-        $user = auth()->user();
-        $company = $user->company;
-        
-        if (!$company) {
-            return $this->pendingVerificationView($user);
-        }
-        
-        $invoices = Invoice::with('tenancy.tenant.user', 'tenancy.unit', 'items', 'payments')
-            ->whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))
-            ->orderBy('created_at', 'desc')
-            ->get();
-        
-        $activeTenancies = Tenancy::where('status', 'active')
-            ->whereHas('unit', fn($q) => $q->where('company_id', $company->id))
-            ->with('tenant.user', 'unit')
-            ->get();
-        
-        $users = Tenant::whereHas('user', fn($q) => $q->where('company_id', $company->id))
-            ->with('user')
-            ->get()
-            ->map(function ($tenant) {
-                return [
-                    'id' => $tenant->id,
-                    'name' => optional($tenant->user)->name ?? 'N/A',
-                ];
-            });
-        
-        $paymentInvoices = Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))
-            ->with('items', 'tenancy.tenant.user')
-            ->get()
-            ->map(function ($invoice) {
-                $payerName = optional(optional($invoice->tenancy)->tenant->user)->name ?? 'N/A';
-                $itemsLabel = $invoice->items->count()
-                    ? $invoice->items->map(fn ($item) => ($item->item_type ?? 'Item') . ($item->description ? ' (' . $item->description . ')' : ''))->implode(', ')
-                    : '-';
-                return [
-                    'id' => $invoice->id,
-                    'label' => $payerName . ' - Invoice #' . ($invoice->invoice_number ?? $invoice->id) . ': ' . $itemsLabel,
-                    'payer_name' => $payerName,
-                ];
-            });
-        
-        $mappedInvoices = $invoices->map(function($invoice) {
-            $lastPayment = $invoice->payments->last();
+/**
+ * ADMIN DASHBOARD
+ */
+private function adminDashboard()
+{
+    $user = auth()->user();
+    $company = $user->company;
+    
+    if (!$company) {
+        return $this->pendingVerificationView($user);
+    }
+    
+    $invoices = Invoice::with('tenancy.tenant.user', 'tenancy.unit', 'items', 'payments')
+        ->whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))
+        ->orderBy('created_at', 'desc')
+        ->get();
+    
+    $activeTenancies = Tenancy::where('status', 'active')
+        ->whereHas('unit', fn($q) => $q->where('company_id', $company->id))
+        ->with('tenant.user', 'unit')
+        ->get();
+    
+    $users = Tenant::whereHas('user', fn($q) => $q->where('company_id', $company->id))
+        ->with('user')
+        ->get()
+        ->map(function ($tenant) {
+            return [
+                'id' => $tenant->id,
+                'name' => optional($tenant->user)->name ?? 'N/A',
+            ];
+        });
+    
+    $paymentInvoices = Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))
+        ->with('items', 'tenancy.tenant.user')
+        ->get()
+        ->map(function ($invoice) {
+            $payerName = optional(optional($invoice->tenancy)->tenant->user)->name ?? 'N/A';
+            $itemsLabel = $invoice->items->count()
+                ? $invoice->items->map(fn ($item) => ($item->item_type ?? 'Item') . ($item->description ? ' (' . $item->description . ')' : ''))->implode(', ')
+                : '-';
             return [
                 'id' => $invoice->id,
-                'tenant_name' => $invoice->tenancy->tenant->user->name ?? '-',
-                'tenant_id' => $invoice->tenancy->tenant_id ?? null,
-                'unit_number' => $invoice->tenancy->unit->unit_number ?? '-',
-                'unit_id' => $invoice->tenancy->unit_id ?? null,
-                'invoice_type' => $invoice->invoice_type,
-                'billing_month' => $invoice->billing_month,
-                'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
-                'total_amount' => $invoice->total_amount,
-                'status' => $invoice->status,
-                'tenancy_id' => $invoice->tenancy_id,
-                'created_at' => $invoice->created_at ? $invoice->created_at->getTimestamp() * 1000 : null,
-                'created_at_formatted' => $invoice->created_at ? $invoice->created_at->format('M d, Y') : '-',
-                'payer_name' => $invoice->tenancy->tenant->user->name ?? 'N/A',
-                'payment_method' => $lastPayment->payment_method ?? 'N/A',
-                'payment_datetime' => $lastPayment->created_at ?? null,
-                'paid_amount' => (float) $invoice->payments->sum('amount'),
-                'balance' => (float) ($invoice->total_amount - $invoice->payments->sum('amount')),
-                'items' => $invoice->items->map(function($item) {
-                    return [
-                        'id' => $item->id,
-                        'description' => $item->description,
-                        'item_type' => $item->item_type,
-                        'amount' => $item->amount,
-                    ];
-                }),
+                'label' => $payerName . ' - Invoice #' . ($invoice->invoice_number ?? $invoice->id) . ': ' . $itemsLabel,
+                'payer_name' => $payerName,
             ];
         });
-        
-        $mappedActiveTenancies = $activeTenancies->map(function($tenancy) {
-            return [
-                'id' => $tenancy->id,
-                'tenant_name' => $tenancy->tenant->user->name ?? 'Unknown',
-                'unit_number' => $tenancy->unit->unit_number ?? 'No Unit',
-                'rent_amount' => $tenancy->unit->rent_amount ?? 0,
-                'move_in_date' => $tenancy->move_in_date,
-                'move_out_date' => $tenancy->move_out_date,
-            ];
-        });
-        
-        $estates = Estate::where('company_id', $company->id)->orderBy('name')->get();
-        $units = Unit::where('company_id', $company->id)->with('estate')->get();
-        
-        $stats = [
-            'total_units' => Unit::where('company_id', $company->id)->count(),
-            'occupied_units' => Unit::where('company_id', $company->id)->where('status', 'occupied')->count(),
-            'vacant_units' => Unit::where('company_id', $company->id)->where('status', 'vacant')->count(),
-            'total_tenants' => Tenant::whereHas('user', fn($q) => $q->where('company_id', $company->id))->count(),
-            'active_tenancies' => Tenancy::whereHas('unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'active')->count(),
-            'total_revenue' => Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))->sum('amount'),
-            'total_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->count(),
-            'paid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'paid')->count(),
-            'unpaid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'unpaid')->count(),
-            'occupancy_rate' => $this->calculateOccupancyRate($company->id),
-            'total_consumption' => Unit::where('company_id', $company->id)->sum(DB::raw('GREATEST(0, COALESCE(current_water_reading, 0) - COALESCE(previous_water_reading, 0))')),
-            'outstanding_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->whereIn('status', ['unpaid', 'partial'])->sum('total_amount'),
-            'collection_rate' => $this->calculateCollectionRate($company->id),
-            'units_needing_reading' => Unit::where('company_id', $company->id)->where('status', 'occupied')
-                ->where(fn($q) => $q->whereNull('last_reading_date')->orWhere('last_reading_date', '<=', Carbon::now()->subDays(30)))->count(),
+    
+    $mappedInvoices = $invoices->map(function($invoice) {
+        $lastPayment = $invoice->payments->last();
+        return [
+            'id' => $invoice->id,
+            'tenant_name' => $invoice->tenancy->tenant->user->name ?? '-',
+            'tenant_id' => $invoice->tenancy->tenant_id ?? null,
+            'unit_number' => $invoice->tenancy->unit->unit_number ?? '-',
+            'unit_id' => $invoice->tenancy->unit_id ?? null,
+            'invoice_type' => $invoice->invoice_type,
+            'billing_month' => $invoice->billing_month,
+            'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
+            'total_amount' => $invoice->total_amount,
+            'status' => $invoice->status,
+            'tenancy_id' => $invoice->tenancy_id,
+            'created_at' => $invoice->created_at ? $invoice->created_at->getTimestamp() * 1000 : null,
+            'created_at_formatted' => $invoice->created_at ? $invoice->created_at->format('M d, Y') : '-',
+            'payer_name' => $invoice->tenancy->tenant->user->name ?? 'N/A',
+            'payment_method' => $lastPayment->payment_method ?? 'N/A',
+            'payment_datetime' => $lastPayment->created_at ?? null,
+            'paid_amount' => (float) $invoice->payments->sum('amount'),
+            'balance' => (float) ($invoice->total_amount - $invoice->payments->sum('amount')),
+            'items' => $invoice->items->map(function($item) {
+                return [
+                    'id' => $item->id,
+                    'description' => $item->description,
+                    'item_type' => $item->item_type,
+                    'amount' => $item->amount,
+                ];
+            }),
         ];
-        
-        $outstandingBalance = 0;
-        $totalPaid = 0;
-        $tenant = $user->tenant;
-        if ($tenant && $tenant->activeTenancy) {
-            $tenantInvoices = Invoice::where('tenancy_id', $tenant->activeTenancy->id)->get();
-            $totalPaid = Payment::whereHas('invoice', function($q) use ($tenant) {
-                $q->where('tenancy_id', $tenant->activeTenancy->id);
-            })->sum('amount');
-            $outstandingBalance = $tenantInvoices->sum('total_amount') - $totalPaid;
-        }
-        
-        $totalDraft = $invoices->where('status', 'draft')->sum('total_amount');
-        $totalUnpaid = $invoices->where('status', 'unpaid')->sum('total_amount');
-        $totalPartial = $invoices->where('status', 'partial')->sum('total_amount');
-        $totalPaidAll = $invoices->where('status', 'paid')->sum('total_amount');
-        
-        $tenanciesNeedingMoveInInvoices = $activeTenancies->filter(function($tenancy) use ($invoices) {
-            $hasMoveInInvoice = $invoices->where('tenancy_id', $tenancy->id)
-                ->where('invoice_type', 'move_in')
-                ->count() > 0;
-            return !$hasMoveInInvoice && $tenancy->move_in_date;
-        });
-        
-        $recentInvoices = $invoices->take(5);
-        $recentPayments = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))
-            ->with('invoice.tenancy.tenant.user')
-            ->orderBy('created_at', 'desc')
-            ->take(5)
-            ->get();
-        
-        $totalUnits = Unit::where('company_id', $company->id)->count();
-        $occupiedUnits = Unit::where('company_id', $company->id)->where('status', 'occupied')->count();
-        $availableUnits = Unit::where('company_id', $company->id)->where('status', 'available')->count();
-        
-        $monthlyRevenue = $this->getMonthlyRevenueForCompany($company->id);
-        $paymentMethods = $this->getPaymentMethodStatsForCompany($company->id);
-        $roleData = $this->getRoleSpecificData($user, $company);
-        
-        $currentUnit = null;
-        if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
-            $currentUnit = $user->tenant->activeTenancy->unit->load('estate');
-        }
-        
-        return view('dashboard', compact(
-            'user', 'company', 'stats', 'mappedInvoices', 'mappedActiveTenancies',
-            'activeTenancies', 'users', 'paymentInvoices', 'totalDraft', 'totalUnpaid',
-            'totalPartial', 'totalPaidAll', 'tenanciesNeedingMoveInInvoices',
-            'recentInvoices', 'recentPayments', 'totalUnits', 'occupiedUnits',
-            'availableUnits', 'monthlyRevenue', 'paymentMethods', 'roleData',
-            'outstandingBalance', 'totalPaid', 'units', 'currentUnit', 'estates'
-        ));
+    });
+    
+    $mappedActiveTenancies = $activeTenancies->map(function($tenancy) {
+        return [
+            'id' => $tenancy->id,
+            'tenant_name' => $tenancy->tenant->user->name ?? 'Unknown',
+            'unit_number' => $tenancy->unit->unit_number ?? 'No Unit',
+            'rent_amount' => $tenancy->unit->rent_amount ?? 0,
+            'move_in_date' => $tenancy->move_in_date,
+            'move_out_date' => $tenancy->move_out_date,
+        ];
+    });
+    
+    $estates = Estate::where('company_id', $company->id)->orderBy('name')->get();
+    $units = Unit::where('company_id', $company->id)->with('estate')->get();
+    
+    $stats = [
+        'total_units' => Unit::where('company_id', $company->id)->count(),
+        'occupied_units' => Unit::where('company_id', $company->id)->where('status', 'occupied')->count(),
+        'vacant_units' => Unit::where('company_id', $company->id)->where('status', 'vacant')->count(),
+        'total_tenants' => Tenant::whereHas('user', fn($q) => $q->where('company_id', $company->id))->count(),
+        'active_tenancies' => Tenancy::whereHas('unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'active')->count(),
+        'total_revenue' => Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))->sum('amount'),
+        'total_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->count(),
+        'paid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'paid')->count(),
+        'unpaid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'unpaid')->count(),
+        'occupancy_rate' => $this->calculateOccupancyRate($company->id),
+        'total_consumption' => Unit::where('company_id', $company->id)->sum(DB::raw('GREATEST(0, COALESCE(current_water_reading, 0) - COALESCE(previous_water_reading, 0))')),
+        'outstanding_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->whereIn('status', ['unpaid', 'partial'])->sum('total_amount'),
+        'collection_rate' => $this->calculateCollectionRate($company->id),
+        'units_needing_reading' => Unit::where('company_id', $company->id)->where('status', 'occupied')
+            ->where(fn($q) => $q->whereNull('last_reading_date')->orWhere('last_reading_date', '<=', Carbon::now()->subDays(30)))->count(),
+    ];
+    
+    $outstandingBalance = 0;
+    $totalPaid = 0;
+    $tenant = $user->tenant;
+    if ($tenant && $tenant->activeTenancy) {
+        $tenantInvoices = Invoice::where('tenancy_id', $tenant->activeTenancy->id)->get();
+        $totalPaid = Payment::whereHas('invoice', function($q) use ($tenant) {
+            $q->where('tenancy_id', $tenant->activeTenancy->id);
+        })->sum('amount');
+        $outstandingBalance = $tenantInvoices->sum('total_amount') - $totalPaid;
     }
+    
+    $totalDraft = $invoices->where('status', 'draft')->sum('total_amount');
+    $totalUnpaid = $invoices->where('status', 'unpaid')->sum('total_amount');
+    $totalPartial = $invoices->where('status', 'partial')->sum('total_amount');
+    $totalPaidAll = $invoices->where('status', 'paid')->sum('total_amount');
+    
+    $tenanciesNeedingMoveInInvoices = $activeTenancies->filter(function($tenancy) use ($invoices) {
+        $hasMoveInInvoice = $invoices->where('tenancy_id', $tenancy->id)
+            ->where('invoice_type', 'move_in')
+            ->count() > 0;
+        return !$hasMoveInInvoice && $tenancy->move_in_date;
+    });
+    
+    // ================================================================
+    // RECENT INVOICES - Limit to 5
+    // ================================================================
+    $recentInvoices = $invoices->take(5);
+    
+    // ================================================================
+    // RECENT PAYMENTS - Get recent payments with proper data
+    // ================================================================
+    $recentPayments = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))
+        ->with(['invoice.tenancy.tenant.user', 'invoice.tenancy.unit'])
+        ->orderBy('created_at', 'desc')
+        ->take(10)
+        ->get()
+        ->map(function ($payment) {
+            return [
+                'id' => $payment->id,
+                'invoice_id' => $payment->invoice_id ?? null,
+                'tenant_name' => $payment->invoice?->tenancy?->tenant?->user?->name ?? 'N/A',
+                'unit_number' => $payment->invoice?->tenancy?->unit?->unit_number ?? 'N/A',
+                'unit_id' => $payment->invoice?->tenancy?->unit?->id ?? null,
+                'payer_name' => $payment->invoice?->tenancy?->tenant?->user?->name ?? 'Tenant Payment',
+                'payment_method' => $payment->payment_method ?? 'cash',
+                'payment_method_label' => $payment->payment_method_label ?? ucfirst($payment->payment_method ?? 'Cash'),
+                'payment_datetime' => $payment->created_at,
+                'amount' => (float) $payment->amount,
+                'method' => $payment->payment_method ?? 'cash',
+                'date' => $payment->created_at ? $payment->created_at->format('M d, Y') : '-',
+                'transaction_reference' => $payment->transaction_reference ?? $payment->external_reference ?? null,
+                'external_reference' => $payment->external_reference ?? null,
+                'status' => $payment->status ?? 'completed',
+                'is_reconciled' => $payment->is_reconciled ?? false,
+            ];
+        });
+    
+    // ================================================================
+    // WATER READINGS - Get units with water readings
+    // ================================================================
+    $waterReadings = Unit::where('company_id', $company->id)
+        ->where('status', 'occupied')
+        ->with('estate')
+        ->orderBy('last_reading_date', 'desc')
+        ->take(10)
+        ->get()
+        ->map(function ($unit) {
+            $previousReading = (float) ($unit->previous_water_reading ?? 0);
+            $currentReading = (float) ($unit->current_water_reading ?? 0);
+            $consumption = max(0, $currentReading - $previousReading);
+            $billingType = $unit->water_billing_type ?? 'consumption';
+            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $charge = $billingType === 'flat' ? ((float) ($unit->water_charge ?? 0)) : ($consumption * $rate);
+            
+            return [
+                'id' => null,
+                'unit_id' => $unit->id,
+                'unit_number' => $unit->unit_number ?? 'N/A',
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'estate_id' => $unit->estate_id,
+                'previous_reading' => $previousReading,
+                'current_reading' => $currentReading,
+                'consumption' => $consumption,
+                'charge' => $charge,
+                'reading_date' => $unit->last_reading_date,
+                'last_reading_date' => $unit->last_reading_date,
+                'water_billing_type' => $billingType,
+                'water_charge' => (float) ($unit->water_charge ?? 0),
+                'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
+                'rate' => (float) $rate,
+                'needs_reading' => !$unit->last_reading_date || $unit->last_reading_date->diffInDays(now()) > 30,
+                'status' => $unit->status,
+                'unit_type' => $unit->unit_type,
+            ];
+        });
+    
+    // ================================================================
+    // UNITS WITH WATER READINGS - For the modal dropdown
+    // ================================================================
+    $unitsWithWaterReadings = Unit::where('company_id', $company->id)
+        ->with('estate')
+        ->where('status', 'occupied')
+        ->get()
+        ->map(function($unit) {
+            $lastReading = $unit->waterReadings()->orderBy('reading_date', 'desc')->first();
+            return [
+                'id' => $unit->id,
+                'unit_number' => $unit->unit_number,
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'last_reading' => $lastReading ? (float) $lastReading->current_reading : (float) ($unit->current_water_reading ?? 0),
+                'last_reading_date' => $lastReading ? $lastReading->reading_date->format('Y-m-d') : ($unit->last_reading_date ? $unit->last_reading_date->format('Y-m-d') : null),
+            ];
+        });
+    
+    $totalUnits = Unit::where('company_id', $company->id)->count();
+    $occupiedUnits = Unit::where('company_id', $company->id)->where('status', 'occupied')->count();
+    $availableUnits = Unit::where('company_id', $company->id)->where('status', 'available')->count();
+    
+    $monthlyRevenue = $this->getMonthlyRevenueForCompany($company->id);
+    $paymentMethods = $this->getPaymentMethodStatsForCompany($company->id);
+    $roleData = $this->getRoleSpecificData($user, $company);
+    
+    $currentUnit = null;
+    if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
+        $currentUnit = $user->tenant->activeTenancy->unit->load('estate');
+    }
+
+    
+    
+    // ================================================================
+    // RETURN VIEW WITH ALL DATA
+    // ================================================================
+    return view('dashboard', compact(
+        'user', 'company', 'stats', 'mappedInvoices', 'mappedActiveTenancies',
+        'activeTenancies', 'users', 'paymentInvoices', 'totalDraft', 'totalUnpaid',
+        'totalPartial', 'totalPaidAll', 'tenanciesNeedingMoveInInvoices',
+        'recentInvoices', 'recentPayments', 'waterReadings', 'unitsWithWaterReadings',
+        'totalUnits', 'occupiedUnits', 'availableUnits', 'monthlyRevenue', 
+        'paymentMethods', 'roleData', 'outstandingBalance', 'totalPaid', 
+        'units', 'currentUnit', 'estates'
+    ));
+}
 
     private function getRoleSpecificData($user, $company = null)
     {

@@ -33,7 +33,7 @@
         class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
       >
         <svg class="fill-current" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C6.65237 16.9318 6.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/>
         </svg>
       </button>
     </div>
@@ -131,9 +131,14 @@
         </select>
       </div>
 
-      <!-- Hidden inputs for pre-selected invoice values -->
-      <input type="hidden" x-model="form.tenant_id" x-if="preSelectedInvoice">
-      <input type="hidden" x-model="form.invoice_id" x-if="preSelectedInvoice">
+      <!-- Hidden inputs for pre-selected invoice values - WRAPPED IN TEMPLATE TAGS -->
+      <template x-if="preSelectedInvoice">
+        <input type="hidden" x-model="form.tenant_id">
+      </template>
+      
+      <template x-if="preSelectedInvoice">
+        <input type="hidden" x-model="form.invoice_id">
+      </template>
 
       <div class="mb-5" x-show="!preSelectedInvoice && tenantInvoices.length === 0 && form.tenant_id">
         <div class="rounded-lg bg-yellow-50 p-3 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400">
@@ -312,11 +317,12 @@ document.addEventListener('alpine:init', () => {
     },
     
     get isFormValid() {
-      if (!this.form.tenant_id && !this.preSelectedInvoice) return false;
-      if (!this.form.invoice_id && !this.preSelectedInvoice) return false;
+      // Check if we have tenant and invoice (either from pre-selected or form)
+      if (!this.preSelectedInvoice) {
+        if (!this.form.tenant_id) return false;
+        if (!this.form.invoice_id) return false;
+      }
       if (!this.form.amount || parseFloat(this.form.amount) <= 0) return false;
-      // Remove the check that prevents overpayment - allow any amount >= 0.01
-      // if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) return false;
       if (!this.form.payment_datetime) return false;
       if (!this.form.payment_method) return false;
       return true;
@@ -544,136 +550,136 @@ document.addEventListener('alpine:init', () => {
       return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     
-async submitForm() {
-  this.formErrors = [];
-  this.successMessage = '';
-  
-  const tenantId = this.preSelectedInvoice?.tenant_id || this.form.tenant_id;
-  const invoiceId = this.preSelectedInvoice?.id || this.form.invoice_id;
-  
-  if (!tenantId) {
-    this.formErrors.push('Please select a tenant');
-    return;
-  }
-  
-  if (!invoiceId) {
-    this.formErrors.push('Please select an invoice to pay');
-    return;
-  }
-  
-  if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
-    this.formErrors.push('Please enter a valid amount');
-    return;
-  }
-  
-  // Allow overpayment - show warning, don't block
-  if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
-    const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
-    if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
-      return;
-    }
-  }
-  
-  if (!this.form.payment_datetime) {
-    this.formErrors.push('Please select payment date');
-    return;
-  }
-  
-  if (!this.form.payment_method) {
-    this.formErrors.push('Please select payment method');
-    return;
-  }
-  
-  this.loading = true;
-  
-  try {
-    let url, method, body;
-    
-    if (this.isEditMode) {
-      url = `/payments/${this.currentPaymentId}`;
-      method = 'PUT';
-      body = JSON.stringify({
-        status: this.form.status,
-        is_reconciled: this.form.status === 'completed' ? 1 : 0,
-        notes: this.form.notes
-      });
-    } else {
-      url = '/payments';
-      method = 'POST';
-      body = JSON.stringify({
-        tenant_id: tenantId,
-        invoice_id: invoiceId,
-        amount: parseFloat(this.form.amount),
-        payment_method: this.form.payment_method,
-        external_reference: this.form.external_reference,
-        payment_datetime: this.form.payment_datetime,
-        notes: this.form.notes
-      });
-    }
-    
-    console.log('Sending payment request:', { url, method, body });
-    
-    const response = await fetch(url, {
-      method: method,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-        'Accept': 'application/json'
-      },
-      body: body
-    });
-    
-    const data = await response.json();
-    console.log('Payment response:', data);
-    
-    if (response.ok && data.success) {
-      if (this.isEditMode) {
-        this.successMessage = 'Payment updated successfully!';
-      } else {
-        // Build success message based on what happened
-        const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
-        const amountToWallet = data.data?.amount_added_to_wallet || 0;
-        
-        if (amountToWallet > 0 && amountPaid > 0) {
-          this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
-        } else if (amountPaid > 0) {
-          this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
-        } else {
-          this.successMessage = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
+    async submitForm() {
+      this.formErrors = [];
+      this.successMessage = '';
+      
+      const tenantId = this.preSelectedInvoice?.tenant_id || this.form.tenant_id;
+      const invoiceId = this.preSelectedInvoice?.id || this.form.invoice_id;
+      
+      if (!tenantId) {
+        this.formErrors.push('Please select a tenant');
+        return;
+      }
+      
+      if (!invoiceId) {
+        this.formErrors.push('Please select an invoice to pay');
+        return;
+      }
+      
+      if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
+        this.formErrors.push('Please enter a valid amount');
+        return;
+      }
+      
+      // Allow overpayment - show warning, don't block
+      if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
+        const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
+        if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
+          return;
         }
       }
       
-      // Dispatch wallet update event
-      if (data.data?.wallet_balance !== undefined) {
-        const updateEvent = new CustomEvent('wallet-updated', {
-          detail: { new_balance: data.data.wallet_balance }
-        });
-        window.dispatchEvent(updateEvent);
-        document.dispatchEvent(updateEvent);
+      if (!this.form.payment_datetime) {
+        this.formErrors.push('Please select payment date');
+        return;
       }
       
-      setTimeout(() => {
-        this.closeModal();
-        window.location.reload();
-      }, 2000);
-    } else {
-      this.formErrors = [data.message || data.error || 'Failed to process payment'];
+      if (!this.form.payment_method) {
+        this.formErrors.push('Please select payment method');
+        return;
+      }
+      
+      this.loading = true;
+      
+      try {
+        let url, method, body;
+        
+        if (this.isEditMode) {
+          url = `/payments/${this.currentPaymentId}`;
+          method = 'PUT';
+          body = JSON.stringify({
+            status: this.form.status,
+            is_reconciled: this.form.status === 'completed' ? 1 : 0,
+            notes: this.form.notes
+          });
+        } else {
+          url = '/payments';
+          method = 'POST';
+          body = JSON.stringify({
+            tenant_id: tenantId,
+            invoice_id: invoiceId,
+            amount: parseFloat(this.form.amount),
+            payment_method: this.form.payment_method,
+            external_reference: this.form.external_reference,
+            payment_datetime: this.form.payment_datetime,
+            notes: this.form.notes
+          });
+        }
+        
+        console.log('Sending payment request:', { url, method, body });
+        
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+          },
+          body: body
+        });
+        
+        const data = await response.json();
+        console.log('Payment response:', data);
+        
+        if (response.ok && data.success) {
+          if (this.isEditMode) {
+            this.successMessage = 'Payment updated successfully!';
+          } else {
+            // Build success message based on what happened
+            const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
+            const amountToWallet = data.data?.amount_added_to_wallet || 0;
+            
+            if (amountToWallet > 0 && amountPaid > 0) {
+              this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
+            } else if (amountPaid > 0) {
+              this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
+            } else {
+              this.successMessage = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
+            }
+          }
+          
+          // Dispatch wallet update event
+          if (data.data?.wallet_balance !== undefined) {
+            const updateEvent = new CustomEvent('wallet-updated', {
+              detail: { new_balance: data.data.wallet_balance }
+            });
+            window.dispatchEvent(updateEvent);
+            document.dispatchEvent(updateEvent);
+          }
+          
+          setTimeout(() => {
+            this.closeModal();
+            window.location.reload();
+          }, 2000);
+        } else {
+          this.formErrors = [data.message || data.error || 'Failed to process payment'];
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        this.formErrors = ['An error occurred. Please try again.'];
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    formatNumber(value) {
+      if (!value && value !== 0) return '0.00';
+      return parseFloat(value).toLocaleString('en-KE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
     }
-  } catch (error) {
-    console.error('Error:', error);
-    this.formErrors = ['An error occurred. Please try again.'];
-  } finally {
-    this.loading = false;
-  }
-},
-
-formatNumber(value) {
-  if (!value && value !== 0) return '0.00';
-  return parseFloat(value).toLocaleString('en-KE', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
   }));
 });
 </script>

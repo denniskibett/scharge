@@ -277,79 +277,82 @@
               <span x-show="isCheckingInvoices">Checking...</span>
             </button>
             
-            <!-- Check Results -->
-            <div x-show="checkResults" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
-              <div class="flex items-start">
-                <div class="flex-shrink-0">
-                  <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
-                </div>
-                <div class="ml-3">
-                  <h5 class="text-sm font-medium text-blue-800 dark:text-blue-300">Invoice Check Results</h5>
-                  <div class="mt-1 grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span class="text-blue-700 dark:text-blue-400">Already have invoices:</span>
-                      <span class="ml-2 font-medium" x-text="checkResults.existing_count"></span>
-                    </div>
-                    <div>
-                      <span class="text-green-700 dark:text-green-400">Will create for:</span>
-                      <span class="ml-2 font-medium" x-text="checkResults.remaining_count"></span>
+            <!-- Check Results - FIXED with null safety -->
+            <template x-if="checkResults">
+              <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-800">
+                <div class="flex items-start">
+                  <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                  </div>
+                  <div class="ml-3">
+                    <h5 class="text-sm font-medium text-blue-800 dark:text-blue-300">Invoice Check Results</h5>
+                    <div class="mt-1 grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span class="text-blue-700 dark:text-blue-400">Already have invoices:</span>
+                        <span class="ml-2 font-medium" x-text="checkResults?.existing_count || 0"></span>
+                      </div>
+                      <div>
+                        <span class="text-green-700 dark:text-green-400">Will create for:</span>
+                        <span class="ml-2 font-medium" x-text="checkResults?.remaining_count || 0"></span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
 
-<!-- Invoice Items Preview Section -->
-<div class="mb-6" x-show="createForm.invoice_type === 'monthly' && createForm.items.length > 0">
-  <div class="flex items-center justify-between mb-3">
-    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
-      Invoice Items Preview (<span x-text="createForm.items.length"></span> items)
-    </label>
-    <button type="button" @click="addManualItem" class="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
-      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-      </svg>
-      Add Manual Item
-    </button>
-  </div>
-  
-          <!-- Summary -->
-          <div class="mb-6 rounded-lg bg-gray-50 dark:bg-gray-800 p-4" x-show="summaryTotals.total > 0">
-            <h5 class="font-medium text-gray-800 dark:text-white/90 mb-2">Summary</h5>
-            <div class="space-y-1 text-sm">
-              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.rent && summaryTotals.rent > 0">
-                Rent Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.rent.toFixed(2)"></span></span>
-              </p>
-              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.water && summaryTotals.water > 0">
-                Water Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.water.toFixed(2)"></span></span>
-              </p>
-              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.service && summaryTotals.service > 0">
-                Service Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.service.toFixed(2)"></span></span>
-              </p>
-              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.garbage && summaryTotals.garbage > 0">
-                Garbage Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.garbage.toFixed(2)"></span></span>
-              </p>
-              <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.security && summaryTotals.security > 0">
-                Security Total: <span class="font-medium">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.security.toFixed(2)"></span></span>
-              </p>
-              <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                <p class="text-gray-800 dark:text-white/90 font-medium">
-                  Grand Total: <span class="text-brand-600">{{ SystemHelper::currencySymbol() }}<span x-text="summaryTotals.total.toFixed(2)"></span></span>
+          <!-- Invoice Items Preview Section -->
+          <div class="mb-6" x-show="createForm.invoice_type === 'monthly' && createForm.items.length > 0">
+            <div class="flex items-center justify-between mb-3">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">
+                Invoice Items Preview (<span x-text="createForm.items.length"></span> items)
+              </label>
+              <button type="button" @click="addManualItem" class="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add Manual Item
+              </button>
+            </div>
+            
+            <!-- Summary -->
+            <div class="mb-6 rounded-lg bg-gray-50 dark:bg-gray-800 p-4" x-show="summaryTotals.total > 0">
+              <h5 class="font-medium text-gray-800 dark:text-white/90 mb-2">Summary</h5>
+              <div class="space-y-1 text-sm">
+                <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.rent && summaryTotals.rent > 0">
+                  Rent Total: <span class="font-medium">{{ \App\Helpers\SystemHelper::currencySymbol() }}<span x-text="summaryTotals.rent.toFixed(2)"></span></span>
                 </p>
-                <p class="text-xs text-gray-500 mt-1">Across <span x-text="summaryTotals.tenancy_count"></span> tenancies | <span x-text="createForm.items.length"></span> items</p>
+                <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.water && summaryTotals.water > 0">
+                  Water Total: <span class="font-medium">{{ \App\Helpers\SystemHelper::currencySymbol() }}<span x-text="summaryTotals.water.toFixed(2)"></span></span>
+                </p>
+                <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.service && summaryTotals.service > 0">
+                  Service Total: <span class="font-medium">{{ \App\Helpers\SystemHelper::currencySymbol() }}<span x-text="summaryTotals.service.toFixed(2)"></span></span>
+                </p>
+                <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.garbage && summaryTotals.garbage > 0">
+                  Garbage Total: <span class="font-medium">{{ \App\Helpers\SystemHelper::currencySymbol() }}<span x-text="summaryTotals.garbage.toFixed(2)"></span></span>
+                </p>
+                <p class="text-gray-600 dark:text-gray-400" x-show="selectedUtilities.security && summaryTotals.security > 0">
+                  Security Total: <span class="font-medium">{{ \App\Helpers\SystemHelper::currencySymbol() }}<span x-text="summaryTotals.security.toFixed(2)"></span></span>
+                </p>
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+                  <p class="text-gray-800 dark:text-white/90 font-medium">
+                    Grand Total: <span class="text-brand-600">{{ \App\Helpers\SystemHelper::currencySymbol() }}<span x-text="summaryTotals.total.toFixed(2)"></span></span>
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">Across <span x-text="summaryTotals.tenancy_count"></span> tenancies | <span x-text="createForm.items.length"></span> items</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="flex items-center justify-end w-full gap-3 mt-6">
-            <button @click="closeModal" type="button" class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto">Cancel</button>
-            <button type="submit" :disabled="isLoading || !createFormValid || createForm.items.filter(i => i.amount > 0).length === 0" class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto">
-              <span x-show="!isLoading">Create Invoices</span>
-              <span x-show="isLoading">Creating...</span>
-            </button>
+            <div class="flex items-center justify-end w-full gap-3 mt-6">
+              <button @click="closeModal" type="button" class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto">Cancel</button>
+              <button type="submit" :disabled="isLoading || !createFormValid || createForm.items.filter(i => i.amount > 0).length === 0" class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto">
+                <span x-show="!isLoading">Create Invoices</span>
+                <span x-show="isLoading">Creating...</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
