@@ -487,7 +487,7 @@
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Outstanding Balance</p>
                 <h4 class="mt-2 text-2xl font-bold text-red-600 dark:text-red-500">
-                    KES {{ number_format($cardData['outstanding_balance'] ?? 0, 2) }}
+                    KES {{ number_format($outstandingBalance ?? 0, 2) }}
                 </h4>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
@@ -510,7 +510,7 @@
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Paid (YTD)</p>
                 <h4 class="mt-2 text-2xl font-bold text-green-600 dark:text-green-400">
-                    KES {{ number_format($cardData['total_paid'] ?? 0, 2) }}
+                   KES {{ number_format($totalPaid ?? 0, 2) }}
                 </h4>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
@@ -534,7 +534,7 @@
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Invoices</p>
                 <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
-                    {{ number_format($cardData['tenant_invoices_count'] ?? 0) }}
+                    {{ collect($roleData['invoices'] ?? [])->count() }}
                 </h4>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
@@ -560,7 +560,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <div class="flex items-center gap-2 mb-1">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Primary Water</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</p>
                     <span class="rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600">{{ \Carbon\Carbon::now()->format('M Y') }}</span>
                 </div>
                 <h4 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">

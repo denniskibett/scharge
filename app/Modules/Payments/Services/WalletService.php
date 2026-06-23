@@ -5,7 +5,7 @@ namespace App\Modules\Payments\Services;
 
 use App\Models\Company;
 use App\Modules\Users\Models\User;
-use App\Modules\Tenants\Models\Tenant;
+use App\Models\Tenant;
 use App\Modules\Payments\Models\Transaction;
 use App\Modules\Payments\Models\Payment;
 use App\Modules\Payments\Models\Invoice;

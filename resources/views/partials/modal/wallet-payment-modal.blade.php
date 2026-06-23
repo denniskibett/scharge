@@ -478,101 +478,137 @@ document.addEventListener('alpine:init', () => {
             this.validatePaymentAmount();
         },
         
-async submitPayment() {
-    this.formErrors = [];
-    this.successMessage = '';
-    
-    if (!this.selectedInvoice) {
-        this.addErrorLog('Payment attempted without selecting an invoice', 'error');
-        this.formErrors.push('Please select an invoice to pay');
-        return;
-    }
-    
-    if (!this.isPaymentValid) {
-        this.addErrorLog('Payment validation failed', 'error');
-        this.validatePaymentAmount();
-        return;
-    }
-    
-    this.loading = true;
-    this.addErrorLog(`Initiating payment of KES ${this.paymentAmount} for invoice #${this.selectedInvoice.invoice_number}`, 'info');
-    
-    try {
-        // FIXED: Remove '/admin' from URL
-        const response = await fetch(`/api/wallet/pay-invoice/${this.selectedInvoice.id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                amount: parseFloat(this.paymentAmount)
-            })
-        });
-        
-        this.addErrorLog(`Payment API Response Status: ${response.status}`, 'info');
-        
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-        }
-        
-        const result = await response.json();
-        this.addErrorLog(`Payment API Response: ${JSON.stringify(result, null, 2).substring(0, 500)}`, 'info');
-        
-        if (result.success) {
-            this.successMessage = result.message || `Successfully paid KES ${this.formatNumber(this.paymentAmount)}!`;
-            this.addErrorLog(`Payment successful! New balance: KES ${result.data.new_balance}`, 'info');
+        async submitPayment() {
+            this.formErrors = [];
+            this.successMessage = '';
             
-            // Update wallet balance
-            if (result.data.new_balance !== undefined) {
-                this.walletBalance = result.data.new_balance;
+            if (!this.selectedInvoice) {
+                this.addErrorLog('Payment attempted without selecting an invoice', 'error');
+                this.formErrors.push('Please select an invoice to pay');
+                return;
             }
             
-            // Refresh wallet component
-            const updateEvent = new CustomEvent('wallet-updated', {
-                detail: { new_balance: result.data.new_balance }
-            });
-            window.dispatchEvent(updateEvent);
-            document.dispatchEvent(updateEvent);
+            if (!this.isPaymentValid) {
+                this.addErrorLog('Payment validation failed', 'error');
+                this.validatePaymentAmount();
+                return;
+            }
             
-            // Refresh invoice list
-            await this.fetchPendingInvoices();
+            this.loading = true;
+            this.addErrorLog(`Initiating payment of KES ${this.paymentAmount} for invoice #${this.selectedInvoice.invoice_number}`, 'info');
             
-            // Clear selection if invoice is now paid
-            if (result.data.invoice && result.data.invoice.status === 'paid') {
-                this.addErrorLog(`Invoice #${this.selectedInvoice.invoice_number} is now fully paid`, 'info');
-                this.selectedInvoice = null;
-                this.selectedInvoiceId = null;
-                this.paymentAmount = '';
-            } else if (this.selectedInvoice) {
-                // Update the selected invoice with new data
-                const updatedInvoice = this.pendingInvoices.find(i => i.id === this.selectedInvoice.id);
-                if (updatedInvoice) {
-                    this.selectedInvoice = updatedInvoice;
-                    this.paymentAmount = updatedInvoice.remaining_amount;
-                    this.addErrorLog(`Invoice updated. Remaining: KES ${updatedInvoice.remaining_amount}`, 'info');
+            try {
+                const response = await fetch(`/api/wallet/pay-invoice/${this.selectedInvoice.id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        amount: parseFloat(this.paymentAmount)
+                    })
+                });
+                
+                this.addErrorLog(`Payment API Response Status: ${response.status}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText.substring(0, 200)}`);
                 }
+                
+                const result = await response.json();
+                this.addErrorLog(`Payment API Response: ${JSON.stringify(result, null, 2).substring(0, 500)}`, 'info');
+                
+                if (result.success) {
+                    const paidAmount = parseFloat(this.paymentAmount);
+                    const newBalance = result.data.new_balance;
+                    
+                    this.successMessage = result.message || `Successfully paid KES ${this.formatNumber(paidAmount)}!`;
+                    this.addErrorLog(`Payment successful! New balance: KES ${newBalance}`, 'info');
+                    
+                    // Update wallet balance in this modal
+                    if (newBalance !== undefined) {
+                        this.walletBalance = newBalance;
+                    }
+                    
+                    // CRITICAL: Force refresh the wallet component with the new balance
+                    // Dispatch multiple events to ensure all components update
+                    const updateEvent = new CustomEvent('wallet-updated', {
+                        detail: { 
+                            new_balance: newBalance,
+                            transaction_id: result.data.transaction_id,
+                            source: 'payment',
+                            amount_paid: paidAmount,
+                            previous_balance: this.walletBalance + paidAmount
+                        }
+                    });
+                    
+                    // Dispatch to both window and document
+                    window.dispatchEvent(updateEvent);
+                    document.dispatchEvent(updateEvent);
+                    
+                    // Also dispatch a specific event for the wallet component
+                    const balanceEvent = new CustomEvent('wallet-balance-updated', {
+                        detail: { 
+                            balance: newBalance,
+                            change: -paidAmount,
+                            formatted: 'KES ' + this.formatNumber(newBalance)
+                        }
+                    });
+                    window.dispatchEvent(balanceEvent);
+                    document.dispatchEvent(balanceEvent);
+                    
+                    // Store in localStorage for cross-tab updates
+                    try {
+                        localStorage.setItem('wallet_last_update', JSON.stringify({
+                            balance: newBalance,
+                            timestamp: Date.now(),
+                            change: -paidAmount
+                        }));
+                    } catch (e) {}
+                    
+                    // Refresh invoice list to update status
+                    await this.fetchPendingInvoices();
+                    
+                    // Check if invoice is now fully paid or still has remaining
+                    if (result.data.invoice) {
+                        if (result.data.invoice.status === 'paid') {
+                            this.addErrorLog(`Invoice #${this.selectedInvoice.invoice_number} is now fully paid`, 'info');
+                            this.selectedInvoice = null;
+                            this.selectedInvoiceId = null;
+                            this.paymentAmount = '';
+                        } else {
+                            // Update the selected invoice with new data
+                            const updatedInvoice = this.pendingInvoices.find(i => i.id === this.selectedInvoice.id);
+                            if (updatedInvoice) {
+                                this.selectedInvoice = updatedInvoice;
+                                this.paymentAmount = updatedInvoice.remaining_amount;
+                                this.addErrorLog(`Invoice updated. Remaining: KES ${updatedInvoice.remaining_amount}`, 'info');
+                            }
+                        }
+                    }
+                    
+                    // Show success toast
+                    this.showToast('success', `Payment of KES ${this.formatNumber(paidAmount)} completed! New balance: KES ${this.formatNumber(newBalance)}`);
+                    
+                    // Close modal after delay
+                    setTimeout(() => {
+                        this.closeModal();
+                    }, 2000);
+                    
+                } else {
+                    this.addErrorLog(`Payment failed: ${result.error || 'Unknown error'}`, 'error');
+                    this.formErrors = [result.error || 'Payment failed. Please try again.'];
+                }
+            } catch (error) {
+                console.error('Payment error:', error);
+                this.addErrorLog(`Payment exception: ${error.message}`, 'error');
+                this.formErrors = [`Error: ${error.message}`];
+            } finally {
+                this.loading = false;
             }
-            
-            this.showToast('success', `Payment of KES ${this.formatNumber(this.paymentAmount)} completed!`);
-            
-            setTimeout(() => {
-                this.closeModal();
-            }, 2000);
-        } else {
-            this.addErrorLog(`Payment failed: ${result.error || 'Unknown error'}`, 'error');
-            this.formErrors = [result.error || 'Payment failed. Please try again.'];
-        }
-    } catch (error) {
-        console.error('Payment error:', error);
-        this.addErrorLog(`Payment exception: ${error.message}`, 'error');
-        this.formErrors = [`Error: ${error.message}`];
-    } finally {
-        this.loading = false;
-    }
-},
+        },
         
         formatNumber(value) {
             if (!value && value !== 0) return '0.00';

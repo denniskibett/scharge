@@ -6,7 +6,7 @@ namespace App\Modules\Payments\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Payments\Services\WalletService;
 use App\Modules\Users\Models\User;
-use App\Modules\Tenants\Models\Tenant;
+use App\Models\Tenant;
 use App\Modules\Payments\Models\Invoice;
 use App\Modules\Payments\Models\Transaction;
 use App\Modules\Payments\Models\CompanyPaymentMethod;

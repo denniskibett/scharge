@@ -52,72 +52,6 @@
         </div>
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 mb-6">
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Outstanding Balance</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-red-600 dark:text-red-400">
-                            KES {{ number_format($outstandingBalance ?? 0, 2) }}
-                        </h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/15">
-                        <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Total Paid</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-green-600 dark:text-green-400">
-                            KES {{ number_format($totalPaid ?? 0, 2) }}
-                        </h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-50 dark:bg-green-500/15">
-                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Invoices</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            {{ collect($roleData['invoices'] ?? [])->count() }}
-                        </h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-cyan-600 dark:text-cyan-400">
-                            {{ number_format($roleData['waterInfo']['consumption'] ?? 0, 2) }} m³
-                        </h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-500/15">
-                        <svg class="w-6 h-6 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
         @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'tenant'])])
 
         <!-- Wallet Summary Card - Add this -->
@@ -145,6 +79,9 @@
                         </button>
                         <button @click="activeTab = 'access'" :class="activeTab === 'access' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                             Access Logs ({{ collect($roleData['accessLogs'] ?? [])->count() }})
+                        </button>
+                        <button @click="activeTab = 'transactions'" :class="activeTab === 'transactions' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                            Transactions
                         </button>
                     </div>
                 </div>
@@ -239,6 +176,15 @@
                         @include('partials.table.table-security', [
                             'logs' => $roleData['accessLogs'] ?? [],
                             'showActions' => false
+                        ])
+                    </div>
+
+                    <!-- Add this tab content -->
+                    <div x-show="activeTab === 'transactions'" class="p-4">
+                        @include('partials.table.table-transactions', [
+                            'transactions' => $walletData['transactions'] ?? [],
+                            'showActions' => auth()->user()->hasRole('admin|accountant'),
+                            'emptyMessage' => 'No transactions found'
                         ])
                     </div>
                 </div>
