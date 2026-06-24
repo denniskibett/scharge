@@ -1,4 +1,4 @@
-{{-- resources/views/dashboard/sys-admin.blade.php --}}
+{{-- resources/views/partials/dashboard/sys-admin.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'System Administration')
@@ -257,8 +257,6 @@
                             </svg>
                             Company Subs
                         </button>
-                        
-                        <!-- System Settings Tab REMOVED -->
                     </div>
                 </div>
                 
@@ -308,12 +306,30 @@
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">{{ $user['created_at_formatted'] }}</td>
                                         <td class="px-6 py-4">
-                                            <div class="flex gap-2">
-                                                <button onclick="verifyUser({{ $user['id'] }})" class="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 text-sm">
+                                            <div class="flex flex-wrap gap-2">
+                                                <!-- Verify Button -->
+                                                <button @click="verifyUser({{ $user['id'] }})" 
+                                                    class="inline-flex items-center px-3 py-1.5 bg-green-100 hover:bg-green-200 text-green-700 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-400 text-xs font-medium rounded-lg transition">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                    </svg>
                                                     Verify
                                                 </button>
-                                                <button onclick="assignCompany({{ $user['id'] }})" class="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 text-sm">
-                                                    Assign Company
+                                                <!-- Assign Company Button -->
+                                                <button @click="openAssignModal({{ $user['id'] }}, '{{ addslashes($user['name']) }}', '{{ addslashes($user['email']) }}', '{{ addslashes($user['role_name']) }}')" 
+                                                    class="inline-flex items-center px-3 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 dark:text-blue-400 text-xs font-medium rounded-lg transition">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                                    </svg>
+                                                    Assign
+                                                </button>
+                                                <!-- Suspend Button -->
+                                                <button @click="suspendUser({{ $user['id'] }}, '{{ addslashes($user['name']) }}')" 
+                                                    class="inline-flex items-center px-3 py-1.5 bg-orange-100 hover:bg-orange-200 text-orange-700 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 dark:text-orange-400 text-xs font-medium rounded-lg transition">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                                                    </svg>
+                                                    Suspend
                                                 </button>
                                             </div>
                                         </td>
@@ -456,6 +472,9 @@
     </div>
 </div>
 
+<!-- Include Modals -->
+@include('partials.modal.user-assign-modal')
+
 <style>
     [x-cloak] { display: none !important; }
 </style>
@@ -468,62 +487,69 @@ function sysAdminDashboard() {
         
         init() {
             console.log('SysAdmin Dashboard loaded');
+        },
+        
+        verifyUser(userId) {
+            if (confirm('Verify this user? They will be able to log in and access the system.')) {
+                fetch(`/admin/users/${userId}/verify`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('User verified successfully!');
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Failed to verify user');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while verifying the user');
+                });
+            }
+        },
+        
+        suspendUser(userId, userName) {
+            if (confirm(`Are you sure you want to suspend "${userName}"? They will not be able to log in.`)) {
+                fetch(`/admin/users/${userId}/suspend`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message || 'User suspended successfully!');
+                        location.reload();
+                    } else {
+                        alert(data.message || 'Failed to suspend user');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while suspending the user');
+                });
+            }
+        },
+        
+        openAssignModal(userId, userName, userEmail, userRole) {
+            if (window.userAssignModal) {
+                window.userAssignModal.openModal(userId, userName, userEmail, userRole);
+            } else {
+                console.error('User assign modal not found');
+                alert('Modal not loaded. Please refresh the page and try again.');
+            }
         }
     };
-}
-
-function verifyUser(userId) {
-    if (confirm('Verify this user? They will be able to log in and access the system.')) {
-        fetch(`/admin/users/${userId}/verify`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        }).then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  alert('User verified successfully!');
-                  location.reload();
-              } else {
-                  alert(data.message || 'Failed to verify user');
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              alert('An error occurred while verifying the user');
-          });
-    }
-}
-
-function assignCompany(userId) {
-    const companyId = prompt('Enter Company ID to assign this user to:');
-    if (companyId && !isNaN(companyId)) {
-        fetch(`/admin/users/${userId}/assign-company`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ company_id: parseInt(companyId) })
-        }).then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  alert('Company assigned successfully!');
-                  location.reload();
-              } else {
-                  alert(data.message || 'Failed to assign company');
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              alert('An error occurred while assigning the company');
-          });
-    } else if (companyId) {
-        alert('Please enter a valid Company ID (number)');
-    }
 }
 
 function cancelSubscription(subscriptionId) {
@@ -531,23 +557,24 @@ function cancelSubscription(subscriptionId) {
         fetch(`/admin/subscriptions/subscription/${subscriptionId}/cancel`, {
             method: 'POST',
             headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}',
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             }
-        }).then(response => response.json())
-          .then(data => {
-              if (data.success) {
-                  alert('Subscription cancelled successfully!');
-                  location.reload();
-              } else {
-                  alert(data.message || 'Failed to cancel subscription');
-              }
-          })
-          .catch(error => {
-              console.error('Error:', error);
-              alert('An error occurred while cancelling the subscription');
-          });
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Subscription cancelled successfully!');
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to cancel subscription');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while cancelling the subscription');
+        });
     }
 }
 </script>

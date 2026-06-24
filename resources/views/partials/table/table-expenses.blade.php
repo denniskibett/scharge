@@ -1,5 +1,5 @@
 {{-- resources/views/partials/table/table-expenses.blade.php --}}
-<div class="overflow-hidden">
+<div>
     <div class="flex justify-between items-center mb-4">
         <div>
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Expenses</h3>
@@ -35,7 +35,14 @@
         </div>
     </div>
     
-    <div class="overflow-x-auto">
+    <!-- Loading State -->
+    <div x-show="loading" class="flex justify-center items-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-3 text-gray-500">Loading expenses...</span>
+    </div>
+    
+    <!-- Table -->
+    <div x-show="!loading" class="overflow-x-auto">
         <table class="w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-200 dark:border-gray-700">
@@ -43,8 +50,8 @@
                         <div class="flex items-center gap-1">
                             <span>Date</span>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortColumn === 'expense_date' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortColumn === 'expense_date' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'expense_date' && sortDirection === 'asc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'expense_date' && sortDirection === 'desc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
@@ -52,8 +59,8 @@
                         <div class="flex items-center gap-1">
                             <span>Estate</span>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortColumn === 'estate_name' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortColumn === 'estate_name' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'estate_name' && sortDirection === 'asc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'estate_name' && sortDirection === 'desc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
@@ -63,8 +70,8 @@
                         <div class="flex items-center gap-1">
                             <span>Amount</span>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortColumn === 'amount' && sortDirection === 'asc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortColumn === 'amount' && sortDirection === 'desc' ? 'text-purple-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'amount' && sortDirection === 'asc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'amount' && sortDirection === 'desc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
@@ -82,7 +89,7 @@
                             <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" x-text="expense.category_name"></span>
                         </td>
                         <td class="py-2.5 px-3 font-semibold text-gray-800 dark:text-white" x-text="formatCurrency(expense.amount)"></td>
-                        <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400 max-w-xs truncate" x-text="expense.description"></td>
+                        <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400 max-w-xs truncate" x-text="expense.description || '-'"></td>
                         <td class="py-2.5 px-3">
                             <span class="inline-flex px-2.5 py-1 text-xs rounded-full font-medium" 
                                 :class="{
@@ -111,7 +118,7 @@
     </div>
     
     <!-- Pagination -->
-    <div x-show="filteredExpenses.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
+    <div x-show="!loading && filteredExpenses.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
         <div class="pb-3 sm:pb-0">
             <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">
                 Showing <span x-text="showingStart"></span> to <span x-text="showingEnd"></span> of <span x-text="filteredExpenses.length"></span>
@@ -125,7 +132,7 @@
             <span class="block text-sm font-medium text-gray-700 sm:hidden dark:text-gray-400" x-text="'Page ' + currentPage + ' of ' + totalPages"></span>
             <ul class="hidden items-center gap-0.5 sm:flex">
                 <template x-for="page in visiblePages" :key="page">
-                    <li><a href="#" @click.prevent="goToPage(page)" :class="page === currentPage ? 'bg-purple-500 text-white' : 'hover:bg-purple-500 text-gray-700 hover:text-white dark:text-gray-400 dark:hover:text-white'" class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium" x-text="page"></a></li>
+                    <li><a href="#" @click.prevent="goToPage(page)" :class="page === currentPage ? 'bg-blue-500 text-white' : 'hover:bg-blue-500 text-gray-700 hover:text-white dark:text-gray-400 dark:hover:text-white'" class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium" x-text="page"></a></li>
                 </template>
             </ul>
             <button @click="nextPage()" :disabled="currentPage === totalPages" 
@@ -137,7 +144,7 @@
 </div>
 
 <script>
-function expensesTable() {
+function companyExpensesTable() {
     return {
         expenses: [],
         filteredExpenses: [],
@@ -154,8 +161,10 @@ function expensesTable() {
         totalPages: 1,
         totalExpenses: 0,
         categories: [],
+        loading: false,
         
         async loadExpenses() {
+            this.loading = true;
             try {
                 const response = await fetch(`/admin/companies/${companyId}/expenses`, {
                     headers: { 
@@ -163,7 +172,13 @@ function expensesTable() {
                         'Accept': 'application/json'
                     }
                 });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
+                console.log('Expenses data received:', data);
                 this.expenses = data.expenses || [];
                 this.totalExpenses = data.total_expenses || 0;
                 
@@ -178,6 +193,8 @@ function expensesTable() {
             } catch (error) {
                 console.error('Error loading expenses:', error);
                 this.expenses = [];
+            } finally {
+                this.loading = false;
             }
         },
         

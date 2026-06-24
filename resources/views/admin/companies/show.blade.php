@@ -146,6 +146,14 @@
                     Info
                 </button>
                 
+                <!-- Subscription Invoices Tab (after Info) -->
+                <button @click="activeTab = 'subscription_invoices'; loadSubscriptionInvoices()" :class="activeTab === 'subscription_invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Sub Invoices
+                </button>
+                
                 <!-- Staff Tab -->
                 <button @click="activeTab = 'staff'; loadStaff()" :class="activeTab === 'staff' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +170,7 @@
                     Estates <span class="ml-1 text-xs" x-text="stats.totalEstates">0</span>
                 </button>
                 
-                <!-- Tenancies Tab -->
+                <!-- Tenancies Tab (Active only) -->
                 <button @click="activeTab = 'tenancies'; loadTenancies()" :class="activeTab === 'tenancies' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -178,17 +186,6 @@
                     Subscriptions
                 </button>
                 
-                <!-- Subscription Invoices Tab -->
-                <div x-show="activeTab === 'subscription_invoices'" x-cloak>
-                    <div x-data="subscriptionInvoicesTable()" x-init="loadSubscriptionInvoices()">
-                        @include('partials.table.table-subscriptions-invoices', [
-                            'invoices' => $subscriptionInvoices ?? collect(),
-                            'planId' => $planId ?? null,
-                            'totalAmount' => $totalInvoiceAmount ?? 0
-                        ])
-                    </div>
-                </div>
-                
                 <!-- Expenses Tab -->
                 <button @click="activeTab = 'expenses'; loadExpenses()" :class="activeTab === 'expenses' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +194,7 @@
                     Expenses
                 </button>
                 
-                <!-- Invoices Tab (keep for standard invoices) -->
+                <!-- Invoices Tab (standard tenant invoices) -->
                 <button @click="activeTab = 'invoices'; loadInvoices()" :class="activeTab === 'invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -263,6 +260,17 @@
                 </div>
             </div>
             
+            <!-- Subscription Invoices Tab -->
+            <div x-show="activeTab === 'subscription_invoices'" x-cloak>
+                <div x-data="subscriptionInvoicesTable()" x-init="loadSubscriptionInvoices()">
+                    @include('partials.table.table-subscriptions-invoices', [
+                        'invoices' => $subscriptionInvoices ?? collect(),
+                        'planId' => $planId ?? null,
+                        'totalAmount' => $totalInvoiceAmount ?? 0
+                    ])
+                </div>
+            </div>
+            
             <!-- Staff Tab -->
             <div x-show="activeTab === 'staff'" x-cloak>
                 <div x-data="staffTable()" x-init="loadStaff()">
@@ -288,13 +296,6 @@
             <div x-show="activeTab === 'subscriptions'" x-cloak>
                 <div x-data="subscriptionsTable()" x-init="loadSubscriptions()">
                     @include('partials.table.table-subscriptions')
-                </div>
-            </div>
-            
-            <!-- Subscription Invoices Tab -->
-            <div x-show="activeTab === 'subscription_invoices'" x-cloak>
-                <div x-data="subscriptionInvoicesTable()" x-init="loadSubscriptionInvoices()">
-                    @include('partials.table.table-subscriptions-invoices')
                 </div>
             </div>
             
@@ -491,7 +492,7 @@
 <script>
 const csrfToken = "{{ csrf_token() }}";
 const companyId = {{ $company->id }};
-const currencySymbol = "{{ SystemHelper::currencySymbol() }}";
+const currencySymbol = "KES";
 const initialStats = @json($stats);
 const initialEstatesData = @json($estatesData);
 const initialTenanciesData = @json($tenanciesData);
@@ -505,7 +506,7 @@ function staffTable() {
         currentPage: 1,
         entriesPerPage: 10,
         searchTerm: '',
-        sortColumn: 'full_name',
+        sortColumn: 'name',
         sortDirection: 'asc',
         showingStart: 1,
         showingEnd: 10,
@@ -515,14 +516,18 @@ function staffTable() {
         async loadStaff() {
             this.loading = true;
             try {
-                const response = await fetch(`/admin/companies/${companyId}/staff`, {
+                const response = await fetch(`/admin/companies/${companyId}/users`, {
                     headers: { 
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
                 });
                 const data = await response.json();
-                this.staff = data.staff || [];
+                this.staff = data.users || [];
+                // Update stats
+                if (window.companyShowPage) {
+                    window.companyShowPage.stats.totalStaff = this.staff.length;
+                }
                 this.filterStaff();
             } catch (error) {
                 console.error('Error loading staff:', error);
@@ -537,7 +542,7 @@ function staffTable() {
             if (this.searchTerm.trim()) {
                 const term = this.searchTerm.toLowerCase();
                 filtered = filtered.filter(s => 
-                    s.full_name?.toLowerCase().includes(term) ||
+                    s.name?.toLowerCase().includes(term) ||
                     s.email?.toLowerCase().includes(term)
                 );
             }
@@ -623,6 +628,45 @@ function staffTable() {
             if (!dateString) return '-';
             const date = new Date(dateString);
             return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        },
+        
+        getInitials(name) {
+            if (!name) return 'U';
+            return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+        },
+        
+        getRoleBadge(role) {
+            const classes = {
+                'admin': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+                'super_admin': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                'company_admin': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+                'property_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                'estate_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                'accountant': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
+                'meter_reader': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+                'cleaning_staff': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'maintenance': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+                'security': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                'tenant': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+            };
+            return classes[role] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400';
+        },
+        
+        formatRole(role) {
+            const map = {
+                'admin': 'Admin',
+                'super_admin': 'Super Admin',
+                'company_admin': 'Company Admin',
+                'property_manager': 'Property Manager',
+                'estate_manager': 'Estate Manager',
+                'accountant': 'Accountant',
+                'meter_reader': 'Meter Reader',
+                'cleaning_staff': 'Cleaning Staff',
+                'maintenance': 'Maintenance',
+                'security': 'Security',
+                'tenant': 'Tenant'
+            };
+            return map[role] || role;
         }
     };
 }
@@ -646,7 +690,7 @@ function estatesTable() {
         async loadEstates() {
             this.loading = true;
             try {
-                const response = await fetch(`/admin/companies/${companyId}/estates-data`, {
+                const response = await fetch(`/admin/companies/${companyId}/estates`, {
                     headers: { 
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
@@ -654,6 +698,10 @@ function estatesTable() {
                 });
                 const data = await response.json();
                 this.estates = data.estates || [];
+                // Update stats
+                if (window.companyShowPage) {
+                    window.companyShowPage.stats.totalEstates = this.estates.length;
+                }
                 this.filterEstates();
             } catch (error) {
                 console.error('Error loading estates:', error);
@@ -750,170 +798,10 @@ function estatesTable() {
             }
         },
         
-        formatCurrency(value) {
-            return currencySymbol + ' ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 0 });
-        },
-        
         formatDate(dateString) {
             if (!dateString) return '-';
             const date = new Date(dateString);
             return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        }
-    };
-}
-
-// Tenancies Table Component
-function tenanciesTable() {
-    return {
-        tenancies: [],
-        filteredTenancies: [],
-        paginatedTenancies: [],
-        currentPage: 1,
-        entriesPerPage: 10,
-        searchTerm: '',
-        sortColumn: 'tenant_name',
-        sortDirection: 'asc',
-        showingStart: 1,
-        showingEnd: 10,
-        totalPages: 1,
-        loading: false,
-        filters: {
-            estate_id: '',
-            unit_type: '',
-            date_range: ''
-        },
-        
-        async loadTenancies() {
-            this.loading = true;
-            try {
-                const response = await fetch(`/admin/companies/${companyId}/tenancies`, {
-                    headers: { 
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json'
-                    }
-                });
-                const data = await response.json();
-                this.tenancies = data.tenancies || [];
-                this.filterTenancies();
-            } catch (error) {
-                console.error('Error loading tenancies:', error);
-                this.tenancies = [];
-            } finally {
-                this.loading = false;
-            }
-        },
-        
-        filterTenancies() {
-            let filtered = [...this.tenancies];
-            
-            if (this.searchTerm.trim()) {
-                const term = this.searchTerm.toLowerCase();
-                filtered = filtered.filter(t => 
-                    t.tenant_name?.toLowerCase().includes(term) ||
-                    t.unit_number?.toLowerCase().includes(term) ||
-                    t.estate_name?.toLowerCase().includes(term)
-                );
-            }
-            
-            if (this.filters.estate_id) {
-                filtered = filtered.filter(t => t.estate_id == this.filters.estate_id);
-            }
-            
-            if (this.filters.unit_type) {
-                filtered = filtered.filter(t => t.unit_type === this.filters.unit_type);
-            }
-            
-            this.filteredTenancies = filtered;
-            this.sortTenancies();
-            this.updateTable();
-            this.currentPage = 1;
-        },
-        
-        sortBy(column) {
-            if (this.sortColumn === column) {
-                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                this.sortColumn = column;
-                this.sortDirection = 'asc';
-            }
-            this.sortTenancies();
-            this.updateTable();
-        },
-        
-        sortTenancies() {
-            this.filteredTenancies.sort((a, b) => {
-                let aVal = a[this.sortColumn] || '';
-                let bVal = b[this.sortColumn] || '';
-                if (typeof aVal === 'string') {
-                    aVal = aVal.toLowerCase();
-                    bVal = bVal.toLowerCase();
-                }
-                if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
-                if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
-                return 0;
-            });
-        },
-        
-        updateTable() {
-            this.totalPages = Math.ceil(this.filteredTenancies.length / this.entriesPerPage);
-            const startIndex = (this.currentPage - 1) * this.entriesPerPage;
-            const endIndex = startIndex + this.entriesPerPage;
-            this.paginatedTenancies = this.filteredTenancies.slice(startIndex, endIndex);
-            this.showingStart = this.filteredTenancies.length ? startIndex + 1 : 0;
-            this.showingEnd = Math.min(endIndex, this.filteredTenancies.length);
-        },
-        
-        get visiblePages() {
-            const pages = [];
-            const total = this.totalPages;
-            const current = this.currentPage;
-            if (total <= 1) return [1];
-            pages.push(1);
-            let start = Math.max(2, current - 1);
-            let end = Math.min(total - 1, current + 1);
-            if (start > 2) pages.push('...');
-            for (let i = start; i <= end; i++) {
-                if (i > 1 && i < total) pages.push(i);
-            }
-            if (end < total - 1) pages.push('...');
-            if (total > 1) pages.push(total);
-            return pages;
-        },
-        
-        prevPage() {
-            if (this.currentPage > 1) {
-                this.currentPage--;
-                this.updateTable();
-            }
-        },
-        
-        nextPage() {
-            if (this.currentPage < this.totalPages) {
-                this.currentPage++;
-                this.updateTable();
-            }
-        },
-        
-        goToPage(page) {
-            if (page !== '...') {
-                this.currentPage = parseInt(page);
-                this.updateTable();
-            }
-        },
-        
-        formatDate(dateString) {
-            if (!dateString) return '-';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        },
-        
-        formatCurrency(value) {
-            return currencySymbol + ' ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 0 });
-        },
-        
-        getTenantInitials(name) {
-            if (!name) return 'T';
-            return name.charAt(0).toUpperCase();
         }
     };
 }
@@ -946,6 +834,10 @@ function subscriptionInvoicesTable() {
                 });
                 const data = await response.json();
                 this.invoices = data.invoices || [];
+                // Update total amount
+                if (data.total_amount !== undefined) {
+                    // Update the total amount display
+                }
                 this.filterInvoices();
             } catch (error) {
                 console.error('Error loading subscription invoices:', error);
@@ -1056,7 +948,172 @@ function subscriptionInvoicesTable() {
         },
         
         formatCurrency(value) {
-            return currencySymbol + ' ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 0 });
+            return 'KES ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        }
+    };
+}
+
+// Expenses Table Component
+function expensesTable() {
+    return {
+        expenses: [],
+        filteredExpenses: [],
+        paginatedExpenses: [],
+        currentPage: 1,
+        entriesPerPage: 10,
+        searchTerm: '',
+        filterCategory: '',
+        filterStatus: '',
+        sortColumn: 'expense_date',
+        sortDirection: 'desc',
+        showingStart: 1,
+        showingEnd: 10,
+        totalPages: 1,
+        totalExpenses: 0,
+        categories: [],
+        loading: false,
+        
+        async loadExpenses() {
+            this.loading = true;
+            try {
+                const response = await fetch(`/admin/companies/${companyId}/expenses`, {
+                    headers: { 
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                this.expenses = data.expenses || [];
+                this.totalExpenses = data.total_expenses || 0;
+                
+                // Extract unique categories
+                const cats = new Set();
+                this.expenses.forEach(e => {
+                    if (e.category_name) cats.add(e.category_name);
+                });
+                this.categories = Array.from(cats).sort();
+                
+                this.filterExpenses();
+            } catch (error) {
+                console.error('Error loading expenses:', error);
+                this.expenses = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        filterExpenses() {
+            let filtered = [...this.expenses];
+            
+            if (this.searchTerm.trim()) {
+                const term = this.searchTerm.toLowerCase();
+                filtered = filtered.filter(e => 
+                    e.estate_name?.toLowerCase().includes(term) ||
+                    e.payee_name?.toLowerCase().includes(term) ||
+                    e.description?.toLowerCase().includes(term) ||
+                    e.category_name?.toLowerCase().includes(term)
+                );
+            }
+            
+            if (this.filterCategory) {
+                filtered = filtered.filter(e => e.category_name === this.filterCategory);
+            }
+            
+            if (this.filterStatus) {
+                filtered = filtered.filter(e => e.status === this.filterStatus);
+            }
+            
+            this.filteredExpenses = filtered;
+            this.sortExpenses();
+            this.updateTable();
+            this.currentPage = 1;
+        },
+        
+        sortBy(column) {
+            if (this.sortColumn === column) {
+                this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortColumn = column;
+                this.sortDirection = 'asc';
+            }
+            this.sortExpenses();
+            this.updateTable();
+        },
+        
+        sortExpenses() {
+            this.filteredExpenses.sort((a, b) => {
+                let aVal = a[this.sortColumn];
+                let bVal = b[this.sortColumn];
+                
+                if (typeof aVal === 'string') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                }
+                
+                if (aVal === null || aVal === undefined) return this.sortDirection === 'asc' ? 1 : -1;
+                if (bVal === null || bVal === undefined) return this.sortDirection === 'asc' ? -1 : 1;
+                
+                if (aVal < bVal) return this.sortDirection === 'asc' ? -1 : 1;
+                if (aVal > bVal) return this.sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+        },
+        
+        updateTable() {
+            this.totalPages = Math.ceil(this.filteredExpenses.length / this.entriesPerPage);
+            const startIndex = (this.currentPage - 1) * this.entriesPerPage;
+            const endIndex = startIndex + this.entriesPerPage;
+            this.paginatedExpenses = this.filteredExpenses.slice(startIndex, endIndex);
+            this.showingStart = this.filteredExpenses.length ? startIndex + 1 : 0;
+            this.showingEnd = Math.min(endIndex, this.filteredExpenses.length);
+        },
+        
+        get visiblePages() {
+            const pages = [];
+            const total = this.totalPages;
+            const current = this.currentPage;
+            if (total <= 1) return [1];
+            pages.push(1);
+            let start = Math.max(2, current - 1);
+            let end = Math.min(total - 1, current + 1);
+            if (start > 2) pages.push('...');
+            for (let i = start; i <= end; i++) {
+                if (i > 1 && i < total) pages.push(i);
+            }
+            if (end < total - 1) pages.push('...');
+            if (total > 1) pages.push(total);
+            return pages;
+        },
+        
+        prevPage() {
+            if (this.currentPage > 1) {
+                this.currentPage--;
+                this.updateTable();
+            }
+        },
+        
+        nextPage() {
+            if (this.currentPage < this.totalPages) {
+                this.currentPage++;
+                this.updateTable();
+            }
+        },
+        
+        goToPage(page) {
+            if (page !== '...') {
+                this.currentPage = parseInt(page);
+                this.updateTable();
+            }
+        },
+        
+        formatCurrency(value) {
+            return 'KES ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2 });
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         }
     };
 }
@@ -1071,13 +1128,13 @@ document.addEventListener('alpine:init', () => {
         companyStatus: {{ $company->is_active ? 'true' : 'false' }},
         
         stats: {
-            totalStaff: initialStats.totalStaff || 0,
-            totalEstates: initialStats.totalEstates || 0,
-            totalUnits: initialStats.totalUnits || 0,
-            totalTenants: initialStats.totalTenants || 0,
-            totalInvoices: initialStats.totalInvoices || 0,
-            totalExpenses: initialStats.totalExpenses || 0,
-            totalRevenue: initialStats.totalRevenue || 0
+            totalStaff: {{ $stats['totalStaff'] ?? 0 }},
+            totalEstates: {{ $stats['totalEstates'] ?? 0 }},
+            totalUnits: {{ $stats['totalUnits'] ?? 0 }},
+            totalTenants: {{ $stats['totalTenants'] ?? 0 }},
+            totalInvoices: {{ $stats['totalInvoices'] ?? 0 }},
+            totalExpenses: {{ $stats['totalExpenses'] ?? 0 }},
+            totalRevenue: {{ $stats['totalRevenue'] ?? 0 }}
         },
         
         editForm: {
@@ -1141,11 +1198,12 @@ document.addEventListener('alpine:init', () => {
         },
         
         init() {
-            // Load initial data for tabs
+            // Make this component available globally
+            window.companyShowPage = this;
         },
         
         formatCurrency(value) {
-            return currencySymbol + ' ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2 });
+            return 'KES ' + parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2 });
         },
         
         formatDate(dateString) {
@@ -1257,7 +1315,9 @@ document.addEventListener('alpine:init', () => {
                 
                 if (result.success) {
                     this.showAddStaffModal = false;
-                    location.reload();
+                    // Reload staff table
+                    this.loadStaff();
+                    alert('Staff member added successfully!');
                 } else {
                     alert(result.message || 'Error adding staff member');
                 }

@@ -91,12 +91,35 @@ class CompanyController extends Controller
     }
     
     /**
-     * Display the company show page (HTML view)
+     * Display the company show page (HTML view) or return JSON data
      */
     public function show($id)
     {
         $company = Company::with(['users.role', 'estates'])->findOrFail($id);
         
+        // If this is an AJAX request expecting JSON, return the company data
+        if (request()->wantsJson() || request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'id' => $company->id,
+                'name' => $company->name,
+                'registration_number' => $company->registration_number,
+                'tax_id' => $company->tax_id,
+                'email' => $company->email,
+                'phone' => $company->phone,
+                'address' => $company->address,
+                'location' => $company->location,
+                'is_active' => (bool) $company->is_active,
+                'subscription_status' => $company->subscription_status ?? 'pending',
+                'max_units' => $company->max_units,
+                'max_tenants' => $company->max_tenants,
+                'max_users' => $company->max_users,
+                'created_at' => $company->created_at ? $company->created_at->toISOString() : null,
+                'updated_at' => $company->updated_at ? $company->updated_at->toISOString() : null,
+            ]);
+        }
+        
+        // For HTML requests, return the view
         // Get current subscription
         $subscription = CompanySubscription::where('company_id', $company->id)
             ->where('status', 'active')
@@ -446,41 +469,38 @@ class CompanyController extends Controller
         ]);
     }
     
-    /**
-     * Get company expenses
-     */
-    public function getCompanyExpenses($id)
-    {
-        $company = Company::findOrFail($id);
-        
-        $expenses = Expense::whereHas('estate', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })
-        ->with(['estate', 'payee', 'category'])
-        ->orderBy('expense_date', 'desc')
-        ->get()
-        ->map(function($expense) {
-            return [
-                'id' => $expense->id,
-                'estate_name' => $expense->estate->name ?? 'N/A',
-                'payee_name' => $expense->payee->name ?? 'N/A',
-                'category_name' => $expense->category->name ?? 'Uncategorized',
-                'amount' => (float) $expense->amount,
-                'description' => $expense->description ?? '-',
-                'expense_date' => $expense->expense_date ? $expense->expense_date->toISOString() : null,
-                'status' => $expense->status ?? 'pending',
-                'created_at' => $expense->created_at ? $expense->created_at->toISOString() : null,
-            ];
-        });
-        
-        $totalExpenses = $expenses->sum('amount');
-        
-        return response()->json([
-            'success' => true,
-            'expenses' => $expenses,
-            'total_expenses' => (float) $totalExpenses,
-        ]);
-    }
+public function getCompanyExpenses($id)
+{
+    $company = Company::findOrFail($id);
+    
+    $expenses = Expense::whereHas('estate', function($q) use ($company) {
+        $q->where('company_id', $company->id);
+    })
+    ->with(['estate', 'payee', 'category'])
+    ->orderBy('expense_date', 'desc')
+    ->get()
+    ->map(function($expense) {
+        return [
+            'id' => $expense->id,
+            'estate_name' => $expense->estate->name ?? 'N/A',
+            'payee_name' => $expense->payee->name ?? 'N/A',
+            'category_name' => $expense->category->name ?? 'Uncategorized',
+            'amount' => (float) $expense->amount,
+            'description' => $expense->description ?? '-',
+            'expense_date' => $expense->expense_date ? $expense->expense_date->toISOString() : null,
+            'status' => $expense->status ?? 'pending',
+            'created_at' => $expense->created_at ? $expense->created_at->toISOString() : null,
+        ];
+    });
+    
+    $totalExpenses = $expenses->sum('amount');
+    
+    return response()->json([
+        'success' => true,
+        'expenses' => $expenses,
+        'total_expenses' => (float) $totalExpenses,
+    ]);
+}
     
     /**
      * Get company subscriptions (active only)

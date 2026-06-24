@@ -22,6 +22,7 @@ use App\Http\Controllers\WaterReadingController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
+use App\Http\Controllers\Admin\UserController;
 
 // ============================================
 // PUBLIC ROUTES
@@ -107,6 +108,37 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/backup', [SystemController::class, 'backupDatabase'])->name('backup');
         Route::post('/toggle-maintenance', [SystemController::class, 'toggleMaintenance'])->name('toggle-maintenance');
         Route::post('/debug', [SystemController::class, 'debug'])->name('debug');
+    });
+
+
+
+    // ============================================
+    // ADMIN USER MANAGEMENT ROUTES
+    // ============================================
+    Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        // All RESTful resource routes
+        Route::resource('users', App\Http\Controllers\Admin\UserController::class)
+            ->parameters(['users' => 'user']);
+        
+        // Custom actions
+        Route::post('/{user}/verify', [App\Http\Controllers\Admin\UserController::class, 'verify'])->name('verify');
+        Route::post('/{user}/assign-company', [App\Http\Controllers\Admin\UserController::class, 'assignCompany'])->name('assign-company');
+        Route::post('/{user}/suspend', [App\Http\Controllers\Admin\UserController::class, 'suspend'])->name('suspend');
+        Route::post('/{user}/activate', [App\Http\Controllers\Admin\UserController::class, 'activate'])->name('activate');
+    });
+
+    // ============================================
+    // ADMIN ROLES ROUTES
+    // ============================================
+    Route::prefix('admin/roles')->name('admin.roles.')->group(function () {
+        Route::get('/list', [App\Http\Controllers\Admin\UserController::class, 'getRoles'])->name('list');
+    });
+
+    // ============================================
+    // API USERS ROUTES
+    // ============================================
+    Route::prefix('api/users')->name('api.users.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'getUsers'])->name('index');
     });
 
     // ============================================
@@ -437,14 +469,14 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
         Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
         
-        // IMPORTANT: These specific routes MUST come BEFORE the {company} parameter route
-        Route::get('/{company}/estates-with-tenants', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstatesWithTenants'])->name('estates-with-tenants');
-        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyEstates'])->name('estates');
+        // Specific routes must come BEFORE the {company} parameter route
+        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getEstates'])->name('estates');
+        Route::get('/{company}/tenancies', [App\Http\Controllers\Admin\CompanyController::class, 'getTenancies'])->name('tenancies');
+        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
         Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');
         Route::get('/{company}/subscriptions', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
+        Route::get('/{company}/subscription-invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanySubscriptionInvoices'])->name('subscription-invoices');
         Route::get('/{company}/invoices', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyInvoices'])->name('invoices');
-        Route::get('/{company}/payments', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyPayments'])->name('payments');
-        Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
         Route::get('/{company}/expenses', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyExpenses'])->name('expenses');
         
         // User management
@@ -456,8 +488,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
-
-
     });
 
     // ============================================
