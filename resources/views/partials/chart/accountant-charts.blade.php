@@ -155,21 +155,22 @@
         <!-- Revenue vs Expenses - 1/2 width -->
         <div class="lg:col-span-1 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="px-6 py-5">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between flex-wrap gap-3">
                     <div>
                         <h3 class="text-base font-medium text-gray-800 dark:text-white/90">Revenue vs Expenses</h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Monthly comparison</p>
                     </div>
-                    <div x-data="{openDropDown: false}" class="relative h-fit">
-                        <button @click="openDropDown = !openDropDown" :class="openDropDown ? 'text-gray-700 dark:text-white' : 'text-gray-400 hover:text-gray-700 dark:hover:text-white'" class="transition-colors">
-                            <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd" clip-rule="evenodd" d="M10.2441 6C10.2441 5.0335 11.0276 4.25 11.9941 4.25H12.0041C12.9706 4.25 13.7541 5.0335 13.7541 6C13.7541 6.9665 12.9706 7.75 12.0041 7.75H11.9941C11.0276 7.75 10.2441 6.9665 10.2441 6ZM10.2441 18C10.2441 17.0335 11.0276 16.25 11.9941 16.25H12.0041C12.9706 16.25 13.7541 17.0335 13.7541 18C13.7541 18.9665 12.9706 19.75 12.0041 19.75H11.9941C11.0276 19.75 10.2441 18.9665 10.2441 18ZM11.9941 10.25C11.0276 10.25 10.2441 11.0335 10.2441 12C10.2441 12.9665 11.0276 13.75 11.9941 13.75H12.0041C12.9706 13.75 13.7541 12.9665 13.7541 12C13.7541 11.0335 12.9706 10.25 12.0041 10.25H11.9941Z"/>
-                            </svg>
-                        </button>
-                        <div x-show="openDropDown" @click.outside="openDropDown = false" x-cloak class="absolute right-0 z-40 w-40 p-2 space-y-1 bg-white border border-gray-200 top-full rounded-2xl shadow-theme-lg dark:border-gray-800 dark:bg-gray-dark">
-                            <button onclick="window.exportChart('revenueExpenseLineChart', 'png')" class="flex w-full px-3 py-2 font-medium text-left text-gray-500 rounded-lg text-theme-xs hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Save as PNG</button>
-                            <button onclick="window.exportChart('revenueExpenseLineChart', 'svg')" class="flex w-full px-3 py-2 font-medium text-left text-gray-500 rounded-lg text-theme-xs hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Save as SVG</button>
-                            <button onclick="window.exportChart('revenueExpenseLineChart', 'csv')" class="flex w-full px-3 py-2 font-medium text-left text-gray-500 rounded-lg text-theme-xs hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Export CSV</button>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <!-- Period Filter for Revenue vs Expenses -->
+                        <select data-chart="revenueExpenseLineChart" class="chart-period-filter rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-white/90 dark:hover:bg-gray-800">
+                            <option value="daily">Daily</option>
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly" selected>Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                        <div x-data="{openDropDown: false}" class="relative h-fit">
+                            <!-- ... existing dropdown ... -->
                         </div>
                     </div>
                 </div>
@@ -177,11 +178,11 @@
             <div class="border-t border-gray-100 dark:border-gray-800">
                 <div class="p-6">
                     <div id="revenueExpenseLineChart" 
-                         data-dates='@json(array_keys($monthlyRevenueExpense ?? []))'
-                         data-revenue='@json(array_column($monthlyRevenueExpense ?? [], "revenue"))'
-                         data-expenses='@json(array_column($monthlyRevenueExpense ?? [], "expense"))'
-                         class="chartDarkStyle w-full" 
-                         style="height: 300px; width: 100%;">
+                        data-dates='@json(array_keys($monthlyRevenueExpense ?? []))'
+                        data-revenue='@json(array_column($monthlyRevenueExpense ?? [], "revenue"))'
+                        data-expenses='@json(array_column($monthlyRevenueExpense ?? [], "expense"))'
+                        class="chartDarkStyle w-full" 
+                        style="height: 300px; width: 100%;">
                     </div>
                 </div>
             </div>

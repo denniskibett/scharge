@@ -329,7 +329,18 @@ function accountantDashboard() {
             if (!Array.isArray(counts)) counts = [];
             counts = counts.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
             
-            console.log('Revenue data:', { dates, counts });
+            console.log('Revenue raw data:', { dates, counts });
+            
+            // Filter out zero values
+            const filteredData = dates.map((date, index) => ({
+                date: date,
+                count: counts[index] || 0
+            })).filter(item => item.count > 0);
+            
+            dates = filteredData.map(item => item.date);
+            counts = filteredData.map(item => item.count);
+            
+            console.log('Revenue filtered data:', { dates, counts });
             
             const hasValidData = dates.length > 0 && counts.length > 0 && counts.some(v => v > 0);
             if (!hasValidData) {
@@ -464,6 +475,41 @@ function accountantDashboard() {
             instances.revenue = new ApexCharts(chartElement, options);
             instances.revenue.render();
             console.log('Revenue chart rendered!');
+            
+            // Store update method
+            instances.revenue.updateChartData = function(newDates, newCounts) {
+                console.log('Updating Revenue chart:', { newDates, newCounts });
+                
+                let parsedCounts = Array.isArray(newCounts) ? newCounts.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0) : [];
+                
+                // Filter out zero values
+                const filtered = newDates.map((date, index) => ({
+                    date: date,
+                    count: parsedCounts[index] || 0
+                })).filter(item => item.count > 0);
+                
+                const filteredDates = filtered.map(item => item.date);
+                const filteredCounts = filtered.map(item => item.count);
+                
+                if (filteredDates.length === 0) {
+                    console.warn('No data after filtering');
+                    return;
+                }
+                
+                if (filteredDates.length === 1) {
+                    filteredDates.push(filteredDates[0]);
+                    filteredCounts.push(filteredCounts[0]);
+                }
+                
+                const newMaxCount = Math.max(...filteredCounts, 1);
+                const newYAxisMax = calculateYAxisMax(newMaxCount);
+                
+                this.updateOptions({
+                    xaxis: { categories: filteredDates },
+                    yaxis: { max: newYAxisMax }
+                });
+                this.updateSeries([{ name: "Revenue", data: filteredCounts }]);
+            };
         },
         
         initPaymentDoughnutChart(instances, primaryColor, secondaryColor, warningColor, errorColor, safeParseData) {
@@ -572,12 +618,35 @@ function accountantDashboard() {
             revenueData = revenueData.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
             expenseData = expenseData.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
             
-            console.log('Revenue vs Expense data:', { dates, revenueData, expenseData });
+            console.log('Revenue vs Expense raw data:', { dates, revenueData, expenseData });
             
-            if (!dates.length || !revenueData.length) {
+            // Check if we have valid data
+            const hasValidData = dates.length > 0 && revenueData.length > 0 && 
+                                (revenueData.some(v => v > 0) || expenseData.some(v => v > 0));
+            
+            if (!hasValidData) {
                 element.innerHTML = '<div class="text-center text-gray-500 py-10">No revenue/expense data available</div>';
                 return;
             }
+            
+            // Filter out months where both revenue and expense are zero
+            const filteredData = dates.map((date, index) => ({
+                date: date,
+                revenue: revenueData[index] || 0,
+                expense: expenseData[index] || 0
+            })).filter(item => item.revenue > 0 || item.expense > 0);
+            
+            dates = filteredData.map(item => item.date);
+            revenueData = filteredData.map(item => item.revenue);
+            expenseData = filteredData.map(item => item.expense);
+            
+            // If no data after filtering, show message
+            if (dates.length === 0) {
+                element.innerHTML = '<div class="text-center text-gray-500 py-10">No revenue/expense data available</div>';
+                return;
+            }
+            
+            console.log('Revenue vs Expense filtered data:', { dates, revenueData, expenseData });
             
             element.style.width = '100%';
             element.style.height = '300px';
@@ -708,6 +777,35 @@ function accountantDashboard() {
             instances.revenueExpense = new ApexCharts(element, options);
             instances.revenueExpense.render();
             console.log('Revenue vs Expense chart rendered!');
+            
+            // Store update method for dynamic filtering
+            instances.revenueExpense.updateChartData = function(newDates, newRevenue, newExpenses) {
+                console.log('Updating Revenue vs Expense chart:', { newDates, newRevenue, newExpenses });
+                
+                // Parse and filter data
+                let parsedRevenue = Array.isArray(newRevenue) ? newRevenue.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0) : [];
+                let parsedExpenses = Array.isArray(newExpenses) ? newExpenses.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0) : [];
+                
+                // Filter out zero values
+                const filtered = newDates.map((date, index) => ({
+                    date: date,
+                    revenue: parsedRevenue[index] || 0,
+                    expense: parsedExpenses[index] || 0
+                })).filter(item => item.revenue > 0 || item.expense > 0);
+                
+                const filteredDates = filtered.map(item => item.date);
+                const filteredRevenue = filtered.map(item => item.revenue);
+                const filteredExpense = filtered.map(item => item.expense);
+                
+                // Update chart
+                this.updateOptions({
+                    xaxis: { categories: filteredDates }
+                });
+                this.updateSeries([
+                    { name: 'Revenue', data: filteredRevenue },
+                    { name: 'Expenses', data: filteredExpense }
+                ]);
+            };
         },
         
         initInvoiceStatusPieChart(instances, successColor, errorColor, warningColor, safeParseData) {
@@ -961,7 +1059,18 @@ function accountantDashboard() {
             if (!Array.isArray(values)) values = [];
             values = values.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
             
-            console.log('Aging report data:', { labels, values });
+            console.log('Aging report raw data:', { labels, values });
+            
+            // Filter out zero values
+            const filteredData = labels.map((label, index) => ({
+                label: label,
+                value: values[index] || 0
+            })).filter(item => item.value > 0);
+            
+            labels = filteredData.map(item => item.label);
+            values = filteredData.map(item => item.value);
+            
+            console.log('Aging report filtered data:', { labels, values });
             
             if (!labels.length || !values.length || !values.some(v => v > 0)) {
                 element.innerHTML = '<div class="text-center text-gray-500 py-10">No aging data available</div>';
@@ -1084,6 +1193,36 @@ function accountantDashboard() {
             instances.aging = new ApexCharts(element, options);
             instances.aging.render();
             console.log('Aging report chart rendered!');
+            
+            // Store update method
+            instances.aging.updateChartData = function(newLabels, newValues) {
+                console.log('Updating Aging chart:', { newLabels, newValues });
+                
+                let parsedValues = Array.isArray(newValues) ? newValues.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0) : [];
+                
+                // Filter out zero values
+                const filtered = newLabels.map((label, index) => ({
+                    label: label,
+                    value: parsedValues[index] || 0
+                })).filter(item => item.value > 0);
+                
+                const filteredLabels = filtered.map(item => item.label);
+                const filteredValues = filtered.map(item => item.value);
+                
+                if (filteredLabels.length === 0) {
+                    console.warn('No data after filtering');
+                    return;
+                }
+                
+                const newMaxValue = Math.max(...filteredValues, 1);
+                const newYAxisMax = calculateYAxisMax(newMaxValue);
+                
+                this.updateOptions({
+                    xaxis: { categories: filteredLabels },
+                    yaxis: { max: newYAxisMax }
+                });
+                this.updateSeries([{ name: 'Outstanding Amount', data: filteredValues }]);
+            };
         },
         
         async loadPendingTransactions() {
