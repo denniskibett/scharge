@@ -393,6 +393,11 @@ class EstateController extends Controller
      */
     private function authorizeCompanyAccess(Estate $estate)
     {
+        // Allow sysadmin to access any estate
+        if (Auth::user()->hasRole('sysadmin')) {
+            return;
+        }
+        
         if ($estate->company_id !== Auth::user()->company_id) {
             abort(403, 'You do not have permission to access this estate.');
         }

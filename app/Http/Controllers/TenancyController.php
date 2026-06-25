@@ -90,12 +90,15 @@ class TenancyController extends Controller
         });
         
         // Also include all users for the "Create New Tenant" option
-        // Get all users with guest role
-        $allUsers = User::whereHas('role', function ($query) {
-    $query->where('name', 'guest');
-})
-            ->select('id', 'name', 'email', 'phone')
-            ->get();
+        // Get all users with guest role - FIXED: Use role_id instead of whereHas
+        $guestRole = Role::where('name', 'guest')->first();
+        $allUsers = collect();
+        
+        if ($guestRole) {
+            $allUsers = User::where('role_id', $guestRole->id)
+                ->select('id', 'name', 'email', 'phone')
+                ->get();
+        }
         
         // Format all users for reference
         $allUsersFormatted = $allUsers->map(function ($user) {
@@ -359,19 +362,17 @@ class TenancyController extends Controller
                     }
                 }
                 
+                // Get the guest role
+                $guestRole = Role::where('name', 'guest')->first();
+                
                 // Create the user
                 $user = User::create([
                     'name' => $validated['new_tenant_name'],
                     'email' => $email,
                     'phone' => $validated['new_tenant_phone'],
                     'password' => Hash::make('00000000'), // Default password
+                    'role_id' => $guestRole ? $guestRole->id : null, // Assign guest role directly
                 ]);
-                
-                // Assign guest role
-                $guestRole = Role::where('name', 'guest')->first();
-                if ($guestRole) {
-                    $user->roles()->attach($guestRole->id);
-                }
                 
                 // Create the tenant record
                 $tenant = Tenant::create([
@@ -424,10 +425,10 @@ class TenancyController extends Controller
                     'garbage_charge' => $tenancy->unit->garbage_charge ?? 0,
                     'security_charge' => $tenancy->unit->security_charge ?? 0,
                     'total_monthly_payment' => ($tenancy->unit->rent_amount ?? 0) + 
-                                               ($tenancy->unit->water_charge ?? 0) + 
-                                               ($tenancy->unit->service_charge ?? 0) + 
-                                               ($tenancy->unit->garbage_charge ?? 0) + 
-                                               ($tenancy->unit->security_charge ?? 0),
+                                            ($tenancy->unit->water_charge ?? 0) + 
+                                            ($tenancy->unit->service_charge ?? 0) + 
+                                            ($tenancy->unit->garbage_charge ?? 0) + 
+                                            ($tenancy->unit->security_charge ?? 0),
                     'move_in_date' => $tenancy->move_in_date,
                     'status' => $tenancy->status,
                 ]
