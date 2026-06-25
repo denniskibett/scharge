@@ -5,13 +5,22 @@ namespace App\Http\Controllers;
 use App\Models\Unit;
 use App\Models\Estate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class UnitController extends Controller
 {
     public function index()
     {
-        $units = Unit::with(['estate', 'tenancies.tenant.user'])->get();
-        $estates = Estate::all();
+        // Get the current authenticated user's company ID
+        $companyId = Auth::user()->company_id;
+        
+        // Scope units by company_id
+        $units = Unit::with(['estate', 'tenancies.tenant.user'])
+                    ->where('company_id', $companyId)
+                    ->get();
+        
+        // Also scope estates by company_id
+        $estates = Estate::where('company_id', $companyId)->get();
         
         // Calculate stats with total charges
         $occupiedCount = $units->where('status', 'occupied')->count();
@@ -70,9 +79,6 @@ class UnitController extends Controller
             ];
         });
         
-        // Debug: Log the first unit to see if new fields are included
-        \Log::info('First unit data with classifications:', ['unit' => $unitsData->first()]);
-        
         return view('units.index', [
             'units' => $units,
             'unitsData' => $unitsData,
@@ -91,6 +97,9 @@ class UnitController extends Controller
 
     public function show(Unit $unit)
     {
+        // Ensure the unit belongs to the current user's company
+        $this->authorizeCompanyAccess($unit);
+        
         $unit->load(['estate', 'tenancies.tenant.user']);
         
         // Calculate total charges
@@ -131,6 +140,9 @@ class UnitController extends Controller
             'commission_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
+        // Add company_id from authenticated user
+        $validated['company_id'] = Auth::user()->company_id;
+
         // Set default values for utilities if not provided
         $validated['water_charge'] = $validated['water_charge'] ?? 0;
         $validated['service_charge'] = $validated['service_charge'] ?? 0;
@@ -163,6 +175,9 @@ class UnitController extends Controller
 
     public function edit(Unit $unit)
     {
+        // Ensure the unit belongs to the current user's company
+        $this->authorizeCompanyAccess($unit);
+        
         // Return JSON for the edit modal if requested - INCLUDING NEW FIELDS
         if (request()->wantsJson()) {
             return response()->json([
@@ -195,12 +210,15 @@ class UnitController extends Controller
             ]);
         }
         
-        $estates = Estate::all();
+        $estates = Estate::where('company_id', Auth::user()->company_id)->get();
         return view('units.edit', compact('unit', 'estates'));
     }
 
     public function update(Request $request, Unit $unit)
     {
+        // Ensure the unit belongs to the current user's company
+        $this->authorizeCompanyAccess($unit);
+        
         $validated = $request->validate([
             // Existing fields
             'unit_number' => 'required|string|max:255',
@@ -280,6 +298,9 @@ class UnitController extends Controller
 
     public function destroy(Unit $unit)
     {
+        // Ensure the unit belongs to the current user's company
+        $this->authorizeCompanyAccess($unit);
+        
         // Check if unit has active tenancies
         if ($unit->tenancies()->where('status', 'active')->exists()) {
             if (request()->wantsJson()) {
@@ -315,7 +336,13 @@ class UnitController extends Controller
             'security_charge' => 'nullable|numeric|min:0',
         ]);
         
-        $query = Unit::where('estate_id', $validated['estate_id']);
+        // Ensure the estate belongs to the current company
+        $estate = Estate::where('id', $validated['estate_id'])
+                       ->where('company_id', Auth::user()->company_id)
+                       ->firstOrFail();
+        
+        $query = Unit::where('estate_id', $validated['estate_id'])
+                    ->where('company_id', Auth::user()->company_id);
         
         $updateData = [];
         if (isset($validated['water_charge'])) $updateData['water_charge'] = $validated['water_charge'];
@@ -339,6 +366,11 @@ class UnitController extends Controller
     // Optional: Get unit charges summary for an estate
     public function getEstateChargesSummary(Estate $estate)
     {
+        // Ensure the estate belongs to the current company
+        if ($estate->company_id !== Auth::user()->company_id) {
+            return response()->json(['error' => 'Unauthorized'], 403);
+        }
+        
         $summary = [
             'total_units' => $estate->units()->count(),
             'total_rent' => $estate->units()->sum('rent_amount'),
@@ -357,6 +389,7 @@ class UnitController extends Controller
     {
         $units = Unit::with(['estate', 'tenancies.tenant.user'])
                     ->where('property_category', $category)
+                    ->where('company_id', Auth::user()->company_id)
                     ->get();
         
         return response()->json([
@@ -372,6 +405,7 @@ class UnitController extends Controller
     {
         $units = Unit::with(['estate', 'tenancies.tenant.user'])
                     ->where('stay_type', $stayType)
+                    ->where('company_id', Auth::user()->company_id)
                     ->get();
         
         return response()->json([
@@ -388,6 +422,7 @@ class UnitController extends Controller
         $units = Unit::with(['estate', 'tenancies.tenant.user'])
                     ->where('stay_type', 'bnb')
                     ->where('is_active', true)
+                    ->where('company_id', Auth::user()->company_id)
                     ->get()
                     ->map(function($unit) {
                         return [
@@ -414,6 +449,9 @@ class UnitController extends Controller
 
     public function updateWaterReading(Request $request, Unit $unit)
     {
+        // Ensure the unit belongs to the current user's company
+        $this->authorizeCompanyAccess($unit);
+        
         $request->validate([
             'current_reading' => 'required|numeric|min:0',
             'reading_date' => 'required|date',
@@ -430,6 +468,9 @@ class UnitController extends Controller
 
     public function getMeterReadingData(Unit $unit)
     {
+        // Ensure the unit belongs to the current user's company
+        $this->authorizeCompanyAccess($unit);
+        
         $unit->load('estate');
         
         return response()->json([
@@ -437,5 +478,18 @@ class UnitController extends Controller
             'unit' => $unit,
             'water_rate' => $unit->estate->water_rate ?? 50,
         ]);
+    }
+
+    /**
+     * Helper method to check if a unit belongs to the current user's company
+     * 
+     * @param Unit $unit
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    private function authorizeCompanyAccess(Unit $unit)
+    {
+        if ($unit->company_id !== Auth::user()->company_id) {
+            abort(403, 'You do not have permission to access this unit.');
+        }
     }
 }
