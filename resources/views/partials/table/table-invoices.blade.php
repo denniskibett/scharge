@@ -332,6 +332,7 @@ document.addEventListener('alpine:init', () => {
         isGenerating: null,
         loading: true,
         currencySymbol: currencySymbol,
+        updateInProgress: false,
         
         // Computed Properties
         get statusCounts() {
@@ -411,6 +412,18 @@ document.addEventListener('alpine:init', () => {
         // Methods
         async init() {
             await this.fetchInvoices();
+            
+            // Listen for payment success events
+            window.addEventListener('payment-success', (event) => {
+                console.log('Payment success event received:', event.detail);
+                this.refreshInvoice(event.detail);
+            });
+            
+            // Listen for global payment success
+            document.addEventListener('payment-success', (event) => {
+                console.log('Document payment success event received:', event.detail);
+                this.refreshInvoice(event.detail);
+            });
         },
         
         async fetchInvoices() {
@@ -441,6 +454,83 @@ document.addEventListener('alpine:init', () => {
             } finally {
                 this.loading = false;
             }
+        },
+        
+        async refreshInvoice(paymentData) {
+            if (this.updateInProgress) return;
+            this.updateInProgress = true;
+            
+            try {
+                // If we have the invoice ID from the payment response, update just that invoice
+                if (paymentData && paymentData.invoice_id) {
+                    // Fetch updated invoice data
+                    const response = await fetch(`/invoices/${paymentData.invoice_id}/details`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.success && result.invoice) {
+                            // Find and update the invoice in the list
+                            const index = this.invoices.findIndex(i => i.id === result.invoice.id);
+                            if (index !== -1) {
+                                // Merge updated data with existing
+                                this.invoices[index] = {
+                                    ...this.invoices[index],
+                                    ...result.invoice,
+                                    status: result.invoice.status,
+                                    total_amount: result.invoice.total_amount,
+                                    balance: result.invoice.balance || 0,
+                                    paid_amount: result.invoice.paid_amount || 0
+                                };
+                            } else {
+                                // If not found, refresh all
+                                await this.fetchInvoices();
+                            }
+                        } else {
+                            // If details fetch fails, refresh all
+                            await this.fetchInvoices();
+                        }
+                    } else {
+                        // If API fails, refresh all
+                        await this.fetchInvoices();
+                    }
+                } else {
+                    // If no specific invoice, refresh all
+                    await this.fetchInvoices();
+                }
+                
+                // Update status counts display
+                this.$forceUpdate();
+                
+                // Show a subtle notification
+                this.showNotification('Payment processed successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error refreshing invoice:', error);
+                // Fallback: refresh all
+                await this.fetchInvoices();
+            } finally {
+                this.updateInProgress = false;
+            }
+        },
+        
+        showNotification(message, type = 'success') {
+            // Create a temporary notification
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} transition-all duration-300 transform translate-y-0`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
         },
         
         formatCurrency(value) {
@@ -514,7 +604,7 @@ document.addEventListener('alpine:init', () => {
                 });
                 const result = await response.json();
                 if (result.success) {
-                    alert('Invoice generated successfully!');
+                    this.showNotification('Invoice generated successfully!', 'success');
                     await this.fetchInvoices(); // Reload data without page refresh
                 } else {
                     alert(result.message || 'Failed to generate invoice');

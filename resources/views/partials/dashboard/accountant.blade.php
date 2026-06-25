@@ -55,8 +55,14 @@
         <!-- Stats Cards -->
         @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'accountant'])])
 
+        <!-- CHARTS SECTION - SHOW IMMEDIATELY AFTER STATS CARDS -->
+        <div class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Revenue Analytics</h3>
+            @include('partials.chart.accountant-charts')
+        </div>
+
         <!-- Pending Deposits Alert Banner -->
-        <div x-show="pendingDepositsCount > 0" class="mt-4 mb-4">
+        <div x-show="pendingDepositsCount > 0" class="mt-6 mb-4">
             <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
                 <div class="flex items-center justify-between flex-wrap gap-3">
                     <div class="flex items-center gap-3">
@@ -81,7 +87,7 @@
             </div>
         </div>
 
-        <!-- Tabs -->
+        <!-- Tabs - Tables Section -->
         <div class="mt-6">
             <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="border-b border-gray-200 px-5 pt-4 dark:border-gray-800">
@@ -125,16 +131,6 @@
                                 <span x-text="overdueCount"></span>
                             </span>
                         </button>
-                        
-                        <!-- Revenue Analytics Tab -->
-                        <button @click="activeTab = 'revenue'" 
-                            :class="activeTab === 'revenue' ? 'border-purple-500 text-purple-600 dark:text-purple-400 border-b-2 -mb-px bg-purple-50 dark:bg-purple-900/10' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" 
-                            class="px-4 py-2 text-sm font-medium transition-colors relative inline-flex items-center gap-2 rounded-t-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                            </svg>
-                            Revenue Analytics
-                        </button>
                     </div>
                 </div>
                 
@@ -164,28 +160,13 @@
                             'mappedActiveTenancies' => collect()
                         ])
                     </div>
-                    
-                    <!-- Revenue Analytics Tab -->
-                    <div x-show="activeTab === 'revenue'">
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Monthly Revenue Chart -->
-                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Monthly Revenue</h3>
-                                <canvas id="revenueChart" height="250"></canvas>
-                            </div>
-                            
-                            <!-- Payment Methods -->
-                            <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-                                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Payment Methods</h3>
-                                <canvas id="paymentMethodsChart" height="250"></canvas>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 
 <script>
 function accountantDashboard() {
@@ -202,6 +183,9 @@ function accountantDashboard() {
         pendingTransactions: @json($pendingTransactions ?? []),
         allTransactions: @json($allTransactions ?? []),
         loading: false,
+        
+        // Chart initialization flag
+        chartsInitialized: false,
         
         init() {
             console.log('Accountant Dashboard loaded');
@@ -230,10 +214,876 @@ function accountantDashboard() {
                 this.viewTransaction(event.detail);
             });
             
-            // Initialize charts if revenue tab is active
-            if (this.activeTab === 'revenue') {
-                this.initCharts();
+            // Initialize charts after a short delay to ensure DOM is ready
+            this.initCharts();
+        },
+        
+        initCharts() {
+            // Check if charts already initialized
+            if (this.chartsInitialized || window._chartsInitialized) {
+                console.log('Charts already initialized, skipping');
+                return;
             }
+            
+            // Check if ApexCharts is loaded
+            if (typeof ApexCharts === 'undefined') {
+                console.log('ApexCharts not loaded yet, waiting...');
+                setTimeout(() => this.initCharts(), 500);
+                return;
+            }
+            
+            console.log('ApexCharts loaded, initializing accountant charts...');
+            
+            try {
+                this.initializeAllCharts();
+                this.chartsInitialized = true;
+                window._chartsInitialized = true;
+                console.log('All accountant charts initialized successfully!');
+            } catch (error) {
+                console.error('Error initializing charts:', error);
+                // Retry after a delay
+                setTimeout(() => this.initCharts(), 1000);
+            }
+        },
+        
+        initializeAllCharts() {
+            // Get dynamic colors from CSS variables
+            const primaryColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--primary-color').trim() || '#465fff';
+            const secondaryColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--secondary-color').trim() || '#10B981';
+            const warningColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--warning-color').trim() || '#F59E0B';
+            const errorColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--error-color').trim() || '#EF4444';
+            const successColor = getComputedStyle(document.documentElement)
+                .getPropertyValue('--success-color').trim() || '#10B981';
+            
+            // Helper functions
+            const safeParseData = (data) => {
+                if (!data || data === '[]' || data === '' || data === 'null' || data === 'undefined') return [];
+                try {
+                    const parsed = JSON.parse(data);
+                    if (Array.isArray(parsed)) {
+                        return parsed.map(item => {
+                            if (typeof item === 'string' && !isNaN(item)) {
+                                return parseFloat(item);
+                            }
+                            return item;
+                        });
+                    }
+                    return parsed;
+                } catch (e) {
+                    console.warn('Error parsing data:', data, e);
+                    return [];
+                }
+            };
+            
+            const calculateYAxisMax = (max) => {
+                if (max === 0) return 5;
+                const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+                const normalized = max / magnitude;
+                let step;
+                if (normalized <= 1) step = 1;
+                else if (normalized <= 2) step = 2;
+                else if (normalized <= 5) step = 5;
+                else step = 10;
+                return Math.ceil(max / (step * magnitude)) * (step * magnitude);
+            };
+            
+            // Store chart instances
+            const chartInstances = {};
+            
+            // 1. Revenue Bar Chart
+            this.initRevenueBarChart(chartInstances, primaryColor, safeParseData, calculateYAxisMax);
+            
+            // 2. Payment Methods Doughnut Chart
+            this.initPaymentDoughnutChart(chartInstances, primaryColor, secondaryColor, warningColor, errorColor, safeParseData);
+            
+            // 3. Revenue vs Expenses Line Chart
+            this.initRevenueExpenseLineChart(chartInstances, secondaryColor, errorColor, safeParseData);
+            
+            // 4. Invoice Status Pie Chart
+            this.initInvoiceStatusPieChart(chartInstances, successColor, errorColor, warningColor, safeParseData);
+            
+            // 5. Collection Rate Radial Chart
+            this.initCollectionRateRadialChart(chartInstances, successColor);
+            
+            // 6. Performance Radar Chart
+            this.initPerformanceRadarChart(chartInstances, primaryColor, safeParseData);
+            
+            // 7. Aging Report Bar Chart
+            this.initAgingReportChart(chartInstances, warningColor, safeParseData, calculateYAxisMax);
+            
+            // Store instances globally for export
+            window._chartInstances = chartInstances;
+        },
+        
+        initRevenueBarChart(instances, primaryColor, safeParseData, calculateYAxisMax) {
+            const chartElement = document.querySelector("#revenueBarChart");
+            if (!chartElement) return;
+            
+            let dates = safeParseData(chartElement.dataset.dates);
+            let counts = safeParseData(chartElement.dataset.counts);
+            
+            if (!Array.isArray(counts)) counts = [];
+            counts = counts.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            
+            console.log('Revenue data:', { dates, counts });
+            
+            const hasValidData = dates.length > 0 && counts.length > 0 && counts.some(v => v > 0);
+            if (!hasValidData) {
+                chartElement.innerHTML = '<div class="text-center text-gray-500 py-10">No revenue data available</div>';
+                return;
+            }
+            
+            if (dates.length === 1) {
+                dates = [dates[0], dates[0]];
+                counts = [counts[0], counts[0]];
+            }
+            
+            const maxCount = Math.max(...counts, 1);
+            const yAxisMax = calculateYAxisMax(maxCount);
+            
+            chartElement.style.width = '100%';
+            chartElement.style.height = '320px';
+            
+            const options = {
+                series: [{ name: "Revenue", data: counts }],
+                colors: [primaryColor],
+                chart: {
+                    fontFamily: "Outfit, sans-serif",
+                    type: "bar",
+                    height: 320,
+                    width: '100%',
+                    toolbar: { show: false },
+                    animations: { enabled: true, speed: 800 },
+                    background: 'transparent'
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: "39%",
+                        borderRadius: 5,
+                        borderRadiusApplication: "end",
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    offsetY: -20,
+                    style: {
+                        fontSize: '12px',
+                        fontFamily: 'Outfit, sans-serif',
+                        colors: ['#333'],
+                        fontWeight: '600',
+                    },
+                    formatter: function(val) {
+                        return 'KES ' + Number(val).toLocaleString();
+                    }
+                },
+                xaxis: {
+                    categories: dates,
+                    axisBorder: { show: true, color: '#e5e7eb' },
+                    axisTicks: { show: true, color: '#e5e7eb' },
+                    labels: {
+                        style: {
+                            fontSize: "12px",
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                        },
+                        rotate: -15,
+                        trim: true,
+                        hideOverlappingLabels: true,
+                    }
+                },
+                yaxis: {
+                    min: 0,
+                    max: yAxisMax,
+                    tickAmount: 5,
+                    forceNiceScale: true,
+                    decimalsInFloat: 0,
+                    title: {
+                        text: "Revenue (KES)",
+                        style: {
+                            fontSize: "13px",
+                            fontFamily: 'Outfit, sans-serif',
+                            fontWeight: 500,
+                            color: '#64748b'
+                        }
+                    },
+                    labels: {
+                        formatter: (value) => Math.round(value).toString(),
+                        style: {
+                            fontSize: "12px",
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                        },
+                        align: 'right',
+                        padding: 5
+                    },
+                    axisBorder: { show: true, color: '#e5e7eb' },
+                    axisTicks: { show: true, color: '#e5e7eb' },
+                    crosshairs: {
+                        show: true,
+                        position: 'back',
+                        stroke: { color: '#b6b6b6', width: 1, dashArray: 3 }
+                    }
+                },
+                grid: {
+                    show: true,
+                    borderColor: "#e5e7eb",
+                    strokeDashArray: 5,
+                    position: "back",
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
+                    padding: { left: 10, right: 10 }
+                },
+                legend: {
+                    show: true,
+                    position: "top",
+                    horizontalAlign: "left",
+                    fontFamily: "Outfit, sans-serif",
+                },
+                tooltip: {
+                    y: { formatter: (val) => 'KES ' + Number(val).toLocaleString() },
+                },
+                states: {
+                    hover: { filter: { type: 'lighten', value: 0.1 } }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 280 },
+                        plotOptions: { bar: { columnWidth: "50%" } },
+                        dataLabels: { style: { fontSize: '10px' } }
+                    }
+                }]
+            };
+            
+            if (instances.revenue) instances.revenue.destroy();
+            instances.revenue = new ApexCharts(chartElement, options);
+            instances.revenue.render();
+            console.log('Revenue chart rendered!');
+        },
+        
+        initPaymentDoughnutChart(instances, primaryColor, secondaryColor, warningColor, errorColor, safeParseData) {
+            const element = document.getElementById('paymentDoughnutChart');
+            if (!element) return;
+            
+            let labels = safeParseData(element.dataset.labels);
+            let values = safeParseData(element.dataset.values);
+            
+            if (!Array.isArray(values)) values = [];
+            values = values.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            
+            console.log('Payment data:', { labels, values });
+            
+            if (!labels.length || !values.length || !values.some(v => v > 0)) {
+                element.innerHTML = '<div class="text-center text-gray-500 py-10">No payment data available</div>';
+                return;
+            }
+            
+            const palette = [primaryColor, secondaryColor, warningColor, errorColor, '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
+            element.style.width = '100%';
+            element.style.height = '250px';
+            
+            const options = {
+                series: values,
+                colors: palette.slice(0, labels.length),
+                chart: {
+                    type: 'donut',
+                    height: 250,
+                    width: '100%',
+                    toolbar: { show: false },
+                    fontFamily: "Outfit, sans-serif",
+                    background: 'transparent'
+                },
+                labels: labels,
+                legend: {
+                    position: 'bottom',
+                    horizontalAlign: 'center',
+                    fontSize: '11px',
+                    fontFamily: 'Outfit, sans-serif',
+                    labels: { colors: '#64748b' },
+                    itemMargin: { horizontal: 5, vertical: 2 }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function(val, opts) {
+                        return 'KES ' + Number(opts.w.globals.series[opts.seriesIndex]).toLocaleString();
+                    },
+                    style: {
+                        fontSize: '11px',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: '600'
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '65%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Total',
+                                    fontSize: '13px',
+                                    fontFamily: 'Outfit, sans-serif',
+                                    fontWeight: 600,
+                                    color: '#64748b',
+                                    formatter: function(w) {
+                                        return 'KES ' + Number(w.globals.seriesTotals.reduce((a, b) => a + b, 0)).toLocaleString();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                tooltip: {
+                    y: { formatter: function(val) { return 'KES ' + Number(val).toLocaleString(); } },
+                    style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 220 },
+                        legend: { fontSize: '10px' },
+                        dataLabels: { style: { fontSize: '10px' } }
+                    }
+                }]
+            };
+            
+            if (instances.payment) instances.payment.destroy();
+            instances.payment = new ApexCharts(element, options);
+            instances.payment.render();
+            console.log('Payment doughnut chart rendered!');
+        },
+        
+        initRevenueExpenseLineChart(instances, secondaryColor, errorColor, safeParseData) {
+            const element = document.getElementById('revenueExpenseLineChart');
+            if (!element) return;
+            
+            let dates = safeParseData(element.dataset.dates);
+            let revenueData = safeParseData(element.dataset.revenue);
+            let expenseData = safeParseData(element.dataset.expenses);
+            
+            if (!Array.isArray(revenueData)) revenueData = [];
+            if (!Array.isArray(expenseData)) expenseData = [];
+            revenueData = revenueData.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            expenseData = expenseData.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            
+            console.log('Revenue vs Expense data:', { dates, revenueData, expenseData });
+            
+            if (!dates.length || !revenueData.length) {
+                element.innerHTML = '<div class="text-center text-gray-500 py-10">No revenue/expense data available</div>';
+                return;
+            }
+            
+            element.style.width = '100%';
+            element.style.height = '300px';
+            
+            const options = {
+                series: [
+                    { name: 'Revenue', data: revenueData, color: secondaryColor },
+                    { name: 'Expenses', data: expenseData, color: errorColor }
+                ],
+                chart: {
+                    type: 'area',
+                    height: 300,
+                    width: '100%',
+                    toolbar: { show: false },
+                    animations: { enabled: true, speed: 800 },
+                    fontFamily: "Outfit, sans-serif",
+                    background: 'transparent'
+                },
+                stroke: { curve: 'smooth', width: 2.5 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        enabled: true,
+                        opacityFrom: 0.55,
+                        opacityTo: 0,
+                    }
+                },
+                markers: {
+                    size: 4,
+                    colors: ['#fff'],
+                    strokeColors: [secondaryColor, errorColor],
+                    strokeWidth: 2,
+                    hover: { size: 7, strokeWidth: 3 }
+                },
+                xaxis: {
+                    categories: dates,
+                    labels: {
+                        style: {
+                            fontSize: '11px',
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                            fontWeight: 400
+                        },
+                        rotate: -15,
+                        trim: true,
+                        hideOverlappingLabels: true,
+                        maxHeight: 40,
+                    },
+                    axisBorder: { show: true, color: '#e5e7eb' },
+                    axisTicks: { show: true, color: '#e5e7eb' },
+                    title: {
+                        text: "Date",
+                        style: {
+                            fontSize: "12px",
+                            fontFamily: 'Outfit, sans-serif',
+                            fontWeight: 500,
+                            color: '#64748b'
+                        }
+                    }
+                },
+                yaxis: {
+                    title: {
+                        text: "Amount (KES)",
+                        style: {
+                            fontSize: "12px",
+                            fontFamily: 'Outfit, sans-serif',
+                            fontWeight: 500,
+                            color: '#64748b'
+                        }
+                    },
+                    labels: {
+                        formatter: function(value) {
+                            if (value >= 1000000) {
+                                return 'KES ' + (value / 1000000).toFixed(1) + 'M';
+                            } else if (value >= 1000) {
+                                return 'KES ' + (value / 1000).toFixed(1) + 'K';
+                            }
+                            return 'KES ' + Number(value).toLocaleString();
+                        },
+                        style: {
+                            fontSize: '11px',
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                        },
+                        offsetX: -5,
+                        maxWidth: 80,
+                    },
+                    axisBorder: { show: true, color: '#e5e7eb' },
+                    axisTicks: { show: true, color: '#e5e7eb' },
+                    min: 0,
+                    tickAmount: 5,
+                    forceNiceScale: true,
+                    decimalsInFloat: 0,
+                },
+                grid: {
+                    borderColor: '#e5e7eb',
+                    strokeDashArray: 5,
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
+                    padding: { left: 0, right: 10 }
+                },
+                legend: {
+                    position: 'top',
+                    horizontalAlign: 'left',
+                    fontSize: '12px',
+                    fontFamily: 'Outfit, sans-serif',
+                    labels: { colors: '#64748b', useSeriesColors: false },
+                    markers: { width: 12, height: 12, radius: 2, strokeWidth: 0 },
+                    itemMargin: { horizontal: 10, vertical: 0 }
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    y: { formatter: function(val) { return 'KES ' + Number(val).toLocaleString(); } },
+                    style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 250 },
+                        yaxis: { labels: { style: { fontSize: '10px' } } },
+                        xaxis: { labels: { style: { fontSize: '10px' }, rotate: -30 } }
+                    }
+                }]
+            };
+            
+            if (instances.revenueExpense) instances.revenueExpense.destroy();
+            instances.revenueExpense = new ApexCharts(element, options);
+            instances.revenueExpense.render();
+            console.log('Revenue vs Expense chart rendered!');
+        },
+        
+        initInvoiceStatusPieChart(instances, successColor, errorColor, warningColor, safeParseData) {
+            const element = document.getElementById('invoiceStatusPieChart');
+            if (!element) return;
+            
+            let labels = safeParseData(element.dataset.labels);
+            let values = safeParseData(element.dataset.values);
+            
+            if (!Array.isArray(values)) values = [];
+            values = values.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            
+            console.log('Invoice status data:', { labels, values });
+            
+            if (!labels.length || !values.length || !values.some(v => v > 0)) {
+                element.innerHTML = '<div class="text-center text-gray-500 py-10">No invoice data available</div>';
+                return;
+            }
+            
+            const colorsMap = {
+                'paid': successColor,
+                'unpaid': errorColor,
+                'partial': warningColor,
+                'draft': '#94A3B8'
+            };
+            
+            element.style.width = '100%';
+            element.style.height = '250px';
+            
+            const options = {
+                series: values,
+                colors: labels.map(label => colorsMap[label.toLowerCase()] || '#94A3B8'),
+                chart: {
+                    type: 'pie',
+                    height: 250,
+                    width: '100%',
+                    toolbar: { show: false },
+                    fontFamily: "Outfit, sans-serif",
+                    background: 'transparent'
+                },
+                labels: labels.map(label => label.charAt(0).toUpperCase() + label.slice(1)),
+                legend: {
+                    position: 'bottom',
+                    horizontalAlign: 'center',
+                    fontSize: '11px',
+                    fontFamily: 'Outfit, sans-serif',
+                    labels: { colors: '#64748b' },
+                    itemMargin: { horizontal: 5, vertical: 2 }
+                },
+                dataLabels: {
+                    enabled: true,
+                    formatter: function(val, opts) {
+                        return opts.w.globals.series[opts.seriesIndex];
+                    },
+                    style: {
+                        fontSize: '11px',
+                        fontFamily: 'Outfit, sans-serif',
+                        fontWeight: '600'
+                    }
+                },
+                tooltip: {
+                    y: { formatter: function(val) { return val + ' invoices'; } },
+                    style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 220 },
+                        legend: { fontSize: '10px' },
+                        dataLabels: { style: { fontSize: '10px' } }
+                    }
+                }]
+            };
+            
+            if (instances.invoiceStatus) instances.invoiceStatus.destroy();
+            instances.invoiceStatus = new ApexCharts(element, options);
+            instances.invoiceStatus.render();
+            console.log('Invoice status chart rendered!');
+        },
+        
+        initCollectionRateRadialChart(instances, successColor) {
+            const element = document.getElementById('collectionRateRadialChart');
+            if (!element) return;
+            
+            const value = parseFloat(element.dataset.value || '85');
+            console.log('Collection rate value:', value);
+            
+            element.style.width = '100%';
+            element.style.height = '250px';
+            
+            const options = {
+                series: [value],
+                colors: [successColor],
+                chart: {
+                    type: 'radialBar',
+                    height: 250,
+                    width: '100%',
+                    toolbar: { show: false },
+                    offsetY: -10,
+                    fontFamily: "Outfit, sans-serif",
+                    background: 'transparent'
+                },
+                plotOptions: {
+                    radialBar: {
+                        startAngle: -135,
+                        endAngle: 135,
+                        hollow: {
+                            margin: 0,
+                            size: '70%',
+                            background: 'transparent'
+                        },
+                        track: {
+                            strokeWidth: '100%',
+                            margin: 0,
+                            background: '#e5e7eb'
+                        },
+                        dataLabels: {
+                            name: {
+                                show: true,
+                                fontSize: '14px',
+                                fontFamily: 'Outfit, sans-serif',
+                                fontWeight: 500,
+                                color: '#64748b',
+                                offsetY: 10
+                            },
+                            value: { show: false }
+                        }
+                    }
+                },
+                grid: { padding: { top: 0, right: 0, bottom: 0, left: 0 } },
+                labels: ['Collection Rate'],
+                states: {
+                    hover: { filter: { type: 'lighten', value: 0.15 } }
+                }
+            };
+            
+            if (instances.collectionRate) instances.collectionRate.destroy();
+            instances.collectionRate = new ApexCharts(element, options);
+            instances.collectionRate.render();
+            console.log('Collection rate chart rendered!');
+        },
+        
+        initPerformanceRadarChart(instances, primaryColor, safeParseData) {
+            const element = document.getElementById('performanceRadarChart');
+            if (!element) return;
+            
+            let labels = safeParseData(element.dataset.labels);
+            let values = safeParseData(element.dataset.values);
+            
+            if (!Array.isArray(values)) values = [];
+            values = values.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            
+            console.log('Performance data:', { labels, values });
+            
+            if (!labels.length || !values.length || !values.some(v => v > 0)) {
+                element.innerHTML = '<div class="text-center text-gray-500 py-10">No performance data available</div>';
+                return;
+            }
+            
+            element.style.width = '100%';
+            element.style.height = '300px';
+            
+            const options = {
+                series: [{ name: 'Performance', data: values }],
+                colors: [primaryColor],
+                chart: {
+                    type: 'radar',
+                    height: 300,
+                    width: '100%',
+                    toolbar: { show: false },
+                    dropShadow: { enabled: true, blur: 3, left: 0, top: 1, opacity: 0.2 },
+                    fontFamily: "Outfit, sans-serif",
+                    background: 'transparent'
+                },
+                plotOptions: {
+                    radar: {
+                        size: 120,
+                        polygons: {
+                            strokeColors: '#e5e7eb',
+                            connectorColors: '#e5e7eb',
+                            fill: {
+                                colors: [
+                                    'rgba(var(--primary-rgb, 70, 95, 255), 0.05)',
+                                    'rgba(var(--primary-rgb, 70, 95, 255), 0.02)'
+                                ]
+                            }
+                        }
+                    }
+                },
+                xaxis: {
+                    categories: labels.map(label => label.replace(/_/g, ' ').toUpperCase()),
+                    labels: {
+                        style: {
+                            fontSize: '11px',
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                            fontWeight: 500
+                        },
+                        offsetY: 5
+                    }
+                },
+                yaxis: {
+                    min: 0,
+                    max: 100,
+                    tickAmount: 4,
+                    labels: {
+                        formatter: function(val) { return val + '%'; },
+                        style: {
+                            fontSize: '10px',
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#94a3b8'
+                        }
+                    }
+                },
+                markers: {
+                    size: 5,
+                    colors: ['#fff'],
+                    strokeColor: primaryColor,
+                    strokeWidth: 2,
+                    hover: { size: 7 }
+                },
+                stroke: { width: 2, colors: [primaryColor] },
+                fill: { opacity: 0.15, colors: [primaryColor] },
+                tooltip: {
+                    y: { formatter: function(val) { return val + '%'; } },
+                    style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
+                },
+                legend: { show: false },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 250 },
+                        plotOptions: { radar: { size: 100 } }
+                    }
+                }]
+            };
+            
+            if (instances.performance) instances.performance.destroy();
+            instances.performance = new ApexCharts(element, options);
+            instances.performance.render();
+            console.log('Performance radar chart rendered!');
+        },
+        
+        initAgingReportChart(instances, warningColor, safeParseData, calculateYAxisMax) {
+            const element = document.getElementById('agingReportChart');
+            if (!element) return;
+            
+            let labels = safeParseData(element.dataset.labels);
+            let values = safeParseData(element.dataset.values);
+            
+            if (!Array.isArray(values)) values = [];
+            values = values.map(v => typeof v === 'string' ? parseFloat(v) || 0 : v || 0);
+            
+            console.log('Aging report data:', { labels, values });
+            
+            if (!labels.length || !values.length || !values.some(v => v > 0)) {
+                element.innerHTML = '<div class="text-center text-gray-500 py-10">No aging data available</div>';
+                return;
+            }
+            
+            const maxValue = Math.max(...values, 1);
+            const yAxisMax = calculateYAxisMax(maxValue);
+            
+            element.style.width = '100%';
+            element.style.height = '280px';
+            
+            const options = {
+                series: [{ name: 'Outstanding Amount', data: values }],
+                colors: [warningColor],
+                chart: {
+                    type: 'bar',
+                    height: 280,
+                    width: '100%',
+                    toolbar: { show: false },
+                    animations: { enabled: true, speed: 800 },
+                    fontFamily: "Outfit, sans-serif",
+                    background: 'transparent'
+                },
+                plotOptions: {
+                    bar: {
+                        horizontal: false,
+                        columnWidth: '39%',
+                        borderRadius: 5,
+                        borderRadiusApplication: 'end',
+                    }
+                },
+                dataLabels: {
+                    enabled: true,
+                    offsetY: -20,
+                    style: {
+                        fontSize: '12px',
+                        fontFamily: 'Outfit, sans-serif',
+                        colors: ['#333'],
+                        fontWeight: '600',
+                    },
+                    formatter: function(val) {
+                        return 'KES ' + Number(val).toLocaleString();
+                    }
+                },
+                xaxis: {
+                    categories: labels,
+                    labels: {
+                        style: {
+                            fontSize: '12px',
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                        },
+                        rotate: 0,
+                        trim: true
+                    },
+                    axisBorder: { show: true, color: '#e5e7eb' },
+                    axisTicks: { show: true, color: '#e5e7eb' },
+                },
+                yaxis: {
+                    min: 0,
+                    max: yAxisMax,
+                    tickAmount: 5,
+                    forceNiceScale: true,
+                    decimalsInFloat: 0,
+                    title: {
+                        text: "Amount (KES)",
+                        style: {
+                            fontSize: "13px",
+                            fontFamily: 'Outfit, sans-serif',
+                            fontWeight: 500,
+                            color: '#64748b'
+                        }
+                    },
+                    labels: {
+                        formatter: (value) => Math.round(value).toString(),
+                        style: {
+                            fontSize: "12px",
+                            fontFamily: 'Outfit, sans-serif',
+                            colors: '#64748b',
+                        },
+                        align: 'right',
+                        padding: 5
+                    },
+                    axisBorder: { show: true, color: '#e5e7eb' },
+                    axisTicks: { show: true, color: '#e5e7eb' },
+                    crosshairs: {
+                        show: true,
+                        position: 'back',
+                        stroke: { color: '#b6b6b6', width: 1, dashArray: 3 }
+                    }
+                },
+                grid: {
+                    show: true,
+                    borderColor: "#e5e7eb",
+                    strokeDashArray: 5,
+                    position: "back",
+                    xaxis: { lines: { show: false } },
+                    yaxis: { lines: { show: true } },
+                    padding: { left: 10, right: 10 }
+                },
+                tooltip: {
+                    y: { formatter: function(val) { return 'KES ' + Number(val).toLocaleString(); } },
+                    style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
+                },
+                states: {
+                    hover: { filter: { type: 'lighten', value: 0.1 } }
+                },
+                responsive: [{
+                    breakpoint: 768,
+                    options: {
+                        chart: { height: 250 },
+                        plotOptions: { bar: { columnWidth: "50%" } },
+                        dataLabels: { style: { fontSize: '10px' } }
+                    }
+                }]
+            };
+            
+            if (instances.aging) instances.aging.destroy();
+            instances.aging = new ApexCharts(element, options);
+            instances.aging.render();
+            console.log('Aging report chart rendered!');
         },
         
         async loadPendingTransactions() {
@@ -374,82 +1224,36 @@ function accountantDashboard() {
             if (!dateString) return '—';
             const date = new Date(dateString);
             return date.toLocaleDateString('en-KE', { year: 'numeric', month: 'long' });
-        },
-        
-        initCharts() {
-            setTimeout(() => {
-                const revenueData = @json($monthlyRevenue ?? []);
-                const paymentMethods = @json($paymentMethods ?? []);
-                
-                const ctx1 = document.getElementById('revenueChart');
-                if (ctx1 && Object.keys(revenueData).length > 0) {
-                    new Chart(ctx1, {
-                        type: 'bar',
-                        data: {
-                            labels: Object.keys(revenueData),
-                            datasets: [{
-                                label: 'Revenue (KES)',
-                                data: Object.values(revenueData),
-                                backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                                borderColor: 'rgb(16, 185, 129)',
-                                borderWidth: 1,
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    ticks: {
-                                        callback: function(value) {
-                                            return 'KES ' + value.toLocaleString();
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-                
-                const ctx2 = document.getElementById('paymentMethodsChart');
-                if (ctx2 && Object.keys(paymentMethods).length > 0) {
-                    const colors = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6'];
-                    const labels = Object.keys(paymentMethods);
-                    const data = Object.values(paymentMethods);
-                    
-                    new Chart(ctx2, {
-                        type: 'doughnut',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: colors.slice(0, labels.length),
-                                borderWidth: 2,
-                                borderColor: '#fff'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 20,
-                                        usePointStyle: true,
-                                        pointStyle: 'circle'
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-            }, 300);
         }
     };
 }
 </script>
+
+<style>
+    [x-cloak] { display: none !important; }
+    
+    /* Chart Dark Mode Styles */
+    .chartDarkStyle .apexcharts-legend-text {
+        color: #64748b !important;
+    }
+    .dark .chartDarkStyle .apexcharts-legend-text {
+        color: #94a3b8 !important;
+    }
+    .chartDarkStyle .apexcharts-tooltip {
+        background: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+    }
+    .dark .chartDarkStyle .apexcharts-tooltip {
+        background: #1f2937 !important;
+        border: 1px solid #374151 !important;
+    }
+    .chartDarkStyle .apexcharts-tooltip-title {
+        background: #f9fafb !important;
+        border-bottom: 1px solid #e5e7eb !important;
+    }
+    .dark .chartDarkStyle .apexcharts-tooltip-title {
+        background: #111827 !important;
+        border-bottom: 1px solid #374151 !important;
+    }
+</style>
 @endsection

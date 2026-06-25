@@ -550,7 +550,7 @@ document.addEventListener('alpine:init', () => {
       return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     
-    async submitForm() {
+  async submitForm() {
       this.formErrors = [];
       this.successMessage = '';
       
@@ -558,120 +558,137 @@ document.addEventListener('alpine:init', () => {
       const invoiceId = this.preSelectedInvoice?.id || this.form.invoice_id;
       
       if (!tenantId) {
-        this.formErrors.push('Please select a tenant');
-        return;
+          this.formErrors.push('Please select a tenant');
+          return;
       }
       
       if (!invoiceId) {
-        this.formErrors.push('Please select an invoice to pay');
-        return;
+          this.formErrors.push('Please select an invoice to pay');
+          return;
       }
       
       if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
-        this.formErrors.push('Please enter a valid amount');
-        return;
+          this.formErrors.push('Please enter a valid amount');
+          return;
       }
       
       // Allow overpayment - show warning, don't block
       if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
-        const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
-        if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
-          return;
-        }
+          const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
+          if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
+              return;
+          }
       }
       
       if (!this.form.payment_datetime) {
-        this.formErrors.push('Please select payment date');
-        return;
+          this.formErrors.push('Please select payment date');
+          return;
       }
       
       if (!this.form.payment_method) {
-        this.formErrors.push('Please select payment method');
-        return;
+          this.formErrors.push('Please select payment method');
+          return;
       }
       
       this.loading = true;
       
       try {
-        let url, method, body;
-        
-        if (this.isEditMode) {
-          url = `/payments/${this.currentPaymentId}`;
-          method = 'PUT';
-          body = JSON.stringify({
-            status: this.form.status,
-            is_reconciled: this.form.status === 'completed' ? 1 : 0,
-            notes: this.form.notes
-          });
-        } else {
-          url = '/payments';
-          method = 'POST';
-          body = JSON.stringify({
-            tenant_id: tenantId,
-            invoice_id: invoiceId,
-            amount: parseFloat(this.form.amount),
-            payment_method: this.form.payment_method,
-            external_reference: this.form.external_reference,
-            payment_datetime: this.form.payment_datetime,
-            notes: this.form.notes
-          });
-        }
-        
-        console.log('Sending payment request:', { url, method, body });
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-          },
-          body: body
-        });
-        
-        const data = await response.json();
-        console.log('Payment response:', data);
-        
-        if (response.ok && data.success) {
+          let url, method, body;
+          
           if (this.isEditMode) {
-            this.successMessage = 'Payment updated successfully!';
+              url = `/payments/${this.currentPaymentId}`;
+              method = 'PUT';
+              body = JSON.stringify({
+                  status: this.form.status,
+                  is_reconciled: this.form.status === 'completed' ? 1 : 0,
+                  notes: this.form.notes
+              });
           } else {
-            // Build success message based on what happened
-            const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
-            const amountToWallet = data.data?.amount_added_to_wallet || 0;
-            
-            if (amountToWallet > 0 && amountPaid > 0) {
-              this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
-            } else if (amountPaid > 0) {
-              this.successMessage = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
-            } else {
-              this.successMessage = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
-            }
+              url = '/payments';
+              method = 'POST';
+              body = JSON.stringify({
+                  tenant_id: tenantId,
+                  invoice_id: invoiceId,
+                  amount: parseFloat(this.form.amount),
+                  payment_method: this.form.payment_method,
+                  external_reference: this.form.external_reference,
+                  payment_datetime: this.form.payment_datetime,
+                  notes: this.form.notes
+              });
           }
           
-          // Dispatch wallet update event
-          if (data.data?.wallet_balance !== undefined) {
-            const updateEvent = new CustomEvent('wallet-updated', {
-              detail: { new_balance: data.data.wallet_balance }
-            });
-            window.dispatchEvent(updateEvent);
-            document.dispatchEvent(updateEvent);
-          }
+          console.log('Sending payment request:', { url, method, body });
           
-          setTimeout(() => {
-            this.closeModal();
-            window.location.reload();
-          }, 2000);
-        } else {
-          this.formErrors = [data.message || data.error || 'Failed to process payment'];
-        }
+          const response = await fetch(url, {
+              method: method,
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                  'Accept': 'application/json'
+              },
+              body: body
+          });
+          
+          const data = await response.json();
+          console.log('Payment response:', data);
+          
+          if (response.ok && data.success) {
+              // Build success message
+              const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
+              const amountToWallet = data.data?.amount_added_to_wallet || 0;
+              
+              let successMsg = '';
+              if (amountToWallet > 0 && amountPaid > 0) {
+                  successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
+              } else if (amountPaid > 0) {
+                  successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
+              } else {
+                  successMsg = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
+              }
+              
+              this.successMessage = successMsg;
+              
+              // Dispatch payment success event for table to update
+              const paymentEvent = new CustomEvent('payment-success', {
+                  detail: {
+                      invoice_id: invoiceId,
+                      tenant_id: tenantId,
+                      amount_paid: amountPaid,
+                      amount_to_wallet: amountToWallet,
+                      payment_id: data.data?.payment_id || data.data?.id,
+                      wallet_balance: data.data?.wallet_balance || 0,
+                      new_status: data.data?.invoice_status || 'paid'
+                  }
+              });
+              
+              // Dispatch to both window and document for broader reach
+              window.dispatchEvent(paymentEvent);
+              document.dispatchEvent(paymentEvent);
+              
+              // Also dispatch wallet update event
+              if (data.data?.wallet_balance !== undefined) {
+                  const walletEvent = new CustomEvent('wallet-updated', {
+                      detail: { new_balance: data.data.wallet_balance }
+                  });
+                  window.dispatchEvent(walletEvent);
+                  document.dispatchEvent(walletEvent);
+              }
+              
+              // Close modal after a brief delay
+              setTimeout(() => {
+                  this.closeModal();
+              }, 1500);
+              
+          } else {
+              this.formErrors = [data.message || data.error || 'Failed to process payment'];
+          }
       } catch (error) {
-        console.error('Error:', error);
-        this.formErrors = ['An error occurred. Please try again.'];
+          console.error('Error:', error);
+          this.formErrors = ['An error occurred. Please try again.'];
       } finally {
-        this.loading = false;
+          this.loading = false;
       }
-    },
+  },
     
     formatNumber(value) {
       if (!value && value !== 0) return '0.00';

@@ -806,85 +806,110 @@ private function adminDashboard()
      */
     private function accountantDashboard()
     {
-        $user = auth()->user();
-        $company = $user->company;
-        
-        if (!$company) {
-            return $this->pendingVerificationView($user);
-        }
-        
-        // ================================================================
-        // STATS CARDS
-        // ================================================================
-        $stats = [
-            'total_revenue' => Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))->sum('amount'),
-            'total_expenses' => Expense::where('company_id', $company->id)->sum('amount'),
-            'net_income' => Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))->sum('amount') - Expense::where('company_id', $company->id)->sum('amount'),
-            'total_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->count(),
-            'paid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'paid')->count(),
-            'unpaid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'unpaid')->count(),
-            'outstanding_amount' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->whereIn('status', ['unpaid', 'partial'])->sum('total_amount'),
-            'collection_rate' => $this->calculateCollectionRate($company->id),
-            'total_tenants' => Tenant::whereHas('user', fn($q) => $q->where('company_id', $company->id))->count(),
-            'total_units' => Unit::where('company_id', $company->id)->count(),
-            'occupied_units' => Unit::where('company_id', $company->id)->where('status', 'occupied')->count(),
-            'vacant_units' => Unit::where('company_id', $company->id)->where('status', 'vacant')->count(),
-            'occupancy_rate' => $this->calculateOccupancyRate($company->id),
-            'total_consumption' => Unit::where('company_id', $company->id)->sum(DB::raw('GREATEST(0, COALESCE(current_water_reading, 0) - COALESCE(previous_water_reading, 0))')),
-        ];
-        
-        // ================================================================
-        // REVENUE ANALYTICS
-        // ================================================================
-        $monthlyRevenue = $this->getMonthlyRevenueForCompany($company->id);
-        $paymentMethods = $this->getPaymentMethodStatsForCompany($company->id);
-        
-        // ================================================================
-        // PENDING DEPOSITS - ALL transactions with confirmed = 0
-        // ================================================================
-        $pendingTransactions = $this->getPendingDeposits($company);
-        
-        // ================================================================
-        // ALL TRANSACTIONS - ALL transactions (deposits AND withdrawals)
-        // ================================================================
-        $allTransactions = $this->getAllTransactions($company);
-        
-        // ================================================================
-        // OVERDUE INVOICES - All overdue invoices
-        // ================================================================
-        $overdueInvoices = $this->getOverdueInvoices($company);
-        
-        // ================================================================
-        // ROLE DATA
-        // ================================================================
-        $roleData = $this->getRoleSpecificData($user, $company);
-        $roleData['overdueInvoices'] = $overdueInvoices;
-        
-        // ================================================================
-        // REQUIRED FOR VIEW
-        // ================================================================
-        $mappedActiveTenancies = collect();
-        $outstandingBalance = 0;
-        $totalPaid = 0;
-        
-        // ================================================================
-        // RETURN VIEW WITH ALL DATA
-        // ================================================================
-        return view('dashboard', compact(
-            'user', 
-            'company', 
-            'stats', 
-            'roleData',
-            'monthlyRevenue', 
-            'paymentMethods',
-            'pendingTransactions',
-            'allTransactions',
-            'overdueInvoices',
-            'mappedActiveTenancies', 
-            'outstandingBalance', 
-            'totalPaid'
-        ));
+    $user = auth()->user();
+    $company = $user->company;
+    
+    if (!$company) {
+        return $this->pendingVerificationView($user);
     }
+    
+    // ================================================================
+    // STATS CARDS
+    // ================================================================
+    $stats = [
+        'total_revenue' => Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))->sum('amount'),
+        'total_expenses' => Expense::where('company_id', $company->id)->sum('amount'),
+        'net_income' => Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $company->id))->sum('amount') - Expense::where('company_id', $company->id)->sum('amount'),
+        'total_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->count(),
+        'paid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'paid')->count(),
+        'unpaid_invoices' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->where('status', 'unpaid')->count(),
+        'outstanding_amount' => Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $company->id))->whereIn('status', ['unpaid', 'partial'])->sum('total_amount'),
+        'collection_rate' => $this->calculateCollectionRate($company->id),
+        'total_tenants' => Tenant::whereHas('user', fn($q) => $q->where('company_id', $company->id))->count(),
+        'total_units' => Unit::where('company_id', $company->id)->count(),
+        'occupied_units' => Unit::where('company_id', $company->id)->where('status', 'occupied')->count(),
+        'vacant_units' => Unit::where('company_id', $company->id)->where('status', 'vacant')->count(),
+        'occupancy_rate' => $this->calculateOccupancyRate($company->id),
+        'total_consumption' => Unit::where('company_id', $company->id)->sum(DB::raw('GREATEST(0, COALESCE(current_water_reading, 0) - COALESCE(previous_water_reading, 0))')),
+        
+    ];
+    
+    // ================================================================
+    // CHART DATA - REVENUE ANALYTICS
+    // ================================================================
+    
+    // 1. Monthly Revenue (Bar Chart)
+    $monthlyRevenue = $this->getMonthlyRevenueForCompany($company->id);
+    
+    // 2. Payment Methods (Doughnut Chart)
+    $paymentMethods = $this->getPaymentMethodStatsForCompany($company->id);
+    
+    // 3. Monthly Revenue vs Expenses (Line Chart)
+    $monthlyRevenueExpense = $this->getMonthlyRevenueExpenseForCompany($company->id);
+    
+    // 4. Invoice Status (Pie Chart)
+    $invoiceStatus = $this->getInvoiceStatusBreakdown($company->id);
+    
+    // 5. Collection Rate (Radial Chart)
+    $collectionRate = $this->calculateCollectionRate($company->id);
+    
+    // 6. Performance Metrics (Radar Chart)
+    $performanceMetrics = $this->getPerformanceMetrics($company->id);
+    
+    // ================================================================
+    // PENDING DEPOSITS - ALL transactions with confirmed = 0
+    // ================================================================
+    $pendingTransactions = $this->getPendingDeposits($company);
+    
+    // ================================================================
+    // ALL TRANSACTIONS - ALL transactions (deposits AND withdrawals)
+    // ================================================================
+    $allTransactions = $this->getAllTransactions($company);
+    
+    // ================================================================
+    // OVERDUE INVOICES - All overdue invoices
+    // ================================================================
+    $overdueInvoices = $this->getOverdueInvoices($company);
+    
+    // ================================================================
+    // ROLE DATA
+    // ================================================================
+    $roleData = $this->getRoleSpecificData($user, $company);
+    $roleData['overdueInvoices'] = $overdueInvoices;
+    
+    // ================================================================
+    // REQUIRED FOR VIEW
+    // ================================================================
+    $mappedActiveTenancies = collect();
+    $outstandingBalance = 0;
+    $totalPaid = 0;
+
+    $agingReport = $this->getAgingReport($company->id);
+
+    
+    // ================================================================
+    // RETURN VIEW WITH ALL DATA
+    // ================================================================
+    return view('dashboard', compact(
+        'user', 
+        'company', 
+        'stats', 
+        'roleData',
+        'monthlyRevenue', 
+        'paymentMethods',
+        'monthlyRevenueExpense',
+        'invoiceStatus',
+        'collectionRate',
+        'performanceMetrics',
+        'pendingTransactions',
+        'allTransactions',
+        'overdueInvoices',
+        'mappedActiveTenancies', 
+        'outstandingBalance', 
+        'totalPaid',
+        'agingReport'
+    ));
+}
 
     /**
      * Get all pending deposits (transactions with confirmed = 0)
@@ -2093,22 +2118,34 @@ private function adminDashboard()
         return $result;
     }
     
-    private function getPaymentMethodStatsForCompany($companyId)
-    {
-        $stats = Payment::select('payment_method', DB::raw('SUM(amount) as total'))
-            ->whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
-            ->where('status', 'completed')
-            ->groupBy('payment_method')
-            ->get()
-            ->pluck('total', 'payment_method')
-            ->toArray();
-        
-        if (empty($stats)) {
-            $stats = ['No Data' => 0];
-        }
-        
-        return $stats;
+private function getPaymentMethodStatsForCompany($companyId)
+{
+    $stats = Payment::select('payment_method', DB::raw('SUM(amount) as total'))
+        ->whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+        ->where('status', 'completed')
+        ->groupBy('payment_method')
+        ->get()
+        ->pluck('total', 'payment_method')
+        ->toArray();
+    
+    // Format labels for display
+    $formatted = [];
+    $labels = [
+        'wallet' => 'Wallet',
+        'mpesa_stk' => 'M-Pesa STK',
+        'mpesa_paybill' => 'M-Pesa Paybill',
+        'bank_transfer' => 'Bank Transfer',
+        'cash' => 'Cash',
+        'manual_topup' => 'Manual Top-up',
+        'message_paste' => 'Transaction Message'
+    ];
+    
+    foreach ($stats as $key => $value) {
+        $formatted[$labels[$key] ?? ucfirst(str_replace('_', ' ', $key))] = $value;
     }
+    
+    return $formatted;
+}
 
     private function getCommonStats($user = null)
     {
@@ -2714,4 +2751,419 @@ private function adminDashboard()
             ]
         ];
     }
+
+
+    // CHARTS
+
+    /**
+     * Get chart data for AJAX requests
+     */
+    public function getChartData(Request $request)
+    {
+        $user = auth()->user();
+        $company = $user->company;
+        $interval = $request->get('interval', 'monthly');
+        $chartType = $request->get('type', 'revenue');
+        
+        switch ($chartType) {
+            case 'revenue':
+                $data = $this->getRevenueChartData($company->id, $interval);
+                break;
+            case 'payment_methods':
+                $data = $this->getPaymentMethodsData($company->id);
+                break;
+            case 'revenue_expense':
+                $data = $this->getRevenueExpenseData($company->id, $interval);
+                break;
+            case 'invoice_status':
+                $data = $this->getInvoiceStatusData($company->id);
+                break;
+            default:
+                $data = $this->getRevenueChartData($company->id, $interval);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'chartData' => $data
+        ]);
+    }
+
+    /**
+     * Get revenue chart data with interval support
+     */
+    private function getRevenueChartData($companyId, $interval = 'monthly')
+    {
+        $query = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+            ->where('status', 'completed');
+        
+        switch ($interval) {
+            case 'daily':
+                $data = $query->select(
+                        DB::raw('DATE(created_at) as period'),
+                        DB::raw('SUM(amount) as total')
+                    )
+                    ->where('created_at', '>=', now()->subDays(30))
+                    ->groupBy('period')
+                    ->orderBy('period', 'asc')
+                    ->get();
+                
+                $dates = $data->pluck('period')->map(fn($d) => date('M d', strtotime($d)))->toArray();
+                $counts = $data->pluck('total')->toArray();
+                break;
+                
+            case 'weekly':
+                $data = $query->select(
+                        DB::raw('YEARWEEK(created_at) as period'),
+                        DB::raw('SUM(amount) as total')
+                    )
+                    ->where('created_at', '>=', now()->subWeeks(12))
+                    ->groupBy('period')
+                    ->orderBy('period', 'asc')
+                    ->get();
+                
+                $dates = $data->pluck('period')->map(fn($w) => 'Week ' . substr($w, -2))->toArray();
+                $counts = $data->pluck('total')->toArray();
+                break;
+                
+            case 'monthly':
+            default:
+                $data = $query->select(
+                        DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'),
+                        DB::raw('SUM(amount) as total')
+                    )
+                    ->where('created_at', '>=', now()->subMonths(12))
+                    ->groupBy('period')
+                    ->orderBy('period', 'asc')
+                    ->get();
+                
+                $dates = $data->pluck('period')->map(fn($m) => date('M Y', strtotime($m . '-01')))->toArray();
+                $counts = $data->pluck('total')->toArray();
+                break;
+        }
+        
+        return [
+            'dates' => $dates,
+            'counts' => $counts,
+            'interval' => $interval
+        ];
+    }
+
+    /**
+     * Get payment methods data for doughnut chart
+     */
+    private function getPaymentMethodsData($companyId)
+    {
+        $data = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+            ->where('status', 'completed')
+            ->select('payment_method', DB::raw('SUM(amount) as total'))
+            ->groupBy('payment_method')
+            ->get();
+        
+        $labels = $data->pluck('payment_method')->map(function($method) {
+            $labels = [
+                'wallet' => 'Wallet',
+                'mpesa_stk' => 'M-Pesa STK',
+                'mpesa_paybill' => 'M-Pesa Paybill',
+                'bank_transfer' => 'Bank Transfer',
+                'cash' => 'Cash',
+                'manual_topup' => 'Manual Top-up'
+            ];
+            return $labels[$method] ?? ucfirst($method);
+        })->toArray();
+        
+        $values = $data->pluck('total')->toArray();
+        
+        return [
+            'labels' => $labels,
+            'values' => $values
+        ];
+    }
+
+    /**
+     * Get revenue vs expense data for line chart
+     */
+    private function getRevenueExpenseData($companyId, $interval = 'monthly')
+    {
+        // Get revenue
+        $revenue = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+            ->where('status', 'completed')
+            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as period'), DB::raw('SUM(amount) as total'))
+            ->where('created_at', '>=', now()->subMonths(12))
+            ->groupBy('period')
+            ->orderBy('period', 'asc')
+            ->get()
+            ->pluck('total', 'period')
+            ->toArray();
+        
+        // Get expenses
+        $expenses = Expense::where('company_id', $companyId)
+            ->select(DB::raw('DATE_FORMAT(expense_date, "%Y-%m") as period'), DB::raw('SUM(amount) as total'))
+            ->where('expense_date', '>=', now()->subMonths(12))
+            ->groupBy('period')
+            ->orderBy('period', 'asc')
+            ->get()
+            ->pluck('total', 'period')
+            ->toArray();
+        
+        $dates = [];
+        $revenueData = [];
+        $expenseData = [];
+        
+        for ($i = 11; $i >= 0; $i--) {
+            $period = Carbon::now()->subMonths($i)->format('Y-m');
+            $dates[] = Carbon::now()->subMonths($i)->format('M Y');
+            $revenueData[] = $revenue[$period] ?? 0;
+            $expenseData[] = $expenses[$period] ?? 0;
+        }
+        
+        return [
+            'dates' => $dates,
+            'revenue' => $revenueData,
+            'expenses' => $expenseData
+        ];
+    }
+
+    /**
+     * Get invoice status data for pie chart
+     */
+    private function getInvoiceStatusData($companyId)
+    {
+        $statuses = Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+            ->select('status', DB::raw('COUNT(*) as count'))
+            ->groupBy('status')
+            ->get()
+            ->pluck('count', 'status')
+            ->toArray();
+        
+        $allStatuses = ['paid' => 0, 'unpaid' => 0, 'partial' => 0, 'draft' => 0];
+        foreach ($statuses as $status => $count) {
+            if (isset($allStatuses[$status])) {
+                $allStatuses[$status] = $count;
+            }
+        }
+        
+        return [
+            'labels' => array_keys($allStatuses),
+            'values' => array_values($allStatuses)
+        ];
+    }
+
+
+    /**
+ * Get monthly revenue vs expenses for chart
+ */
+private function getMonthlyRevenueExpenseForCompany($companyId)
+{
+    $revenue = Payment::select(
+            DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'),
+            DB::raw('SUM(amount) as total')
+        )
+        ->whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+        ->where('status', 'completed')
+        ->whereYear('created_at', '>=', Carbon::now()->subYear()->year)
+        ->groupBy('month')
+        ->orderBy('month', 'asc')
+        ->get()
+        ->pluck('total', 'month')
+        ->toArray();
+    
+    $expenses = Expense::select(
+            DB::raw('DATE_FORMAT(expense_date, "%Y-%m") as month'),
+            DB::raw('SUM(amount) as total')
+        )
+        ->where('company_id', $companyId)
+        ->whereYear('expense_date', '>=', Carbon::now()->subYear()->year)
+        ->groupBy('month')
+        ->orderBy('month', 'asc')
+        ->get()
+        ->pluck('total', 'month')
+        ->toArray();
+    
+    $result = [];
+    for ($i = 11; $i >= 0; $i--) {
+        $month = Carbon::now()->subMonths($i)->format('Y-m');
+        $result[$month] = [
+            'revenue' => $revenue[$month] ?? 0,
+            'expense' => $expenses[$month] ?? 0
+        ];
+    }
+    return $result;
+}
+
+/**
+ * Get invoice status breakdown for pie chart
+ */
+private function getInvoiceStatusBreakdown($companyId)
+{
+    $statuses = Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+        ->select('status', DB::raw('COUNT(*) as count'))
+        ->groupBy('status')
+        ->get()
+        ->pluck('count', 'status')
+        ->toArray();
+    
+    // Ensure all statuses are present with 0 if missing
+    $allStatuses = ['paid' => 0, 'unpaid' => 0, 'partial' => 0, 'draft' => 0];
+    foreach ($statuses as $status => $count) {
+        if (isset($allStatuses[$status])) {
+            $allStatuses[$status] = $count;
+        }
+    }
+    
+    return $allStatuses;
+}
+
+/**
+ * Get performance metrics for radar chart
+ */
+private function getPerformanceMetrics($companyId)
+{
+    // Collection Rate
+    $collectionRate = $this->calculateCollectionRate($companyId);
+    
+    // Occupancy Rate
+    $occupancyRate = $this->calculateOccupancyRate($companyId);
+    
+    // On-time Payment Rate
+    $onTimePayments = $this->calculateOnTimePaymentRate($companyId);
+    
+    // Tenant Retention Rate
+    $tenantRetention = $this->calculateTenantRetentionRate($companyId);
+    
+    // Revenue Growth
+    $revenueGrowth = $this->calculateRevenueGrowth($companyId);
+    
+    return [
+        'Collection Rate' => round($collectionRate, 0),
+        'Occupancy Rate' => round($occupancyRate, 0),
+        'On-time Payments' => round($onTimePayments, 0),
+        'Tenant Retention' => round($tenantRetention, 0),
+        'Revenue Growth' => round($revenueGrowth, 0)
+    ];
+}
+
+/**
+ * Calculate on-time payment rate
+ */
+private function calculateOnTimePaymentRate($companyId)
+{
+    // Get all completed payments for this company with their invoices
+    $payments = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+        ->where('status', 'completed')
+        ->with('invoice')
+        ->get();
+    
+    if ($payments->isEmpty()) {
+        return 0;
+    }
+    
+    $onTimeCount = 0;
+    $totalCount = $payments->count();
+    
+    foreach ($payments as $payment) {
+        $invoice = $payment->invoice;
+        
+        // If no invoice or no billing month, count as on-time (can't determine)
+        if (!$invoice || !$invoice->billing_month) {
+            $onTimeCount++;
+            continue;
+        }
+        
+        // Billing month end (e.g., 2025-01-31)
+        $billingEnd = Carbon::parse($invoice->billing_month)->endOfMonth();
+        
+        // Grace period: 30 days after billing month end
+        $gracePeriodEnd = $billingEnd->copy()->addDays(30);
+        
+        // Payment is on-time if created before or on grace period end
+        if ($payment->created_at <= $gracePeriodEnd) {
+            $onTimeCount++;
+        }
+    }
+    
+    return $totalCount > 0 ? round(($onTimeCount / $totalCount) * 100, 1) : 0;
+}
+
+/**
+ * Calculate tenant retention rate
+ */
+private function calculateTenantRetentionRate($companyId)
+{
+    $tenants = Tenant::whereHas('user', fn($q) => $q->where('company_id', $companyId))
+        ->with(['tenancies' => function($q) {
+            $q->where('status', 'active');
+        }])
+        ->get();
+    
+    if ($tenants->isEmpty()) return 0;
+    
+    $total = $tenants->count();
+    $retained = 0;
+    $twelveMonthsAgo = Carbon::now()->subMonths(12);
+    
+    foreach ($tenants as $tenant) {
+        $hasLongTermTenancy = $tenant->tenancies->contains(function($tenancy) use ($twelveMonthsAgo) {
+            return $tenancy->move_in_date && Carbon::parse($tenancy->move_in_date) <= $twelveMonthsAgo;
+        });
+        
+        if ($hasLongTermTenancy) {
+            $retained++;
+        }
+    }
+    
+    return $total > 0 ? round(($retained / $total) * 100, 1) : 0;
+}
+
+/**
+ * Calculate revenue growth
+ */
+private function calculateRevenueGrowth($companyId)
+{
+    $currentMonth = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+        ->whereMonth('created_at', Carbon::now()->month)
+        ->whereYear('created_at', Carbon::now()->year)
+        ->sum('amount');
+    
+    $previousMonth = Payment::whereHas('invoice.tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+        ->whereMonth('created_at', Carbon::now()->subMonth()->month)
+        ->whereYear('created_at', Carbon::now()->subMonth()->year)
+        ->sum('amount');
+    
+    if ($previousMonth == 0) return $currentMonth > 0 ? 100 : 0;
+    return round((($currentMonth - $previousMonth) / $previousMonth) * 100, 1);
+}
+
+/**
+ * Get aging report data for chart
+ */
+private function getAgingReport($companyId)
+{
+    $now = Carbon::now();
+    $ranges = [
+        '0-30 Days' => [$now->copy()->subDays(30), $now],
+        '31-60 Days' => [$now->copy()->subDays(60), $now->copy()->subDays(31)],
+        '61-90 Days' => [$now->copy()->subDays(90), $now->copy()->subDays(61)],
+        '90+ Days' => [null, $now->copy()->subDays(91)]
+    ];
+    
+    $agingData = [];
+    
+    foreach ($ranges as $label => [$start, $end]) {
+        $query = Invoice::whereHas('tenancy.unit', fn($q) => $q->where('company_id', $companyId))
+            ->whereIn('status', ['unpaid', 'partial']);
+        
+        if ($start && $end) {
+            $query->whereBetween('billing_month', [$start, $end]);
+        } elseif ($end) {
+            $query->where('billing_month', '<=', $end);
+        }
+        
+        $agingData[$label] = (float) $query->sum('total_amount');
+    }
+    
+    return [
+        'labels' => array_keys($agingData),
+        'values' => array_values($agingData)
+    ];
+}
 }
