@@ -7,12 +7,19 @@ use App\Models\Estate;
 use App\Models\Unit;
 use App\Models\Tenancy;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Auth;
 
 class EstateController extends Controller
 {
     public function index()
     {
-        $estates = Estate::withCount('units')->get();
+        // Get the current authenticated user's company ID
+        $companyId = Auth::user()->company_id;
+        
+        // Scope estates by company_id
+        $estates = Estate::where('company_id', $companyId)
+                        ->withCount('units')
+                        ->get();
         
         // Prepare estates data for Alpine.js including utility fields
         $estatesData = $estates->map(function($estate) {
@@ -36,6 +43,9 @@ class EstateController extends Controller
 
     public function show(Estate $estate)
     {
+        // Ensure the estate belongs to the current user's company
+        $this->authorizeCompanyAccess($estate);
+        
         $estate->load(['units' => function($query) {
             $query->with(['tenancies' => function($q) {
                 $q->with('tenant')->where('status', 'active')->latest();
@@ -119,6 +129,9 @@ class EstateController extends Controller
             $validated['garbage_charge'] = $validated['garbage_charge'] ?? 0;
             $validated['security_charge'] = $validated['security_charge'] ?? 0;
 
+            // Add company_id from authenticated user
+            $validated['company_id'] = Auth::user()->company_id;
+
             $estate = Estate::create($validated);
 
             if ($request->wantsJson()) {
@@ -158,6 +171,9 @@ class EstateController extends Controller
     public function update(Request $request, Estate $estate)
     {
         try {
+            // Ensure the estate belongs to the current user's company
+            $this->authorizeCompanyAccess($estate);
+            
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'location' => 'nullable|string|max:255',
@@ -212,6 +228,9 @@ class EstateController extends Controller
     public function destroy(Estate $estate)
     {
         try {
+            // Ensure the estate belongs to the current user's company
+            $this->authorizeCompanyAccess($estate);
+            
             // Check if estate has units
             if ($estate->units()->count() > 0) {
                 if (request()->wantsJson()) {
@@ -254,6 +273,9 @@ class EstateController extends Controller
     public function bulkUpdateUtilities(Request $request, Estate $estate)
     {
         try {
+            // Ensure the estate belongs to the current user's company
+            $this->authorizeCompanyAccess($estate);
+            
             $validated = $request->validate([
                 'water_rate' => 'nullable|numeric|min:0',
                 'service_charge' => 'nullable|numeric|min:0',
@@ -327,6 +349,9 @@ class EstateController extends Controller
     public function getFinancialSummary(Estate $estate)
     {
         try {
+            // Ensure the estate belongs to the current user's company
+            $this->authorizeCompanyAccess($estate);
+            
             $summary = [
                 'total_units' => $estate->units()->count(),
                 'occupied_units' => $estate->units()->where('status', 'occupied')->count(),
@@ -357,6 +382,19 @@ class EstateController extends Controller
                 'success' => false,
                 'message' => 'Failed to get financial summary: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Helper method to check if an estate belongs to the current user's company
+     * 
+     * @param Estate $estate
+     * @throws \Illuminate\Auth\Access\AuthorizationException
+     */
+    private function authorizeCompanyAccess(Estate $estate)
+    {
+        if ($estate->company_id !== Auth::user()->company_id) {
+            abort(403, 'You do not have permission to access this estate.');
         }
     }
 }
