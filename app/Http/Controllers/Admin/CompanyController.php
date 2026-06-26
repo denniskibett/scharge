@@ -770,6 +770,7 @@ public function getCompanyExpenses($id)
                 'admin_user.password' => 'required_with:admin_user|string|min:8',
             ]);
             
+            // Create the company
             $company = Company::create([
                 'name' => $validated['name'],
                 'registration_number' => $validated['registration_number'] ?? null,
@@ -784,10 +785,17 @@ public function getCompanyExpenses($id)
                 'max_users' => $validated['max_users'] ?? null,
             ]);
             
+            // Log company creation
+            Log::info('Company created', ['company_id' => $company->id, 'name' => $company->name]);
+            
             $adminCredentials = null;
+            
+            // Create admin user if admin_user data is provided
             if ($request->has('admin_user') && !empty($request->admin_user['first_name'])) {
+                // Get or create admin role
                 $adminRole = Role::where('name', 'admin')->first();
                 if (!$adminRole) {
+                    Log::warning('Admin role not found, creating it...');
                     $adminRole = Role::create([
                         'name' => 'admin',
                         'display_name' => 'Administrator',
@@ -795,32 +803,73 @@ public function getCompanyExpenses($id)
                     ]);
                 }
                 
+                // Verify the role exists and has the correct ID
+                Log::info('Admin role found', ['role_id' => $adminRole->id, 'role_name' => $adminRole->name]);
+                
+                // Check if email already exists
+                $existingUser = User::where('email', $request->admin_user['email'])->first();
+                if ($existingUser) {
+                    throw new \Exception('User with email ' . $request->admin_user['email'] . ' already exists.');
+                }
+                
+                // Create the admin user
                 $user = User::create([
                     'first_name' => $request->admin_user['first_name'],
                     'last_name' => $request->admin_user['last_name'],
                     'name' => $request->admin_user['first_name'] . ' ' . $request->admin_user['last_name'],
                     'email' => $request->admin_user['email'],
                     'phone' => $request->admin_user['phone'] ?? null,
-                    'role_id' => $adminRole->id,
+                    'role_id' => $adminRole->id, // This will be 2 if admin role exists with ID 2
                     'company_id' => $company->id,
                     'password' => Hash::make($request->admin_user['password']),
                     'email_verified_at' => now(),
-                    'status' => 0,
+                    'status' => 0, // Active status (0 = active, 1 = inactive)
                 ]);
+                
+                // Log user creation
+                Log::info('Admin user created', [
+                    'user_id' => $user->id, 
+                    'email' => $user->email,
+                    'company_id' => $user->company_id,
+                    'role_id' => $user->role_id
+                ]);
+                
+                // Verify the user was created with the correct company_id
+                $verifiedUser = User::find($user->id);
+                Log::info('Verified user data', [
+                    'user_id' => $verifiedUser->id,
+                    'company_id' => $verifiedUser->company_id,
+                    'role_id' => $verifiedUser->role_id,
+                    'company_id_matches' => ($verifiedUser->company_id == $company->id)
+                ]);
+                
+                if ($verifiedUser->company_id != $company->id) {
+                    throw new \Exception('Failed to assign company to user. Expected company_id ' . $company->id . ' but got ' . $verifiedUser->company_id);
+                }
                 
                 $adminCredentials = [
                     'email' => $request->admin_user['email'],
                     'password' => $request->admin_user['password']
                 ];
+            } else {
+                Log::info('No admin user data provided, skipping user creation');
             }
             
             DB::commit();
             
+            // Reload company with counts
+            $company->loadCount('users');
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Company created successfully!',
-                'company' => $company->loadCount('users'),
-                'credentials' => $adminCredentials
+                'message' => 'Company created successfully!' . ($adminCredentials ? ' Admin user account has been created.' : ''),
+                'company' => $company,
+                'credentials' => $adminCredentials,
+                'debug' => [
+                    'company_id' => $company->id,
+                    'user_created' => $adminCredentials ? true : false,
+                    'role_id_used' => isset($adminRole) ? $adminRole->id : null,
+                ]
             ]);
             
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -831,7 +880,10 @@ public function getCompanyExpenses($id)
             ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Company creation failed: ' . $e->getMessage());
+            Log::error('Company creation failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
             
             return response()->json([
                 'success' => false,

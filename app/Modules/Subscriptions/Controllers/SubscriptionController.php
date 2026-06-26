@@ -520,7 +520,7 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Get available companies for invoice generation
+     * Get available companies for assigning to a plan
      * Route: GET /admin/subscriptions/api/plans/{plan}/available-companies
      */
     public function getAvailableCompanies($planId)
@@ -528,48 +528,48 @@ class SubscriptionController extends Controller
         try {
             $plan = SubscriptionPlan::findOrFail($planId);
             
-            // Get companies that are subscribed to this plan (active or trial)
-            $companies = CompanySubscription::where('plan_id', $planId)
-                ->whereIn('status', ['active', 'trial'])
-                ->with(['company'])
-                ->get()
-                ->map(function($subscription) use ($plan) {
-                    $company = $subscription->company;
-                    if (!$company) return null;
-                    
-                    // Get unit count for this company
-                    $unitCount = Unit::where('company_id', $company->id)
-                        ->whereIn('status', ['occupied', 'available'])
-                        ->count();
-                    
-                    // Get subscription details
-                    $subscriptionData = [
-                        'id' => $subscription->id,
-                        'billing_cycle' => $subscription->billing_cycle,
-                        'status' => $subscription->status,
-                        'unit_count' => $subscription->unit_count ?? $unitCount,
-                        'starts_at' => $subscription->starts_at,
-                        'ends_at' => $subscription->ends_at,
-                    ];
-                    
-                    return [
-                        'id' => $company->id,
-                        'name' => $company->name,
-                        'email' => $company->email,
-                        'phone' => $company->phone,
-                        'unit_count' => $unitCount,
-                        'subscription' => $subscriptionData,
-                    ];
-                })
-                ->filter()
-                ->values();
+            // Get all companies
+            $allCompanies = Company::all();
+            
+            // Get company IDs that have active or trial subscriptions (ANY plan)
+            $subscribedCompanyIds = CompanySubscription::whereIn('status', ['active', 'trial'])
+                ->pluck('company_id')
+                ->toArray();
+            
+            // Filter companies: ONLY those NOT in active/trial subscriptions
+            $availableCompanies = $allCompanies->filter(function($company) use ($subscribedCompanyIds) {
+                return !in_array($company->id, $subscribedCompanyIds);
+            })->values();
+            
+            // Format the data
+            $formattedCompanies = $availableCompanies->map(function($company) {
+                // Get unit count for this company
+                $unitCount = Unit::where('company_id', $company->id)
+                    ->whereIn('status', ['occupied', 'available'])
+                    ->count();
+                
+                return [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    'email' => $company->email,
+                    'phone' => $company->phone,
+                    'unit_count' => $unitCount,
+                    'status' => 'available',
+                ];
+            });
             
             return response()->json([
                 'success' => true,
-                'companies' => $companies,
+                'companies' => $formattedCompanies,
                 'price_per_unit' => (float) $plan->price_per_unit,
                 'plan_name' => $plan->name,
                 'plan_id' => $plan->id,
+                'debug' => [
+                    'total_companies' => $allCompanies->count(),
+                    'subscribed_count' => count($subscribedCompanyIds),
+                    'available_count' => $formattedCompanies->count(),
+                    'subscribed_ids' => $subscribedCompanyIds,
+                ]
             ]);
             
         } catch (\Exception $e) {
