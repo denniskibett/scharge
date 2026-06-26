@@ -274,7 +274,7 @@
             <!-- Staff Tab -->
             <div x-show="activeTab === 'staff'" x-cloak>
                 <div x-data="staffTable()" x-init="loadStaff()">
-                    @include('partials.table.table-users')
+                    @include('partials.table.table-company-staff')
                 </div>
             </div>
             

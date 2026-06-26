@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Models\Unit;
 use App\Models\County;
 use App\Models\Subcounty;
+use App\Models\Estate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -1122,245 +1123,245 @@ class SubscriptionController extends Controller
 
 
     /**
- * Get counties
- * Route: GET /admin/subscriptions/api/counties
- */
-public function getCounties()
-{
-    try {
-        $counties = County::orderBy('name')
-            ->get(['id', 'name']);
-        
-        return response()->json([
-            'success' => true,
-            'counties' => $counties
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('Error in getCounties: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading counties: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Get subcounties
- * Route: GET /admin/subscriptions/api/subcounties
- */
-public function getSubcounties()
-{
-    try {
-        $subcounties = Subcounty::with(['county'])
-            ->orderBy('name')
-            ->get(['id', 'name', 'county_id']);
-        
-        return response()->json([
-            'success' => true,
-            'subcounties' => $subcounties
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('Error in getSubcounties: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading subcounties: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Get subcounties by county
- * Route: GET /admin/subscriptions/api/subcounties/{countyId}
- */
-public function getSubcountiesByCounty($countyId)
-{
-    try {
-        $subcounties = Subcounty::where('county_id', $countyId)
-            ->orderBy('name')
-            ->get(['id', 'name', 'county_id']);
-        
-        return response()->json([
-            'success' => true,
-            'subcounties' => $subcounties
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('Error in getSubcountiesByCounty: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading subcounties: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Get estates
- * Route: GET /admin/subscriptions/api/estates
- */
-public function getEstates(Request $request)
-{
-    try {
-        $query = Estate::with(['subcounty.county'])
-            ->orderBy('name');
-        
-        // Filter by subcounty if provided
-        if ($request->has('subcounty_id') && $request->subcounty_id) {
-            $query->where('subcounty_id', $request->subcounty_id);
-        }
-        
-        $estates = $query->get(['id', 'name', 'subcounty_id']);
-        
-        return response()->json([
-            'success' => true,
-            'estates' => $estates
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('Error in getEstates: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading estates: ' . $e->getMessage()
-        ], 500);
-    }
-}
-
-/**
- * Get account manager
- * Route: GET /admin/subscriptions/api/managers/{manager}
- */
-public function getManager($id)
-{
-    try {
-        $manager = AccountManager::with(['user', 'subcounty.county'])
-            ->findOrFail($id);
-        
-        return response()->json([
-            'success' => true,
-            'id' => $manager->id,
-            'user_id' => $manager->user_id,
-            'subcounty_id' => $manager->subcounty_id,
-            'title' => $manager->title,
-            'is_primary' => (bool) $manager->is_primary,
-            'is_active' => (bool) $manager->is_active,
-            'user_name' => $manager->user?->name,
-            'user_email' => $manager->user?->email,
-            'subcounty_name' => $manager->subcounty?->name,
-            'county_id' => $manager->subcounty?->county_id,
-            'county_name' => $manager->subcounty?->county?->name,
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('Error in getManager: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Error loading manager: ' . $e->getMessage()
-        ], 404);
-    }
-}
-
-/**
- * Assign account manager to plan with county/subcounty
- * Route: POST /admin/subscriptions/plans/{plan}/managers
- */
-public function assignManager(Request $request, $planId)
-{
-    try {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'subcounty_id' => 'required|exists:subcounties,id',
-            'title' => 'nullable|string|max:255',
-            'is_primary' => 'boolean',
-            'is_active' => 'boolean',
-        ]);
-        
-        $plan = SubscriptionPlan::findOrFail($planId);
-        
-        // Get user details
-        $user = User::findOrFail($request->input('user_id'));
-        
-        // Check if user already has a manager record
-        $existingManager = AccountManager::where('user_id', $user->id)->first();
-        
-        if ($existingManager) {
-            // Update existing manager
-            $existingManager->update([
-                'subcounty_id' => $request->input('subcounty_id'),
-                'title' => $request->input('title', 'Account Manager'),
-                'is_primary' => $request->input('is_primary', false),
-                'is_active' => $request->input('is_active', true),
+     * Get counties
+     * Route: GET /admin/subscriptions/api/counties
+     */
+    public function getCounties()
+    {
+        try {
+            $counties = County::orderBy('name')
+                ->get(['id', 'name']);
+            
+            return response()->json([
+                'success' => true,
+                'counties' => $counties
             ]);
-            $manager = $existingManager;
-        } else {
-            // Create new account manager
-            $manager = AccountManager::create([
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getCounties: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading counties: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get subcounties
+     * Route: GET /admin/subscriptions/api/subcounties
+     */
+    public function getSubcounties()
+    {
+        try {
+            $subcounties = Subcounty::with(['county'])
+                ->orderBy('name')
+                ->get(['id', 'name', 'county_id']);
+            
+            return response()->json([
+                'success' => true,
+                'subcounties' => $subcounties
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getSubcounties: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading subcounties: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get subcounties by county
+     * Route: GET /admin/subscriptions/api/subcounties/{countyId}
+     */
+    public function getSubcountiesByCounty($countyId)
+    {
+        try {
+            $subcounties = Subcounty::where('county_id', $countyId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'county_id']);
+            
+            return response()->json([
+                'success' => true,
+                'subcounties' => $subcounties
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getSubcountiesByCounty: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading subcounties: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get estates
+     * Route: GET /admin/subscriptions/api/estates
+     */
+    public function getEstates(Request $request)
+    {
+        try {
+            $query = Estate::with(['subcounty.county'])
+                ->orderBy('name');
+            
+            // Filter by subcounty if provided
+            if ($request->has('subcounty_id') && $request->subcounty_id) {
+                $query->where('subcounty_id', $request->subcounty_id);
+            }
+            
+            $estates = $query->get(['id', 'name', 'subcounty_id']);
+            
+            return response()->json([
+                'success' => true,
+                'estates' => $estates
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getEstates: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading estates: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get account manager
+     * Route: GET /admin/subscriptions/api/managers/{manager}
+     */
+    public function getManager($id)
+    {
+        try {
+            $manager = AccountManager::with(['user', 'subcounty.county'])
+                ->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'id' => $manager->id,
+                'user_id' => $manager->user_id,
+                'subcounty_id' => $manager->subcounty_id,
+                'title' => $manager->title,
+                'is_primary' => (bool) $manager->is_primary,
+                'is_active' => (bool) $manager->is_active,
+                'user_name' => $manager->user?->name,
+                'user_email' => $manager->user?->email,
+                'subcounty_name' => $manager->subcounty?->name,
+                'county_id' => $manager->subcounty?->county_id,
+                'county_name' => $manager->subcounty?->county?->name,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getManager: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading manager: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
+     * Assign account manager to plan with county/subcounty
+     * Route: POST /admin/subscriptions/plans/{plan}/managers
+     */
+    public function assignManager(Request $request, $planId)
+    {
+        try {
+            $request->validate([
+                'user_id' => 'required|exists:users,id',
+                'subcounty_id' => 'required|exists:subcounties,id',
+                'title' => 'nullable|string|max:255',
+                'is_primary' => 'boolean',
+                'is_active' => 'boolean',
+            ]);
+            
+            $plan = SubscriptionPlan::findOrFail($planId);
+            
+            // Get user details
+            $user = User::findOrFail($request->input('user_id'));
+            
+            // Check if user already has a manager record
+            $existingManager = AccountManager::where('user_id', $user->id)->first();
+            
+            if ($existingManager) {
+                // Update existing manager
+                $existingManager->update([
+                    'subcounty_id' => $request->input('subcounty_id'),
+                    'title' => $request->input('title', 'Account Manager'),
+                    'is_primary' => $request->input('is_primary', false),
+                    'is_active' => $request->input('is_active', true),
+                ]);
+                $manager = $existingManager;
+            } else {
+                // Create new account manager
+                $manager = AccountManager::create([
+                    'user_id' => $user->id,
+                    'subcounty_id' => $request->input('subcounty_id'),
+                    'title' => $request->input('title', 'Account Manager'),
+                    'is_primary' => $request->input('is_primary', false),
+                    'is_active' => $request->input('is_active', true),
+                ]);
+            }
+            
+            // Add manager to plan features
+            $features = $plan->features;
+            if (is_string($features)) {
+                $features = json_decode($features, true) ?? [];
+            }
+            if (!is_array($features)) {
+                $features = [];
+            }
+            
+            if (!isset($features['account_managers']) || !is_array($features['account_managers'])) {
+                $features['account_managers'] = [];
+            }
+            
+            if (!in_array($manager->id, $features['account_managers'])) {
+                $features['account_managers'][] = $manager->id;
+            }
+            
+            // Store the subcounty mapping
+            if (!isset($features['manager_mappings']) || !is_array($features['manager_mappings'])) {
+                $features['manager_mappings'] = [];
+            }
+            
+            $features['manager_mappings'][$manager->id] = [
+                'subcounty_id' => $request->input('subcounty_id'),
                 'user_id' => $user->id,
-                'subcounty_id' => $request->input('subcounty_id'),
-                'title' => $request->input('title', 'Account Manager'),
-                'is_primary' => $request->input('is_primary', false),
-                'is_active' => $request->input('is_active', true),
+                'user_name' => $user->name,
+                'user_email' => $user->email,
+                'assigned_at' => now()->toIso8601String(),
+            ];
+            
+            $plan->update([
+                'features' => json_encode($features),
             ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Account manager assigned successfully',
+                'manager' => $manager,
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in assignManager: ' . $e->getMessage(), [
+                'plan_id' => $planId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error assigning manager: ' . $e->getMessage()
+            ], 500);
         }
-        
-        // Add manager to plan features
-        $features = $plan->features;
-        if (is_string($features)) {
-            $features = json_decode($features, true) ?? [];
-        }
-        if (!is_array($features)) {
-            $features = [];
-        }
-        
-        if (!isset($features['account_managers']) || !is_array($features['account_managers'])) {
-            $features['account_managers'] = [];
-        }
-        
-        if (!in_array($manager->id, $features['account_managers'])) {
-            $features['account_managers'][] = $manager->id;
-        }
-        
-        // Store the subcounty mapping
-        if (!isset($features['manager_mappings']) || !is_array($features['manager_mappings'])) {
-            $features['manager_mappings'] = [];
-        }
-        
-        $features['manager_mappings'][$manager->id] = [
-            'subcounty_id' => $request->input('subcounty_id'),
-            'user_id' => $user->id,
-            'user_name' => $user->name,
-            'user_email' => $user->email,
-            'assigned_at' => now()->toIso8601String(),
-        ];
-        
-        $plan->update([
-            'features' => json_encode($features),
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Account manager assigned successfully',
-            'manager' => $manager,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ]
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('Error in assignManager: ' . $e->getMessage(), [
-            'plan_id' => $planId,
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Error assigning manager: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     /**
      * Update account manager
@@ -1464,6 +1465,112 @@ public function assignManager(Request $request, $planId)
             return response()->json([
                 'success' => false,
                 'message' => 'Error removing manager: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get company subscription invoices
+     * Route: GET /admin/companies/{company}/subscription-invoices
+     */
+    public function getCompanySubscriptionInvoices($companyId)
+    {
+        try {
+            $company = Company::findOrFail($companyId);
+            
+            $invoices = SubscriptionInvoice::whereHas('subscription', function($q) use ($company) {
+                $q->where('company_id', $company->id);
+            })
+            ->with(['subscription.plan'])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($invoice) {
+                return [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number ?? '#'.$invoice->id,
+                    'company_name' => $invoice->subscription?->company?->name ?? 'N/A',
+                    'plan_name' => $invoice->subscription?->plan?->name ?? 'N/A',
+                    'amount' => (float) $invoice->amount,
+                    'status' => $invoice->status ?? 'pending',
+                    'due_date' => $invoice->due_date ? $invoice->due_date->toISOString() : null,
+                    'created_at' => $invoice->created_at ? $invoice->created_at->toISOString() : null,
+                ];
+            });
+            
+            $totalAmount = $invoices->sum('amount');
+            
+            return response()->json([
+                'success' => true,
+                'invoices' => $invoices,
+                'total_amount' => (float) $totalAmount,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getCompanySubscriptionInvoices: ' . $e->getMessage(), [
+                'company_id' => $companyId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading subscription invoices: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get company subscriptions (active and trial only)
+     * Route: GET /admin/companies/{company}/subscriptions
+     */
+    public function getCompanySubscriptionsForCompany($companyId)
+    {
+        try {
+            $company = Company::findOrFail($companyId);
+            
+            $subscriptions = CompanySubscription::where('company_id', $company->id)
+                ->whereIn('status', ['active', 'trial'])
+                ->with(['plan'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(function($subscription) {
+                    $amount = 0;
+                    if ($subscription->plan) {
+                        if ($subscription->billing_cycle === 'monthly') {
+                            $amount = (float) ($subscription->plan->price_monthly ?? 0);
+                        } else {
+                            $amount = (float) ($subscription->plan->price_yearly ?? 0);
+                        }
+                    }
+                    
+                    return [
+                        'id' => $subscription->id,
+                        'plan_name' => $subscription->plan->name ?? 'N/A',
+                        'billing_cycle' => $subscription->billing_cycle ?? 'monthly',
+                        'starts_at' => $subscription->starts_at ? $subscription->starts_at->toISOString() : null,
+                        'ends_at' => $subscription->ends_at ? $subscription->ends_at->toISOString() : null,
+                        'status' => $subscription->status ?? 'inactive',
+                        'amount' => $amount,
+                        'unit_count' => $subscription->unit_count ?? 0,
+                        'auto_renew' => $subscription->auto_renew ?? false,
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'subscriptions' => $subscriptions,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Error in getCompanySubscriptionsForCompany: ' . $e->getMessage(), [
+                'company_id' => $companyId,
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error loading subscriptions: ' . $e->getMessage()
             ], 500);
         }
     }
