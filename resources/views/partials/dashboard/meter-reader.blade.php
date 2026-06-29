@@ -54,12 +54,13 @@
 
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 md:gap-6 mb-6">
+            <!-- Pending Readings - FIXED: use pendingCount or pendingReadings -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::now()->format('F Y') }} Pending</span>
                         <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            {{ $roleData['unitsNeedingReading']->count() ?? 0 }}
+                            {{ $roleData['pendingCount'] ?? $roleData['pendingReadings']->count() ?? 0 }}
                         </h4>
                     </div>
                     <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 dark:bg-red-500/15">
@@ -70,12 +71,13 @@
                 </div>
             </div>
 
+            <!-- This Month Readings -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::now()->format('F Y') }} Readings</span>
                         <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            {{ $roleData['currentMonthReadings']->count() ?? 0 }}
+                            {{ $roleData['thisMonthReadings'] ?? $roleData['currentMonthReadings']->count() ?? 0 }}
                         </h4>
                     </div>
                     <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-500/15">
@@ -86,6 +88,7 @@
                 </div>
             </div>
 
+            <!-- Total Consumption -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
@@ -102,6 +105,7 @@
                 </div>
             </div>
 
+            <!-- Total Readings -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6">
                 <div class="flex items-center justify-between">
                     <div>
@@ -128,15 +132,15 @@
                     <div class="flex flex-wrap gap-2">
                         <!-- Pending Readings Tab -->
                         <button @click="activeTab = 'pending'" :class="activeTab === 'pending' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            {{ \Carbon\Carbon::now()->format('F Y') }} Pending ({{ $roleData['unitsNeedingReading']->count() ?? 0 }})
+                            {{ \Carbon\Carbon::now()->format('F Y') }} Pending ({{ $roleData['pendingCount'] ?? $roleData['pendingReadings']->count() ?? 0 }})
                         </button>
                         
                         <!-- Current Month Readings Tab -->
                         <button @click="activeTab = 'current'" :class="activeTab === 'current' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
-                            {{ \Carbon\Carbon::now()->format('F Y') }} Readings ({{ $roleData['currentMonthReadings']->count() ?? 0 }})
+                            {{ \Carbon\Carbon::now()->format('F Y') }} Readings ({{ $roleData['thisMonthReadings'] ?? $roleData['currentMonthReadings']->count() ?? 0 }})
                         </button>
                         
-                        <!-- Reading History Tab with Date Range -->
+                        <!-- Reading History Tab -->
                         <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                             Reading History ({{ $roleData['firstReadingDate'] ?? 'N/A' }} - {{ $roleData['lastReadingDate'] ?? 'N/A' }}) ({{ $roleData['unitsWithHistory']->count() ?? 0 }})
                         </button>
@@ -144,34 +148,36 @@
                 </div>
                 
                 <div class="p-5">
-                    <!-- Pending Readings Tab - Uses table-readings with showActions=true -->
+                    <!-- Pending Readings Tab -->
                     <div x-show="activeTab === 'pending'">
                         @include('partials.table.table-readings', [
-                            'readings' => $roleData['unitsNeedingReading'] ?? [],
+                            'readings' => $roleData['pendingReadings'] ?? [],
                             'showActions' => true,
                             'showConsumption' => false,
-                            'units' => $roleData['units'] ?? []
+                            'units' => $roleData['units'] ?? [],
+                            'estates' => $roleData['estates'] ?? []
                         ])
                     </div>
                     
-                    <!-- Current Month Readings Tab - Uses table-readings with showActions=true -->
+                    <!-- Current Month Readings Tab -->
                     <div x-show="activeTab === 'current'">
                         @include('partials.table.table-readings', [
                             'readings' => $roleData['currentMonthReadings'] ?? [],
                             'showActions' => true,
                             'showConsumption' => true,
-                            'units' => $roleData['units'] ?? []
+                            'units' => $roleData['units'] ?? [],
+                            'estates' => $roleData['estates'] ?? []
                         ])
                     </div>
                     
-                    <!-- Reading History Tab - Shows units with total consumption sum -->
-                    <!-- Reading History Tab - Now uses table-readings -->
+                    <!-- Reading History Tab -->
                     <div x-show="activeTab === 'history'">
                         @include('partials.table.table-readings', [
-                            'readings' => $roleData['historyReadings'] ?? [],
+                            'readings' => $roleData['unitsWithHistory'] ?? [],
                             'showActions' => false,
                             'showConsumption' => true,
-                            'units' => $roleData['units'] ?? []
+                            'units' => $roleData['units'] ?? [],
+                            'estates' => $roleData['estates'] ?? []
                         ])
                     </div>
                 </div>
@@ -188,8 +194,8 @@ function meterReaderDashboard() {
         
         init() {
             console.log('Meter Reader Dashboard loaded');
-            console.log('Units needing reading:', {{ $roleData['unitsNeedingReading']->count() ?? 0 }});
-            console.log('Current month readings:', {{ $roleData['currentMonthReadings']->count() ?? 0 }});
+            console.log('Pending readings:', {{ $roleData['pendingCount'] ?? $roleData['pendingReadings']->count() ?? 0 }});
+            console.log('Current month readings:', {{ $roleData['thisMonthReadings'] ?? $roleData['currentMonthReadings']->count() ?? 0 }});
             console.log('Units with history:', {{ $roleData['unitsWithHistory']->count() ?? 0 }});
         }
     };

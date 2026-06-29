@@ -1150,6 +1150,7 @@ public function storeBulkMatrix(Request $request)
     /**
      * Auto-fill missing months for a unit
      * Takes the last reading and propagates it forward to fill gaps
+     * Each month gets the same reading value, with previous = last month's reading
      */
     public function autoFillMissingMonths(Request $request, Unit $unit)
     {
@@ -1166,7 +1167,10 @@ public function storeBulkMatrix(Request $request)
             $existingReadings = WaterReading::where('unit_id', $unit->id)
                 ->whereBetween('reading_date', [$startDate, $endDate])
                 ->orderBy('reading_date', 'asc')
-                ->get();
+                ->get()
+                ->keyBy(function($reading) {
+                    return $reading->reading_date->format('Y-m');
+                });
             
             // Get the reading before the start date
             $lastReading = WaterReading::where('unit_id', $unit->id)
@@ -1174,34 +1178,50 @@ public function storeBulkMatrix(Request $request)
                 ->orderBy('reading_date', 'desc')
                 ->first();
             
-            $currentReading = $lastReading ? $lastReading->current_reading : ($unit->current_water_reading ?? 0);
+            // Get the initial reading value (current reading from the last reading before start)
+            // This will be used as the current reading for all auto-filled months
+            $initialReadingValue = $lastReading 
+                ? $lastReading->current_reading 
+                : ($unit->current_water_reading ?? 0);
+            
             $createdCount = 0;
+            $updatedCount = 0;
+            $skippedCount = 0;
             
             DB::beginTransaction();
+            
+            // Keep track of the previous reading value as we iterate
+            $previousReadingValue = $initialReadingValue;
+            $currentReadingValue = $initialReadingValue;
+            $lastCreatedReading = null;
             
             // Generate readings for each month in the range
             $currentMonth = $startDate->copy();
             while ($currentMonth <= $endDate) {
-                // Check if reading exists for this month
-                $exists = $existingReadings->contains(function($reading) use ($currentMonth) {
-                    return $reading->reading_date->format('Y-m') === $currentMonth->format('Y-m');
-                });
+                $monthKey = $currentMonth->format('Y-m');
                 
-                if (!$exists) {
-                    // Use the same reading value (no consumption)
-                    $previousReading = $currentReading;
-                    
-                    // Calculate consumption (should be 0 since we're copying)
+                // Check if reading exists for this month
+                if ($existingReadings->has($monthKey)) {
+                    // Reading exists - use its current reading as the base for next month
+                    $existingReading = $existingReadings->get($monthKey);
+                    $previousReadingValue = $existingReading->previous_reading;
+                    $currentReadingValue = $existingReading->current_reading;
+                    $lastCreatedReading = $existingReading;
+                    $skippedCount++;
+                } else {
+                    // No reading exists - create one
+                    // previous_reading = last month's current reading
+                    // current_reading = same as previous (no consumption)
                     $consumption = 0;
                     $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
                     $charge = $unit->water_billing_type === 'flat' 
                         ? ($unit->water_charge ?? 0) 
                         : 0;
                     
-                    WaterReading::create([
+                    $newReading = WaterReading::create([
                         'unit_id' => $unit->id,
-                        'previous_reading' => $previousReading,
-                        'current_reading' => $currentReading,
+                        'previous_reading' => $previousReadingValue,
+                        'current_reading' => $previousReadingValue, // Same as previous (no consumption)
                         'consumption' => $consumption,
                         'rate_applied' => $rate,
                         'charge' => $charge,
@@ -1211,31 +1231,100 @@ public function storeBulkMatrix(Request $request)
                         'notes' => 'Auto-filled missing month',
                     ]);
                     
+                    $lastCreatedReading = $newReading;
+                    $currentReadingValue = $previousReadingValue; // Current reading stays the same
                     $createdCount++;
+                }
+                
+                // Prepare the previous reading for the next month
+                // The previous reading for next month should be this month's current reading
+                if ($lastCreatedReading) {
+                    $previousReadingValue = $lastCreatedReading->current_reading;
                 }
                 
                 $currentMonth->addMonth();
             }
+            
+            // CRITICAL: After auto-filling, we need to check if there are any readings
+            // AFTER the end date that need to have their previous_reading updated
+            $this->updateSubsequentReadings($unit, $endDate, $lastCreatedReading);
             
             // Update the unit with latest readings
             $this->updateUnitWithLatestReadings($unit);
             
             DB::commit();
             
+            $message = "Auto-filled {$createdCount} missing month(s) for unit {$unit->unit_number}.";
+            if ($skippedCount > 0) {
+                $message .= " {$skippedCount} month(s) already had readings.";
+            }
+            if ($updatedCount > 0) {
+                $message .= " {$updatedCount} subsequent reading(s) were updated.";
+            }
+            
             return response()->json([
                 'success' => true,
-                'message' => "Auto-filled {$createdCount} missing month(s) for unit {$unit->unit_number}",
-                'created_count' => $createdCount
+                'message' => $message,
+                'created_count' => $createdCount,
+                'skipped_count' => $skippedCount,
+                'updated_count' => $updatedCount,
             ]);
             
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Auto-fill error: ' . $e->getMessage());
+            \Log::error('Auto-fill error: ' . $e->getMessage(), [
+                'unit_id' => $unit->id,
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error auto-filling months: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Update subsequent readings after auto-fill
+     * This ensures that readings after the auto-filled period have correct previous_reading values
+     */
+    private function updateSubsequentReadings(Unit $unit, Carbon $endDate, $lastCreatedReading)
+    {
+        if (!$lastCreatedReading) {
+            return;
+        }
+        
+        // Get all readings after the end date, ordered by date
+        $subsequentReadings = WaterReading::where('unit_id', $unit->id)
+            ->where('reading_date', '>', $endDate)
+            ->orderBy('reading_date', 'asc')
+            ->get();
+        
+        if ($subsequentReadings->isEmpty()) {
+            return;
+        }
+        
+        $previousReading = $lastCreatedReading->current_reading;
+        
+        foreach ($subsequentReadings as $reading) {
+            // Update the previous_reading to be the last known value
+            $reading->previous_reading = $previousReading;
+            
+            // Recalculate consumption and charge
+            $consumption = max(0, $reading->current_reading - $previousReading);
+            $reading->consumption = $consumption;
+            
+            if ($unit->water_billing_type !== 'flat') {
+                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $reading->charge = $consumption * $rate;
+            } else {
+                $reading->charge = $unit->water_charge ?? 0;
+            }
+            
+            $reading->save();
+            
+            // Update previous reading for the next iteration
+            $previousReading = $reading->current_reading;
         }
     }
 
