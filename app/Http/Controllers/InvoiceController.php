@@ -617,7 +617,7 @@ class InvoiceController extends Controller
                 'items' => 'required|array|min:1',
                 'items.*.description' => 'required|string|max:255',
                 'items.*.item_type' => 'required|in:rent,water,service,garbage,security,other',
-                'items.*.amount' => 'required|numeric|min:0.01',
+                'items.*.amount' => 'required|numeric|min:0',
             ]);
 
             if ($tenancy->status !== 'active') {
@@ -669,17 +669,32 @@ class InvoiceController extends Controller
                     $waterData = $this->getWaterReadingForMonth($unit, $billingMonthDate);
                     
                     if ($waterData) {
-                        $itemData['amount'] = $waterData['charge'];
-                        $itemData['water_units_used'] = $waterData['consumption'];
-                        $itemData['description'] = $waterData['description'];
-                        $amount = $waterData['charge'];
+                        // Check if consumption is 0
+                        if ($waterData['consumption'] == 0 && $unit->water_billing_type !== 'flat') {
+                            // Zero consumption - set amount to 0 but keep the item
+                            $itemData['amount'] = 0;
+                            $itemData['water_units_used'] = 0;
+                            $itemData['description'] = sprintf(
+                                "Water Charge - %s (Previous: %.2f m³, Current: %.2f m³, Consumption: 0.00 m³ - No consumption) [Billed for %s]",
+                                $unit->water_billing_type === 'flat' ? 'Flat Rate' : $waterData['reading_date'],
+                                $unit->previous_water_reading ?? 0,
+                                $unit->current_water_reading ?? 0,
+                                $billingMonthDate->format('M Y')
+                            );
+                            $waterWarnings[] = "Zero water consumption for {$billingMonthDate->format('F Y')}. Water charge set to 0.";
+                        } else {
+                            $itemData['amount'] = $waterData['charge'];
+                            $itemData['water_units_used'] = $waterData['consumption'];
+                            $itemData['description'] = $waterData['description'];
+                            $amount = $waterData['charge'];
+                        }
                     } else {
                         $waterWarnings[] = "No water reading found for {$billingMonthDate->format('F Y')}. Water charge entered manually.";
                         $itemData['water_units_used'] = 0;
                     }
                 }
                 
-                $totalAmount += $amount;
+                $totalAmount += $itemData['amount'];
                 $processedItems[] = $itemData;
             }
 
@@ -1775,208 +1790,226 @@ class InvoiceController extends Controller
         }
     }
 
-/**
- * Bulk reconcile water charges for all invoices in a month
- */
-public function bulkReconcileWaterCharges(Request $request)
-{
-    try {
-        $validated = $request->validate([
-            'billing_month' => 'required|date_format:Y-m',
-            'estate_id' => 'nullable|exists:estates,id',
-            'invoice_ids' => 'nullable|array',
-            'invoice_ids.*' => 'exists:invoices,id',
-        ]);
-        
-        $billingMonth = Carbon::parse($validated['billing_month'] . '-01');
-        $results = [];
-        $updated = 0;
-        $noReading = 0;
-        $alreadyCorrect = 0;
-        
-        $query = Invoice::with(['tenancy.unit', 'items'])
-            ->where('billing_month', $billingMonth->format('Y-m') . '-01')
-            ->where('invoice_type', 'monthly')
-            ->where('status', '!=', 'paid');
-        
-        if (isset($validated['estate_id']) && !empty($validated['estate_id'])) {
-            $query->whereHas('tenancy.unit', function($q) use ($validated) {
-                $q->where('estate_id', $validated['estate_id']);
-            });
-        }
-        
-        if (isset($validated['invoice_ids']) && !empty($validated['invoice_ids'])) {
-            $query->whereIn('id', $validated['invoice_ids']);
-        }
-        
-        $invoices = $query->get();
-        
-        DB::beginTransaction();
-        
-        foreach ($invoices as $invoice) {
-            $unit = $invoice->tenancy->unit;
-            $waterItem = $invoice->items()->where('item_type', 'water')->first();
+    /**
+     * Bulk reconcile water charges for all invoices in a month
+     */
+    public function bulkReconcileWaterCharges(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'billing_month' => 'required|date_format:Y-m',
+                'estate_id' => 'nullable|exists:estates,id',
+                'invoice_ids' => 'nullable|array',
+                'invoice_ids.*' => 'exists:invoices,id',
+            ]);
             
-            if (!$waterItem) {
-                continue;
+            $billingMonth = Carbon::parse($validated['billing_month'] . '-01');
+            $results = [];
+            $updated = 0;
+            $noReading = 0;
+            $alreadyCorrect = 0;
+            $zeroConsumption = 0;
+            $skippedInvoices = [];
+            
+            $query = Invoice::with(['tenancy.unit', 'items'])
+                ->where('billing_month', $billingMonth->format('Y-m') . '-01')
+                ->where('invoice_type', 'monthly')
+                ->where('status', '!=', 'paid');
+            
+            if (isset($validated['estate_id']) && !empty($validated['estate_id'])) {
+                $query->whereHas('tenancy.unit', function($q) use ($validated) {
+                    $q->where('estate_id', $validated['estate_id']);
+                });
             }
             
-            // CRITICAL: For billing_month = June, we need the MAY reading
-            $previousMonth = $billingMonth->copy()->subMonth();
-            
-            // Get the reading from the previous month
-            $reading = WaterReading::where('unit_id', $unit->id)
-                ->whereYear('reading_date', $previousMonth->year)
-                ->whereMonth('reading_date', $previousMonth->month)
-                ->first();
-            
-            // If no reading for previous month, try to find the closest reading before the billing month
-            if (!$reading) {
-                $reading = WaterReading::where('unit_id', $unit->id)
-                    ->where('reading_date', '<', $billingMonth->copy()->startOfMonth())
-                    ->orderBy('reading_date', 'desc')
-                    ->first();
+            if (isset($validated['invoice_ids']) && !empty($validated['invoice_ids'])) {
+                $query->whereIn('id', $validated['invoice_ids']);
             }
             
-            if ($reading) {
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                $previousReading = (float) $reading->previous_reading;
-                $currentReading = (float) $reading->current_reading;
-                $consumption = $reading->consumption ?: max(0, $currentReading - $previousReading);
+            $invoices = $query->get();
+            
+            DB::beginTransaction();
+            
+            foreach ($invoices as $invoice) {
+                $unit = $invoice->tenancy->unit;
+                $waterItem = $invoice->items()->where('item_type', 'water')->first();
                 
-                // Calculate charge based on billing type
-                if ($unit->water_billing_type === 'flat') {
-                    $calculatedCharge = (float) ($unit->water_charge ?? 0);
-                    $consumption = 0;
-                } else {
-                    $calculatedCharge = $consumption * $rate;
+                // If no water item, skip
+                if (!$waterItem) {
+                    continue;
                 }
                 
-                // Create a detailed description
-                $readingMonth = $reading->reading_date->format('M Y');
-                $description = sprintf(
-                    "Water Charge - %s (Previous: %.2f m³, Current: %.2f m³, Consumption: %.2f m³ @ KES %.2f/m³) [Billed for %s]",
-                    $readingMonth,
-                    $previousReading,
-                    $currentReading,
-                    $consumption,
-                    $rate,
-                    $billingMonth->format('M Y')
-                );
+                // CRITICAL: For billing_month = June, we need the MAY reading
+                $previousMonth = $billingMonth->copy()->subMonth();
                 
-                // Check if the charge matches
-                if (abs($waterItem->amount - $calculatedCharge) > 0.01) {
-                    $oldAmount = $waterItem->amount;
+                // Get the reading from the previous month
+                $reading = WaterReading::where('unit_id', $unit->id)
+                    ->whereYear('reading_date', $previousMonth->year)
+                    ->whereMonth('reading_date', $previousMonth->month)
+                    ->first();
+                
+                // If no reading for previous month, try to find the closest reading before the billing month
+                if (!$reading) {
+                    $reading = WaterReading::where('unit_id', $unit->id)
+                        ->where('reading_date', '<', $billingMonth->copy()->startOfMonth())
+                        ->orderBy('reading_date', 'desc')
+                        ->first();
+                }
+                
+                if ($reading) {
+                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                    $previousReading = (float) $reading->previous_reading;
+                    $currentReading = (float) $reading->current_reading;
+                    $consumption = $reading->consumption ?: max(0, $currentReading - $previousReading);
                     
-                    // Update the water item
-                    $waterItem->update([
-                        'amount' => $calculatedCharge,
-                        'water_units_used' => $consumption,
-                        'description' => $description,
-                    ]);
-                    
-                    // CRITICAL: Recalculate invoice total from ALL items
-                    $newTotal = $invoice->items()->sum('amount');
-                    
-                    // Update the invoice with the new total
-                    $invoice->total_amount = $newTotal;
-                    $invoice->save(); // This should persist the change
-                    
-                    // Also update the total_paid if it exceeds the new total
-                    if ($invoice->total_paid > $newTotal) {
-                        $invoice->total_paid = $newTotal;
-                        $invoice->save();
+                    // Calculate charge based on billing type
+                    if ($unit->water_billing_type === 'flat') {
+                        $calculatedCharge = (float) ($unit->water_charge ?? 0);
+                        $consumption = 0;
+                    } else {
+                        $calculatedCharge = $consumption * $rate;
                     }
                     
-                    $results[] = [
-                        'invoice_id' => $invoice->id,
-                        'unit_number' => $unit->unit_number,
-                        'status' => 'updated',
-                        'old_charge' => $oldAmount,
-                        'new_charge' => $calculatedCharge,
-                        'consumption' => $consumption,
-                        'previous_reading' => $previousReading,
-                        'current_reading' => $currentReading,
-                        'rate' => $rate,
-                        'reading_date' => $reading->reading_date->format('Y-m-d'),
-                        'billing_month' => $billingMonth->format('Y-m'),
-                        'old_total' => $invoice->getOriginal('total_amount'), // Get old total before update
-                        'new_total' => $newTotal,
-                        'description' => $description,
-                    ];
-                    $updated++;
-                } else {
-                    // Already correct, but ensure description is updated
-                    $currentDescription = $waterItem->description ?? '';
-                    if (strpos($currentDescription, 'Previous:') === false) {
+                    // CHECK: If consumption is 0, we should handle it specially
+                    if ($consumption == 0 && $unit->water_billing_type !== 'flat') {
+                        $zeroConsumption++;
+                        
+                        // Option 1: Keep the water item with 0 amount
+                        // Update description to show zero consumption
+                        $description = sprintf(
+                            "Water Charge - %s (Previous: %.2f m³, Current: %.2f m³, Consumption: 0.00 m³ - No consumption this month) [Billed for %s]",
+                            $reading->reading_date->format('M Y'),
+                            $previousReading,
+                            $currentReading,
+                            $billingMonth->format('M Y')
+                        );
+                        
                         $waterItem->update([
+                            'amount' => 0,
+                            'water_units_used' => 0,
                             'description' => $description,
-                            'water_units_used' => $consumption,
                         ]);
                         
-                        // Recalculate total just in case
+                        // Recalculate invoice total
                         $newTotal = $invoice->items()->sum('amount');
-                        if ($invoice->total_amount != $newTotal) {
-                            $invoice->total_amount = $newTotal;
-                            $invoice->save();
-                        }
+                        $invoice->total_amount = $newTotal;
+                        $invoice->save();
+                        
+                        $results[] = [
+                            'invoice_id' => $invoice->id,
+                            'unit_number' => $unit->unit_number,
+                            'status' => 'zero_consumption',
+                            'consumption' => 0,
+                            'message' => 'Zero water consumption for this month. Water charge set to 0.',
+                            'total_amount' => $newTotal,
+                        ];
+                        
+                        continue;
                     }
                     
+                    // Create a detailed description
+                    $readingMonth = $reading->reading_date->format('M Y');
+                    $description = sprintf(
+                        "Water Charge - %s (Previous: %.2f m³, Current: %.2f m³, Consumption: %.2f m³ @ KES %.2f/m³) [Billed for %s]",
+                        $readingMonth,
+                        $previousReading,
+                        $currentReading,
+                        $consumption,
+                        $rate,
+                        $billingMonth->format('M Y')
+                    );
+                    
+                    // Check if the charge matches
+                    if (abs($waterItem->amount - $calculatedCharge) > 0.01) {
+                        $oldAmount = $waterItem->amount;
+                        
+                        $waterItem->update([
+                            'amount' => $calculatedCharge,
+                            'water_units_used' => $consumption,
+                            'description' => $description,
+                        ]);
+                        
+                        // Recalculate invoice total
+                        $newTotal = $invoice->items()->sum('amount');
+                        $invoice->total_amount = $newTotal;
+                        $invoice->save();
+                        
+                        $results[] = [
+                            'invoice_id' => $invoice->id,
+                            'unit_number' => $unit->unit_number,
+                            'status' => 'updated',
+                            'old_charge' => $oldAmount,
+                            'new_charge' => $calculatedCharge,
+                            'consumption' => $consumption,
+                            'previous_reading' => $previousReading,
+                            'current_reading' => $currentReading,
+                            'rate' => $rate,
+                            'reading_date' => $reading->reading_date->format('Y-m-d'),
+                            'billing_month' => $billingMonth->format('Y-m'),
+                            'old_total' => $invoice->getOriginal('total_amount'),
+                            'new_total' => $newTotal,
+                            'description' => $description,
+                        ];
+                        $updated++;
+                    } else {
+                        $results[] = [
+                            'invoice_id' => $invoice->id,
+                            'unit_number' => $unit->unit_number,
+                            'status' => 'already_correct',
+                            'charge' => $waterItem->amount,
+                            'consumption' => $consumption,
+                            'previous_reading' => $previousReading,
+                            'current_reading' => $currentReading,
+                            'reading_date' => $reading->reading_date->format('Y-m-d'),
+                            'billing_month' => $billingMonth->format('Y-m'),
+                            'total_amount' => $invoice->total_amount,
+                            'description' => $description,
+                        ];
+                        $alreadyCorrect++;
+                    }
+                } else {
+                    // No reading found
                     $results[] = [
                         'invoice_id' => $invoice->id,
                         'unit_number' => $unit->unit_number,
-                        'status' => 'already_correct',
+                        'status' => 'no_reading',
+                        'message' => "No water reading found for {$previousMonth->format('F Y')} (month before billing month {$billingMonth->format('F Y')})",
                         'charge' => $waterItem->amount,
-                        'consumption' => $consumption,
-                        'previous_reading' => $previousReading,
-                        'current_reading' => $currentReading,
-                        'reading_date' => $reading->reading_date->format('Y-m-d'),
-                        'billing_month' => $billingMonth->format('Y-m'),
                         'total_amount' => $invoice->total_amount,
-                        'description' => $description,
                     ];
-                    $alreadyCorrect++;
+                    $noReading++;
                 }
-            } else {
-                // No reading found - mark for review
-                $results[] = [
-                    'invoice_id' => $invoice->id,
-                    'unit_number' => $unit->unit_number,
-                    'status' => 'no_reading',
-                    'message' => "No water reading found for {$previousMonth->format('F Y')} (month before billing month {$billingMonth->format('F Y')})",
-                    'charge' => $waterItem->amount,
-                    'total_amount' => $invoice->total_amount,
-                ];
-                $noReading++;
             }
+            
+            DB::commit();
+            
+            $message = "Reconciled {$invoices->count()} invoices: {$updated} updated, {$alreadyCorrect} correct, {$zeroConsumption} zero consumption, {$noReading} missing readings";
+            
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'results' => $results,
+                'summary' => [
+                    'total' => $invoices->count(),
+                    'updated' => $updated,
+                    'correct' => $alreadyCorrect,
+                    'zero_consumption' => $zeroConsumption,
+                    'no_reading' => $noReading,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Bulk water reconciliation error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error reconciling water charges: ' . $e->getMessage()
+            ], 500);
         }
-        
-        DB::commit();
-        
-        return response()->json([
-            'success' => true,
-            'message' => "Reconciled {$invoices->count()} invoices: {$updated} updated, {$alreadyCorrect} correct, {$noReading} missing readings",
-            'results' => $results,
-            'summary' => [
-                'total' => $invoices->count(),
-                'updated' => $updated,
-                'correct' => $alreadyCorrect,
-                'no_reading' => $noReading,
-            ]
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Bulk water reconciliation error: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Error reconciling water charges: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     /**
      * Generate final water reading for move-out tenancy
