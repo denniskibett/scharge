@@ -197,6 +197,10 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
     Route::delete('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
 
+    // ADD THIS ROUTE:
+    Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
+    
+
     // Tenancy-specific invoice routes
     Route::prefix('tenancies/{tenancy}')->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('tenancies.invoices.store');

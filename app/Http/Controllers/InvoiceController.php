@@ -7,10 +7,11 @@ use App\Models\Tenancy;
 use App\Models\Tenant;
 use App\Models\Payment;
 use App\Models\InvoiceItem;
-use App\Modules\Water\Models\WaterReading;
+use App\Models\WaterReading;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceController extends Controller
 {
@@ -24,36 +25,51 @@ class InvoiceController extends Controller
             ->with('tenant', 'unit')
             ->get();
 
-           $users = Tenant::with('user')->get()->map(function ($tenant) {
-                return [
-                    'id' => $tenant->id,
-                    'name' => optional($tenant->user)->name ?? 'N/A',
-                ];
-            });
-            
-            $paymentInvoices = Invoice::with('items', 'tenancy.tenant.user')->get()->map(function ($invoice) {
-                $payerName = optional(optional($invoice->tenancy)->tenant->user)->name ?? 'N/A';
-                
-                $itemsLabel = $invoice->items->count()
-                    ? $invoice->items
-                        ->map(fn ($item) =>
-                            ($item->item_type ?? 'Item') .
-                            ($item->description ? ' (' . $item->description . ')' : '')
-                        )
-                        ->implode(', ')
-                    : '-';
-                
-                return [
-                    'id' => $invoice->id,
-                    'label' => $payerName . ' - Invoice #' . ($invoice->invoice_number ?? $invoice->id) . ': ' . $itemsLabel,
-                    'payer_name' => $payerName,
-                ];
-            });
-
+        $users = Tenant::with('user')->get()->map(function ($tenant) {
+            return [
+                'id' => $tenant->id,
+                'name' => optional($tenant->user)->name ?? 'N/A',
+            ];
+        });
         
+        $paymentInvoices = Invoice::with('items', 'tenancy.tenant.user')->get()->map(function ($invoice) {
+            $payerName = optional(optional($invoice->tenancy)->tenant->user)->name ?? 'N/A';
+            
+            $itemsLabel = $invoice->items->count()
+                ? $invoice->items
+                    ->map(fn ($item) =>
+                        ($item->item_type ?? 'Item') .
+                        ($item->description ? ' (' . $item->description . ')' : '')
+                    )
+                    ->implode(', ')
+                : '-';
+            
+            return [
+                'id' => $invoice->id,
+                'label' => $payerName . ' - Invoice #' . ($invoice->invoice_number ?? $invoice->id) . ': ' . $itemsLabel,
+                'payer_name' => $payerName,
+            ];
+        });
+
         $mappedInvoices = $invoices->map(function($invoice) {
             $paidAmount = (float) $invoice->payments->sum('amount');
             $remainingAmount = (float) ($invoice->total_amount - $paidAmount);
+            
+            // Get water item status
+            $waterItem = $invoice->items->firstWhere('item_type', 'water');
+            $waterStatus = 'none';
+            $waterUnits = 0;
+            
+            if ($waterItem) {
+                $waterUnits = (float) ($waterItem->water_units_used ?? 0);
+                if ($waterUnits > 0) {
+                    $waterStatus = 'synced';
+                } elseif ($invoice->status !== 'paid') {
+                    $waterStatus = 'pending';
+                } else {
+                    $waterStatus = 'needs_review';
+                }
+            }
             
             return [
                 'id' => $invoice->id,
@@ -72,6 +88,8 @@ class InvoiceController extends Controller
                 'tenancy_id' => $invoice->tenancy_id,
                 'created_at' => $invoice->created_at ? $invoice->created_at->getTimestamp() * 1000 : null,
                 'created_at_formatted' => $invoice->created_at ? $invoice->created_at->format('M d, Y') : '-',
+                'water_status' => $waterStatus,
+                'water_units' => $waterUnits,
                 'items' => $invoice->items->map(function($item) {
                     return [
                         'id' => $item->id,
@@ -80,6 +98,7 @@ class InvoiceController extends Controller
                         'amount' => (float) $item->amount,
                         'paid_amount' => (float) ($item->paid_amount ?? 0),
                         'remaining_amount' => (float) ($item->amount - ($item->paid_amount ?? 0)),
+                        'water_units_used' => (float) ($item->water_units_used ?? 0),
                     ];
                 })->toArray(),
             ];
@@ -118,6 +137,9 @@ class InvoiceController extends Controller
             return !$hasMoveInInvoice && $tenancy->move_in_date;
         });
         
+        // Get water sync stats
+        $waterStats = $this->getWaterSyncStats($invoices);
+        
         return view('invoices.index', compact(
             'mappedInvoices',
             'mappedActiveTenancies',
@@ -131,17 +153,48 @@ class InvoiceController extends Controller
             'totalDraft',
             'averageDays',
             'users',
-            'paymentInvoices'
+            'paymentInvoices',
+            'waterStats'
         ));
     }
 
+    /**
+     * Get water sync statistics for invoices
+     */
+    private function getWaterSyncStats($invoices)
+    {
+        $totalWithWater = 0;
+        $synced = 0;
+        $pending = 0;
+        $needsReview = 0;
+        
+        foreach ($invoices as $invoice) {
+            $waterItem = $invoice->items->firstWhere('item_type', 'water');
+            if ($waterItem) {
+                $totalWithWater++;
+                if ($waterItem->water_units_used && $waterItem->water_units_used > 0) {
+                    $synced++;
+                } elseif ($invoice->status !== 'paid') {
+                    $pending++;
+                } else {
+                    $needsReview++;
+                }
+            }
+        }
+        
+        return [
+            'total_with_water' => $totalWithWater,
+            'synced' => $synced,
+            'pending' => $pending,
+            'needs_review' => $needsReview,
+        ];
+    }
 
     private function getNextBillingMonth($tenancy)
     {
         $moveInDate = Carbon::parse($tenancy->move_in_date);
         $currentDate = Carbon::now();
         
-        // Get ALL existing monthly invoices ordered by month
         $existingMonths = Invoice::where('tenancy_id', $tenancy->id)
             ->where('invoice_type', 'monthly')
             ->where('status', '!=', 'cancelled')
@@ -152,7 +205,6 @@ class InvoiceController extends Controller
             })
             ->toArray();
         
-        // Generate expected months from move-in to current date
         $expectedMonths = [];
         $startMonth = $moveInDate->copy()->startOfMonth();
         $endMonth = $currentDate->copy()->startOfMonth();
@@ -162,20 +214,17 @@ class InvoiceController extends Controller
             $startMonth->addMonth();
         }
         
-        // Find the first missing month (gap)
         foreach ($expectedMonths as $expectedMonth) {
             if (!in_array($expectedMonth, $existingMonths)) {
                 return $expectedMonth;
             }
         }
         
-        // No gaps - next month is after the latest invoice
         if (!empty($existingMonths)) {
             $latestMonth = Carbon::parse(end($existingMonths) . '-01');
             return $latestMonth->addMonth()->format('Y-m');
         }
         
-        // No invoices at all - use move-in date logic
         $moveInDay = $moveInDate->day;
         if ($moveInDay > 15) {
             return $moveInDate->copy()->addMonth()->format('Y-m');
@@ -183,9 +232,6 @@ class InvoiceController extends Controller
         return $moveInDate->format('Y-m');
     }
     
-    /**
-     * Check if an invoice can be generated for this tenancy
-     */
     private function canGenerateInvoice($tenancy)
     {
         $now = Carbon::now();
@@ -206,9 +252,6 @@ class InvoiceController extends Controller
         return true;
     }
     
-    /**
-     * Check if an invoice already exists for a specific month
-     */
     private function hasInvoiceForMonth($tenancy, $month)
     {
         return Invoice::where('tenancy_id', $tenancy->id)
@@ -217,9 +260,6 @@ class InvoiceController extends Controller
             ->exists();
     }
     
-    /**
-     * Get existing invoice ID for a specific month
-     */
     private function getExistingInvoiceId($tenancy, $month)
     {
         $invoice = Invoice::where('tenancy_id', $tenancy->id)
@@ -230,9 +270,6 @@ class InvoiceController extends Controller
         return $invoice ? $invoice->id : null;
     }
     
-    /**
-     * Add an item to an existing invoice
-     */
     public function addItemToInvoice(Request $request, Invoice $invoice)
     {
         try {
@@ -273,9 +310,6 @@ class InvoiceController extends Controller
         }
     }
     
-    /**
-     * Update an invoice item
-     */
     public function updateInvoiceItem(Request $request, Invoice $invoice, InvoiceItem $item)
     {
         try {
@@ -318,9 +352,6 @@ class InvoiceController extends Controller
         }
     }
     
-    /**
-     * Remove an invoice item
-     */
     public function removeInvoiceItem(Invoice $invoice, InvoiceItem $item)
     {
         try {
@@ -357,9 +388,6 @@ class InvoiceController extends Controller
         }
     }
     
-    /**
-     * Get invoice data for editing/adding items
-     */
     public function getInvoiceForEditing(Invoice $invoice)
     {
         $invoice->load('items', 'tenancy.unit', 'tenancy.tenant.user');
@@ -372,9 +400,6 @@ class InvoiceController extends Controller
         ]);
     }
 
-    /**
-     * Check if a new invoice can be generated for a tenancy
-     */
     public function checkInvoiceGenerationStatus(Tenancy $tenancy)
     {
         $nextBillingMonth = $this->getNextBillingMonth($tenancy);
@@ -407,9 +432,6 @@ class InvoiceController extends Controller
         return response()->json($response);
     }
     
-    /**
-     * Force generate an invoice for a specific month (with alert confirmation)
-     */
     public function forceGenerateInvoice(Request $request, Tenancy $tenancy)
     {
         try {
@@ -541,6 +563,52 @@ class InvoiceController extends Controller
         ]);
     }
 
+    /**
+     * Get water reading for a specific month
+     */
+    private function getWaterReadingForMonth($unit, Carbon $billingMonth)
+    {
+        // Try to get reading for the exact billing month
+        $reading = WaterReading::where('unit_id', $unit->id)
+            ->whereYear('reading_date', $billingMonth->year)
+            ->whereMonth('reading_date', $billingMonth->month)
+            ->first();
+        
+        if (!$reading) {
+            // Try to find reading after billing month (reading might be taken in next month)
+            $reading = WaterReading::where('unit_id', $unit->id)
+                ->whereYear('reading_date', '>=', $billingMonth->year)
+                ->whereMonth('reading_date', '>=', $billingMonth->month)
+                ->orderBy('reading_date', 'asc')
+                ->first();
+        }
+        
+        if (!$reading) {
+            // Try to find reading before billing month
+            $reading = WaterReading::where('unit_id', $unit->id)
+                ->where('reading_date', '<', $billingMonth->copy()->endOfMonth())
+                ->orderBy('reading_date', 'desc')
+                ->first();
+        }
+        
+        if ($reading) {
+            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $consumption = $reading->consumption ?: max(0, $reading->current_reading - $reading->previous_reading);
+            $charge = $unit->water_billing_type === 'flat' ? ($unit->water_charge ?? 0) : ($consumption * $rate);
+            
+            return [
+                'reading_id' => $reading->id,
+                'consumption' => $consumption,
+                'charge' => $charge,
+                'rate' => $rate,
+                'reading_date' => $reading->reading_date->format('Y-m-d'),
+                'description' => "Water Charge - {$reading->reading_date->format('M Y')} (Consumption: {$consumption} m³ @ KES {$rate}/m³)",
+            ];
+        }
+        
+        return null;
+    }
+
     public function storeForTenancy(Request $request, Tenancy $tenancy)
     {
         try {
@@ -583,7 +651,37 @@ class InvoiceController extends Controller
                 ], 422);
             }
 
-            $totalAmount = array_sum(array_column($validated['items'], 'amount'));
+            $unit = $tenancy->unit;
+            $totalAmount = 0;
+            $processedItems = [];
+            $waterWarnings = [];
+
+            foreach ($validated['items'] as $item) {
+                $amount = $item['amount'];
+                $itemData = [
+                    'item_type' => $item['item_type'],
+                    'description' => $item['description'],
+                    'amount' => $amount,
+                ];
+                
+                // If this is a water item, try to fetch from readings
+                if ($item['item_type'] === 'water') {
+                    $waterData = $this->getWaterReadingForMonth($unit, $billingMonthDate);
+                    
+                    if ($waterData) {
+                        $itemData['amount'] = $waterData['charge'];
+                        $itemData['water_units_used'] = $waterData['consumption'];
+                        $itemData['description'] = $waterData['description'];
+                        $amount = $waterData['charge'];
+                    } else {
+                        $waterWarnings[] = "No water reading found for {$billingMonthDate->format('F Y')}. Water charge entered manually.";
+                        $itemData['water_units_used'] = 0;
+                    }
+                }
+                
+                $totalAmount += $amount;
+                $processedItems[] = $itemData;
+            }
 
             $invoice = Invoice::create([
                 'tenancy_id' => $tenancy->id,
@@ -593,21 +691,18 @@ class InvoiceController extends Controller
                 'status' => 'unpaid',
             ]);
 
-            foreach ($validated['items'] as $item) {
-                $invoice->items()->create([
-                    'item_type' => $item['item_type'],
-                    'description' => $item['description'],
-                    'amount' => $item['amount'],
-                ]);
+            foreach ($processedItems as $itemData) {
+                $invoice->items()->create($itemData);
             }
             
-            $hasWaterItem = collect($validated['items'])->contains(function($item) {
-                return $item['item_type'] === 'water';
+            // Update water readings after invoice creation
+            $hasWaterItem = collect($processedItems)->contains(function($item) {
+                return $item['item_type'] === 'water' && ($item['water_units_used'] ?? 0) > 0;
             });
             
-            if ($hasWaterItem && ($tenancy->unit->current_water_reading > 0)) {
-                $tenancy->unit->update([
-                    'previous_water_reading' => $tenancy->unit->current_water_reading,
+            if ($hasWaterItem && ($unit->current_water_reading > 0)) {
+                $unit->update([
+                    'previous_water_reading' => $unit->current_water_reading,
                     'current_water_reading' => 0,
                     'last_reading_date' => now(),
                 ]);
@@ -616,7 +711,8 @@ class InvoiceController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Invoice created successfully',
-                'invoice' => $invoice->load('items')
+                'invoice' => $invoice->load('items'),
+                'water_warnings' => $waterWarnings
             ], 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -626,7 +722,7 @@ class InvoiceController extends Controller
                 'errors' => $e->errors()
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Error creating invoice for tenancy: ' . $e->getMessage(), [
+            Log::error('Error creating invoice for tenancy: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'tenancy_id' => $tenancy->id
             ]);
@@ -699,7 +795,7 @@ class InvoiceController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error creating invoice: ' . $e->getMessage(), [
+            Log::error('Error creating invoice: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -710,37 +806,59 @@ class InvoiceController extends Controller
         }
     }
 
-public function show(Invoice $invoice)
-{
-    // Load relationships
-    $invoice->load([
-        'tenancy.tenant.user', 
-        'tenancy.unit.estate', 
-        'items', 
-        'payments'
-    ]);
-    
-    // Calculate paid amount from payments
-    $paidAmount = $invoice->payments->sum('amount');
-    
-    // Also get invoices for any dropdowns if needed
-    $invoices = Invoice::with('items', 'tenancy.tenant.user')
-        ->get()
-        ->map(function ($inv) {
-            $payerName = optional(optional($inv->tenancy)->tenant->user)->name ?? 'N/A';
-            $itemsLabel = $inv->items->count()
-                ? $inv->items->map(fn($item) => ($item->item_type ?? 'Item') . ($item->description ? ' (' . $item->description . ')' : ''))->implode(', ')
-                : '-';
-            return [
-                'id' => $inv->id,
-                'label' => $payerName . ' - Invoice #' . ($inv->invoice_number ?? $inv->id) . ': ' . $itemsLabel,
-                'payer_name' => $payerName,
-            ];
+    public function show(Invoice $invoice)
+    {
+        $invoice->load([
+            'tenancy.tenant.user', 
+            'tenancy.unit.estate', 
+            'items', 
+            'payments'
+        ]);
+        
+        $paidAmount = $invoice->payments->sum('amount');
+        
+        // Check water sync status for each item
+        $waterItems = $invoice->items->filter(function($item) {
+            return $item->item_type === 'water';
         });
-    
-    // Return view with all required variables
-    return view('invoices.show', compact('invoice', 'paidAmount', 'invoices'));
-}
+        
+        $waterSynced = $waterItems->every(function($item) {
+            return ($item->water_units_used ?? 0) > 0;
+        });
+        
+        $waterSyncStatus = 'none';
+        if ($waterItems->count() > 0) {
+            if ($waterSynced) {
+                $waterSyncStatus = 'synced';
+            } elseif ($invoice->status !== 'paid') {
+                $waterSyncStatus = 'pending';
+            } else {
+                $waterSyncStatus = 'needs_review';
+            }
+        }
+        
+        $invoices = Invoice::with('items', 'tenancy.tenant.user')
+            ->get()
+            ->map(function ($inv) {
+                $payerName = optional(optional($inv->tenancy)->tenant->user)->name ?? 'N/A';
+                $itemsLabel = $inv->items->count()
+                    ? $inv->items->map(fn($item) => ($item->item_type ?? 'Item') . ($item->description ? ' (' . $item->description . ')' : ''))->implode(', ')
+                    : '-';
+                return [
+                    'id' => $inv->id,
+                    'label' => $payerName . ' - Invoice #' . ($inv->invoice_number ?? $inv->id) . ': ' . $itemsLabel,
+                    'payer_name' => $payerName,
+                ];
+            });
+        
+        return view('invoices.show', compact(
+            'invoice', 
+            'paidAmount', 
+            'invoices',
+            'waterSyncStatus',
+            'waterSynced'
+        ));
+    }
 
     public function edit(Invoice $invoice)
     {
@@ -853,7 +971,7 @@ public function show(Invoice $invoice)
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error generating invoice: ' . $e->getMessage(), [
+            Log::error('Error generating invoice: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -989,7 +1107,7 @@ public function show(Invoice $invoice)
                     } catch (\Exception $e) {
                         $skippedCount++;
                         $errors[] = "Failed for tenancy {$tenancy->id}: " . $e->getMessage();
-                        \Log::error("Failed to create invoice for tenancy {$tenancy->id}: " . $e->getMessage());
+                        Log::error("Failed to create invoice for tenancy {$tenancy->id}: " . $e->getMessage());
                     }
                 }
                 
@@ -1061,7 +1179,7 @@ public function show(Invoice $invoice)
         } catch (\Exception $e) {
             DB::rollBack();
             
-            \Log::error('Error in bulk invoice creation: ' . $e->getMessage(), [
+            Log::error('Error in bulk invoice creation: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'request' => $request->all()
             ]);
@@ -1121,7 +1239,7 @@ public function show(Invoice $invoice)
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Error checking existing invoices: ' . $e->getMessage());
+            Log::error('Error checking existing invoices: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -1214,7 +1332,6 @@ public function show(Invoice $invoice)
         $currentDate = Carbon::now();
         $expectedMonths = [];
         
-        // Generate expected months from move_in_date to current date
         $startMonth = $moveInDate->copy()->startOfMonth();
         $endMonth = $currentDate->copy()->startOfMonth();
         
@@ -1223,15 +1340,12 @@ public function show(Invoice $invoice)
             $startMonth->addMonth();
         }
         
-        // Find existing months
         $existingMonths = $invoices->map(function($invoice) {
             return Carbon::parse($invoice->billing_month)->format('Y-m');
         })->toArray();
         
-        // Find missing months
         $missingMonths = array_diff($expectedMonths, $existingMonths);
         
-        // Group invoices by month (to detect duplicates)
         $invoicesByMonth = [];
         foreach ($invoices as $invoice) {
             $month = Carbon::parse($invoice->billing_month)->format('Y-m');
@@ -1252,7 +1366,6 @@ public function show(Invoice $invoice)
             ];
         }
         
-        // Check for duplicates
         $duplicateMonths = [];
         foreach ($invoicesByMonth as $month => $monthInvoices) {
             if (count($monthInvoices) > 1) {
@@ -1276,9 +1389,6 @@ public function show(Invoice $invoice)
         ]);
     }
 
-    /**
-     * Generate invoices for all missing months
-     */
     public function generateMissingInvoices(Request $request, Tenancy $tenancy)
     {
         try {
@@ -1297,7 +1407,6 @@ public function show(Invoice $invoice)
             DB::beginTransaction();
             
             foreach ($validated['months'] as $month) {
-                // Check if invoice already exists for this month
                 $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
                     ->where('invoice_type', 'monthly')
                     ->where('billing_month', $month . '-01')
@@ -1360,9 +1469,17 @@ public function show(Invoice $invoice)
                 'payments'
             ]);
             
-            // Calculate remaining amount
             $paidAmount = (float) $invoice->payments->sum('amount');
             $remainingAmount = (float) ($invoice->total_amount - $paidAmount);
+            
+            // Include water sync status
+            $waterItems = $invoice->items->filter(function($item) {
+                return $item->item_type === 'water';
+            });
+            
+            $waterSynced = $waterItems->every(function($item) {
+                return ($item->water_units_used ?? 0) > 0;
+            });
             
             return response()->json([
                 'success' => true,
@@ -1377,10 +1494,11 @@ public function show(Invoice $invoice)
                     'billing_month' => $invoice->billing_month,
                     'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('F Y') : '-',
                     'total_amount' => (float) $invoice->total_amount,
-                    'paid_amount' => (float) $paidAmount,
+                    'paid_amount' => $paidAmount,
                     'remaining_amount' => $remainingAmount,
                     'status' => $invoice->status,
                     'payment_percentage' => $invoice->payment_percentage,
+                    'water_synced' => $waterSynced,
                     'items' => $invoice->items->map(function($item) {
                         return [
                             'id' => $item->id,
@@ -1389,6 +1507,7 @@ public function show(Invoice $invoice)
                             'amount' => (float) $item->amount,
                             'paid_amount' => (float) ($item->paid_amount ?? 0),
                             'remaining_amount' => (float) ($item->amount - ($item->paid_amount ?? 0)),
+                            'water_units_used' => (float) ($item->water_units_used ?? 0),
                         ];
                     }),
                 ]
@@ -1423,7 +1542,6 @@ public function show(Invoice $invoice)
             foreach ($validated['months_data'] as $monthData) {
                 $month = $monthData['month'];
                 
-                // Check if invoice already exists for this month
                 $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
                     ->where('invoice_type', 'monthly')
                     ->where('billing_month', $month . '-01')
@@ -1452,11 +1570,9 @@ public function show(Invoice $invoice)
                         'amount' => $item['amount'],
                     ];
                     
-                    // Add metadata for water items
                     if ($item['item_type'] === 'water' && isset($item['metadata'])) {
                         $itemData['metadata'] = $item['metadata'];
                         
-                        // Track water reading updates for the unit
                         if (isset($item['metadata']['current_reading'])) {
                             $waterReadingUpdates[$month] = [
                                 'current_reading' => $item['metadata']['current_reading'],
@@ -1471,7 +1587,6 @@ public function show(Invoice $invoice)
                 $generatedInvoices[] = $invoice->load('items');
             }
             
-            // Update water readings for the unit if any water invoices were generated
             if (!empty($waterReadingUpdates)) {
                 $lastUpdate = end($waterReadingUpdates);
                 $tenancy->unit->update([
@@ -1494,7 +1609,7 @@ public function show(Invoice $invoice)
             
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Bulk missing invoices error: ' . $e->getMessage(), [
+            Log::error('Bulk missing invoices error: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString(),
                 'tenancy_id' => $tenancy->id
             ]);
@@ -1505,7 +1620,6 @@ public function show(Invoice $invoice)
             ], 500);
         }
     }
-
 
     public function resolveDuplicateInvoices(Request $request)
     {
@@ -1520,7 +1634,6 @@ public function show(Invoice $invoice)
             $tenancyId = $validated['tenancy_id'];
             $keepInvoiceId = $validated['keep_invoice_id'];
             
-            // Find all duplicates for this month
             $duplicates = Invoice::where('tenancy_id', $tenancyId)
                 ->where('invoice_type', 'monthly')
                 ->where('billing_month', $month)
@@ -1532,11 +1645,8 @@ public function show(Invoice $invoice)
             DB::beginTransaction();
             
             foreach ($duplicates as $duplicate) {
-                // Delete associated items first
                 $duplicate->items()->delete();
-                // Delete any payments
                 $duplicate->payments()->delete();
-                // Delete the invoice
                 $duplicate->delete();
                 $deletedCount++;
             }
@@ -1558,9 +1668,6 @@ public function show(Invoice $invoice)
         }
     }
 
-    /**
-     * Resolve duplicate invoices by keeping one and deleting others
-     */
     public function resolveDuplicates(Request $request)
     {
         try {
@@ -1574,7 +1681,6 @@ public function show(Invoice $invoice)
             $tenancyId = $validated['tenancy_id'];
             $keepInvoiceId = $validated['keep_invoice_id'];
             
-            // Find all duplicates for this month
             $duplicates = Invoice::where('tenancy_id', $tenancyId)
                 ->where('invoice_type', 'monthly')
                 ->where('billing_month', $month)
@@ -1586,11 +1692,8 @@ public function show(Invoice $invoice)
             DB::beginTransaction();
             
             foreach ($duplicates as $duplicate) {
-                // Delete associated items
                 $duplicate->items()->delete();
-                // Delete any payments
                 $duplicate->payments()->delete();
-                // Delete the invoice
                 $duplicate->delete();
                 $deletedCount++;
             }
@@ -1605,7 +1708,7 @@ public function show(Invoice $invoice)
             
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Duplicate resolution error: ' . $e->getMessage());
+            Log::error('Duplicate resolution error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -1628,7 +1731,6 @@ public function show(Invoice $invoice)
             $tenancy = $invoice->tenancy;
             $unit = $tenancy->unit;
             
-            // Verify the reading belongs to this unit
             if ($reading->unit_id !== $unit->id) {
                 return response()->json([
                     'success' => false,
@@ -1636,25 +1738,23 @@ public function show(Invoice $invoice)
                 ], 422);
             }
             
-            // Find or create water item in invoice
             $waterItem = $invoice->items()->where('item_type', 'water')->first();
             
             if ($waterItem) {
-                // Update existing water item
                 $waterItem->update([
                     'amount' => $reading->charge,
                     'description' => "Water Charge - Reading: {$reading->reading_date->format('M Y')} (Consumption: {$reading->consumption} m³ @ KES {$reading->rate_applied}/m³)",
+                    'water_units_used' => $reading->consumption,
                 ]);
             } else {
-                // Create new water item
                 $invoice->items()->create([
                     'item_type' => 'water',
                     'description' => "Water Charge - Reading: {$reading->reading_date->format('M Y')} (Consumption: {$reading->consumption} m³ @ KES {$reading->rate_applied}/m³)",
                     'amount' => $reading->charge,
+                    'water_units_used' => $reading->consumption,
                 ]);
             }
             
-            // Update invoice total
             $invoice->total_amount = $invoice->items()->sum('amount');
             $invoice->save();
             
@@ -1666,7 +1766,7 @@ public function show(Invoice $invoice)
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Water reconciliation error: ' . $e->getMessage());
+            Log::error('Water reconciliation error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -1675,85 +1775,208 @@ public function show(Invoice $invoice)
         }
     }
 
-    /**
-     * Bulk reconcile water charges for all invoices in a month
-     */
-    public function bulkReconcileWaterCharges(Request $request)
-    {
+/**
+ * Bulk reconcile water charges for all invoices in a month
+ */
+public function bulkReconcileWaterCharges(Request $request)
+{
+    try {
         $validated = $request->validate([
             'billing_month' => 'required|date_format:Y-m',
             'estate_id' => 'nullable|exists:estates,id',
+            'invoice_ids' => 'nullable|array',
+            'invoice_ids.*' => 'exists:invoices,id',
         ]);
         
         $billingMonth = Carbon::parse($validated['billing_month'] . '-01');
         $results = [];
+        $updated = 0;
+        $noReading = 0;
+        $alreadyCorrect = 0;
         
-        // Get invoices for this month
         $query = Invoice::with(['tenancy.unit', 'items'])
             ->where('billing_month', $billingMonth->format('Y-m') . '-01')
-            ->where('invoice_type', 'monthly');
+            ->where('invoice_type', 'monthly')
+            ->where('status', '!=', 'paid');
         
-        if ($validated['estate_id']) {
+        if (isset($validated['estate_id']) && !empty($validated['estate_id'])) {
             $query->whereHas('tenancy.unit', function($q) use ($validated) {
                 $q->where('estate_id', $validated['estate_id']);
             });
         }
         
+        if (isset($validated['invoice_ids']) && !empty($validated['invoice_ids'])) {
+            $query->whereIn('id', $validated['invoice_ids']);
+        }
+        
         $invoices = $query->get();
+        
+        DB::beginTransaction();
         
         foreach ($invoices as $invoice) {
             $unit = $invoice->tenancy->unit;
+            $waterItem = $invoice->items()->where('item_type', 'water')->first();
             
-            // Get the reading for this billing month
+            if (!$waterItem) {
+                continue;
+            }
+            
+            // CRITICAL: For billing_month = June, we need the MAY reading
+            $previousMonth = $billingMonth->copy()->subMonth();
+            
+            // Get the reading from the previous month
             $reading = WaterReading::where('unit_id', $unit->id)
-                ->whereYear('reading_date', $billingMonth->year)
-                ->whereMonth('reading_date', $billingMonth->month)
+                ->whereYear('reading_date', $previousMonth->year)
+                ->whereMonth('reading_date', $previousMonth->month)
                 ->first();
             
+            // If no reading for previous month, try to find the closest reading before the billing month
+            if (!$reading) {
+                $reading = WaterReading::where('unit_id', $unit->id)
+                    ->where('reading_date', '<', $billingMonth->copy()->startOfMonth())
+                    ->orderBy('reading_date', 'desc')
+                    ->first();
+            }
+            
             if ($reading) {
-                // Update or create water item
-                $waterItem = $invoice->items()->where('item_type', 'water')->first();
+                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $previousReading = (float) $reading->previous_reading;
+                $currentReading = (float) $reading->current_reading;
+                $consumption = $reading->consumption ?: max(0, $currentReading - $previousReading);
                 
-                if ($waterItem) {
-                    $waterItem->update([
-                        'amount' => $reading->charge,
-                        'description' => "Water Charge - {$billingMonth->format('M Y')} (Consumption: {$reading->consumption} m³)",
-                    ]);
-                    $status = 'updated';
+                // Calculate charge based on billing type
+                if ($unit->water_billing_type === 'flat') {
+                    $calculatedCharge = (float) ($unit->water_charge ?? 0);
+                    $consumption = 0;
                 } else {
-                    $invoice->items()->create([
-                        'item_type' => 'water',
-                        'description' => "Water Charge - {$billingMonth->format('M Y')} (Consumption: {$reading->consumption} m³)",
-                        'amount' => $reading->charge,
-                    ]);
-                    $status = 'created';
+                    $calculatedCharge = $consumption * $rate;
                 }
                 
-                // Update invoice total
-                $invoice->total_amount = $invoice->items()->sum('amount');
-                $invoice->save();
+                // Create a detailed description
+                $readingMonth = $reading->reading_date->format('M Y');
+                $description = sprintf(
+                    "Water Charge - %s (Previous: %.2f m³, Current: %.2f m³, Consumption: %.2f m³ @ KES %.2f/m³) [Billed for %s]",
+                    $readingMonth,
+                    $previousReading,
+                    $currentReading,
+                    $consumption,
+                    $rate,
+                    $billingMonth->format('M Y')
+                );
                 
-                $results[] = [
-                    'invoice_id' => $invoice->id,
-                    'unit_number' => $unit->unit_number,
-                    'water_charge' => $reading->charge,
-                    'status' => $status
-                ];
+                // Check if the charge matches
+                if (abs($waterItem->amount - $calculatedCharge) > 0.01) {
+                    $oldAmount = $waterItem->amount;
+                    
+                    // Update the water item
+                    $waterItem->update([
+                        'amount' => $calculatedCharge,
+                        'water_units_used' => $consumption,
+                        'description' => $description,
+                    ]);
+                    
+                    // CRITICAL: Recalculate invoice total from ALL items
+                    $newTotal = $invoice->items()->sum('amount');
+                    
+                    // Update the invoice with the new total
+                    $invoice->total_amount = $newTotal;
+                    $invoice->save(); // This should persist the change
+                    
+                    // Also update the total_paid if it exceeds the new total
+                    if ($invoice->total_paid > $newTotal) {
+                        $invoice->total_paid = $newTotal;
+                        $invoice->save();
+                    }
+                    
+                    $results[] = [
+                        'invoice_id' => $invoice->id,
+                        'unit_number' => $unit->unit_number,
+                        'status' => 'updated',
+                        'old_charge' => $oldAmount,
+                        'new_charge' => $calculatedCharge,
+                        'consumption' => $consumption,
+                        'previous_reading' => $previousReading,
+                        'current_reading' => $currentReading,
+                        'rate' => $rate,
+                        'reading_date' => $reading->reading_date->format('Y-m-d'),
+                        'billing_month' => $billingMonth->format('Y-m'),
+                        'old_total' => $invoice->getOriginal('total_amount'), // Get old total before update
+                        'new_total' => $newTotal,
+                        'description' => $description,
+                    ];
+                    $updated++;
+                } else {
+                    // Already correct, but ensure description is updated
+                    $currentDescription = $waterItem->description ?? '';
+                    if (strpos($currentDescription, 'Previous:') === false) {
+                        $waterItem->update([
+                            'description' => $description,
+                            'water_units_used' => $consumption,
+                        ]);
+                        
+                        // Recalculate total just in case
+                        $newTotal = $invoice->items()->sum('amount');
+                        if ($invoice->total_amount != $newTotal) {
+                            $invoice->total_amount = $newTotal;
+                            $invoice->save();
+                        }
+                    }
+                    
+                    $results[] = [
+                        'invoice_id' => $invoice->id,
+                        'unit_number' => $unit->unit_number,
+                        'status' => 'already_correct',
+                        'charge' => $waterItem->amount,
+                        'consumption' => $consumption,
+                        'previous_reading' => $previousReading,
+                        'current_reading' => $currentReading,
+                        'reading_date' => $reading->reading_date->format('Y-m-d'),
+                        'billing_month' => $billingMonth->format('Y-m'),
+                        'total_amount' => $invoice->total_amount,
+                        'description' => $description,
+                    ];
+                    $alreadyCorrect++;
+                }
             } else {
+                // No reading found - mark for review
                 $results[] = [
                     'invoice_id' => $invoice->id,
                     'unit_number' => $unit->unit_number,
-                    'status' => 'no_reading'
+                    'status' => 'no_reading',
+                    'message' => "No water reading found for {$previousMonth->format('F Y')} (month before billing month {$billingMonth->format('F Y')})",
+                    'charge' => $waterItem->amount,
+                    'total_amount' => $invoice->total_amount,
                 ];
+                $noReading++;
             }
         }
         
+        DB::commit();
+        
         return response()->json([
             'success' => true,
-            'message' => "Processed {$results->count()} invoices",
-            'results' => $results
+            'message' => "Reconciled {$invoices->count()} invoices: {$updated} updated, {$alreadyCorrect} correct, {$noReading} missing readings",
+            'results' => $results,
+            'summary' => [
+                'total' => $invoices->count(),
+                'updated' => $updated,
+                'correct' => $alreadyCorrect,
+                'no_reading' => $noReading,
+            ]
         ]);
+        
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Bulk water reconciliation error: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString()
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Error reconciling water charges: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Generate final water reading for move-out tenancy
@@ -1762,12 +1985,10 @@ public function show(Invoice $invoice)
     {
         $unit = $tenancy->unit;
         
-        // Get the last reading for this unit
         $lastReading = WaterReading::where('unit_id', $unit->id)
             ->orderBy('reading_date', 'desc')
             ->first();
         
-        // Create a final reading at move-out date
         $reading = WaterReading::create([
             'unit_id' => $unit->id,
             'previous_reading' => $lastReading ? $lastReading->current_reading : ($unit->current_water_reading ?? 0),
@@ -1798,14 +2019,11 @@ public function show(Invoice $invoice)
             
             $unit = $tenancy->unit;
             
-            // Create final reading
             $reading = $this->generateMoveOutWaterReading($tenancy);
             
-            // Determine who to charge
             if ($validated['charge_to'] === 'management') {
-                // Create a management invoice or write-off
                 $invoice = Invoice::create([
-                    'tenancy_id' => null, // No tenancy
+                    'tenancy_id' => null,
                     'invoice_type' => 'move_out',
                     'billing_month' => $tenancy->move_out_date,
                     'total_amount' => $reading->charge,
@@ -1817,11 +2035,11 @@ public function show(Invoice $invoice)
                     'item_type' => 'water',
                     'description' => "Water reading at move-out: {$reading->consumption} m³",
                     'amount' => $reading->charge,
+                    'water_units_used' => $reading->consumption,
                 ]);
                 
                 $message = "Water charge of KES {$reading->charge} has been assigned to management";
             } else {
-                // Create move-out invoice for tenant
                 $invoice = Invoice::create([
                     'tenancy_id' => $tenancy->id,
                     'invoice_type' => 'move_out',
@@ -1835,12 +2053,12 @@ public function show(Invoice $invoice)
                     'item_type' => 'water',
                     'description' => "Final water reading: {$reading->consumption} m³",
                     'amount' => $reading->charge,
+                    'water_units_used' => $reading->consumption,
                 ]);
                 
                 $message = "Final water invoice of KES {$reading->charge} has been generated for tenant";
             }
             
-            // Update unit readings
             $this->updateUnitWithLatestReadings($unit);
             
             return response()->json([
@@ -1851,7 +2069,7 @@ public function show(Invoice $invoice)
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Tenancy end water handling error: ' . $e->getMessage());
+            Log::error('Tenancy end water handling error: ' . $e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -1860,4 +2078,33 @@ public function show(Invoice $invoice)
         }
     }
 
+    /**
+     * Update unit with latest readings
+     */
+    private function updateUnitWithLatestReadings($unit)
+    {
+        $lastTwoReadings = WaterReading::where('unit_id', $unit->id)
+            ->orderBy('reading_date', 'desc')
+            ->take(2)
+            ->get();
+        
+        if ($lastTwoReadings->count() >= 2) {
+            $mostRecent = $lastTwoReadings[0];
+            $secondMostRecent = $lastTwoReadings[1];
+            
+            $unit->update([
+                'previous_water_reading' => $secondMostRecent->current_reading,
+                'current_water_reading' => $mostRecent->current_reading,
+                'last_reading_date' => $mostRecent->reading_date
+            ]);
+        } elseif ($lastTwoReadings->count() == 1) {
+            $mostRecent = $lastTwoReadings[0];
+            
+            $unit->update([
+                'previous_water_reading' => 0,
+                'current_water_reading' => $mostRecent->current_reading,
+                'last_reading_date' => $mostRecent->reading_date
+            ]);
+        }
+    }
 }

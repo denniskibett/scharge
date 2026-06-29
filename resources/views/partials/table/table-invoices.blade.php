@@ -10,6 +10,20 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Your most recent invoices list</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <!-- Items Per Page -->
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-500 dark:text-gray-400">Show:</span>
+                <select x-model="itemsPerPage" @change="currentPage = 1" class="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                </select>
+            </div>
+
             <!-- Status Filters -->
             <div class="hidden h-11 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 lg:inline-flex dark:bg-gray-900">
                 <button @click="filterStatus = 'unpaid'; currentPage = 1" :class="filterStatus === 'unpaid' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
@@ -40,7 +54,7 @@
             </div>
             
             <!-- Action Buttons -->
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
                 <button @click="openCreateInvoiceModal()" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none">
                         <path d="M10 4.16667V15.8333M4.16667 10H15.8333" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -52,6 +66,12 @@
                         <path d="M3.33333 10H16.6667M10 3.33333V16.6667" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     Bulk Create
+                </button>
+                <button @click="openWaterReconciliationModal()" class="bg-blue-500 shadow-theme-xs hover:bg-blue-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    Reconcile Water
                 </button>
             </div>
         </div>
@@ -125,6 +145,7 @@
                             </div>
                         </th>
                         <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Status</th>
+                        <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Water Sync</th>
                         <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
                     </tr>
                 </thead>
@@ -166,6 +187,9 @@
                                     <span :class="getStatusClass(invoice.status)" class="text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="formatStatus(invoice.status)"></span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap">
+                                    <span :class="getWaterSyncClass(invoice)" class="text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="getWaterSyncText(invoice)"></span>
+                                </td>
+                                <td class="p-4 whitespace-nowrap">
                                     <div class="flex items-center gap-2 flex-wrap">
                                         <!-- Pay Button - Only show if not paid -->
                                         <template x-if="invoice.status !== 'paid'">
@@ -200,11 +224,14 @@
                                                 <template x-if="invoice.status !== 'paid'">
                                                     <button @click="openDeleteModal(invoice)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-500 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300">Delete</button>
                                                 </template>
+                                                <template x-if="invoice.water_status === 'pending' || invoice.water_status === 'needs_review'">
+                                                    <button @click="reconcileSingleInvoice(invoice)" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-blue-500 hover:bg-blue-50 hover:text-blue-700 dark:text-blue-400 dark:hover:bg-blue-500/10 dark:hover:text-blue-300">Sync Water</button>
+                                                </template>
                                             </div>
                                         </div>
                                     </div>
                                 </td>
-                        </tr>
+                            </tr>
                     </template>
                 </tbody>
             </table>
@@ -232,8 +259,8 @@
         <div class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
             <div class="pb-3 sm:pb-0">
                 <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Showing <span x-text="((currentPage - 1) * itemsPerPage) + (paginatedInvoices.length ? 1 : 0)"></span>
-                    to <span x-text="((currentPage - 1) * itemsPerPage) + paginatedInvoices.length"></span>
+                    Showing <span x-text="((currentPage - 1) * itemsPerPage) + 1"></span>
+                    to <span x-text="Math.min(currentPage * itemsPerPage, filteredInvoices.length)"></span>
                     of <span x-text="filteredInvoices.length"></span>
                 </span>
             </div>
@@ -260,6 +287,7 @@
 @include('partials.modal.invoice-bulk-modal', ['mappedActiveTenancies' => $mappedActiveTenancies ?? collect()])
 @include('partials.modal.payments-create-modal', ['invoices' => $paymentInvoices ?? []])
 @include('partials.modal.invoice-delete-modal')
+@include('partials.modal.water-reconciliation-modal', ['estates' => $estates ?? []])
 
 <script>
 // Global data for preloaded invoices - MUST be defined BEFORE Alpine components
@@ -315,6 +343,11 @@ document.addEventListener('alpine:init', () => {
             if (window.bulkInvoiceModal) {
                 window.bulkInvoiceModal.openModal('missing');
             }
+        },
+        openWaterReconciliationModal() {
+            if (window.waterReconciliationModal) {
+                window.waterReconciliationModal.open();
+            }
         }
     }));
     
@@ -333,6 +366,7 @@ document.addEventListener('alpine:init', () => {
         loading: true,
         currencySymbol: currencySymbol,
         updateInProgress: false,
+        reconciling: null,
         
         // Computed Properties
         get statusCounts() {
@@ -461,9 +495,7 @@ document.addEventListener('alpine:init', () => {
             this.updateInProgress = true;
             
             try {
-                // If we have the invoice ID from the payment response, update just that invoice
                 if (paymentData && paymentData.invoice_id) {
-                    // Fetch updated invoice data
                     const response = await fetch(`/invoices/${paymentData.invoice_id}/details`, {
                         headers: {
                             'Accept': 'application/json',
@@ -474,10 +506,8 @@ document.addEventListener('alpine:init', () => {
                     if (response.ok) {
                         const result = await response.json();
                         if (result.success && result.invoice) {
-                            // Find and update the invoice in the list
                             const index = this.invoices.findIndex(i => i.id === result.invoice.id);
                             if (index !== -1) {
-                                // Merge updated data with existing
                                 this.invoices[index] = {
                                     ...this.invoices[index],
                                     ...result.invoice,
@@ -487,31 +517,23 @@ document.addEventListener('alpine:init', () => {
                                     paid_amount: result.invoice.paid_amount || 0
                                 };
                             } else {
-                                // If not found, refresh all
                                 await this.fetchInvoices();
                             }
                         } else {
-                            // If details fetch fails, refresh all
                             await this.fetchInvoices();
                         }
                     } else {
-                        // If API fails, refresh all
                         await this.fetchInvoices();
                     }
                 } else {
-                    // If no specific invoice, refresh all
                     await this.fetchInvoices();
                 }
                 
-                // Update status counts display
                 this.$forceUpdate();
-                
-                // Show a subtle notification
                 this.showNotification('Payment processed successfully!', 'success');
                 
             } catch (error) {
                 console.error('Error refreshing invoice:', error);
-                // Fallback: refresh all
                 await this.fetchInvoices();
             } finally {
                 this.updateInProgress = false;
@@ -519,7 +541,6 @@ document.addEventListener('alpine:init', () => {
         },
         
         showNotification(message, type = 'success') {
-            // Create a temporary notification
             const notification = document.createElement('div');
             notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} transition-all duration-300 transform translate-y-0`;
             notification.textContent = message;
@@ -549,6 +570,28 @@ document.addEventListener('alpine:init', () => {
                 'draft': 'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400'
             };
             return classes[status] || 'bg-gray-100 text-gray-800';
+        },
+        
+        getWaterSyncClass(invoice) {
+            const status = invoice.water_status || 'none';
+            const classes = {
+                'synced': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'needs_review': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+                'none': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+            };
+            return classes[status] || classes['none'];
+        },
+        
+        getWaterSyncText(invoice) {
+            const status = invoice.water_status || 'none';
+            const labels = {
+                'synced': '✓ Synced',
+                'pending': '⏳ Pending',
+                'needs_review': '⚠️ Review',
+                'none': '—'
+            };
+            return labels[status] || labels['none'];
         },
         
         toggleSelectAll() {
@@ -605,7 +648,7 @@ document.addEventListener('alpine:init', () => {
                 const result = await response.json();
                 if (result.success) {
                     this.showNotification('Invoice generated successfully!', 'success');
-                    await this.fetchInvoices(); // Reload data without page refresh
+                    await this.fetchInvoices();
                 } else {
                     alert(result.message || 'Failed to generate invoice');
                 }
@@ -618,20 +661,14 @@ document.addEventListener('alpine:init', () => {
         },
         
         openPaymentModal(invoice) {
-            console.log('Opening payment modal for invoice:', invoice.id);
-            
             if (!invoice.id) {
-                console.error('Invoice missing ID field:', invoice);
                 alert('Cannot process payment: Invoice ID is missing');
                 return;
             }
             
-            // Try to use the global modal reference
             if (window.paymentCreateModal && typeof window.paymentCreateModal.openPaymentModalForInvoice === 'function') {
                 window.paymentCreateModal.openPaymentModalForInvoice(invoice);
             } else {
-                // Fallback: Wait for modal to be ready
-                console.log('Modal not ready yet, waiting...');
                 const checkInterval = setInterval(() => {
                     if (window.paymentCreateModal && typeof window.paymentCreateModal.openPaymentModalForInvoice === 'function') {
                         clearInterval(checkInterval);
@@ -639,7 +676,6 @@ document.addEventListener('alpine:init', () => {
                     }
                 }, 100);
                 
-                // Timeout after 5 seconds
                 setTimeout(() => {
                     clearInterval(checkInterval);
                     if (!window.paymentCreateModal || typeof window.paymentCreateModal.openPaymentModalForInvoice !== 'function') {
@@ -684,7 +720,118 @@ document.addEventListener('alpine:init', () => {
             if (window.bulkInvoiceModal) {
                 window.bulkInvoiceModal.openModal();
             }
+        },
+
+        openWaterReconciliationModal() {
+            if (window.waterReconciliationModal) {
+                window.waterReconciliationModal.open();
+            }
+        },
+        
+async reconcileSingleInvoice(invoice) {
+    if (!confirm(`Reconcile water charges for invoice #${invoice.id}? This will sync with meter readings.`)) {
+        return;
+    }
+    
+    this.reconciling = invoice.id;
+    
+    try {
+        // Get the billing month from the invoice
+        let month = invoice.billing_month || invoice.billing_month_formatted;
+        
+        if (!month) {
+            alert('No billing month found for this invoice');
+            return;
         }
+        
+        // FIX: Handle different date formats
+        // If it's already in Y-m format (2026-05)
+        if (month.match(/^\d{4}-\d{2}$/)) {
+            // Already in correct format
+        } 
+        // If it's in Y-m-d format (2026-05-01) - from database
+        else if (month.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            month = month.substring(0, 7); // Extract Y-m
+        }
+        // If it's formatted like "Jan 2025" - from formatted display
+        else if (month.includes(' ') && month.length < 15) {
+            const parts = month.split(' ');
+            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const monthIndex = monthNames.findIndex(m => m.toLowerCase() === parts[0].toLowerCase());
+            if (monthIndex !== -1) {
+                month = parts[1] + '-' + String(monthIndex + 1).padStart(2, '0');
+            } else {
+                alert('Could not parse billing month format: ' + month);
+                return;
+            }
+        }
+        // If it's a Date object or timestamp
+        else if (typeof month === 'number' || month.includes('T')) {
+            const date = new Date(month);
+            if (!isNaN(date.getTime())) {
+                month = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0');
+            } else {
+                alert('Invalid billing month format');
+                return;
+            }
+        }
+        // Fallback: try to extract from any string
+        else if (typeof month === 'string') {
+            // Try to find YYYY-MM pattern
+            const match = month.match(/(\d{4})-(\d{2})/);
+            if (match) {
+                month = match[1] + '-' + match[2];
+            } else {
+                alert('Could not parse billing month format: ' + month);
+                return;
+            }
+        }
+        
+        // Validate the month format
+        if (!month.match(/^\d{4}-\d{2}$/)) {
+            alert('Invalid billing month format after parsing: ' + month);
+            return;
+        }
+        
+        console.log('Reconciling invoice #' + invoice.id + ' for month: ' + month);
+        
+        const response = await fetch('{{ route("invoices.bulk-reconcile") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                billing_month: month,
+                invoice_ids: [invoice.id]
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const result = data.results && data.results[0];
+            if (result) {
+                if (result.status === 'updated') {
+                    this.showNotification(`Invoice #${invoice.id}: Water charge updated from KES ${result.old_charge} to KES ${result.new_charge}`, 'success');
+                } else if (result.status === 'already_correct') {
+                    this.showNotification(`Invoice #${invoice.id}: Water charge already correct (KES ${result.charge})`, 'info');
+                } else if (result.status === 'no_reading') {
+                    this.showNotification(`Invoice #${invoice.id}: No water reading found for ${month}`, 'warning');
+                }
+            }
+            await this.fetchInvoices();
+        } else {
+            alert(data.message || 'Reconciliation failed');
+        }
+    } catch (error) {
+        console.error('Error reconciling invoice:', error);
+        alert('Error reconciling water charges: ' + error.message);
+    } finally {
+        this.reconciling = null;
+    }
+}
     }));
     
     // Dropdown Component

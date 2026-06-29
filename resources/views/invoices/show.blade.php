@@ -45,6 +45,15 @@
               <span class="text-gray-500 dark:text-gray-400">Billing Month:</span>
               <span class="text-gray-700 dark:text-gray-300">{{ $invoice->billing_month ? \Carbon\Carbon::parse($invoice->billing_month)->format('M Y') : '-' }}</span>
             </div>
+            @if($waterSyncStatus ?? 'none' !== 'none')
+            <div class="flex justify-between border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
+              <span class="text-gray-500 dark:text-gray-400">Water Sync:</span>
+              <span class="inline-flex px-2 py-0.5 text-xs rounded-full" 
+                    :class="getWaterSyncStatusClass('{{ $waterSyncStatus ?? 'none' }}')">
+                {{ $waterSyncStatus === 'synced' ? '✓ Synced' : ($waterSyncStatus === 'pending' ? '⏳ Pending' : '⚠️ Needs Review') }}
+              </span>
+            </div>
+            @endif
           </div>
         </div>
 
@@ -94,6 +103,7 @@
           Invoice Details
         </h3>
         <div class="flex gap-2">
+          @if($invoice->status !== 'paid')
           <button 
             @click="openAddItemModal()"
             class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition">
@@ -102,6 +112,7 @@
             </svg>
             Add Item
           </button>
+          @endif
           <button 
             @click="printInvoice()"
             class="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
@@ -158,14 +169,17 @@
                   <div class="col-span-1 flex items-center">
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-400">#</p>
                   </div>
-                  <div class="col-span-4 flex items-center">
+                  <div class="col-span-3 flex items-center">
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Item Type</p>
                   </div>
-                  <div class="col-span-5 flex items-center">
+                  <div class="col-span-4 flex items-center">
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Description</p>
                   </div>
                   <div class="col-span-2 flex items-center justify-end">
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Amount</p>
+                  </div>
+                  <div class="col-span-2 flex items-center justify-end">
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Water Usage</p>
                   </div>
                 </div>
                 <!-- table header end -->
@@ -176,27 +190,25 @@
                     <div class="col-span-1 flex items-center">
                       <p class="text-theme-sm text-gray-500 dark:text-gray-400" x-text="idx + 1"></p>
                     </div>
-                    <div class="col-span-4 flex items-center">
+                    <div class="col-span-3 flex items-center">
                       <span :class="getItemTypeColor(item.item_type)" class="text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="capitalize(item.item_type)"></span>
                     </div>
-                    <div class="col-span-5 flex items-center">
+                    <div class="col-span-4 flex items-center">
                       <p class="text-theme-sm text-gray-500 dark:text-gray-400" x-text="item.description || '-'"></p>
                     </div>
                     <div class="col-span-2 flex items-center justify-end">
-                      <div class="flex items-center gap-2">
-                        <p class="text-right text-theme-sm font-medium text-gray-700 dark:text-gray-300" x-text="formatCurrency(item.amount)"></p>
-                        <div x-data="{ open: false }" class="relative no-print">
-                          <button @click="open = !open" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                            </svg>
-                          </button>
-                          <div x-show="open" @click.outside="open = false" class="absolute right-0 z-10 mt-1 w-32 rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
-                            <button @click="openEditModal(item)" class="block w-full px-3 py-2 text-left text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
-                            <button @click="confirmDelete(item)" class="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button>
-                          </div>
+                      <p class="text-right text-theme-sm font-medium text-gray-700 dark:text-gray-300" x-text="formatCurrency(item.amount)"></p>
+                    </div>
+                    <div class="col-span-2 flex items-center justify-end">
+                      <template x-if="item.item_type === 'water'">
+                        <div class="flex items-center gap-2">
+                          <span x-show="item.water_units_used > 0" class="text-theme-sm text-blue-600 dark:text-blue-400" x-text="item.water_units_used + ' m³'"></span>
+                          <span x-show="!item.water_units_used || item.water_units_used === 0" class="text-theme-sm text-yellow-600 dark:text-yellow-400" title="Water usage not recorded">⚠️ Not synced</span>
                         </div>
-                      </div>
+                      </template>
+                      <template x-if="item.item_type !== 'water'">
+                        <span class="text-theme-sm text-gray-400 dark:text-gray-500">—</span>
+                      </template>
                     </div>
                   </div>
                 </template>
@@ -231,14 +243,15 @@
       <!-- Printable Content End -->
 
       <!-- Action Buttons -->
+      @if($invoice->status !== 'paid')
       <div class="flex items-center justify-end gap-3 p-5 pt-0 no-print">
         <button 
           @click="processPayment()"
-          x-show="'{{ $invoice->status }}' !== 'paid'"
           class="flex items-center justify-center rounded-lg bg-success-500 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-success-600">
           Proceed to Payment
         </button>
       </div>
+      @endif
     </div>
     <!-- Invoice Mainbox End -->
   </div>
@@ -333,6 +346,8 @@ document.addEventListener('alpine:init', () => {
       amount: ''
     },
     formErrors: [],
+    waterSyncStatus: '{{ $waterSyncStatus ?? 'none' }}',
+    invoiceId: {{ $invoice->id }},
     
     init() {
       this.filteredItems = this.items;
@@ -387,6 +402,16 @@ document.addEventListener('alpine:init', () => {
       return classes[status] || classes['draft'];
     },
     
+    getWaterSyncStatusClass(status) {
+      const classes = {
+        'synced': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+        'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+        'needs_review': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+        'none': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+      };
+      return classes[status] || classes['none'];
+    },
+    
     openAddItemModal() {
       this.isEditMode = false;
       this.modalTitle = 'Add Invoice Item';
@@ -432,17 +457,17 @@ document.addEventListener('alpine:init', () => {
       if (this.formErrors.length > 0) return;
       
       try {
-        let url = '{{ route("invoices.store") }}';
+        let url = '{{ route("invoices.items.store", $invoice) }}';
         let method = 'POST';
         let body = {
-          invoice_id: {{ $invoice->id }},
           item_type: this.formData.item_type,
           description: this.formData.description,
           amount: this.formData.amount
         };
         
         if (this.isEditMode) {
-          url = `/invoice-items/${this.currentItemId}`;
+          // FIX: Use the correct route with both invoice and item parameters
+          url = `{{ route('invoices.items.update', ['invoice' => $invoice->id, 'item' => '__ITEM_ID__']) }}`.replace('__ITEM_ID__', this.currentItemId);
           method = 'PUT';
           body = {
             description: this.formData.description,
@@ -483,7 +508,7 @@ document.addEventListener('alpine:init', () => {
     
     async deleteItem(itemId) {
       try {
-        const response = await fetch(`/invoice-items/${itemId}`, {
+        const response = await fetch(`{{ route('invoices.items.destroy', ['invoice' => $invoice->id, 'item' => '__ITEM_ID__']) }}`.replace('__ITEM_ID__', itemId), {
           method: 'DELETE',
           headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -533,10 +558,6 @@ document.addEventListener('alpine:init', () => {
     },
     
     printInvoice() {
-      // Get the original printable content
-      const printContent = document.getElementById('printable-content').innerHTML;
-      
-      // Create a professional print layout
       const printWindow = window.open('', '_blank');
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -797,9 +818,10 @@ document.addEventListener('alpine:init', () => {
               <thead>
                 <tr>
                   <th style="width: 8%">#</th>
-                  <th style="width: 25%">ITEM TYPE</th>
-                  <th style="width: 50%">DESCRIPTION</th>
-                  <th style="width: 17%; text-align: right">AMOUNT</th>
+                  <th style="width: 22%">ITEM TYPE</th>
+                  <th style="width: 40%">DESCRIPTION</th>
+                  <th style="width: 15%; text-align: right">AMOUNT</th>
+                  <th style="width: 15%; text-align: right">WATER USAGE</th>
                 </tr>
               </thead>
               <tbody>
@@ -813,10 +835,21 @@ document.addEventListener('alpine:init', () => {
                   </td>
                   <td>{{ $item->description ?? '-' }}</td>
                   <td class="print-amount-cell">{{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($item->amount, 2) }}</td>
+                  <td class="print-amount-cell">
+                    @if($item->item_type === 'water')
+                      @if($item->water_units_used > 0)
+                        {{ number_format($item->water_units_used, 2) }} m³
+                      @else
+                        <span style="color: #d97706;">Not synced</span>
+                      @endif
+                    @else
+                      —
+                    @endif
+                  </td>
                 </tr>
                 @empty
                 <tr>
-                  <td colspan="4" style="text-align: center; padding: 40px; color: #9ca3af;">No items on this invoice</td>
+                  <td colspan="5" style="text-align: center; padding: 40px; color: #9ca3af;">No items on this invoice</td>
                 </tr>
                 @endforelse
               </tbody>
