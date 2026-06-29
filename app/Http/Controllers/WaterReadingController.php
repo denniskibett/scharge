@@ -15,95 +15,92 @@ class WaterReadingController extends Controller
     {
         $user = auth()->user();
         
-        // Get readings based on user role
-        if ($user->hasAnyRole(['super_admin', 'admin', 'property_manager'])) {
-            $readings = WaterReading::with(['unit.estate'])
-                ->orderBy('reading_date', 'desc')
-                ->get()
-                ->map(function($reading) {
-                    $unit = $reading->unit;
-                    $billingType = $unit->water_billing_type ?? 'consumption';
-                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                    
-                    $consumption = $reading->consumption;
-                    if ($consumption == 0 && $billingType === 'consumption') {
-                        $consumption = $reading->current_reading - $reading->previous_reading;
-                    }
-                    
-                    $charge = $reading->charge;
-                    if ($charge == 0) {
-                        if ($billingType === 'flat') {
-                            $charge = $unit->water_charge ?? 0;
-                        } else {
-                            $charge = max(0, $consumption) * $rate;
-                        }
-                    }
-                    
-                    return [
-                        'id' => $reading->id,
-                        'unit_id' => $unit->id,
-                        'unit_number' => $unit->unit_number ?? 'N/A',
-                        'estate_name' => $unit->estate->name ?? 'N/A',
-                        'previous_reading' => (float) $reading->previous_reading,
-                        'current_reading' => (float) $reading->current_reading,
-                        'consumption' => (float) max(0, $consumption),
-                        'charge' => (float) max(0, $charge),
-                        'reading_date' => $reading->reading_date,
-                        'rate' => (float) $rate,
-                        'water_billing_type' => $billingType,
-                    ];
-                });
-        } elseif ($user->hasRole('meter_reader')) {
-            $readings = WaterReading::with(['unit.estate'])
-                ->orderBy('reading_date', 'desc')
-                ->get()
-                ->map(function($reading) {
-                    $unit = $reading->unit;
-                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                    
-                    return [
-                        'id' => $reading->id,
-                        'unit_id' => $unit->id,
-                        'unit_number' => $unit->unit_number ?? 'N/A',
-                        'estate_name' => $unit->estate->name ?? 'N/A',
-                        'previous_reading' => (float) $reading->previous_reading,
-                        'current_reading' => (float) $reading->current_reading,
-                        'consumption' => (float) $reading->consumption,
-                        'charge' => (float) $reading->charge,
-                        'reading_date' => $reading->reading_date,
-                        'rate' => (float) $rate,
-                    ];
-                });
-        } elseif ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
+        // Get readings with unit and estate relationships
+        $query = WaterReading::with(['unit.estate'])
+            ->orderBy('reading_date', 'desc');
+        
+        // Filter based on user role
+        if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
             $unitId = $user->tenant->activeTenancy->unit_id;
-            $readings = WaterReading::where('unit_id', $unitId)
-                ->with(['unit.estate'])
-                ->orderBy('reading_date', 'desc')
-                ->get()
-                ->map(function($reading) {
-                    $unit = $reading->unit;
-                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-                    
-                    return [
-                        'id' => $reading->id,
-                        'unit_id' => $unit->id,
-                        'unit_number' => $unit->unit_number ?? 'N/A',
-                        'estate_name' => $unit->estate->name ?? 'N/A',
-                        'previous_reading' => (float) $reading->previous_reading,
-                        'current_reading' => (float) $reading->current_reading,
-                        'consumption' => (float) $reading->consumption,
-                        'charge' => (float) $reading->charge,
-                        'reading_date' => $reading->reading_date,
-                        'rate' => (float) $rate,
-                    ];
-                });
-        } else {
-            $readings = collect();
+            $query->where('unit_id', $unitId);
         }
+        
+        $readings = $query->get();
+        
+        // Group readings by unit and prepare display data
+        $groupedReadings = $readings->groupBy('unit_id')->map(function($unitReadings, $unitId) {
+            $unit = $unitReadings->first()->unit;
+            $sortedReadings = $unitReadings->sortByDesc('reading_date');
+            $latestReading = $sortedReadings->first();
+            
+            // Get the previous reading (second most recent)
+            $previousReading = $sortedReadings->count() > 1 ? $sortedReadings->skip(1)->first() : null;
+            
+            // Calculate gaps
+            $gaps = [];
+            $lastDate = null;
+            $ascendingReadings = $unitReadings->sortBy('reading_date');
+            foreach ($ascendingReadings as $reading) {
+                if ($lastDate) {
+                    $monthsDiff = Carbon::parse($lastDate)->diffInMonths(Carbon::parse($reading->reading_date));
+                    if ($monthsDiff > 1) {
+                        $gaps[] = [
+                            'from' => Carbon::parse($lastDate)->format('Y-m'),
+                            'to' => Carbon::parse($reading->reading_date)->format('Y-m'),
+                            'months_missing' => $monthsDiff - 1
+                        ];
+                    }
+                }
+                $lastDate = $reading->reading_date;
+            }
+            
+            $billingType = $unit->water_billing_type ?? 'consumption';
+            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            
+            // Calculate consumption for the latest reading
+            $consumption = $latestReading->consumption;
+            if ($consumption == 0 && $billingType === 'consumption') {
+                $consumption = $latestReading->current_reading - $latestReading->previous_reading;
+            }
+            
+            $charge = $latestReading->charge;
+            if ($charge == 0) {
+                if ($billingType === 'flat') {
+                    $charge = $unit->water_charge ?? 0;
+                } else {
+                    $charge = max(0, $consumption) * $rate;
+                }
+            }
+            
+            return [
+                'id' => $latestReading->id,
+                'unit_id' => $unit->id,
+                'unit_number' => $unit->unit_number ?? 'N/A',
+                'estate_name' => $unit->estate->name ?? 'N/A',
+                'previous_reading' => (float) ($previousReading ? $previousReading->current_reading : $unit->previous_water_reading ?? 0),
+                'current_reading' => (float) $latestReading->current_reading,
+                'consumption' => (float) max(0, $consumption),
+                'charge' => (float) max(0, $charge),
+                'reading_date' => $latestReading->reading_date->format('Y-m-d'),
+                'last_reading_date' => $latestReading->reading_date->format('Y-m-d'),
+                'rate' => (float) $rate,
+                'water_billing_type' => $billingType,
+                'total_readings' => $unitReadings->count(),
+                'has_gaps' => count($gaps) > 0,
+                'gaps' => $gaps,
+                'needs_reading' => $unit->needsWaterReading(),
+                'estate_id' => $unit->estate_id,
+                'unit_type' => $unit->unit_type,
+            ];
+        })->values();
+        
+        // Sort by unit_number
+        $groupedReadings = $groupedReadings->sortBy('unit_number')->values();
         
         // Get units list for the modal
         $units = Unit::with('estate')
             ->where('is_active', true)
+            ->orderBy('unit_number')
             ->get()
             ->map(function($unit) {
                 return [
@@ -120,11 +117,11 @@ class WaterReadingController extends Controller
                     'last_reading_date' => $unit->last_reading_date,
                 ];
             });
-
-                // Get estates for the bulk mode dropdown
-            $estates = \App\Models\Estate::orderBy('name')->get();
         
-        return view('water.index', compact('readings', 'units', 'estates'));
+        // Get estates for the bulk mode dropdown
+        $estates = \App\Models\Estate::orderBy('name')->get();
+        
+        return view('water.index', compact('groupedReadings', 'units', 'estates'));
     }
 
     public function getBulkReadings(Request $request)
@@ -1149,4 +1146,170 @@ public function storeBulkMatrix(Request $request)
             'total' => $units->count()
         ]);
     }
+
+    /**
+     * Auto-fill missing months for a unit
+     * Takes the last reading and propagates it forward to fill gaps
+     */
+    public function autoFillMissingMonths(Request $request, Unit $unit)
+    {
+        try {
+            $validated = $request->validate([
+                'start_month' => 'required|date_format:Y-m',
+                'end_month' => 'required|date_format:Y-m|after_or_equal:start_month',
+            ]);
+            
+            $startDate = Carbon::parse($validated['start_month'] . '-01');
+            $endDate = Carbon::parse($validated['end_month'] . '-01');
+            
+            // Get existing readings within this range
+            $existingReadings = WaterReading::where('unit_id', $unit->id)
+                ->whereBetween('reading_date', [$startDate, $endDate])
+                ->orderBy('reading_date', 'asc')
+                ->get();
+            
+            // Get the reading before the start date
+            $lastReading = WaterReading::where('unit_id', $unit->id)
+                ->where('reading_date', '<', $startDate)
+                ->orderBy('reading_date', 'desc')
+                ->first();
+            
+            $currentReading = $lastReading ? $lastReading->current_reading : ($unit->current_water_reading ?? 0);
+            $createdCount = 0;
+            
+            DB::beginTransaction();
+            
+            // Generate readings for each month in the range
+            $currentMonth = $startDate->copy();
+            while ($currentMonth <= $endDate) {
+                // Check if reading exists for this month
+                $exists = $existingReadings->contains(function($reading) use ($currentMonth) {
+                    return $reading->reading_date->format('Y-m') === $currentMonth->format('Y-m');
+                });
+                
+                if (!$exists) {
+                    // Use the same reading value (no consumption)
+                    $previousReading = $currentReading;
+                    
+                    // Calculate consumption (should be 0 since we're copying)
+                    $consumption = 0;
+                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                    $charge = $unit->water_billing_type === 'flat' 
+                        ? ($unit->water_charge ?? 0) 
+                        : 0;
+                    
+                    WaterReading::create([
+                        'unit_id' => $unit->id,
+                        'previous_reading' => $previousReading,
+                        'current_reading' => $currentReading,
+                        'consumption' => $consumption,
+                        'rate_applied' => $rate,
+                        'charge' => $charge,
+                        'billing_type' => $unit->water_billing_type ?? 'consumption',
+                        'reading_date' => $currentMonth->format('Y-m-d'),
+                        'recorded_by' => auth()->id(),
+                        'notes' => 'Auto-filled missing month',
+                    ]);
+                    
+                    $createdCount++;
+                }
+                
+                $currentMonth->addMonth();
+            }
+            
+            // Update the unit with latest readings
+            $this->updateUnitWithLatestReadings($unit);
+            
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Auto-filled {$createdCount} missing month(s) for unit {$unit->unit_number}",
+                'created_count' => $createdCount
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Auto-fill error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error auto-filling months: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Auto-fill missing months for all units in an estate
+     */
+    public function autoFillEstate(Request $request)
+    {
+        $validated = $request->validate([
+            'estate_id' => 'required|exists:estates,id',
+            'month' => 'required|date_format:Y-m',
+        ]);
+        
+        $estate = Estate::findOrFail($validated['estate_id']);
+        $month = Carbon::parse($validated['month'] . '-01');
+        
+        $units = Unit::where('estate_id', $estate->id)
+            ->where('is_active', true)
+            ->get();
+        
+        $results = [];
+        
+        foreach ($units as $unit) {
+            // Check if this unit has a reading for this month
+            $hasReading = WaterReading::where('unit_id', $unit->id)
+                ->whereYear('reading_date', $month->year)
+                ->whereMonth('reading_date', $month->month)
+                ->exists();
+            
+            if (!$hasReading) {
+                // Get the last reading before this month
+                $lastReading = WaterReading::where('unit_id', $unit->id)
+                    ->where('reading_date', '<', $month)
+                    ->orderBy('reading_date', 'desc')
+                    ->first();
+                
+                $currentReading = $lastReading ? $lastReading->current_reading : ($unit->current_water_reading ?? 0);
+                $previousReading = $currentReading;
+                
+                WaterReading::create([
+                    'unit_id' => $unit->id,
+                    'previous_reading' => $previousReading,
+                    'current_reading' => $currentReading,
+                    'consumption' => 0,
+                    'rate_applied' => $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50,
+                    'charge' => $unit->water_billing_type === 'flat' ? ($unit->water_charge ?? 0) : 0,
+                    'billing_type' => $unit->water_billing_type ?? 'consumption',
+                    'reading_date' => $month->format('Y-m-d'),
+                    'recorded_by' => auth()->id(),
+                    'notes' => 'Auto-filled missing month for estate-wide fill',
+                ]);
+                
+                $this->updateUnitWithLatestReadings($unit);
+                
+                $results[] = [
+                    'unit_id' => $unit->id,
+                    'unit_number' => $unit->unit_number,
+                    'status' => 'filled',
+                    'reading' => $currentReading
+                ];
+            } else {
+                $results[] = [
+                    'unit_id' => $unit->id,
+                    'unit_number' => $unit->unit_number,
+                    'status' => 'exists'
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Processed {$results->count()} units",
+            'results' => $results
+        ]);
+    }
+
 }

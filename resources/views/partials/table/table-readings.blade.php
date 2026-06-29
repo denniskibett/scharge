@@ -8,6 +8,20 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Track and manage water consumption readings per unit</p>
         </div>
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <!-- Items Per Page Dropdown -->
+            <div class="flex items-center gap-2">
+                <span class="text-sm text-gray-500 dark:text-gray-400">Show:</span>
+                <select x-model="itemsPerPage" @change="currentPage = 1" class="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="250">250</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                </select>
+            </div>
+
             <!-- Status Filters -->
             <div class="hidden h-11 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 lg:inline-flex dark:bg-gray-900">
                 <button @click="filterStatus = 'all'; currentPage = 1" :class="filterStatus === 'all' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
@@ -18,6 +32,9 @@
                 </button>
                 <button @click="filterStatus = 'unread'; currentPage = 1" :class="filterStatus === 'unread' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
                     Unread (<span x-text="statusCounts.unread"></span>)
+                </button>
+                <button @click="filterStatus = 'gaps'; currentPage = 1" :class="filterStatus === 'gaps' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
+                    Has Gaps (<span x-text="statusCounts.gaps"></span>)
                 </button>
             </div>
 
@@ -61,16 +78,26 @@
         <table class="w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Unit</th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Estate</th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('unit_number')">
+                        Unit 
+                        <span x-show="sortBy === 'unit_number'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                    </th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('estate_name')">
+                        Estate
+                        <span x-show="sortBy === 'estate_name'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                    </th>
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Previous (m³)</th>
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Current (m³)</th>
                     @if($showConsumption)
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Consumption (m³)</th>
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Charge (KES)</th>
                     @endif
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Last Reading Date</th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('last_reading_date')">
+                        Last Reading Date
+                        <span x-show="sortBy === 'last_reading_date'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                    </th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Status</th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Readings</th>
                     @if($showActions)
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Actions</th>
                     @endif
@@ -78,10 +105,13 @@
             </thead>
             <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
                 <template x-for="reading in paginatedReadings" :key="reading.id || reading.unit_id">
-                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900" :class="{'bg-red-50 dark:bg-red-900/10': reading.has_gaps}">
                         <td class="p-4 whitespace-nowrap">
                             <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="reading.unit_number"></span>
-                            <span x-show="reading.billing_type === 'flat'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Flat</span>
+                            <span x-show="reading.water_billing_type === 'flat'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Flat</span>
+                            <span x-show="reading.has_gaps" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                                ⚠️ Gaps
+                            </span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.estate_name"></span>
@@ -107,6 +137,9 @@
                             <span :class="getReadingStatusBadge(reading.needs_reading)" class="px-2 py-1 text-xs font-medium rounded-full">
                                 <span x-text="reading.needs_reading ? 'Needs Reading' : 'Up to Date'"></span>
                             </span>
+                        </td>
+                        <td class="p-4 whitespace-nowrap">
+                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.total_readings + ' readings'"></span>
                         </td>
                         @if($showActions)
                         <td class="p-4 whitespace-nowrap">
@@ -142,9 +175,9 @@
     <div x-show="!loading && filteredReadings.length > 0" class="flex flex-col items-center justify-between border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
         <div class="pb-3 sm:pb-0">
             <span class="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                Showing <span x-text="((currentPage - 1) * itemsPerPage) + (paginatedReadings.length ? 1 : 0)"></span>
-                to <span x-text="((currentPage - 1) * itemsPerPage) + paginatedReadings.length"></span>
-                of <span x-text="filteredReadings.length"></span>
+                Showing <span x-text="((currentPage - 1) * itemsPerPage) + 1"></span>
+                to <span x-text="Math.min(currentPage * itemsPerPage, filteredReadings.length)"></span>
+                of <span x-text="filteredReadings.length"></span> entries
             </span>
         </div>
         <div class="flex w-full items-center justify-between gap-2 rounded-lg bg-gray-50 p-4 sm:w-auto sm:justify-normal sm:bg-transparent sm:p-0 dark:bg-white/[0.03] dark:sm:bg-transparent">
@@ -152,6 +185,7 @@
                 <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path fill-rule="evenodd" clip-rule="evenodd" d="M2.58203 9.99868C2.58174 10.1909 2.6549 10.3833 2.80152 10.53L7.79818 15.5301C8.09097 15.8231 8.56584 15.8233 8.85883 15.5305C9.15183 15.2377 9.152 14.7629 8.85921 14.4699L5.13911 10.7472L16.6665 10.7472C17.0807 10.7472 17.4165 10.4114 17.4165 9.99715C17.4165 9.58294 17.0807 9.24715 16.6665 9.24715L5.14456 9.24715L8.85919 5.53016C9.15199 5.23717 9.15184 4.7623 8.85885 4.4695C8.56587 4.1767 8.09099 4.17685 7.79819 4.46984L2.84069 9.43049C2.68224 9.568 2.58203 9.77087 2.58203 9.99715C2.58203 9.99766 2.58203 9.99817 2.58203 9.99868Z" fill=""/>
                 </svg>
+                Previous
             </button>
             <span class="block text-sm font-medium text-gray-700 sm:hidden dark:text-gray-400" x-text="'Page ' + currentPage + ' of ' + totalPages"></span>
             <ul class="hidden items-center gap-0.5 sm:flex">
@@ -160,6 +194,7 @@
                 </template>
             </ul>
             <button class="shadow-theme-xs flex items-center gap-2 rounded-lg border border-gray-300 bg-white p-2 text-gray-700 hover:bg-gray-50 hover:text-gray-800 sm:p-2.5 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200" @click="nextPage" :disabled="currentPage === totalPages">
+                Next
                 <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path fill-rule="evenodd" clip-rule="evenodd" d="M17.4165 9.9986C17.4168 10.1909 17.3437 10.3832 17.197 10.53L12.2004 15.5301C11.9076 15.8231 11.4327 15.8233 11.1397 15.5305C10.8467 15.2377 10.8465 14.7629 11.1393 14.4699L14.8594 10.7472L3.33203 10.7472C2.91782 10.7472 2.58203 10.4114 2.58203 9.99715C2.58203 9.58294 2.91782 9.24715 3.33203 9.24715L14.854 9.24715L11.1393 5.53016C10.8465 5.23717 10.8467 4.7623 11.1397 4.4695C11.4327 4.1767 11.9075 4.17685 12.2003 4.46984L17.1578 9.43049C17.3163 9.568 17.4165 9.77087 17.4165 9.99715C17.4165 9.99763 17.4165 9.99812 17.4165 9.9986Z" fill=""/>
                 </svg>
@@ -174,153 +209,41 @@ document.addEventListener('alpine:init', () => {
         readings: [],
         searchQuery: '',
         filterStatus: 'all',
-        sortBy: 'reading_date',
-        sortDirection: 'desc',
+        sortBy: 'unit_number',
+        sortDirection: 'asc',
         currentPage: 1,
-        itemsPerPage: 10,
+        itemsPerPage: 25,
         loading: false,
         units: @json($units ?? []),
         
         init() {
-            // Normalize incoming readings - handle both array and object formats
             let rawReadings = @json($readings);
             
-            // CRITICAL DEBUG: Log what we received
             console.log('========== TABLE DEBUG ==========');
             console.log('Raw readings type:', Array.isArray(rawReadings) ? 'array' : typeof rawReadings);
-            console.log('Raw readings count:', rawReadings.length);
-            console.log('First 3 raw readings:', rawReadings.slice(0, 3));
+            console.log('Raw readings count:', rawReadings ? rawReadings.length : 0);
             
-            if (rawReadings.length === 0) {
+            if (!rawReadings || rawReadings.length === 0) {
                 console.warn('No readings received!');
                 this.readings = [];
                 return;
             }
             
-            // Process each reading to ensure consistent format
-            this.readings = rawReadings.map((reading, index) => {
-                // Debug first reading
-                if (index === 0) {
-                    console.log('Sample raw reading structure:', reading);
-                    console.log('Reading keys:', Object.keys(reading));
-                }
-                
-                // Handle if reading is an array (from controller mapping) or object (Eloquent model)
-                const getValue = (key, defaultValue = null) => {
-                    if (reading && typeof reading === 'object') {
-                        // Try direct property first
-                        if (reading[key] !== undefined) return reading[key];
-                        // Try nested paths (for Eloquent models)
-                        if (key.includes('.')) {
-                            const parts = key.split('.');
-                            let value = reading;
-                            for (const part of parts) {
-                                if (value && typeof value === 'object' && value[part] !== undefined) {
-                                    value = value[part];
-                                } else {
-                                    return defaultValue;
-                                }
-                            }
-                            return value;
-                        }
-                        return defaultValue;
-                    }
-                    return defaultValue;
-                };
-                
-                // Extract unit number from various possible locations
-                let unitNumber = getValue('unit_number');
-                if (!unitNumber && reading.unit) {
-                    unitNumber = reading.unit.unit_number;
-                }
-                if (!unitNumber) unitNumber = 'N/A';
-                
-                // Extract estate name from various possible locations
-                let estateName = getValue('estate_name');
-                if (!estateName && reading.unit && reading.unit.estate) {
-                    estateName = reading.unit.estate.name;
-                }
-                if (!estateName && reading.estate) {
-                    estateName = reading.estate.name || reading.estate;
-                }
-                if (!estateName) estateName = 'N/A';
-                
-                const previousReading = parseFloat(getValue('previous_reading', 0));
-                let currentReading = parseFloat(getValue('current_reading', 0));
-                
-                // If current_reading is null/undefined, set to 0 for pending readings
-                if (isNaN(currentReading)) currentReading = 0;
-                
-                let consumption = parseFloat(getValue('consumption', 0));
-                if (isNaN(consumption)) consumption = 0;
-                
-                if (consumption === 0 && currentReading > 0) {
-                    consumption = Math.max(0, currentReading - previousReading);
-                }
-                
-                const billingType = getValue('water_billing_type', getValue('billing_type', 'consumption'));
-                let charge = parseFloat(getValue('charge', 0));
-                if (isNaN(charge)) charge = 0;
-                
-                if (billingType === 'flat') {
-                    const waterCharge = parseFloat(getValue('water_charge', 0));
-                    charge = isNaN(waterCharge) ? 0 : waterCharge;
-                } else if (charge === 0 && consumption > 0) {
-                    const rate = parseFloat(getValue('custom_water_rate', getValue('rate', 50)));
-                    charge = consumption * (isNaN(rate) ? 50 : rate);
-                }
-                
-                const lastReadingDate = getValue('last_reading_date') || getValue('reading_date');
-                const needsReading = getValue('needs_reading', !lastReadingDate);
-                
-                const normalizedReading = {
-                    id: getValue('id', null),
-                    unit_id: getValue('unit_id', getValue('id', null)),
-                    unit_number: unitNumber,
-                    estate_name: estateName,
-                    previous_reading: previousReading,
-                    current_reading: currentReading,
-                    consumption: consumption,
-                    charge: charge,
-                    last_reading_date: lastReadingDate,
-                    reading_date: lastReadingDate,
-                    needs_reading: needsReading,
-                    billing_type: billingType,
-                    water_billing_type: billingType,
-                    water_charge: parseFloat(getValue('water_charge', 0)),
-                    custom_water_rate: parseFloat(getValue('custom_water_rate', 0)),
-                    rate: parseFloat(getValue('rate', 50)),
-                    status: getValue('status', 'occupied'),
-                    unit_type: getValue('unit_type', null),
-                    recorded_by_name: getValue('recorded_by_name', null)
-                };
-                
-                // Debug first normalized reading
-                if (index === 0) {
-                    console.log('Normalized reading:', normalizedReading);
-                }
-                
-                return normalizedReading;
-            });
-            
-            console.log('Final normalized readings count:', this.readings.length);
-            console.log('Readings with needs_reading=true:', this.readings.filter(r => r.needs_reading).length);
-            console.log('Readings with needs_reading=false:', this.readings.filter(r => !r.needs_reading).length);
+            this.readings = rawReadings;
+            console.log('Final readings count:', this.readings.length);
             console.log('================================');
-            
-            // Force Alpine to update the view
-            this.$nextTick(() => {
-                console.log('Table render complete, displaying', this.filteredReadings.length, 'readings');
-            });
         },
         
         get statusCounts() {
-            const counts = { all: this.readings.length, read: 0, unread: 0 };
+            const counts = { all: this.readings.length, read: 0, unread: 0, gaps: 0 };
             this.readings.forEach(reading => {
                 if (reading.needs_reading) {
                     counts.unread++;
                 } else {
                     counts.read++;
+                }
+                if (reading.has_gaps) {
+                    counts.gaps++;
                 }
             });
             return counts;
@@ -329,20 +252,13 @@ document.addEventListener('alpine:init', () => {
         get filteredReadings() {
             let filtered = this.readings;
             
-            console.log('Filtering - Current filterStatus:', this.filterStatus);
-            console.log('Total readings before filter:', filtered.length);
-            console.log('Readings with needs_reading=true:', filtered.filter(r => r.needs_reading).length);
-            console.log('Readings with needs_reading=false:', filtered.filter(r => !r.needs_reading).length);
-            
             // Apply status filter
             if (this.filterStatus === 'read') {
                 filtered = filtered.filter(reading => !reading.needs_reading);
-                console.log('After "read" filter:', filtered.length);
             } else if (this.filterStatus === 'unread') {
                 filtered = filtered.filter(reading => reading.needs_reading === true);
-                console.log('After "unread" filter:', filtered.length);
-            } else {
-                console.log('Showing all readings');
+            } else if (this.filterStatus === 'gaps') {
+                filtered = filtered.filter(reading => reading.has_gaps === true);
             }
             
             // Apply search filter
@@ -352,15 +268,14 @@ document.addEventListener('alpine:init', () => {
                     (reading.unit_number && reading.unit_number.toLowerCase().includes(query)) ||
                     (reading.estate_name && reading.estate_name.toLowerCase().includes(query))
                 );
-                console.log('After search filter:', filtered.length);
             }
             
             // Apply sorting
             filtered = [...filtered].sort((a, b) => {
-                let valA = a[this.sortBy];
-                let valB = b[this.sortBy];
+                let valA = a[this.sortBy] || '';
+                let valB = b[this.sortBy] || '';
                 
-                if (this.sortBy === 'reading_date' || this.sortBy === 'last_reading_date') {
+                if (this.sortBy === 'last_reading_date' || this.sortBy === 'reading_date') {
                     valA = valA ? new Date(valA).getTime() : 0;
                     valB = valB ? new Date(valB).getTime() : 0;
                 }
@@ -375,7 +290,6 @@ document.addEventListener('alpine:init', () => {
                 return 0;
             });
             
-            console.log('Final filtered count:', filtered.length);
             return filtered;
         },
         
@@ -385,12 +299,12 @@ document.addEventListener('alpine:init', () => {
         },
         
         get totalPages() {
-            return Math.ceil(this.filteredReadings.length / this.itemsPerPage);
+            return Math.ceil(this.filteredReadings.length / this.itemsPerPage) || 1;
         },
         
         get visiblePages() {
             const pages = [];
-            const maxVisible = 5;
+            const maxVisible = 7;
             let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
             let end = Math.min(this.totalPages, start + maxVisible - 1);
             if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
@@ -469,7 +383,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         exportData() {
-            const headers = ['Unit', 'Estate', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Last Reading Date', 'Status'];
+            const headers = ['Unit', 'Estate', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Last Reading Date', 'Status', 'Total Readings'];
             const rows = this.filteredReadings.map(r => [
                 r.unit_number,
                 r.estate_name,
@@ -478,7 +392,8 @@ document.addEventListener('alpine:init', () => {
                 this.formatNumber(r.consumption),
                 this.formatNumber(r.charge),
                 this.formatDate(r.last_reading_date),
-                r.needs_reading ? 'Needs Reading' : 'Up to Date'
+                r.needs_reading ? 'Needs Reading' : 'Up to Date',
+                r.total_readings || 0
             ]);
             
             const csv = [headers, ...rows].map(row => row.join(',')).join('\n');

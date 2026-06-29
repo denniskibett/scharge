@@ -104,7 +104,7 @@
 
         <!-- Water Readings Table -->
         @include('partials.table.table-readings', [
-            'readings' => $readings ?? [],
+            'readings' => $groupedReadings ?? [],
             'showActions' => true,
             'showConsumption' => true,
             'units' => $units ?? []
@@ -115,7 +115,7 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('waterIndex', () => ({
-        readings: @json($readings ?? []),
+        readings: @json($groupedReadings ?? []),
         totalReadings: 0,
         totalConsumption: 0,
         totalCharges: 0,

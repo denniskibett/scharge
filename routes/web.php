@@ -237,6 +237,8 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/report', [WaterReadingController::class, 'generateReport']);
         Route::get('/api/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
         Route::get('/api/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange']);
+        Route::post('/unit/{unit}/auto-fill', [WaterReadingController::class, 'autoFillMissingMonths'])->name('unit.auto-fill');
+        Route::post('/estate/auto-fill', [WaterReadingController::class, 'autoFillEstate'])->name('estate.auto-fill');
     });
 
     Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');

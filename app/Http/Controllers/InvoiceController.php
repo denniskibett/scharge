@@ -7,6 +7,7 @@ use App\Models\Tenancy;
 use App\Models\Tenant;
 use App\Models\Payment;
 use App\Models\InvoiceItem;
+use App\Modules\Water\Models\WaterReading;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -1609,6 +1610,252 @@ public function show(Invoice $invoice)
             return response()->json([
                 'success' => false,
                 'message' => 'Error resolving duplicates: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reconcile invoice water charges with meter readings
+     */
+    public function reconcileWaterCharges(Request $request, Invoice $invoice)
+    {
+        try {
+            $validated = $request->validate([
+                'reading_id' => 'required|exists:water_readings,id',
+            ]);
+            
+            $reading = WaterReading::findOrFail($validated['reading_id']);
+            $tenancy = $invoice->tenancy;
+            $unit = $tenancy->unit;
+            
+            // Verify the reading belongs to this unit
+            if ($reading->unit_id !== $unit->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Reading does not belong to this unit'
+                ], 422);
+            }
+            
+            // Find or create water item in invoice
+            $waterItem = $invoice->items()->where('item_type', 'water')->first();
+            
+            if ($waterItem) {
+                // Update existing water item
+                $waterItem->update([
+                    'amount' => $reading->charge,
+                    'description' => "Water Charge - Reading: {$reading->reading_date->format('M Y')} (Consumption: {$reading->consumption} m³ @ KES {$reading->rate_applied}/m³)",
+                ]);
+            } else {
+                // Create new water item
+                $invoice->items()->create([
+                    'item_type' => 'water',
+                    'description' => "Water Charge - Reading: {$reading->reading_date->format('M Y')} (Consumption: {$reading->consumption} m³ @ KES {$reading->rate_applied}/m³)",
+                    'amount' => $reading->charge,
+                ]);
+            }
+            
+            // Update invoice total
+            $invoice->total_amount = $invoice->items()->sum('amount');
+            $invoice->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Water charges reconciled successfully',
+                'invoice' => $invoice->load('items'),
+                'water_charge' => $reading->charge
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Water reconciliation error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error reconciling water charges: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk reconcile water charges for all invoices in a month
+     */
+    public function bulkReconcileWaterCharges(Request $request)
+    {
+        $validated = $request->validate([
+            'billing_month' => 'required|date_format:Y-m',
+            'estate_id' => 'nullable|exists:estates,id',
+        ]);
+        
+        $billingMonth = Carbon::parse($validated['billing_month'] . '-01');
+        $results = [];
+        
+        // Get invoices for this month
+        $query = Invoice::with(['tenancy.unit', 'items'])
+            ->where('billing_month', $billingMonth->format('Y-m') . '-01')
+            ->where('invoice_type', 'monthly');
+        
+        if ($validated['estate_id']) {
+            $query->whereHas('tenancy.unit', function($q) use ($validated) {
+                $q->where('estate_id', $validated['estate_id']);
+            });
+        }
+        
+        $invoices = $query->get();
+        
+        foreach ($invoices as $invoice) {
+            $unit = $invoice->tenancy->unit;
+            
+            // Get the reading for this billing month
+            $reading = WaterReading::where('unit_id', $unit->id)
+                ->whereYear('reading_date', $billingMonth->year)
+                ->whereMonth('reading_date', $billingMonth->month)
+                ->first();
+            
+            if ($reading) {
+                // Update or create water item
+                $waterItem = $invoice->items()->where('item_type', 'water')->first();
+                
+                if ($waterItem) {
+                    $waterItem->update([
+                        'amount' => $reading->charge,
+                        'description' => "Water Charge - {$billingMonth->format('M Y')} (Consumption: {$reading->consumption} m³)",
+                    ]);
+                    $status = 'updated';
+                } else {
+                    $invoice->items()->create([
+                        'item_type' => 'water',
+                        'description' => "Water Charge - {$billingMonth->format('M Y')} (Consumption: {$reading->consumption} m³)",
+                        'amount' => $reading->charge,
+                    ]);
+                    $status = 'created';
+                }
+                
+                // Update invoice total
+                $invoice->total_amount = $invoice->items()->sum('amount');
+                $invoice->save();
+                
+                $results[] = [
+                    'invoice_id' => $invoice->id,
+                    'unit_number' => $unit->unit_number,
+                    'water_charge' => $reading->charge,
+                    'status' => $status
+                ];
+            } else {
+                $results[] = [
+                    'invoice_id' => $invoice->id,
+                    'unit_number' => $unit->unit_number,
+                    'status' => 'no_reading'
+                ];
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Processed {$results->count()} invoices",
+            'results' => $results
+        ]);
+    }
+
+    /**
+     * Generate final water reading for move-out tenancy
+     */
+    public function generateMoveOutWaterReading(Tenancy $tenancy)
+    {
+        $unit = $tenancy->unit;
+        
+        // Get the last reading for this unit
+        $lastReading = WaterReading::where('unit_id', $unit->id)
+            ->orderBy('reading_date', 'desc')
+            ->first();
+        
+        // Create a final reading at move-out date
+        $reading = WaterReading::create([
+            'unit_id' => $unit->id,
+            'previous_reading' => $lastReading ? $lastReading->current_reading : ($unit->current_water_reading ?? 0),
+            'current_reading' => $unit->current_water_reading ?? 0,
+            'consumption' => $unit->calculateWaterConsumption(),
+            'rate_applied' => $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50,
+            'charge' => $unit->calculateWaterCharge(),
+            'billing_type' => $unit->water_billing_type ?? 'consumption',
+            'reading_date' => $tenancy->move_out_date,
+            'recorded_by' => auth()->id(),
+            'notes' => 'Move-out reading for tenancy #' . $tenancy->id,
+        ]);
+        
+        return $reading;
+    }
+
+    /**
+     * Handle water reading when a tenancy ends
+     */
+    public function handleTenancyEnd(Request $request, Tenancy $tenancy)
+    {
+        try {
+            $validated = $request->validate([
+                'final_reading' => 'required|numeric|min:0',
+                'move_out_date' => 'required|date',
+                'charge_to' => 'required|in:tenant,management',
+            ]);
+            
+            $unit = $tenancy->unit;
+            
+            // Create final reading
+            $reading = $this->generateMoveOutWaterReading($tenancy);
+            
+            // Determine who to charge
+            if ($validated['charge_to'] === 'management') {
+                // Create a management invoice or write-off
+                $invoice = Invoice::create([
+                    'tenancy_id' => null, // No tenancy
+                    'invoice_type' => 'move_out',
+                    'billing_month' => $tenancy->move_out_date,
+                    'total_amount' => $reading->charge,
+                    'status' => 'unpaid',
+                    'notes' => "Water charge from moved-out tenancy #{$tenancy->id}",
+                ]);
+                
+                $invoice->items()->create([
+                    'item_type' => 'water',
+                    'description' => "Water reading at move-out: {$reading->consumption} m³",
+                    'amount' => $reading->charge,
+                ]);
+                
+                $message = "Water charge of KES {$reading->charge} has been assigned to management";
+            } else {
+                // Create move-out invoice for tenant
+                $invoice = Invoice::create([
+                    'tenancy_id' => $tenancy->id,
+                    'invoice_type' => 'move_out',
+                    'billing_month' => $tenancy->move_out_date,
+                    'total_amount' => $reading->charge,
+                    'status' => 'unpaid',
+                    'notes' => "Final water reading at move-out",
+                ]);
+                
+                $invoice->items()->create([
+                    'item_type' => 'water',
+                    'description' => "Final water reading: {$reading->consumption} m³",
+                    'amount' => $reading->charge,
+                ]);
+                
+                $message = "Final water invoice of KES {$reading->charge} has been generated for tenant";
+            }
+            
+            // Update unit readings
+            $this->updateUnitWithLatestReadings($unit);
+            
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'reading' => $reading,
+                'invoice' => $invoice,
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Tenancy end water handling error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error handling tenancy end: ' . $e->getMessage()
             ], 500);
         }
     }

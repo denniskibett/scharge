@@ -354,15 +354,6 @@ function renderMeterReaderMatrix() {
     const container = document.getElementById('bulkMatrixContainer');
     if (!container) return;
     
-    if (bulkReadingsMatrix.length === 0) {
-        container.innerHTML = `
-            <div class="text-center text-gray-500 py-8">
-                No data to display. Please select an estate.
-            </div>
-        `;
-        return;
-    }
-    
     let html = `
         <div class="overflow-x-auto">
             <table class="min-w-full border-collapse">
@@ -384,12 +375,19 @@ function renderMeterReaderMatrix() {
         const reading = unitData.readings[0];
         const displayValue = reading.reading === 0 ? '' : reading.reading.toFixed(2);
         
+        // Color coding based on reading gaps
+        const gapClass = unitData.hasGaps ? 'bg-red-50 dark:bg-red-900/20' : '';
+        
         html += `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 ${gapClass}">
                 <td class="border border-gray-300 dark:border-gray-700 px-3 py-2 text-sm font-medium text-gray-800 dark:text-white/90 sticky left-0 bg-white dark:bg-gray-900 z-10">
                     ${unitData.unitNumber}
                     <span class="block text-xs text-gray-500">${unitData.estateName}</span>
-                    <span class="block text-xs text-blue-500 mt-1">Prev: ${reading.previousReading.toFixed(2)} m³</span>
+                    <span class="block text-xs text-blue-500 mt-1">
+                        Prev: ${reading.previousReading.toFixed(2)} m³ 
+                        (${reading.previousMonthLabel || 'N/A'})
+                    </span>
+                    ${unitData.hasGaps ? `<span class="block text-xs text-red-500">⚠️ ${unitData.gapCount} month(s) missing</span>` : ''}
                 </td>
                 <td class="border border-gray-300 dark:border-gray-700 px-2 py-1">
                     <div class="flex flex-col space-y-1">
@@ -424,7 +422,8 @@ function renderMeterReaderMatrix() {
                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
-                <strong>Note:</strong> Previous reading shown for reference. Enter current meter reading for ${bulkMonthRange[0].label}.
+                <strong>Note:</strong> Previous reading shown for reference. 
+                ${bulkReadingsMatrix.some(u => u.hasGaps) ? '🔴 Red-highlighted units have missing readings - please check carefully.' : ''}
             </p>
         </div>
     `;
