@@ -1,4 +1,4 @@
-<!-- ENHANCED MAINTENANCE REQUEST MODAL - ROLE AWARE -->
+<!-- ENHANCED MAINTENANCE REQUEST MODAL - ROLE AWARE WITH EDIT SUPPORT -->
 <div x-data="maintenanceCreateModal" x-init="init()" x-cloak>
     <!-- Backdrop -->
     <template x-if="isOpen">
@@ -30,8 +30,8 @@
                     </svg>
                 </div>
                 <div>
-                    <h4 class="text-lg font-medium text-gray-800 dark:text-white/90">New Maintenance Request</h4>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">Submit a new maintenance issue</p>
+                    <h4 class="text-lg font-medium text-gray-800 dark:text-white/90" x-text="modalTitle"></h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400" x-text="modalSubtitle"></p>
                 </div>
             </div>
 
@@ -50,11 +50,18 @@
             <div x-show="userRole !== 'tenant'" class="mb-6">
                 <div class="flex border-b border-gray-200 dark:border-gray-700">
                     <button @click="activeTab = 'form'" :class="activeTab === 'form' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium transition-colors">
-                        New Request
+                        <span x-text="isEditMode ? 'Edit Request' : 'New Request'"></span>
                     </button>
                     <button @click="activeTab = 'history'" :class="activeTab === 'history' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2' : 'border-transparent text-gray-500 hover:text-gray-700'" class="px-4 py-2 text-sm font-medium transition-colors">
                         Previous History (<span x-text="previousRequests.length"></span>)
                     </button>
+                    <span x-show="isEditMode" class="ml-auto text-sm text-blue-600 dark:text-blue-400 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Editing Request #<span x-text="editId"></span>
+                    </span>
                 </div>
             </div>
 
@@ -62,6 +69,9 @@
             <div x-show="activeTab === 'form'">
                 <form @submit.prevent="submitRequest">
                     @csrf
+                    
+                    <!-- Hidden field for edit mode -->
+                    <input type="hidden" x-model="editId" name="id">
                     
                     <!-- Unit Selection (Staff only) -->
                     <div class="mb-5" x-show="userRole !== 'tenant'">
@@ -136,7 +146,7 @@
                         </div>
                     </div>
 
-                    <!-- How long has the issue been happening? -->
+                    <!-- Duration -->
                     <div class="mb-5">
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
                             How long has this issue been happening? *
@@ -152,42 +162,76 @@
                         </select>
                     </div>
 
-                    <!-- Images Upload -->
-                    <div class="mb-5">
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Images (Optional)
-                        </label>
-                        <div class="mt-1 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-4 dark:border-gray-700">
-                            <div class="text-center">
-                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                </svg>
-                                <div class="mt-2 flex text-sm text-gray-600 dark:text-gray-400">
-                                    <label class="relative cursor-pointer rounded-md bg-white font-medium text-brand-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 hover:text-brand-500 dark:bg-gray-900">
-                                        <span>Upload a file</span>
-                                        <input type="file" class="sr-only" multiple accept="image/*" @change="handleFiles($event)">
-                                    </label>
-                                    <p class="pl-1">or drag and drop</p>
-                                </div>
-                                <p class="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    <!-- Staff Only: Additional Fields for Edit -->
+                    <div x-show="isEditMode && userRole !== 'tenant'" class="border-t border-gray-200 dark:border-gray-700 pt-5 mt-5">
+                        <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Management Fields</h5>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <!-- Status -->
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Status
+                                </label>
+                                <select x-model="formData.status" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                    <option value="open">Open</option>
+                                    <option value="in_progress">In Progress</option>
+                                    <option value="pending_parts">Pending Parts</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+
+                            <!-- Assigned To -->
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Assign To
+                                </label>
+                                <select x-model="formData.assigned_to" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                    <option value="">Unassigned</option>
+                                    <template x-for="staff in staffUsers" :key="staff.id">
+                                        <option :value="staff.id" x-text="staff.name"></option>
+                                    </template>
+                                </select>
                             </div>
                         </div>
-                        
-                        <!-- Image Preview -->
-                        <div class="mt-3 flex flex-wrap gap-2" x-show="imagePreviews.length > 0">
-                            <template x-for="(preview, index) in imagePreviews" :key="index">
-                                <div class="relative">
-                                    <img :src="preview" class="h-16 w-16 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
-                                    <button type="button" @click="removeImage(index)" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600">
-                                        ×
-                                    </button>
-                                </div>
-                            </template>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-5">
+                            <!-- Scheduled Date -->
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Scheduled Date
+                                </label>
+                                <input type="date" x-model="formData.scheduled_date" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            </div>
+
+                            <!-- Cost -->
+                            <div>
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Cost (KES)
+                                </label>
+                                <input type="number" step="0.01" min="0" x-model="formData.cost" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" placeholder="0.00">
+                            </div>
+                        </div>
+
+                        <!-- Admin Notes -->
+                        <div class="mt-5">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Admin Notes
+                            </label>
+                            <textarea x-model="formData.admin_notes" rows="2" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" placeholder="Internal notes for staff..."></textarea>
+                        </div>
+
+                        <!-- Resolution Notes -->
+                        <div class="mt-5">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Resolution Notes
+                            </label>
+                            <textarea x-model="formData.resolution_notes" rows="2" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" placeholder="How was this resolved?"></textarea>
                         </div>
                     </div>
 
                     <!-- Request Summary -->
-                    <div class="mb-6 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 p-4">
+                    <div class="mb-6 rounded-lg bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-800/50 p-4 mt-5">
                         <h5 class="font-medium text-gray-800 dark:text-white/90 mb-3 flex items-center gap-2">
                             <svg class="w-5 h-5 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -226,8 +270,8 @@
                             Cancel
                         </button>
                         <button type="submit" :disabled="isSubmitting" class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto">
-                            <span x-show="!isSubmitting">Submit Request</span>
-                            <span x-show="isSubmitting">Submitting...</span>
+                            <span x-show="!isSubmitting" x-text="isEditMode ? 'Update Request' : 'Submit Request'"></span>
+                            <span x-show="isSubmitting">Processing...</span>
                         </button>
                     </div>
                 </form>
@@ -270,6 +314,8 @@
 document.addEventListener('alpine:init', () => {
     Alpine.data('maintenanceCreateModal', () => ({
         isOpen: false,
+        isEditMode: false,
+        editId: null,
         isSubmitting: false,
         activeTab: 'form',
         formErrors: [],
@@ -277,6 +323,7 @@ document.addEventListener('alpine:init', () => {
         currentUnit: @json($currentUnit ?? null),
         units: @json($units ?? []),
         previousRequests: [],
+        staffUsers: [],
         
         formData: {
             unit_id: '',
@@ -285,12 +332,31 @@ document.addEventListener('alpine:init', () => {
             category: '',
             priority: 'medium',
             duration: '',
+            status: 'open',
+            assigned_to: '',
+            admin_notes: '',
+            resolution_notes: '',
+            scheduled_date: '',
+            cost: '',
             images: []
         },
         imagePreviews: [],
         
         init() {
             window.maintenanceModal = this;
+            
+            // Listen for edit events from the table
+            window.addEventListener('open-maintenance-edit', (event) => {
+                this.openEditModal(event.detail);
+            });
+        },
+        
+        get modalTitle() {
+            return this.isEditMode ? 'Edit Maintenance Request' : 'New Maintenance Request';
+        },
+        
+        get modalSubtitle() {
+            return this.isEditMode ? 'Update the maintenance request details' : 'Submit a new maintenance issue';
         },
         
         get currentUnitLabel() {
@@ -302,6 +368,8 @@ document.addEventListener('alpine:init', () => {
         
         openModal(unitId = null) {
             this.isOpen = true;
+            this.isEditMode = false;
+            this.editId = null;
             this.activeTab = 'form';
             this.resetForm();
             
@@ -318,8 +386,42 @@ document.addEventListener('alpine:init', () => {
             document.body.style.overflow = 'hidden';
         },
         
+        openEditModal(editData) {
+            this.isOpen = true;
+            this.isEditMode = true;
+            this.editId = editData.id;
+            this.activeTab = 'form';
+            this.resetForm();
+            
+            // Populate form with edit data
+            this.formData.unit_id = editData.unit_id;
+            this.formData.name = editData.name;
+            this.formData.description = editData.description;
+            this.formData.category = editData.category;
+            this.formData.priority = editData.priority || 'medium';
+            this.formData.duration = editData.duration || '';
+            this.formData.status = editData.status || 'open';
+            this.formData.assigned_to = editData.assigned_to || '';
+            this.formData.admin_notes = editData.admin_notes || '';
+            this.formData.resolution_notes = editData.resolution_notes || '';
+            this.formData.scheduled_date = editData.scheduled_date || '';
+            this.formData.cost = editData.cost || '';
+            
+            // Load staff users for assignment
+            this.loadStaffUsers();
+            
+            // Load previous requests for this unit
+            if (this.formData.unit_id) {
+                this.loadPreviousRequests(this.formData.unit_id);
+            }
+            
+            document.body.style.overflow = 'hidden';
+        },
+        
         closeModal() {
             this.isOpen = false;
+            this.isEditMode = false;
+            this.editId = null;
             this.formErrors = [];
             document.body.style.overflow = '';
         },
@@ -332,11 +434,35 @@ document.addEventListener('alpine:init', () => {
                 category: '',
                 priority: 'medium',
                 duration: '',
+                status: 'open',
+                assigned_to: '',
+                admin_notes: '',
+                resolution_notes: '',
+                scheduled_date: '',
+                cost: '',
                 images: []
             };
             this.imagePreviews = [];
             this.formErrors = [];
             this.previousRequests = [];
+            this.staffUsers = [];
+        },
+        
+        async loadStaffUsers() {
+            try {
+                const response = await fetch('/api/users/staff', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                const data = await response.json();
+                if (data.success) {
+                    this.staffUsers = data.users;
+                }
+            } catch (error) {
+                console.error('Error loading staff users:', error);
+            }
         },
         
         async loadPreviousRequests(unitId) {
@@ -369,25 +495,6 @@ document.addEventListener('alpine:init', () => {
                 this.closeModal();
                 setTimeout(() => window.maintenanceViewModal.openModal(id), 300);
             }
-        },
-        
-        handleFiles(event) {
-            const files = Array.from(event.target.files);
-            files.forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.imagePreviews.push(e.target.result);
-                        this.formData.images.push(file);
-                    };
-                    reader.readAsDataURL(file);
-                }
-            });
-        },
-        
-        removeImage(index) {
-            this.imagePreviews.splice(index, 1);
-            this.formData.images.splice(index, 1);
         },
         
         getCategoryLabel() {
@@ -423,13 +530,13 @@ document.addEventListener('alpine:init', () => {
         },
         
         getStatusLabel(status) {
-            const labels = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved', pending_parts: 'Pending Parts', cancelled: 'Cancelled' };
+            const labels = { open: 'Open', in_progress: 'In Progress', pending_parts: 'Pending Parts', completed: 'Completed', cancelled: 'Cancelled' };
             return labels[status] || status;
         },
         
         getStatusColor(status) {
             const colors = {
-                resolved: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
                 in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
                 pending_parts: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
                 open: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
@@ -520,13 +627,28 @@ document.addEventListener('alpine:init', () => {
             formData.append('priority', this.formData.priority);
             formData.append('duration', this.formData.duration);
             
+            if (this.isEditMode) {
+                formData.append('status', this.formData.status);
+                formData.append('assigned_to', this.formData.assigned_to || '');
+                formData.append('admin_notes', this.formData.admin_notes || '');
+                formData.append('resolution_notes', this.formData.resolution_notes || '');
+                formData.append('scheduled_date', this.formData.scheduled_date || '');
+                formData.append('cost', this.formData.cost || '');
+            }
+            
+            // Add images if any
             this.formData.images.forEach((image, index) => {
                 formData.append(`images[${index}]`, image);
             });
             
             try {
-                const response = await fetch('{{ route("maintenance.store") }}', {
-                    method: 'POST',
+                const url = this.isEditMode 
+                    ? `/maintenance/${this.editId}` 
+                    : '{{ route("maintenance.store") }}';
+                const method = this.isEditMode ? 'PUT' : 'POST';
+                
+                const response = await fetch(url, {
+                    method: method,
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                         'Accept': 'application/json',
@@ -539,7 +661,7 @@ document.addEventListener('alpine:init', () => {
                 
                 if (response.ok && data.success) {
                     this.closeModal();
-                    alert(data.message || 'Maintenance request submitted successfully!');
+                    alert(data.message || (this.isEditMode ? 'Maintenance request updated successfully!' : 'Maintenance request submitted successfully!'));
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
                     if (data.errors) {

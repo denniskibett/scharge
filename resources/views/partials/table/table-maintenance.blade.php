@@ -169,7 +169,7 @@
                         <td class="p-4 whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <button @click="viewRequestModal(request.id)" class="text-brand-500 hover:text-brand-600 text-sm font-medium">View</button>
-                                <button @click="updateRequest(request.id)" x-show="request.status !== 'resolved'" class="text-blue-500 hover:text-blue-600 text-sm font-medium">Update</button>
+                                <button @click="openEditModal(request.id)" class="text-blue-500 hover:text-blue-600 text-sm font-medium">Update</button>
                             </div>
                         </td>
                     </tr>
@@ -380,6 +380,21 @@ document.addEventListener('alpine:init', () => {
         
         updateRequest(id) {
             window.location.href = `/maintenance/${id}/edit`;
+        },
+
+        openEditModal(id) {
+            // Fetch the data for this maintenance request
+            fetch(`/maintenance/${id}/edit-data`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Dispatch event to open the modal with edit data
+                        window.dispatchEvent(new CustomEvent('open-maintenance-edit', {
+                            detail: data.request
+                        }));
+                    }
+                })
+                .catch(error => console.error('Error fetching maintenance data:', error));
         },
         
         exportRequests() {

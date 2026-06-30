@@ -7,6 +7,7 @@ use App\Models\Maintenance;
 use App\Models\Unit;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\Estate;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -42,6 +43,21 @@ class MaintenanceController extends Controller
         
         $requests = $query->latest()->paginate(20);
         
+        // Get units and estates for the modals
+        $units = Unit::where('company_id', $user->company_id)
+            ->with('estate')
+            ->where('is_active', true)
+            ->get();
+        
+        $estates = Estate::where('company_id', $user->company_id)
+            ->orderBy('name')
+            ->get();
+        
+        $currentUnit = null;
+        if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
+            $currentUnit = $user->tenant->activeTenancy->unit->load('estate');
+        }
+        
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -69,7 +85,7 @@ class MaintenanceController extends Controller
             ]);
         }
         
-        return view('maintenance.index', compact('requests'));
+        return view('maintenance.index', compact('requests', 'units', 'estates', 'currentUnit'));
     }
 
     public function store(Request $request)
@@ -81,7 +97,7 @@ class MaintenanceController extends Controller
             'category' => 'required|in:plumbing,electrical,hvac,appliance,structural,pest_control,cleaning,other',
             'priority' => 'required|in:low,medium,high,emergency',
             'duration' => 'nullable|string',
-            'images' => 'nullable',
+            'images' => 'nullable|array',
         ]);
 
         $user = Auth::user();
@@ -104,10 +120,6 @@ class MaintenanceController extends Controller
             ], 422);
         }
 
-        // Generate request number
-        $lastId = Maintenance::max('id') ?? 0;
-        $requestNumber = 'MT-' . str_pad($lastId + 1, 6, '0', STR_PAD_LEFT);
-
         // Get company_id from the unit
         $unit = Unit::find($validated['unit_id']);
         $companyId = $unit?->company_id ?? $user->company_id;
@@ -119,7 +131,6 @@ class MaintenanceController extends Controller
             'unit_id' => $validated['unit_id'],
             'tenant_id' => $tenantId,
             'assigned_to' => null,
-            'request_number' => $requestNumber,
             'duration' => $validated['duration'] ?? null,
             'name' => $validated['name'],
             'description' => $validated['description'],
@@ -137,10 +148,52 @@ class MaintenanceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Maintenance request submitted successfully',
-            'request' => $maintenance
+            'request' => $maintenance->load(['unit', 'tenant.user'])
         ]);
     }
 
+    /**
+     * Show the form for editing a maintenance request
+     * This is called when the user clicks "Edit" from the table
+     */
+    public function edit(Maintenance $maintenance)
+    {
+        $maintenance->load(['unit', 'tenant.user', 'assignedStaff']);
+        
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'id' => $maintenance->id,
+                    'unit_id' => $maintenance->unit_id,
+                    'unit_number' => $maintenance->unit->unit_number ?? 'N/A',
+                    'tenant_name' => $maintenance->tenant->user->name ?? 'N/A',
+                    'name' => $maintenance->name,
+                    'description' => $maintenance->description,
+                    'category' => $maintenance->category,
+                    'priority' => $maintenance->priority,
+                    'status' => $maintenance->status,
+                    'duration' => $maintenance->duration,
+                    'admin_notes' => $maintenance->admin_notes,
+                    'resolution_notes' => $maintenance->resolution_notes,
+                    'scheduled_date' => $maintenance->scheduled_date,
+                    'completed_date' => $maintenance->completed_date,
+                    'cost' => $maintenance->cost,
+                    'assigned_to' => $maintenance->assigned_to,
+                    'created_at' => $maintenance->created_at,
+                    'updated_at' => $maintenance->updated_at,
+                ]
+            ]);
+        }
+        
+        // For non-AJAX requests, redirect to index with the maintenance ID for modal opening
+        return redirect()->route('maintenance.index')->with('edit_id', $maintenance->id);
+    }
+
+    /**
+     * Update a maintenance request
+     * This handles both AJAX and form submissions
+     */
     public function update(Request $request, Maintenance $maintenance)
     {
         $validated = $request->validate([
@@ -152,6 +205,10 @@ class MaintenanceController extends Controller
             'scheduled_date' => 'nullable|date',
             'completed_date' => 'nullable|date',
             'cost' => 'nullable|numeric|min:0',
+            'name' => 'sometimes|string|max:255',
+            'description' => 'sometimes|string',
+            'category' => 'sometimes|in:plumbing,electrical,hvac,appliance,structural,pest_control,cleaning,other',
+            'duration' => 'nullable|string',
         ]);
         
         if (isset($validated['status']) && $validated['status'] === 'completed') {
@@ -160,10 +217,66 @@ class MaintenanceController extends Controller
         
         $maintenance->update($validated);
         
+        if (request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Maintenance request updated successfully',
+                'request' => $maintenance->load(['unit', 'tenant.user', 'assignedStaff'])
+            ]);
+        }
+        
+        return redirect()->route('maintenance.index')->with('success', 'Maintenance request updated successfully');
+    }
+
+    /**
+     * Get maintenance request data for editing in modal
+     */
+    public function getEditData($id)
+    {
+        $maintenance = Maintenance::with(['unit', 'tenant.user', 'assignedStaff'])->findOrFail($id);
+        
+        // Get staff users for assignment dropdown
+        $staffUsers = User::whereHas('role', function($q) {
+            $q->whereIn('name', ['admin', 'super_admin', 'property_manager', 'maintenance']);
+        })->select('id', 'name', 'email')->get();
+        
         return response()->json([
             'success' => true,
-            'message' => 'Maintenance request updated successfully',
-            'request' => $maintenance
+            'request' => [
+                'id' => $maintenance->id,
+                'unit_id' => $maintenance->unit_id,
+                'unit_number' => $maintenance->unit->unit_number ?? 'N/A',
+                'tenant_name' => $maintenance->tenant->user->name ?? 'N/A',
+                'tenant_id' => $maintenance->tenant_id,
+                'name' => $maintenance->name,
+                'description' => $maintenance->description,
+                'category' => $maintenance->category,
+                'category_label' => $this->getCategoryLabel($maintenance->category),
+                'priority' => $maintenance->priority,
+                'priority_label' => ucfirst($maintenance->priority),
+                'priority_color' => $this->getPriorityColor($maintenance->priority),
+                'status' => $maintenance->status,
+                'status_label' => ucfirst(str_replace('_', ' ', $maintenance->status)),
+                'status_color' => $this->getStatusColor($maintenance->status),
+                'duration' => $maintenance->duration,
+                'admin_notes' => $maintenance->admin_notes,
+                'resolution_notes' => $maintenance->resolution_notes,
+                'scheduled_date' => $maintenance->scheduled_date,
+                'scheduled_date_formatted' => $maintenance->scheduled_date ? $maintenance->scheduled_date->format('Y-m-d') : null,
+                'completed_date' => $maintenance->completed_date,
+                'completed_date_formatted' => $maintenance->completed_date ? $maintenance->completed_date->format('Y-m-d') : null,
+                'cost' => $maintenance->cost,
+                'assigned_to' => $maintenance->assigned_to,
+                'assigned_to_name' => $maintenance->assignedStaff?->name ?? null,
+                'created_at' => $maintenance->created_at,
+                'created_at_formatted' => $maintenance->created_at ? $maintenance->created_at->format('M d, Y') : null,
+                'updated_at' => $maintenance->updated_at,
+                'request_number' => $maintenance->request_number,
+            ],
+            'staff_users' => $staffUsers,
+            'statuses' => ['open', 'in_progress', 'pending_parts', 'completed', 'cancelled'],
+            'priorities' => ['low', 'medium', 'high', 'emergency'],
+            'categories' => ['plumbing', 'electrical', 'hvac', 'appliance', 'structural', 'pest_control', 'cleaning', 'other'],
         ]);
     }
 
@@ -202,9 +315,9 @@ class MaintenanceController extends Controller
                     'description' => $req->description,
                     'category' => $req->category_label,
                     'priority' => ucfirst($req->priority),
-                    'priority_color' => $req->priority_color,
+                    'priority_color' => $this->getPriorityColor($req->priority),
                     'status' => ucfirst(str_replace('_', ' ', $req->status)),
-                    'status_color' => $req->status_color,
+                    'status_color' => $this->getStatusColor($req->status),
                     'unit_number' => $req->unit->unit_number,
                     'created_at' => $req->created_at->format('M d, Y'),
                     'scheduled_date' => $req->scheduled_date ? $req->scheduled_date->format('M d, Y') : null,
@@ -240,7 +353,11 @@ class MaintenanceController extends Controller
                     'name' => $request->name,
                     'description' => $request->description,
                     'priority' => $request->priority,
+                    'priority_label' => ucfirst($request->priority),
+                    'priority_color' => $this->getPriorityColor($request->priority),
                     'status' => $request->status,
+                    'status_label' => ucfirst(str_replace('_', ' ', $request->status)),
+                    'status_color' => $this->getStatusColor($request->status),
                     'created_at' => $request->created_at,
                     'resolution_notes' => $request->resolution_notes,
                 ];
@@ -271,5 +388,44 @@ class MaintenanceController extends Controller
                 'completed_date' => $maintenance->completed_date,
             ]
         ]);
+    }
+
+    // Helper methods for status/priority colors
+    private function getPriorityColor($priority)
+    {
+        $colors = [
+            'emergency' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+            'high' => 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+            'medium' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+            'low' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+        ];
+        return $colors[$priority] ?? 'bg-gray-100 text-gray-800';
+    }
+
+    private function getStatusColor($status)
+    {
+        $colors = [
+            'completed' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+            'in_progress' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+            'pending_parts' => 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+            'cancelled' => 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400',
+            'open' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+        ];
+        return $colors[$status] ?? 'bg-gray-100 text-gray-800';
+    }
+
+    private function getCategoryLabel($category)
+    {
+        $labels = [
+            'plumbing' => 'Plumbing',
+            'electrical' => 'Electrical',
+            'hvac' => 'HVAC',
+            'appliance' => 'Appliance',
+            'structural' => 'Structural',
+            'pest_control' => 'Pest Control',
+            'cleaning' => 'Cleaning',
+            'other' => 'Other'
+        ];
+        return $labels[$category] ?? ucfirst($category);
     }
 }

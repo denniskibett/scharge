@@ -271,6 +271,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])->name('maintenance.unit.history');
     Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
     Route::get('/tenant/maintenance', [MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
+    Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data');
+    Route::get('/api/users/staff', [UserController::class, 'getStaffUsers'])->name('api.users.staff');
 
     // Maintenance Staff routes
     Route::middleware(['role:super_admin,admin,property_manager,maintenance'])->group(function () {
@@ -278,6 +280,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/maintenance/requests/{request}/update', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
+
 
     // ============================================
     // SECURITY ROUTES
