@@ -229,10 +229,12 @@
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('sms.send') }}" id="bulkForm">
+            <!-- Bulk Form - includes template field -->
+            <form method="POST" action="{{ route('sms.send') }}" id="bulkForm" class="hidden">
                 @csrf
                 <input type="hidden" name="recipients" id="recipientsJson">
                 <input type="hidden" name="message_type" id="messageTypeHidden" value="transactional">
+                <!-- Template is submitted from the textarea above -->
             </form>
         </div>
     </div>
@@ -642,9 +644,11 @@
     tenantSearch?.addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); });
     entriesPerPage?.addEventListener('change', (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; applyFiltersAndRender(); });
     
+    // FIXED: Update form submission to include template
     document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
         let selected = [];
         let template = document.getElementById('template').value;
+        
         if (!template.trim()) {
             alert('Please enter a message template.');
             e.preventDefault();
@@ -661,19 +665,42 @@
         });
         let checkedBoxes = visibleCheckboxes.filter(cb => cb.checked);
         
+        if (checkedBoxes.length === 0) {
+            alert('Please select at least one tenant.');
+            e.preventDefault();
+            return false;
+        }
+        
         checkedBoxes.forEach(cb => {
             let phone = cb.getAttribute('data-phone');
             if (!phone) return;
-            let name = cb.getAttribute('data-name');
-            let unit = cb.getAttribute('data-unit');
-            let water_bill = parseFloat(cb.getAttribute('data-waterbill')).toFixed(2);
-            let consumption = cb.getAttribute('data-consumption');
-            let estate_name = cb.getAttribute('data-estate');
-            let prev_read = cb.getAttribute('data-prev-read');
-            let curr_read = cb.getAttribute('data-curr-read');
+            
+            let name = cb.getAttribute('data-name') || 'Tenant';
+            let unit = cb.getAttribute('data-unit') || 'N/A';
+            let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0).toFixed(2);
+            let consumption = cb.getAttribute('data-consumption') || '0';
+            let estate_name = cb.getAttribute('data-estate') || '';
+            let prev_read = cb.getAttribute('data-prev-read') || '0';
+            let curr_read = cb.getAttribute('data-curr-read') || '0';
+            
+            // Build the message with variables
+            let message = template;
+            message = message.replace(/\{\{name\}\}/g, name);
+            message = message.replace(/\{\{unit\}\}/g, unit);
+            message = message.replace(/\{\{unit_number\}\}/g, unit);
+            message = message.replace(/\{\{water_bill\}\}/g, water_bill);
+            message = message.replace(/\{\{water_consumption\}\}/g, consumption);
+            message = message.replace(/\{\{due_date\}\}/g, dueDate);
+            message = message.replace(/\{\{month\}\}/g, month);
+            message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+            message = message.replace(/\{\{prev_read\}\}/g, prev_read);
+            message = message.replace(/\{\{curr_read\}\}/g, curr_read);
+            message = message.replace(/\{\{payment_status\}\}/g, 'pending');
             
             selected.push({
                 phone: phone,
+                message: message,
+                id: cb.getAttribute('data-id'),
                 variables: {
                     name: name,
                     unit: unit,
@@ -690,14 +717,16 @@
             });
         });
         
-        if (selected.length === 0) {
-            alert('Please select at least one tenant.');
-            e.preventDefault();
-            return false;
-        }
-        
+        // Set the recipients JSON
         document.getElementById('recipientsJson').value = JSON.stringify(selected);
-        document.getElementById('messageTypeHidden').value = 'transactional';
+        
+        // FIXED: Create a hidden input for the template
+        let templateInput = document.createElement('input');
+        templateInput.type = 'hidden';
+        templateInput.name = 'template';
+        templateInput.value = template;
+        this.appendChild(templateInput);
+        
         return true;
     });
     
