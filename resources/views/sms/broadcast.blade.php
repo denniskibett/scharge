@@ -62,7 +62,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate Filter</label>
-                        <select id="estateFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <select id="estateFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
                             <option value="">All Estates</option>
                             @foreach($estates as $estate)
                                 <option value="{{ $estate->id }}">{{ $estate->name }}</option>
@@ -72,7 +72,7 @@
                     
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Payment Status</label>
-                        <select id="paymentStatusFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <select id="paymentStatusFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
                             <option value="">All</option>
                             <option value="paid">Paid</option>
                             <option value="pending">Pending</option>
@@ -82,13 +82,13 @@
                     
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Min Bill Amount</label>
-                        <input type="number" id="minBillFilter" placeholder="0" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <input type="number" id="minBillFilter" placeholder="0" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" oninput="applyFiltersAndRender()">
                     </div>
                     
                     <div>
                         <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Search</label>
                         <div class="relative">
-                            <input type="text" id="tenantSearch" placeholder="Search by name, phone, unit..." class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] pl-10 h-10">
+                            <input type="text" id="tenantSearch" placeholder="Search by name, phone, unit..." class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] pl-10 h-10" oninput="applyFiltersAndRender()">
                             <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -123,8 +123,8 @@
                     <table class="min-w-full">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr class="border-gray-100 border-y dark:border-gray-800">
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('select')">
-                                    <input type="checkbox" id="toggleAllCheckbox">
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    <input type="checkbox" id="toggleAllCheckbox" onchange="toggleAllCheckboxes()">
                                 </th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('name')">
                                     Name <span class="sort-icon inline-block ml-1">↕️</span>
@@ -214,11 +214,12 @@
                 <div class="flex items-center justify-between mt-4">
                     <div class="flex items-center gap-2">
                         <span class="text-sm text-gray-600">Show:</span>
-                        <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm">
+                        <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm" onchange="entriesPerPageChange()">
                             <option value="10">10</option>
                             <option value="25">25</option>
                             <option value="50">50</option>
                             <option value="100">100</option>
+                            <option value="all">All</option>
                         </select>
                     </div>
                     <div class="flex gap-2" id="paginationControls">
@@ -230,11 +231,11 @@
             </div>
 
             <!-- Bulk Form - includes template field -->
-            <form method="POST" action="{{ route('sms.send') }}" id="bulkForm" class="hidden">
+            <form method="POST" action="{{ route('sms.send') }}" id="bulkForm">
                 @csrf
                 <input type="hidden" name="recipients" id="recipientsJson">
                 <input type="hidden" name="message_type" id="messageTypeHidden" value="transactional">
-                <!-- Template is submitted from the textarea above -->
+                <input type="hidden" name="template" id="templateHidden">
             </form>
         </div>
     </div>
@@ -377,6 +378,7 @@
     let sortColumn = '';
     let sortDirection = 'asc';
     let allRows = [];
+    let allTenantsData = [];
     
     function renderTab() {
         document.getElementById('tenants-tab').style.display = 'none';
@@ -410,30 +412,96 @@
         }
     });
     
-    let checkboxes = document.querySelectorAll('.tenant-checkbox');
-    let selectedCountSpan = document.getElementById('selectedCount');
-    let toggleAllCheckbox = document.getElementById('toggleAllCheckbox');
-    let templateTextarea = document.getElementById('template');
-    let previewSection = document.getElementById('previewSection');
-    let previewContainer = document.getElementById('previewContainer');
-    let estateFilter = document.getElementById('estateFilter');
-    let paymentStatusFilter = document.getElementById('paymentStatusFilter');
-    let minBillFilter = document.getElementById('minBillFilter');
-    let tenantSearch = document.getElementById('tenantSearch');
-    let sendSmsBtn = document.getElementById('sendSmsBtn');
-    let entriesPerPage = document.getElementById('entriesPerPage');
+    // Get all tenant data from the page
+    function getAllTenantsData() {
+        const rows = document.querySelectorAll('.tenant-row');
+        allTenantsData = [];
+        rows.forEach(row => {
+            const checkbox = row.querySelector('.tenant-checkbox');
+            if (checkbox) {
+                allTenantsData.push({
+                    id: checkbox.dataset.id,
+                    phone: checkbox.dataset.phone,
+                    name: checkbox.dataset.name,
+                    unit: checkbox.dataset.unit,
+                    estate: checkbox.dataset.estate,
+                    estateId: checkbox.dataset.estateId,
+                    waterbill: checkbox.dataset.waterbill,
+                    consumption: checkbox.dataset.consumption,
+                    prevRead: checkbox.dataset.prevRead,
+                    currRead: checkbox.dataset.currRead,
+                    row: row,
+                    checkbox: checkbox
+                });
+            }
+        });
+        return allTenantsData;
+    }
+    
+    // Toggle ALL checkboxes (including hidden ones)
+    function toggleAllCheckboxes() {
+        const masterCheckbox = document.getElementById('toggleAllCheckbox');
+        const isChecked = masterCheckbox.checked;
+        
+        // Select ALL checkboxes on the page (including hidden ones)
+        document.querySelectorAll('.tenant-checkbox').forEach(cb => {
+            cb.checked = isChecked;
+        });
+        
+        updateSelectedCount();
+    }
+    
+    // Get all checkboxes that are currently visible
+    function getVisibleCheckboxes() {
+        return Array.from(document.querySelectorAll('.tenant-checkbox')).filter(cb => {
+            const row = cb.closest('.tenant-row');
+            return row && row.style.display !== 'none';
+        });
+    }
+    
+    // Get ALL selected checkboxes (including those not visible)
+    function getAllSelectedCheckboxes() {
+        return Array.from(document.querySelectorAll('.tenant-checkbox')).filter(cb => cb.checked);
+    }
     
     // Initialize all rows
     function initRows() {
         allRows = Array.from(document.querySelectorAll('.tenant-row'));
+        getAllTenantsData();
         applyFiltersAndRender();
+        updateSelectedCount();
+        
+        // Update master checkbox state based on all checkboxes
+        updateMasterCheckboxState();
+    }
+    
+    function updateMasterCheckboxState() {
+        const masterCheckbox = document.getElementById('toggleAllCheckbox');
+        if (!masterCheckbox) return;
+        
+        const allCheckboxes = document.querySelectorAll('.tenant-checkbox');
+        const checkedCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
+        
+        if (allCheckboxes.length === 0) {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = false;
+        } else if (checkedCheckboxes.length === allCheckboxes.length) {
+            masterCheckbox.checked = true;
+            masterCheckbox.indeterminate = false;
+        } else if (checkedCheckboxes.length > 0) {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = true;
+        } else {
+            masterCheckbox.checked = false;
+            masterCheckbox.indeterminate = false;
+        }
     }
     
     function applyFiltersAndRender() {
-        let selectedEstateId = estateFilter.value;
-        let searchTerm = tenantSearch.value.toLowerCase();
-        let paymentStatus = paymentStatusFilter.value;
-        let minBill = parseFloat(minBillFilter.value) || 0;
+        let selectedEstateId = document.getElementById('estateFilter').value;
+        let searchTerm = document.getElementById('tenantSearch').value.toLowerCase();
+        let paymentStatus = document.getElementById('paymentStatusFilter').value;
+        let minBill = parseFloat(document.getElementById('minBillFilter').value) || 0;
         
         let visibleRows = allRows.filter(row => {
             let estateId = row.getAttribute('data-estate-id');
@@ -491,10 +559,19 @@
             });
         }
         
-        // Apply pagination
-        const start = (currentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        const paginatedRows = visibleRows.slice(start, end);
+        // Check if "All" is selected
+        const entriesSelect = document.getElementById('entriesPerPage');
+        const showAll = entriesSelect.value === 'all';
+        
+        let paginatedRows;
+        if (showAll) {
+            paginatedRows = visibleRows;
+        } else {
+            // Apply pagination
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = start + rowsPerPage;
+            paginatedRows = visibleRows.slice(start, end);
+        }
         
         // Hide all rows first
         allRows.forEach(row => row.style.display = 'none');
@@ -503,9 +580,20 @@
         
         // Update pagination info
         const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
-        document.getElementById('pageInfo').innerText = `Page ${currentPage} of ${totalPages || 1}`;
+        document.getElementById('pageInfo').innerText = showAll ? 'Showing all' : `Page ${currentPage} of ${totalPages || 1}`;
         
         updateSelectedCount();
+    }
+    
+    function entriesPerPageChange() {
+        const entriesSelect = document.getElementById('entriesPerPage');
+        if (entriesSelect.value === 'all') {
+            rowsPerPage = 999999; // Show all
+        } else {
+            rowsPerPage = parseInt(entriesSelect.value);
+        }
+        currentPage = 1;
+        applyFiltersAndRender();
     }
     
     function sortTable(column) {
@@ -526,8 +614,8 @@
     }
     
     function nextPage() {
-        const totalRows = allRows.filter(row => row.style.display !== 'none').length;
-        const totalPages = Math.ceil(totalRows / rowsPerPage);
+        const visibleRows = allRows.filter(row => row.style.display !== 'none').length;
+        const totalPages = Math.ceil(visibleRows / rowsPerPage);
         if (currentPage < totalPages) {
             currentPage++;
             applyFiltersAndRender();
@@ -535,23 +623,19 @@
     }
     
     function updatePreview() {
-        let template = templateTextarea ? templateTextarea.value : '';
-        let visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-            let row = cb.closest('.tenant-row');
-            return row && row.style.display !== 'none';
-        });
-        let checkedBoxes = visibleCheckboxes.filter(cb => cb.checked);
-        let selectedCount = checkedBoxes.length;
+        let template = document.getElementById('template')?.value || '';
+        let allSelected = getAllSelectedCheckboxes();
+        let selectedCount = allSelected.length;
         
         if (selectedCount > 0 && template.trim() !== '') {
-            previewSection.style.display = 'block';
+            document.getElementById('previewSection').style.display = 'block';
             let previews = [];
             let now = new Date();
             let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
             let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
             
             for (let i = 0; i < Math.min(3, selectedCount); i++) {
-                let cb = checkedBoxes[i];
+                let cb = allSelected[i];
                 let phone = cb.getAttribute('data-phone');
                 let name = cb.getAttribute('data-name');
                 let unit = cb.getAttribute('data-unit');
@@ -574,77 +658,49 @@
                 message = message.replace(/\{\{curr_read\}\}/g, curr_read);
                 message = message.replace(/\{\{payment_status\}\}/g, 'pending');
                 
-                previews.push({ phone: phone, message: message });
+                previews.push({ phone: phone, message: message, name: name });
             }
             
             let html = '';
             previews.forEach(p => {
                 html += '<div class="border-l-4 border-blue-300 pl-3 py-1">' +
-                            '<p class="text-xs text-gray-500"><strong>To:</strong> ' + p.phone + '</p>' +
+                            '<p class="text-xs text-gray-500"><strong>To:</strong> ' + p.phone + ' (' + p.name + ')</p>' +
                             '<p class="text-sm text-gray-800"><strong>Message:</strong> ' + p.message + '</p>' +
                         '</div>';
             });
-            previewContainer.innerHTML = html;
+            document.getElementById('previewContainer').innerHTML = html;
         } else {
-            previewSection.style.display = 'none';
+            document.getElementById('previewSection').style.display = 'none';
         }
     }
     
     function updateSelectedCount() {
-        let visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-            let row = cb.closest('.tenant-row');
-            return row && row.style.display !== 'none';
-        });
-        let checked = visibleCheckboxes.filter(cb => cb.checked).length;
-        if (selectedCountSpan) selectedCountSpan.innerText = checked;
-        if (toggleAllCheckbox) {
-            toggleAllCheckbox.checked = (checked === visibleCheckboxes.length && visibleCheckboxes.length > 0);
+        let allSelected = getAllSelectedCheckboxes();
+        let selectedCount = allSelected.length;
+        let totalVisible = getVisibleCheckboxes().length;
+        
+        document.getElementById('selectedCount').innerText = selectedCount;
+        
+        // Update master checkbox
+        updateMasterCheckboxState();
+        
+        // Update send button
+        const sendBtn = document.getElementById('sendSmsBtn');
+        if (sendBtn) {
+            sendBtn.disabled = selectedCount === 0;
         }
-        if (sendSmsBtn) {
-            sendSmsBtn.disabled = checked === 0;
-        }
+        
         updatePreview();
     }
     
-    checkboxes.forEach(cb => cb.addEventListener('change', updateSelectedCount));
-    
-    if (toggleAllCheckbox) {
-        toggleAllCheckbox.addEventListener('change', function() {
-            let visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-                let row = cb.closest('.tenant-row');
-                return row && row.style.display !== 'none';
-            });
-            visibleCheckboxes.forEach(cb => cb.checked = this.checked);
+    // Event listeners for checkboxes
+    document.addEventListener('change', function(e) {
+        if (e.target.classList && e.target.classList.contains('tenant-checkbox')) {
             updateSelectedCount();
-        });
-    }
-    
-    document.getElementById('selectAllBtn')?.addEventListener('click', () => {
-        let visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-            let row = cb.closest('.tenant-row');
-            return row && row.style.display !== 'none';
-        });
-        visibleCheckboxes.forEach(cb => cb.checked = true);
-        updateSelectedCount();
+        }
     });
     
-    document.getElementById('selectNoneBtn')?.addEventListener('click', () => {
-        let visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-            let row = cb.closest('.tenant-row');
-            return row && row.style.display !== 'none';
-        });
-        visibleCheckboxes.forEach(cb => cb.checked = false);
-        updateSelectedCount();
-    });
-    
-    templateTextarea?.addEventListener('input', updatePreview);
-    estateFilter?.addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
-    paymentStatusFilter?.addEventListener('change', () => { currentPage = 1; applyFiltersAndRender(); });
-    minBillFilter?.addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); });
-    tenantSearch?.addEventListener('input', () => { currentPage = 1; applyFiltersAndRender(); });
-    entriesPerPage?.addEventListener('change', (e) => { rowsPerPage = parseInt(e.target.value); currentPage = 1; applyFiltersAndRender(); });
-    
-    // FIXED: Update form submission to include template
+    // Form submission - handles ALL selected tenants
     document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
         let selected = [];
         let template = document.getElementById('template').value;
@@ -655,23 +711,20 @@
             return false;
         }
         
-        let now = new Date();
-        let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
-        let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+        // Get ALL selected checkboxes (not just visible ones)
+        let allSelected = getAllSelectedCheckboxes();
         
-        let visibleCheckboxes = Array.from(checkboxes).filter(cb => {
-            let row = cb.closest('.tenant-row');
-            return row && row.style.display !== 'none';
-        });
-        let checkedBoxes = visibleCheckboxes.filter(cb => cb.checked);
-        
-        if (checkedBoxes.length === 0) {
+        if (allSelected.length === 0) {
             alert('Please select at least one tenant.');
             e.preventDefault();
             return false;
         }
         
-        checkedBoxes.forEach(cb => {
+        let now = new Date();
+        let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
+        let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+        
+        allSelected.forEach(cb => {
             let phone = cb.getAttribute('data-phone');
             if (!phone) return;
             
@@ -719,25 +772,35 @@
         
         // Set the recipients JSON
         document.getElementById('recipientsJson').value = JSON.stringify(selected);
+        document.getElementById('templateHidden').value = template;
         
-        // FIXED: Create a hidden input for the template
-        let templateInput = document.createElement('input');
-        templateInput.type = 'hidden';
-        templateInput.name = 'template';
-        templateInput.value = template;
-        this.appendChild(templateInput);
+        // Show loading state
+        const submitBtn = document.getElementById('sendSmsBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Sending...';
         
         return true;
     });
     
-    // Make sort function global
+    // Make functions global
     window.sortTable = sortTable;
     window.prevPage = prevPage;
     window.nextPage = nextPage;
+    window.applyFiltersAndRender = applyFiltersAndRender;
+    window.toggleAllCheckboxes = toggleAllCheckboxes;
+    window.entriesPerPageChange = entriesPerPageChange;
+    window.getAllSelectedCheckboxes = getAllSelectedCheckboxes;
+    window.updateSelectedCount = updateSelectedCount;
+    window.updateMasterCheckboxState = updateMasterCheckboxState;
     
     // Initial setup
-    initRows();
-    renderTab();
+    document.addEventListener('DOMContentLoaded', function() {
+        initRows();
+        renderTab();
+        
+        // Recalculate when entries per page changes
+        document.getElementById('entriesPerPage')?.addEventListener('change', entriesPerPageChange);
+    });
 </script>
 
 <style>
