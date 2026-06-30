@@ -1,4 +1,4 @@
-<!-- CREATE TENANCY SLIDEOVER MODAL -->
+<!-- CREATE/EDIT TENANCY SLIDEOVER MODAL -->
 <div x-data="tenancyCreateModal" x-init="init()">
   <!-- Backdrop with 50% opacity and frost effect -->
   <template x-if="isOpen">
@@ -24,7 +24,7 @@
       x-transition:leave-end="translate-x-full"
       x-cloak
       class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
-      style="width: 38rem; max-width: calc(100% - 2rem);">
+      style="width: 42rem; max-width: calc(100% - 2rem);">
     <div class="p-6 lg:p-10">
       <!-- close btn -->
       <button
@@ -38,9 +38,7 @@
 
       <form @submit.prevent="submitForm">
         @csrf
-        <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
-          Add New Tenancy
-        </h4>
+        <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90" x-text="isEditMode ? 'Edit Tenancy' : 'Add New Tenancy'"></h4>
 
         <!-- Form Errors -->
         <template x-if="formErrors.length > 0">
@@ -74,14 +72,18 @@
               <div x-show="form.tenant_selection === 'existing'" x-cloak>
                 <select
                   x-model="form.tenant_id"
+                  @change="loadTenantSummary()"
                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 >
                   <option value="">Select Existing Tenant</option>
                   @foreach($availableUsers ?? [] as $user)
-                    <option value="{{ $user['tenant_id'] }}">
+                    <option value="{{ $user['tenant_id'] }}" data-balance="{{ $user['outstanding_balance'] ?? 0 }}" data-paid="{{ $user['total_paid'] ?? 0 }}" data-active="{{ $user['active_tenancies'] ?? 0 }}">
                       {{ $user['name'] }} ({{ $user['phone'] ?? 'No Phone' }})
                       @if(isset($user['has_ended_tenancy']) && $user['has_ended_tenancy'])
                         - Previous Tenant
+                      @endif
+                      @if(($user['outstanding_balance'] ?? 0) > 0)
+                        - Balance: KES {{ number_format($user['outstanding_balance'], 2) }}
                       @endif
                     </option>
                   @endforeach
@@ -96,13 +98,15 @@
                 <input
                   type="text"
                   x-model="form.new_tenant_name"
-                  placeholder="Tenant Full Name"
+                  placeholder="Tenant Full Name *"
+                  required
                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 />
                 <input
                   type="text"
                   x-model="form.new_tenant_phone"
-                  placeholder="Phone Number"
+                  placeholder="Phone Number *"
+                  required
                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 />
                 <input
@@ -111,6 +115,45 @@
                   placeholder="Email (Optional)"
                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 />
+              </div>
+            </div>
+          </div>
+
+          <!-- Tenant Financial Summary (for existing tenants) -->
+          <div x-show="form.tenant_selection === 'existing' && form.tenant_id && tenantSummary" class="col-span-2" x-cloak>
+            <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tenant Financial Summary</h5>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Outstanding Balance:</span>
+                  <p class="font-semibold" :class="(tenantSummary?.outstanding_balance || 0) > 0 ? 'text-red-600' : 'text-green-600'">
+                    KES <span x-text="formatNumber(tenantSummary?.outstanding_balance || 0)"></span>
+                  </p>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Total Paid:</span>
+                  <p class="font-semibold text-green-600">KES <span x-text="formatNumber(tenantSummary?.total_paid || 0)"></span></p>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Total Invoiced:</span>
+                  <p class="font-semibold text-blue-600">KES <span x-text="formatNumber(tenantSummary?.total_invoiced || 0)"></span></p>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Active Tenancies:</span>
+                  <p class="font-semibold text-gray-800 dark:text-white/90" x-text="tenantSummary?.active_tenancies || 0"></p>
+                </div>
+              </div>
+              <div x-show="tenantSummary?.recent_invoices && tenantSummary.recent_invoices.length > 0" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Recent Invoices</p>
+                <div class="space-y-1">
+                  <template x-for="inv in (tenantSummary?.recent_invoices || [])" :key="inv.id">
+                    <div class="flex justify-between text-xs">
+                      <span class="text-gray-600 dark:text-gray-400">#<span x-text="inv.id"></span></span>
+                      <span class="text-gray-800 dark:text-white/90">KES <span x-text="formatNumber(inv.amount)"></span></span>
+                      <span class="text-gray-500" x-text="inv.status"></span>
+                    </div>
+                  </template>
+                </div>
               </div>
             </div>
           </div>
@@ -128,7 +171,7 @@
             >
               <option value="">Select Unit</option>
               @foreach($vacantUnits ?? [] as $unit)
-                <option value="{{ $unit['id'] }}" data-rent="{{ $unit['rent_amount'] ?? 0 }}">
+                <option value="{{ $unit['id'] }}" data-rent="{{ $unit['rent_amount'] ?? 0 }}" data-water="{{ $unit['water_charge'] ?? 0 }}" data-service="{{ $unit['service_charge'] ?? 0 }}" data-garbage="{{ $unit['garbage_charge'] ?? 0 }}" data-security="{{ $unit['security_charge'] ?? 0 }}" data-maintenance="{{ $unit['maintenance_count'] ?? 0 }}">
                   {{ $unit['unit_number'] }} - {{ $unit['estate_name'] ?? 'No Estate' }} ({{ $unit['unit_type'] }})
                 </option>
               @endforeach
@@ -136,6 +179,43 @@
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Only vacant units are shown
             </p>
+          </div>
+
+          <!-- Unit Details Summary -->
+          <div x-show="form.unit_id && selectedUnit" class="col-span-2" x-cloak>
+            <div class="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h5 class="text-sm font-semibold text-blue-800 dark:text-blue-300 mb-2">Unit Details</h5>
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Rent:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300">KES <span x-text="formatNumber(selectedUnit?.rent_amount || 0)"></span></span>
+                </div>
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Water:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300">KES <span x-text="formatNumber(selectedUnit?.water_charge || 0)"></span></span>
+                </div>
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Service:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300">KES <span x-text="formatNumber(selectedUnit?.service_charge || 0)"></span></span>
+                </div>
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Garbage:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300">KES <span x-text="formatNumber(selectedUnit?.garbage_charge || 0)"></span></span>
+                </div>
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Security:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300">KES <span x-text="formatNumber(selectedUnit?.security_charge || 0)"></span></span>
+                </div>
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Total Monthly:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300">KES <span x-text="formatNumber(selectedUnit?.total_monthly_payment || 0)"></span></span>
+                </div>
+                <div>
+                  <span class="text-blue-700 dark:text-blue-400">Open Maintenance:</span>
+                  <span class="font-semibold text-blue-800 dark:text-blue-300" x-text="selectedUnit?.maintenance_count || 0"></span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Move-in Date -->
@@ -151,17 +231,119 @@
             />
           </div>
 
-          <!-- Rent Amount (Auto-filled from unit) -->
-          <div class="col-span-1">
+          <!-- Move-out Date (for edit) -->
+          <div class="col-span-1" x-show="isEditMode">
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-              Rent Amount (KES)
+              Move-out Date
             </label>
             <input
-              type="text"
-              x-model="form.rent_amount"
-              readonly
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-600 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+              type="date"
+              x-model="form.move_out_date"
+              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
             />
+          </div>
+
+          <!-- Status (for edit) -->
+          <div class="col-span-1" x-show="isEditMode">
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+              Status
+            </label>
+            <select
+              x-model="form.status"
+              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+            >
+              <option value="active">Active</option>
+              <option value="ended">Ended</option>
+            </select>
+          </div>
+
+          <!-- Deposit Amount -->
+          <div class="col-span-1">
+            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+              Security Deposit (KES)
+            </label>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">KES</span>
+              <input
+                type="number"
+                x-model="form.deposit_amount"
+                step="100"
+                min="0"
+                class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pl-12 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+              />
+            </div>
+            <p class="mt-1 text-xs text-gray-500">Default: 1 month rent (KES <span x-text="formatNumber(form.rent_amount)"></span>)</p>
+          </div>
+
+          <!-- Lease Agreement -->
+          <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+            <div class="flex items-center justify-between">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-400">
+                Lease Agreement
+              </label>
+              <button 
+                type="button" 
+                @click="generateLeaseAgreement()" 
+                :disabled="!form.unit_id || !form.tenant_name"
+                class="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                📄 <span x-text="leaseAgreementGenerated ? 'View Agreement' : 'Generate Agreement'"></span>
+              </button>
+            </div>
+            <div x-show="leaseAgreementGenerated" class="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <p class="text-sm text-green-700 dark:text-green-300">
+                ✅ Lease agreement generated. <a href="#" @click.prevent="viewLeaseAgreement()" class="underline font-medium">View Document</a>
+              </p>
+            </div>
+            <div x-show="!leaseAgreementGenerated && form.unit_id" class="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+              <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                ⚠️ Click "Generate Agreement" to create the lease document.
+              </p>
+            </div>
+          </div>
+
+          <!-- Initial Charges Summary -->
+          <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+            <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Initial Charges</h5>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-sm">Security Deposit</span>
+                  <p class="text-xs text-gray-500">Refundable at end of tenancy</p>
+                </div>
+                <span class="font-semibold text-blue-600">KES <span x-text="formatNumber(form.deposit_amount || 0)"></span></span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div>
+                  <span class="text-sm">First Month Rent</span>
+                  <p class="text-xs text-gray-500">Due on move-in</p>
+                </div>
+                <span class="font-semibold text-green-600">KES <span x-text="formatNumber(form.rent_amount || 0)"></span></span>
+              </div>
+              <div class="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded">
+                <span class="text-sm font-semibold text-blue-800 dark:text-blue-300">Total Initial Payment</span>
+                <span class="font-bold text-blue-700 dark:text-blue-400">KES <span x-text="formatNumber(totalInitialCharges)"></span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generate Invoice Option -->
+          <div class="col-span-2 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
+            <label class="text-sm font-medium text-gray-700 dark:text-gray-300 block mb-2">Generate Invoice:</label>
+            <div class="flex flex-wrap gap-4">
+              <label class="flex items-center gap-2">
+                <input type="radio" x-model="form.generate_invoice" value="yes" class="form-radio text-brand-500">
+                <span class="text-sm">Yes</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="radio" x-model="form.generate_invoice" value="draft" class="form-radio text-yellow-500">
+                <span class="text-sm">Save as Draft</span>
+              </label>
+              <label class="flex items-center gap-2">
+                <input type="radio" x-model="form.generate_invoice" value="no" class="form-radio text-gray-500">
+                <span class="text-sm">No</span>
+              </label>
+            </div>
           </div>
 
           <!-- Notes -->
@@ -171,7 +353,7 @@
             </label>
             <textarea
               x-model="form.notes"
-              rows="3"
+              rows="2"
               class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
               placeholder="Any additional notes about this tenancy..."
             ></textarea>
@@ -179,8 +361,8 @@
         </div>
 
         <!-- Summary -->
-        <div class="mt-4 p-3 bg-blue-50 rounded-lg dark:bg-blue-900/20" x-show="form.unit_id && form.move_in_date">
-          <p class="text-sm text-blue-700 dark:text-blue-300">
+        <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg" x-show="form.unit_id && form.move_in_date && (form.tenant_id || form.new_tenant_name)">
+          <p class="text-sm text-gray-700 dark:text-gray-300">
             <strong>Summary:</strong> Creating tenancy for 
             <span x-text="getTenantSummary()"></span>
             in unit <span x-text="getUnitSummary()"></span>
@@ -201,8 +383,8 @@
             :disabled="loading || !isFormValid"
             class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
           >
-            <span x-show="!loading">Create Tenancy</span>
-            <span x-show="loading">Creating...</span>
+            <span x-show="!loading" x-text="isEditMode ? 'Update Tenancy' : 'Create Tenancy'"></span>
+            <span x-show="loading">Processing...</span>
           </button>
         </div>
       </form>
@@ -214,31 +396,83 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('tenancyCreateModal', () => ({
     isOpen: false,
+    isEditMode: false,
+    editId: null,
     form: {
       tenant_selection: '',
       tenant_id: '',
+      tenant_name: '',
+      tenant_phone: '',
+      tenant_email: '',
       new_tenant_name: '',
       new_tenant_phone: '',
       new_tenant_email: '',
       unit_id: '',
       move_in_date: '',
-      rent_amount: '',
-      notes: ''
+      move_out_date: '',
+      status: 'active',
+      deposit_amount: 0,
+      rent_amount: 0,
+      notes: '',
+      generate_invoice: 'yes',
+      lease_terms: '',
     },
     formErrors: [],
     loading: false,
     units: @json($vacantUnits ?? []),
+    selectedUnit: null,
+    tenantSummary: null,
+    leaseAgreementGenerated: false,
+    leaseAgreementData: null,
     
     init() {
       window.tenancyCreateModal = this;
-      // Set default date to today
       const today = new Date().toISOString().split('T')[0];
       this.form.move_in_date = today;
+      
+      // Set default deposit to rent amount when unit changes
+      this.$watch('form.rent_amount', (value) => {
+        if (!this.form.deposit_amount || this.form.deposit_amount == 0) {
+          this.form.deposit_amount = value || 0;
+        }
+      });
     },
     
-    openModal() {
+    openModal(editData = null) {
       this.isOpen = true;
       this.resetForm();
+      this.formErrors = [];
+      
+      if (editData) {
+        this.isEditMode = true;
+        this.editId = editData.id;
+        this.form.tenant_id = editData.tenant_id;
+        this.form.tenant_name = editData.tenant_name || '';
+        this.form.tenant_phone = editData.tenant_phone || '';
+        this.form.tenant_email = editData.tenant_email || '';
+        this.form.unit_id = editData.unit_id;
+        this.form.move_in_date = editData.move_in_date;
+        this.form.move_out_date = editData.move_out_date || '';
+        this.form.status = editData.status || 'active';
+        this.form.deposit_amount = editData.deposit_amount || 0;
+        this.form.rent_amount = editData.rent_amount || 0;
+        this.form.notes = editData.notes || '';
+        this.form.generate_invoice = 'no';
+        this.form.tenant_selection = 'existing';
+        
+        // Find and set the selected unit
+        this.selectedUnit = this.units.find(u => u.id == this.form.unit_id);
+        if (this.selectedUnit) {
+          this.form.rent_amount = this.selectedUnit.rent_amount || 0;
+        }
+        this.loadTenantSummary();
+      } else {
+        this.isEditMode = false;
+        this.editId = null;
+        this.selectedUnit = null;
+        this.tenantSummary = null;
+      }
+      
       document.body.style.overflow = 'hidden';
     },
     
@@ -246,6 +480,7 @@ document.addEventListener('alpine:init', () => {
       this.isOpen = false;
       this.formErrors = [];
       this.loading = false;
+      this.leaseAgreementGenerated = false;
       document.body.style.overflow = '';
     },
     
@@ -254,20 +489,29 @@ document.addEventListener('alpine:init', () => {
       this.form = {
         tenant_selection: '',
         tenant_id: '',
+        tenant_name: '',
+        tenant_phone: '',
+        tenant_email: '',
         new_tenant_name: '',
         new_tenant_phone: '',
         new_tenant_email: '',
         unit_id: '',
         move_in_date: today,
-        rent_amount: '',
-        notes: ''
+        move_out_date: '',
+        status: 'active',
+        deposit_amount: 0,
+        rent_amount: 0,
+        notes: '',
+        generate_invoice: 'yes',
+        lease_terms: '',
       };
-      this.formErrors = [];
-      this.loading = false;
+      this.selectedUnit = null;
+      this.tenantSummary = null;
+      this.leaseAgreementGenerated = false;
+      this.leaseAgreementData = null;
     },
     
     get isFormValid() {
-      // Check tenant selection
       if (!this.form.tenant_selection) return false;
       
       if (this.form.tenant_selection === 'existing' && !this.form.tenant_id) return false;
@@ -277,34 +521,107 @@ document.addEventListener('alpine:init', () => {
         if (!this.form.new_tenant_phone || !this.form.new_tenant_phone.trim()) return false;
       }
       
-      // Check unit and date
       if (!this.form.unit_id) return false;
       if (!this.form.move_in_date) return false;
       
       return true;
     },
     
+    get totalInitialCharges() {
+      const deposit = parseFloat(this.form.deposit_amount) || 0;
+      const rent = parseFloat(this.form.rent_amount) || 0;
+      return deposit + rent;
+    },
+    
     onTenantSelectionChange() {
       if (this.form.tenant_selection !== 'existing') {
         this.form.tenant_id = '';
-        this.form.new_tenant_name = '';
-        this.form.new_tenant_phone = '';
-        this.form.new_tenant_email = '';
+        this.tenantSummary = null;
+      }
+    },
+    
+    async loadTenantSummary() {
+      if (!this.form.tenant_id) {
+        this.tenantSummary = null;
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/tenancies/tenant-summary/${this.form.tenant_id}`);
+        const data = await response.json();
+        if (data.success) {
+          this.tenantSummary = data.tenant;
+        }
+      } catch (error) {
+        console.error('Error loading tenant summary:', error);
+        this.tenantSummary = null;
       }
     },
     
     onUnitChange() {
-      // Find selected unit and update rent amount
-      const selectedUnit = this.units.find(u => u.id == this.form.unit_id);
-      if (selectedUnit) {
-        this.form.rent_amount = selectedUnit.rent_amount || 0;
+      this.selectedUnit = this.units.find(u => u.id == this.form.unit_id);
+      if (this.selectedUnit) {
+        this.form.rent_amount = this.selectedUnit.rent_amount || 0;
+        if (!this.isEditMode) {
+          this.form.deposit_amount = this.selectedUnit.rent_amount || 0;
+        }
+      } else {
+        this.form.rent_amount = 0;
+      }
+      this.leaseAgreementGenerated = false;
+    },
+    
+    async generateLeaseAgreement() {
+      if (!this.form.unit_id) {
+        alert('Please select a unit first');
+        return;
+      }
+      
+      const tenantName = this.form.tenant_selection === 'existing' 
+        ? this.form.tenant_name 
+        : this.form.new_tenant_name;
+      
+      if (!tenantName) {
+        alert('Please provide tenant information first');
+        return;
+      }
+      
+      this.loading = true;
+      
+      try {
+        this.leaseAgreementGenerated = true;
+        this.leaseAgreementData = {
+          tenant_name: tenantName,
+          unit_number: this.selectedUnit?.unit_number || '',
+          rent_amount: this.form.rent_amount,
+          deposit_amount: this.form.deposit_amount,
+          start_date: this.form.move_in_date,
+        };
+        
+        this.showNotification('Lease agreement generated successfully!', 'success');
+      } catch (error) {
+        console.error('Error generating lease agreement:', error);
+        this.showNotification('Error generating lease agreement', 'error');
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    viewLeaseAgreement() {
+      if (this.leaseAgreementData) {
+        alert('Lease Agreement:\n\n' + 
+          'Tenant: ' + this.leaseAgreementData.tenant_name + '\n' +
+          'Unit: ' + this.leaseAgreementData.unit_number + '\n' +
+          'Rent: KES ' + this.leaseAgreementData.rent_amount + '\n' +
+          'Deposit: KES ' + this.leaseAgreementData.deposit_amount + '\n' +
+          'Start Date: ' + this.leaseAgreementData.start_date
+        );
       }
     },
     
     getTenantSummary() {
-      if (this.form.tenant_selection === 'existing' && this.form.tenant_id) {
-        const selectedOption = document.querySelector(`select[x-model="form.tenant_id"] option[value="${this.form.tenant_id}"]`);
-        return selectedOption ? selectedOption.text.split('(')[0].trim() : 'selected tenant';
+      if (this.form.tenant_selection === 'existing' && this.form.tenant_name) {
+        return this.form.tenant_name;
       } else if (this.form.tenant_selection === 'new' && this.form.new_tenant_name) {
         return this.form.new_tenant_name;
       }
@@ -312,14 +629,15 @@ document.addEventListener('alpine:init', () => {
     },
     
     getUnitSummary() {
-      const selectedUnit = this.units.find(u => u.id == this.form.unit_id);
-      return selectedUnit ? selectedUnit.unit_number : 'selected unit';
+      if (this.selectedUnit) {
+        return this.selectedUnit.unit_number;
+      }
+      return 'selected unit';
     },
     
     validateForm() {
       this.formErrors = [];
       
-      // Validate tenant selection
       if (!this.form.tenant_selection) {
         this.formErrors.push('Please select tenant option');
       } else if (this.form.tenant_selection === 'existing' && !this.form.tenant_id) {
@@ -344,6 +662,10 @@ document.addEventListener('alpine:init', () => {
         this.formErrors.push('Please select move-in date');
       }
       
+      if (this.form.move_out_date && new Date(this.form.move_out_date) < new Date(this.form.move_in_date)) {
+        this.formErrors.push('Move-out date cannot be before move-in date');
+      }
+      
       return this.formErrors.length === 0;
     },
     
@@ -351,25 +673,45 @@ document.addEventListener('alpine:init', () => {
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     },
     
+    showNotification(message, type = 'success') {
+      const notification = document.createElement('div');
+      notification.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-600' : 'bg-red-600'} transition-all duration-300 transform translate-y-0`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        notification.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    },
+    
+    formatNumber(value) {
+      if (value === undefined || value === null) return '0.00';
+      return parseFloat(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+    
     async submitForm() {
       if (!this.validateForm()) {
-        // Scroll to top to show errors
         const modalContent = this.$el.closest('.overflow-y-auto');
-        if (modalContent) {
-          modalContent.scrollTop = 0;
-        }
+        if (modalContent) modalContent.scrollTop = 0;
         return;
       }
       
       this.loading = true;
       
       try {
-        // Prepare the data based on tenant selection
         const postData = {
           unit_id: this.form.unit_id,
           move_in_date: this.form.move_in_date,
-          notes: this.form.notes
+          notes: this.form.notes,
+          deposit_amount: this.form.deposit_amount,
+          generate_invoice: this.form.generate_invoice,
+          lease_terms: this.form.lease_terms,
         };
+        
+        if (this.isEditMode) {
+          postData.move_out_date = this.form.move_out_date;
+          postData.status = this.form.status;
+        }
         
         if (this.form.tenant_selection === 'existing') {
           postData.tenant_id = this.form.tenant_id;
@@ -381,8 +723,13 @@ document.addEventListener('alpine:init', () => {
           }
         }
         
-        const response = await fetch('{{ route("tenancies.store") }}', {
-          method: 'POST',
+        const url = this.isEditMode 
+          ? `/tenancies/${this.editId}` 
+          : '{{ route("tenancies.store") }}';
+        const method = this.isEditMode ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+          method: method,
           headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
@@ -397,28 +744,18 @@ document.addEventListener('alpine:init', () => {
         if (response.ok) {
           this.closeModal();
           
-          // Show success message
           if (window.successModal) {
             window.successModal.show(
               'Success!', 
-              data.message || 'Tenancy created successfully'
+              data.message || (this.isEditMode ? 'Tenancy updated successfully!' : 'Tenancy created successfully!')
             );
-          } else {
-            alert('Tenancy created successfully!');
           }
           
-          // Reload after a short delay
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
+          setTimeout(() => window.location.reload(), 1500);
         } else {
-          this.formErrors = [data.message || 'Failed to create tenancy'];
-          
-          // Scroll to show errors
+          this.formErrors = [data.message || 'Failed to save tenancy'];
           const modalContent = this.$el.closest('.overflow-y-auto');
-          if (modalContent) {
-            modalContent.scrollTop = 0;
-          }
+          if (modalContent) modalContent.scrollTop = 0;
         }
       } catch (error) {
         console.error('Error:', error);

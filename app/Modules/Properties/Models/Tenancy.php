@@ -8,6 +8,8 @@ use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\Payment;
 use App\Models\Invoice;
+use App\Models\User;
+use App\Modules\Properties\Models\TenancyCharge;
 
 class Tenancy extends Model
 {
@@ -19,12 +21,12 @@ class Tenancy extends Model
         'move_in_date', 
         'move_out_date', 
         'status',
-        'notes'
+        'notes',
     ];
 
     protected $casts = [
         'move_in_date' => 'date',
-        'move_out_date' => 'date'
+        'move_out_date' => 'date',
     ];
 
     public function tenant()
@@ -45,6 +47,21 @@ class Tenancy extends Model
     public function invoices()
     {
         return $this->hasMany(Invoice::class, 'tenancy_id');
+    }
+
+    public function leaseAgreement()
+    {
+        return $this->hasOne(LeaseAgreement::class);
+    }
+
+    public function checklist()
+    {
+        return $this->hasMany(HouseChecklist::class);
+    }
+
+    public function charges()
+    {
+        return $this->hasMany(TenancyCharge::class);
     }
 
     // Helper method to check if tenancy is active
@@ -89,5 +106,36 @@ class Tenancy extends Model
     public function getOutstandingBalanceAttribute()
     {
         return $this->total_invoiced - $this->total_paid;
+    }
+
+    // Get deposit balance from charges
+    public function getDepositBalanceAttribute()
+    {
+        $deposits = $this->charges()
+            ->where('charge_type', 'deposit')
+            ->where('status', 'paid')
+            ->sum('amount');
+        
+        $refunds = $this->charges()
+            ->where('charge_type', 'deposit')
+            ->where('status', 'refunded')
+            ->sum('amount');
+        
+        return $deposits - $refunds;
+    }
+
+    // Check if deposit is fully paid
+    public function isDepositPaid()
+    {
+        $totalDeposit = $this->charges()
+            ->where('charge_type', 'deposit')
+            ->sum('amount');
+        
+        $paidDeposit = $this->charges()
+            ->where('charge_type', 'deposit')
+            ->where('status', 'paid')
+            ->sum('amount');
+        
+        return $paidDeposit >= $totalDeposit;
     }
 }

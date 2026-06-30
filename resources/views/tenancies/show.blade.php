@@ -6,7 +6,7 @@
 @include('partials.modal.tenancies-delete-modal')
 @include('partials.modal.success-modal')
 @include('partials.modal.invoice-create-modal')
-@include('partials.modal.payment-create-modal')
+@include('partials.modal.payment-create-modal', ['invoices' => $invoices ?? []])
 
 <div x-data="tenancyShow" x-init="init()" x-cloak>
   <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
