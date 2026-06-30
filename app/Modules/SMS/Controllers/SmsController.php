@@ -81,16 +81,22 @@ class SmsController extends Controller
     {
         $request->validate([
             'recipients' => 'required|json',
-            'template' => 'required|string|max:1600',
             'message_type' => 'nullable|in:transactional,promotional',
         ]);
 
         $recipients = json_decode($request->input('recipients'), true);
-        $template = $request->input('template');
         $messageType = $request->input('message_type', 'transactional');
 
         if (empty($recipients)) {
             return back()->with('error', 'No valid recipients selected.');
+        }
+
+        // Get the template from the form (it should be in the template field)
+        $template = $request->input('template');
+        
+        // If no template is provided, use the default template
+        if (empty($template)) {
+            $template = "Hi {{name}}, please pay your {{month}} water bill by {{due_date}}. Paybill 7263733 Acc {{unit}} KES {{water_bill}}";
         }
 
         $tenantIds = collect($recipients)->pluck('id')->filter()->unique();
@@ -106,35 +112,67 @@ class SmsController extends Controller
         $defaultDueDate = Carbon::now()->setDay(5)->format('Y-m-d');
         $defaultBillingMonth = Carbon::now()->subMonth()->format('F Y');
 
-        foreach ($recipients as &$recipient) {
+        // Prepare recipients with variables
+        $preparedRecipients = [];
+        foreach ($recipients as $recipient) {
+            // Get tenant data if available
+            $variables = $recipient['variables'] ?? [];
+            
+            // Merge with tenant data if available
             if (isset($recipient['id']) && $tenantData->has($recipient['id'])) {
                 $tenant = $tenantData->get($recipient['id']);
                 $unitNumber = optional($tenant->activeTenancy->unit)->unit_number ?? '';
-                $recipient['variables']['unit'] = $unitNumber;
+                $variables['unit'] = $unitNumber;
+                $variables['unit_number'] = $unitNumber;
             }
 
-            if (!isset($recipient['variables']['due_date']) || empty($recipient['variables']['due_date'])) {
-                $recipient['variables']['due_date'] = $defaultDueDate;
+            // Set default values if not provided
+            if (!isset($variables['due_date']) || empty($variables['due_date'])) {
+                $variables['due_date'] = $defaultDueDate;
             }
-            if (!isset($recipient['variables']['month']) || empty($recipient['variables']['month'])) {
-                $recipient['variables']['month'] = $defaultBillingMonth;
+            if (!isset($variables['month']) || empty($variables['month'])) {
+                $variables['month'] = $defaultBillingMonth;
             }
+            if (!isset($variables['name']) || empty($variables['name'])) {
+                $variables['name'] = $recipient['name'] ?? 'Tenant';
+            }
+            if (!isset($variables['water_bill']) || empty($variables['water_bill'])) {
+                $variables['water_bill'] = $recipient['water_bill'] ?? '0.00';
+            }
+            if (!isset($variables['unit']) || empty($variables['unit'])) {
+                $variables['unit'] = $recipient['unit'] ?? 'N/A';
+            }
+
+            // Build the message
+            $message = $template;
+            foreach ($variables as $key => $value) {
+                $message = str_replace('{{' . $key . '}}', $value, $message);
+            }
+
+            $preparedRecipients[] = [
+                'phone' => $recipient['phone'],
+                'message' => $message,
+                'variables' => $variables,
+                'id' => $recipient['id'] ?? null,
+            ];
         }
 
         // Create campaign
         $campaign = SmsCampaign::create([
             'name' => 'Campaign ' . now()->format('Y-m-d H:i:s'),
             'template_id' => null,
-            'total_recipients' => count($recipients),
+            'total_recipients' => count($preparedRecipients),
             'status' => 'sending',
             'created_by' => auth()->id(),
         ]);
 
-        foreach ($recipients as &$recipient) {
+        // Update recipients with campaign ID
+        foreach ($preparedRecipients as &$recipient) {
             $recipient['campaign_id'] = $campaign->id;
         }
 
-        $response = $kenyaSms->sendPersonalized($template, $recipients, $messageType, $campaign->id);
+        // Send the messages
+        $response = $kenyaSms->sendPersonalized($template, $preparedRecipients, $messageType, $campaign->id);
 
         $campaign->update([
             'sent_count' => $response['data']['sent'] ?? 0,
@@ -307,5 +345,28 @@ class SmsController extends Controller
 
         return redirect()->route('sms.campaigns.show', $campaign->id)
             ->with('success', "Resent {$sent} messages successfully. {$failed} still failed.");
+    }
+
+    /**
+     * Get invoice payment status for a tenant
+     */
+    public function getTenantPaymentStatus($tenantId)
+    {
+        $tenant = Tenant::with(['activeTenancy.invoices'])->findOrFail($tenantId);
+        $status = 'pending';
+        
+        if ($tenant->activeTenancy) {
+            $invoices = $tenant->activeTenancy->invoices;
+            $unpaid = $invoices->where('status', 'unpaid')->count();
+            $paid = $invoices->where('status', 'paid')->count();
+            
+            if ($paid > 0 && $unpaid == 0) {
+                $status = 'paid';
+            } elseif ($unpaid > 0) {
+                $status = 'overdue';
+            }
+        }
+        
+        return response()->json(['status' => $status]);
     }
 }

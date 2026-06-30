@@ -2298,4 +2298,25 @@ class InvoiceController extends Controller
             ]);
         }
     }
+
+    /**
+     * Update invoice payment status based on payments
+     */
+    public function updatePaymentStatus(Invoice $invoice)
+    {
+        $totalPaid = (float) $invoice->payments()->sum('amount');
+        $totalAmount = (float) $invoice->total_amount;
+        
+        if ($totalPaid >= $totalAmount && $totalAmount > 0) {
+            $invoice->status = 'paid';
+        } elseif ($totalPaid > 0 && $totalPaid < $totalAmount) {
+            $invoice->status = 'partial';
+        } else {
+            $invoice->status = 'unpaid';
+        }
+        
+        $invoice->save();
+        
+        return $invoice;
+    }
 }

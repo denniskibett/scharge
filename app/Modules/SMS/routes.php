@@ -41,4 +41,6 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     // ======================
     Route::get('/campaigns/{campaign}', [SmsController::class, 'showCampaign'])->name('sms.campaigns.show');
     Route::post('/campaigns/{campaign}/resend-failed', [SmsController::class, 'resendFailed'])->name('sms.campaigns.resend-failed');
+
+    Route::get('/api/tenant-payment-status/{tenantId}', [SmsController::class, 'getTenantPaymentStatus']);
 });

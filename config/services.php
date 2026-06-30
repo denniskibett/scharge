@@ -39,5 +39,12 @@ return [
         'analytics_id' => env('GOOGLE_ANALYTICS_ID'),
     ],
 
+    'kenyasms' => [
+        'key' => env('KENYASMS_KEY'),
+        'url' => env('KENYASMS_URL', 'https://kenyasms.com/api/v1'),
+        'sender_id' => env('KENYASMS_SENDER_ID'),
+        'default_type' => env('KENYASMS_DEFAULT_TYPE', 'transactional'),
+        'sandbox' => env('KENYASMS_SANDBOX', false),
+    ],
 
 ];
