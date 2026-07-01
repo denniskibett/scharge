@@ -24,19 +24,10 @@ class SmsController extends Controller
                 $tenancy = $tenant->activeTenancy;
                 $unit = $tenancy ? $tenancy->unit : null;
                 
-                // Get the reading for the PREVIOUS month (this is what's being billed this month)
-                $previousMonth = Carbon::now()->subMonth();
+                // ✅ Get the latest water reading from the Water Meter Readings module
                 $latestWaterReading = $unit ? WaterReading::where('unit_id', $unit->id)
-                    ->whereYear('reading_date', $previousMonth->year)
-                    ->whereMonth('reading_date', $previousMonth->month)
+                    ->latest('reading_date')
                     ->first() : null;
-                
-                // If no reading for previous month, get the latest
-                if (!$latestWaterReading && $unit) {
-                    $latestWaterReading = WaterReading::where('unit_id', $unit->id)
-                        ->latest('reading_date')
-                        ->first();
-                }
                 
                 $waterBill = $latestWaterReading ? (float) $latestWaterReading->charge : 0;
                 $waterConsumption = $latestWaterReading ? (float) $latestWaterReading->consumption : 0;
@@ -52,15 +43,17 @@ class SmsController extends Controller
                 $phone = $rawPhone ? PhoneHelper::clean($rawPhone) : null;
                 $isKenyan = $phone && preg_match('/^254[0-9]{9}$/', $phone);
                 $unitNumber = $unit->unit_number ?? '';
+                $estateName = $unit && $unit->estate ? $unit->estate->name : 'N/A';
 
-                // Billing month is the CURRENT month (when the invoice is for)
-                $billingMonth = Carbon::now()->format('F Y');
+                // ✅ FIX: Reading month from the actual reading
+                $readingMonth = $readingDate ? $readingDate->format('F Y') : Carbon::now()->format('F Y');
                 
-                // Reading month is when the reading was taken (previous month)
-                $readingMonth = $readingDate ? $readingDate->format('F Y') : 'N/A';
-                
-                // Due date: 5th of next month
-                $dueDate = Carbon::now()->setDay(5)->addMonth()->format('Y-m-d');
+                // ✅ FIX: Due date: 5th of next month from the reading month
+                $baseDate = $readingDate ? Carbon::parse($readingDate) : Carbon::now();
+                $dueDate = $baseDate->copy()->addMonth()->day(5)->format('Y-m-d');
+
+                // ✅ FIX: Get payment status from invoices
+                $paymentStatus = $this->getPaymentStatusForTenant($tenant->id);
 
                 return [
                     'id' => $tenant->id,
@@ -70,19 +63,20 @@ class SmsController extends Controller
                     'unit_number' => $unitNumber,
                     'unit' => $unitNumber,
                     'estate_id' => $unit->estate_id ?? null,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'estate_name' => $estateName,
                     'water_bill' => $waterBill,
                     'water_consumption' => $waterConsumption,
                     'prev_read' => $prevRead,
                     'curr_read' => $currRead,
                     'reading_date' => $readingDate,
                     'reading_month' => $readingMonth,
-                    'billing_month' => $billingMonth,
+                    'month' => $readingMonth,
                     'due_date' => $dueDate,
                     'security_fee' => $securityFee,
                     'garbage_fee' => $garbageFee,
                     'total' => $total,
-                    'payment_status' => 'pending',
+                    'payment_status' => $paymentStatus,
+                    'status' => $paymentStatus, // For {{status}} placeholder
                 ];
             })
             ->filter(function ($tenant) {
@@ -124,12 +118,10 @@ class SmsController extends Controller
         // Get the template from the form
         $template = $request->input('template');
         
-        // If no template is provided, use the default
         if (empty($template)) {
-            $template = "Dear {{name}}, your {{billing_month}} water bill for {{unit}} is KES {{water_bill}}. (Consumption: {{water_consumption}} m³). Paybill 7263733 Acc {{unit}}. Due: {{due_date}}. For queries: 0701262902";
+            $template = "{{estate_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))\n\nPaybill: 7263733\nAcc: {{unit}}\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nStatus: {{status}}\n\nFor queries: 0701262902";
         }
 
-        // Get tenant IDs from recipients
         $tenantIds = collect($recipients)->pluck('id')->filter()->unique()->values()->toArray();
         $tenantData = collect();
         
@@ -140,24 +132,15 @@ class SmsController extends Controller
                 ->keyBy('id');
         }
 
-        // Default values
-        $billingMonth = Carbon::now()->format('F Y');
-        $dueDate = Carbon::now()->setDay(5)->addMonth()->format('Y-m-d');
-        $dueDateFormatted = Carbon::parse($dueDate)->format('d/m/Y');
-
-        // Prepare recipients with variables
         $preparedRecipients = [];
-        $processedIds = [];
 
         foreach ($recipients as $recipient) {
-            // Skip if no phone
             if (empty($recipient['phone'])) {
                 continue;
             }
 
             $variables = $recipient['variables'] ?? [];
             
-            // Merge with tenant data if available
             if (isset($recipient['id']) && $tenantData->has($recipient['id'])) {
                 $tenant = $tenantData->get($recipient['id']);
                 $activeTenancy = $tenant->activeTenancy;
@@ -166,18 +149,15 @@ class SmsController extends Controller
                 $unitNumber = $unit ? $unit->unit_number : '';
                 $estateName = $unit && $unit->estate ? $unit->estate->name : '';
                 
-                // Get reading for previous month
-                $previousMonth = Carbon::now()->subMonth();
+                // ✅ Get the latest water reading
                 $reading = $unit ? WaterReading::where('unit_id', $unit->id)
-                    ->whereYear('reading_date', $previousMonth->year)
-                    ->whereMonth('reading_date', $previousMonth->month)
+                    ->latest('reading_date')
                     ->first() : null;
                 
-                if (!$reading && $unit) {
-                    $reading = WaterReading::where('unit_id', $unit->id)
-                        ->latest('reading_date')
-                        ->first();
-                }
+                // ✅ Get reading data
+                $readingDate = $reading ? $reading->reading_date : null;
+                $readingMonth = $readingDate ? $readingDate->format('F Y') : Carbon::now()->format('F Y');
+                $dueDate = $readingDate ? Carbon::parse($readingDate)->addMonth()->day(5)->format('Y-m-d') : Carbon::now()->addMonth()->day(5)->format('Y-m-d');
                 
                 $variables['unit'] = $unitNumber;
                 $variables['unit_number'] = $unitNumber;
@@ -187,14 +167,16 @@ class SmsController extends Controller
                 $variables['water_consumption'] = $variables['water_consumption'] ?? ($reading ? (float) $reading->consumption : 0);
                 $variables['prev_read'] = $variables['prev_read'] ?? ($reading ? (float) $reading->previous_reading : 0);
                 $variables['curr_read'] = $variables['curr_read'] ?? ($reading ? (float) $reading->current_reading : 0);
-                $variables['reading_month'] = $reading ? $reading->reading_date->format('F Y') : 'N/A';
+                $variables['month'] = $readingMonth;
+                $variables['reading_month'] = $readingMonth;
+                $variables['due_date'] = $dueDate;
+                
+                // ✅ Get payment status from invoices
+                $paymentStatus = $this->getPaymentStatusForTenant($recipient['id']);
+                $variables['payment_status'] = $paymentStatus;
+                $variables['status'] = $paymentStatus; // For {{status}} placeholder
             }
 
-            // Set default values if not provided
-            $variables['billing_month'] = $billingMonth;
-            $variables['due_date'] = $dueDate;
-            $variables['due_date_formatted'] = $dueDateFormatted;
-            
             if (!isset($variables['name']) || empty($variables['name'])) {
                 $variables['name'] = $recipient['name'] ?? 'Tenant';
             }
@@ -204,12 +186,14 @@ class SmsController extends Controller
             if (!isset($variables['unit']) || empty($variables['unit'])) {
                 $variables['unit'] = $recipient['unit'] ?? 'N/A';
             }
-            if (!isset($variables['water_consumption']) || empty($variables['water_consumption'])) {
-                $variables['water_consumption'] = $recipient['water_consumption'] ?? '0';
+            if (!isset($variables['estate_name']) || empty($variables['estate_name'])) {
+                $variables['estate_name'] = $recipient['estate'] ?? 'N/A';
             }
-            // Payment status - check if tenant has paid
-            $paymentStatus = $this->getTenantPaymentStatusForSMS($recipient['id'] ?? null);
-            $variables['payment_status'] = $paymentStatus;
+            if (!isset($variables['payment_status']) || empty($variables['payment_status'])) {
+                $variables['payment_status'] = 'pending';
+            }
+            // ✅ Make sure status is also set
+            $variables['status'] = $variables['payment_status'];
 
             // Build the message
             $message = $template;
@@ -240,12 +224,10 @@ class SmsController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Update recipients with campaign ID
         foreach ($preparedRecipients as &$recipient) {
             $recipient['campaign_id'] = $campaign->id;
         }
 
-        // Send the messages
         $response = $kenyaSms->sendPersonalized($template, $preparedRecipients, $messageType, $campaign->id);
 
         $campaign->update([
@@ -256,10 +238,36 @@ class SmsController extends Controller
 
         if ($response['success']) {
             return redirect()->route('sms.broadcast')
-                ->with('success', "SMS campaign sent successfully! Campaign ID: {$campaign->id}");
+                ->with('success', "SMS campaign sent successfully! Sent: {$response['data']['sent']}, Failed: {$response['data']['failed']}");
         } else {
             return redirect()->route('sms.broadcast')
                 ->with('error', 'Failed to send SMS: ' . ($response['error'] ?? 'Unknown error'));
+        }
+    }
+
+    /**
+     * Get payment status from invoices for a tenant
+     */
+    private function getPaymentStatusForTenant($tenantId)
+    {
+        try {
+            $tenant = Tenant::with(['activeTenancy.invoices'])->find($tenantId);
+            if (!$tenant || !$tenant->activeTenancy) {
+                return 'pending';
+            }
+            
+            $invoices = $tenant->activeTenancy->invoices;
+            $unpaid = $invoices->where('status', 'unpaid')->count();
+            $paid = $invoices->where('status', 'paid')->count();
+            
+            if ($paid > 0 && $unpaid == 0) {
+                return 'paid';
+            } elseif ($unpaid > 0) {
+                return 'unpaid';
+            }
+            return 'pending';
+        } catch (\Exception $e) {
+            return 'pending';
         }
     }
 

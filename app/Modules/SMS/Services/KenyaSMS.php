@@ -19,11 +19,12 @@ class KenyaSMS
         $config = config('sms');
         $kenyaSmsConfig = $config['kenyasms'] ?? $config;
         
+        // ✅ FIX: Use KENYASMS_URL from env
         $this->apiKey = $kenyaSmsConfig['api_key'] ?? env('KENYASMS_KEY');
-        $this->baseUrl = $kenyaSmsConfig['base_url'] ?? 'https://kenyasms.com/api/v1';
-        $this->senderId = $kenyaSmsConfig['sender_id'] ?? 'SHARETENT';
-        $this->defaultType = $kenyaSmsConfig['default_type'] ?? 'transactional';
-        $this->sandbox = $kenyaSmsConfig['sandbox'] ?? true;
+        $this->baseUrl = $kenyaSmsConfig['base_url'] ?? env('KENYASMS_URL', 'https://kenyasms.com/api/v1');
+        $this->senderId = $kenyaSmsConfig['sender_id'] ?? env('KENYASMS_SENDER_ID', 'SHARETENT');
+        $this->defaultType = $kenyaSmsConfig['default_type'] ?? env('KENYASMS_DEFAULT_TYPE', 'transactional');
+        $this->sandbox = $kenyaSmsConfig['sandbox'] ?? env('KENYASMS_SANDBOX', true);
     }
 
     /**
@@ -35,6 +36,14 @@ class KenyaSMS
         if (!$phone) {
             return ['success' => false, 'error' => 'Invalid Kenyan phone number'];
         }
+
+        // ✅ ADD DEBUG LOGGING
+        \Log::info('📤 KenyaSMS Request', [
+            'phone' => $phone,
+            'url' => $this->baseUrl . '/sms/send',
+            'sender_id' => $this->senderId,
+            'sandbox' => $this->sandbox,
+        ]);
 
         if ($this->sandbox) {
             SmsLog::create([
@@ -60,6 +69,13 @@ class KenyaSMS
 
             $body = $response->json();
 
+            // ✅ ADD DEBUG LOGGING
+            \Log::info('📥 KenyaSMS Response', [
+                'status' => $response->status(),
+                'body' => $body,
+                'successful' => $response->successful(),
+            ]);
+
             if ($response->successful()) {
                 SmsLog::create([
                     'recipient_phone' => $phone,
@@ -80,6 +96,11 @@ class KenyaSMS
                 return ['success' => false, 'error' => $body['error']['message'] ?? 'API error'];
             }
         } catch (\Exception $e) {
+            \Log::error('❌ KenyaSMS Exception', [
+                'phone' => $phone,
+                'error' => $e->getMessage(),
+            ]);
+            
             SmsLog::create([
                 'recipient_phone' => $phone,
                 'message' => $message,

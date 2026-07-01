@@ -16,6 +16,19 @@
         @endif
     </div>
 
+    <!-- Flash Messages -->
+    @if(session('success'))
+        <div class="mb-4 rounded-lg bg-green-100 p-4 text-green-800 border border-green-300">
+            <strong>✅ Success!</strong> {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="mb-4 rounded-lg bg-red-100 p-4 text-red-800 border border-red-300">
+            <strong>❌ Error!</strong> {{ session('error') }}
+        </div>
+    @endif
+
     <!-- Tab Headers -->
     <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
         <button onclick="activeTab = 'tenants'; renderTab()" id="tab-tenants" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">Send to Tenants</button>
@@ -47,7 +60,7 @@
                 <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Hi {{name}}, please pay your {{month}} water bill by {{due_date}}. Paybill 7263733 Acc {{unit}} KES {{water_bill}}">Hi {{name}}, please pay your {{month}} water bill by {{due_date}}. Paybill 7263733 Acc {{unit}} KES {{water_bill}}</textarea>
                 @endverbatim
                 <div class="flex flex-wrap gap-2 mt-2">
-                    <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, water_bill, due_date, month, estate_name, prev_read, curr_read, water_consumption, payment_status</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, water_bill, due_date, month, estate_name, prev_read, curr_read, water_consumption, payment_status, status</span>
                 </div>
             </div>
 
@@ -169,8 +182,9 @@
                                 data-water-bill="{{ $tenant['water_bill'] }}"
                                 data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
                                 data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
-                                data-due-date="2024-12-05"
-                                data-payment-status="pending">
+                                data-month="{{ $tenant['reading_month'] }}"
+                                data-due-date="{{ $tenant['due_date'] }}"
+                                data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
                                 <td class="px-4 py-3">
                                     <input type="checkbox" class="tenant-checkbox" 
                                         data-id="{{ $tenant['id'] }}"
@@ -182,7 +196,10 @@
                                         data-waterbill="{{ $tenant['water_bill'] }}"
                                         data-consumption="{{ $tenant['water_consumption'] }}"
                                         data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
-                                        data-curr-read="{{ $tenant['curr_read'] ?? 0 }}">
+                                        data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
+                                        data-month="{{ $tenant['reading_month'] }}"
+                                        data-due-date="{{ $tenant['due_date'] }}"
+                                        data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
                                 </td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-3">
@@ -198,10 +215,14 @@
                                 <td class="px-4 py-3 text-right text-sm font-medium text-gray-800">KES {{ number_format($tenant['water_bill'], 2) }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['prev_read'] ?? 0 }}</td>
                                 <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['curr_read'] ?? 0 }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">Dec 5, 2024</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['due_date'] }}</td>
                                 <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                                        Pending
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                        @if(($tenant['payment_status'] ?? 'pending') === 'paid') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                        @elseif(($tenant['payment_status'] ?? 'pending') === 'unpaid') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                        @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                        @endif">
+                                        {{ ucfirst($tenant['payment_status'] ?? 'pending') }}
                                     </span>
                                 </td>
                             </tr>
@@ -430,6 +451,9 @@
                     consumption: checkbox.dataset.consumption,
                     prevRead: checkbox.dataset.prevRead,
                     currRead: checkbox.dataset.currRead,
+                    month: checkbox.dataset.month,
+                    dueDate: checkbox.dataset.dueDate,
+                    paymentStatus: checkbox.dataset.paymentStatus,
                     row: row,
                     checkbox: checkbox
                 });
@@ -622,6 +646,7 @@
         }
     }
     
+    // ✅ FIXED: updatePreview function - uses data from checkbox, not current date
     function updatePreview() {
         let template = document.getElementById('template')?.value || '';
         let allSelected = getAllSelectedCheckboxes();
@@ -630,9 +655,6 @@
         if (selectedCount > 0 && template.trim() !== '') {
             document.getElementById('previewSection').style.display = 'block';
             let previews = [];
-            let now = new Date();
-            let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
-            let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
             
             for (let i = 0; i < Math.min(3, selectedCount); i++) {
                 let cb = allSelected[i];
@@ -645,6 +667,11 @@
                 let prev_read = cb.getAttribute('data-prev-read');
                 let curr_read = cb.getAttribute('data-curr-read');
                 
+                // ✅ FIX: Use data from checkbox, NOT new Date()
+                let month = cb.getAttribute('data-month');
+                let dueDate = cb.getAttribute('data-due-date');
+                let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+                
                 let message = template;
                 message = message.replace(/\{\{name\}\}/g, name);
                 message = message.replace(/\{\{unit\}\}/g, unit);
@@ -656,7 +683,8 @@
                 message = message.replace(/\{\{estate_name\}\}/g, estate_name);
                 message = message.replace(/\{\{prev_read\}\}/g, prev_read);
                 message = message.replace(/\{\{curr_read\}\}/g, curr_read);
-                message = message.replace(/\{\{payment_status\}\}/g, 'pending');
+                message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
+                message = message.replace(/\{\{status\}\}/g, paymentStatus);
                 
                 previews.push({ phone: phone, message: message, name: name });
             }
@@ -700,7 +728,7 @@
         }
     });
     
-    // Form submission - handles ALL selected tenants
+    // ✅ FIXED: Form submission with loading state
     document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
         let selected = [];
         let template = document.getElementById('template').value;
@@ -720,9 +748,27 @@
             return false;
         }
         
-        let now = new Date();
-        let dueDate = new Date(now.getFullYear(), now.getMonth(), 5).toLocaleDateString('en-CA');
-        let month = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+        // ✅ Show loading state on the button
+        const submitBtn = document.getElementById('sendSmsBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '⏳ Sending... Please wait';
+        submitBtn.classList.add('opacity-75', 'cursor-wait');
+        
+        // ✅ Show a status message
+        let statusDiv = document.getElementById('sendingStatus');
+        if (!statusDiv) {
+            statusDiv = document.createElement('div');
+            statusDiv.id = 'sendingStatus';
+            statusDiv.className = 'mb-4 rounded-lg bg-blue-100 p-4 text-blue-800 border border-blue-300';
+            // Insert it above the filters section
+            const filtersSection = document.querySelector('.p-6.border-b.border-gray-200.dark\\:border-gray-700');
+            if (filtersSection) {
+                filtersSection.parentNode.insertBefore(statusDiv, filtersSection);
+            }
+        }
+        statusDiv.innerHTML = '⏳ Sending SMS messages to ' + allSelected.length + ' tenant(s)... Please wait.';
+        statusDiv.style.display = 'block';
         
         allSelected.forEach(cb => {
             let phone = cb.getAttribute('data-phone');
@@ -736,6 +782,11 @@
             let prev_read = cb.getAttribute('data-prev-read') || '0';
             let curr_read = cb.getAttribute('data-curr-read') || '0';
             
+            // ✅ Use data from checkbox for month and due date
+            let month = cb.getAttribute('data-month');
+            let dueDate = cb.getAttribute('data-due-date');
+            let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+            
             // Build the message with variables
             let message = template;
             message = message.replace(/\{\{name\}\}/g, name);
@@ -748,7 +799,8 @@
             message = message.replace(/\{\{estate_name\}\}/g, estate_name);
             message = message.replace(/\{\{prev_read\}\}/g, prev_read);
             message = message.replace(/\{\{curr_read\}\}/g, curr_read);
-            message = message.replace(/\{\{payment_status\}\}/g, 'pending');
+            message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
+            message = message.replace(/\{\{status\}\}/g, paymentStatus);
             
             selected.push({
                 phone: phone,
@@ -765,7 +817,8 @@
                     estate_name: estate_name,
                     prev_read: prev_read,
                     curr_read: curr_read,
-                    payment_status: 'pending'
+                    payment_status: paymentStatus,
+                    status: paymentStatus
                 }
             });
         });
@@ -774,12 +827,41 @@
         document.getElementById('recipientsJson').value = JSON.stringify(selected);
         document.getElementById('templateHidden').value = template;
         
-        // Show loading state
-        const submitBtn = document.getElementById('sendSmsBtn');
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Sending...';
+        // ✅ Store reference to button for response handling
+        window.submitBtn = submitBtn;
+        window.originalText = originalText;
+        window.statusDiv = statusDiv;
         
         return true;
+    });
+    
+    // ✅ Reset button state after page load (for success/error messages)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if there's a flash message
+        const successMessage = document.querySelector('.bg-green-100');
+        const errorMessage = document.querySelector('.bg-red-100');
+        
+        if (successMessage || errorMessage) {
+            // Reset the button state
+            const submitBtn = document.getElementById('sendSmsBtn');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Send SMS to Tenants';
+                submitBtn.classList.remove('opacity-75', 'cursor-wait');
+            }
+            
+            // Hide the status message
+            const statusDiv = document.getElementById('sendingStatus');
+            if (statusDiv) {
+                statusDiv.style.display = 'none';
+            }
+        }
+        
+        initRows();
+        renderTab();
+        
+        // Recalculate when entries per page changes
+        document.getElementById('entriesPerPage')?.addEventListener('change', entriesPerPageChange);
     });
     
     // Make functions global
@@ -792,15 +874,6 @@
     window.getAllSelectedCheckboxes = getAllSelectedCheckboxes;
     window.updateSelectedCount = updateSelectedCount;
     window.updateMasterCheckboxState = updateMasterCheckboxState;
-    
-    // Initial setup
-    document.addEventListener('DOMContentLoaded', function() {
-        initRows();
-        renderTab();
-        
-        // Recalculate when entries per page changes
-        document.getElementById('entriesPerPage')?.addEventListener('change', entriesPerPageChange);
-    });
 </script>
 
 <style>
