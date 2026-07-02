@@ -21,6 +21,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
 use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
 
@@ -110,8 +111,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/debug', [SystemController::class, 'debug'])->name('debug');
     });
 
-
-
     // ============================================
     // ADMIN USER MANAGEMENT ROUTES
     // ============================================
@@ -139,6 +138,7 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     Route::prefix('api/users')->name('api.users.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'getUsers'])->name('index');
+        Route::get('/staff', [App\Http\Controllers\Admin\UserController::class, 'getStaffUsers'])->name('staff');
     });
 
     // ============================================
@@ -153,6 +153,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
     Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->name('units.meter-reading-data');
+    Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
+    Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
 
     // ============================================
     // EXPENSE ROUTES
@@ -196,10 +198,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/invoices/{invoice}/add-item', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
     Route::put('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
     Route::delete('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
-
-    // ADD THIS ROUTE:
     Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
-    
 
     // Tenancy-specific invoice routes
     Route::prefix('tenancies/{tenancy}')->group(function () {
@@ -250,8 +249,6 @@ Route::middleware(['auth'])->group(function () {
     // Meter Reader specific routes
     Route::middleware(['role:super_admin,admin,property_manager,meter_reader'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
-        Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
-        Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
         Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
     });
 
@@ -272,7 +269,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
     Route::get('/tenant/maintenance', [MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
     Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data');
-    Route::get('/api/users/staff', [UserController::class, 'getStaffUsers'])->name('api.users.staff');
 
     // Maintenance Staff routes
     Route::middleware(['role:super_admin,admin,property_manager,maintenance'])->group(function () {
@@ -280,7 +276,6 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/maintenance/requests/{request}/update', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
-
 
     // ============================================
     // SECURITY ROUTES
@@ -506,6 +501,23 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
     Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
     Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
+
+    // ============================================
+    // 📱 M-PESA STK PUSH PAYMENT ROUTES
+    // ============================================
+    Route::prefix('payments/mpesa')->name('payments.mpesa.')->group(function () {
+        // Initiate STK Push from invoice
+        Route::post('/stk-push', [PaymentController::class, 'initiateMpesaStkPush'])->name('stk-push');
+        
+        // Check STK Push status (AJAX)
+        Route::get('/status', [PaymentController::class, 'checkMpesaStatus'])->name('status');
+        
+        // Payment form (optional)
+        Route::get('/pay', [MpesaController::class, 'showPaymentForm'])->name('form');
+        
+        // Process STK Push from form
+        Route::post('/pay', [MpesaController::class, 'stkPush'])->name('process');
+    });
 
 });
 

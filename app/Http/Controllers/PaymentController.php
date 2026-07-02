@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\PendingMpesaPayment;
 use App\Modules\Payments\Models\Invoice;
 use App\Modules\Tenants\Models\Tenant;
 use App\Modules\Payments\Services\WalletService;
@@ -185,42 +186,144 @@ class PaymentController extends Controller
     }
 
     /**
-     * Store a new payment - Uses direct payment logic (deposit + pay invoice)
+     * Store a new payment - Handles both regular and M-Pesa STK Push payments
      */
-public function store(Request $request)
-{
-    $request->validate([
-        'tenant_id' => 'required|exists:tenants,id',
-        'invoice_id' => 'required|exists:invoices,id',
-        'amount' => 'required|numeric|min:0.01',
-        'payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill,manual_topup',
-        'external_reference' => 'nullable|string',
-        'payment_datetime' => 'required|date',
-        'notes' => 'nullable|string',
-    ]);
-    
-    try {
-        $tenant = Tenant::findOrFail($request->tenant_id);
-        $invoice = Invoice::findOrFail($request->invoice_id);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'tenancy_id' => 'sometimes|exists:tenancies,id',
+            'tenant_id' => 'required_without:tenancy_id|exists:tenants,id',
+            'invoice_id' => 'required|exists:invoices,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill,mpesa',
+            'external_reference' => 'nullable|string',
+            'payment_datetime' => 'required_if:payment_method,cash,bank_transfer|nullable|date',
+            'payment_month' => 'required_if:payment_method,cash,bank_transfer|nullable|string',
+            'notes' => 'nullable|string',
+            'mpesa_phone' => 'required_if:payment_method,mpesa,mpesa_paybill|nullable|string',
+        ]);
         
-        // Verify invoice belongs to this tenant
+        try {
+            // Get tenant and invoice
+            $tenant = Tenant::find($request->tenant_id);
+            if (!$tenant && $request->tenancy_id) {
+                $tenant = Tenant::whereHas('activeTenancy', function($q) use ($request) {
+                    $q->where('id', $request->tenancy_id);
+                })->first();
+            }
+            
+            $invoice = Invoice::findOrFail($request->invoice_id);
+            
+            // =========================================================
+            // 📱 M-PESA PAYBILL - STK PUSH
+            // =========================================================
+            if (in_array($request->payment_method, ['mpesa', 'mpesa_paybill'])) {
+                return $this->processMpesaPayment($request, $tenant, $invoice);
+            }
+            
+            // =========================================================
+            // 💰 REGULAR PAYMENT (Cash, Bank Transfer)
+            // =========================================================
+            return $this->processRegularPayment($request, $tenant, $invoice);
+            
+        } catch (\Exception $e) {
+            Log::error('Error creating payment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process M-Pesa STK Push payment
+     */
+    protected function processMpesaPayment($request, $tenant, $invoice)
+    {
+        // Get phone number
+        $phone = $request->mpesa_phone ?? $tenant->user->phone ?? null;
+        
+        if (!$phone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Phone number required for M-Pesa payment. Please enter your M-Pesa phone number.'
+            ], 400);
+        }
+        
+        // Format phone number
+        $phone = $this->formatPhoneNumber($phone);
+        
+        // Send STK Push
+        $mpesa = new \App\Services\MpesaService();
+        $result = $mpesa->stkPush(
+            $phone,
+            $request->amount,
+            $invoice->invoice_number ?? 'INV-' . $invoice->id,
+            "Payment for Invoice #{$invoice->id}"
+        );
+        
+        if ($result['success']) {
+            // Store in pending_mpesa_payments table (backup for callback)
+            try {
+                PendingMpesaPayment::create([
+                    'checkout_request_id' => $result['checkout_request_id'],
+                    'invoice_id' => $invoice->id,
+                    'tenant_id' => $tenant->id,
+                    'amount' => $request->amount,
+                    'phone' => $phone,
+                    'status' => 'pending'
+                ]);
+                Log::info('✅ Pending payment stored in database', [
+                    'checkout_request_id' => $result['checkout_request_id'],
+                    'invoice_id' => $invoice->id
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to store pending payment: ' . $e->getMessage());
+            }
+            
+            // Also store in session for immediate use
+            session([
+                'mpesa_invoice_id' => $invoice->id,
+                'mpesa_checkout_id' => $result['checkout_request_id'],
+                'mpesa_phone' => $phone,
+                'mpesa_amount' => $request->amount,
+                'mpesa_tenant_id' => $tenant->id,
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => '✅ STK Push sent to ' . $phone . '! Please check your phone.',
+                'checkout_request_id' => $result['checkout_request_id'],
+                'is_mpesa' => true,
+                'phone' => $phone
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => '❌ STK Push failed: ' . ($result['message'] ?? 'Please try again.')
+        ], 400);
+    }
+
+    /**
+     * Process regular payment (Cash, Bank Transfer)
+     */
+    protected function processRegularPayment($request, $tenant, $invoice)
+    {
+        // Validate required fields for regular payment
+        if (!$request->payment_datetime || !$request->payment_month) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment date and month are required for this payment method.'
+            ], 400);
+        }
+        
+        // Check if invoice belongs to this tenant
         if ($invoice->tenancy->tenant_id !== $tenant->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invoice does not belong to this tenant'
             ], 400);
-        }
-        
-        // Allow overpayments - remove the blocking check
-        // Just log it for audit
-        if ($request->amount > $invoice->remaining_amount) {
-            \Log::info('Overpayment detected', [
-                'invoice_id' => $invoice->id,
-                'tenant_id' => $tenant->id,
-                'remaining' => $invoice->remaining_amount,
-                'paid' => $request->amount,
-                'excess' => $request->amount - $invoice->remaining_amount
-            ]);
         }
         
         // Process the direct payment using wallet service
@@ -233,6 +336,7 @@ public function store(Request $request)
             meta: [
                 'notes' => $request->notes,
                 'payment_datetime' => $request->payment_datetime,
+                'payment_month' => $request->payment_month,
                 'source' => 'admin_panel',
                 'created_by' => auth()->id(),
                 'created_by_name' => auth()->user()->name,
@@ -257,15 +361,116 @@ public function store(Request $request)
             'success' => false,
             'message' => $result['error'] ?? 'Payment processing failed'
         ], 400);
-        
-    } catch (\Exception $e) {
-        Log::error('Error creating payment: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to record payment: ' . $e->getMessage()
-        ], 500);
     }
-}
+
+    /**
+     * Format phone number for M-Pesa
+     */
+    private function formatPhoneNumber($phone)
+    {
+        // Remove spaces and special characters
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        
+        // If starts with 0, replace with 254
+        if (str_starts_with($phone, '0')) {
+            $phone = '254' . substr($phone, 1);
+        }
+        
+        // If starts with 7, add 254
+        if (str_starts_with($phone, '7')) {
+            $phone = '254' . $phone;
+        }
+        
+        // If starts with +, remove it
+        if (str_starts_with($phone, '+')) {
+            $phone = substr($phone, 1);
+        }
+        
+        return $phone;
+    }
+
+    /**
+     * Get invoices for a specific tenant (AJAX endpoint)
+     */
+    public function getTenantInvoices($tenantId)
+    {
+        try {
+            $tenant = Tenant::findOrFail($tenantId);
+            
+            $invoices = Invoice::whereHas('tenancy', function($q) use ($tenant) {
+                    $q->where('tenant_id', $tenant->id);
+                })
+                ->whereIn('status', ['unpaid', 'partial'])
+                ->with('items')
+                ->orderBy('billing_month', 'asc')
+                ->get()
+                ->map(function($invoice) {
+                    return [
+                        'id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number ?? 'INV-' . $invoice->id,
+                        'billing_month' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
+                        'total_amount' => (float) $invoice->total_amount,
+                        'remaining_amount' => (float) $invoice->remaining_amount,
+                        'status' => $invoice->status,
+                        'items' => $invoice->items->map(function($item) {
+                            return [
+                                'id' => $item->id,
+                                'description' => $item->description,
+                                'amount' => (float) $item->amount,
+                                'paid_amount' => (float) ($item->paid_amount ?? 0),
+                            ];
+                        }),
+                    ];
+                });
+            
+            return response()->json([
+                'success' => true,
+                'invoices' => $invoices
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching tenant invoices: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch invoices'
+            ], 500);
+        }
+    }
+
+    /**
+     * Check M-Pesa STK Push payment status (AJAX endpoint)
+     */
+    public function checkMpesaStatus(Request $request)
+    {
+        $request->validate([
+            'checkout_request_id' => 'required|string',
+        ]);
+
+        try {
+            $mpesa = new \App\Services\MpesaService();
+            $result = $mpesa->queryStatus($request->checkout_request_id);
+            
+            if ($result['success']) {
+                return response()->json([
+                    'success' => true,
+                    'status' => $result['status'] ?? 'pending',
+                    'message' => $result['message'],
+                    'data' => $result['data']
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Status check failed'
+            ], 400);
+            
+        } catch (\Exception $e) {
+            Log::error('M-Pesa status check error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check payment status'
+            ], 500);
+        }
+    }
 
     /**
      * Update an existing payment (for status/reconciliation updates)
@@ -348,53 +553,6 @@ public function store(Request $request)
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete payment'
-            ], 500);
-        }
-    }
-    
-    /**
-     * Get invoices for a specific tenant (AJAX endpoint)
-     */
-    public function getTenantInvoices($tenantId)
-    {
-        try {
-            $tenant = Tenant::findOrFail($tenantId);
-            
-            $invoices = Invoice::whereHas('tenancy', function($q) use ($tenant) {
-                    $q->where('tenant_id', $tenant->id);
-                })
-                ->whereIn('status', ['unpaid', 'partial'])
-                ->with('items')
-                ->orderBy('billing_month', 'asc')
-                ->get()
-                ->map(function($invoice) {
-                    return [
-                        'id' => $invoice->id,
-                        'invoice_number' => $invoice->invoice_number ?? 'INV-' . $invoice->id,
-                        'billing_month' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
-                        'total_amount' => (float) $invoice->total_amount,
-                        'remaining_amount' => (float) $invoice->remaining_amount,
-                        'status' => $invoice->status,
-                        'items' => $invoice->items->map(function($item) {
-                            return [
-                                'id' => $item->id,
-                                'description' => $item->description,
-                                'amount' => (float) $item->amount,
-                                'paid_amount' => (float) ($item->paid_amount ?? 0),
-                            ];
-                        }),
-                    ];
-                });
-            
-            return response()->json([
-                'success' => true,
-                'invoices' => $invoices
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Error fetching tenant invoices: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch invoices'
             ], 500);
         }
     }
