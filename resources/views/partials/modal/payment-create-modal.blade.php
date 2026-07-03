@@ -55,6 +55,24 @@
         </div>
       </template>
 
+      <!-- M-Pesa Status (shown during STK Push) -->
+      <div x-show="mpesaStatus.show" class="mb-6 rounded-lg p-4 text-sm" :class="mpesaStatus.class">
+        <div class="flex items-start">
+          <div class="flex-shrink-0" x-html="mpesaStatus.icon"></div>
+          <div class="ml-3">
+            <p class="font-medium" x-text="mpesaStatus.title"></p>
+            <p class="text-sm" x-text="mpesaStatus.message"></p>
+            <div x-show="mpesaStatus.progress" class="mt-2">
+              <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="h-2 rounded-full transition-all duration-500" 
+                     :style="'width: ' + mpesaStatus.progress + '%'"
+                     :class="mpesaStatus.progressClass"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Tenancy Details Section -->
       <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
         <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">Tenancy Details</h5>
@@ -138,17 +156,47 @@
           </label>
           <select
             x-model="form.payment_method"
+            @change="handlePaymentMethodChange()"
             required
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
           >
-            <option value="mpesa">M-Pesa</option>
-            <option value="bank">Bank Transfer</option>
-            <option value="cash">Cash</option>
+            <option value="mpesa">💳 M-Pesa Paybill (STK Push)</option>
+            <option value="cash">💰 Cash</option>
+            <option value="bank">🏦 Bank Transfer</option>
           </select>
         </div>
 
-        <!-- Transaction ID -->
-        <div class="col-span-1">
+        <!-- M-Pesa Phone Number (shown only for mpesa) -->
+        <div class="col-span-1" x-show="form.payment_method === 'mpesa'">
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+            📱 M-Pesa Phone Number *
+          </label>
+          <input
+            type="text"
+            x-model="form.mpesa_phone"
+            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+            placeholder="2547XXXXXXXX"
+          />
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Enter the Safaricom phone number registered with M-Pesa
+          </p>
+        </div>
+
+        <!-- M-Pesa Instructions -->
+        <div class="col-span-2" x-show="form.payment_method === 'mpesa'">
+          <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+            <strong>📌 How M-Pesa Paybill works:</strong>
+            <ul class="mt-1 list-disc pl-5">
+              <li>You will receive an STK Push pop-up on your phone</li>
+              <li>Enter your M-Pesa PIN to confirm</li>
+              <li>Payment will be confirmed automatically</li>
+              <li>You will receive a confirmation SMS</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Transaction ID (hidden for M-Pesa) -->
+        <div class="col-span-1" x-show="form.payment_method !== 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Transaction ID
           </label>
@@ -160,34 +208,34 @@
           />
         </div>
 
-        <!-- Payment Date -->
-        <div class="col-span-1">
+        <!-- Payment Date (hidden for M-Pesa) -->
+        <div class="col-span-1" x-show="form.payment_method !== 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Payment Date *
           </label>
           <input
             type="datetime-local"
             x-model="form.payment_datetime"
-            required
+            :required="form.payment_method !== 'mpesa'"
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
           />
         </div>
 
-        <!-- Payment Month -->
-        <div class="col-span-1">
+        <!-- Payment Month (hidden for M-Pesa) -->
+        <div class="col-span-1" x-show="form.payment_method !== 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Payment Month *
           </label>
           <input
             type="month"
             x-model="form.payment_month"
-            required
+            :required="form.payment_method !== 'mpesa'"
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
           />
         </div>
 
-        <!-- Paid To -->
-        <div class="col-span-1">
+        <!-- Paid To (hidden for M-Pesa) -->
+        <div class="col-span-1" x-show="form.payment_method !== 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Paid To
           </label>
@@ -199,8 +247,8 @@
           />
         </div>
 
-        <!-- Payer Name -->
-        <div class="col-span-1">
+        <!-- Payer Name (hidden for M-Pesa) -->
+        <div class="col-span-1" x-show="form.payment_method !== 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Payer Name
           </label>
@@ -212,8 +260,8 @@
           />
         </div>
 
-        <!-- Transaction Message -->
-        <div class="col-span-2">
+        <!-- Transaction Message (hidden for M-Pesa) -->
+        <div class="col-span-2" x-show="form.payment_method !== 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Transaction Message
           </label>
@@ -237,11 +285,12 @@
         </button>
         <button
           type="submit"
-          :disabled="loading || !form.invoice_id || !form.amount || !form.payment_method || !form.payment_datetime || !form.payment_month"
-          class="flex justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="loading || !form.invoice_id || !form.amount || !form.payment_method || (form.payment_method === 'mpesa' && !form.mpesa_phone)"
+          class="flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          :class="form.payment_method === 'mpesa' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-500 hover:bg-brand-600'"
         >
-          <span x-show="!loading">Record Payment</span>
-          <span x-show="loading">Recording...</span>
+          <span x-show="!loading" x-text="form.payment_method === 'mpesa' ? '💳 Pay with M-Pesa' : 'Record Payment'"></span>
+          <span x-show="loading">Processing...</span>
         </button>
       </div>
     </form>
@@ -266,6 +315,7 @@ document.addEventListener('alpine:init', () => {
       invoice_id: '',
       amount: '',
       payment_method: 'mpesa',
+      mpesa_phone: '',
       transaction_id: '',
       transaction_message: '',
       paid_to: '',
@@ -275,6 +325,21 @@ document.addEventListener('alpine:init', () => {
     },
     formErrors: [],
     loading: false,
+    
+    // M-Pesa status tracking
+    mpesaStatus: {
+      show: false,
+      title: '',
+      message: '',
+      icon: '',
+      class: '',
+      progress: 0,
+      progressClass: '',
+      checkoutId: null,
+      interval: null,
+      attempts: 0,
+      maxAttempts: 30
+    },
     
     init() {
       window.paymentCreateModal = this;
@@ -293,6 +358,9 @@ document.addEventListener('alpine:init', () => {
         }
         if (data.total_amount) {
           this.form.amount = data.total_amount;
+        }
+        if (data.phone) {
+          this.form.mpesa_phone = data.phone;
         }
         
         // Set tenancy details from passed data
@@ -315,6 +383,7 @@ document.addEventListener('alpine:init', () => {
       this.tenancyId = null;
       this.formErrors = [];
       this.loading = false;
+      this.resetMpesaStatus();
       document.body.style.overflow = '';
     },
     
@@ -323,6 +392,7 @@ document.addEventListener('alpine:init', () => {
         invoice_id: '',
         amount: '',
         payment_method: 'mpesa',
+        mpesa_phone: '',
         transaction_id: '',
         transaction_message: '',
         paid_to: '',
@@ -340,10 +410,31 @@ document.addEventListener('alpine:init', () => {
         outstanding_balance: 0,
         billing_month: ''
       };
+      this.resetMpesaStatus();
+    },
+    
+    resetMpesaStatus() {
+      if (this.mpesaStatus.interval) {
+        clearInterval(this.mpesaStatus.interval);
+        this.mpesaStatus.interval = null;
+      }
+      this.mpesaStatus.show = false;
+      this.mpesaStatus.title = '';
+      this.mpesaStatus.message = '';
+      this.mpesaStatus.icon = '';
+      this.mpesaStatus.class = '';
+      this.mpesaStatus.progress = 0;
+      this.mpesaStatus.progressClass = '';
+      this.mpesaStatus.checkoutId = null;
+      this.mpesaStatus.attempts = 0;
+    },
+    
+    handlePaymentMethodChange() {
+      // Reset M-Pesa status when switching methods
+      this.resetMpesaStatus();
     },
     
     updateTenancyDetails() {
-      // Fetch invoice details when invoice is selected
       if (this.form.invoice_id) {
         fetch(`/invoices/${this.form.invoice_id}/details`, {
           headers: {
@@ -362,9 +453,11 @@ document.addEventListener('alpine:init', () => {
               outstanding_balance: data.outstanding_balance || data.total_amount || 0,
               billing_month: data.billing_month_formatted || ''
             };
-            // Update payer name if not manually changed
             if (!this.form.payer_name || this.form.payer_name === '') {
               this.form.payer_name = this.tenancyDetails.tenant_name;
+            }
+            if (!this.form.mpesa_phone && data.phone) {
+              this.form.mpesa_phone = data.phone;
             }
           }
         })
@@ -413,87 +506,175 @@ document.addEventListener('alpine:init', () => {
         this.formErrors.push('Please enter a valid amount');
       }
       
-      if (parseFloat(this.form.amount) > this.tenancyDetails.outstanding_balance + parseFloat(this.form.amount)) {
-        // Check if payment exceeds total
-        if (parseFloat(this.form.amount) > this.tenancyDetails.total_amount) {
-          this.formErrors.push(`Payment amount (${this.formatCurrency(this.form.amount)}) exceeds invoice total (${this.formatCurrency(this.tenancyDetails.total_amount)})`);
-        }
+      if (parseFloat(this.form.amount) > this.tenancyDetails.total_amount) {
+        this.formErrors.push(`Payment amount (${this.formatCurrency(this.form.amount)}) exceeds invoice total (${this.formatCurrency(this.tenancyDetails.total_amount)})`);
       }
       
       if (!this.form.payment_method) {
         this.formErrors.push('Please select payment method');
       }
       
-      if (!this.form.payment_datetime) {
-        this.formErrors.push('Please select payment date');
-      }
-      
-      if (!this.form.payment_month) {
-        this.formErrors.push('Please select payment month');
+      if (this.form.payment_method === 'mpesa') {
+        const phone = this.form.mpesa_phone.replace(/[^0-9]/g, '');
+        if (phone.length < 10 || !phone.startsWith('254')) {
+          this.formErrors.push('Please enter a valid M-Pesa phone number (format: 2547XXXXXXXX)');
+        }
+      } else {
+        if (!this.form.payment_datetime) {
+          this.formErrors.push('Please select payment date');
+        }
+        if (!this.form.payment_month) {
+          this.formErrors.push('Please select payment month');
+        }
       }
       
       return this.formErrors.length === 0;
     },
     
-async submitForm() {
-  if (!this.validateForm()) {
-    // Scroll to top to show errors
-    const modalContent = document.querySelector('.fixed.inset-y-0.right-0');
-    if (modalContent) {
-      modalContent.scrollTop = 0;
-    }
-    return;
-  }
-  
-  this.loading = true;
-  
-  try {
-    // Change the URL to use the payments endpoint directly
-    const response = await fetch(`/payments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-        'X-Requested-With': 'XMLHttpRequest',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        tenancy_id: this.tenancyId,
-        invoice_id: this.form.invoice_id,
-        amount: this.form.amount,
-        payment_method: this.form.payment_method,
-        transaction_id: this.form.transaction_id,
-        transaction_message: this.form.transaction_message,
-        paid_to: this.form.paid_to,
-        payer_name: this.form.payer_name,
-        payment_datetime: this.form.payment_datetime,
-        payment_month: this.form.payment_month
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (response.ok && data.success) {
-      this.closeModal();
-      alert('Payment recorded successfully!');
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } else {
-      this.formErrors = [data.message || 'Failed to record payment'];
-      // Scroll to top to show errors
-      const modalContent = document.querySelector('.fixed.inset-y-0.right-0');
-      if (modalContent) {
-        modalContent.scrollTop = 0;
+    async submitForm() {
+      if (!this.validateForm()) {
+        const modalContent = document.querySelector('.fixed.inset-y-0.right-0');
+        if (modalContent) {
+          modalContent.scrollTop = 0;
+        }
+        return;
       }
+      
+      this.loading = true;
+      
+      try {
+        const response = await fetch(`/payments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            tenancy_id: this.tenancyId,
+            invoice_id: this.form.invoice_id,
+            amount: this.form.amount,
+            payment_method: this.form.payment_method === 'mpesa' ? 'mpesa_paybill' : this.form.payment_method,
+            mpesa_phone: this.form.mpesa_phone,
+            transaction_id: this.form.transaction_id,
+            transaction_message: this.form.transaction_message,
+            paid_to: this.form.paid_to,
+            payer_name: this.form.payer_name,
+            payment_datetime: this.form.payment_datetime,
+            payment_month: this.form.payment_month
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          if (data.is_mpesa) {
+            // M-Pesa STK Push sent - start polling
+            this.showMpesaStatus(data.checkout_request_id);
+          } else {
+            // Regular payment success
+            this.closeModal();
+            alert(data.message || 'Payment recorded successfully!');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          }
+        } else {
+          this.formErrors = [data.message || 'Failed to record payment'];
+          const modalContent = document.querySelector('.fixed.inset-y-0.right-0');
+          if (modalContent) {
+            modalContent.scrollTop = 0;
+          }
+          this.loading = false;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        this.formErrors = ['An error occurred. Please try again.'];
+        this.loading = false;
+      }
+    },
+    
+    showMpesaStatus(checkoutId) {
+      this.mpesaStatus.show = true;
+      this.mpesaStatus.checkoutId = checkoutId;
+      this.mpesaStatus.title = '📱 STK Push Sent!';
+      this.mpesaStatus.message = `Please check your phone (${this.form.mpesa_phone}) and enter your M-Pesa PIN.`;
+      this.mpesaStatus.icon = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+      this.mpesaStatus.class = 'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+      this.mpesaStatus.progress = 0;
+      this.mpesaStatus.progressClass = 'bg-blue-600';
+      this.mpesaStatus.attempts = 0;
+      
+      this.loading = false;
+      
+      // Start polling
+      this.startPolling();
+    },
+    
+    startPolling() {
+      if (this.mpesaStatus.interval) {
+        clearInterval(this.mpesaStatus.interval);
+      }
+      
+      this.mpesaStatus.interval = setInterval(() => {
+        this.mpesaStatus.attempts++;
+        this.mpesaStatus.progress = Math.min((this.mpesaStatus.attempts / this.mpesaStatus.maxAttempts) * 100, 95);
+        
+        fetch(`/payments/mpesa/status?checkout_request_id=${this.mpesaStatus.checkoutId}`, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const status = data.status || 'pending';
+            
+            if (status === '0' || status === 'completed' || status === 'success') {
+              // Payment successful
+              clearInterval(this.mpesaStatus.interval);
+              this.mpesaStatus.interval = null;
+              this.mpesaStatus.progress = 100;
+              this.mpesaStatus.progressClass = 'bg-green-600';
+              this.mpesaStatus.title = '✅ Payment Successful!';
+              this.mpesaStatus.message = `Your payment has been confirmed. Receipt: ${data.data?.ReceiptNumber || 'N/A'}`;
+              this.mpesaStatus.icon = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+              this.mpesaStatus.class = 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+              
+              setTimeout(() => {
+                this.closeModal();
+                window.location.reload();
+              }, 3000);
+              
+            } else if (status === '1' || status === 'failed' || status === 'error') {
+              // Payment failed
+              clearInterval(this.mpesaStatus.interval);
+              this.mpesaStatus.interval = null;
+              this.mpesaStatus.title = '❌ Payment Failed';
+              this.mpesaStatus.message = data.message || 'Transaction failed. Please try again.';
+              this.mpesaStatus.icon = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+              this.mpesaStatus.class = 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+              this.loading = false;
+            }
+          }
+        })
+        .catch(() => {
+          // Silent fail - continue polling
+        });
+        
+        // Timeout after max attempts
+        if (this.mpesaStatus.attempts >= this.mpesaStatus.maxAttempts) {
+          clearInterval(this.mpesaStatus.interval);
+          this.mpesaStatus.interval = null;
+          this.mpesaStatus.title = '⏳ Payment Still Processing';
+          this.mpesaStatus.message = 'Please check your M-Pesa app for status.';
+          this.mpesaStatus.icon = `<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+          this.mpesaStatus.class = 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+        }
+      }, 5000);
     }
-  } catch (error) {
-    console.error('Error:', error);
-    this.formErrors = ['An error occurred. Please try again.'];
-  } finally {
-    this.loading = false;
-  }
-}
   }));
 });
 </script>

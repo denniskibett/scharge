@@ -59,6 +59,24 @@
         </div>
       </template>
 
+      <!-- M-Pesa Status (shown during STK Push) -->
+      <div x-show="mpesaStatus.show" class="mb-6 rounded-lg p-4 text-sm" :class="mpesaStatus.class">
+        <div class="flex items-start">
+          <div class="flex-shrink-0" x-html="mpesaStatus.icon"></div>
+          <div class="ml-3">
+            <p class="font-medium" x-text="mpesaStatus.title"></p>
+            <p class="text-sm" x-text="mpesaStatus.message"></p>
+            <div x-show="mpesaStatus.progress" class="mt-2">
+              <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="h-2 rounded-full transition-all duration-500" 
+                     :style="'width: ' + mpesaStatus.progress + '%'"
+                     :class="mpesaStatus.progressClass"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Invoice Summary (when opened from invoice) -->
       <div x-show="preSelectedInvoice" class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
         <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400">📄 Invoice Details</h5>
@@ -131,7 +149,7 @@
         </select>
       </div>
 
-      <!-- Hidden inputs for pre-selected invoice values - WRAPPED IN TEMPLATE TAGS -->
+      <!-- Hidden inputs for pre-selected invoice values -->
       <template x-if="preSelectedInvoice">
         <input type="hidden" x-model="form.tenant_id">
       </template>
@@ -176,14 +194,44 @@
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Payment Method *</label>
         <select
           x-model="form.payment_method"
+          @change="handlePaymentMethodChange()"
           required
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
           <option value="cash">💰 Cash</option>
           <option value="bank_transfer">🏦 Bank Transfer</option>
-          <option value="mpesa_paybill">📱 M-Pesa Paybill</option>
+          <option value="mpesa_paybill">📱 M-Pesa Paybill (STK Push)</option>
           <option value="manual_topup">📝 Manual Top-up</option>
         </select>
+      </div>
+
+      <!-- M-Pesa Phone Field (shown only when mpesa_paybill is selected) -->
+      <div x-show="form.payment_method === 'mpesa_paybill'" class="mb-5">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+          📱 M-Pesa Phone Number *
+        </label>
+        <input
+          type="text"
+          x-model="form.mpesa_phone"
+          class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+          placeholder="2547XXXXXXXX"
+        />
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Enter the Safaricom phone number registered with M-Pesa
+        </p>
+      </div>
+
+      <!-- M-Pesa Instructions -->
+      <div x-show="form.payment_method === 'mpesa_paybill'" class="mb-5">
+        <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
+          <strong>📌 How M-Pesa Paybill works:</strong>
+          <ul class="mt-1 list-disc pl-5">
+            <li>You will receive an STK Push pop-up on your phone</li>
+            <li>Enter your M-Pesa PIN to confirm</li>
+            <li>Payment will be confirmed automatically</li>
+            <li>You will receive a confirmation SMS</li>
+          </ul>
+        </div>
       </div>
 
       <!-- External Reference -->
@@ -273,10 +321,11 @@
         </button>
         <button
           type="submit"
-          :disabled="loading || !isFormValid"
-          class="flex justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="loading || !isFormValid || (form.payment_method === 'mpesa_paybill' && !form.mpesa_phone)"
+          class="flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          :class="form.payment_method === 'mpesa_paybill' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-500 hover:bg-brand-600'"
         >
-          <span x-show="!loading" x-text="isEditMode ? 'Update Payment' : 'Process Payment'"></span>
+          <span x-show="!loading" x-text="form.payment_method === 'mpesa_paybill' ? '💳 Pay with M-Pesa' : 'Process Payment'"></span>
           <span x-show="loading">Processing...</span>
         </button>
       </div>
@@ -299,6 +348,7 @@ document.addEventListener('alpine:init', () => {
       invoice_id: '',
       amount: '',
       payment_method: 'cash',
+      mpesa_phone: '',
       external_reference: '',
       payment_datetime: new Date().toISOString().slice(0, 16),
       notes: ''
@@ -307,6 +357,21 @@ document.addEventListener('alpine:init', () => {
     formErrors: [],
     successMessage: '',
     loading: false,
+    
+    // M-Pesa status tracking
+    mpesaStatus: {
+      show: false,
+      title: '',
+      message: '',
+      icon: '',
+      class: '',
+      progress: 0,
+      progressClass: '',
+      checkoutId: null,
+      interval: null,
+      attempts: 0,
+      maxAttempts: 30
+    },
     
     get maxAmount() {
       return this.selectedInvoiceData?.remaining_amount || 0;
@@ -317,7 +382,6 @@ document.addEventListener('alpine:init', () => {
     },
     
     get isFormValid() {
-      // Check if we have tenant and invoice (either from pre-selected or form)
       if (!this.preSelectedInvoice) {
         if (!this.form.tenant_id) return false;
         if (!this.form.invoice_id) return false;
@@ -325,38 +389,29 @@ document.addEventListener('alpine:init', () => {
       if (!this.form.amount || parseFloat(this.form.amount) <= 0) return false;
       if (!this.form.payment_datetime) return false;
       if (!this.form.payment_method) return false;
+      if (this.form.payment_method === 'mpesa_paybill' && !this.form.mpesa_phone) return false;
       return true;
     },
     
     init() {
-        // Register the global reference
-        window.paymentCreateModal = this;
-        
-        // Log that the modal is ready
-        console.log('Payment modal initialized with methods:', {
-            openPaymentModalForInvoice: typeof this.openPaymentModalForInvoice,
-            openCreateModal: typeof this.openCreateModal,
-            openEditModal: typeof this.openEditModal
-        });
-        
-        // Also dispatch an event to notify that modal is ready
-        window.dispatchEvent(new CustomEvent('paymentModalReady'));
-        
-        // Listen for global events from the table
-        window.addEventListener('open-payment-modal', (event) => {
-            console.log('Received open-payment-modal event:', event.detail);
-            if (event.detail && event.detail.invoice) {
-                this.openPaymentModalForInvoice(event.detail.invoice);
-            }
-        });
-        
-        // Also listen for Alpine events
-        document.addEventListener('open-payment-modal', (event) => {
-            console.log('Received document open-payment-modal event:', event.detail);
-            if (event.detail && event.detail.invoice) {
-                this.openPaymentModalForInvoice(event.detail.invoice);
-            }
-        });
+      window.paymentCreateModal = this;
+      console.log('Payment modal initialized');
+      
+      window.dispatchEvent(new CustomEvent('paymentModalReady'));
+      
+      window.addEventListener('open-payment-modal', (event) => {
+        console.log('Received open-payment-modal event:', event.detail);
+        if (event.detail && event.detail.invoice) {
+          this.openPaymentModalForInvoice(event.detail.invoice);
+        }
+      });
+      
+      document.addEventListener('open-payment-modal', (event) => {
+        console.log('Received document open-payment-modal event:', event.detail);
+        if (event.detail && event.detail.invoice) {
+          this.openPaymentModalForInvoice(event.detail.invoice);
+        }
+      });
     },
     
     openCreateModal() {
@@ -371,91 +426,88 @@ document.addEventListener('alpine:init', () => {
     },
     
     openPaymentModalForInvoice(invoice) {
-        console.log('=== openPaymentModalForInvoice called ===');
-        console.log('Received invoice data:', invoice);
-        
-        if (!invoice || !invoice.id) {
-            console.error('Invalid invoice data:', invoice);
-            alert('Could not process payment: Invalid invoice data');
-            return;
-        }
-        
-        this.isEditMode = false;
-        this.currentPaymentId = null;
-        this.preSelectedInvoice = invoice;
-        this.selectedInvoiceData = invoice;
-        this.formMethod = 'POST';
-        
-        // Populate form with invoice data
-        this.form.tenant_id = invoice.tenant_id;
-        this.form.invoice_id = invoice.id;
-        this.form.amount = invoice.remaining_amount || invoice.total_amount || 0;
-        this.form.payment_datetime = new Date().toISOString().slice(0, 16);
-        this.form.external_reference = '';
-        this.form.notes = '';
-        this.form.payment_method = 'cash';
-        
-        console.log('Form populated:', this.form);
-        console.log('Tenant ID:', this.form.tenant_id);
-        console.log('Invoice ID:', this.form.invoice_id);
-        console.log('Amount:', this.form.amount);
-        
-        // Fetch additional invoice details if needed
-        if (invoice.id) {
-            this.fetchInvoiceDetails(invoice.id);
-        }
-        
-        this.isOpen = true;
-        document.body.style.overflow = 'hidden';
+      console.log('=== openPaymentModalForInvoice called ===');
+      console.log('Received invoice data:', invoice);
+      
+      if (!invoice || !invoice.id) {
+        console.error('Invalid invoice data:', invoice);
+        alert('Could not process payment: Invalid invoice data');
+        return;
+      }
+      
+      this.isEditMode = false;
+      this.currentPaymentId = null;
+      this.preSelectedInvoice = invoice;
+      this.selectedInvoiceData = invoice;
+      this.formMethod = 'POST';
+      
+      this.form.tenant_id = invoice.tenant_id;
+      this.form.invoice_id = invoice.id;
+      this.form.amount = invoice.remaining_amount || invoice.total_amount || 0;
+      this.form.payment_datetime = new Date().toISOString().slice(0, 16);
+      this.form.external_reference = '';
+      this.form.notes = '';
+      this.form.payment_method = 'cash';
+      this.form.mpesa_phone = invoice.phone || '';
+      
+      console.log('Form populated:', this.form);
+      
+      if (invoice.id) {
+        this.fetchInvoiceDetails(invoice.id);
+      }
+      
+      this.isOpen = true;
+      document.body.style.overflow = 'hidden';
     },
 
     async fetchInvoiceDetails(invoiceId) {
-        console.log('Fetching invoice details for ID:', invoiceId);
+      console.log('Fetching invoice details for ID:', invoiceId);
+      
+      if (!invoiceId) {
+        console.error('No invoice ID provided for fetching details');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/invoices/${invoiceId}/details`, {
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
         
-        if (!invoiceId) {
-            console.error('No invoice ID provided for fetching details');
-            return;
+        console.log('Fetch response status:', response.status);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        try {
-            const response = await fetch(`/invoices/${invoiceId}/details`, {
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            });
-            
-            console.log('Fetch response status:', response.status);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            console.log('Invoice details response:', data);
-            
-            if (data.success) {
-                this.selectedInvoiceData = data.invoice;
-                
-                // Update form with invoice data
-                this.form.tenant_id = data.invoice.tenant_id;
-                this.form.invoice_id = data.invoice.id;
-                this.form.amount = data.invoice.remaining_amount;
-                
-                // Also update preSelectedInvoice to show correct data
-                if (this.preSelectedInvoice) {
-                    this.preSelectedInvoice = {
-                        ...this.preSelectedInvoice,
-                        ...data.invoice
-                    };
-                }
-            } else {
-                console.warn('Failed to fetch invoice details:', data.error);
-            }
-        } catch (error) {
-            console.error('Error fetching invoice details:', error);
-            this.formErrors = ['Could not load invoice details. Please try again.'];
+        const data = await response.json();
+        console.log('Invoice details response:', data);
+        
+        if (data.success) {
+          this.selectedInvoiceData = data.invoice;
+          this.form.tenant_id = data.invoice.tenant_id;
+          this.form.invoice_id = data.invoice.id;
+          this.form.amount = data.invoice.remaining_amount;
+          
+          if (this.preSelectedInvoice) {
+            this.preSelectedInvoice = {
+              ...this.preSelectedInvoice,
+              ...data.invoice
+            };
+          }
+          
+          if (data.invoice.phone) {
+            this.form.mpesa_phone = data.invoice.phone;
+          }
+        } else {
+          console.warn('Failed to fetch invoice details:', data.error);
         }
+      } catch (error) {
+        console.error('Error fetching invoice details:', error);
+        this.formErrors = ['Could not load invoice details. Please try again.'];
+      }
     },
     
     openEditModal(payment) {
@@ -467,6 +519,7 @@ document.addEventListener('alpine:init', () => {
         invoice_id: payment.invoice_id || '',
         amount: payment.amount || '',
         payment_method: payment.payment_method || 'cash',
+        mpesa_phone: '',
         external_reference: payment.external_reference || '',
         payment_datetime: payment.payment_datetime || payment.created_at ? new Date(payment.created_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
         notes: payment.meta?.notes || ''
@@ -484,6 +537,7 @@ document.addEventListener('alpine:init', () => {
       this.formErrors = [];
       this.successMessage = '';
       this.loading = false;
+      this.resetMpesaStatus();
       document.body.style.overflow = '';
     },
     
@@ -493,6 +547,7 @@ document.addEventListener('alpine:init', () => {
         invoice_id: '',
         amount: '',
         payment_method: 'cash',
+        mpesa_phone: '',
         external_reference: '',
         payment_datetime: new Date().toISOString().slice(0, 16),
         notes: ''
@@ -501,6 +556,27 @@ document.addEventListener('alpine:init', () => {
       this.selectedInvoiceData = null;
       this.formErrors = [];
       this.successMessage = '';
+      this.resetMpesaStatus();
+    },
+    
+    resetMpesaStatus() {
+      if (this.mpesaStatus.interval) {
+        clearInterval(this.mpesaStatus.interval);
+        this.mpesaStatus.interval = null;
+      }
+      this.mpesaStatus.show = false;
+      this.mpesaStatus.title = '';
+      this.mpesaStatus.message = '';
+      this.mpesaStatus.icon = '';
+      this.mpesaStatus.class = '';
+      this.mpesaStatus.progress = 0;
+      this.mpesaStatus.progressClass = '';
+      this.mpesaStatus.checkoutId = null;
+      this.mpesaStatus.attempts = 0;
+    },
+    
+    handlePaymentMethodChange() {
+      this.resetMpesaStatus();
     },
     
     async loadTenantInvoices() {
@@ -538,7 +614,7 @@ document.addEventListener('alpine:init', () => {
       const labels = {
         'cash': 'Cash',
         'bank_transfer': 'Bank Transfer',
-        'mpesa_paybill': 'M-Pesa Paybill',
+        'mpesa_paybill': 'M-Pesa Paybill (STK Push)',
         'manual_topup': 'Manual Top-up'
       };
       return labels[method] || method;
@@ -550,7 +626,81 @@ document.addEventListener('alpine:init', () => {
       return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
     
-  async submitForm() {
+    showMpesaStatus(checkoutId) {
+      this.mpesaStatus.show = true;
+      this.mpesaStatus.checkoutId = checkoutId;
+      this.mpesaStatus.title = '📱 STK Push Sent!';
+      this.mpesaStatus.message = `Please check your phone (${this.form.mpesa_phone}) and enter your M-Pesa PIN.`;
+      this.mpesaStatus.icon = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+      this.mpesaStatus.class = 'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
+      this.mpesaStatus.progress = 0;
+      this.mpesaStatus.progressClass = 'bg-blue-600';
+      this.mpesaStatus.attempts = 0;
+      
+      this.loading = false;
+      this.startPolling();
+    },
+    
+    startPolling() {
+      if (this.mpesaStatus.interval) {
+        clearInterval(this.mpesaStatus.interval);
+      }
+      
+      this.mpesaStatus.interval = setInterval(() => {
+        this.mpesaStatus.attempts++;
+        this.mpesaStatus.progress = Math.min((this.mpesaStatus.attempts / this.mpesaStatus.maxAttempts) * 100, 95);
+        
+        fetch(`/payments/mpesa/status?checkout_request_id=${this.mpesaStatus.checkoutId}`, {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const status = data.status || 'pending';
+            
+            if (status === '0' || status === 'completed' || status === 'success') {
+              clearInterval(this.mpesaStatus.interval);
+              this.mpesaStatus.interval = null;
+              this.mpesaStatus.progress = 100;
+              this.mpesaStatus.progressClass = 'bg-green-600';
+              this.mpesaStatus.title = '✅ Payment Successful!';
+              this.mpesaStatus.message = `Your payment has been confirmed. Receipt: ${data.data?.ReceiptNumber || 'N/A'}`;
+              this.mpesaStatus.icon = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+              this.mpesaStatus.class = 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400';
+              
+              setTimeout(() => {
+                this.closeModal();
+                window.location.reload();
+              }, 3000);
+              
+            } else if (status === '1' || status === 'failed' || status === 'error') {
+              clearInterval(this.mpesaStatus.interval);
+              this.mpesaStatus.interval = null;
+              this.mpesaStatus.title = '❌ Payment Failed';
+              this.mpesaStatus.message = data.message || 'Transaction failed. Please try again.';
+              this.mpesaStatus.icon = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+              this.mpesaStatus.class = 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400';
+              this.loading = false;
+            }
+          }
+        })
+        .catch(() => {});
+        
+        if (this.mpesaStatus.attempts >= this.mpesaStatus.maxAttempts) {
+          clearInterval(this.mpesaStatus.interval);
+          this.mpesaStatus.interval = null;
+          this.mpesaStatus.title = '⏳ Payment Still Processing';
+          this.mpesaStatus.message = 'Please check your M-Pesa app for status.';
+          this.mpesaStatus.icon = `<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+          this.mpesaStatus.class = 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
+        }
+      }, 5000);
+    },
+    
+    async submitForm() {
       this.formErrors = [];
       this.successMessage = '';
       
@@ -558,137 +708,137 @@ document.addEventListener('alpine:init', () => {
       const invoiceId = this.preSelectedInvoice?.id || this.form.invoice_id;
       
       if (!tenantId) {
-          this.formErrors.push('Please select a tenant');
-          return;
+        this.formErrors.push('Please select a tenant');
+        return;
       }
       
       if (!invoiceId) {
-          this.formErrors.push('Please select an invoice to pay');
-          return;
+        this.formErrors.push('Please select an invoice to pay');
+        return;
       }
       
       if (!this.form.amount || parseFloat(this.form.amount) <= 0) {
-          this.formErrors.push('Please enter a valid amount');
-          return;
+        this.formErrors.push('Please enter a valid amount');
+        return;
       }
       
-      // Allow overpayment - show warning, don't block
+      // Check if M-Pesa and phone is required
+      if (this.form.payment_method === 'mpesa_paybill') {
+        const phone = this.form.mpesa_phone?.replace(/[^0-9]/g, '');
+        if (!phone || phone.length < 10 || !phone.startsWith('254')) {
+          this.formErrors.push('Please enter a valid M-Pesa phone number (format: 2547XXXXXXXX)');
+          return;
+        }
+      }
+      
       if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
-          const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
-          if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
-              return;
-          }
+        const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
+        if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
+          return;
+        }
       }
       
       if (!this.form.payment_datetime) {
-          this.formErrors.push('Please select payment date');
-          return;
+        this.formErrors.push('Please select payment date');
+        return;
       }
       
       if (!this.form.payment_method) {
-          this.formErrors.push('Please select payment method');
-          return;
+        this.formErrors.push('Please select payment method');
+        return;
       }
       
       this.loading = true;
       
       try {
-          let url, method, body;
-          
-          if (this.isEditMode) {
-              url = `/payments/${this.currentPaymentId}`;
-              method = 'PUT';
-              body = JSON.stringify({
-                  status: this.form.status,
-                  is_reconciled: this.form.status === 'completed' ? 1 : 0,
-                  notes: this.form.notes
-              });
-          } else {
-              url = '/payments';
-              method = 'POST';
-              body = JSON.stringify({
-                  tenant_id: tenantId,
-                  invoice_id: invoiceId,
-                  amount: parseFloat(this.form.amount),
-                  payment_method: this.form.payment_method,
-                  external_reference: this.form.external_reference,
-                  payment_datetime: this.form.payment_datetime,
-                  notes: this.form.notes
-              });
-          }
-          
-          console.log('Sending payment request:', { url, method, body });
-          
-          const response = await fetch(url, {
-              method: method,
-              headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                  'Accept': 'application/json'
-              },
-              body: body
+        let url, method, body;
+        
+        if (this.isEditMode) {
+          url = `/payments/${this.currentPaymentId}`;
+          method = 'PUT';
+          body = JSON.stringify({
+            status: this.form.status,
+            is_reconciled: this.form.status === 'completed' ? 1 : 0,
+            notes: this.form.notes
           });
-          
-          const data = await response.json();
-          console.log('Payment response:', data);
-          
-          if (response.ok && data.success) {
-              // Build success message
-              const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
-              const amountToWallet = data.data?.amount_added_to_wallet || 0;
-              
-              let successMsg = '';
-              if (amountToWallet > 0 && amountPaid > 0) {
-                  successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
-              } else if (amountPaid > 0) {
-                  successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
-              } else {
-                  successMsg = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
-              }
-              
-              this.successMessage = successMsg;
-              
-              // Dispatch payment success event for table to update
-              const paymentEvent = new CustomEvent('payment-success', {
-                  detail: {
-                      invoice_id: invoiceId,
-                      tenant_id: tenantId,
-                      amount_paid: amountPaid,
-                      amount_to_wallet: amountToWallet,
-                      payment_id: data.data?.payment_id || data.data?.id,
-                      wallet_balance: data.data?.wallet_balance || 0,
-                      new_status: data.data?.invoice_status || 'paid'
-                  }
-              });
-              
-              // Dispatch to both window and document for broader reach
-              window.dispatchEvent(paymentEvent);
-              document.dispatchEvent(paymentEvent);
-              
-              // Also dispatch wallet update event
-              if (data.data?.wallet_balance !== undefined) {
-                  const walletEvent = new CustomEvent('wallet-updated', {
-                      detail: { new_balance: data.data.wallet_balance }
-                  });
-                  window.dispatchEvent(walletEvent);
-                  document.dispatchEvent(walletEvent);
-              }
-              
-              // Close modal after a brief delay
-              setTimeout(() => {
-                  this.closeModal();
-              }, 1500);
-              
+        } else {
+          url = '/payments';
+          method = 'POST';
+          body = JSON.stringify({
+            tenant_id: tenantId,
+            invoice_id: invoiceId,
+            amount: parseFloat(this.form.amount),
+            payment_method: this.form.payment_method === 'mpesa_paybill' ? 'mpesa_paybill' : this.form.payment_method,
+            mpesa_phone: this.form.mpesa_phone,
+            external_reference: this.form.external_reference,
+            payment_datetime: this.form.payment_datetime,
+            notes: this.form.notes
+          });
+        }
+        
+        console.log('Sending payment request:', { url, method, body });
+        
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+          },
+          body: body
+        });
+        
+        const data = await response.json();
+        console.log('Payment response:', data);
+        
+        if (response.ok && data.success) {
+          if (data.is_mpesa) {
+            this.showMpesaStatus(data.checkout_request_id);
           } else {
-              this.formErrors = [data.message || data.error || 'Failed to process payment'];
+            const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
+            const amountToWallet = data.data?.amount_added_to_wallet || 0;
+            
+            let successMsg = '';
+            if (amountToWallet > 0 && amountPaid > 0) {
+              successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
+            } else if (amountPaid > 0) {
+              successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
+            } else {
+              successMsg = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
+            }
+            
+            this.successMessage = successMsg;
+            
+            const paymentEvent = new CustomEvent('payment-success', {
+              detail: {
+                invoice_id: invoiceId,
+                tenant_id: tenantId,
+                amount_paid: amountPaid,
+                amount_to_wallet: amountToWallet,
+                payment_id: data.data?.payment_id || data.data?.id,
+                wallet_balance: data.data?.wallet_balance || 0,
+                new_status: data.data?.invoice_status || 'paid'
+              }
+            });
+            
+            window.dispatchEvent(paymentEvent);
+            document.dispatchEvent(paymentEvent);
+            
+            setTimeout(() => {
+              this.closeModal();
+              window.location.reload();
+            }, 1500);
           }
-      } catch (error) {
-          console.error('Error:', error);
-          this.formErrors = ['An error occurred. Please try again.'];
-      } finally {
+        } else {
+          this.formErrors = [data.message || data.error || 'Failed to process payment'];
           this.loading = false;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        this.formErrors = ['An error occurred. Please try again.'];
+        this.loading = false;
       }
-  },
+    },
     
     formatNumber(value) {
       if (!value && value !== 0) return '0.00';

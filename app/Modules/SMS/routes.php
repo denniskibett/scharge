@@ -50,7 +50,7 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::post('/settings', [SmsController::class, 'updateSettings'])->name('sms.settings.update');
 
     // =========================================================
-    // 📊 CAMPAIGNS
+    // 📊 CAMPAIGNS - Full CRUD
     // =========================================================
     Route::get('/campaigns', [CampaignController::class, 'index'])->name('sms.campaigns.index');
     Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('sms.campaigns.create');
@@ -60,11 +60,13 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->name('sms.campaigns.update');
     Route::delete('/campaigns/{campaign}', [CampaignController::class, 'destroy'])->name('sms.campaigns.destroy');
     
+    // Campaign Actions
     Route::post('/campaigns/{campaign}/send', [CampaignController::class, 'send'])->name('sms.campaigns.send');
     Route::post('/campaigns/{campaign}/duplicate', [CampaignController::class, 'duplicate'])->name('sms.campaigns.duplicate');
     Route::post('/campaigns/{campaign}/cancel', [CampaignController::class, 'cancel'])->name('sms.campaigns.cancel');
     Route::post('/campaigns/{campaign}/resend-failed', [CampaignController::class, 'resendFailed'])->name('sms.campaigns.resend-failed');
     
+    // Reports & Export
     Route::get('/campaigns/{campaign}/export', [CampaignController::class, 'export'])->name('sms.campaigns.export');
     Route::get('/campaigns/{campaign}/status', [CampaignController::class, 'status'])->name('sms.campaigns.status');
     Route::get('/campaigns/{campaign}/failed', [CampaignController::class, 'failed'])->name('sms.campaigns.failed');
