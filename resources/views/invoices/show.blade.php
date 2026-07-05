@@ -92,6 +92,81 @@
             </div>
           </div>
         </div>
+
+        <!-- Payment Details Section -->
+        <div class="rounded-lg bg-gray-50 p-3 dark:bg-white/[0.03]">
+          <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Payment Details</h4>
+          <div class="space-y-3 text-sm max-h-60 overflow-y-auto">
+            @if($invoice->payments->isNotEmpty())
+              @foreach($invoice->payments as $payment)
+                <div class="border-b border-gray-200 dark:border-gray-700 pb-3 last:border-0 last:pb-0">
+                  <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">Amount:</span>
+                    <span class="font-medium text-green-600 dark:text-green-400">
+                      {{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($payment->amount, 2) }}
+                    </span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">Method:</span>
+                    <span class="font-medium text-gray-800 dark:text-white/90">
+                      {{ $payment->payment_method_label ?? $payment->payment_method }}
+                    </span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">Transaction Ref:</span>
+                    <span class="font-mono text-xs text-gray-700 dark:text-gray-300 truncate max-w-[130px]" 
+                          title="{{ $payment->external_reference ?? $payment->transaction_reference }}">
+                      {{ $payment->external_reference ?: substr($payment->transaction_reference ?? 'N/A', 0, 8) . '...' }}
+                    </span>
+                  </div>
+                  @if($payment->external_reference)
+                    <div class="flex justify-between">
+                      <span class="text-gray-500 dark:text-gray-400">External Ref:</span>
+                      <span class="font-mono text-xs text-blue-600 dark:text-blue-400 truncate max-w-[130px]" 
+                            title="{{ $payment->external_reference }}">
+                        {{ $payment->external_reference }}
+                      </span>
+                    </div>
+                  @endif
+                  <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">Date:</span>
+                    <span class="text-gray-700 dark:text-gray-300 text-xs">
+                      {{ $payment->created_at ? $payment->created_at->format('M d, Y H:i') : '-' }}
+                    </span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                    <span class="inline-flex px-2 py-0.5 text-xs rounded-full {{ $payment->status_badge['class'] ?? 'bg-gray-100 text-gray-800' }}">
+                      {{ $payment->status_badge['label'] ?? ucfirst($payment->status) }}
+                    </span>
+                  </div>
+                  @if($payment->is_reconciled)
+                    <div class="flex justify-between">
+                      <span class="text-gray-500 dark:text-gray-400">Reconciled:</span>
+                      <span class="text-xs text-blue-600 dark:text-blue-400">✓ Yes</span>
+                    </div>
+                  @endif
+                </div>
+              @endforeach
+              <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex justify-between">
+                  <span class="text-gray-500 dark:text-gray-400">Total Paid:</span>
+                  <span class="font-bold text-green-600 dark:text-green-400">
+                    {{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($paidAmount ?? 0, 2) }}
+                  </span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-gray-500 dark:text-gray-400">Balance Due:</span>
+                  <span class="font-bold text-red-600 dark:text-red-400">
+                    {{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format(max(0, $invoice->total_amount - ($paidAmount ?? 0)), 2) }}
+                  </span>
+                </div>
+              </div>
+            @else
+              <p class="text-sm text-gray-500 dark:text-gray-400">No payments recorded yet.</p>
+            @endif
+          </div>
+        </div>
       </div>
     </div>
     <!-- Invoice Sidebar End -->
@@ -124,7 +199,7 @@
         </div>
       </div>
 
-      <!-- Printable Content Start (Original Screen View) -->
+      <!-- Printable Content Start -->
       <div id="printable-content">
         <div class="p-5 xl:p-8">
           <!-- Invoice Header - From/To -->
@@ -160,11 +235,11 @@
             </div>
           </div>
 
-          <!-- Invoice Table Start -->
+          <!-- Invoice Table -->
           <div class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="max-w-full overflow-x-auto">
               <div class="min-w-[800px]">
-                <!-- table header start -->
+                <!-- table header -->
                 <div class="grid grid-cols-12 px-5 py-3 bg-gray-50 dark:bg-gray-800/50">
                   <div class="col-span-1 flex items-center">
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-400">#</p>
@@ -182,9 +257,8 @@
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Water Usage</p>
                   </div>
                 </div>
-                <!-- table header end -->
 
-                <!-- table body start -->
+                <!-- table body -->
                 <template x-for="(item, idx) in filteredItems" :key="item.id">
                   <div class="grid grid-cols-12 border-t border-gray-100 px-5 py-3.5 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                     <div class="col-span-1 flex items-center">
@@ -217,11 +291,9 @@
                 <div x-show="filteredItems.length === 0" class="border-t border-gray-100 px-5 py-8 text-center dark:border-gray-800">
                   <p class="text-sm text-gray-500 dark:text-gray-400">No invoice items found. Click "Add Item" to add items.</p>
                 </div>
-                <!-- table body end -->
               </div>
             </div>
           </div>
-          <!-- Invoice Table End -->
 
           <!-- Summary Section -->
           <div class="my-6 border-b border-gray-100 pb-6 dark:border-gray-800">
@@ -238,9 +310,76 @@
               </div>
             </div>
           </div>
-        </div>
+
+          <!-- Payment History Section -->
+        <!--  <div class="mb-6">-->
+        <!--    <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-3">Payment History</h4>-->
+        <!--    @if($invoice->payments->isNotEmpty())-->
+        <!--      <div class="overflow-x-auto">-->
+        <!--        <table class="w-full text-sm">-->
+        <!--          <thead class="bg-gray-50 dark:bg-gray-800/50">-->
+        <!--            <tr>-->
+        <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>-->
+        <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Method</th>-->
+        <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Transaction Ref</th>-->
+        <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">External Ref</th>-->
+        <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Date</th>-->
+        <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Status</th>-->
+        <!--            </tr>-->
+        <!--          </thead>-->
+        <!--          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">-->
+        <!--            @foreach($invoice->payments as $payment)-->
+        <!--              <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30">-->
+        <!--                <td class="px-4 py-2 font-medium text-green-600 dark:text-green-400">-->
+        <!--                  {{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($payment->amount, 2) }}-->
+        <!--                </td>-->
+        <!--                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">-->
+        <!--                  {{ $payment->payment_method_label ?? $payment->payment_method }}-->
+        <!--                </td>-->
+        <!--                <td class="px-4 py-2">-->
+        <!--                  <span class="font-mono text-xs text-gray-600 dark:text-gray-400" title="{{ $payment->transaction_reference }}">-->
+        <!--                    {{ $payment->transaction_reference ? substr($payment->transaction_reference, 0, 8) . '...' : '—' }}-->
+        <!--                  </span>-->
+        <!--                </td>-->
+        <!--                <td class="px-4 py-2">-->
+        <!--                  @if($payment->external_reference)-->
+        <!--                    <span class="font-mono text-xs text-blue-600 dark:text-blue-400" title="{{ $payment->external_reference }}">-->
+        <!--                      {{ $payment->external_reference }}-->
+        <!--                    </span>-->
+        <!--                  @else-->
+        <!--                    <span class="text-gray-400">—</span>-->
+        <!--                  @endif-->
+        <!--                </td>-->
+        <!--                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">-->
+        <!--                  {{ $payment->created_at ? $payment->created_at->format('M d, Y H:i') : '-' }}-->
+        <!--                </td>-->
+        <!--                <td class="px-4 py-2">-->
+        <!--                  <span class="inline-flex px-2 py-0.5 text-xs rounded-full {{ $payment->status_badge['class'] ?? 'bg-gray-100 text-gray-800' }}">-->
+        <!--                    {{ $payment->status_badge['label'] ?? ucfirst($payment->status) }}-->
+        <!--                  </span>-->
+        <!--                  @if($payment->is_reconciled)-->
+        <!--                    <span class="ml-1 inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">✓</span>-->
+        <!--                  @endif-->
+        <!--                </td>-->
+        <!--              </tr>-->
+        <!--            @endforeach-->
+        <!--          </tbody>-->
+        <!--          <tfoot class="bg-gray-50 dark:bg-gray-800/50">-->
+        <!--            <tr>-->
+        <!--              <td colspan="1" class="px-4 py-2 font-bold text-gray-800 dark:text-white/90">Total Paid</td>-->
+        <!--              <td colspan="5" class="px-4 py-2 font-bold text-green-600 dark:text-green-400">-->
+        <!--                {{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($paidAmount ?? 0, 2) }}-->
+        <!--              </td>-->
+        <!--            </tr>-->
+        <!--          </tfoot>-->
+        <!--        </table>-->
+        <!--      </div>-->
+        <!--    @else-->
+        <!--      <p class="text-sm text-gray-500 dark:text-gray-400">No payments recorded for this invoice.</p>-->
+        <!--    @endif-->
+        <!--  </div>-->
+        <!--</div>-->
       </div>
-      <!-- Printable Content End -->
 
       <!-- Action Buttons -->
       @if($invoice->status !== 'paid')
@@ -466,7 +605,6 @@ document.addEventListener('alpine:init', () => {
         };
         
         if (this.isEditMode) {
-          // FIX: Use the correct route with both invoice and item parameters
           url = `{{ route('invoices.items.update', ['invoice' => $invoice->id, 'item' => '__ITEM_ID__']) }}`.replace('__ITEM_ID__', this.currentItemId);
           method = 'PUT';
           body = {
@@ -566,215 +704,56 @@ document.addEventListener('alpine:init', () => {
           <title>Invoice #{{ $invoice->id }}</title>
           <meta charset="utf-8">
           <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.5;
-              background: white;
-              padding: 40px;
-              margin: 0;
-            }
-            .print-invoice-container {
-              max-width: 900px;
-              margin: 0 auto;
-              background: white;
-            }
-            .print-header {
-              margin-bottom: 32px;
-              padding-bottom: 24px;
-              border-bottom: 2px solid #e5e7eb;
-            }
-            .print-invoice-title {
-              font-size: 28px;
-              font-weight: 800;
-              color: #111827;
-              letter-spacing: -0.02em;
-            }
-            .print-invoice-number {
-              font-size: 14px;
-              color: #6b7280;
-              margin-top: 4px;
-            }
-            .print-status-badge {
-              display: inline-flex;
-              align-items: center;
-              gap: 6px;
-              padding: 4px 12px;
-              border-radius: 9999px;
-              font-size: 12px;
-              font-weight: 600;
-            }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; line-height: 1.5; background: white; padding: 40px; margin: 0; }
+            .print-invoice-container { max-width: 900px; margin: 0 auto; background: white; }
+            .print-header { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb; }
+            .print-invoice-title { font-size: 28px; font-weight: 800; color: #111827; letter-spacing: -0.02em; }
+            .print-invoice-number { font-size: 14px; color: #6b7280; margin-top: 4px; }
+            .print-status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 9999px; font-size: 12px; font-weight: 600; }
             .print-status-paid { background: #dcfce7; color: #166534; }
             .print-status-unpaid { background: #fee2e2; color: #991b1b; }
             .print-status-partial { background: #fef3c7; color: #92400e; }
-            .print-status-dot {
-              width: 8px;
-              height: 8px;
-              border-radius: 50%;
-              display: inline-block;
-            }
+            .print-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
             .print-status-paid .print-status-dot { background: #16a34a; }
             .print-status-unpaid .print-status-dot { background: #dc2626; }
             .print-status-partial .print-status-dot { background: #d97706; }
-            .print-from-to {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 40px;
-            }
-            .print-section {
-              flex: 1;
-            }
-            .print-section-title {
-              font-size: 12px;
-              font-weight: 600;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              color: #6b7280;
-              margin-bottom: 12px;
-            }
-            .print-entity-name {
-              font-size: 18px;
-              font-weight: 700;
-              color: #111827;
-              margin-bottom: 8px;
-            }
-            .print-address {
-              font-size: 13px;
-              color: #4b5563;
-              margin-bottom: 16px;
-              line-height: 1.4;
-            }
-            .print-label {
-              font-size: 11px;
-              font-weight: 600;
-              color: #6b7280;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              margin-bottom: 4px;
-            }
-            .print-value {
-              font-size: 13px;
-              font-weight: 500;
-              color: #111827;
-            }
-            .print-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin: 24px 0;
-            }
-            .print-table th {
-              text-align: left;
-              padding: 12px 8px;
-              background: #f9fafb;
-              font-size: 12px;
-              font-weight: 600;
-              text-transform: uppercase;
-              letter-spacing: 0.05em;
-              color: #6b7280;
-              border-bottom: 1px solid #e5e7eb;
-            }
-            .print-table td {
-              padding: 14px 8px;
-              font-size: 13px;
-              color: #374151;
-              border-bottom: 1px solid #f0f0f0;
-            }
-            .print-table tr:last-child td {
-              border-bottom: none;
-            }
-            .print-amount-cell {
-              text-align: right;
-              font-weight: 500;
-            }
-            .print-item-type {
-              display: inline-block;
-              padding: 2px 10px;
-              border-radius: 9999px;
-              font-size: 11px;
-              font-weight: 600;
-            }
+            .print-from-to { display: flex; justify-content: space-between; margin-bottom: 40px; }
+            .print-section { flex: 1; }
+            .print-section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; margin-bottom: 12px; }
+            .print-entity-name { font-size: 18px; font-weight: 700; color: #111827; margin-bottom: 8px; }
+            .print-address { font-size: 13px; color: #4b5563; margin-bottom: 16px; line-height: 1.4; }
+            .print-label { font-size: 11px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+            .print-value { font-size: 13px; font-weight: 500; color: #111827; }
+            .print-table { width: 100%; border-collapse: collapse; margin: 24px 0; }
+            .print-table th { text-align: left; padding: 12px 8px; background: #f9fafb; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+            .print-table td { padding: 14px 8px; font-size: 13px; color: #374151; border-bottom: 1px solid #f0f0f0; }
+            .print-table tr:last-child td { border-bottom: none; }
+            .print-amount-cell { text-align: right; font-weight: 500; }
+            .print-item-type { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
             .print-type-rent { background: #e9d5ff; color: #6b21a5; }
             .print-type-water { background: #dbeafe; color: #1e40af; }
             .print-type-service { background: #dcfce7; color: #166534; }
             .print-type-garbage { background: #ffedd5; color: #9a3412; }
             .print-type-security { background: #cffafe; color: #155e75; }
             .print-type-other { background: #f3f4f6; color: #374151; }
-            .print-summary {
-              margin-top: 32px;
-              border-top: 2px solid #e5e7eb;
-              padding-top: 24px;
-              display: flex;
-              justify-content: flex-end;
-            }
-            .print-summary-box {
-              width: 280px;
-            }
-            .print-summary-row {
-              display: flex;
-              justify-content: space-between;
-              padding: 8px 0;
-            }
-            .print-summary-label {
-              font-size: 13px;
-              color: #6b7280;
-            }
-            .print-summary-amount {
-              font-size: 13px;
-              font-weight: 500;
-              color: #374151;
-            }
-            .print-total-row {
-              border-top: 1px solid #e5e7eb;
-              margin-top: 4px;
-              padding-top: 12px;
-            }
-            .print-total-row .print-summary-label,
-            .print-total-row .print-summary-amount {
-              font-size: 16px;
-              font-weight: 700;
-              color: #111827;
-            }
-            .print-payment-info {
-              margin-top: 32px;
-              background: #f9fafb;
-              padding: 16px;
-              border-radius: 8px;
-            }
-            .print-payment-row {
-              display: flex;
-              justify-content: space-between;
-              font-size: 13px;
-            }
-            .print-payment-label {
-              font-weight: 600;
-              margin-bottom: 4px;
-            }
-            .print-paid-amount {
-              color: #16a34a;
-              font-weight: 700;
-            }
-            .print-balance-amount {
-              color: #dc2626;
-              font-weight: 700;
-            }
-            .print-footer {
-              margin-top: 48px;
-              text-align: center;
-              font-size: 11px;
-              color: #9ca3af;
-              border-top: 1px solid #e5e7eb;
-              padding-top: 24px;
-            }
-            .print-table tr {
-              page-break-inside: avoid;
-            }
-            .no-print-print {
-              display: none;
-            }
+            .print-summary { margin-top: 32px; border-top: 2px solid #e5e7eb; padding-top: 24px; display: flex; justify-content: flex-end; }
+            .print-summary-box { width: 280px; }
+            .print-summary-row { display: flex; justify-content: space-between; padding: 8px 0; }
+            .print-summary-label { font-size: 13px; color: #6b7280; }
+            .print-summary-amount { font-size: 13px; font-weight: 500; color: #374151; }
+            .print-total-row { border-top: 1px solid #e5e7eb; margin-top: 4px; padding-top: 12px; }
+            .print-total-row .print-summary-label, .print-total-row .print-summary-amount { font-size: 16px; font-weight: 700; color: #111827; }
+            .print-payment-info { margin-top: 32px; background: #f9fafb; padding: 16px; border-radius: 8px; }
+            .print-payment-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+            .print-payment-table th { text-align: left; padding: 8px 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+            .print-payment-table td { padding: 8px 6px; font-size: 12px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+            .print-payment-table .print-amount { font-weight: 600; }
+            .print-paid-amount { color: #16a34a; font-weight: 700; }
+            .print-balance-amount { color: #dc2626; font-weight: 700; }
+            .print-footer { margin-top: 48px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 24px; }
+            .print-table tr { page-break-inside: avoid; }
+            .no-print-print { display: none; }
           </style>
         </head>
         <body>
@@ -795,7 +774,7 @@ document.addEventListener('alpine:init', () => {
               </div>
             </div>
 
-            <!-- From / To Section -->
+            <!-- From / To -->
             <div class="print-from-to">
               <div class="print-section">
                 <div class="print-section-title">FROM</div>
@@ -813,7 +792,7 @@ document.addEventListener('alpine:init', () => {
               </div>
             </div>
 
-            <!-- Items Table -->
+            <!-- Items -->
             <table class="print-table">
               <thead>
                 <tr>
@@ -869,18 +848,54 @@ document.addEventListener('alpine:init', () => {
               </div>
             </div>
 
-            <!-- Payment Information -->
-            <div class="print-payment-info">
-              <div class="print-payment-row">
-                <div>
-                  <div class="print-payment-label">AMOUNT PAID</div>
-                  <div class="print-paid-amount">{{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($paidAmount ?? 0, 2) }}</div>
-                </div>
-                <div style="text-align: right;">
-                  <div class="print-payment-label">BALANCE DUE</div>
-                  <div class="print-balance-amount">{{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format(max(0, $invoice->total_amount - ($paidAmount ?? 0)), 2) }}</div>
-                </div>
-              </div>
+            <!-- Payment History -->
+            <div style="margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+              <h4 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 12px;">Payment History</h4>
+              @if($invoice->payments->isNotEmpty())
+                <table class="print-payment-table">
+                  <thead>
+                    <tr>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Transaction Ref</th>
+                      <th>External Ref</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @foreach($invoice->payments as $payment)
+                    <tr>
+                      <td class="print-amount" style="color: #16a34a;">{{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($payment->amount, 2) }}</td>
+                      <td>{{ $payment->payment_method_label ?? $payment->payment_method }}</td>
+                      <td style="font-family: monospace; font-size: 11px;">{{ $payment->transaction_reference ? substr($payment->transaction_reference, 0, 8) . '...' : '—' }}</td>
+                      <td style="font-family: monospace; font-size: 11px; color: #2563eb;">{{ $payment->external_reference ?? '—' }}</td>
+                      <td>{{ $payment->created_at ? $payment->created_at->format('M d, Y H:i') : '-' }}</td>
+                      <td>
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 600; background: {{ $payment->status === 'completed' ? '#dcfce7' : '#fef3c7' }}; color: {{ $payment->status === 'completed' ? '#166534' : '#92400e' }};">
+                          {{ $payment->status_badge['label'] ?? ucfirst($payment->status) }}
+                        </span>
+                        @if($payment->is_reconciled)
+                          <span style="display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; background: #dbeafe; color: #1e40af; margin-left: 4px;">✓</span>
+                        @endif
+                      </td>
+                    </tr>
+                    @endforeach
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="5" style="padding-top: 12px; font-weight: 700; text-align: right; border-top: 2px solid #e5e7eb;">Total Paid</td>
+                      <td style="padding-top: 12px; font-weight: 700; color: #16a34a; border-top: 2px solid #e5e7eb;">{{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format($paidAmount ?? 0, 2) }}</td>
+                    </tr>
+                    <tr>
+                      <td colspan="5" style="padding-top: 4px; font-weight: 700; text-align: right;">Balance Due</td>
+                      <td style="padding-top: 4px; font-weight: 700; color: #dc2626;">{{ \App\Helpers\SystemHelper::currencySymbol() }} {{ number_format(max(0, $invoice->total_amount - ($paidAmount ?? 0)), 2) }}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              @else
+                <p style="color: #6b7280; font-size: 13px;">No payments recorded for this invoice.</p>
+              @endif
             </div>
 
             <!-- Footer -->
@@ -906,23 +921,11 @@ document.addEventListener('alpine:init', () => {
 <style>
 [x-cloak] { display: none !important; }
 @media print {
-  .no-print {
-    display: none !important;
-  }
-  body {
-    background: white;
-    padding: 0;
-    margin: 0;
-  }
-  .xl\:w-4\/5 {
-    width: 100% !important;
-  }
+  .no-print { display: none !important; }
+  body { background: white; padding: 0; margin: 0; }
+  .xl\:w-4\/5 { width: 100% !important; }
 }
-.z-99999 {
-  z-index: 99999 !important;
-}
-.backdrop-blur-\[32px\] {
-  backdrop-filter: blur(32px);
-}
+.z-99999 { z-index: 99999 !important; }
+.backdrop-blur-\[32px\] { backdrop-filter: blur(32px); }
 </style>
 @endsection

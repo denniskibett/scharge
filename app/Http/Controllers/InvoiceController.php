@@ -2319,4 +2319,175 @@ class InvoiceController extends Controller
         
         return $invoice;
     }
+
+    /**
+     * Reconcile a payment - updates external_reference from transaction meta
+     */
+    public function reconcilePayment(Request $request, Payment $payment)
+    {
+        try {
+            $validated = $request->validate([
+                'external_reference' => 'nullable|string|max:255',
+                'transaction_reference' => 'nullable|string|max:255',
+                'is_reconciled' => 'sometimes|boolean',
+            ]);
+            
+            $updated = false;
+            
+            // If external_reference is provided, update it
+            if (isset($validated['external_reference']) && $validated['external_reference']) {
+                $payment->external_reference = $validated['external_reference'];
+                $updated = true;
+            }
+            
+            // If transaction_reference is provided, update it
+            if (isset($validated['transaction_reference']) && $validated['transaction_reference']) {
+                $payment->transaction_reference = $validated['transaction_reference'];
+                $updated = true;
+            }
+            
+            // If is_reconciled is provided, update it
+            if (isset($validated['is_reconciled'])) {
+                $payment->is_reconciled = (bool) $validated['is_reconciled'];
+                if ($payment->is_reconciled) {
+                    $payment->reconciled_at = now();
+                    $payment->reconciled_by = auth()->id();
+                }
+                $updated = true;
+            }
+            
+            if ($updated) {
+                $payment->save();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Payment reconciled successfully',
+                    'payment' => $payment,
+                    'external_reference' => $payment->external_reference,
+                    'transaction_reference' => $payment->transaction_reference,
+                    'is_reconciled' => $payment->is_reconciled,
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'No changes provided to update',
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('Reconcile payment error: ' . $e->getMessage(), [
+                'payment_id' => $payment->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error reconciling payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Auto-reconcile a payment by fetching from transaction meta
+     */
+    public function autoReconcilePayment(Request $request, Payment $payment)
+    {
+        try {
+            // If payment has a transaction_reference, try to get the external reference from the transaction
+            if ($payment->transaction_reference) {
+                $transaction = \Bavix\Wallet\Models\Transaction::where('uuid', $payment->transaction_reference)->first();
+                
+                if ($transaction) {
+                    $meta = $transaction->meta ?? [];
+                    $externalRef = null;
+                    
+                    // Try different sources for external reference
+                    if (isset($meta['reference'])) {
+                        $externalRef = $meta['reference'];
+                    } elseif (isset($meta['external_reference'])) {
+                        $externalRef = $meta['external_reference'];
+                    } elseif (isset($meta['parsed_data']['transaction_id'])) {
+                        $externalRef = $meta['parsed_data']['transaction_id'];
+                    } elseif (isset($meta['transaction_id'])) {
+                        $externalRef = $meta['transaction_id'];
+                    }
+                    
+                    if ($externalRef) {
+                        $payment->external_reference = $externalRef;
+                        $payment->is_reconciled = true;
+                        $payment->reconciled_at = now();
+                        $payment->reconciled_by = auth()->id();
+                        
+                        // Also update meta with reconciliation info
+                        $paymentMeta = $payment->meta ?? [];
+                        $paymentMeta['auto_reconciled_at'] = now()->toISOString();
+                        $paymentMeta['auto_reconciled_by'] = auth()->id();
+                        $paymentMeta['auto_reconciled_from_transaction'] = $transaction->uuid;
+                        $payment->meta = $paymentMeta;
+                        
+                        $payment->save();
+                        
+                        return response()->json([
+                            'success' => true,
+                            'message' => 'Payment auto-reconciled successfully',
+                            'payment' => $payment,
+                            'external_reference' => $payment->external_reference,
+                        ]);
+                    } else {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'No external reference found in transaction meta',
+                            'meta' => $meta,
+                        ], 404);
+                    }
+                } else {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Transaction not found for this payment',
+                        'transaction_reference' => $payment->transaction_reference,
+                    ], 404);
+                }
+            }
+            
+            // If no transaction_reference, try to find by matching the external_reference pattern
+            // This handles cases where the payment was created before the reference was linked
+            $paymentsWithoutRef = Payment::whereNull('external_reference')
+                ->whereNotNull('transaction_reference')
+                ->get();
+            
+            $reconciledCount = 0;
+            foreach ($paymentsWithoutRef as $p) {
+                $transaction = \Bavix\Wallet\Models\Transaction::where('uuid', $p->transaction_reference)->first();
+                if ($transaction) {
+                    $meta = $transaction->meta ?? [];
+                    $externalRef = $meta['reference'] ?? $meta['parsed_data']['transaction_id'] ?? null;
+                    if ($externalRef) {
+                        $p->external_reference = $externalRef;
+                        $p->is_reconciled = true;
+                        $p->reconciled_at = now();
+                        $p->reconciled_by = auth()->id();
+                        $p->save();
+                        $reconciledCount++;
+                    }
+                }
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Reconciled {$reconciledCount} payments",
+                'reconciled_count' => $reconciledCount,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Auto-reconcile payment error: ' . $e->getMessage(), [
+                'payment_id' => $payment->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error auto-reconciling payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

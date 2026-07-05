@@ -137,7 +137,7 @@
                             </span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
-                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="payment.transaction_id || 'N/A'"></span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="payment.transaction_reference || 'N/A'"></span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <span class="text-sm text-gray-600 dark:text-gray-400" x-text="formatDate(payment.payment_datetime)"></span>
@@ -239,7 +239,7 @@ document.addEventListener('alpine:init', () => {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(p => 
                     (p.payer_name && p.payer_name.toLowerCase().includes(query)) ||
-                    (p.transaction_id && p.transaction_id.toLowerCase().includes(query)) ||
+                    (p.transaction_reference && p.transaction_reference.toLowerCase().includes(query)) ||
                     (p.unit_number && p.unit_number.toLowerCase().includes(query))
                 );
             }
@@ -363,7 +363,7 @@ document.addEventListener('alpine:init', () => {
                 '#' + String(p.invoice_id).padStart(6, '0'),
                 p.amount,
                 p.payment_method,
-                p.transaction_id || 'N/A',
+                p.transaction_reference || 'N/A',
                 this.formatDate(p.payment_datetime)
             ]);
             

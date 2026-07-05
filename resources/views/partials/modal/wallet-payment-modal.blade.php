@@ -41,7 +41,7 @@
                 <template x-if="formErrors.length > 0">
                     <div class="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
                         <ul class="list-disc pl-5">
-                            <template x-for="error in formErrors" :key="error">
+                            <template x-for="(error, index) in formErrors" :key="index">
                                 <li x-text="error"></li>
                             </template>
                         </ul>
@@ -55,7 +55,7 @@
                         <button @click="errorLogs = []" class="text-xs text-yellow-600 hover:text-yellow-800">Clear</button>
                     </div>
                     <div class="space-y-1 max-h-32 overflow-y-auto">
-                        <template x-for="log in errorLogs" :key="log.timestamp">
+                        <template x-for="(log, index) in errorLogs" :key="log.timestamp + '_' + index">
                             <p class="text-xs font-mono" :class="log.type === 'error' ? 'text-red-600' : 'text-yellow-700'">
                                 <span x-text="new Date(log.timestamp).toLocaleTimeString()"></span> - 
                                 <span x-text="log.message"></span>

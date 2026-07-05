@@ -828,10 +828,36 @@ public function show(Tenancy $tenancy)
 
     public function destroy(Tenancy $tenancy)
     {
-        $tenancy->unit->update(['status' => 'vacant']);
-        $tenancy->delete();
+        DB::transaction(function () use ($tenancy) {
+            // 1. Delete house checklists
+            HouseChecklist::where('tenancy_id', $tenancy->id)->delete();
+            
+            // 2. Delete lease agreement
+            LeaseAgreement::where('tenancy_id', $tenancy->id)->delete();
+            
+            // 3. Delete tenancy charges
+            TenancyCharge::where('tenancy_id', $tenancy->id)->delete();
+            
+            // 4. Handle invoices - either delete or dissociate
+            $invoices = Invoice::where('tenancy_id', $tenancy->id)->get();
+            foreach ($invoices as $invoice) {
+                // Delete invoice items first
+                $invoice->items()->delete();
+                // Then delete the invoice
+                $invoice->delete();
+            }
+            
+            // 5. Update unit status
+            $tenancy->unit->update(['status' => 'vacant']);
+            
+            // 6. Finally delete the tenancy
+            $tenancy->delete();
+        });
 
-        return response()->json(['success' => true, 'message' => 'Tenancy deleted successfully']);
+        return response()->json([
+            'success' => true, 
+            'message' => 'Tenancy and all related records deleted successfully'
+        ]);
     }
 
     // Update house checklist

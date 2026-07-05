@@ -6,7 +6,8 @@ namespace App\Modules\Payments\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Modules\Tenants\Models\Tenant;
+use App\Models\Tenant;
+use App\Modules\Tenants\Models\Tenant as ModuleTenant;
 use App\Modules\Users\Models\User;
 use Carbon\Carbon;
 
@@ -26,8 +27,8 @@ class Payment extends Model
         'amount',
         'wallet_balance_before',
         'wallet_balance_after',
-        'transaction_reference',
-        'external_reference',
+        'transaction_reference',  // Stores Wallet Transaction UUID (transactions.uuid)
+        'external_reference',     // Stores external ref (M-Pesa Receipt, Bank Ref, etc.)
         'status',
         'is_reconciled',
         'reconciled_at',
@@ -99,13 +100,18 @@ class Payment extends Model
         return $this->belongsTo(User::class, 'reconciled_by');
     }
 
-    // REMOVE THIS - tenancy relationship doesn't exist directly
-    // public function tenancy()
-    // {
-    //     return $this->hasOneThrough(Tenancy::class, Invoice::class, 'id', 'id', 'invoice_id', 'tenancy_id');
-    // }
+    /**
+     * Get the wallet transaction associated with this payment
+     * Uses transaction_reference which stores the transactions.uuid
+     */
+    public function walletTransaction()
+    {
+        return $this->hasOne(\Bavix\Wallet\Models\Transaction::class, 'uuid', 'transaction_reference');
+    }
 
-    // Instead, use this to access tenancy through invoice
+    /**
+     * Get the tenancy through invoice
+     */
     public function getTenancyAttribute()
     {
         return $this->invoice?->tenancy;
@@ -137,6 +143,23 @@ class Payment extends Model
     public function scopeReconciled($query)
     {
         return $query->where('is_reconciled', true);
+    }
+
+    public function scopeForTenant($query, $tenantId)
+    {
+        return $query->where('tenant_id', $tenantId);
+    }
+
+    public function scopeForInvoice($query, $invoiceId)
+    {
+        return $query->where('invoice_id', $invoiceId);
+    }
+
+    public function scopeForCompany($query, $companyId)
+    {
+        return $query->whereHas('invoice.tenancy.unit.estate', function($q) use ($companyId) {
+            $q->where('company_id', $companyId);
+        });
     }
 
     /**
@@ -210,6 +233,49 @@ class Payment extends Model
     }
 
     /**
+     * Get the wallet transaction UUID
+     */
+    public function getWalletTransactionUuidAttribute(): ?string
+    {
+        return $this->transaction_reference;
+    }
+
+    /**
+     * Get formatted transaction reference for display
+     */
+    public function getFormattedTransactionReferenceAttribute(): string
+    {
+        if ($this->transaction_reference) {
+            // Show first 8 characters of UUID
+            return substr($this->transaction_reference, 0, 8) . '...';
+        }
+        if ($this->external_reference) {
+            return $this->external_reference;
+        }
+        return '—';
+    }
+
+    /**
+     * Get the payment allocation details from meta
+     */
+    public function getAllocationDetailsAttribute(): array
+    {
+        return [
+            'allocated_from_total_payment' => $this->meta['allocated_from_total_payment'] ?? null,
+            'payment_distribution_date' => $this->meta['payment_distribution_date'] ?? null,
+            'invoice_item_description' => $this->meta['invoice_item_description'] ?? null,
+        ];
+    }
+
+    /**
+     * Get meta data as array
+     */
+    public function getMetaDataAttribute(): array
+    {
+        return $this->meta ?? [];
+    }
+
+    /**
      * Helpers
      */
     public function markAsReconciled(User $reconciledBy): self
@@ -238,10 +304,44 @@ class Payment extends Model
     }
 
     /**
-     * Factory methods
+     * Link a payment to a wallet transaction
+     */
+    public function linkToWalletTransaction(\Bavix\Wallet\Models\Transaction $transaction): self
+    {
+        $this->transaction_reference = $transaction->uuid;
+        
+        // Also update meta with wallet transaction details
+        $meta = $this->meta ?? [];
+        $meta['wallet_transaction_id'] = $transaction->id;
+        $meta['wallet_transaction_uuid'] = $transaction->uuid;
+        $meta['linked_at'] = now()->toISOString();
+        $this->meta = $meta;
+        
+        $this->save();
+        return $this;
+    }
+
+    /**
+     * Get the transaction_reference (alias for clarity)
+     */
+    public function getWalletTransactionReference(): ?string
+    {
+        return $this->transaction_reference;
+    }
+
+    /**
+     * Check if this payment is linked to a wallet transaction
+     */
+    public function isLinkedToWallet(): bool
+    {
+        return !empty($this->transaction_reference);
+    }
+
+    /**
+     * Factory methods - Record a wallet payment
      */
     public static function recordWalletPayment(
-        Tenant $tenant,
+        $tenant, // Can be Tenant or ModuleTenant
         Invoice $invoice,
         ?InvoiceItem $invoiceItem,
         float $amount,
@@ -251,9 +351,13 @@ class Payment extends Model
         ?User $user = null,
         array $meta = []
     ): self {
+        // Handle both tenant types
+        $tenantId = $tenant instanceof Tenant ? $tenant->id : ($tenant->id ?? null);
+        $userId = $user?->id ?? ($tenant->user_id ?? null);
+        
         return self::create([
-            'tenant_id' => $tenant->id,
-            'user_id' => $user?->id ?? $tenant->user_id,
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
             'invoice_id' => $invoice->id,
             'invoice_item_id' => $invoiceItem?->id,
             'payment_method' => self::METHOD_WALLET,
@@ -264,12 +368,19 @@ class Payment extends Model
             'transaction_reference' => $transactionReference,
             'status' => self::STATUS_COMPLETED,
             'is_reconciled' => false,
-            'meta' => $meta,
+            'meta' => array_merge($meta, [
+                'recorded_at' => now()->toISOString(),
+                'recorded_by' => $user?->id ?? auth()->id(),
+                'recorded_by_name' => $user?->name ?? auth()->user()?->name ?? 'System',
+            ]),
         ]);
     }
 
+    /**
+     * Factory methods - Record an external payment
+     */
     public static function recordExternalPayment(
-        Tenant $tenant,
+        $tenant,
         Invoice $invoice,
         string $paymentMethod,
         float $amount,
@@ -277,26 +388,35 @@ class Payment extends Model
         ?User $user = null,
         array $meta = []
     ): self {
+        $tenantId = $tenant instanceof Tenant ? $tenant->id : ($tenant->id ?? null);
+        $userId = $user?->id ?? auth()->id();
+        
         return self::create([
-            'tenant_id' => $tenant->id,
-            'user_id' => $user?->id ?? $tenant->user_id,
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
             'invoice_id' => $invoice->id,
+            'invoice_item_id' => null,
             'payment_method' => $paymentMethod,
             'source' => $meta['source'] ?? self::SOURCE_WEB,
             'amount' => $amount,
             'external_reference' => $externalReference,
+            'transaction_reference' => null, // Will be set when linked to wallet
             'status' => self::STATUS_PENDING,
             'is_reconciled' => false,
-            'meta' => $meta,
+            'meta' => array_merge($meta, [
+                'recorded_at' => now()->toISOString(),
+                'recorded_by' => $user?->id ?? auth()->id(),
+                'recorded_by_name' => $user?->name ?? auth()->user()?->name ?? 'System',
+                'is_external' => true,
+            ]),
         ]);
     }
 
-
     /**
-     * Record a direct payment that automatically deposits to wallet and pays invoice
+     * Factory methods - Record a direct payment (deposits to wallet AND pays invoice)
      */
     public static function recordDirectPayment(
-        Tenant $tenant,
+        $tenant,
         Invoice $invoice,
         float $amount,
         string $paymentMethod,
@@ -304,24 +424,69 @@ class Payment extends Model
         ?User $user = null,
         array $meta = []
     ): self {
+        $tenantId = $tenant instanceof Tenant ? $tenant->id : ($tenant->id ?? null);
+        $userId = $user?->id ?? auth()->id();
+        
         return self::create([
-            'tenant_id' => $tenant->id,
-            'user_id' => $user?->id ?? auth()->id(),
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
             'invoice_id' => $invoice->id,
             'invoice_item_id' => null, // Will be updated during distribution
             'payment_method' => $paymentMethod,
             'source' => $meta['source'] ?? self::SOURCE_ADMIN,
             'amount' => $amount,
             'external_reference' => $externalReference,
-            'transaction_reference' => $meta['transaction_reference'] ?? null,
-            'status' => self::STATUS_COMPLETED, // Directly completed
-            'is_reconciled' => true, // Auto-reconciled by accountant
+            'transaction_reference' => $meta['deposit_transaction_uuid'] ?? null, // Set during processing
+            'status' => self::STATUS_COMPLETED,
+            'is_reconciled' => true,
             'reconciled_at' => now(),
             'reconciled_by' => $user?->id ?? auth()->id(),
             'meta' => array_merge($meta, [
                 'direct_payment' => true,
                 'auto_processed' => true,
                 'processed_at' => now()->toISOString(),
+                'recorded_by' => $user?->id ?? auth()->id(),
+                'recorded_by_name' => $user?->name ?? auth()->user()?->name ?? 'System',
+            ]),
+        ]);
+    }
+
+    /**
+     * Factory methods - Record a payment for an invoice item
+     */
+    public static function recordInvoiceItemPayment(
+        $tenant,
+        Invoice $invoice,
+        InvoiceItem $invoiceItem,
+        float $amount,
+        float $balanceBefore,
+        float $balanceAfter,
+        string $transactionReference,
+        ?User $user = null,
+        array $meta = []
+    ): self {
+        $tenantId = $tenant instanceof Tenant ? $tenant->id : ($tenant->id ?? null);
+        $userId = $user?->id ?? ($tenant->user_id ?? null);
+        
+        return self::create([
+            'tenant_id' => $tenantId,
+            'user_id' => $userId,
+            'invoice_id' => $invoice->id,
+            'invoice_item_id' => $invoiceItem->id,
+            'payment_method' => self::METHOD_WALLET,
+            'source' => $meta['source'] ?? self::SOURCE_WEB,
+            'amount' => $amount,
+            'wallet_balance_before' => $balanceBefore,
+            'wallet_balance_after' => $balanceAfter,
+            'transaction_reference' => $transactionReference,
+            'status' => self::STATUS_COMPLETED,
+            'is_reconciled' => false,
+            'meta' => array_merge($meta, [
+                'invoice_item_description' => $invoiceItem->description,
+                'invoice_item_type' => $invoiceItem->item_type,
+                'recorded_at' => now()->toISOString(),
+                'recorded_by' => $user?->id ?? auth()->id(),
+                'recorded_by_name' => $user?->name ?? auth()->user()?->name ?? 'System',
             ]),
         ]);
     }
