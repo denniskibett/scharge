@@ -226,7 +226,9 @@
                 {{ optional($invoice->tenancy->tenant->user)->name ?? 'N/A' }}
               </h5>
               <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                {{ optional($invoice->tenancy->tenant)->address ?? 'Address not available' }}
+                {{-- {{ optional($invoice->tenancy->unit)->unit_number ?? 'N/A' }} <br/> 
+                {{ optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A' }}<br/>  --}}
+                {{ optional(optional($invoice->tenancy->unit)->estate)->address ?? 'Address not available' }}
               </p>
               <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Due On:</span>
               <span class="block text-sm text-gray-500 dark:text-gray-400">
