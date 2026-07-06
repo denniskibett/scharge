@@ -256,6 +256,9 @@
         />
       </div>
 
+      <!-- Payment Month - Hidden field always sent -->
+      <input type="hidden" x-model="form.payment_month">
+
       <!-- Notes -->
       <div class="mb-5">
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Notes (Optional)</label>
@@ -351,6 +354,7 @@ document.addEventListener('alpine:init', () => {
       mpesa_phone: '',
       external_reference: '',
       payment_datetime: new Date().toISOString().slice(0, 16),
+      payment_month: new Date().toISOString().slice(0, 7),
       notes: ''
     },
     formMethod: 'POST',
@@ -445,6 +449,7 @@ document.addEventListener('alpine:init', () => {
       this.form.invoice_id = invoice.id;
       this.form.amount = invoice.remaining_amount || invoice.total_amount || 0;
       this.form.payment_datetime = new Date().toISOString().slice(0, 16);
+      this.form.payment_month = new Date().toISOString().slice(0, 7);
       this.form.external_reference = '';
       this.form.notes = '';
       this.form.payment_method = 'cash';
@@ -491,6 +496,10 @@ document.addEventListener('alpine:init', () => {
           this.form.invoice_id = data.invoice.id;
           this.form.amount = data.invoice.remaining_amount;
           
+          if (data.invoice.billing_month) {
+            this.form.payment_month = data.invoice.billing_month.slice(0, 7);
+          }
+          
           if (this.preSelectedInvoice) {
             this.preSelectedInvoice = {
               ...this.preSelectedInvoice,
@@ -522,6 +531,7 @@ document.addEventListener('alpine:init', () => {
         mpesa_phone: '',
         external_reference: payment.external_reference || '',
         payment_datetime: payment.payment_datetime || payment.created_at ? new Date(payment.created_at).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        payment_month: payment.billing_month ? payment.billing_month.slice(0, 7) : new Date().toISOString().slice(0, 7),
         notes: payment.meta?.notes || ''
       };
       this.isOpen = true;
@@ -550,6 +560,7 @@ document.addEventListener('alpine:init', () => {
         mpesa_phone: '',
         external_reference: '',
         payment_datetime: new Date().toISOString().slice(0, 16),
+        payment_month: new Date().toISOString().slice(0, 7),
         notes: ''
       };
       this.tenantInvoices = [];
@@ -607,6 +618,9 @@ document.addEventListener('alpine:init', () => {
       if (selected) {
         this.selectedInvoiceData = selected;
         this.form.amount = selected.remaining_amount;
+        if (selected.billing_month) {
+          this.form.payment_month = selected.billing_month.slice(0, 7);
+        }
       }
     },
     
@@ -671,10 +685,8 @@ document.addEventListener('alpine:init', () => {
               this.mpesaStatus.icon = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
               this.mpesaStatus.class = 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400';
               
-              setTimeout(() => {
-                this.closeModal();
-                window.location.reload();
-              }, 3000);
+              // FIX: Trigger background refresh instead of page reload
+              this.triggerRefresh();
               
             } else if (status === '1' || status === 'failed' || status === 'error') {
               clearInterval(this.mpesaStatus.interval);
@@ -700,6 +712,54 @@ document.addEventListener('alpine:init', () => {
       }, 5000);
     },
     
+    // FIX: Background refresh function
+    triggerRefresh() {
+      // Dispatch events to refresh wallet balance
+      const refreshEvent = new CustomEvent('wallet-refresh', {
+        detail: { source: 'payment_modal' }
+      });
+      window.dispatchEvent(refreshEvent);
+      
+      // Dispatch event to refresh invoices table
+      const invoiceRefreshEvent = new CustomEvent('invoice-refresh', {
+        detail: { source: 'payment_modal' }
+      });
+      window.dispatchEvent(invoiceRefreshEvent);
+      
+      // Dispatch event to refresh dashboard cards
+      const dashboardRefreshEvent = new CustomEvent('dashboard-refresh', {
+        detail: { source: 'payment_modal' }
+      });
+      window.dispatchEvent(dashboardRefreshEvent);
+      
+      // Also dispatch specific wallet-updated event
+      const walletUpdateEvent = new CustomEvent('wallet-updated', {
+        detail: { 
+          new_balance: this.selectedInvoiceData?.remaining_amount || 0,
+          source: 'payment_modal'
+        }
+      });
+      window.dispatchEvent(walletUpdateEvent);
+      
+      // Close modal after a short delay
+      setTimeout(() => {
+        this.closeModal();
+        // Show success toast
+        this.showToast('success', 'Payment processed successfully!');
+      }, 1500);
+    },
+    
+    showToast(type, message) {
+      const toast = document.createElement('div');
+      toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-3 text-white text-sm shadow-lg transition-all duration-500 transform translate-y-0 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-8');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    },
+    
     async submitForm() {
       this.formErrors = [];
       this.successMessage = '';
@@ -722,7 +782,6 @@ document.addEventListener('alpine:init', () => {
         return;
       }
       
-      // Check if M-Pesa and phone is required
       if (this.form.payment_method === 'mpesa_paybill') {
         const phone = this.form.mpesa_phone?.replace(/[^0-9]/g, '');
         if (!phone || phone.length < 10 || !phone.startsWith('254')) {
@@ -740,6 +799,11 @@ document.addEventListener('alpine:init', () => {
       
       if (!this.form.payment_datetime) {
         this.formErrors.push('Please select payment date');
+        return;
+      }
+      
+      if (this.form.payment_method === 'cash' && !this.form.payment_month) {
+        this.formErrors.push('Please select payment month');
         return;
       }
       
@@ -772,6 +836,7 @@ document.addEventListener('alpine:init', () => {
             mpesa_phone: this.form.mpesa_phone,
             external_reference: this.form.external_reference,
             payment_datetime: this.form.payment_datetime,
+            payment_month: this.form.payment_month,
             notes: this.form.notes
           });
         }
@@ -824,9 +889,13 @@ document.addEventListener('alpine:init', () => {
             window.dispatchEvent(paymentEvent);
             document.dispatchEvent(paymentEvent);
             
+            // FIX: Trigger background refresh instead of page reload
+            this.triggerRefresh();
+            
+            // Close modal after delay
             setTimeout(() => {
               this.closeModal();
-              window.location.reload();
+              this.showToast('success', successMsg);
             }, 1500);
           }
         } else {

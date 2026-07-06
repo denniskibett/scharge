@@ -356,7 +356,7 @@ document.addEventListener('alpine:init', () => {
         // State
         invoices: [],
         selected: [],
-        sortBy: 'created_at',
+        sortBy: 'billing_month',
         sortDirection: 'desc',
         currentPage: 1,
         itemsPerPage: 10,
