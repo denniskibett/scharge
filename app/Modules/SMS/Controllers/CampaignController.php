@@ -670,10 +670,18 @@ class CampaignController extends Controller
             $summaryQuery->where(DB::raw("DATE_FORMAT(sent_at, '%Y-%m')"), $request->month);
         }
         
+        // ====== FIXED STATUS FILTER ======
         if ($request->filled('status')) {
-            $query->where('c.status', $request->status);
-            $summaryQuery->where('status', $request->status);
+            if ($request->status === 'failed') {
+                // When filtering by 'failed', show campaigns with failed_count > 0
+                $query->where('c.failed_count', '>', 0);
+                $summaryQuery->where('failed_count', '>', 0);
+            } else {
+                $query->where('c.status', $request->status);
+                $summaryQuery->where('status', $request->status);
+            }
         }
+        // ====== END FIXED STATUS FILTER ======
         
         if ($request->filled('search')) {
             $search = $request->search;
