@@ -33,7 +33,7 @@ class KenyaSMSService
      */
     public function sendPersonalized(array $messages, array $options = []): array
     {
-        $url = $this->baseUrl . '/api/v1/sms/send';
+        $url = $this->baseUrl . '/sms/send';
         
         $allResponses = [];
         
@@ -99,7 +99,7 @@ class KenyaSMSService
             return $this->formatPhone($recipient);
         }, $recipients);
         
-        $url = $this->baseUrl . '/api/v1/sms/bulk';
+        $url = $this->baseUrl . '/sms/bulk';
         
         $payload = [
             'sender_id' => $options['sender_id'] ?? $this->senderId,
@@ -151,7 +151,7 @@ class KenyaSMSService
      */
     public function getBalance(): ?array
     {
-        $url = $this->baseUrl . '/api/v1/wallet/balance';
+        $url = $this->baseUrl . '/wallet/balance';
         
         $headers = [
             'Authorization' => 'Bearer ' . $this->apiKey,

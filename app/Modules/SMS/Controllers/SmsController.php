@@ -93,7 +93,7 @@ class SmsController extends Controller
             })->count();
 
         $estates = Estate::orderBy('name')->get();
-        $sandbox = config('sms.kenyasms.sandbox', true);
+        $sandbox = config('services.kenyasms.sandbox', false);
         $templates = SmsTemplate::orderBy('name')->get();
         $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);
         $campaigns = SmsCampaign::with('creator')->latest()->paginate(20);
@@ -396,10 +396,10 @@ class SmsController extends Controller
 
     public function settings(KenyaSMS $kenyaSms)
     {
-        $sandbox = config('sms.kenyasms.sandbox', true);
-        $senderId = config('sms.kenyasms.sender_id', 'SHARETENT');
-        $defaultType = config('sms.kenyasms.default_type', 'transactional');
-        $apiKeyConfigured = !empty(config('sms.kenyasms.api_key'));
+        $sandbox = config('services.kenyasms.sandbox', false);
+        $senderId = config('services.kenyasms.sender_id', 'SHARETENT');
+        $defaultType = config('services.kenyasms.default_type', 'transactional');
+        $apiKeyConfigured = !empty(config('services.kenyasms.key'));
 
         $balanceInfo = ['success' => false, 'balance' => null, 'error' => null];
         if ($apiKeyConfigured) {

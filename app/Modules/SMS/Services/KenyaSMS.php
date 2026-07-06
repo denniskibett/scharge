@@ -16,15 +16,13 @@ class KenyaSMS
 
     public function __construct()
     {
-        $config = config('sms');
-        $kenyaSmsConfig = $config['kenyasms'] ?? $config;
-        
-        // ✅ FIX: Use KENYASMS_URL from env
-        $this->apiKey = $kenyaSmsConfig['api_key'] ?? env('KENYASMS_KEY');
-        $this->baseUrl = $kenyaSmsConfig['base_url'] ?? env('KENYASMS_URL', 'https://kenyasms.com/api/v1');
-        $this->senderId = $kenyaSmsConfig['sender_id'] ?? env('KENYASMS_SENDER_ID', 'SHARETENT');
-        $this->defaultType = $kenyaSmsConfig['default_type'] ?? env('KENYASMS_DEFAULT_TYPE', 'transactional');
-        $this->sandbox = $kenyaSmsConfig['sandbox'] ?? env('KENYASMS_SANDBOX', true);
+        $kenyaSmsConfig = config('services.kenyasms', []);
+
+        $this->apiKey = $kenyaSmsConfig['key'] ?? null;
+        $this->baseUrl = $kenyaSmsConfig['url'] ?? 'https://kenyasms.com/api/v1';
+        $this->senderId = $kenyaSmsConfig['sender_id'] ?? 'SHARETENT';
+        $this->defaultType = $kenyaSmsConfig['default_type'] ?? 'transactional';
+        $this->sandbox = $kenyaSmsConfig['sandbox'] ?? false;
     }
 
     /**
