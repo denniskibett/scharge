@@ -30,11 +30,12 @@
     @endif
 
     <!-- Tab Headers -->
-    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+    <div class="flex flex-wrap border-b border-gray-200 dark:border-gray-700 mb-6">
         <button onclick="activeTab = 'tenants'; renderTab()" id="tab-tenants" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">Send to Tenants</button>
         <button onclick="activeTab = 'custom'; renderTab()" id="tab-custom" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">Send Custom SMS</button>
         <button onclick="activeTab = 'history'; renderTab()" id="tab-history" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">SMS History</button>
-        <button onclick="activeTab = 'campaigns'; renderTab()" id="tab-campaigns" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">Campaigns</button>
+        <a href="{{ route('sms.campaigns.index') }}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500">Campaigns</a>
+        <a href="{{ route('sms.campaigns.history') }}" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500">Campaign History</a>
     </div>
 
     <!-- Tab 1: Send to Tenants -->
@@ -336,60 +337,6 @@
         </div>
     </div>
 
-    <!-- Tab 4: Campaigns -->
-    <div id="campaigns-tab" style="display: none;">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="p-6">
-                <div class="w-full overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr class="border-gray-100 border-y dark:border-gray-800">
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failed</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                            @forelse($campaigns ?? [] as $campaign)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $campaign->id }}</td>
-                                <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ $campaign->name }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $campaign->created_at->format('d/m/Y H:i') }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $campaign->total_recipients }}</td>
-                                <td class="px-4 py-3 text-sm text-green-600">{{ $campaign->sent_count }}</td>
-                                <td class="px-4 py-3 text-sm text-red-600">{{ $campaign->failed_count }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        @if($campaign->status === 'completed') bg-green-100 text-green-800
-                                        @elseif($campaign->status === 'failed') bg-red-100 text-red-800
-                                        @else bg-yellow-100 text-yellow-800
-                                        @endif">
-                                        {{ $campaign->status }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <a href="{{ route('sms.campaigns.show', $campaign->id) }}" class="text-blue-600 hover:text-blue-900 text-sm">View</a>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="8" class="px-4 py-8 text-center text-gray-500">No campaigns yet.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-4">
-                    {{ ($campaigns ?? collect())->links() }}
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -405,14 +352,12 @@
         document.getElementById('tenants-tab').style.display = 'none';
         document.getElementById('custom-tab').style.display = 'none';
         document.getElementById('history-tab').style.display = 'none';
-        document.getElementById('campaigns-tab').style.display = 'none';
         
         document.getElementById('tenants-tab').style.display = activeTab === 'tenants' ? 'block' : 'none';
         document.getElementById('custom-tab').style.display = activeTab === 'custom' ? 'block' : 'none';
         document.getElementById('history-tab').style.display = activeTab === 'history' ? 'block' : 'none';
-        document.getElementById('campaigns-tab').style.display = activeTab === 'campaigns' ? 'block' : 'none';
         
-        document.querySelectorAll('#tab-tenants, #tab-custom, #tab-history, #tab-campaigns').forEach(btn => {
+        document.querySelectorAll('#tab-tenants, #tab-custom, #tab-history').forEach(btn => {
             btn.classList.remove('border-blue-500', 'text-blue-600');
             btn.classList.add('border-transparent');
         });
