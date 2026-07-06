@@ -12,9 +12,9 @@ class SmsService
 
     public function __construct()
     {
-        $this->baseUrl = config('sms.base_url');
-        $this->apiKey = config('sms.api_key');
-        $this->senderId = config('sms.sender_id');
+        $this->baseUrl = config('services.kenyasms.url');
+        $this->apiKey = config('services.kenyasms.key');
+        $this->senderId = config('services.kenyasms.sender_id');
     }
 
     public function send($phone, $message, $type = 'transactional')
