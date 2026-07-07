@@ -79,6 +79,11 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::get('/campaigns/{campaign}/timeline', [CampaignController::class, 'timeline'])->name('sms.campaigns.timeline');
 
     // =========================================================
+    // 👤 RECIPIENT DETAILS - AJAX Modal
+    // =========================================================
+    Route::get('/recipient/{id}', [CampaignController::class, 'getRecipient'])->name('sms.recipient.show');
+
+    // =========================================================
     // 📨 WEBHOOK - KenyaSMS
     // =========================================================
     Route::post('/webhook/dlr', [WebhookController::class, 'handleDLR'])
@@ -115,7 +120,6 @@ Route::post('/mpesa/b2b/queue', [MpesaController::class, 'b2bQueueTimeout'])
 // 🧪 TEST ROUTES - KenyaSMS
 // =========================================================
 
-// Test connection
 Route::get('/sms/test-kenyasms', function() {
     try {
         $sms = new \App\Modules\SMS\Services\KenyaSMSService();
@@ -139,7 +143,6 @@ Route::get('/sms/test-kenyasms', function() {
     }
 })->name('sms.test-kenyasms');
 
-// Test send SMS
 Route::get('/sms/test-send', function() {
     try {
         $sms = new \App\Modules\SMS\Services\KenyaSMSService();
@@ -174,7 +177,6 @@ Route::get('/sms/test-send', function() {
     }
 })->name('sms.test-send');
 
-// Test campaigns endpoint
 Route::get('/sms/test-campaigns', function() {
     try {
         $client = new \GuzzleHttp\Client();
@@ -241,16 +243,12 @@ Route::get('/sms/sync-campaigns', function() {
                 $hasMore = false;
             }
             
-            // Safety limit
             if ($page > 20) break;
         }
         
-        // Store in database
         foreach ($allCampaigns as $campaign) {
-            // Extract estate from message
             $estateId = null;
             
-            // Look for estate name in message (e.g., "Danaff Towers")
             if (preg_match('/^([a-zA-Z\s]+) (July|June|May|April|March)/', $campaign['message'] ?? '', $matches)) {
                 $estateName = trim($matches[1]);
                 $estate = DB::table('estates')->where('name', 'LIKE', '%' . $estateName . '%')->first();
@@ -259,11 +257,9 @@ Route::get('/sms/sync-campaigns', function() {
                 }
             }
             
-            // Check if already exists
             $exists = DB::table('sms_campaign_history')->where('kenyasms_campaign_id', $campaign['id'])->first();
             
             if (!$exists) {
-                // Convert datetime format from ISO to MySQL
                 $sentAt = null;
                 $completedAt = null;
                 

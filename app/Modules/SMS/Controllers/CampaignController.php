@@ -670,10 +670,8 @@ class CampaignController extends Controller
             $summaryQuery->where(DB::raw("DATE_FORMAT(sent_at, '%Y-%m')"), $request->month);
         }
         
-        // ====== FIXED STATUS FILTER ======
         if ($request->filled('status')) {
             if ($request->status === 'failed') {
-                // When filtering by 'failed', show campaigns with failed_count > 0
                 $query->where('c.failed_count', '>', 0);
                 $summaryQuery->where('failed_count', '>', 0);
             } else {
@@ -681,7 +679,6 @@ class CampaignController extends Controller
                 $summaryQuery->where('status', $request->status);
             }
         }
-        // ====== END FIXED STATUS FILTER ======
         
         if ($request->filled('search')) {
             $search = $request->search;
@@ -724,5 +721,26 @@ class CampaignController extends Controller
             ->pluck('month');
         
         return view('sms.campaigns.history', compact('campaigns', 'estates', 'months', 'summary'));
+    }
+
+    /**
+     * Get recipient details for AJAX modal
+     */
+    public function getRecipient($id)
+    {
+        try {
+            $recipient = CampaignRecipient::findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'recipient' => $recipient,
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

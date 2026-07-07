@@ -372,7 +372,7 @@
                     </thead>
                     <tbody>
                         @forelse($recipients as $index => $recipient)
-                        <tr class="border-b border-stroke last:border-0 dark:border-strokedark hover:bg-gray-50 dark:hover:bg-gray-800">
+                        <tr class="border-b border-stroke last:border-0 dark:border-strokedark hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer" onclick="showRecipientDetails({{ $recipient->id }})">
                             <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $index + 1 }}</td>
                             <td class="px-4 py-3 text-sm font-medium text-black dark:text-white">{{ $recipient->unit_number ?? 'N/A' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $recipient->tenant_name ?? 'N/A' }}</td>
@@ -418,6 +418,31 @@
     </div>
 </div>
 
+<!-- Recipient Details Modal -->
+<div id="recipientModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 hidden">
+    <div class="w-full max-w-2xl rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-strokedark">
+            <h3 class="text-lg font-semibold text-black dark:text-white">Recipient Details</h3>
+            <button onclick="closeRecipientModal()" class="text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="p-6" id="recipientDetails">
+            <div class="flex items-center justify-center py-8">
+                <svg class="h-8 w-8 animate-spin text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                <span class="ml-2 text-gray-500">Loading...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Backdrop -->
+<div id="modalBackdrop" class="fixed inset-0 z-40 bg-black/50 hidden" onclick="closeRecipientModal()"></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const sendBtn = document.getElementById('sendBtn');
@@ -453,6 +478,119 @@ document.addEventListener('DOMContentLoaded', function() {
                 </svg>
             `;
         }
+    }
+});
+
+function showRecipientDetails(recipientId) {
+    // Show modal with loading state
+    document.getElementById('recipientModal').classList.remove('hidden');
+    document.getElementById('modalBackdrop').classList.remove('hidden');
+    document.getElementById('recipientDetails').innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <svg class="h-8 w-8 animate-spin text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            <span class="ml-2 text-gray-500">Loading...</span>
+        </div>
+    `;
+    
+    // Fetch recipient details via AJAX
+    fetch(`/sms/recipient/${recipientId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderRecipientDetails(data.recipient);
+            } else {
+                document.getElementById('recipientDetails').innerHTML = `
+                    <div class="text-center py-8 text-danger">
+                        <p>Failed to load recipient details</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('recipientDetails').innerHTML = `
+                <div class="text-center py-8 text-danger">
+                    <p>Error loading recipient details</p>
+                </div>
+            `;
+        });
+}
+
+function renderRecipientDetails(recipient) {
+    const statusColors = {
+        'pending': 'bg-warning/10 text-warning',
+        'queued': 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-300',
+        'sent': 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-300',
+        'delivered': 'bg-success/10 text-success',
+        'failed': 'bg-danger/10 text-danger',
+    };
+    
+    document.getElementById('recipientDetails').innerHTML = `
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Tenant</p>
+                <p class="font-medium text-black dark:text-white">${recipient.tenant_name || 'N/A'}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Unit</p>
+                <p class="font-medium text-black dark:text-white">${recipient.unit_number || 'N/A'}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Phone</p>
+                <p class="font-medium text-black dark:text-white">${recipient.phone}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Status</p>
+                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusColors[recipient.status] || 'bg-gray-100 text-gray-700'}">
+                    ${ucfirst(recipient.status)}
+                </span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Water Bill</p>
+                <p class="font-medium text-black dark:text-white">KES ${parseFloat(recipient.water_bill || 0).toFixed(2)}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Cost</p>
+                <p class="font-medium text-black dark:text-white">KES ${parseFloat(recipient.cost_per_sms || 0).toFixed(4)}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Sent At</p>
+                <p class="font-medium text-black dark:text-white">${recipient.sent_at ? new Date(recipient.sent_at).toLocaleString() : 'Not sent'}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Reading</p>
+                <p class="font-medium text-black dark:text-white">${recipient.previous_reading || '-'} → ${recipient.current_reading || '-'} (${recipient.consumption || 0} units)</p>
+            </div>
+            ${recipient.failure_reason ? `
+            <div class="col-span-2">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Failure Reason</p>
+                <p class="font-medium text-danger">${recipient.failure_reason}</p>
+            </div>
+            ` : ''}
+            <div class="col-span-2 border-t border-stroke pt-4 dark:border-strokedark">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Message</p>
+                <div class="mt-2 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+                    <p class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">${recipient.message}</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function closeRecipientModal() {
+    document.getElementById('recipientModal').classList.add('hidden');
+    document.getElementById('modalBackdrop').classList.add('hidden');
+}
+
+function ucfirst(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeRecipientModal();
     }
 });
 </script>

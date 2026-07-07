@@ -150,14 +150,14 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('sidebarMenu', () => ({
     selected: Alpine.$persist(''), // Start with no dropdowns open
-    activePage: Alpine.$persist('dashboard'),
-    activeItemLabel: Alpine.$persist('Dashboard'),
+    activePage: Alpine.$persist('analytics'),
+    activeItemLabel: Alpine.$persist('Analytics'),
     userRole: '{{ auth()->user()->role->name ?? "guest" }}',
     
-    // Role-based permissions mapping
+    // Role-based permissions mapping - ALL ROLES HAVE ANALYTICS
     rolePermissions: {
       'sysadmin': [
-        'dashboard', 'calendar',
+        'analytics', 'dashboard', 'calendar',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
@@ -172,7 +172,7 @@ document.addEventListener('alpine:init', () => {
         'ui_elements', 'alerts', 'avatars', 'badges', 'buttons', 'images', 'videos'
       ],
       'admin': [
-        'dashboard',
+        'analytics', 'dashboard',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
@@ -182,41 +182,41 @@ document.addEventListener('alpine:init', () => {
         'users', 'staff',
       ],
       'property_manager': [
-        'dashboard',
+        'analytics', 'dashboard',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 
         'maintenance',
       ],
       'accountant': [
-        'dashboard', 
+        'analytics', 'dashboard', 
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'users', 'staff',
       ],
       'meter_reader': [
-        'dashboard',
+        'analytics', 'dashboard',
         'water', 'water_readings'
       ],
       'cleaning_staff': [
-        'dashboard',
+        'analytics', 'dashboard',
         'maintenance'
       ],
       'maintenance': [
-        'dashboard',
+        'analytics', 'dashboard',
         'maintenance'
       ],
       'security': [
-        'dashboard',
+        'analytics', 'dashboard',
         'security', 'security_logs'
       ],
       'tenant': [
-        'dashboard',
+        'analytics', 'dashboard',
         'finance', 'invoices', 'payments',
         'property', 'tenancies',
         'maintenance',
         'security', 'security_logs'
       ],
       'guest': [
-        'dashboard'
+        'analytics', 'dashboard'
       ]
     },
 
@@ -226,12 +226,12 @@ document.addEventListener('alpine:init', () => {
         title: 'MENU',
         items: [
           {
-            name: 'Dashboard',
-            label: 'Dashboard',
-            link: '/dashboard',
-            page: 'dashboard',
-            permission: 'dashboard',
-            icon: 'M5.5 3.25C4.25736 3.25 3.25 4.25736 3.25 5.5V8.99998C3.25 10.2426 4.25736 11.25 5.5 11.25H9C10.2426 11.25 11.25 10.2426 11.25 8.99998V5.5C11.25 4.25736 10.2426 3.25 9 3.25H5.5ZM4.75 5.5C4.75 5.08579 5.08579 4.75 5.5 4.75H9C9.41421 4.75 9.75 5.08579 9.75 5.5V8.99998C9.75 9.41419 9.41421 9.74998 9 9.74998H5.5C5.08579 9.74998 4.75 9.41419 4.75 8.99998V5.5ZM5.5 12.75C4.25736 12.75 3.25 13.7574 3.25 15V18.5C3.25 19.7426 4.25736 20.75 5.5 20.75H9C10.2426 20.75 11.25 19.7427 11.25 18.5V15C11.25 13.7574 10.2426 12.75 9 12.75H5.5ZM4.75 15C4.75 14.5858 5.08579 14.25 5.5 14.25H9C9.41421 14.25 9.75 14.5858 9.75 15V18.5C9.75 18.9142 9.41421 19.25 9 19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5V15ZM12.75 5.5C12.75 4.25736 13.7574 3.25 15 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V8.99998C20.75 10.2426 19.7426 11.25 18.5 11.25H15C13.7574 11.25 12.75 10.2426 12.75 8.99998V5.5ZM15 4.75C14.5858 4.75 14.25 5.08579 14.25 5.5V8.99998C14.25 9.41419 14.5858 9.74998 15 9.74998H18.5C18.9142 9.74998 19.25 9.41419 19.25 8.99998V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H15ZM15 12.75C13.7574 12.75 12.75 13.7574 12.75 15V18.5C12.75 19.2426 13.7574 20.75 15 20.75H18.5C19.7426 20.75 20.75 19.7427 20.75 18.5V15C20.75 13.7574 19.7426 12.75 18.5 12.75H15ZM14.25 15C14.25 14.5858 14.5858 14.25 15 14.25H18.5C18.9142 14.25 19.25 14.5858 19.25 15V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15C14.5858 19.25 14.25 18.9142 14.25 18.5V15Z'
+            name: 'Analytics',
+            label: 'Analytics',
+            link: '/analytics',
+            page: 'analytics',
+            permission: 'analytics',
+            icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
           },
           {
             name: 'Calendar',
@@ -643,7 +643,7 @@ document.addEventListener('alpine:init', () => {
       if (parentItem) {
         this.selected = parentItem.name; // Open the parent dropdown
       } else {
-        // If no parent (like Dashboard), close any open dropdowns
+        // If no parent (like Analytics), close any open dropdowns
         this.selected = '';
       }
       
@@ -668,34 +668,18 @@ document.addEventListener('alpine:init', () => {
       }
       return null;
     },
-    
-    findParentItem(page) {
-      if (!page) return null;
-      
-      for (const group of this.menuData) {
-        for (const item of group.items) {
-          if (item.children) {
-            for (const child of item.children) {
-              if (child.page === page) {
-                return item;
-              }
-            }
-          }
-        }
-      }
-      return null;
-    },
 
     setInitialActivePage() {
       // Get the current path
       const path = window.location.pathname;
       
       // Handle different path patterns
-      let pageKey = 'dashboard';
+      let pageKey = 'analytics';
       
       // Check for exact matches first
       const exactMatches = {
-        '/dashboard': 'dashboard',
+        '/analytics': 'analytics',
+        '/dashboard': 'analytics',
         '/calendar': 'calendar',
         '/profile': 'profile',
         '/estates': 'estates',
@@ -754,8 +738,8 @@ document.addEventListener('alpine:init', () => {
         } else if (path.includes('/admin/')) {
           page = 'companies';
         } else {
-          // Default to dashboard
-          page = 'dashboard';
+          // Default to analytics
+          page = 'analytics';
         }
       }
       
