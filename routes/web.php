@@ -24,55 +24,14 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\DashboardController;
 
 // ============================================
-// DASHBOARD ROUTE - FIX FOR SECURITY MODULE
+// DASHBOARD ROUTE - USING DASHBOARD CONTROLLER
 // ============================================
-Route::get('/dashboard', function () {
-    $user = auth()->user();
-    
-    // Check if user has security role
-    if ($user->hasRole('security')) {
-        $controller = new \App\Http\Controllers\SecurityController();
-        return $controller->index();
-    }
-    
-    // For other roles, use their respective dashboards
-    if ($user->hasRole('sysadmin')) {
-        return view('partials.dashboard.sys-admin');
-    } elseif ($user->hasRole('admin')) {
-        return view('partials.dashboard.admin');
-    } elseif ($user->hasRole('tenant')) {
-        // Define stats for tenant dashboard
-        $stats = [
-            'total_invoices' => 0,
-            'pending_payments' => 0,
-            'overdue_payments' => 0,
-            'total_paid' => 0,
-        ];
-        
-        // Define wallet data for tenant dashboard
-        $walletData = [
-            'balance' => 0,
-            'pending' => 0,
-            'total_deposits' => 0,
-        ];
-        
-        return view('partials.dashboard.tenant', compact('stats', 'walletData'));
-    } elseif ($user->hasRole('property_manager')) {
-        return view('partials.dashboard.property-manager');
-    } elseif ($user->hasRole('accountant')) {
-        return view('partials.dashboard.accountant');
-    } elseif ($user->hasRole('meter_reader')) {
-        return view('partials.dashboard.meter-reader');
-    } elseif ($user->hasRole('cleaning_staff')) {
-        return view('partials.dashboard.cleaning-staff');
-    } elseif ($user->hasRole('maintenance')) {
-        return view('partials.dashboard.maintenance');
-    } else {
-        return view('partials.dashboard.pending');
-    }
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // ============================================
 // SECURITY DASHBOARD ROUTE - FOR SIDEBAR LINK
@@ -82,16 +41,26 @@ Route::get('/security/dashboard', [SecurityController::class, 'index'])
     ->name('security.dashboard');
 
 // ============================================
+// ANALYTICS DASHBOARD ROUTE
+// ============================================
+Route::get('/analytics', [AnalyticsController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('analytics');
+
+// ============================================
 // PUBLIC ROUTES
 // ============================================
 Route::get('/', function () {
     return view('welcome');
 });
 
-// Email Verification Routes
-Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
+// ============================================
+// EMAIL VERIFICATION ROUTES - COMMENTED OUT
+// These are already defined in auth.php to avoid duplication
+// ============================================
+// Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
+// Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
+// Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
 
 // ============================================
 // AUTHENTICATION ROUTES
@@ -106,13 +75,6 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 // AUTHENTICATED ROUTES
 // ============================================
 Route::middleware(['auth'])->group(function () {
-
-    // ============================================
-    // ANALYTICS DASHBOARD
-    // ============================================
-    Route::get('/analytics', [AnalyticsController::class, 'index'])
-        ->middleware(['verified'])
-        ->name('analytics');
 
     Route::get('mtickets', function () {
         return view('mtickets');
@@ -238,7 +200,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tenancies/{tenancy}/payments', [PaymentController::class, 'store'])->name('tenancies.payments.store');
 
     // ============================================
-    // INVOICE ROUTES
+    // INVOICE ROUTES - FIXED (removed duplicate route names)
     // ============================================
     Route::resource('invoices', InvoiceController::class);
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');
@@ -249,7 +211,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates');
     Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data');
     Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
-    Route::get('/invoices/{invoice}/add-item', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
+    Route::post('/invoices/{invoice}/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
     Route::put('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
     Route::delete('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
     Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
@@ -258,12 +220,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('tenancies.invoices.store');
         Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('tenancies.invoices.index');
         Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('tenancies.invoices.check');
-    });
-
-    Route::prefix('invoices/{invoice}')->group(function () {
-        Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
-        Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
-        Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
     });
 
     // ============================================

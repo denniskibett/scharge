@@ -72,6 +72,12 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::post('/campaigns/{campaign}/cancel', [CampaignController::class, 'cancel'])->name('sms.campaigns.cancel');
     Route::post('/campaigns/{campaign}/resend-failed', [CampaignController::class, 'resendFailed'])->name('sms.campaigns.resend-failed');
     
+    // 🆕 INDIVIDUAL RESEND ROUTE
+    Route::post('/campaigns/{campaign}/recipient/{recipient}/resend', [CampaignController::class, 'resendRecipient'])->name('sms.campaigns.resend-recipient');
+    
+    // 🆕 TEST SEND ROUTE
+    Route::post('/campaigns/{campaign}/test-send', [CampaignController::class, 'testSend'])->name('sms.campaigns.test-send');
+    
     // Reports & Export
     Route::get('/campaigns/{campaign}/export', [CampaignController::class, 'export'])->name('sms.campaigns.export');
     Route::get('/campaigns/{campaign}/status', [CampaignController::class, 'status'])->name('sms.campaigns.status');
@@ -119,7 +125,6 @@ Route::post('/mpesa/b2b/queue', [MpesaController::class, 'b2bQueueTimeout'])
 // =========================================================
 // 🧪 TEST ROUTES - KenyaSMS
 // =========================================================
-
 Route::get('/sms/test-kenyasms', function() {
     try {
         $sms = new \App\Modules\SMS\Services\KenyaSMSService();

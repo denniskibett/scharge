@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use App\Helpers\SystemHelper;
 
 class SystemServiceProvider extends ServiceProvider
 {
@@ -13,11 +14,13 @@ class SystemServiceProvider extends ServiceProvider
     {
         // Register SystemHelper as a singleton
         $this->app->singleton('system.helper', function ($app) {
-            return new \App\Helpers\SystemHelper();
+            return new SystemHelper();
         });
         
-        // Create alias for easier access
-        class_alias(\App\Helpers\SystemHelper::class, 'SystemHelper');
+        // Create alias for easier access - only if it doesn't already exist
+        if (!class_exists('SystemHelper')) {
+            class_alias(SystemHelper::class, 'SystemHelper');
+        }
     }
 
     /**

@@ -150,19 +150,19 @@
 document.addEventListener('alpine:init', () => {
   Alpine.data('sidebarMenu', () => ({
     selected: Alpine.$persist(''), // Start with no dropdowns open
-    activePage: Alpine.$persist('analytics'),
-    activeItemLabel: Alpine.$persist('Analytics'),
+    activePage: Alpine.$persist('dashboard'),
+    activeItemLabel: Alpine.$persist('Dashboard'),
     userRole: '{{ auth()->user()->role->name ?? "guest" }}',
     
-    // Role-based permissions mapping - ALL ROLES HAVE ANALYTICS
+    // Role-based permissions mapping
     rolePermissions: {
       'sysadmin': [
-        'analytics', 'dashboard', 'calendar',
+        'dashboard', 'analytics', 'calendar',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
         'maintenance',
-        'security', 'security_dashboard',
+        'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
         'forms', 'form_elements',
@@ -172,51 +172,51 @@ document.addEventListener('alpine:init', () => {
         'ui_elements', 'alerts', 'avatars', 'badges', 'buttons', 'images', 'videos'
       ],
       'admin': [
-        'analytics', 'dashboard',
+        'dashboard', 'analytics',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
         'maintenance',
-        'security', 'security_dashboard',
+        'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
         'users', 'staff',
       ],
       'property_manager': [
-        'analytics', 'dashboard',
+        'dashboard', 'analytics',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 
         'maintenance',
       ],
       'accountant': [
-        'analytics', 'dashboard', 
+        'dashboard', 'analytics',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'users', 'staff',
       ],
       'meter_reader': [
-        'analytics', 'dashboard',
+        'dashboard',
         'water', 'water_readings'
       ],
       'cleaning_staff': [
-        'analytics', 'dashboard',
+        'dashboard',
         'maintenance'
       ],
       'maintenance': [
-        'analytics', 'dashboard',
+        'dashboard',
         'maintenance'
       ],
       'security': [
-        'analytics', 'dashboard',
-        'security', 'security_dashboard'
+        'dashboard',
+        'security', 'security_logs'
       ],
       'tenant': [
-        'analytics', 'dashboard',
+        'dashboard',
         'finance', 'invoices', 'payments',
         'property', 'tenancies',
         'maintenance',
-        'security', 'security_dashboard'
+        'security', 'security_logs'
       ],
       'guest': [
-        'analytics', 'dashboard'
+        'dashboard'
       ]
     },
 
@@ -225,6 +225,14 @@ document.addEventListener('alpine:init', () => {
       {
         title: 'MENU',
         items: [
+          {
+            name: 'Dashboard',
+            label: 'Dashboard',
+            link: '/dashboard',
+            page: 'dashboard',
+            permission: 'dashboard',
+            icon: 'M5.5 3.25C4.25736 3.25 3.25 4.25736 3.25 5.5V8.99998C3.25 10.2426 4.25736 11.25 5.5 11.25H9C10.2426 11.25 11.25 10.2426 11.25 8.99998V5.5C11.25 4.25736 10.2426 3.25 9 3.25H5.5ZM4.75 5.5C4.75 5.08579 5.08579 4.75 5.5 4.75H9C9.41421 4.75 9.75 5.08579 9.75 5.5V8.99998C9.75 9.41419 9.41421 9.74998 9 9.74998H5.5C5.08579 9.74998 4.75 9.41419 4.75 8.99998V5.5ZM5.5 12.75C4.25736 12.75 3.25 13.7574 3.25 15V18.5C3.25 19.7426 4.25736 20.75 5.5 20.75H9C10.2426 20.75 11.25 19.7427 11.25 18.5V15C11.25 13.7574 10.2426 12.75 9 12.75H5.5ZM4.75 15C4.75 14.5858 5.08579 14.25 5.5 14.25H9C9.41421 14.25 9.75 14.5858 9.75 15V18.5C9.75 18.9142 9.41421 19.25 9 19.25H5.5C5.08579 19.25 4.75 18.9142 4.75 18.5V15ZM12.75 5.5C12.75 4.25736 13.7574 3.25 15 3.25H18.5C19.7426 3.25 20.75 4.25736 20.75 5.5V8.99998C20.75 10.2426 19.7426 11.25 18.5 11.25H15C13.7574 11.25 12.75 10.2426 12.75 8.99998V5.5ZM15 4.75C14.5858 4.75 14.25 5.08579 14.25 5.5V8.99998C14.25 9.41419 14.5858 9.74998 15 9.74998H18.5C18.9142 9.74998 19.25 9.41419 19.25 8.99998V5.5C19.25 5.08579 18.9142 4.75 18.5 4.75H15ZM15 12.75C13.7574 12.75 12.75 13.7574 12.75 15V18.5C12.75 19.2426 13.7574 20.75 15 20.75H18.5C19.7426 20.75 20.75 19.7427 20.75 18.5V15C20.75 13.7574 19.7426 12.75 18.5 12.75H15ZM14.25 15C14.25 14.5858 14.5858 14.25 15 14.25H18.5C18.9142 14.25 19.25 14.5858 19.25 15V18.5C19.25 18.9142 18.9142 19.25 18.5 19.25H15C14.5858 19.25 14.25 18.9142 14.25 18.5V15Z'
+          },
           {
             name: 'Analytics',
             label: 'Analytics',
@@ -362,8 +370,8 @@ document.addEventListener('alpine:init', () => {
           {
             name: 'Security',
             label: 'Security',
-            link: '/security/dashboard',
-            page: 'securityDashboard',
+            link: '/security/logs',
+            page: 'securityLogs',
             permission: 'security',
             icon: 'M12 2C12.4142 2 12.75 2.33579 12.75 2.75V4.25C16.1668 4.25 19.25 7.33317 19.25 10.75V18.5C19.25 20.0188 18.0188 21.25 16.5 21.25H7.5C5.98122 21.25 4.75 20.0188 4.75 18.5V10.75C4.75 7.33317 7.83317 4.25 11.25 4.25V2.75C11.25 2.33579 11.5858 2 12 2ZM11.25 5.75C8.48858 5.75 6.25 7.98858 6.25 10.75V18.5C6.25 19.1904 6.80964 19.75 7.5 19.75H16.5C17.1904 19.75 17.75 19.1904 17.75 18.5V10.75C17.75 7.98858 15.5114 5.75 12.75 5.75H11.25ZM12 9.25C12.4142 9.25 12.75 9.58579 12.75 10V15C12.75 15.4142 12.4142 15.75 12 15.75C11.5858 15.75 11.25 15.4142 11.25 15V10C11.25 9.58579 11.5858 9.25 12 9.25Z'
           }
@@ -643,7 +651,7 @@ document.addEventListener('alpine:init', () => {
       if (parentItem) {
         this.selected = parentItem.name; // Open the parent dropdown
       } else {
-        // If no parent (like Analytics), close any open dropdowns
+        // If no parent (like Dashboard), close any open dropdowns
         this.selected = '';
       }
       
@@ -668,18 +676,35 @@ document.addEventListener('alpine:init', () => {
       }
       return null;
     },
+    
+    findParentItem(page) {
+      if (!page) return null;
+      
+      for (const group of this.menuData) {
+        for (const item of group.items) {
+          if (item.children) {
+            for (const child of item.children) {
+              if (child.page === page) {
+                return item;
+              }
+            }
+          }
+        }
+      }
+      return null;
+    },
 
     setInitialActivePage() {
       // Get the current path
       const path = window.location.pathname;
       
       // Handle different path patterns
-      let pageKey = 'analytics';
+      let pageKey = 'dashboard';
       
       // Check for exact matches first
       const exactMatches = {
+        '/dashboard': 'dashboard',
         '/analytics': 'analytics',
-        '/dashboard': 'analytics',
         '/calendar': 'calendar',
         '/profile': 'profile',
         '/estates': 'estates',
@@ -692,7 +717,7 @@ document.addEventListener('alpine:init', () => {
         '/expenses': 'expenses',
         '/water': 'water',
         '/maintenance': 'maintenance',
-        '/security/dashboard': 'securityDashboard',
+        '/security/logs': 'securityLogs',
         '/sms/broadcast': 'smsSend',
         '/sms/history': 'smsHistory',
         '/sms/templates': 'smsTemplates',
@@ -734,13 +759,12 @@ document.addEventListener('alpine:init', () => {
           if (path.includes('/reports')) page = 'waterReports';
           else page = 'water';
         } else if (path.includes('/security/')) {
-          // Handle security pages - now uses securityDashboard
-          page = 'securityDashboard';
+          page = 'securityLogs';
         } else if (path.includes('/admin/')) {
           page = 'companies';
         } else {
-          // Default to analytics
-          page = 'analytics';
+          // Default to dashboard
+          page = 'dashboard';
         }
       }
       

@@ -32,8 +32,13 @@ class InvoiceController extends Controller
             ];
         });
         
+        // ✅ FIXED: Safe handling for invoices without tenancy
         $paymentInvoices = Invoice::with('items', 'tenancy.tenant.user')->get()->map(function ($invoice) {
-            $payerName = optional(optional($invoice->tenancy)->tenant->user)->name ?? 'N/A';
+            // ✅ Check if tenancy exists before accessing tenant
+            $payerName = 'N/A';
+            if ($invoice->tenancy && $invoice->tenancy->tenant) {
+                $payerName = optional($invoice->tenancy->tenant->user)->name ?? 'N/A';
+            }
             
             $itemsLabel = $invoice->items->count()
                 ? $invoice->items
@@ -51,9 +56,25 @@ class InvoiceController extends Controller
             ];
         });
 
+        // ✅ FIXED: Safe handling for invoices without tenancy
         $mappedInvoices = $invoices->map(function($invoice) {
             $paidAmount = (float) $invoice->payments->sum('amount');
             $remainingAmount = (float) ($invoice->total_amount - $paidAmount);
+            
+            // ✅ Check if tenancy exists before accessing tenant/unit
+            $tenantName = '-';
+            $unitNumber = '-';
+            $tenantId = null;
+            $unitId = null;
+            
+            if ($invoice->tenancy) {
+                if ($invoice->tenancy->tenant && $invoice->tenancy->tenant->user) {
+                    $tenantName = $invoice->tenancy->tenant->user->name ?? '-';
+                }
+                $tenantId = $invoice->tenancy->tenant_id ?? null;
+                $unitNumber = $invoice->tenancy->unit->unit_number ?? '-';
+                $unitId = $invoice->tenancy->unit_id ?? null;
+            }
             
             // Get water item status
             $waterItem = $invoice->items->firstWhere('item_type', 'water');
@@ -74,10 +95,10 @@ class InvoiceController extends Controller
             return [
                 'id' => $invoice->id,
                 'invoice_number' => $invoice->invoice_number ?? 'INV-' . str_pad($invoice->id, 6, '0', STR_PAD_LEFT),
-                'tenant_name' => $invoice->tenancy->tenant->user->name ?? '-',
-                'tenant_id' => $invoice->tenancy->tenant_id ?? null,
-                'unit_number' => $invoice->tenancy->unit->unit_number ?? '-',
-                'unit_id' => $invoice->tenancy->unit_id ?? null,
+                'tenant_name' => $tenantName,
+                'tenant_id' => $tenantId,
+                'unit_number' => $unitNumber,
+                'unit_id' => $unitId,
                 'invoice_type' => $invoice->invoice_type,
                 'billing_month' => $invoice->billing_month,
                 'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
@@ -921,7 +942,11 @@ class InvoiceController extends Controller
         $invoices = Invoice::with('items', 'tenancy.tenant.user')
             ->get()
             ->map(function ($inv) {
-                $payerName = optional(optional($inv->tenancy)->tenant->user)->name ?? 'N/A';
+                // ✅ FIXED: Safe handling for invoices without tenancy
+                $payerName = 'N/A';
+                if ($inv->tenancy && $inv->tenancy->tenant) {
+                    $payerName = optional($inv->tenancy->tenant->user)->name ?? 'N/A';
+                }
                 $itemsLabel = $inv->items->count()
                     ? $inv->items->map(fn($item) => ($item->item_type ?? 'Item') . ($item->description ? ' (' . $item->description . ')' : ''))->implode(', ')
                     : '-';
@@ -1558,23 +1583,41 @@ class InvoiceController extends Controller
                 return ($item->water_units_used ?? 0) > 0;
             });
             
+            // ✅ FIXED: Safe tenant name
+            $tenantName = 'Unknown';
+            if ($invoice->tenancy && $invoice->tenancy->tenant && $invoice->tenancy->tenant->user) {
+                $tenantName = $invoice->tenancy->tenant->user->name ?? 'Unknown';
+            }
+            
+            // ✅ FIXED: Safe unit number
+            $unitNumber = 'N/A';
+            $unitId = null;
+            $estateName = 'N/A';
+            if ($invoice->tenancy && $invoice->tenancy->unit) {
+                $unitNumber = $invoice->tenancy->unit->unit_number ?? 'N/A';
+                $unitId = $invoice->tenancy->unit_id;
+                if ($invoice->tenancy->unit->estate) {
+                    $estateName = $invoice->tenancy->unit->estate->name ?? 'N/A';
+                }
+            }
+            
             return response()->json([
                 'success' => true,
                 'invoice' => [
                     'id' => $invoice->id,
                     'invoice_number' => $invoice->invoice_number ?? 'INV-' . str_pad($invoice->id, 6, '0', STR_PAD_LEFT),
-                    'tenant_id' => $invoice->tenancy->tenant_id,
-                    'tenant_name' => $invoice->tenancy->tenant->user->name ?? 'Unknown',
-                    'unit_number' => $invoice->tenancy->unit->unit_number ?? 'N/A',
-                    'unit_id' => $invoice->tenancy->unit_id,
-                    'estate_name' => $invoice->tenancy->unit->estate->name ?? 'N/A',
+                    'tenant_id' => $invoice->tenancy->tenant_id ?? null,
+                    'tenant_name' => $tenantName,
+                    'unit_number' => $unitNumber,
+                    'unit_id' => $unitId,
+                    'estate_name' => $estateName,
                     'billing_month' => $invoice->billing_month,
                     'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('F Y') : '-',
                     'total_amount' => (float) $invoice->total_amount,
                     'paid_amount' => $paidAmount,
                     'remaining_amount' => $remainingAmount,
                     'status' => $invoice->status,
-                    'payment_percentage' => $invoice->payment_percentage,
+                    'payment_percentage' => $invoice->payment_percentage ?? ($invoice->total_amount > 0 ? round(($paidAmount / $invoice->total_amount) * 100) : 0),
                     'water_synced' => $waterSynced,
                     'items' => $invoice->items->map(function($item) {
                         return [

@@ -9,11 +9,14 @@ use App\Modules\SMS\Services\CampaignService;
 use App\Modules\SMS\Services\KenyaSMSService;
 use App\Modules\Properties\Models\Unit;
 use App\Models\Estate;
+use App\Models\Invoice;
+use App\Models\Tenancy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class CampaignController extends Controller
 {
@@ -62,9 +65,16 @@ class CampaignController extends Controller
     /**
      * Show form to create a new campaign
      */
-    public function create()
+    public function create(Request $request)
     {
         $estates = Estate::all();
+        
+        // 🆕 Get filter from query parameter
+        $filter = $request->query('filter');
+        $preFilter = null;
+        if ($filter && in_array($filter, ['paid', 'unpaid', 'partial', 'pending'])) {
+            $preFilter = $filter;
+        }
         
         // Get templates from database
         $templates = \App\Modules\SMS\Models\SmsTemplate::all();
@@ -85,12 +95,12 @@ class CampaignController extends Controller
                 (object) [
                     'id' => 3, 
                     'name' => 'Water Consumption Summary', 
-                    'content' => "{{estate_name}} - {{month}} Water Bill\nUnit: {{unit}}\nConsumption: {{water_consumption}} units\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nPaybill: 7263733 Acc: {{unit}}"
+                    'content' => "{{estate_name}} - {{month}} Water Bill\nUnit: {{unit}}\nConsumption: {{water_consumption}} units\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nPaybill: 7263733 Acc: {{unit}}\n\n{{payment_status}}\n\nFor queries: 0701262902"
                 ],
             ]);
         }
         
-        return view('sms.campaigns.create', compact('estates', 'templates'));
+        return view('sms.campaigns.create', compact('estates', 'templates', 'preFilter'));
     }
 
     /**
@@ -111,7 +121,7 @@ class CampaignController extends Controller
                 'message_type' => 'nullable|string|in:transactional,promotional',
                 'scheduled_at' => 'nullable|date|after:now',
                 'filters' => 'nullable|array',
-                'filters.payment_status' => 'nullable|string|in:unpaid,paid,pending',
+                'filters.payment_status' => 'nullable|string|in:unpaid,paid,pending,partial',
                 'filters.min_bill_amount' => 'nullable|numeric|min:0',
             ]);
 
@@ -122,8 +132,20 @@ class CampaignController extends Controller
 
             Log::info('VALIDATION PASSED');
 
-            // Get recipients based on filters
-            $recipients = $this->getRecipients($request->estate_id, $request->filters ?? []);
+            // ✅ Convert billing month to Y-m format for invoice lookup
+            $billingMonth = $request->billing_month;
+            if (!preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
+                try {
+                    $billingMonth = Carbon::parse($billingMonth)->format('Y-m');
+                } catch (\Exception $e) {
+                    Log::warning('Could not parse billing month: ' . $billingMonth . ', using current month');
+                    $billingMonth = now()->format('Y-m');
+                }
+            }
+            Log::info('BILLING MONTH CONVERTED', ['original' => $request->billing_month, 'converted' => $billingMonth]);
+
+            // ✅ Pass the converted billing_month to getRecipients
+            $recipients = $this->getRecipients($request->estate_id, $request->filters ?? [], $billingMonth);
             
             Log::info('RECIPIENTS FOUND', ['count' => count($recipients)]);
             
@@ -136,11 +158,11 @@ class CampaignController extends Controller
 
             DB::beginTransaction();
 
-            // Create campaign
+            // Create campaign with the converted billing month
             $campaign = Campaign::create([
                 'name' => $request->name,
                 'estate_id' => $request->estate_id,
-                'billing_month' => $request->billing_month,
+                'billing_month' => $billingMonth,
                 'message' => $request->message,
                 'sender_id' => $request->sender_id ?? config('sms.sender_id', 'SHARETENT'),
                 'message_type' => $request->message_type ?? 'transactional',
@@ -170,6 +192,10 @@ class CampaignController extends Controller
                     'consumption' => $recipient['consumption'] ?? null,
                     'water_bill' => $recipient['water_bill'] ?? 0,
                     'payment_status' => $recipient['payment_status'] ?? 'pending',
+                    'pending_count' => $recipient['pending_count'] ?? 0,
+                    'pending_months' => $recipient['pending_months'] ?? null,
+                    'total_pending_amount' => $recipient['total_pending_amount'] ?? 0,
+                    'has_pending' => $recipient['has_pending'] ?? false,
                     'due_date' => $recipient['due_date'] ?? null,
                     'status' => 'pending',
                     'cost_per_sms' => $campaign->cost_per_sms,
@@ -281,11 +307,21 @@ class CampaignController extends Controller
         try {
             DB::beginTransaction();
 
+            // Convert billing month to Y-m format
+            $billingMonth = $request->billing_month;
+            if (!preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
+                try {
+                    $billingMonth = Carbon::parse($billingMonth)->format('Y-m');
+                } catch (\Exception $e) {
+                    $billingMonth = $campaign->billing_month;
+                }
+            }
+
             // Update campaign
             $campaign->update([
                 'name' => $request->name,
                 'estate_id' => $request->estate_id,
-                'billing_month' => $request->billing_month,
+                'billing_month' => $billingMonth,
                 'message' => $request->message,
                 'sender_id' => $request->sender_id ?? $campaign->sender_id,
                 'message_type' => $request->message_type ?? $campaign->message_type,
@@ -440,7 +476,7 @@ class CampaignController extends Controller
     }
 
     /**
-     * Resend failed messages
+     * Resend failed messages (Bulk)
      */
     public function resendFailed($id)
     {
@@ -459,6 +495,146 @@ class CampaignController extends Controller
 
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Failed to resend: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 🆕 Resend a single recipient (Supports failed AND pending for testing)
+     */
+    public function resendRecipient($campaignId, $recipientId)
+    {
+        try {
+            $campaign = Campaign::findOrFail($campaignId);
+            $recipient = CampaignRecipient::findOrFail($recipientId);
+            
+            // ✅ Allow pending AND failed recipients for testing
+            if (!in_array($recipient->status, ['failed', 'pending'])) {
+                return redirect()->back()->with('error', 'Only failed or pending recipients can be resent.');
+            }
+            
+            // Reset recipient status
+            $recipient->status = 'pending';
+            $recipient->failure_reason = null;
+            $recipient->failed_at = null;
+            $recipient->retry_count = ($recipient->retry_count ?? 0) + 1;
+            $recipient->last_retry_at = now();
+            $recipient->save();
+            
+            // Send SMS to this single recipient
+            $messages = [
+                [
+                    'phone' => $recipient->phone,
+                    'message' => $recipient->message,
+                ]
+            ];
+            
+            $response = $this->smsService->sendPersonalized($messages, [
+                'sender_id' => $campaign->sender_id,
+                'message_type' => $campaign->message_type ?? 'transactional',
+                'callback_url' => route('sms.webhook.dlr'),
+            ]);
+            
+            // Update recipient status based on response
+            if (isset($response['success']) && $response['success']) {
+                $recipient->status = 'sent';
+                $recipient->sent_at = now();
+                
+                // Store external message ID if available
+                if (isset($response['data']['messages'][0]['id'])) {
+                    $recipient->external_message_id = $response['data']['messages'][0]['id'];
+                }
+                
+                $recipient->save();
+                
+                // Update campaign stats
+                $campaign->sent_count = ($campaign->sent_count ?? 0) + 1;
+                $campaign->save();
+                
+                return redirect()->back()->with('success', '✅ SMS sent successfully to ' . ($recipient->tenant_name ?? $recipient->phone) . '!');
+            } else {
+                $recipient->status = 'failed';
+                $recipient->failure_reason = $response['message'] ?? 'Unknown error';
+                $recipient->failed_at = now();
+                $recipient->save();
+                
+                return redirect()->back()->with('error', 'Failed to send SMS: ' . ($response['message'] ?? 'Unknown error'));
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('RESEND RECIPIENT ERROR: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+            
+            return redirect()->back()->with('error', 'Failed to send SMS: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 🆕 Send a test SMS to the authenticated user only
+     */
+    public function testSend($campaignId)
+    {
+        try {
+            $campaign = Campaign::findOrFail($campaignId);
+            $user = Auth::user();
+            
+            if (!$user || !$user->phone) {
+                return redirect()->back()->with('error', 'You don\'t have a phone number set in your profile. Please update your profile.');
+            }
+            
+            // Get a sample recipient for data
+            $sampleRecipient = $campaign->recipients()->first();
+            
+            if (!$sampleRecipient) {
+                return redirect()->back()->with('error', 'No recipients found in this campaign.');
+            }
+            
+            // Create test data with sample values
+            $testData = [
+                'estate_name' => $campaign->estate->name ?? 'Test Estate',
+                'month' => $campaign->billing_month ?? now()->format('F Y'),
+                'unit' => 'TEST-001',
+                'unit_number' => 'TEST-001',
+                'water_bill' => '500.00',
+                'water_consumption' => '25',
+                'previous_reading' => '100',
+                'current_reading' => '125',
+                'due_date' => now()->addDays(7)->format('Y-m-d'),
+                'payment_status' => 'pending',
+                'tenant_name' => $user->name ?? 'Test User',
+                'name' => $user->name ?? 'Test User',
+            ];
+            
+            // Personalize the message
+            $personalizedMessage = $this->personalizeMessage($campaign->message, $testData);
+            
+            // Add test header
+            $finalMessage = "🧪 TEST SMS\n━━━━━━━━━━━━━━━━━━\n" . 
+                            $personalizedMessage . 
+                            "\n━━━━━━━━━━━━━━━━━━\n📱 Test from " . config('app.name');
+            
+            // Send the test SMS
+            $messages = [
+                [
+                    'phone' => $user->phone,
+                    'message' => $finalMessage,
+                ]
+            ];
+            
+            $response = $this->smsService->sendPersonalized($messages, [
+                'sender_id' => $campaign->sender_id,
+                'message_type' => $campaign->message_type ?? 'transactional',
+                'callback_url' => route('sms.webhook.dlr'),
+            ]);
+            
+            if (isset($response['success']) && $response['success']) {
+                return redirect()->back()->with('success', '✅ Test SMS sent successfully to ' . $user->phone . '! Please check your phone.');
+            } else {
+                return redirect()->back()->with('error', 'Failed to send test SMS: ' . ($response['message'] ?? 'Unknown error'));
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('TEST SEND ERROR: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to send test SMS: ' . $e->getMessage());
         }
     }
 
@@ -498,17 +674,216 @@ class CampaignController extends Controller
     }
 
     /**
-     * Get recipients based on filters
+     * 🆕 Get full invoice status with details for SMS
+     * 
+     * @param int|null $tenantId
+     * @param int|null $unitId
+     * @param string $billingMonth (format: Y-m)
+     * @return array
      */
-    private function getRecipients($estateId, $filters = [])
+    private function getInvoiceStatusForTenant($tenantId, $unitId, $billingMonth)
     {
-        Log::info('GET RECIPIENTS CALLED', ['estate_id' => $estateId, 'filters' => $filters]);
+        try {
+            // ✅ Convert billing month to Y-m format if needed
+            if (!preg_match('/^\d{4}-\d{2}$/', $billingMonth)) {
+                try {
+                    $billingMonth = Carbon::parse($billingMonth)->format('Y-m');
+                } catch (\Exception $e) {
+                    Log::warning('Could not parse billing month: ' . $billingMonth . ', using current month');
+                    $billingMonth = now()->format('Y-m');
+                }
+            }
+            
+            Log::info('🔍 getInvoiceStatusForTenant called', [
+                'tenant_id' => $tenantId,
+                'unit_id' => $unitId,
+                'billing_month' => $billingMonth
+            ]);
+            
+            if (!$tenantId || !$unitId) {
+                return [
+                    'status' => 'pending',
+                    'message' => 'Pending',
+                    'status_icon' => '🟠',
+                    'pending_count' => 0,
+                    'pending_months' => [],
+                    'total_pending_amount' => 0,
+                    'remaining_amount' => 0,
+                    'has_pending' => false,
+                    'display_text' => 'Status: Pending'
+                ];
+            }
+            
+            // Find the tenancy
+            $tenancy = Tenancy::where('tenant_id', $tenantId)
+                ->where('unit_id', $unitId)
+                ->where('status', 'active')
+                ->first();
+            
+            if (!$tenancy) {
+                $tenancy = Tenancy::where('tenant_id', $tenantId)
+                    ->where('status', 'active')
+                    ->first();
+                
+                if (!$tenancy) {
+                    return [
+                        'status' => 'no_tenancy',
+                        'message' => 'No Active Tenancy',
+                        'status_icon' => '❌',
+                        'pending_count' => 0,
+                        'pending_months' => [],
+                        'total_pending_amount' => 0,
+                        'remaining_amount' => 0,
+                        'has_pending' => false,
+                        'display_text' => 'Status: No Active Tenancy'
+                    ];
+                }
+            }
+            
+            // ✅ Use the converted billing month
+            $billingMonthDate = $billingMonth . '-01';
+            
+            // Get current month invoice
+            $currentInvoice = Invoice::where('tenancy_id', $tenancy->id)
+                ->where('billing_month', $billingMonthDate)
+                ->first();
+            
+            Log::info('📊 Invoice lookup result', [
+                'tenancy_id' => $tenancy->id,
+                'billing_month' => $billingMonthDate,
+                'has_invoice' => $currentInvoice ? true : false,
+                'invoice_status' => $currentInvoice ? $currentInvoice->status : 'none'
+            ]);
+            
+            // Get all pending/unpaid invoices (excluding current month)
+            $pendingInvoices = Invoice::where('tenancy_id', $tenancy->id)
+                ->where('status', 'unpaid')
+                ->where('billing_month', '!=', $billingMonthDate)
+                ->orderBy('billing_month', 'asc')
+                ->get();
+            
+            $pendingCount = $pendingInvoices->count();
+            $pendingMonths = $pendingInvoices->map(function($invoice) {
+                return Carbon::parse($invoice->billing_month)->format('F Y');
+            })->toArray();
+            $totalPendingAmount = $pendingInvoices->sum('total_amount');
+            
+            // Determine current status
+            $currentStatus = 'pending';
+            $remainingAmount = 0;
+            $statusMessage = 'Pending';
+            $statusIcon = '🟠';
+            $displayText = 'Status: Pending';
+            
+            if ($currentInvoice) {
+                $currentStatus = $currentInvoice->status;
+                $remainingAmount = $currentInvoice->total_amount - $currentInvoice->total_paid;
+                
+                switch ($currentStatus) {
+                    case 'paid':
+                        $statusMessage = 'PAID';
+                        $statusIcon = '✅';
+                        $displayText = '✅ Payment Status: PAID';
+                        break;
+                    case 'unpaid':
+                        $statusMessage = 'UNPAID';
+                        $statusIcon = '⚠️';
+                        $displayText = '⚠️ Payment Status: UNPAID';
+                        break;
+                    case 'partial':
+                        $statusMessage = 'PARTIAL';
+                        $statusIcon = '🟡';
+                        $displayText = "🟡 Payment Status: PARTIAL (KES " . number_format($remainingAmount, 2) . " remaining)";
+                        break;
+                    default:
+                        $statusMessage = 'Pending';
+                        $statusIcon = '🟠';
+                        $displayText = '🟠 Payment Status: Pending';
+                }
+            }
+            
+            // Build the full display text
+            $fullDisplayText = $displayText;
+            
+            // Add pending invoices warning if any
+            if ($pendingCount > 0) {
+                $monthsList = implode(', ', $pendingMonths);
+                $fullDisplayText .= "\n\n⚠️ You have {$pendingCount} unpaid invoice(s) from: {$monthsList}";
+                $fullDisplayText .= "\nTotal outstanding: KES " . number_format($totalPendingAmount, 2);
+                
+                if ($currentStatus === 'paid') {
+                    $fullDisplayText .= "\n\nPlease clear your outstanding balance.";
+                } elseif ($currentStatus === 'partial') {
+                    $fullDisplayText .= "\n\nPlease complete your payment.";
+                } else {
+                    $fullDisplayText .= "\n\nPlease pay your outstanding balance to avoid disconnection.";
+                }
+            }
+            
+            Log::info('📊 Invoice status result', [
+                'tenant_id' => $tenantId,
+                'status' => $currentStatus,
+                'display_text' => $fullDisplayText,
+                'pending_count' => $pendingCount
+            ]);
+            
+            return [
+                'status' => $currentStatus,
+                'message' => $statusMessage,
+                'status_icon' => $statusIcon,
+                'pending_count' => $pendingCount,
+                'pending_months' => $pendingMonths,
+                'total_pending_amount' => $totalPendingAmount,
+                'remaining_amount' => $remainingAmount,
+                'has_pending' => $pendingCount > 0,
+                'display_text' => $fullDisplayText,
+                'current_invoice' => $currentInvoice,
+            ];
+            
+        } catch (\Exception $e) {
+            Log::error('Error getting invoice status: ' . $e->getMessage());
+            return [
+                'status' => 'pending',
+                'message' => 'Pending',
+                'status_icon' => '🟠',
+                'pending_count' => 0,
+                'pending_months' => [],
+                'total_pending_amount' => 0,
+                'remaining_amount' => 0,
+                'has_pending' => false,
+                'display_text' => 'Status: Pending',
+                'current_invoice' => null,
+            ];
+        }
+    }
+
+    /**
+     * Get recipients based on filters
+     * 
+     * @param int $estateId
+     * @param array $filters
+     * @param string|null $billingMonth (format: Y-m)
+     * @return array
+     */
+    private function getRecipients($estateId, $filters = [], $billingMonth = null)
+    {
+        Log::info('GET RECIPIENTS CALLED', [
+            'estate_id' => $estateId, 
+            'filters' => $filters,
+            'billing_month' => $billingMonth
+        ]);
         
         try {
             // Get all tenants with their unit and user
             $tenants = \App\Modules\Tenants\Models\Tenant::with(['unit', 'user'])->get();
             
             $recipients = [];
+            // ✅ Use the passed billing month or default to current month
+            $billingMonth = $billingMonth ?? now()->format('Y-m');
+            
+            // 🆕 Get the payment status filter
+            $filterPaymentStatus = $filters['payment_status'] ?? 'all';
+            
             foreach ($tenants as $tenant) {
                 // Get the unit through the relationship
                 $unit = $tenant->unit;
@@ -521,6 +896,17 @@ class CampaignController extends Controller
                 // Get the latest water reading
                 $reading = $unit->waterReadings()->latest()->first();
                 
+                // 🆕 Get full invoice status for this tenant
+                $invoiceData = $this->getInvoiceStatusForTenant($tenant->id, $unit->id, $billingMonth);
+                
+                // 🆕 Skip if payment status doesn't match filter
+                if ($filterPaymentStatus !== 'all') {
+                    $status = $invoiceData['status'];
+                    if ($status !== $filterPaymentStatus) {
+                        continue;
+                    }
+                }
+                
                 $recipients[] = [
                     'tenant_id' => $tenant->id,
                     'unit_id' => $unit->id,
@@ -532,7 +918,11 @@ class CampaignController extends Controller
                     'current_reading' => $reading->current_reading ?? 0,
                     'consumption' => $reading->consumption ?? 0,
                     'water_bill' => $reading->water_bill ?? $reading->charge ?? 0,
-                    'payment_status' => 'pending',
+                    'payment_status' => $invoiceData['display_text'],
+                    'pending_count' => $invoiceData['pending_count'],
+                    'pending_months' => json_encode($invoiceData['pending_months']),
+                    'total_pending_amount' => $invoiceData['total_pending_amount'],
+                    'has_pending' => $invoiceData['has_pending'],
                     'due_date' => now()->addDays(7)->format('Y-m-d'),
                     'estate_name' => $unit->estate->name ?? '',
                     'month' => now()->format('F Y'),
@@ -558,9 +948,53 @@ class CampaignController extends Controller
 
     /**
      * Get sample recipients for testing
+     * Now dynamically gets real invoice status
      */
     private function getSampleRecipients()
     {
+        // Try to get a real tenant with invoice data
+        try {
+            $realTenant = \App\Modules\Tenants\Models\Tenant::with(['unit', 'user'])->first();
+            
+            if ($realTenant && $realTenant->unit) {
+                $user = $realTenant->user;
+                $unit = $realTenant->unit;
+                $billingMonth = now()->format('Y-m');
+                
+                // Get invoice status for this real tenant
+                $invoiceData = $this->getInvoiceStatusForTenant($realTenant->id, $unit->id, $billingMonth);
+                
+                // Get a sample reading or create one
+                $reading = $unit->waterReadings()->latest()->first();
+                
+                return [
+                    [
+                        'tenant_id' => $realTenant->id,
+                        'unit_id' => $unit->id,
+                        'phone' => $user->phone ?? '254727371496',
+                        'unit_number' => $unit->unit_number ?? 'A-101',
+                        'tenant_name' => $user->name ?? 'John Doe',
+                        'reading_date' => $reading->reading_date ?? now()->format('Y-m-d'),
+                        'previous_reading' => $reading->previous_reading ?? 100,
+                        'current_reading' => $reading->current_reading ?? 125,
+                        'consumption' => $reading->consumption ?? 25,
+                        'water_bill' => $reading->water_bill ?? $reading->charge ?? 1500.00,
+                        'payment_status' => $invoiceData['display_text'],
+                        'pending_count' => $invoiceData['pending_count'],
+                        'pending_months' => json_encode($invoiceData['pending_months']),
+                        'total_pending_amount' => $invoiceData['total_pending_amount'],
+                        'has_pending' => $invoiceData['has_pending'],
+                        'due_date' => now()->addDays(7)->format('Y-m-d'),
+                        'estate_name' => $unit->estate->name ?? 'Danaff Towers',
+                        'month' => now()->format('F Y'),
+                    ]
+                ];
+            }
+        } catch (\Exception $e) {
+            Log::warning('Could not get real tenant for sample: ' . $e->getMessage());
+        }
+        
+        // Fallback sample data with realistic status
         return [
             [
                 'tenant_id' => 1,
@@ -573,10 +1007,14 @@ class CampaignController extends Controller
                 'current_reading' => 125,
                 'consumption' => 25,
                 'water_bill' => 1500.00,
-                'payment_status' => 'pending',
+                'payment_status' => '⚠️ Payment Status: UNPAID',
+                'pending_count' => 1,
+                'pending_months' => '["June 2026"]',
+                'total_pending_amount' => 750.00,
+                'has_pending' => 1,
                 'due_date' => now()->addDays(7)->format('Y-m-d'),
                 'estate_name' => 'Danaff Towers',
-                'month' => 'July 2026',
+                'month' => now()->format('F Y'),
             ],
             [
                 'tenant_id' => 2,
@@ -589,10 +1027,14 @@ class CampaignController extends Controller
                 'current_reading' => 80,
                 'consumption' => 30,
                 'water_bill' => 1800.00,
-                'payment_status' => 'pending',
+                'payment_status' => '✅ Payment Status: PAID',
+                'pending_count' => 0,
+                'pending_months' => '[]',
+                'total_pending_amount' => 0,
+                'has_pending' => 0,
                 'due_date' => now()->addDays(7)->format('Y-m-d'),
                 'estate_name' => 'Danaff Towers',
-                'month' => 'July 2026',
+                'month' => now()->format('F Y'),
             ],
             [
                 'tenant_id' => 3,
@@ -605,10 +1047,14 @@ class CampaignController extends Controller
                 'current_reading' => 240,
                 'consumption' => 40,
                 'water_bill' => 2400.00,
-                'payment_status' => 'pending',
+                'payment_status' => '🟡 Payment Status: PARTIAL (KES 800.00 remaining)',
+                'pending_count' => 0,
+                'pending_months' => '[]',
+                'total_pending_amount' => 0,
+                'has_pending' => 0,
                 'due_date' => now()->addDays(7)->format('Y-m-d'),
                 'estate_name' => 'Danaff Towers',
-                'month' => 'July 2026',
+                'month' => now()->format('F Y'),
             ],
         ];
     }
@@ -619,6 +1065,23 @@ class CampaignController extends Controller
     private function personalizeMessage($message, $data)
     {
         try {
+            // Build the full payment status display
+            $paymentStatusDisplay = $data['payment_status'] ?? 'Status: Pending';
+            
+            // If there are pending invoices, add them to the message
+            if (isset($data['has_pending']) && $data['has_pending']) {
+                $pendingMonths = json_decode($data['pending_months'] ?? '[]', true);
+                $pendingCount = $data['pending_count'] ?? 0;
+                
+                if ($pendingCount > 0) {
+                    $monthsList = implode(', ', $pendingMonths);
+                    $paymentStatusDisplay .= "\n\n⚠️ You have {$pendingCount} unpaid invoice(s) from: {$monthsList}";
+                    if (isset($data['total_pending_amount']) && $data['total_pending_amount'] > 0) {
+                        $paymentStatusDisplay .= "\nTotal outstanding: KES " . number_format($data['total_pending_amount'], 2);
+                    }
+                }
+            }
+            
             $placeholders = [
                 '{{estate_name}}' => $data['estate_name'] ?? '',
                 '{{month}}' => $data['month'] ?? '',
@@ -629,10 +1092,15 @@ class CampaignController extends Controller
                 '{{prev_read}}' => $data['previous_reading'] ?? '',
                 '{{curr_read}}' => $data['current_reading'] ?? '',
                 '{{due_date}}' => $data['due_date'] ?? '',
-                '{{payment_status}}' => $data['payment_status'] ?? '',
-                '{{status}}' => $data['payment_status'] ?? '',
+                '{{payment_status}}' => $paymentStatusDisplay,
+                '{{status}}' => $data['status_message'] ?? '',
+                '{{status_icon}}' => $data['status_icon'] ?? '🟠',
                 '{{tenant_name}}' => $data['tenant_name'] ?? '',
                 '{{name}}' => $data['tenant_name'] ?? '',
+                '{{remaining_amount}}' => isset($data['remaining_amount']) && $data['remaining_amount'] > 0 ? 'KES ' . number_format($data['remaining_amount'], 2) : '',
+                '{{pending_count}}' => $data['pending_count'] ?? 0,
+                '{{pending_months}}' => isset($data['pending_months']) ? implode(', ', json_decode($data['pending_months'] ?? '[]', true)) : '',
+                '{{total_pending_amount}}' => isset($data['total_pending_amount']) && $data['total_pending_amount'] > 0 ? 'KES ' . number_format($data['total_pending_amount'], 2) : '',
             ];
 
             return str_replace(array_keys($placeholders), array_values($placeholders), $message);
