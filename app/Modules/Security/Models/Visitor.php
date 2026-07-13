@@ -10,11 +10,13 @@ class Visitor extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id', 'estate_id', 'first_name', 'last_name', 'phone', 'email', 'id_number', 'id_type',
+        'company_id', 'estate_id', 'unit_id',
+        'first_name', 'last_name', 'phone', 'email', 'id_number', 'id_type',
         'visitor_type', 'relationship', 'company', 'vehicles',
+        'vehicle_registration', 'vehicle_model', 'vehicle_color',
         'is_registered', 'registered_by_tenant_id', 'valid_from', 'valid_until',
         'access_schedule', 'is_active', 'is_blacklisted', 'blacklist_reason',
-        'visit_count', 'last_visit_at', 'photo_url', 'notes'
+        'total_visits', 'visit_count', 'last_visit_at', 'photo_url', 'notes'
     ];
 
     protected $casts = [
@@ -26,6 +28,7 @@ class Visitor extends Model
         'valid_from' => 'date',
         'valid_until' => 'date',
         'last_visit_at' => 'datetime',
+        'total_visits' => 'integer',
         'visit_count' => 'integer',
     ];
 
@@ -54,7 +57,8 @@ class Visitor extends Model
             'regular_guest' => 'Regular Guest',
             'delivery' => 'Delivery Personnel',
             'maintenance' => 'Maintenance Staff',
-            'one_time' => 'One-time Visitor'
+            'one_time' => 'One-time Visitor',
+            'guest' => 'Guest',
         ];
         return $labels[$this->visitor_type] ?? ucfirst($this->visitor_type);
     }
@@ -80,6 +84,11 @@ class Visitor extends Model
         return $this->belongsTo(\App\Models\Estate::class);
     }
 
+    public function unit()
+    {
+        return $this->belongsTo(\App\Models\Unit::class);
+    }
+
     // Scopes
     public function scopeRegistered($query)
     {
@@ -103,5 +112,10 @@ class Visitor extends Model
     public function scopeByType($query, $type)
     {
         return $query->where('visitor_type', $type);
+    }
+
+    public function scopeByUnit($query, $unitId)
+    {
+        return $query->where('unit_id', $unitId);
     }
 }

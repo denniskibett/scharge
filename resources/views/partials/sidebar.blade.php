@@ -162,7 +162,7 @@ document.addEventListener('alpine:init', () => {
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
         'maintenance',
-        'security', 'security_logs',
+        'security', 'security_dashboard',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
         'forms', 'form_elements',
@@ -177,7 +177,7 @@ document.addEventListener('alpine:init', () => {
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
         'maintenance',
-        'security', 'security_logs',
+        'security', 'security_dashboard',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
         'users', 'staff',
       ],
@@ -206,14 +206,14 @@ document.addEventListener('alpine:init', () => {
       ],
       'security': [
         'analytics', 'dashboard',
-        'security', 'security_logs'
+        'security', 'security_dashboard'
       ],
       'tenant': [
         'analytics', 'dashboard',
         'finance', 'invoices', 'payments',
         'property', 'tenancies',
         'maintenance',
-        'security', 'security_logs'
+        'security', 'security_dashboard'
       ],
       'guest': [
         'analytics', 'dashboard'
@@ -362,8 +362,8 @@ document.addEventListener('alpine:init', () => {
           {
             name: 'Security',
             label: 'Security',
-            link: '/security/logs',
-            page: 'securityLogs',
+            link: '/security/dashboard',
+            page: 'securityDashboard',
             permission: 'security',
             icon: 'M12 2C12.4142 2 12.75 2.33579 12.75 2.75V4.25C16.1668 4.25 19.25 7.33317 19.25 10.75V18.5C19.25 20.0188 18.0188 21.25 16.5 21.25H7.5C5.98122 21.25 4.75 20.0188 4.75 18.5V10.75C4.75 7.33317 7.83317 4.25 11.25 4.25V2.75C11.25 2.33579 11.5858 2 12 2ZM11.25 5.75C8.48858 5.75 6.25 7.98858 6.25 10.75V18.5C6.25 19.1904 6.80964 19.75 7.5 19.75H16.5C17.1904 19.75 17.75 19.1904 17.75 18.5V10.75C17.75 7.98858 15.5114 5.75 12.75 5.75H11.25ZM12 9.25C12.4142 9.25 12.75 9.58579 12.75 10V15C12.75 15.4142 12.4142 15.75 12 15.75C11.5858 15.75 11.25 15.4142 11.25 15V10C11.25 9.58579 11.5858 9.25 12 9.25Z'
           }
@@ -692,7 +692,7 @@ document.addEventListener('alpine:init', () => {
         '/expenses': 'expenses',
         '/water': 'water',
         '/maintenance': 'maintenance',
-        '/security/logs': 'securityLogs',
+        '/security/dashboard': 'securityDashboard',
         '/sms/broadcast': 'smsSend',
         '/sms/history': 'smsHistory',
         '/sms/templates': 'smsTemplates',
@@ -734,7 +734,8 @@ document.addEventListener('alpine:init', () => {
           if (path.includes('/reports')) page = 'waterReports';
           else page = 'water';
         } else if (path.includes('/security/')) {
-          page = 'securityLogs';
+          // Handle security pages - now uses securityDashboard
+          page = 'securityDashboard';
         } else if (path.includes('/admin/')) {
           page = 'companies';
         } else {

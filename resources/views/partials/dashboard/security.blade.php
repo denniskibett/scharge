@@ -9,7 +9,7 @@
     <!-- Welcome Card -->
     <div class="row mb-6">
         <div class="col-12">
-            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-700 to-gray-800 p-6 shadow-lg">
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 shadow-lg">
                 <div class="absolute inset-0 opacity-10">
                     <svg class="absolute -right-20 -top-20 h-64 w-64 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
@@ -27,19 +27,19 @@
                                 </div>
                                 <div>
                                     <h2 class="text-2xl font-bold text-white">Security Dashboard</h2>
-                                    <p class="text-gray-300 mt-1" x-text="currentDate"></p>
-                                    <div class="mt-2 flex items-center gap-2 text-gray-300 text-sm">
+                                    <p class="text-gray-200 mt-1" x-text="currentDate"></p>
+                                    <div class="mt-2 flex items-center gap-2 text-gray-200 text-sm">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                         </svg>
-                                        <span>Company: <strong>{{ $company->name ?? 'N/A' }}</strong></span>
+                                        <span>Estate: <strong>{{ $estate->name ?? 'Multiple Estates' }}</strong></span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="mt-4 md:mt-0">
                             <div class="text-right">
-                                <p class="text-sm text-gray-300">Your Role</p>
+                                <p class="text-sm text-gray-200">Your Role</p>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm">
                                     Security
                                 </span>
@@ -102,9 +102,6 @@
         </div>
     </div>
 
-
-        
-
     <!-- Security Logs Table -->
     <div class="mt-6">
         @include('partials.table.table-security', [
@@ -113,10 +110,10 @@
             'totalLogs' => ($roleData['accessLogs'] ?? collect())->count(),
             'pendingCount' => ($roleData['pendingLogs'] ?? collect())->count(),
             'approvedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
-                return in_array($log['status'], ['approved', 'granted']); 
+                return in_array($log->status, ['approved', 'granted']); 
             })->count(),
             'deniedCount' => ($roleData['accessLogs'] ?? collect())->filter(function($log) { 
-                return $log['status'] === 'denied'; 
+                return $log->status === 'denied'; 
             })->count()
         ])
     </div>

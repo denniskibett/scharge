@@ -14,7 +14,7 @@ use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenancyController; 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\CleaningController;
+// use App\Http\Controllers\CleaningController; // COMMENTED OUT - FILE DOES NOT EXIST
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\SecurityController;
 use App\Http\Controllers\ReportController;
@@ -24,6 +24,62 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
+
+// ============================================
+// DASHBOARD ROUTE - FIX FOR SECURITY MODULE
+// ============================================
+Route::get('/dashboard', function () {
+    $user = auth()->user();
+    
+    // Check if user has security role
+    if ($user->hasRole('security')) {
+        $controller = new \App\Http\Controllers\SecurityController();
+        return $controller->index();
+    }
+    
+    // For other roles, use their respective dashboards
+    if ($user->hasRole('sysadmin')) {
+        return view('partials.dashboard.sys-admin');
+    } elseif ($user->hasRole('admin')) {
+        return view('partials.dashboard.admin');
+    } elseif ($user->hasRole('tenant')) {
+        // Define stats for tenant dashboard
+        $stats = [
+            'total_invoices' => 0,
+            'pending_payments' => 0,
+            'overdue_payments' => 0,
+            'total_paid' => 0,
+        ];
+        
+        // Define wallet data for tenant dashboard
+        $walletData = [
+            'balance' => 0,
+            'pending' => 0,
+            'total_deposits' => 0,
+        ];
+        
+        return view('partials.dashboard.tenant', compact('stats', 'walletData'));
+    } elseif ($user->hasRole('property_manager')) {
+        return view('partials.dashboard.property-manager');
+    } elseif ($user->hasRole('accountant')) {
+        return view('partials.dashboard.accountant');
+    } elseif ($user->hasRole('meter_reader')) {
+        return view('partials.dashboard.meter-reader');
+    } elseif ($user->hasRole('cleaning_staff')) {
+        return view('partials.dashboard.cleaning-staff');
+    } elseif ($user->hasRole('maintenance')) {
+        return view('partials.dashboard.maintenance');
+    } else {
+        return view('partials.dashboard.pending');
+    }
+})->middleware(['auth', 'verified'])->name('dashboard');
+
+// ============================================
+// SECURITY DASHBOARD ROUTE - FOR SIDEBAR LINK
+// ============================================
+Route::get('/security/dashboard', [SecurityController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('security.dashboard');
 
 // ============================================
 // PUBLIC ROUTES
@@ -248,13 +304,13 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // CLEANING ROUTES
+    // CLEANING ROUTES - COMMENTED OUT (Controller missing)
     // ============================================
-    Route::middleware(['role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
-        Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
-        Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
-        Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
-    });
+    // Route::middleware(['role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
+    //     Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
+    //     Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
+    //     Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
+    // });
 
     // ============================================
     // MAINTENANCE ROUTES
@@ -272,25 +328,60 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // SECURITY ROUTES
+    // SECURITY ROUTES - COMPLETE WITH CORRECT ORDER
     // ============================================
-    Route::resource('security', SecurityController::class);
+    // REMOVED: Route::resource('security', SecurityController::class);
+    // Using explicit routes instead to avoid conflicts
+
     Route::post('/security/access', [SecurityController::class, 'store'])->name('security.access.store');
     Route::put('/security/access/{accessLog}', [SecurityController::class, 'update'])->name('security.access.update');
     Route::get('/tenant/access-logs', [SecurityController::class, 'tenantAccessLogs'])->name('tenant.access-logs');
 
     Route::prefix('security')->name('security.')->group(function () {
-        Route::get('/logs', [SecurityController::class, 'index'])->name('logs.index');
-        Route::get('/logs/{id}', [SecurityController::class, 'show'])->name('logs.show');
-        Route::post('/logs', [SecurityController::class, 'store'])->name('logs.store');
-        Route::put('/logs/{id}', [SecurityController::class, 'update'])->name('logs.update');
-        Route::delete('/logs/{id}', [SecurityController::class, 'destroy'])->name('logs.destroy');
+        // ============================================
+        // 1. SPECIFIC ROUTES (no {id}) - MUST COME FIRST
+        // ============================================
         
+        // Check Out Routes
+        Route::get('/checkout/search', [SecurityController::class, 'searchCheckout'])->name('checkout.search');
+        Route::post('/checkout/{id}', [SecurityController::class, 'checkOut'])->name('checkout');
+        
+        // Currently IN - Specific route (no {id})
+        Route::get('/currently-in', [SecurityController::class, 'currentlyIn'])->name('currently-in');
+        
+        // Quick Entry Routes
+        Route::post('/quick-entry', [SecurityController::class, 'quickEntry'])->name('quick-entry');
+        Route::post('/search-visitor', [SecurityController::class, 'searchVisitor'])->name('search-visitor');
+        Route::get('/estates-data', [SecurityController::class, 'getEstatesData'])->name('estates-data');
+        Route::get('/all-units-data', [SecurityController::class, 'getAllUnitsData'])->name('all-units-data');
+        Route::get('/load-data', [SecurityController::class, 'loadData'])->name('load-data');
+        
+        // Estates/Units/Tenants/Visitors routes
         Route::get('/estates', [SecurityController::class, 'getEstates'])->name('estates');
         Route::get('/units', [SecurityController::class, 'getUnitsByEstate'])->name('units');
         Route::get('/tenants', [SecurityController::class, 'getTenantsByUnit'])->name('tenants');
         Route::get('/visitors', [SecurityController::class, 'getVisitorsByTenant'])->name('visitors');
         Route::get('/logs-by-tenant', [SecurityController::class, 'getSecurityLogsByTenant'])->name('logs-by-tenant');
+        
+        // ============================================
+        // VISITOR MANAGEMENT ROUTES
+        // ============================================
+        Route::get('/visitors', [SecurityController::class, 'getVisitors'])->name('visitors');
+        Route::get('/visitors/{id}', [SecurityController::class, 'getVisitor'])->name('visitor.show');
+        Route::post('/visitors', [SecurityController::class, 'storeVisitor'])->name('visitor.store');
+        Route::put('/visitors/{id}', [SecurityController::class, 'updateVisitor'])->name('visitor.update');
+        Route::delete('/visitors/{id}', [SecurityController::class, 'deleteVisitor'])->name('visitor.delete');
+        Route::post('/visitors/{id}/blacklist', [SecurityController::class, 'toggleBlacklist'])->name('visitor.blacklist');
+        Route::get('/visitors/{id}/history', [SecurityController::class, 'getVisitorHistory'])->name('visitor.history');
+        
+        // ============================================
+        // 2. CRUD ROUTES (with {id}) - MUST COME LAST
+        // ============================================
+        Route::get('/logs', [SecurityController::class, 'index'])->name('logs.index');
+        Route::get('/logs/{id}', [SecurityController::class, 'show'])->name('logs.show');
+        Route::post('/logs', [SecurityController::class, 'store'])->name('logs.store');
+        Route::put('/logs/{id}', [SecurityController::class, 'update'])->name('logs.update');
+        Route::delete('/logs/{id}', [SecurityController::class, 'destroy'])->name('logs.destroy');
     });
 
     // ============================================

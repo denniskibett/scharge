@@ -107,7 +107,8 @@
                 </select>
 
                 <!-- Action Buttons -->
-                <div class="flex gap-1.5">
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <!-- Quick Entry - Green -->
                     <button 
                         @click="openQuickEntryModal()"
                         class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition"
@@ -118,9 +119,32 @@
                         Quick Entry
                     </button>
 
+                    <!-- Check Out - Red -->
+                    <button 
+                        @click="openCheckOutModal()"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Check Out
+                    </button>
+
+                    <!-- Currently IN - Blue -->
+                    <button 
+                        @click="openCurrentlyInModal()"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Currently IN
+                    </button>
+
+                    <!-- Visitor Mgmt - Purple -->
                     <button 
                         @click="openSecurityVisitorModal()"
-                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-brand-500 rounded-lg hover:bg-brand-600 transition"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-purple-500 rounded-lg hover:bg-purple-600 transition"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -128,9 +152,10 @@
                         Visitor Mgmt
                     </button>
 
+                    <!-- New Log - Cyan -->
                     <button 
                         @click="openNewLogModal()"
-                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-gray-500 rounded-lg hover:bg-gray-600 transition"
+                        class="inline-flex items-center gap-1.5 h-9 px-3 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600 transition"
                     >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -365,14 +390,37 @@ function securityTable() {
         nextPage() { if (this.currentPage < this.totalPages) { this.currentPage++; this.updateTable(); } },
         goToPage(page) { this.currentPage = page; this.updateTable(); },
         
-        openQuickEntryModal() { if (window.securityQuickEntryModal) window.securityQuickEntryModal.openModal(); },
-        openSecurityVisitorModal() { if (typeof openSecurityVisitorModal === 'function') openSecurityVisitorModal(); },
-        openNewLogModal() { if (window.securityCrudModal) window.securityCrudModal.openModal(); },
-        viewLog(id) { if (window.securityCrudModal) window.securityCrudModal.viewLog(id); },
-        editLog(id) { if (window.securityCrudModal) window.securityCrudModal.editLog(id); },
-        confirmDelete(id) { if (window.securityCrudModal) window.securityCrudModal.confirmDelete(id); },
-        approveLog(id) { if (window.securityCrudModal) window.securityCrudModal.approveLog(id); },
-        denyLog(id) { if (window.securityCrudModal) window.securityCrudModal.denyLog(id); }
+        // Modal Methods
+        openQuickEntryModal() { 
+            if (window.securityQuickEntryModal) window.securityQuickEntryModal.openModal(); 
+        },
+        openCheckOutModal() { 
+            if (window.securityCheckOutModal) window.securityCheckOutModal.openModal(); 
+        },
+        openCurrentlyInModal() { 
+            if (window.securityCurrentlyInModal) window.securityCurrentlyInModal.openModal(); 
+        },
+        openSecurityVisitorModal() { 
+            if (window.securityVisitorModal) window.securityVisitorModal.openModal(); 
+        },
+        openNewLogModal() { 
+            if (window.securityCrudModal) window.securityCrudModal.openModal(); 
+        },
+        viewLog(id) { 
+            if (window.securityCrudModal) window.securityCrudModal.viewLog(id); 
+        },
+        editLog(id) { 
+            if (window.securityCrudModal) window.securityCrudModal.editLog(id); 
+        },
+        confirmDelete(id) { 
+            if (window.securityCrudModal) window.securityCrudModal.confirmDelete(id); 
+        },
+        approveLog(id) { 
+            if (window.securityCrudModal) window.securityCrudModal.approveLog(id); 
+        },
+        denyLog(id) { 
+            if (window.securityCrudModal) window.securityCrudModal.denyLog(id); 
+        }
     };
 }
 
@@ -383,6 +431,9 @@ window.securityTable = securityTable;
 [x-cloak] { display: none !important; }
 </style>
 
-@include('partials.modal.security-create-modal')
+{{-- @include('partials.modal.security-create-modal') --}}
 @include('partials.modal.security-quick-entry-modal')
 @include('partials.modal.security-crud-modal')
+@include('partials.modal.security-checkout-modal')
+@include('partials.modal.security-currently-in-modal')
+@include('partials.modal.security-visitor-modal')
