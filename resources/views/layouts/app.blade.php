@@ -24,7 +24,9 @@
     {{-- Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-   
+    {{-- Font Awesome Icons --}}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
     <!-- Vite Assets -->
     @vite([
         'resources/css/app.css',
@@ -32,7 +34,6 @@
         'resources/js/bootstrap.js',
         'resources/js/index.js',
     ])
-
 
     <style>    
         :root {
@@ -65,51 +66,47 @@
             --secondary-90: rgba(var(--secondary-rgb), 0.9);
             
             /* Background variations */
-            --bg-primary-light: rgba(var(--primary-rgb), 0.1);  /* 10% */
-            --bg-primary-soft: rgba(var(--primary-rgb), 0.15);  /* 15% */
-            --bg-primary-medium: rgba(var(--primary-rgb), 0.2); /* 20% */
+            --bg-primary-light: rgba(var(--primary-rgb), 0.1);
+            --bg-primary-soft: rgba(var(--primary-rgb), 0.15);
+            --bg-primary-medium: rgba(var(--primary-rgb), 0.2);
             
-            /* Hover states - darken by adjusting RGB */
+            /* Hover states */
             --primary-hover: rgba(var(--primary-rgb), 0.9);
             --secondary-hover: rgba(var(--secondary-rgb), 0.9);
             --primary-dark: rgba(var(--primary-rgb), 0.8);
             
-            /* ===== NEW STATUS COLORS (ADDED) ===== */
-            /* Success colors (green) */
+            /* Status colors */
             --success-color: #10b981;
             --success-rgb: 16, 185, 129;
-            --success-50: rgba(var(--success-rgb), 0.1);   /* 10% - for bg-success-50 */
-            --success-100: rgba(var(--success-rgb), 0.2);  /* 20% */
-            --success-200: rgba(var(--success-rgb), 0.3);  /* 30% */
-            --success-300: rgba(var(--success-rgb), 0.4);  /* 40% */
-            --success-400: rgba(var(--success-rgb), 0.5);  /* 50% */
-            --success-500: var(--success-color);           /* 100% - solid color */
-            --success-600: #059669;                         /* darker green for text-success-600 */
+            --success-50: rgba(var(--success-rgb), 0.1);
+            --success-100: rgba(var(--success-rgb), 0.2);
+            --success-200: rgba(var(--success-rgb), 0.3);
+            --success-300: rgba(var(--success-rgb), 0.4);
+            --success-400: rgba(var(--success-rgb), 0.5);
+            --success-500: var(--success-color);
+            --success-600: #059669;
             
-            /* Error colors (red) */
             --error-color: #ef4444;
             --error-rgb: 239, 68, 68;
-            --error-50: rgba(var(--error-rgb), 0.1);       /* 10% - for bg-error-50 */
-            --error-100: rgba(var(--error-rgb), 0.2);       /* 20% */
-            --error-200: rgba(var(--error-rgb), 0.3);       /* 30% */
-            --error-300: rgba(var(--error-rgb), 0.4);       /* 40% */
-            --error-400: rgba(var(--error-rgb), 0.5);       /* 50% */
-            --error-500: var(--error-color);                /* 100% - solid color */
-            --error-600: #dc2626;                            /* darker red for text-error-600 */
+            --error-50: rgba(var(--error-rgb), 0.1);
+            --error-100: rgba(var(--error-rgb), 0.2);
+            --error-200: rgba(var(--error-rgb), 0.3);
+            --error-300: rgba(var(--error-rgb), 0.4);
+            --error-400: rgba(var(--error-rgb), 0.5);
+            --error-500: var(--error-color);
+            --error-600: #dc2626;
             
-            /* Warning colors (orange/amber) */
             --warning-color: #f59e0b;
             --warning-rgb: 245, 158, 11;
-            --warning-50: rgba(var(--warning-rgb), 0.1);    /* 10% - for bg-warning-50 */
-            --warning-100: rgba(var(--warning-rgb), 0.2);    /* 20% */
-            --warning-200: rgba(var(--warning-rgb), 0.3);    /* 30% */
-            --warning-300: rgba(var(--warning-rgb), 0.4);    /* 40% */
-            --warning-400: rgba(var(--warning-rgb), 0.5);    /* 50% */
-            --warning-500: var(--warning-color);             /* 100% - solid color */
-            --warning-600: #d97706;                           /* darker orange for text-warning-600 */
+            --warning-50: rgba(var(--warning-rgb), 0.1);
+            --warning-100: rgba(var(--warning-rgb), 0.2);
+            --warning-200: rgba(var(--warning-rgb), 0.3);
+            --warning-300: rgba(var(--warning-rgb), 0.4);
+            --warning-400: rgba(var(--warning-rgb), 0.5);
+            --warning-500: var(--warning-color);
+            --warning-600: #d97706;
         }
 
-        /* ===== ORIGINAL PRIMARY/SECONDARY CLASSES (KEPT INTACT) ===== */
         /* Primary color utility classes */
         .bg-primary { background-color: var(--primary-color); }
         .bg-primary-10 { background-color: var(--primary-10); }
@@ -148,7 +145,6 @@
         .border-primary-80 { border-color: var(--primary-80); }
         .border-primary-90 { border-color: var(--primary-90); }
 
-        /* Secondary color utility classes */
         .bg-secondary { background-color: var(--secondary-color); }
         .bg-secondary-10 { background-color: var(--secondary-10); }
         .bg-secondary-20 { background-color: var(--secondary-20); }
@@ -182,7 +178,6 @@
         .border-secondary-80 { border-color: var(--secondary-80); }
         .border-secondary-90 { border-color: var(--secondary-90); }
 
-        /* Hover classes */
         .hover\:bg-primary:hover { background-color: var(--primary-color); filter: brightness(0.95); }
         .hover\:bg-primary-10:hover { background-color: var(--primary-10); }
         .hover\:bg-primary-20:hover { background-color: var(--primary-20); }
@@ -201,7 +196,6 @@
         .hover\:text-secondary:hover { color: var(--secondary-color); }
         .hover\:border-secondary:hover { border-color: var(--secondary-color); }
         
-        /* Button variations */
         .btn-primary {
             background-color: var(--primary-color);
             color: white;
@@ -247,7 +241,6 @@
             border-color: var(--secondary-80);
         }
         
-        /* Link styles */
         .link-primary {
             color: var(--primary-color);
             transition: color 0.2s ease;
@@ -256,7 +249,6 @@
             color: var(--primary-80);
         }
         
-        /* Badge/Pill styles */
         .badge-primary {
             background-color: var(--bg-primary-soft);
             color: var(--primary-color);
@@ -269,13 +261,11 @@
             border: 1px solid var(--secondary-20);
         }
         
-        /* Focus ring utilities */
         .focus-ring-primary:focus {
             outline: none;
             ring: 2px solid var(--primary-50);
         }
         
-        /* Gradient utilities */
         .bg-gradient-primary {
             background: linear-gradient(135deg, var(--primary-color), var(--primary-70));
         }
@@ -284,20 +274,15 @@
             background: linear-gradient(135deg, var(--secondary-color), var(--secondary-70));
         }
         
-        /* ===== NEW STATUS CLASSES (ADDED) ===== */
-        /* Success classes */
         .bg-success-50 { background-color: var(--success-50); }
         .text-success-600 { color: var(--success-600); }
         
-        /* Error classes */
         .bg-error-50 { background-color: var(--error-50); }
         .text-error-600 { color: var(--error-600); }
         
-        /* Warning classes */
         .bg-warning-50 { background-color: var(--warning-50); }
         .text-warning-600 { color: var(--warning-600); }
         
-        /* Dark mode status classes */
         .dark .bg-success-500\/15 { background-color: rgba(var(--success-rgb), 0.15); }
         .dark .text-success-500 { color: var(--success-500); }
         
@@ -305,7 +290,7 @@
         .dark .text-error-500 { color: var(--error-500); }
         
         .dark .bg-warning-500\/15 { background-color: rgba(var(--warning-rgb), 0.15); }
-        .dark .text-orange-400 { color: #fb923c; } /* Keeping original orange-400 for dark mode warning */
+        .dark .text-orange-400 { color: #fb923c; }
     </style>
 
 </head>
@@ -332,7 +317,6 @@
 
         {{-- Header --}}
         @include('partials.header')
-
 
         {{-- Page Content --}}
         <main class="flex-1 p-6">

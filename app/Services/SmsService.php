@@ -3,48 +3,98 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
-class SmsService
+class SMSService
 {
-    protected $baseUrl;
     protected $apiKey;
     protected $senderId;
+    protected $baseUrl;
+    protected $sandbox;
 
     public function __construct()
     {
-        $this->baseUrl = config('sms.base_url');
-        $this->apiKey = config('sms.api_key');
-        $this->senderId = config('sms.sender_id');
+        $this->apiKey = config('services.sms.api_key', '');
+        $this->senderId = config('services.sms.sender_id', 'WATERBILL');
+        $this->baseUrl = config('services.sms.base_url', 'https://api.africastalking.com/version1');
+        $this->sandbox = config('services.sms.sandbox', true);
     }
 
-    public function send($phone, $message, $type = 'transactional')
+    public function sendSms($phone, $message, $type = 'transactional')
     {
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiKey,
-            'Content-Type' => 'application/json',
-        ])->post($this->baseUrl . '/sms/send', [
-            'sender_id' => $this->senderId,
-            'recipient' => $this->formatPhone($phone),
+        $phone = $this->formatPhone($phone);
+        
+        Log::info('Sending SMS', [
+            'phone' => $phone,
             'message' => $message,
-            'message_type' => $type,
+            'type' => $type,
+            'sandbox' => $this->sandbox
         ]);
 
-        return $response->json();
+        if ($this->sandbox) {
+            return [
+                'success' => true,
+                'message' => 'Sandbox mode - SMS not sent',
+                'phone' => $phone,
+                'sandbox' => true
+            ];
+        }
+
+        try {
+            $response = Http::withHeaders([
+                'apiKey' => $this->apiKey,
+                'Content-Type' => 'application/x-www-form-urlencoded'
+            ])->post($this->baseUrl . '/messaging', [
+                'username' => 'sandbox',
+                'to' => $phone,
+                'message' => $message,
+                'from' => $this->senderId,
+                'bulkSMSMode' => 1,
+                'options' => ['enqueue' => 1]
+            ]);
+
+            $data = $response->json();
+
+            if ($response->successful() && isset($data['SMSMessageData']['Recipients'])) {
+                return [
+                    'success' => true,
+                    'message' => 'SMS sent successfully',
+                    'data' => $data['SMSMessageData']['Recipients'][0] ?? null
+                ];
+            }
+
+            return [
+                'success' => false,
+                'message' => $data['error'] ?? 'Failed to send SMS'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('SMS sending failed: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
     }
 
-    private function formatPhone($phone)
+    protected function formatPhone($phone)
     {
-        // Normalize to 2547XXXXXXXX
-        $phone = preg_replace('/\D/', '', $phone);
-
-        if (str_starts_with($phone, '07')) {
-            return '254' . substr($phone, 1);
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        
+        if (substr($phone, 0, 1) === '0') {
+            $phone = '254' . substr($phone, 1);
         }
-
-        if (str_starts_with($phone, '+254')) {
-            return substr($phone, 1);
+        
+        if (substr($phone, 0, 2) === '07') {
+            $phone = '254' . substr($phone, 1);
         }
-
+        
         return $phone;
+    }
+
+    public function isValidPhone($phone)
+    {
+        $phone = $this->formatPhone($phone);
+        return preg_match('/^254[17]\d{8}$/', $phone);
     }
 }
