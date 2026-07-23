@@ -4,8 +4,10 @@ namespace App\Modules\SMS\Services;
 
 use App\Models\CampaignRecipient;
 use App\Modules\SMS\Models\SmsLog;
+use App\Modules\SMS\Models\SmsCampaign;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Cache;
 
 class KenyaSMS
 {
@@ -14,6 +16,8 @@ class KenyaSMS
     protected $sandbox;
     protected $baseUrl;
     protected $defaultType;
+    protected $webhookUrl;
+    protected $inboundWebhookUrl;
 
     public function __construct()
     {
@@ -23,6 +27,8 @@ class KenyaSMS
         $this->sandbox = config('sms.kenyasms.sandbox', true);
         $this->baseUrl = config('sms.kenyasms.base_url', 'https://kenyasms.com/api/v1');
         $this->defaultType = config('sms.kenyasms.default_type', 'transactional');
+        $this->webhookUrl = config('sms.kenyasms.webhook_url');
+        $this->inboundWebhookUrl = config('sms.kenyasms.inbound_webhook_url');
         
         Log::info('KenyaSMS initialized', [
             'sender_id' => $this->senderId,
@@ -34,7 +40,7 @@ class KenyaSMS
     /**
      * Send a single SMS
      */
-    public function sendOne($phone, $message, $type = null, $campaignId = null)
+    public function sendOne($phone, $message, $type = null, $campaignId = null, $scheduleAt = null)
     {
         $type = $type ?? $this->defaultType;
         
@@ -43,7 +49,8 @@ class KenyaSMS
             'message_length' => strlen($message),
             'type' => $type,
             'campaign_id' => $campaignId,
-            'sandbox' => $this->sandbox
+            'sandbox' => $this->sandbox,
+            'scheduled' => $scheduleAt ? true : false
         ]);
 
         try {
@@ -63,6 +70,11 @@ class KenyaSMS
                 'message' => $message,
                 'message_type' => $type
             ];
+
+            // Add schedule if provided
+            if ($scheduleAt) {
+                $payload['schedule_at'] = $scheduleAt;
+            }
 
             $headers = [
                 'Authorization' => 'Bearer ' . $this->apiKey,
@@ -91,7 +103,7 @@ class KenyaSMS
 
             if ($response->successful()) {
                 $data = $response->json();
-                $messageId = $data['data']['message_id'] ?? $data['message_id'] ?? null;
+                $messageId = $data['data']['message_id'] ?? $data['message_id'] ?? $data['request_id'] ?? null;
                 $status = $data['data']['status'] ?? $data['status'] ?? 'queued';
                 $cost = $data['data']['cost'] ?? $data['cost'] ?? null;
 
@@ -134,9 +146,101 @@ class KenyaSMS
     }
 
     /**
-     * Send personalized SMS messages
+     * Send bulk SMS (up to 100,000 recipients per call)
      */
-    public function sendPersonalized($template, $recipients, $type = null, $campaignId = null)
+    public function sendBulk($recipients, $message, $type = null, $campaignId = null, $scheduleAt = null)
+    {
+        $type = $type ?? $this->defaultType;
+        
+        Log::info('KenyaSMS: Sending bulk SMS', [
+            'recipients_count' => count($recipients),
+            'campaign_id' => $campaignId,
+            'type' => $type
+        ]);
+
+        // Format all phone numbers
+        $formattedRecipients = [];
+        foreach ($recipients as $recipient) {
+            $phone = $recipient['phone'] ?? $recipient['phone_number'] ?? $recipient;
+            $formatted = $this->formatPhoneNumber($phone);
+            if ($formatted) {
+                $formattedRecipients[] = $formatted;
+            }
+        }
+
+        if (empty($formattedRecipients)) {
+            return [
+                'success' => false,
+                'error' => 'No valid recipients found'
+            ];
+        }
+
+        try {
+            $payload = [
+                'sender_id' => $this->senderId,
+                'recipients' => $formattedRecipients,
+                'message' => $message,
+                'message_type' => $type
+            ];
+
+            // Add schedule if provided
+            if ($scheduleAt) {
+                $payload['schedule_at'] = $scheduleAt;
+            }
+
+            $headers = [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ];
+
+            if ($this->sandbox) {
+                $headers['X-Sandbox-Mode'] = 'true';
+            }
+
+            $response = Http::withHeaders($headers)
+                ->timeout(60)
+                ->post($this->baseUrl . '/sms/bulk', $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Log each recipient
+                foreach ($formattedRecipients as $index => $phone) {
+                    $messageId = $data['data']['messages'][$index]['message_id'] ?? null;
+                    $this->logSms($phone, $message, $type, $campaignId, 'queued', null, $messageId, null);
+                }
+
+                return [
+                    'success' => true,
+                    'data' => $data,
+                    'recipients_count' => count($formattedRecipients)
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body() ?? 'Failed to send bulk SMS',
+                'status_code' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('KenyaSMS: Bulk send failed', [
+                'error' => $e->getMessage(),
+                'campaign_id' => $campaignId
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Send personalized SMS messages (mail merge)
+     */
+    public function sendPersonalized($template, $recipients, $type = null, $campaignId = null, $scheduleAt = null)
     {
         $type = $type ?? $this->defaultType;
         
@@ -146,74 +250,96 @@ class KenyaSMS
             'type' => $type
         ]);
 
-        $sent = 0;
-        $failed = 0;
-        $results = [];
-
+        // Prepare recipients with variables
+        $preparedRecipients = [];
         foreach ($recipients as $recipient) {
             $phone = $recipient['phone'] ?? $recipient['phone_number'] ?? '';
-            $message = $recipient['message'] ?? $template;
-
-            if (empty($phone)) {
-                Log::warning('KenyaSMS: Skipping recipient - no phone', [
-                    'recipient' => $recipient
-                ]);
-                $failed++;
-                continue;
+            $formatted = $this->formatPhoneNumber($phone);
+            
+            if ($formatted) {
+                $variables = $recipient['variables'] ?? [];
+                $preparedRecipients[] = [
+                    'recipient' => $formatted,
+                    'variables' => $variables
+                ];
             }
-
-            $result = $this->sendOne($phone, $message, $type, $campaignId);
-
-            if ($result['success']) {
-                $sent++;
-                // Update recipient with message_id if exists
-                if (isset($recipient['id']) && isset($result['message_id'])) {
-                    try {
-                        CampaignRecipient::where('id', $recipient['id'])
-                            ->update([
-                                'message_id' => $result['message_id'],
-                                'status' => $result['status'] ?? 'queued',
-                                'provider_status' => $result['status'] ?? 'queued',
-                                'provider_response' => json_encode($result['data'] ?? [])
-                            ]);
-                    } catch (\Exception $e) {
-                        Log::error('KenyaSMS: Failed to update recipient', [
-                            'recipient_id' => $recipient['id'],
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            } else {
-                $failed++;
-                // Update recipient with error
-                if (isset($recipient['id'])) {
-                    try {
-                        CampaignRecipient::where('id', $recipient['id'])
-                            ->update([
-                                'status' => 'failed',
-                                'error_message' => $result['error'] ?? 'Unknown error'
-                            ]);
-                    } catch (\Exception $e) {
-                        Log::error('KenyaSMS: Failed to update recipient error', [
-                            'recipient_id' => $recipient['id'],
-                            'error' => $e->getMessage()
-                        ]);
-                    }
-                }
-            }
-
-            $results[] = $result;
         }
 
-        return [
-            'success' => true,
-            'data' => [
-                'sent' => $sent,
-                'failed' => $failed,
-                'total' => count($recipients),
-                'results' => $results
-            ]
-        ];
+        if (empty($preparedRecipients)) {
+            return [
+                'success' => false,
+                'error' => 'No valid recipients found'
+            ];
+        }
+
+        try {
+            $payload = [
+                'sender_id' => $this->senderId,
+                'recipients' => $preparedRecipients,
+                'template' => $template,
+                'message_type' => $type
+            ];
+
+            if ($scheduleAt) {
+                $payload['schedule_at'] = $scheduleAt;
+            }
+
+            $headers = [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ];
+
+            if ($this->sandbox) {
+                $headers['X-Sandbox-Mode'] = 'true';
+            }
+
+            $response = Http::withHeaders($headers)
+                ->timeout(60)
+                ->post($this->baseUrl . '/sms/personalized', $payload);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                
+                // Log each recipient
+                foreach ($preparedRecipients as $index => $recipient) {
+                    $messageId = $data['data']['messages'][$index]['message_id'] ?? null;
+                    $this->logSms(
+                        $recipient['recipient'], 
+                        $template, 
+                        $type, 
+                        $campaignId, 
+                        'queued', 
+                        null, 
+                        $messageId, 
+                        null
+                    );
+                }
+
+                return [
+                    'success' => true,
+                    'data' => $data,
+                    'recipients_count' => count($preparedRecipients)
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body() ?? 'Failed to send personalized SMS',
+                'status_code' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('KenyaSMS: Personalized send failed', [
+                'error' => $e->getMessage(),
+                'campaign_id' => $campaignId
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
     }
 
     /**
@@ -228,16 +354,25 @@ class KenyaSMS
             ];
         }
 
+        // Try cache first
+        $cacheKey = 'kenyasms_status_' . $messageId;
+        if ($cached = Cache::get($cacheKey)) {
+            return $cached;
+        }
+
         if ($this->sandbox) {
             // In sandbox mode, simulate status progression
             $statuses = ['queued', 'sent', 'delivered', 'failed'];
             $randomStatus = $statuses[array_rand($statuses)];
             
-            return [
+            $result = [
                 'success' => true,
                 'status' => $randomStatus,
                 'response' => 'Sandbox mode: ' . $randomStatus
             ];
+            
+            Cache::put($cacheKey, $result, 60);
+            return $result;
         }
 
         try {
@@ -255,11 +390,14 @@ class KenyaSMS
                 $data = $response->json();
                 $status = $data['data']['status'] ?? $data['status'] ?? 'unknown';
                 
-                return [
+                $result = [
                     'success' => true,
                     'status' => $status,
                     'response' => $data
                 ];
+                
+                Cache::put($cacheKey, $result, 60);
+                return $result;
             }
 
             return [
@@ -347,12 +485,20 @@ class KenyaSMS
      */
     public function getBalance()
     {
+        // Try cache first
+        $cacheKey = 'kenyasms_balance';
+        if ($cached = Cache::get($cacheKey)) {
+            return $cached;
+        }
+
         if ($this->sandbox) {
-            return [
+            $result = [
                 'success' => true,
                 'balance' => '1000.00',
                 'currency' => 'KES'
             ];
+            Cache::put($cacheKey, $result, 300);
+            return $result;
         }
 
         try {
@@ -369,11 +515,14 @@ class KenyaSMS
             if ($response->successful()) {
                 $data = $response->json();
                 
-                return [
+                $result = [
                     'success' => true,
                     'balance' => $data['data']['balance'] ?? $data['balance'] ?? '0.00',
                     'currency' => $data['data']['currency'] ?? $data['currency'] ?? 'KES'
                 ];
+                
+                Cache::put($cacheKey, $result, 300);
+                return $result;
             }
 
             return [
@@ -391,6 +540,86 @@ class KenyaSMS
                 'success' => false,
                 'error' => $e->getMessage()
             ];
+        }
+    }
+
+    /**
+     * Get sender IDs
+     */
+    public function getSenderIds()
+    {
+        if ($this->sandbox) {
+            return [
+                'success' => true,
+                'data' => [
+                    ['sender_id' => $this->senderId, 'status' => 'active'],
+                    ['sender_id' => 'TextSMS', 'status' => 'active']
+                ]
+            ];
+        }
+
+        try {
+            $headers = [
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json'
+            ];
+
+            $response = Http::withHeaders($headers)
+                ->timeout(30)
+                ->get($this->baseUrl . '/sender-ids');
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'success' => true,
+                    'data' => $data['data'] ?? []
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => 'Failed to get sender IDs'
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('KenyaSMS: Failed to get sender IDs', [
+                'error' => $e->getMessage()
+            ]);
+            
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Check if a message is promotional (subject to quiet hours)
+     */
+    public function isPromotional($messageType)
+    {
+        return $messageType === 'promotional';
+    }
+
+    /**
+     * Check if currently in quiet hours
+     */
+    public function isQuietHours()
+    {
+        $quietHours = config('sms.kenyasms.quiet_hours', [
+            'start' => '20:00',
+            'end' => '08:00'
+        ]);
+        
+        $now = now()->setTimezone('EAT');
+        $start = \Carbon\Carbon::parse($quietHours['start'], 'EAT');
+        $end = \Carbon\Carbon::parse($quietHours['end'], 'EAT');
+        
+        if ($start < $end) {
+            return $now->between($start, $end);
+        } else {
+            return $now->greaterThan($start) || $now->lessThan($end);
         }
     }
 
@@ -418,7 +647,7 @@ class KenyaSMS
     }
 
     /**
-     * Format phone number to international format
+     * Format phone number to international format (254XXXXXXXXX)
      */
     public function formatPhoneNumber($phone)
     {
@@ -463,13 +692,14 @@ class KenyaSMS
     }
 
     /**
-     * Validate phone number
+     * Validate phone number (Safaricom only)
      */
     public function validatePhone($phone)
     {
         $formatted = $this->formatPhoneNumber($phone);
         
-        if ($formatted && preg_match('/^254[7-9][0-9]{8}$/', $formatted)) {
+        // Check if it's a Safaricom number (2547XXXXXXXX)
+        if ($formatted && preg_match('/^2547[0-9]{8}$/', $formatted)) {
             return $formatted;
         }
         
@@ -505,7 +735,7 @@ class KenyaSMS
         $parts = $this->getMessageParts($message);
         $type = $type ?? $this->defaultType;
         
-        // Rates (can be made configurable)
+        // Rates from KenyaSMS
         $rates = [
             'transactional' => 0.45,
             'promotional' => 0.45
@@ -513,7 +743,27 @@ class KenyaSMS
         
         $rate = $rates[$type] ?? 0.45;
         
-        return $parts * $rate;
+        return number_format($parts * $rate, 2);
+    }
+
+    /**
+     * Map provider status to internal status
+     */
+    public function mapStatus($providerStatus)
+    {
+        $mapping = config('sms.status_mapping', [
+            '200' => 'delivered',
+            '1001' => 'failed',
+            '1002' => 'failed',
+            '1003' => 'failed',
+            '1004' => 'failed',
+            '1005' => 'failed',
+            '1006' => 'failed',
+            '1007' => 'failed',
+            '1008' => 'failed',
+        ]);
+        
+        return $mapping[$providerStatus] ?? 'unknown';
     }
 
     /**
@@ -538,5 +788,23 @@ class KenyaSMS
     public function getDefaultType()
     {
         return $this->defaultType;
+    }
+
+    /**
+     * Set sender ID
+     */
+    public function setSenderId($senderId)
+    {
+        $this->senderId = $senderId;
+        return $this;
+    }
+
+    /**
+     * Set sandbox mode
+     */
+    public function setSandbox($sandbox)
+    {
+        $this->sandbox = (bool) $sandbox;
+        return $this;
     }
 }

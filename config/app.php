@@ -176,6 +176,7 @@ return [
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        App\Providers\PhpRuntimeServiceProvider::class, // 👈 ADDED
 
         /*
          * Module Service Providers...
@@ -235,6 +236,20 @@ return [
         'Validator' => Illuminate\Support\Facades\Validator::class,
         'View' => Illuminate\Support\Facades\View::class,
 
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | PHP Runtime Configuration
+    |--------------------------------------------------------------------------
+    |
+    | These settings control PHP's runtime behavior for the application.
+    | Increase these values when processing large datasets or campaigns.
+    |
+    */
+    'php' => [
+        'max_execution_time' => 300,  // 5 minutes
+        'memory_limit' => '512M',
     ],
 
 ];

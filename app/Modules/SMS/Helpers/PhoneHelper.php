@@ -105,4 +105,44 @@ class PhoneHelper
         
         return 'Invalid';
     }
+
+    /**
+     * Check if phone is empty/null
+     */
+    public static function isEmpty(?string $phone): bool
+    {
+        return empty($phone) || $phone === null || $phone === '';
+    }
+
+    /**
+     * Get phone status for categorization
+     * Returns: 'pending' (valid Safaricom), 'invalid' (no phone or invalid), 'other_network' (other Kenyan networks)
+     */
+    public static function getStatus(?string $phone): string
+    {
+        // 🔴 CRITICAL: Empty phone = INVALID
+        if (self::isEmpty($phone)) {
+            return 'invalid';
+        }
+        
+        $normalized = self::normalize($phone);
+        
+        // If normalization fails, it's INVALID
+        if (empty($normalized)) {
+            return 'invalid';
+        }
+        
+        // Check if it's a valid Safaricom number
+        if (self::isValid($normalized)) {
+            return 'pending';
+        }
+        
+        // Check if it's a valid Kenyan number but not Safaricom (Airtel, Telkom, Equitel)
+        // Kenyan networks: 2547 (Safaricom), 2541 (Airtel), 2542 (Telkom), 2543 (Equitel)
+        if (preg_match('/^254[1-6,8-9][0-9]{8}$/', $normalized)) {
+            return 'other_network';
+        }
+        
+        return 'invalid';
+    }
 }

@@ -13,15 +13,18 @@ use App\Models\Invoice;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Modules\SMS\Helpers\PhoneHelper;
+use App\Modules\SMS\Services\KenyaSMS;
 
 class CampaignService
 {
     protected $smsService;
+    protected $kenyaSms;
     protected $phoneColumn;
 
-    public function __construct(SMSService $smsService)
+    public function __construct(SMSService $smsService, KenyaSMS $kenyaSms)
     {
         $this->smsService = $smsService;
+        $this->kenyaSms = $kenyaSms;
         $this->phoneColumn = $this->detectPhoneColumn();
     }
 
@@ -45,7 +48,7 @@ class CampaignService
     }
 
     /**
-     * Get recipients with validation status (Safaricom only)
+     * Get recipients with validation status
      * Returns array with valid, invalid, and other_network recipients
      */
     public function getRecipientsWithValidation(array $filters)
@@ -54,7 +57,7 @@ class CampaignService
             'filters' => $filters
         ]);
 
-        // Build the query directly here - NO recursion
+        // Build the query - ACTIVE TENANCIES ONLY
         $query = Tenant::query()
             ->join('tenancies', 'tenancies.tenant_id', '=', 'tenants.id')
             ->join('units', 'units.id', '=', 'tenancies.unit_id')
@@ -98,9 +101,7 @@ class CampaignService
         }
 
         $phoneColumn = $this->phoneColumn;
-        $query->whereNotNull('users.' . $phoneColumn)
-              ->where('users.' . $phoneColumn, '!=', '')
-              ->where('users.' . $phoneColumn, '!=', 'null');
+        $query->whereNotNull('users.' . $phoneColumn);
 
         $query->with([
             'user',
@@ -127,36 +128,26 @@ class CampaignService
         foreach ($tenants as $tenant) {
             $phone = $tenant->phone;
             
-            if (empty($phone)) {
-                $result['invalid'][] = $tenant;
-                continue;
-            }
-
-            // Clean the phone number
-            $cleanedPhone = PhoneHelper::clean($phone);
+            // Use PhoneHelper::getStatus() to categorize
+            $status = PhoneHelper::getStatus($phone);
             
-            // Check if it's a valid Safaricom number
-            if (PhoneHelper::isValid($cleanedPhone)) {
-                $tenant->formatted_phone = $cleanedPhone;
+            if ($status === 'pending') {
+                $tenant->formatted_phone = PhoneHelper::normalize($phone);
                 $result['valid'][] = $tenant;
+            } elseif ($status === 'other_network') {
+                $tenant->formatted_phone = PhoneHelper::normalize($phone);
+                $result['other_network'][] = $tenant;
             } else {
-                // Check if it's a valid Kenyan number but not Safaricom
-                $normalized = PhoneHelper::normalize($phone);
-                if ($normalized && preg_match('/^254[7-9][0-9]{8}$/', $normalized)) {
-                    // It's a valid Kenyan number but not Safaricom (Airtel, Telkom)
-                    $tenant->formatted_phone = $normalized;
-                    $result['other_network'][] = $tenant;
-                } else {
-                    // Invalid format
-                    $result['invalid'][] = $tenant;
-                }
+                // 'invalid' - includes empty phones and invalid formats
+                $result['invalid'][] = $tenant;
             }
         }
 
         Log::info('getRecipientsWithValidation result', [
             'valid' => count($result['valid']),
             'invalid' => count($result['invalid']),
-            'other_network' => count($result['other_network'])
+            'other_network' => count($result['other_network']),
+            'total' => $result['total']
         ]);
 
         return $result;
@@ -200,7 +191,7 @@ class CampaignService
 
     /**
      * Create a new campaign with automatic recipient creation
-     * Only includes valid Safaricom numbers
+     * Creates recipients for ALL tenants with proper status
      */
     public function createCampaign(array $data)
     {
@@ -212,13 +203,19 @@ class CampaignService
         $filters = $data['filters'] ?? [];
         $recipientsResult = $this->getRecipientsWithValidation($filters);
         
-        // Only use valid recipients for the campaign
-        $validRecipients = collect($recipientsResult['valid']);
-        $data['total_recipients'] = $validRecipients->count();
+        // Get ALL recipients (valid, invalid, other_network)
+        $allRecipients = array_merge(
+            $recipientsResult['valid'],
+            $recipientsResult['invalid'],
+            $recipientsResult['other_network']
+        );
+        
+        $data['total_recipients'] = count($allRecipients);
 
         // Store validation stats in the data
         $data['invalid_count'] = count($recipientsResult['invalid']);
         $data['other_network_count'] = count($recipientsResult['other_network']);
+        $data['valid_count'] = count($recipientsResult['valid']);
 
         // Ensure filters is JSON encoded
         if (isset($data['filters']) && is_array($data['filters'])) {
@@ -230,13 +227,14 @@ class CampaignService
         
         Log::info('Campaign created', [
             'id' => $campaign->id,
-            'valid_recipients' => $validRecipients->count(),
+            'total_recipients' => count($allRecipients),
+            'valid_recipients' => count($recipientsResult['valid']),
             'invalid_recipients' => count($recipientsResult['invalid']),
             'other_network' => count($recipientsResult['other_network'])
         ]);
 
-        // Create recipient records for valid recipients only
-        if ($validRecipients->isNotEmpty()) {
+        // Create recipient records for ALL recipients
+        if (!empty($allRecipients)) {
             $this->createRecipientsForCampaign($campaign);
         }
 
@@ -245,7 +243,7 @@ class CampaignService
 
     /**
      * Create recipient records for a campaign
-     * Only creates for valid Safaricom numbers
+     * Creates for ALL tenants with proper status
      */
     public function createRecipientsForCampaign($campaign)
     {
@@ -256,51 +254,53 @@ class CampaignService
 
             $filters = json_decode($campaign->filters, true) ?? [];
             
-            Log::info('Filters decoded', ['filters' => $filters]);
+            // Get ALL categorized recipients
+            $recipientsResult = $this->getRecipientsWithValidation($filters);
             
-            // Get template
-            $template = SmsTemplate::find($campaign->template_id);
-            $templateContent = $template ? $template->content : '';
-
-            Log::info('Template found', [
-                'template_id' => $campaign->template_id,
-                'has_content' => !empty($templateContent)
+            // Combine all recipients
+            $allRecipients = array_merge(
+                $recipientsResult['valid'],
+                $recipientsResult['invalid'],
+                $recipientsResult['other_network']
+            );
+            
+            Log::info('Total recipients found', [
+                'valid' => count($recipientsResult['valid']),
+                'invalid' => count($recipientsResult['invalid']),
+                'other_network' => count($recipientsResult['other_network']),
+                'total' => count($allRecipients)
             ]);
 
-            // Get ONLY valid Safaricom recipients
-            $tenants = $this->getValidRecipients($filters);
-            
-            Log::info('Found valid tenants for campaign', [
-                'count' => $tenants->count()
-            ]);
-
-            if ($tenants->isEmpty()) {
-                Log::warning('No valid tenants found for campaign', [
+            if (empty($allRecipients)) {
+                Log::warning('No recipients found for campaign', [
                     'campaign_id' => $campaign->id,
                     'filters' => $filters
                 ]);
                 return [
                     'created' => 0,
                     'failed' => 0,
-                    'message' => 'No valid Safaricom numbers found'
+                    'message' => 'No recipients found'
                 ];
             }
 
             $createdCount = 0;
             $failedCount = 0;
 
-            foreach ($tenants as $tenant) {
+            // Get template
+            $template = SmsTemplate::find($campaign->template_id);
+            $templateContent = $template ? $template->content : '';
+
+            foreach ($allRecipients as $tenant) {
                 try {
+                    // Get phone and status using PhoneHelper
+                    $phone = $tenant->phone;
+                    $status = PhoneHelper::getStatus($phone);
+                    
+                    // Clean phone for storage
+                    $cleanPhone = PhoneHelper::normalize($phone);
+                    
                     // Render message with tenant data
                     $message = $this->renderMessage($templateContent, $tenant);
-                    
-                    // Format phone number using PhoneHelper
-                    $phone = PhoneHelper::clean($tenant->phone);
-
-                    if (empty($phone)) {
-                        $failedCount++;
-                        continue;
-                    }
 
                     // Check if recipient already exists
                     $existing = CampaignRecipient::where('campaign_id', $campaign->id)
@@ -314,13 +314,13 @@ class CampaignService
                         continue;
                     }
 
-                    // Create recipient record
+                    // Create recipient record with correct status
                     CampaignRecipient::create([
                         'campaign_id' => $campaign->id,
                         'tenant_id' => $tenant->id,
-                        'phone_number' => $phone,
+                        'phone_number' => $cleanPhone ?: 'NO_PHONE',
                         'message' => $message,
-                        'status' => 'pending',
+                        'status' => $status, // pending, invalid, or other_network
                         'created_at' => now(),
                         'updated_at' => now()
                     ]);
@@ -343,12 +343,18 @@ class CampaignService
             Log::info('Recipients created for campaign', [
                 'campaign_id' => $campaign->id,
                 'created' => $createdCount,
-                'failed' => $failedCount
+                'failed' => $failedCount,
+                'valid' => count($recipientsResult['valid']),
+                'invalid' => count($recipientsResult['invalid']),
+                'other_network' => count($recipientsResult['other_network'])
             ]);
 
             return [
                 'created' => $createdCount,
-                'failed' => $failedCount
+                'failed' => $failedCount,
+                'valid' => count($recipientsResult['valid']),
+                'invalid' => count($recipientsResult['invalid']),
+                'other_network' => count($recipientsResult['other_network'])
             ];
 
         } catch (\Exception $e) {
@@ -373,19 +379,28 @@ class CampaignService
     {
         $message = $templateContent ?: "Water bill notification for {$tenant->user_name}";
         
+        // Get invoice data if available
+        $invoice = $tenant->tenancies->first()->invoices->first() ?? null;
+        $waterBill = $invoice ? $invoice->total_amount : '0.00';
+        $paymentStatus = $invoice ? $invoice->status : 'pending';
+        $dueDate = $invoice ? $invoice->due_date : date('Y-m-d', strtotime('+14 days'));
+        
+        // Get estate name
+        $estateName = $tenant->tenancies->first()->unit->estate->name ?? 'N/A';
+        
         $replacements = [
             '{{name}}' => $tenant->user_name ?? 'Tenant',
             '{{unit}}' => $tenant->unit_number ?? 'N/A',
             '{{unit_number}}' => $tenant->unit_number ?? 'N/A',
-            '{{estate_name}}' => $tenant->estate->name ?? 'N/A',
+            '{{estate_name}}' => $estateName,
             '{{month}}' => date('F Y'),
-            '{{water_bill}}' => '0.00',
-            '{{water_consumption}}' => '0',
-            '{{prev_read}}' => '0',
-            '{{curr_read}}' => '0',
-            '{{due_date}}' => date('Y-m-d', strtotime('+14 days')),
-            '{{payment_status}}' => 'pending',
-            '{{status}}' => 'pending',
+            '{{water_bill}}' => number_format($waterBill, 2),
+            '{{water_consumption}}' => $invoice ? $invoice->consumption ?? '0' : '0',
+            '{{prev_read}}' => $invoice ? $invoice->previous_reading ?? '0' : '0',
+            '{{curr_read}}' => $invoice ? $invoice->current_reading ?? '0' : '0',
+            '{{due_date}}' => $dueDate,
+            '{{payment_status}}' => $paymentStatus,
+            '{{status}}' => $paymentStatus,
             '{{phone}}' => $tenant->phone ?? ''
         ];
 
@@ -423,7 +438,7 @@ class CampaignService
     }
 
     /**
-     * Send a campaign
+     * Send a campaign using KenyaSMS
      */
     public function sendCampaign($campaignId)
     {
@@ -440,69 +455,105 @@ class CampaignService
         try {
             DB::beginTransaction();
 
-            $filters = json_decode($campaign->filters, true) ?? [];
-            
-            Log::info('Sending campaign', [
-                'campaign_id' => $campaign->id,
-                'filters' => $filters
-            ]);
+            // Get pending recipients
+            $recipients = CampaignRecipient::where('campaign_id', $campaign->id)
+                ->where('status', 'pending')
+                ->get();
 
-            $tenants = $this->getRecipients($filters);
-            
-            if ($tenants->isEmpty()) {
+            if ($recipients->isEmpty()) {
                 $campaign->status = 'failed';
                 $campaign->save();
                 DB::commit();
-                return ['error' => 'No recipients found for this campaign'];
+                return ['error' => 'No pending recipients found for this campaign'];
             }
 
-            if ($campaign->total_recipients == 0) {
-                $campaign->total_recipients = $tenants->count();
-            }
-
+            // Update campaign status
             $campaign->status = 'sending';
+            $campaign->sent_at = now();
             $campaign->save();
 
-            $templateContent = '';
-            if ($campaign->template_id) {
-                $template = SmsTemplate::find($campaign->template_id);
-                $templateContent = $template ? $template->content : '';
-            }
-
-            $recipients = [];
-            foreach ($tenants as $tenant) {
-                $message = $this->renderMessage($templateContent, $tenant);
-                $phone = PhoneHelper::clean($tenant->phone);
-                
-                if (empty($phone)) {
-                    continue;
-                }
-                
-                $recipients[] = [
-                    'campaign_id' => $campaign->id,
-                    'tenant_id' => $tenant->id,
-                    'phone_number' => $phone,
-                    'message' => $message,
-                    'status' => 'pending',
-                    'created_at' => now(),
-                    'updated_at' => now()
+            // Prepare recipients for KenyaSMS
+            $preparedRecipients = [];
+            foreach ($recipients as $recipient) {
+                $preparedRecipients[] = [
+                    'id' => $recipient->id,
+                    'phone' => $recipient->phone_number,
+                    'message' => $recipient->message,
+                    'variables' => [
+                        'name' => $recipient->tenant->user->name ?? 'Tenant',
+                        'unit' => $recipient->tenant->unit_number ?? 'N/A',
+                    ]
                 ];
             }
 
-            CampaignRecipient::insert($recipients);
-            $campaign->total_recipients = count($recipients);
-            $campaign->save();
+            // Get template content
+            $templateContent = $campaign->template ? $campaign->template->content : '';
 
-            $this->sendRecipients($campaign);
+            // Determine message type
+            $messageType = $campaign->campaign_type === 'promotional' ? 'promotional' : 'transactional';
 
-            DB::commit();
+            // Check quiet hours for promotional messages
+            if ($messageType === 'promotional' && $this->kenyaSms->isQuietHours()) {
+                Log::warning('Promotional campaign blocked during quiet hours', [
+                    'campaign_id' => $campaign->id
+                ]);
+                
+                $campaign->status = 'failed';
+                $campaign->save();
+                DB::commit();
+                
+                return ['error' => 'Promotional messages cannot be sent during quiet hours (20:00 - 08:00 EAT)'];
+            }
 
-            return [
-                'success' => true,
-                'total_recipients' => count($recipients),
-                'sent' => $campaign->sent_count,
-                'failed' => $campaign->failed_count
-            ];
+            // Send using KenyaSMS
+            $result = $this->kenyaSms->sendPersonalized(
+                $templateContent,
+                $preparedRecipients,
+                $messageType,
+                $campaign->id
+            );
+
+            if ($result['success']) {
+                $campaign->sent_count = $result['data']['sent'] ?? 0;
+                $campaign->failed_count = $result['data']['failed'] ?? 0;
+                $campaign->status = $campaign->failed_count > 0 && $campaign->sent_count == 0 ? 'failed' : 'completed';
+                $campaign->save();
+
+                Log::info('Campaign sent successfully via KenyaSMS', [
+                    'campaign_id' => $campaign->id,
+                    'sent' => $campaign->sent_count,
+                    'failed' => $campaign->failed_count
+                ]);
+
+                DB::commit();
+
+                return [
+                    'success' => true,
+                    'total_recipients' => count($recipients),
+                    'sent' => $campaign->sent_count,
+                    'failed' => $campaign->failed_count,
+                    'provider' => 'KenyaSMS'
+                ];
+            } else {
+                // Mark all recipients as failed
+                foreach ($recipients as $recipient) {
+                    $recipient->update([
+                        'status' => 'failed',
+                        'error_message' => $result['error'] ?? 'Provider error'
+                    ]);
+                }
+
+                $campaign->status = 'failed';
+                $campaign->save();
+                DB::commit();
+
+                Log::error('Campaign send failed via KenyaSMS', [
+                    'campaign_id' => $campaign->id,
+                    'error' => $result['error'] ?? 'Unknown error'
+                ]);
+
+                return ['error' => 'Failed to send campaign: ' . ($result['error'] ?? 'Unknown error')];
+            }
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -527,21 +578,23 @@ class CampaignService
 
         foreach ($recipients as $recipient) {
             try {
-                $result = $this->smsService->sendSMS(
+                // Use KenyaSMS for sending
+                $result = $this->kenyaSms->sendOne(
                     $recipient->phone_number,
                     $recipient->message,
-                    $campaign->id,
-                    $recipient->id
+                    $campaign->campaign_type ?? 'transactional',
+                    $campaign->id
                 );
                 
                 if ($result['success'] ?? false) {
                     $recipient->status = 'sent';
                     $recipient->sent_at = now();
+                    $recipient->message_id = $result['message_id'] ?? null;
                     $campaign->increment('sent_count');
                     Log::info('SMS sent to ' . $recipient->phone_number);
                 } else {
                     $recipient->status = 'failed';
-                    $recipient->error_message = $result['message'] ?? 'Unknown error';
+                    $recipient->error_message = $result['error'] ?? 'Unknown error';
                     $campaign->increment('failed_count');
                     Log::warning('SMS failed to ' . $recipient->phone_number);
                 }
@@ -594,35 +647,56 @@ class CampaignService
         }
 
         $retryCount = 0;
+        $retryFailed = 0;
         
         foreach ($failedRecipients as $recipient) {
             try {
-                $result = $this->smsService->sendSMS(
+                // Reset status to pending and retry
+                $recipient->status = 'pending';
+                $recipient->error_message = null;
+                $recipient->save();
+
+                // Send via KenyaSMS
+                $result = $this->kenyaSms->sendOne(
                     $recipient->phone_number,
                     $recipient->message,
-                    $campaign->id,
-                    $recipient->id
+                    $campaign->campaign_type ?? 'transactional',
+                    $campaign->id
                 );
                 
                 if ($result['success'] ?? false) {
                     $recipient->status = 'sent';
                     $recipient->sent_at = now();
+                    $recipient->message_id = $result['message_id'] ?? null;
                     $recipient->error_message = null;
                     $campaign->increment('sent_count');
                     $campaign->decrement('failed_count');
                     $retryCount++;
+                    Log::info('Retry successful for ' . $recipient->phone_number);
                 } else {
-                    $recipient->error_message = $result['message'] ?? 'Retry failed';
+                    $recipient->status = 'failed';
+                    $recipient->error_message = $result['error'] ?? 'Retry failed';
+                    $retryFailed++;
+                    Log::warning('Retry failed for ' . $recipient->phone_number);
                 }
                 
                 $recipient->save();
                 
             } catch (\Exception $e) {
                 Log::error('Retry failed for recipient ' . $recipient->id . ': ' . $e->getMessage());
+                $recipient->status = 'failed';
+                $recipient->error_message = $e->getMessage();
+                $recipient->save();
+                $retryFailed++;
             }
         }
 
-        if ($campaign->failed_count == 0) {
+        // Update campaign status
+        if ($campaign->failed_count == 0 && $campaign->sent_count > 0) {
+            $campaign->status = 'completed';
+        } elseif ($campaign->failed_count > 0 && $campaign->sent_count == 0) {
+            $campaign->status = 'failed';
+        } else {
             $campaign->status = 'completed';
         }
         $campaign->save();
@@ -630,8 +704,105 @@ class CampaignService
         return [
             'success' => true,
             'retried' => $retryCount,
+            'failed' => $retryFailed,
             'total_failed' => $failedRecipients->count()
         ];
+    }
+
+    /**
+     * Sync campaign status from KenyaSMS
+     */
+    public function syncCampaignStatus($campaignId)
+    {
+        $campaign = SmsCampaign::find($campaignId);
+        
+        if (!$campaign) {
+            return ['error' => 'Campaign not found'];
+        }
+
+        $recipients = $campaign->recipients()
+            ->whereNotNull('message_id')
+            ->whereIn('status', ['pending', 'sent', 'sending'])
+            ->get();
+
+        if ($recipients->isEmpty()) {
+            return ['error' => 'No recipients with message IDs to sync'];
+        }
+
+        $synced = 0;
+        $updated = 0;
+
+        foreach ($recipients as $recipient) {
+            if (!$recipient->message_id) {
+                continue;
+            }
+
+            $synced++;
+            $status = $this->kenyaSms->getMessageStatus($recipient->message_id);
+            
+            if ($status['success']) {
+                $newStatus = $status['status'] ?? 'unknown';
+                
+                // Map to internal status
+                $internalStatus = $this->kenyaSms->mapStatus($newStatus);
+                
+                if ($internalStatus !== $recipient->status) {
+                    $recipient->status = $internalStatus;
+                    $recipient->provider_status = $newStatus;
+                    $recipient->provider_response = json_encode($status['response'] ?? []);
+                    
+                    if ($internalStatus === 'delivered') {
+                        $recipient->sent_at = now();
+                        $campaign->increment('sent_count');
+                    } elseif ($internalStatus === 'failed') {
+                        $campaign->increment('failed_count');
+                    }
+                    
+                    $recipient->save();
+                    $updated++;
+                }
+            }
+        }
+
+        // Update campaign counters
+        $this->updateCampaignCounters($campaign);
+
+        return [
+            'success' => true,
+            'synced' => $synced,
+            'updated' => $updated,
+            'message' => "Synced $synced recipients, updated $updated statuses"
+        ];
+    }
+
+    /**
+     * Update campaign counters
+     */
+    protected function updateCampaignCounters($campaign)
+    {
+        $counts = CampaignRecipient::where('campaign_id', $campaign->id)
+            ->selectRaw("
+                COUNT(CASE WHEN status = 'delivered' THEN 1 END) as delivered_count,
+                COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_count,
+                COUNT(CASE WHEN status IN ('pending', 'sent', 'sending') THEN 1 END) as pending_count
+            ")
+            ->first();
+
+        $campaign->sent_count = $counts->delivered_count ?? 0;
+        $campaign->failed_count = $counts->failed_count ?? 0;
+        
+        // Determine status
+        if ($counts->pending_count > 0) {
+            $campaign->status = 'sending';
+        } elseif ($counts->failed_count > 0 && $counts->delivered_count > 0) {
+            $campaign->status = 'completed';
+        } elseif ($counts->failed_count > 0 && $counts->delivered_count == 0) {
+            $campaign->status = 'failed';
+        } elseif ($counts->delivered_count > 0) {
+            $campaign->status = 'completed';
+        }
+        
+        $campaign->save();
     }
 
     /**
@@ -649,14 +820,22 @@ class CampaignService
 
         foreach ($recipients as $tenant) {
             $message = $this->renderMessage($template->content, $tenant);
+            
+            // Get invoice for additional data
+            $invoice = $tenant->tenancies->first()->invoices->first() ?? null;
+            
             $previews[] = [
                 'tenant_id' => $tenant->id,
                 'name' => $tenant->user_name ?? $tenant->name ?? 'Unknown',
                 'phone' => $tenant->phone ?? '',
                 'unit_number' => $tenant->unit_number ?? 'N/A',
-                'estate_name' => $tenant->estate->name ?? 'N/A',
+                'estate_name' => $tenant->tenancies->first()->unit->estate->name ?? 'N/A',
                 'message' => $message,
-                'payment_status' => 'pending',
+                'payment_status' => $invoice ? $invoice->status : 'pending',
+                'water_bill' => $invoice ? number_format($invoice->total_amount, 2) : '0.00',
+                'due_date' => $invoice ? $invoice->due_date : date('Y-m-d', strtotime('+14 days')),
+                'message_parts' => $this->kenyaSms->getMessageParts($message),
+                'estimated_cost' => $this->kenyaSms->getEstimatedCost($message),
             ];
         }
 
@@ -678,5 +857,29 @@ class CampaignService
             'error_message' => $data['error_message'] ?? null,
             'message_id' => $data['message_id'] ?? null,
         ]);
+    }
+
+    /**
+     * Get KenyaSMS balance
+     */
+    public function getBalance()
+    {
+        return $this->kenyaSms->getBalance();
+    }
+
+    /**
+     * Get message parts count
+     */
+    public function getMessageParts($message)
+    {
+        return $this->kenyaSms->getMessageParts($message);
+    }
+
+    /**
+     * Get estimated cost
+     */
+    public function getEstimatedCost($message, $type = null)
+    {
+        return $this->kenyaSms->getEstimatedCost($message, $type);
     }
 }

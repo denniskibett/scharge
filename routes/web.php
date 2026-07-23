@@ -528,6 +528,55 @@ Route::middleware(['auth'])->group(function () {
 // SMS Module Routes
 require base_path('app/Modules/SMS/routes.php');
 
+// ============================================
+// 📱 TEST SMS ROUTES (Temporary - Remove after testing)
+// ============================================
+
+// Test 1: Configuration test
+Route::get('/test-sms-config', function () {
+    return response()->json([
+        'sms_config' => config('sms.kenyasms'),
+        'api_key_exists' => !empty(config('sms.kenyasms.api_key')),
+        'sandbox_mode' => config('sms.kenyasms.sandbox'),
+        'sender_id' => config('sms.kenyasms.sender_id'),
+        'base_url' => config('sms.kenyasms.base_url'),
+    ]);
+});
+
+// Test 2-7: Full SMS tests (requires TestSMSController)
+Route::prefix('test-sms')->group(function () {
+    Route::get('/send', [App\Http\Controllers\TestSMSController::class, 'testSendSms']);
+    Route::get('/phone', [App\Http\Controllers\TestSMSController::class, 'testPhoneFormat']);
+    Route::get('/parts', [App\Http\Controllers\TestSMSController::class, 'testMessageParts']);
+    Route::get('/balance', [App\Http\Controllers\TestSMSController::class, 'testBalance']);
+    Route::get('/quiet-hours', [App\Http\Controllers\TestSMSController::class, 'testQuietHours']);
+    Route::get('/preview', [App\Http\Controllers\TestSMSController::class, 'testCampaignPreview']);
+});
+
+// ============================================
+// 🔍 DEBUG ROUTES (Temporary - Remove after testing)
+// ============================================
+
+Route::get('/debug-mpesa', function () {
+    try {
+        $mpesa = new \App\Services\MpesaService();
+        $result = $mpesa->getAccessTokenWithDebug();
+        
+        return response()->json([
+            'environment' => env('MPESA_ENVIRONMENT'),
+            'consumer_key' => env('MPESA_CONSUMER_KEY') ? substr(env('MPESA_CONSUMER_KEY'), 0, 20) . '...' : 'MISSING',
+            'consumer_secret' => env('MPESA_CONSUMER_SECRET') ? substr(env('MPESA_CONSUMER_SECRET'), 0, 20) . '...' : 'MISSING',
+            'base_url' => 'https://sandbox.safaricom.co.ke',
+            'auth_result' => $result,
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 // Users Module Routes
 Route::prefix('users')->group(function () {
     require base_path('app/Modules/Users/routes.php');
