@@ -7,7 +7,7 @@
       content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
     />
       <meta http-equiv="X-UA-Compatible" content="ie=edge" />
-      <title>Sign In | {{ SystemHelper::appName() }}</title>
+      <title>Sign In | {{ \App\Helpers\SystemHelper::appName() }}</title>
     
      <!-- Vite Assets -->
     @vite([
@@ -30,8 +30,8 @@
             ->all();
         
         // Get system colors
-        $primaryColor = SystemHelper::primaryColor();
-        $secondaryColor = SystemHelper::secondaryColor();
+        $primaryColor = \App\Helpers\SystemHelper::primaryColor();
+        $secondaryColor = \App\Helpers\SystemHelper::secondaryColor();
     @endphp
 
     <!-- Dynamic Styles for System Colors -->
@@ -364,19 +364,19 @@
             {{-- <!-- Light logo -->
             <img
                 class="dark:hidden h-40 w-auto"
-                src="{{ SystemHelper::logoUrl() ?? asset('images/logo/auth-logo.svg') }}"
-                alt="{{ SystemHelper::appName() }} Logo"
+                src="{{ \App\Helpers\SystemHelper::logoUrl() ?? asset('images/logo/auth-logo.svg') }}"
+                alt="{{ \App\Helpers\SystemHelper::appName() }} Logo"
             />
             <!-- Dark logo --> --}}
             <img
                 class=" dark:block h-40 w-auto"
-                src="{{ SystemHelper::logoUrl(true) ?? asset('images/logo/auth-logo-dark.svg') }}"
-                alt="{{ SystemHelper::appName() }} Logo"
+                src="{{ \App\Helpers\SystemHelper::logoUrl(true) ?? asset('images/logo/auth-logo-dark.svg') }}"
+                alt="{{ \App\Helpers\SystemHelper::appName() }} Logo"
             />
 
           </a>
           <p class="text-center text-gray-400 dark:text-white/60">
-            {{ SystemHelper::slogan() }}
+            {{ \App\Helpers\SystemHelper::slogan() }}
           </p>
         </div>
       </div>

@@ -122,7 +122,7 @@
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Select Tenant *</label>
         <select
           x-model="form.tenant_id"
-          @change="loadTenantInvoices"
+          @change="loadTenantInvoices(); loadWalletBalance()"
           :required="!preSelectedInvoice"
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
@@ -133,12 +133,52 @@
         </select>
       </div>
 
+      <!-- Wallet Balance Display - Shows Bavix Wallet Balance -->
+      <div x-show="walletBalance !== null && !walletLoading" class="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-xs text-blue-700 dark:text-blue-400">💰 Wallet Balance (Bavix)</span>
+            <p class="text-lg font-bold text-blue-800 dark:text-blue-300" x-text="formatCurrency(walletBalance)"></p>
+            <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+              <span x-show="walletBalance > 0">Available for payment</span>
+              <span x-show="walletBalance === 0">No funds available</span>
+            </p>
+          </div>
+          <div class="text-right">
+            <button 
+              @click="useWalletBalance()" 
+              class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-800/50 dark:hover:bg-blue-800 transition-colors"
+              x-show="walletBalance > 0 && selectedInvoiceRemaining > 0"
+            >
+              Use Balance
+            </button>
+            <p class="text-xs text-gray-500 mt-1" x-show="walletBalance > 0 && selectedInvoiceRemaining > 0">
+              Will pay KES <span x-text="formatNumber(Math.min(walletBalance, selectedInvoiceRemaining))"></span>
+            </p>
+          </div>
+        </div>
+        <div class="mt-2 text-xs text-blue-600 dark:text-blue-400">
+          <span x-show="walletBalance >= selectedInvoiceRemaining && selectedInvoiceRemaining > 0">✅ Sufficient balance to pay invoice in full</span>
+          <span x-show="walletBalance > 0 && walletBalance < selectedInvoiceRemaining">⚠️ Partial balance - <span x-text="formatCurrency(selectedInvoiceRemaining - walletBalance)"></span> additional required</span>
+          <span x-show="walletBalance === 0">ℹ️ No wallet balance available - manual payment required</span>
+          <span x-show="selectedInvoiceRemaining === 0">✅ Invoice is fully paid</span>
+        </div>
+      </div>
+
+      <!-- Loading State for Wallet -->
+      <div x-show="walletLoading" class="mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-3">
+          <div class="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+          <span class="text-sm text-gray-500">Loading wallet balance...</span>
+        </div>
+      </div>
+
       <!-- Invoice Selection (hidden when invoice pre-selected) -->
       <div class="mb-5" x-show="!preSelectedInvoice && tenantInvoices.length > 0">
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Select Invoice to Pay *</label>
         <select
           x-model="form.invoice_id"
-          @change="selectInvoiceForPayment"
+          @change="selectInvoiceForPayment(); loadWalletBalance()"
           :required="!preSelectedInvoice"
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
@@ -181,12 +221,23 @@
             placeholder="0.00"
           />
         </div>
-        <p class="mt-1 text-xs text-gray-500">
-          Invoice due: <span x-text="formatCurrency(selectedInvoiceRemaining)"></span>
-          <span x-show="parseFloat(form.amount) > selectedInvoiceRemaining" class="text-green-600 ml-2">
-            Excess will be added to wallet
-          </span>
-        </p>
+        <div class="flex justify-between mt-1">
+          <p class="text-xs text-gray-500">
+            Invoice due: <span x-text="formatCurrency(selectedInvoiceRemaining)"></span>
+            <span x-show="parseFloat(form.amount) > selectedInvoiceRemaining" class="text-green-600 ml-2">
+              Excess will be added to wallet
+            </span>
+          </p>
+          <div class="flex items-center gap-2">
+            <button 
+              @click="setAmountByPercentage(100)" 
+              class="text-xs px-2 py-0.5 rounded bg-brand-100 text-brand-700 hover:bg-brand-200 dark:bg-brand-900/30 dark:text-brand-400 dark:hover:bg-brand-900/50 transition-colors"
+              x-show="selectedInvoiceRemaining > 0"
+            >
+              Full
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Payment Method -->
@@ -299,15 +350,26 @@
             <span class="text-gray-600 dark:text-gray-400">Reference:</span>
             <span class="text-gray-800 dark:text-white/90 font-mono text-xs" x-text="form.external_reference"></span>
           </div>
+          
+          <!-- Wallet Impact Summary -->
           <div class="border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
             <div class="flex justify-between">
               <span class="text-gray-700 dark:text-gray-300">Invoice Status After:</span>
               <span x-show="selectedInvoiceRemaining <= parseFloat(form.amount)" class="text-green-600">Fully Paid</span>
               <span x-show="selectedInvoiceRemaining > parseFloat(form.amount)" class="text-yellow-600">Partially Paid</span>
+              <span x-show="selectedInvoiceRemaining === 0" class="text-green-600">Already Paid</span>
             </div>
-            <div class="flex justify-between mt-1" x-show="parseFloat(form.amount) > selectedInvoiceRemaining">
-              <span class="text-gray-700 dark:text-gray-300">Wallet Balance Added:</span>
+            <div class="flex justify-between mt-1" x-show="parseFloat(form.amount) > selectedInvoiceRemaining && selectedInvoiceRemaining > 0">
+              <span class="text-gray-700 dark:text-gray-300">Excess to Wallet:</span>
               <span class="text-green-600" x-text="formatCurrency(parseFloat(form.amount) - selectedInvoiceRemaining)"></span>
+            </div>
+            <div class="flex justify-between mt-1" x-show="walletBalance !== null">
+              <span class="text-gray-700 dark:text-gray-300">Wallet Balance After:</span>
+              <span class="font-semibold" :class="walletBalance - parseFloat(form.amount) >= 0 ? 'text-green-600' : 'text-red-600'">
+                <span x-text="formatCurrency(walletBalance - parseFloat(form.amount))"></span>
+                <span x-show="walletBalance - parseFloat(form.amount) < 0" class="text-xs text-red-500 ml-1">(Insufficient)</span>
+                <span x-show="parseFloat(form.amount) > selectedInvoiceRemaining && selectedInvoiceRemaining > 0" class="text-green-500 ml-1">(+ excess added)</span>
+              </span>
             </div>
           </div>
         </div>
@@ -346,6 +408,8 @@ document.addEventListener('alpine:init', () => {
     preSelectedInvoice: null,
     selectedInvoiceData: null,
     tenantInvoices: [],
+    walletBalance: null,
+    walletLoading: false,
     form: {
       tenant_id: '',
       invoice_id: '',
@@ -424,6 +488,7 @@ document.addEventListener('alpine:init', () => {
       this.preSelectedInvoice = null;
       this.selectedInvoiceData = null;
       this.formMethod = 'POST';
+      this.walletBalance = null;
       this.resetForm();
       this.isOpen = true;
       document.body.style.overflow = 'hidden';
@@ -456,6 +521,11 @@ document.addEventListener('alpine:init', () => {
       this.form.mpesa_phone = invoice.phone || '';
       
       console.log('Form populated:', this.form);
+      
+      // Load wallet balance for the tenant from Bavix
+      if (invoice.tenant_id) {
+        this.loadWalletBalance(invoice.tenant_id);
+      }
       
       if (invoice.id) {
         this.fetchInvoiceDetails(invoice.id);
@@ -510,6 +580,11 @@ document.addEventListener('alpine:init', () => {
           if (data.invoice.phone) {
             this.form.mpesa_phone = data.invoice.phone;
           }
+          
+          // Load wallet balance for the tenant from Bavix
+          if (data.invoice.tenant_id) {
+            this.loadWalletBalance(data.invoice.tenant_id);
+          }
         } else {
           console.warn('Failed to fetch invoice details:', data.error);
         }
@@ -534,6 +609,10 @@ document.addEventListener('alpine:init', () => {
         payment_month: payment.billing_month ? payment.billing_month.slice(0, 7) : new Date().toISOString().slice(0, 7),
         notes: payment.meta?.notes || ''
       };
+      this.walletBalance = null;
+      if (payment.tenant_id) {
+        this.loadWalletBalance(payment.tenant_id);
+      }
       this.isOpen = true;
       document.body.style.overflow = 'hidden';
     },
@@ -547,6 +626,7 @@ document.addEventListener('alpine:init', () => {
       this.formErrors = [];
       this.successMessage = '';
       this.loading = false;
+      this.walletBalance = null;
       this.resetMpesaStatus();
       document.body.style.overflow = '';
     },
@@ -567,6 +647,7 @@ document.addEventListener('alpine:init', () => {
       this.selectedInvoiceData = null;
       this.formErrors = [];
       this.successMessage = '';
+      this.walletBalance = null;
       this.resetMpesaStatus();
     },
     
@@ -589,6 +670,93 @@ document.addEventListener('alpine:init', () => {
     handlePaymentMethodChange() {
       this.resetMpesaStatus();
     },
+    
+    // ================================================================
+    // WALLET BALANCE METHODS - Using Bavix
+    // ================================================================
+    
+    async loadWalletBalance(tenantId = null) {
+      const id = tenantId || this.form.tenant_id;
+      if (!id) {
+        this.walletBalance = null;
+        return;
+      }
+      
+      this.walletLoading = true;
+      
+      try {
+        // Call the Bavix wallet balance endpoint with tenant_id
+        const response = await fetch(`/api/wallet/balance?tenant_id=${id}`, {
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        const data = await response.json();
+        console.log('Wallet balance response:', data);
+        
+        if (data.success) {
+          this.walletBalance = data.balance || 0;
+          console.log('Wallet balance loaded from Bavix:', this.walletBalance);
+        } else {
+          this.walletBalance = 0;
+          console.warn('Failed to load wallet balance:', data.error);
+        }
+      } catch (error) {
+        console.error('Error loading wallet balance:', error);
+        this.walletBalance = 0;
+      } finally {
+        this.walletLoading = false;
+      }
+    },
+    
+    useWalletBalance() {
+      if (this.walletBalance === null || this.walletBalance <= 0) {
+        return;
+      }
+      
+      // Set the amount to the minimum of wallet balance and invoice remaining
+      const amount = Math.min(this.walletBalance, this.selectedInvoiceRemaining);
+      this.form.amount = amount > 0 ? amount.toFixed(2) : '';
+      
+      // Show feedback
+      if (this.walletBalance >= this.selectedInvoiceRemaining) {
+        this.showToast('success', '✅ Using wallet balance to pay invoice in full');
+      } else if (this.walletBalance > 0) {
+        this.showToast('info', `💰 Using KES ${this.formatNumber(this.walletBalance)} from wallet balance. Additional KES ${this.formatNumber(this.selectedInvoiceRemaining - this.walletBalance)} required.`);
+      }
+    },
+    
+    setAmountByPercentage(percentage) {
+      if (!this.selectedInvoiceRemaining || this.selectedInvoiceRemaining <= 0) {
+        return;
+      }
+      
+      const amount = (this.selectedInvoiceRemaining * percentage) / 100;
+      this.form.amount = amount > 0 ? amount.toFixed(2) : '';
+    },
+    
+    showToast(type, message) {
+      const toast = document.createElement('div');
+      const colors = {
+        success: 'bg-green-500',
+        error: 'bg-red-500',
+        info: 'bg-blue-500',
+        warning: 'bg-yellow-500'
+      };
+      toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-3 text-white text-sm shadow-lg transition-all duration-500 transform translate-y-0 ${colors[type] || 'bg-gray-700'}`;
+      toast.innerText = message;
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-8');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    },
+    
+    // ================================================================
+    // END WALLET BALANCE METHODS
+    // ================================================================
     
     async loadTenantInvoices() {
       if (!this.form.tenant_id) {
@@ -621,6 +789,10 @@ document.addEventListener('alpine:init', () => {
         if (selected.billing_month) {
           this.form.payment_month = selected.billing_month.slice(0, 7);
         }
+        // Reload wallet balance for the selected invoice's tenant
+        if (selected.tenant_id) {
+          this.loadWalletBalance(selected.tenant_id);
+        }
       }
     },
     
@@ -638,6 +810,14 @@ document.addEventListener('alpine:init', () => {
       const symbol = "{{ \App\Helpers\SystemHelper::currencySymbol() ?? 'KES ' }}";
       if (!amount && amount !== 0) return symbol + "0.00";
       return symbol + parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+    
+    formatNumber(value) {
+      if (!value && value !== 0) return '0.00';
+      return parseFloat(value).toLocaleString('en-KE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
     },
     
     showMpesaStatus(checkoutId) {
@@ -685,7 +865,7 @@ document.addEventListener('alpine:init', () => {
               this.mpesaStatus.icon = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
               this.mpesaStatus.class = 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400';
               
-              // FIX: Trigger background refresh instead of page reload
+              // Trigger background refresh
               this.triggerRefresh();
               
             } else if (status === '1' || status === 'failed' || status === 'error') {
@@ -712,7 +892,7 @@ document.addEventListener('alpine:init', () => {
       }, 5000);
     },
     
-    // FIX: Background refresh function
+    // Background refresh function
     triggerRefresh() {
       // Dispatch events to refresh wallet balance
       const refreshEvent = new CustomEvent('wallet-refresh', {
@@ -735,7 +915,7 @@ document.addEventListener('alpine:init', () => {
       // Also dispatch specific wallet-updated event
       const walletUpdateEvent = new CustomEvent('wallet-updated', {
         detail: { 
-          new_balance: this.selectedInvoiceData?.remaining_amount || 0,
+          new_balance: this.walletBalance || 0,
           source: 'payment_modal'
         }
       });
@@ -744,20 +924,7 @@ document.addEventListener('alpine:init', () => {
       // Close modal after a short delay
       setTimeout(() => {
         this.closeModal();
-        // Show success toast
-        this.showToast('success', 'Payment processed successfully!');
       }, 1500);
-    },
-    
-    showToast(type, message) {
-      const toast = document.createElement('div');
-      toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-3 text-white text-sm shadow-lg transition-all duration-500 transform translate-y-0 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
-      toast.innerText = message;
-      document.body.appendChild(toast);
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-8');
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
     },
     
     async submitForm() {
@@ -790,9 +957,16 @@ document.addEventListener('alpine:init', () => {
         }
       }
       
+      // Check if amount exceeds wallet balance (warning only)
+      if (this.walletBalance !== null && parseFloat(this.form.amount) > this.walletBalance) {
+        if (!confirm(`⚠️ Warning: Payment amount (${this.formatCurrency(this.form.amount)}) exceeds wallet balance (${this.formatCurrency(this.walletBalance)}). The tenant will need to top up their wallet. Continue?`)) {
+          return;
+        }
+      }
+      
       if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
         const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
-        if (!confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
+        if (excess > 0 && !confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
           return;
         }
       }
@@ -837,7 +1011,8 @@ document.addEventListener('alpine:init', () => {
             external_reference: this.form.external_reference,
             payment_datetime: this.form.payment_datetime,
             payment_month: this.form.payment_month,
-            notes: this.form.notes
+            notes: this.form.notes,
+            wallet_balance_at_payment: this.walletBalance
           });
         }
         
@@ -862,17 +1037,23 @@ document.addEventListener('alpine:init', () => {
           } else {
             const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);
             const amountToWallet = data.data?.amount_added_to_wallet || 0;
+            const newBalance = data.data?.wallet_balance || 0;
             
             let successMsg = '';
             if (amountToWallet > 0 && amountPaid > 0) {
-              successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet.`;
+              successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice, KES ${this.formatNumber(amountToWallet)} added to wallet. New balance: KES ${this.formatNumber(newBalance)}`;
             } else if (amountPaid > 0) {
               successMsg = `Payment successful! KES ${this.formatNumber(amountPaid)} paid to invoice.`;
             } else {
-              successMsg = `KES ${this.formatNumber(amountToWallet)} added to wallet balance.`;
+              successMsg = `KES ${this.formatNumber(amountToWallet)} added to wallet balance. New balance: KES ${this.formatNumber(newBalance)}`;
             }
             
             this.successMessage = successMsg;
+            
+            // Update wallet balance in the modal from Bavix
+            if (newBalance !== undefined) {
+              this.walletBalance = newBalance;
+            }
             
             const paymentEvent = new CustomEvent('payment-success', {
               detail: {
@@ -881,7 +1062,7 @@ document.addEventListener('alpine:init', () => {
                 amount_paid: amountPaid,
                 amount_to_wallet: amountToWallet,
                 payment_id: data.data?.payment_id || data.data?.id,
-                wallet_balance: data.data?.wallet_balance || 0,
+                wallet_balance: newBalance,
                 new_status: data.data?.invoice_status || 'paid'
               }
             });
@@ -889,10 +1070,6 @@ document.addEventListener('alpine:init', () => {
             window.dispatchEvent(paymentEvent);
             document.dispatchEvent(paymentEvent);
             
-            // FIX: Trigger background refresh instead of page reload
-            this.triggerRefresh();
-            
-            // Close modal after delay
             setTimeout(() => {
               this.closeModal();
               this.showToast('success', successMsg);
@@ -907,14 +1084,6 @@ document.addEventListener('alpine:init', () => {
         this.formErrors = ['An error occurred. Please try again.'];
         this.loading = false;
       }
-    },
-    
-    formatNumber(value) {
-      if (!value && value !== 0) return '0.00';
-      return parseFloat(value).toLocaleString('en-KE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      });
     }
   }));
 });
