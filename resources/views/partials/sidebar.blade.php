@@ -164,7 +164,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
-        'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
+        'administration', 'companies', 'account_managers', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
         'forms', 'form_elements',
         'tables', 'basic_tables',
         'pages', 'blank_page', '404_page',
@@ -179,7 +179,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
-        'users', 'staff',
+        'account_managers', 'users', 'staff',
       ],
       'property_manager': [
         'dashboard',
@@ -422,6 +422,12 @@ document.addEventListener('alpine:init', () => {
                 link: '/admin/companies',
                 page: 'companies',
                 permission: 'companies'
+              },
+              {
+                label: 'Account Managers',
+                link: '/admin/account-managers',
+                page: 'accountManagers',
+                permission: 'account_managers'
               },
               {
                 label: 'Users',
@@ -668,23 +674,6 @@ document.addEventListener('alpine:init', () => {
       }
       return null;
     },
-    
-    findParentItem(page) {
-      if (!page) return null;
-      
-      for (const group of this.menuData) {
-        for (const item of group.items) {
-          if (item.children) {
-            for (const child of item.children) {
-              if (child.page === page) {
-                return item;
-              }
-            }
-          }
-        }
-      }
-      return null;
-    },
 
     setInitialActivePage() {
       // Get the current path
@@ -714,6 +703,7 @@ document.addEventListener('alpine:init', () => {
         '/sms/templates': 'smsTemplates',
         '/sms/settings': 'smsSettings',
         '/admin/companies': 'companies',
+        '/admin/account-managers': 'accountManagers',
         '/users': 'users',
         '/staff': 'staff',
         '/roles': 'roles',
@@ -795,39 +785,25 @@ document.addEventListener('alpine:init', () => {
     },
 
     isActive(page) {
-      // Ensure we only return true for exact page matches
-      // and ignore undefined/null values
       if (!page) return false;
       return this.activePage === page;
     },
 
     getItemClasses(item) {
-      // For items without children (leaf items)
       if (!item.children) {
-        // Only active if the page matches exactly
         if (this.isActive(item.page)) {
           return 'text-sm bg-primary-10 text-primary';
         }
         return 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
       } 
-      // For items with children (parent items)
       else {
-        // A parent item is active ONLY IF:
-        // 1. It has a page property AND that page is active, OR
-        // 2. A child is active AND the parent has been selected/opened
         const hasActiveChild = this.isChildActive(item);
         
-        // Only mark parent as active if it's explicitly selected or has an active child
-        // AND we're on a page that belongs to this parent
-        const isParentActive = (this.selected === item.name) && hasActiveChild;
-        
-        // Special case: Don't mark parent as active if no child is active
-        // This prevents parent items from being active by default
         if (!hasActiveChild) {
           return 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
         }
         
-        return isParentActive || hasActiveChild
+        return (this.selected === item.name) && hasActiveChild
           ? 'text-sm bg-primary-10 text-primary' 
           : 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
       }
@@ -840,13 +816,12 @@ document.addEventListener('alpine:init', () => {
           : 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
       } else {
         const hasActiveChild = this.isChildActive(item);
-        const isParentActive = (this.selected === item.name) && hasActiveChild;
         
         if (!hasActiveChild) {
           return 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
         }
         
-        return isParentActive || hasActiveChild
+        return (this.selected === item.name) && hasActiveChild
           ? 'text-sm text-primary fill-current'
           : 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
       }

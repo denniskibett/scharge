@@ -24,6 +24,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AccountManagerController;
 
 // ============================================
 // PUBLIC ROUTES
@@ -492,6 +493,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
+    });
+
+    // ============================================
+    // ACCOUNT MANAGER MANAGEMENT ROUTES - Admin Section
+    // ============================================
+    Route::prefix('admin/account-managers')->name('admin.account-managers.')->group(function () {
+        Route::get('/', [AccountManagerController::class, 'index'])->name('index');
+        Route::get('/create', [AccountManagerController::class, 'create'])->name('create');
+        Route::post('/', [AccountManagerController::class, 'store'])->name('store');
+        Route::get('/{id}', [AccountManagerController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [AccountManagerController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [AccountManagerController::class, 'update'])->name('update');
+        Route::delete('/{id}', [AccountManagerController::class, 'destroy'])->name('destroy');
     });
 
     // ============================================
