@@ -149,6 +149,11 @@ Route::prefix('api/sms')->middleware(['auth'])->group(function () {
     // Sync status for a single recipient
     Route::post('/recipients/{id}/sync-status', [CampaignController::class, 'syncRecipientStatus']);
     
+    // =========================================================
+    // 🚀 NEW: RESEND INDIVIDUAL RECIPIENT (Works for pending, failed, queued)
+    // =========================================================
+    Route::post('/recipients/{id}/resend', [CampaignController::class, 'resendIndividualRecipient']);
+    
     // Get status summary for a campaign
     Route::get('/campaigns/{id}/status-summary', [CampaignController::class, 'getStatusSummary']);
     

@@ -847,4 +847,113 @@ class CampaignController extends Controller
             ], 500);
         }
     }
+
+    // ============================================
+    // RESEND INDIVIDUAL RECIPIENT
+    // ============================================
+
+    /**
+     * Resend an individual recipient (works for pending, failed, queued)
+     * No message_id required - this actually sends the SMS
+     */
+    public function resendIndividualRecipient($id)
+    {
+        try {
+            $recipient = \App\Models\CampaignRecipient::with(['campaign', 'tenant'])->findOrFail($id);
+            $campaign = $recipient->campaign;
+            
+            // Check if recipient can be resent
+            if (!in_array($recipient->status, ['failed', 'pending', 'queued'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Recipient status is ' . $recipient->status . '. Cannot resend.'
+                ], 400);
+            }
+            
+            // Check if tenant exists
+            if (!$recipient->tenant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tenant not found for this recipient'
+                ], 404);
+            }
+            
+            // Get template
+            $template = \App\Models\SmsTemplate::find($campaign->template_id);
+            if (!$template) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Template not found for this campaign'
+                ], 404);
+            }
+            
+            $templateContent = $template->content;
+            
+            // Render message using CampaignService
+            $campaignService = app(\App\Services\CampaignService::class);
+            $message = $campaignService->renderMessage($templateContent, $recipient->tenant);
+            
+            Log::info('Resending SMS to individual recipient', [
+                'recipient_id' => $recipient->id,
+                'phone' => $recipient->phone_number,
+                'campaign_id' => $campaign->id,
+                'message_length' => strlen($message)
+            ]);
+            
+            // ============================================
+            // FIX: Determine valid message type
+            // ============================================
+            $messageType = ($campaign->campaign_type === 'promotional') ? 'promotional' : 'transactional';
+            
+            // Send the SMS
+            $kenyaSms = app(\App\Modules\SMS\Services\KenyaSMS::class);
+            $result = $kenyaSms->sendOne(
+                $recipient->phone_number,
+                $message,
+                $messageType,
+                $campaign->id
+            );
+            
+            if ($result['success']) {
+                // Update recipient status
+                $recipient->status = 'sent';
+                $recipient->sent_at = now();
+                $recipient->message_id = $result['message_id'] ?? null;
+                $recipient->error_message = null;
+                $recipient->save();
+                
+                // Update campaign counts
+                $campaign->sent_count = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
+                    ->whereIn('status', ['sent', 'delivered'])
+                    ->count();
+                $campaign->failed_count = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
+                    ->where('status', 'failed')
+                    ->count();
+                $campaign->save();
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => '✅ SMS resent successfully to ' . $recipient->phone_number,
+                    'data' => $result
+                ]);
+            } else {
+                // Update recipient with error
+                $recipient->error_message = $result['error'] ?? 'Resend failed';
+                $recipient->save();
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to resend: ' . ($result['error'] ?? 'Unknown error')
+                ], 400);
+            }
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to resend individual recipient: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

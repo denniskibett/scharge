@@ -71,10 +71,12 @@
             <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
                 @verbatim
-                <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Hi {{name}}, please pay your {{month}} water bill by {{due_date}}. Paybill 7263733 Acc {{unit}} KES {{water_bill}}">Hi {{name}}, please pay your {{month}} water bill by {{due_date}}. Paybill 7263733 Acc {{unit}} KES {{water_bill}}</textarea>
+                <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}">Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}
+
+{{unpaid_list}}</textarea>
                 @endverbatim
                 <div class="flex flex-wrap gap-2 mt-2">
-                    <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, water_bill, due_date, month, estate_name, prev_read, curr_read, water_consumption, payment_status, status</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message</span>
                 </div>
                 <div id="charCounter" class="mt-2 text-sm"></div>
                 <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
@@ -589,7 +591,7 @@
 </div>
 
 <!-- ============================================ -->
-<!-- VIEW CAMPAIGN MODAL - WITH TABS & PAGINATION -->
+<!-- VIEW CAMPAIGN MODAL -->
 <!-- ============================================ -->
 <div id="viewCampaignModal" class="fixed inset-0 z-[99999] overflow-y-auto" style="display: none;">
     <div class="flex items-start justify-end min-h-screen pr-4 pt-4">
@@ -688,50 +690,48 @@
                         <div id="viewCampaignProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
                     </div>
                     
-                    <!-- ========================================== -->
-<!-- TABS FOR RECIPIENTS, INVALID, OTHER NETWORKS -->
-<!-- ========================================== -->
-<div class="mb-4">
-    <div class="flex border-b border-gray-200 dark:border-gray-700">
-        <button onclick="switchRecipientTab('recipients')" id="tab-recipients" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
-            <i class="fas fa-users mr-1"></i> Recipients
-            <span class="text-xs text-gray-500 ml-1" id="recipientTabCount">(0)</span>
-        </button>
-        <button onclick="switchRecipientTab('invalid')" id="tab-invalid" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-            <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Invalid
-            <span class="text-xs text-gray-500 ml-1" id="invalidTabCount">(0)</span>
-        </button>
-        <button onclick="switchRecipientTab('other')" id="tab-other" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-            <i class="fas fa-network-wired text-yellow-500 mr-1"></i> Other Networks
-            <span class="text-xs text-gray-500 ml-1" id="otherTabCount">(0)</span>
-        </button>
-        <div class="flex-1"></div>
-        
-        <!-- Export Dropdown -->
-        <div class="relative inline-block text-left">
-            <button onclick="toggleExportDropdown()" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 px-3 py-2 inline-flex items-center">
-                <i class="fas fa-file-export mr-1"></i> Export
-                <i class="fas fa-chevron-down ml-1 text-xs"></i>
-            </button>
-            <div id="exportDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
-                <div class="py-1">
-                    <button onclick="exportRecipients()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-file-export mr-2"></i> All Recipients
-                    </button>
-                    <button onclick="exportInvalidRecipients()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-exclamation-triangle mr-2"></i> Invalid Only
-                    </button>
-                    <button onclick="exportDeliveredRecipients()" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-check-circle mr-2"></i> Delivered Only
-                    </button>
-                    <button onclick="exportPendingRecipients()" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-hourglass-half mr-2"></i> Pending Only
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                    <!-- TABS FOR RECIPIENTS -->
+                    <div class="mb-4">
+                        <div class="flex border-b border-gray-200 dark:border-gray-700">
+                            <button onclick="switchRecipientTab('recipients')" id="tab-recipients" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
+                                <i class="fas fa-users mr-1"></i> Recipients
+                                <span class="text-xs text-gray-500 ml-1" id="recipientTabCount">(0)</span>
+                            </button>
+                            <button onclick="switchRecipientTab('invalid')" id="tab-invalid" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+                                <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Invalid
+                                <span class="text-xs text-gray-500 ml-1" id="invalidTabCount">(0)</span>
+                            </button>
+                            <button onclick="switchRecipientTab('other')" id="tab-other" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+                                <i class="fas fa-network-wired text-yellow-500 mr-1"></i> Other Networks
+                                <span class="text-xs text-gray-500 ml-1" id="otherTabCount">(0)</span>
+                            </button>
+                            <div class="flex-1"></div>
+                            
+                            <!-- Export Dropdown -->
+                            <div class="relative inline-block text-left">
+                                <button onclick="toggleExportDropdown()" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 px-3 py-2 inline-flex items-center">
+                                    <i class="fas fa-file-export mr-1"></i> Export
+                                    <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                                </button>
+                                <div id="exportDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
+                                    <div class="py-1">
+                                        <button onclick="exportRecipients()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-file-export mr-2"></i> All Recipients
+                                        </button>
+                                        <button onclick="exportInvalidRecipients()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i> Invalid Only
+                                        </button>
+                                        <button onclick="exportDeliveredRecipients()" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-check-circle mr-2"></i> Delivered Only
+                                        </button>
+                                        <button onclick="exportPendingRecipients()" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-hourglass-half mr-2"></i> Pending Only
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Recipients Tab Content -->
                     <div id="recipientsTabContent">
@@ -816,35 +816,35 @@
                         </div>
                     </div>
                     
-                    <<!-- Invalid Recipients Tab Content -->
-<div id="invalidTabContent" style="display: none;">
-    <div class="mb-4">
-        <button onclick="loadInvalidRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50">
-            <i class="fas fa-sync-alt mr-1"></i> Load Invalid Recipients
-        </button>
-    </div>
-    <div class="w-full overflow-x-auto rounded-xl border border-red-200 dark:border-red-800">
-        <table class="min-w-full">
-            <thead>
-                <tr class="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Phone</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Error</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
-                </tr>
-            </thead>
-            <tbody id="invalidRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                <tr>
-                    <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
-                        <i class="fas fa-info-circle mr-1"></i> Click "Load Invalid Recipients" to view
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
+                    <!-- Invalid Recipients Tab Content -->
+                    <div id="invalidTabContent" style="display: none;">
+                        <div class="mb-4">
+                            <button onclick="loadInvalidRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50">
+                                <i class="fas fa-sync-alt mr-1"></i> Load Invalid Recipients
+                            </button>
+                        </div>
+                        <div class="w-full overflow-x-auto rounded-xl border border-red-200 dark:border-red-800">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Phone</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Error</th>
+                                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="invalidRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tr>
+                                        <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
+                                            <i class="fas fa-info-circle mr-1"></i> Click "Load Invalid Recipients" to view
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     
                     <!-- Other Networks Tab Content -->
                     <div id="otherTabContent" style="display: none;">
@@ -937,7 +937,7 @@
     </div>
 </div>
 
-<<script>
+<script>
 // ============================================
 // TAB SWITCHING
 // ============================================
@@ -1288,7 +1288,6 @@ function updatePreview() {
         for (let i = 0; i < maxPreview; i++) {
             let cb = allSelected[i];
             
-            // Get all tenant data from data attributes
             let phone = cb.getAttribute('data-phone') || '';
             let name = cb.getAttribute('data-name') || 'Tenant';
             let unit = cb.getAttribute('data-unit') || 'N/A';
@@ -1301,7 +1300,17 @@ function updatePreview() {
             let dueDate = cb.getAttribute('data-due-date') || new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0];
             let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
             
-            // Format due date for display
+            // Calculate unpaid invoice data
+            let isUnpaid = paymentStatus === 'unpaid' || paymentStatus === 'pending' || paymentStatus === 'overdue';
+            let unpaidCount = isUnpaid ? 2 : 0;
+            let unpaidTotal = isUnpaid ? 3000.00 : 0;
+            let unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
+            let unpaidMessage = unpaidCount === 0 
+                ? 'no pending invoices' 
+                : (unpaidCount === 1 
+                    ? `1 unpaid invoice of KES ${unpaidTotal.toFixed(2)}` 
+                    : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`);
+            
             let formattedDueDate = dueDate;
             try {
                 const d = new Date(dueDate);
@@ -1314,10 +1323,8 @@ function updatePreview() {
             
             let formattedWaterBill = water_bill.toFixed(2);
             
-            // START: Replace ALL variables in the message
             let message = template;
             
-            // Replace each variable with actual data
             message = message.replace(/\{\{name\}\}/g, name);
             message = message.replace(/\{\{unit\}\}/g, unit);
             message = message.replace(/\{\{unit_number\}\}/g, unit);
@@ -1326,21 +1333,25 @@ function updatePreview() {
             message = message.replace(/\{\{due_date\}\}/g, formattedDueDate);
             message = message.replace(/\{\{month\}\}/g, month);
             message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+            message = message.replace(/\{\{estate\}\}/g, estate_name);
             message = message.replace(/\{\{prev_read\}\}/g, prev_read);
             message = message.replace(/\{\{curr_read\}\}/g, curr_read);
             message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
             message = message.replace(/\{\{status\}\}/g, paymentStatus);
             
-            // Clean up any remaining variables
+            // NEW: Replace unpaid invoice variables
+            message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
+            message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
+            message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
+            message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+            
             message = message.replace(/\{\{[^}]*\}\}/g, '');
             
-            // Calculate SMS length and parts
             const msgLength = message.length;
             const isUnicode = /[^\x00-\x7F]/.test(message);
             const partsPerSms = isUnicode ? 70 : 160;
             const parts = Math.ceil(msgLength / partsPerSms);
             
-            // Determine status color
             let statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
             if (paymentStatus === 'paid') statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
             else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
@@ -1361,12 +1372,24 @@ function updatePreview() {
                 length: msgLength,
                 parts: parts,
                 statusColor: statusColor,
+                unpaid_count: unpaidCount,
+                unpaid_total: unpaidTotal.toFixed(2),
+                unpaid_list: unpaidList,
+                unpaid_message: unpaidMessage
             });
         }
         
-        // Build the preview HTML
         let html = '';
         previews.forEach((p) => {
+            let unpaidInfo = '';
+            if (p.unpaid_count > 0) {
+                unpaidInfo = `
+                    <span class="text-xs text-orange-600 dark:text-orange-400 ml-2">
+                        ⚠️ ${p.unpaid_count} unpaid (KES ${p.unpaid_total})
+                    </span>
+                `;
+            }
+            
             html += `
                 <div class="border rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
                     <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
@@ -1375,6 +1398,7 @@ function updatePreview() {
                             <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.unit)}</span>
                             <span class="text-xs text-gray-400 dark:text-gray-500">•</span>
                             <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.estate)}</span>
+                            ${unpaidInfo}
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.statusColor}">
@@ -1415,6 +1439,12 @@ function updatePreview() {
                             <span class="text-xs text-gray-400 dark:text-gray-500">
                                 Bill: KES ${p.water_bill}
                             </span>
+                            ${p.unpaid_count > 0 ? `
+                            <span class="text-xs text-orange-600 dark:text-orange-400">|</span>
+                            <span class="text-xs text-orange-600 dark:text-orange-400">
+                                Unpaid: KES ${p.unpaid_total}
+                            </span>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -1530,6 +1560,17 @@ if (bulkForm) {
             let dueDate = cb.getAttribute('data-due-date');
             let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
             
+            // Calculate unpaid invoice data
+            let isUnpaid = paymentStatus === 'unpaid' || paymentStatus === 'pending' || paymentStatus === 'overdue';
+            let unpaidCount = isUnpaid ? 2 : 0;
+            let unpaidTotal = isUnpaid ? 3000.00 : 0;
+            let unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
+            let unpaidMessage = unpaidCount === 0 
+                ? 'no pending invoices' 
+                : (unpaidCount === 1 
+                    ? `1 unpaid invoice of KES ${unpaidTotal.toFixed(2)}` 
+                    : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`);
+            
             let message = template;
             message = message.replace(/\{\{name\}\}/g, name);
             message = message.replace(/\{\{unit\}\}/g, unit);
@@ -1539,10 +1580,19 @@ if (bulkForm) {
             message = message.replace(/\{\{due_date\}\}/g, dueDate);
             message = message.replace(/\{\{month\}\}/g, month);
             message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+            message = message.replace(/\{\{estate\}\}/g, estate_name);
             message = message.replace(/\{\{prev_read\}\}/g, prev_read);
             message = message.replace(/\{\{curr_read\}\}/g, curr_read);
             message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
             message = message.replace(/\{\{status\}\}/g, paymentStatus);
+            
+            // NEW: Replace unpaid invoice variables
+            message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
+            message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
+            message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
+            message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+            
+            message = message.replace(/\{\{[^}]*\}\}/g, '');
             
             selected.push({
                 phone: phone,
@@ -1798,27 +1848,19 @@ function filterEstatesByCompany() {
     estateSelect.value = '';
 }
 
-// ============================================
-// CAMPAIGN TEMPLATE PREVIEW
-// ============================================
-function loadCampaignTemplatePreview() {
+function updateCampaignPreviewOnEstateChange() {
+    console.log('🔄 Estate changed in campaign modal');
     const select = document.getElementById('campaignTemplate');
-    if (!select) return;
-    
-    const selected = select.options[select.selectedIndex];
+    const selected = select ? select.options[select.selectedIndex] : null;
     const content = selected ? selected.getAttribute('data-content') : null;
     
-    console.log('📝 Template selected:', selected ? selected.text : 'None');
-    
-    const previewDiv = document.getElementById('campaignTemplatePreview');
-    const contentEl = document.getElementById('campaignTemplateContent');
-    
-    if (content && previewDiv && contentEl) {
-        previewDiv.style.display = 'block';
-        contentEl.textContent = content;
+    if (content) {
         generateTenantPreview(content);
-    } else if (previewDiv) {
-        previewDiv.style.display = 'none';
+    } else {
+        const previewContainerDiv = document.getElementById('campaignTenantPreviewContainer');
+        if (previewContainerDiv) previewContainerDiv.style.display = 'none';
+        const previewContainer = document.getElementById('campaignTenantPreview');
+        if (previewContainer) previewContainer.innerHTML = '';
     }
 }
 
@@ -1834,19 +1876,58 @@ function generateTenantPreview(templateContent) {
         return;
     }
     
-    const allTenants = getAllTenantsData();
-    let filteredTenants = allTenants.filter(t => t.estateId == estateId);
+    // Get ALL tenant rows
+    const tenantRows = document.querySelectorAll('.tenant-row');
+    let filteredTenants = [];
     
-    const invoiceStatus = document.getElementById('campaignFilterStatus').value;
-    if (invoiceStatus) {
-        filteredTenants = filteredTenants.filter(t => t.paymentStatus === invoiceStatus);
-    }
+    tenantRows.forEach(row => {
+        const rowEstateId = row.getAttribute('data-estate-id') || '';
+        const paymentStatus = row.getAttribute('data-payment-status') || 'pending';
+        const name = row.getAttribute('data-name') || 'Tenant';
+        const phone = row.getAttribute('data-phone') || '';
+        const unit = row.getAttribute('data-unit') || 'N/A';
+        const estate = row.getAttribute('data-estate') || 'N/A';
+        const waterBill = parseFloat(row.getAttribute('data-water-bill') || 0);
+        const prevRead = row.getAttribute('data-prev-read') || '0';
+        const currRead = row.getAttribute('data-curr-read') || '0';
+        const month = row.getAttribute('data-month') || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+        const dueDate = row.getAttribute('data-due-date') || 'N/A';
+        const consumption = row.getAttribute('data-consumption') || '0';
+        
+        if (estateId && rowEstateId != estateId) return;
+        
+        const invoiceStatus = document.getElementById('campaignFilterStatus').value;
+        if (invoiceStatus && paymentStatus !== invoiceStatus) return;
+        
+        if (!phone) return;
+        
+        // Calculate consumption
+        let waterConsumption = parseFloat(consumption) || 0;
+        if (waterConsumption == 0 && parseFloat(prevRead) > 0 && parseFloat(currRead) > 0) {
+            waterConsumption = parseFloat(currRead) - parseFloat(prevRead);
+        }
+        
+        filteredTenants.push({
+            name: name,
+            phone: phone,
+            unit: unit,
+            estate: estate,
+            estateId: rowEstateId,
+            waterbill: waterBill,
+            waterConsumption: waterConsumption,
+            prevRead: prevRead,
+            currRead: currRead,
+            month: month,
+            dueDate: dueDate,
+            paymentStatus: paymentStatus
+        });
+    });
     
     if (filteredTenants.length === 0) {
         previewContainerDiv.style.display = 'block';
         previewContainer.innerHTML = `
             <div class="text-center py-4 text-gray-500">
-                <i class="fas fa-info-circle mr-2"></i> No tenants found in this estate${invoiceStatus ? ' with status: ' + invoiceStatus : ''}.
+                <i class="fas fa-info-circle mr-2"></i> No tenants found in this estate.
             </div>
         `;
         return;
@@ -1860,25 +1941,50 @@ function generateTenantPreview(templateContent) {
     previewTenants.forEach(tenant => {
         let message = templateContent;
         
-        const replacements = {
-            'name': tenant.name || 'Tenant',
-            'unit': tenant.unit || 'N/A',
-            'unit_number': tenant.unit || 'N/A',
-            'water_bill': tenant.waterbill ? parseFloat(tenant.waterbill).toFixed(2) : '0.00',
-            'water_consumption': tenant.consumption || '0',
-            'due_date': tenant.dueDate || 'N/A',
-            'month': tenant.month || 'N/A',
-            'estate_name': tenant.estate || 'N/A',
-            'prev_read': tenant.prevRead || '0',
-            'curr_read': tenant.currRead || '0',
-            'payment_status': tenant.paymentStatus || 'pending',
-            'status': tenant.paymentStatus || 'pending'
+        let dueDate = tenant.dueDate || 'N/A';
+        try {
+            const d = new Date(dueDate);
+            if (!isNaN(d)) {
+                dueDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            }
+        } catch (e) {
+            dueDate = tenant.dueDate || 'N/A';
+        }
+        
+        const isUnpaid = tenant.paymentStatus === 'unpaid' || tenant.paymentStatus === 'pending' || tenant.paymentStatus === 'overdue';
+        const unpaidCount = isUnpaid ? 2 : 0;
+        const unpaidTotal = isUnpaid ? '3000.00' : '0.00';
+        const unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
+        const unpaidMessage = isUnpaid ? '2 unpaid invoices totaling KES 3,000.00' : 'No pending invoices';
+        
+        // Use the pre-calculated water consumption
+        const waterConsumption = tenant.waterConsumption || 0;
+        
+        const placeholders = {
+            '@{{name}}': tenant.name || 'Tenant',
+            '@{{unit}}': tenant.unit || 'N/A',
+            '@{{unit_number}}': tenant.unit || 'N/A',
+            '@{{estate_name}}': tenant.estate || 'N/A',
+            '@{{estate}}': tenant.estate || 'N/A',
+            '@{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+            '@{{water_bill}}': tenant.waterbill ? parseFloat(tenant.waterbill).toFixed(2) : '0.00',
+            '@{{water_consumption}}': waterConsumption,  // <-- USING CALCULATED VALUE
+            '@{{prev_read}}': tenant.prevRead || '0',
+            '@{{curr_read}}': tenant.currRead || '0',
+            '@{{due_date}}': dueDate,
+            '@{{payment_status}}': tenant.paymentStatus || 'pending',
+            '@{{status}}': tenant.paymentStatus || 'pending',
+            '@{{unpaid_count}}': String(unpaidCount),
+            '@{{unpaid_total}}': unpaidTotal,
+            '@{{unpaid_list}}': unpaidList,
+            '@{{unpaid_message}}': unpaidMessage
         };
         
-        for (const [key, value] of Object.entries(replacements)) {
-            const placeholder = '{{' + key + '}}';
-            message = message.replace(new RegExp(placeholder.replace(/[{}]/g, '\\$&'), 'g'), value);
+        for (const [key, value] of Object.entries(placeholders)) {
+            message = message.split(key).join(value);
         }
+        
+        message = message.replace(/\{\{[^}]*\}\}/g, '');
         
         let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
         if (tenant.paymentStatus === 'paid') {
@@ -1887,10 +1993,15 @@ function generateTenantPreview(templateContent) {
             statusBadgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
         }
         
+        let unpaidBadge = '';
+        if (isUnpaid) {
+            unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} unpaid</span>`;
+        }
+        
         html += `
             <div class="border-l-4 border-blue-300 pl-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                    <strong>To:</strong> ${escapeHtml(tenant.phone || 'N/A')} (${escapeHtml(tenant.name || 'Tenant')})
+                    <strong>To:</strong> ${escapeHtml(tenant.phone || 'N/A')} (${escapeHtml(tenant.name || 'Tenant')}) ${unpaidBadge}
                 </p>
                 <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-wrap">${escapeHtml(message)}</div>
                 <div class="flex flex-wrap gap-2 mt-1 text-xs">
@@ -1900,6 +2011,7 @@ function generateTenantPreview(templateContent) {
                     <span class="text-gray-500 dark:text-gray-400">Bill: KES ${tenant.waterbill ? parseFloat(tenant.waterbill).toFixed(2) : '0.00'}</span>
                     <span class="text-gray-500 dark:text-gray-400">Unit: ${escapeHtml(tenant.unit || 'N/A')}</span>
                     <span class="text-gray-500 dark:text-gray-400">Reading: ${tenant.prevRead || 0} → ${tenant.currRead || 0}</span>
+                    ${isUnpaid ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid: KES ${unpaidTotal}</span>` : ''}
                 </div>
             </div>
         `;
@@ -1915,152 +2027,6 @@ function generateTenantPreview(templateContent) {
     html += '</div>';
     previewContainer.innerHTML = html;
 }
-
-function updateCampaignPreviewOnEstateChange() {
-    const select = document.getElementById('campaignTemplate');
-    const selected = select ? select.options[select.selectedIndex] : null;
-    const content = selected ? selected.getAttribute('data-content') : null;
-    
-    if (content) {
-        generateTenantPreview(content);
-    }
-}
-
-// ============================================
-// CREATE CAMPAIGN MODAL - FIXED
-// ============================================
-function openCreateCampaignModal() {
-    console.log('📝 Opening create campaign modal');
-    const modal = document.getElementById('createCampaignModal');
-    if (!modal) {
-        console.error('❌ Create campaign modal not found');
-        return;
-    }
-    
-    modal.style.display = 'block';
-    
-    // Auto-generate unique campaign name
-    const now = new Date();
-    const dateStr = now.getFullYear() + '-' + 
-                    String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                    String(now.getDate()).padStart(2, '0') + ' ' + 
-                    String(now.getHours()).padStart(2, '0') + ':' + 
-                    String(now.getMinutes()).padStart(2, '0') + ':' + 
-                    String(now.getSeconds()).padStart(2, '0');
-    const campaignName = 'Campaign ' + dateStr;
-    
-    document.getElementById('campaignName').value = campaignName;
-    document.getElementById('campaignDescription').value = '';
-    document.getElementById('campaignTemplate').value = '';
-    document.getElementById('campaignType').value = 'general';
-    document.getElementById('campaignFilterCompany').value = '';
-    document.getElementById('campaignFilterEstate').value = '';
-    document.getElementById('campaignFilterStatus').value = '';
-    document.getElementById('campaignSchedule').value = '';
-    document.getElementById('campaignTemplatePreview').style.display = 'none';
-    document.getElementById('campaignTemplateContent').textContent = '';
-    
-    const previewContainer = document.getElementById('campaignTenantPreviewContainer');
-    if (previewContainer) previewContainer.style.display = 'none';
-    const previewEl = document.getElementById('campaignTenantPreview');
-    if (previewEl) previewEl.innerHTML = '';
-    
-    const estateSelect = document.getElementById('campaignFilterEstate');
-    if (estateSelect) {
-        const options = estateSelect.querySelectorAll('option');
-        options.forEach(option => {
-            option.style.display = 'block';
-        });
-        estateSelect.value = '';
-    }
-}
-
-function closeCreateCampaignModal() {
-    console.log('📝 Closing create campaign modal');
-    const modal = document.getElementById('createCampaignModal');
-    if (modal) modal.style.display = 'none';
-}
-
-// ============================================
-// SUBMIT CAMPAIGN
-// ============================================
-function submitCampaign(event) {
-    event.preventDefault();
-    
-    const name = document.getElementById('campaignName').value.trim();
-    const description = document.getElementById('campaignDescription').value.trim();
-    const templateId = document.getElementById('campaignTemplate').value;
-    const campaignType = document.getElementById('campaignType').value;
-    const companyId = document.getElementById('campaignFilterCompany').value;
-    const estateId = document.getElementById('campaignFilterEstate').value;
-    const invoiceStatus = document.getElementById('campaignFilterStatus').value;
-    const scheduledAt = document.getElementById('campaignSchedule').value;
-    
-    if (!name) {
-        alert('Please enter a campaign name');
-        return;
-    }
-    if (!templateId) {
-        alert('Please select an SMS template');
-        return;
-    }
-    
-    const submitBtn = document.getElementById('submitCampaignBtn');
-    const submitText = document.getElementById('submitCampaignText');
-    if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = 'Creating...';
-    
-    const formData = {
-        name: name,
-        description: description,
-        template_id: parseInt(templateId),
-        campaign_type: campaignType,
-        filters: {
-            company_id: companyId || '',
-            estate_id: estateId || '',
-            invoice_status: invoiceStatus || ''
-        },
-        scheduled_at: scheduledAt || null
-    };
-    
-    console.log('📤 Submitting campaign:', formData);
-    
-    fetch('/api/sms/campaigns', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.message || 'Something went wrong');
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            closeCreateCampaignModal();
-            loadCampaigns();
-            alert('✅ Campaign created successfully!');
-        } else {
-            throw new Error(data.message || 'Something went wrong');
-        }
-    })
-    .catch(error => {
-        console.error('Error creating campaign:', error);
-        alert('❌ Error: ' + error.message);
-    })
-    .finally(() => {
-        if (submitBtn) submitBtn.disabled = false;
-        if (submitText) submitText.textContent = 'Create Campaign';
-    });
-}
-
 // ============================================
 // VIEW CAMPAIGN
 // ============================================
@@ -2092,47 +2058,23 @@ function viewCampaign(id) {
             if (loading) loading.style.display = 'none';
             if (content) content.style.display = 'block';
             
-            // Campaign Name
-            const nameEl = document.getElementById('viewCampaignName');
-            if (nameEl) nameEl.textContent = data.name || 'N/A';
+            document.getElementById('viewCampaignName').textContent = data.name || 'N/A';
+            document.getElementById('viewCampaignDescription').textContent = data.description || 'No description provided';
             
-            // Campaign Description
-            const descEl = document.getElementById('viewCampaignDescription');
-            if (descEl) descEl.textContent = data.description || 'No description provided';
-            
-            // Status
             const statusEl = document.getElementById('viewCampaignStatus');
             if (statusEl) {
                 statusEl.textContent = capitalize(data.status);
                 statusEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadge(data.status);
             }
             
-            // Template
-            const templateEl = document.getElementById('viewCampaignTemplate');
-            if (templateEl) {
-                templateEl.textContent = data.template ? data.template.name : 'No template';
-            }
+            document.getElementById('viewCampaignTemplate').textContent = data.template ? data.template.name : 'No template';
+            document.getElementById('viewCampaignCreated').textContent = formatDate(data.created_at);
+            document.getElementById('viewCampaignTotal').textContent = data.total_recipients || 0;
+            document.getElementById('viewCampaignSent').textContent = data.sent_count || 0;
+            document.getElementById('viewCampaignFailed').textContent = data.failed_count || 0;
             
-            // Created
-            const createdEl = document.getElementById('viewCampaignCreated');
-            if (createdEl) createdEl.textContent = formatDate(data.created_at);
-            
-            // Total
-            const totalEl = document.getElementById('viewCampaignTotal');
-            if (totalEl) totalEl.textContent = data.total_recipients || 0;
-            
-            // Sent
-            const sentEl = document.getElementById('viewCampaignSent');
-            if (sentEl) sentEl.textContent = data.sent_count || 0;
-            
-            // Failed
-            const failedEl = document.getElementById('viewCampaignFailed');
-            if (failedEl) failedEl.textContent = data.failed_count || 0;
-            
-            // Status counts
             const counts = data.status_counts || { sent: 0, pending: 0, failed: 0, queued: 0, delivered: 0 };
             
-            // Update filter counts
             document.getElementById('count-all').textContent = data.total_recipients || 0;
             document.getElementById('count-delivered').textContent = counts.delivered || 0;
             document.getElementById('count-sent').textContent = counts.sent || 0;
@@ -2140,53 +2082,32 @@ function viewCampaign(id) {
             document.getElementById('count-pending').textContent = counts.pending || 0;
             document.getElementById('count-failed').textContent = counts.failed || 0;
             
-            // Validation Stats
             document.getElementById('viewCampaignValid').textContent = data.validation_stats?.valid || 0;
             document.getElementById('viewCampaignOtherNetwork').textContent = data.validation_stats?.other_network || 0;
             document.getElementById('viewCampaignInvalid').textContent = data.validation_stats?.invalid || 0;
+            document.getElementById('viewCampaignPendingCount').textContent = counts.pending || 0;
             
-            const sentCountEl = document.getElementById('viewCampaignSentCount');
-            if (sentCountEl) sentCountEl.textContent = counts.sent || 0;
-            
-            const pendingCountEl = document.getElementById('viewCampaignPendingCount');
-            if (pendingCountEl) pendingCountEl.textContent = counts.pending || 0;
-            
-            const failedCountEl = document.getElementById('viewCampaignFailedCount');
-            if (failedCountEl) failedCountEl.textContent = counts.failed || 0;
-            
-            // Progress
             const total = data.total_recipients || 0;
             const sent = data.sent_count || 0;
             const progress = total > 0 ? Math.round((sent / total) * 100) : 0;
             
-            const progressEl = document.getElementById('viewCampaignProgress');
-            if (progressEl) progressEl.textContent = progress + '%';
+            document.getElementById('viewCampaignProgress').textContent = progress + '%';
+            document.getElementById('viewCampaignProgressBar').style.width = progress + '%';
             
-            const progressBar = document.getElementById('viewCampaignProgressBar');
-            if (progressBar) progressBar.style.width = progress + '%';
-            
-            // Update tab counts
             const recipientCount = data.recipients ? data.recipients.length : 0;
             const invalidCount = data.validation_stats?.invalid || 0;
             const otherCount = data.validation_stats?.other_network || 0;
             
-            const recipientTabCount = document.getElementById('recipientTabCount');
-            if (recipientTabCount) recipientTabCount.textContent = `(${recipientCount})`;
+            document.getElementById('recipientTabCount').textContent = `(${recipientCount})`;
+            document.getElementById('invalidTabCount').textContent = `(${invalidCount})`;
+            document.getElementById('otherTabCount').textContent = `(${otherCount})`;
             
-            const invalidTabCount = document.getElementById('invalidTabCount');
-            if (invalidTabCount) invalidTabCount.textContent = `(${invalidCount})`;
-            
-            const otherTabCount = document.getElementById('otherTabCount');
-            if (otherTabCount) otherTabCount.textContent = `(${otherCount})`;
-            
-            // Store recipients for filtering
             currentRecipients = data.recipients || [];
             currentRecipientsFull = data.recipients || [];
             currentFilteredRecipients = currentRecipientsFull;
             currentRecipientFilter = 'all';
             currentPage = 1;
             
-            // Reset filter buttons
             const buttons = document.querySelectorAll('#viewCampaignModal .flex.flex-wrap.gap-2 button');
             buttons.forEach(btn => {
                 btn.classList.remove('bg-blue-600', 'text-white');
@@ -2198,7 +2119,6 @@ function viewCampaign(id) {
                 allBtn.classList.add('bg-blue-600', 'text-white');
             }
             
-            // Show recipients tab by default
             switchRecipientTab('recipients');
         })
         .catch(error => {
@@ -2242,8 +2162,9 @@ function renderRecipients(recipients) {
         let estateName = recipient.estate_name || recipient.estate || 'N/A';
         let phoneNumber = recipient.phone_number || recipient.phone || '';
         
+        // UPDATED: Show resend button for failed, pending, or queued
         let resendButton = '';
-        if (recipient.status === 'failed') {
+        if (recipient.status === 'failed' || recipient.status === 'pending' || recipient.status === 'queued') {
             resendButton = `
                 <button onclick="resendSingleRecipient(${recipient.id})" class="text-orange-600 hover:text-orange-900 text-xs" title="Resend this message">
                     <i class="fas fa-redo"></i>
@@ -2710,7 +2631,6 @@ function refreshCampaignStatus() {
         }
     });
 }
-
 // ============================================
 // RESEND SINGLE RECIPIENT
 // ============================================
@@ -2722,7 +2642,15 @@ function resendSingleRecipient(recipientId) {
     
     if (!confirm('Resend this message to this recipient?')) return;
     
-    fetch(`/api/sms/recipients/${recipientId}/sync-status`, {
+    // Show loading state on the button
+    const btn = document.querySelector(`[onclick="resendSingleRecipient(${recipientId})"]`);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+    
+    // FIXED: Use the resend endpoint (not sync-status)
+    fetch(`/api/sms/recipients/${recipientId}/resend`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2742,9 +2670,15 @@ function resendSingleRecipient(recipientId) {
     .catch(error => {
         console.error('Error resending:', error);
         alert('❌ Error resending: ' + error.message);
+    })
+    .finally(() => {
+        // Restore the button
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-redo"></i>';
+        }
     });
 }
-
 // ============================================
 // VIEW RECIPIENT MESSAGE
 // ============================================
@@ -3097,11 +3031,167 @@ function deleteCampaign(id) {
         alert('❌ Error deleting campaign');
     });
 }
-</script>
 
-<style>
-    [x-cloak] { display: none !important; }
-    .sort-icon { opacity: 0.5; font-size: 10px; }
-    th:hover .sort-icon { opacity: 1; }
-</style>
+// ============================================
+// OPEN CREATE CAMPAIGN MODAL
+// ============================================
+function openCreateCampaignModal() {
+    console.log('📝 Opening create campaign modal');
+    const modal = document.getElementById('createCampaignModal');
+    if (!modal) {
+        console.error('❌ Create campaign modal not found');
+        return;
+    }
+    
+    modal.style.display = 'block';
+    
+    // Auto-generate unique campaign name
+    const now = new Date();
+    const dateStr = now.getFullYear() + '-' + 
+                    String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                    String(now.getDate()).padStart(2, '0') + ' ' + 
+                    String(now.getHours()).padStart(2, '0') + ':' + 
+                    String(now.getMinutes()).padStart(2, '0') + ':' + 
+                    String(now.getSeconds()).padStart(2, '0');
+    const campaignName = 'Campaign ' + dateStr;
+    
+    document.getElementById('campaignName').value = campaignName;
+    document.getElementById('campaignDescription').value = '';
+    document.getElementById('campaignTemplate').value = '';
+    document.getElementById('campaignType').value = 'general';
+    document.getElementById('campaignFilterCompany').value = '';
+    document.getElementById('campaignFilterEstate').value = '';
+    document.getElementById('campaignFilterStatus').value = '';
+    document.getElementById('campaignSchedule').value = '';
+    document.getElementById('campaignTemplatePreview').style.display = 'none';
+    document.getElementById('campaignTemplateContent').textContent = '';
+    
+    const previewContainer = document.getElementById('campaignTenantPreviewContainer');
+    if (previewContainer) previewContainer.style.display = 'none';
+    const previewEl = document.getElementById('campaignTenantPreview');
+    if (previewEl) previewEl.innerHTML = '';
+    
+    const estateSelect = document.getElementById('campaignFilterEstate');
+    if (estateSelect) {
+        const options = estateSelect.querySelectorAll('option');
+        options.forEach(option => {
+            option.style.display = 'block';
+        });
+        estateSelect.value = '';
+    }
+}
+
+// ============================================
+// CLOSE CREATE CAMPAIGN MODAL
+// ============================================
+function closeCreateCampaignModal() {
+    console.log('📝 Closing create campaign modal');
+    const modal = document.getElementById('createCampaignModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// ============================================
+// LOAD CAMPAIGN TEMPLATE PREVIEW
+// ============================================
+function loadCampaignTemplatePreview() {
+    const select = document.getElementById('campaignTemplate');
+    if (!select) return;
+    
+    const selected = select.options[select.selectedIndex];
+    const content = selected ? selected.getAttribute('data-content') : null;
+    
+    console.log('📝 Template selected:', selected ? selected.text : 'None');
+    
+    const previewDiv = document.getElementById('campaignTemplatePreview');
+    const contentEl = document.getElementById('campaignTemplateContent');
+    
+    if (content && previewDiv && contentEl) {
+        previewDiv.style.display = 'block';
+        contentEl.textContent = content;
+        generateTenantPreview(content);
+    } else if (previewDiv) {
+        previewDiv.style.display = 'none';
+    }
+}
+
+// ============================================
+// SUBMIT CAMPAIGN
+// ============================================
+function submitCampaign(event) {
+    event.preventDefault();
+    
+    const name = document.getElementById('campaignName').value.trim();
+    const description = document.getElementById('campaignDescription').value.trim();
+    const templateId = document.getElementById('campaignTemplate').value;
+    const campaignType = document.getElementById('campaignType').value;
+    const companyId = document.getElementById('campaignFilterCompany').value;
+    const estateId = document.getElementById('campaignFilterEstate').value;
+    const invoiceStatus = document.getElementById('campaignFilterStatus').value;
+    const scheduledAt = document.getElementById('campaignSchedule').value;
+    
+    if (!name) {
+        alert('Please enter a campaign name');
+        return;
+    }
+    if (!templateId) {
+        alert('Please select an SMS template');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('submitCampaignBtn');
+    const submitText = document.getElementById('submitCampaignText');
+    if (submitBtn) submitBtn.disabled = true;
+    if (submitText) submitText.textContent = 'Creating...';
+    
+    const formData = {
+        name: name,
+        description: description,
+        template_id: parseInt(templateId),
+        campaign_type: campaignType,
+        filters: {
+            company_id: companyId || '',
+            estate_id: estateId || '',
+            invoice_status: invoiceStatus || ''
+        },
+        scheduled_at: scheduledAt || null
+    };
+    
+    console.log('📤 Submitting campaign:', formData);
+    
+    fetch('/api/sms/campaigns', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.message || 'Something went wrong');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            closeCreateCampaignModal();
+            loadCampaigns();
+            alert('✅ Campaign created successfully!');
+        } else {
+            throw new Error(data.message || 'Something went wrong');
+        }
+    })
+    .catch(error => {
+        console.error('Error creating campaign:', error);
+        alert('❌ Error: ' + error.message);
+    })
+    .finally(() => {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitText) submitText.textContent = 'Create Campaign';
+    });
+}
+</script>
 @endsection

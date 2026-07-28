@@ -93,6 +93,7 @@ class KenyaSMS
             ]);
 
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(30)
                 ->post($this->baseUrl . '/sms/send', $payload);
 
@@ -199,6 +200,7 @@ class KenyaSMS
             }
 
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(60)
                 ->post($this->baseUrl . '/sms/bulk', $payload);
 
@@ -259,7 +261,7 @@ class KenyaSMS
             if ($formatted) {
                 $variables = $recipient['variables'] ?? [];
                 $preparedRecipients[] = [
-                    'recipient' => $formatted,
+                    'phone' => $formatted,      // FIXED: Changed from 'recipient' to 'phone'
                     'variables' => $variables
                 ];
             }
@@ -294,9 +296,20 @@ class KenyaSMS
                 $headers['X-Sandbox-Mode'] = 'true';
             }
 
+            Log::info('KenyaSMS: Personalized Request', [
+                'url' => $this->baseUrl . '/sms/personalized',
+                'payload' => $payload
+            ]);
+
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(60)
                 ->post($this->baseUrl . '/sms/personalized', $payload);
+
+            Log::info('KenyaSMS: Personalized Response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -305,7 +318,7 @@ class KenyaSMS
                 foreach ($preparedRecipients as $index => $recipient) {
                     $messageId = $data['data']['messages'][$index]['message_id'] ?? null;
                     $this->logSms(
-                        $recipient['recipient'], 
+                        $recipient['phone'], 
                         $template, 
                         $type, 
                         $campaignId, 
@@ -322,6 +335,11 @@ class KenyaSMS
                     'recipients_count' => count($preparedRecipients)
                 ];
             }
+
+            Log::error('KenyaSMS: Personalized send failed', [
+                'status_code' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             return [
                 'success' => false,
@@ -383,6 +401,7 @@ class KenyaSMS
             ];
 
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(30)
                 ->get($this->baseUrl . '/sms/status/' . $messageId);
 
@@ -448,6 +467,7 @@ class KenyaSMS
             ];
 
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(30)
                 ->get($this->baseUrl . '/sms/dlr/' . $messageId);
 
@@ -509,6 +529,7 @@ class KenyaSMS
             ];
 
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(30)
                 ->get($this->baseUrl . '/wallet/balance');
 
@@ -566,6 +587,7 @@ class KenyaSMS
             ];
 
             $response = Http::withHeaders($headers)
+                ->withoutVerifying()  // SSL fix for development
                 ->timeout(30)
                 ->get($this->baseUrl . '/sender-ids');
 

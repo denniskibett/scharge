@@ -36,10 +36,15 @@ class SmsController extends Controller
                     ->first() : null;
                 
                 $waterBill = $latestWaterReading ? (float) $latestWaterReading->charge : 0;
-                $waterConsumption = $latestWaterReading ? (float) $latestWaterReading->consumption : 0;
                 $prevRead = $latestWaterReading ? (float) $latestWaterReading->previous_reading : 0;
                 $currRead = $latestWaterReading ? (float) $latestWaterReading->current_reading : 0;
                 $readingDate = $latestWaterReading ? $latestWaterReading->reading_date : null;
+                
+                // Calculate consumption from readings if consumption is 0
+                $waterConsumption = $latestWaterReading ? (float) $latestWaterReading->consumption : 0;
+                if ($waterConsumption == 0 && $prevRead > 0 && $currRead > 0) {
+                    $waterConsumption = $currRead - $prevRead;
+                }
                 
                 $securityFee = 500;
                 $garbageFee = 300;
@@ -149,7 +154,7 @@ class SmsController extends Controller
     }
 
     // ============================================
-    // SEND BULK SMS
+    // SEND BULK SMS - COMPLETELY FIXED
     // ============================================
     public function send(Request $request, KenyaSMS $kenyaSms)
     {
@@ -206,14 +211,24 @@ class SmsController extends Controller
                 $readingMonth = $readingDate ? $readingDate->format('F Y') : Carbon::now()->format('F Y');
                 $dueDate = $readingDate ? Carbon::parse($readingDate)->addMonth()->day(5)->format('Y-m-d') : Carbon::now()->addMonth()->day(5)->format('Y-m-d');
                 
+                // Calculate consumption from readings if consumption is 0
+                $consumption = $reading ? (float) $reading->consumption : 0;
+                if ($consumption == 0 && $reading && (float) $reading->previous_reading > 0 && (float) $reading->current_reading > 0) {
+                    $consumption = (float) $reading->current_reading - (float) $reading->previous_reading;
+                }
+                
+                $waterBill = $reading ? (float) $reading->charge : 0;
+                
                 $variables['unit'] = $unitNumber;
                 $variables['unit_number'] = $unitNumber;
                 $variables['estate_name'] = $estateName;
                 $variables['name'] = $variables['name'] ?? $tenant->user->name ?? 'Tenant';
-                $variables['water_bill'] = $variables['water_bill'] ?? ($reading ? (float) $reading->charge : 0);
-                $variables['water_consumption'] = $variables['water_consumption'] ?? ($reading ? (float) $reading->consumption : 0);
-                $variables['prev_read'] = $variables['prev_read'] ?? ($reading ? (float) $reading->previous_reading : 0);
-                $variables['curr_read'] = $variables['curr_read'] ?? ($reading ? (float) $reading->current_reading : 0);
+                
+                // FIX: Convert to integer BEFORE storing in variables
+                $variables['water_bill'] = (int) ($variables['water_bill'] ?? $waterBill);
+                $variables['water_consumption'] = (int) ($variables['water_consumption'] ?? $consumption);
+                $variables['prev_read'] = (int) ($variables['prev_read'] ?? ($reading ? (float) $reading->previous_reading : 0));
+                $variables['curr_read'] = (int) ($variables['curr_read'] ?? ($reading ? (float) $reading->current_reading : 0));
                 $variables['month'] = $readingMonth;
                 $variables['reading_month'] = $readingMonth;
                 $variables['due_date'] = $dueDate;
@@ -223,11 +238,12 @@ class SmsController extends Controller
                 $variables['status'] = $paymentStatus;
             }
 
+            // Set defaults
             if (!isset($variables['name']) || empty($variables['name'])) {
                 $variables['name'] = $recipient['name'] ?? 'Tenant';
             }
             if (!isset($variables['water_bill']) || empty($variables['water_bill'])) {
-                $variables['water_bill'] = $recipient['water_bill'] ?? '0.00';
+                $variables['water_bill'] = (int) ($recipient['water_bill'] ?? 0);
             }
             if (!isset($variables['unit']) || empty($variables['unit'])) {
                 $variables['unit'] = $recipient['unit'] ?? 'N/A';
@@ -240,12 +256,21 @@ class SmsController extends Controller
             }
             $variables['status'] = $variables['payment_status'];
 
+            // Build the message
             $message = $template;
             foreach ($variables as $key => $value) {
                 if ($value !== null) {
                     $message = str_replace('{{' . $key . '}}', $value, $message);
                 }
             }
+
+            // ============================================
+            // FINAL CLEANUP: Force remove .00 from everything
+            // ============================================
+            $message = preg_replace('/\b(\d+)\.00\b/', '$1', $message);
+            $message = preg_replace('/\b(\d+),(\d+)\.00\b/', '$1,$2', $message);
+            $message = str_replace('  ', ' ', $message);
+            $message = str_replace('KES KES', 'KES', $message);
 
             $preparedRecipients[] = [
                 'phone' => $recipient['phone'],
