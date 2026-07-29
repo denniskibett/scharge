@@ -3,7 +3,7 @@
 @section('title', 'Water Meter Reading Statement - Unit ' . ($unit->unit_number ?? ''))
 
 @section('content')
-<div x-data="waterStatement()" x-init="init()" @update-readings.window="loadReadings()">
+<div x-data="waterStatement()" x-init="init()">
     <div class="container-fluid px-4 py-4">
         
         <!-- Header -->
@@ -67,7 +67,6 @@
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <!-- Total Consumption -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -84,7 +83,6 @@
                 </div>
             </div>
 
-            <!-- Total Charges -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -101,7 +99,6 @@
                 </div>
             </div>
 
-            <!-- Average Monthly Consumption -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -118,7 +115,6 @@
                 </div>
             </div>
 
-            <!-- Number of Readings -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -315,13 +311,10 @@
     <!-- UPDATE READINGS MODAL -->
     <!-- ============================================ -->
     <div x-show="updateModalOpen" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-cloak>
-        <!-- Backdrop -->
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="updateModalOpen = false"></div>
         
-        <!-- Modal -->
         <div class="relative min-h-screen flex items-center justify-center p-4">
             <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-                <!-- Modal Header -->
                 <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
                     <div>
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Update Water Readings</h3>
@@ -334,7 +327,6 @@
                     </button>
                 </div>
                 
-                <!-- Modal Body -->
                 <div class="p-4">
                     <div class="mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
                         <p class="text-sm text-yellow-800 dark:text-yellow-300">
@@ -387,7 +379,6 @@
                     </div>
                 </div>
                 
-                <!-- Modal Footer -->
                 <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900">
                     <button @click="updateModalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                         Cancel
@@ -510,48 +501,48 @@ document.addEventListener('alpine:init', () => {
             defaultStart.setMonth(defaultStart.getMonth() - 6);
             this.autoFillStartMonth = defaultStart.toISOString().slice(0, 7);
             
-            await this.loadReadings();
+            // Load data from PHP
+            this.loadReadingsFromData();
+            
+            // Create chart after readings are loaded
+            this.$nextTick(() => this.createChart());
         },
         
-        async loadReadings() {
-            this.loading = true;
+        loadReadingsFromData() {
             try {
-                const response = await fetch(`/water/unit-history/${this.unitId}`);
-                const data = await response.json();
+                // Get readings from the PHP passed data
+                const readingsData = @json($readings ?? []);
+                const statsData = @json($stats ?? []);
                 
-                if (data.success) {
-                    this.readings = data.history || [];
-                    this.totalConsumption = data.stats.total_consumption || 0;
-                    this.totalCharges = data.stats.total_charges || 0;
-                    this.averageConsumption = data.stats.average_consumption || 0;
-                    this.totalReadings = data.stats.total_readings || 0;
-                    
-                    // Update unit info from response
-                    if (data.unit) {
-                        this.unitNumber = data.unit.unit_number;
-                        this.estateName = data.unit.estate_name;
-                    }
+                console.log('Readings data from PHP:', readingsData);
+                console.log('Stats data from PHP:', statsData);
+                
+                // Set readings
+                if (readingsData && Array.isArray(readingsData) && readingsData.length > 0) {
+                    this.readings = readingsData;
+                } else {
+                    this.readings = [];
+                }
+                
+                // Set stats
+                if (statsData) {
+                    this.totalConsumption = statsData.total_consumption || 0;
+                    this.totalCharges = statsData.total_charges || 0;
+                    this.averageConsumption = statsData.average_consumption || 0;
+                    this.totalReadings = statsData.total_readings || 0;
                     
                     // Update initial reading info if available
-                    if (data.initial_reading) {
+                    if (statsData.has_initial_reading && statsData.initial_reading) {
                         this.hasInitialReading = true;
-                        this.initialReadingDate = data.initial_reading.reading_date;
-                        this.initialReadingValue = data.initial_reading.current_reading;
+                        this.initialReadingDate = statsData.initial_reading.reading_date || '';
+                        this.initialReadingValue = statsData.initial_reading.current_reading || 0;
                     }
-                    
-                    // Calculate missing months
-                    this.calculateMissingMonths();
-                    
-                    // Create chart after readings are loaded
-                    this.$nextTick(() => this.createChart());
-                } else {
-                    console.error('API returned error:', data);
                 }
+                
+                // Calculate missing months
+                this.calculateMissingMonths();
             } catch (error) {
-                console.error('Error loading readings:', error);
-                alert('Error loading water readings: ' + error.message);
-            } finally {
-                this.loading = false;
+                console.error('Error loading readings from data:', error);
             }
         },
         
@@ -561,42 +552,44 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             
-            // Get all reading months
-            const readingMonths = this.readings.map(r => r.reading_date.slice(0, 7));
-            
-            // Get first and last reading months
-            const firstReading = this.readings[this.readings.length - 1];
-            const lastReading = this.readings[0];
-            
-            if (!firstReading || !lastReading) {
+            try {
+                // Get all reading months
+                const readingMonths = this.readings.map(r => r.reading_date ? r.reading_date.slice(0, 7) : null).filter(Boolean);
+                
+                if (readingMonths.length === 0) {
+                    this.missingMonths = [];
+                    return;
+                }
+                
+                // Get first and last reading months
+                const sortedReadings = [...this.readings].sort((a, b) => new Date(a.reading_date) - new Date(b.reading_date));
+                const firstReading = sortedReadings[0];
+                const lastReading = sortedReadings[sortedReadings.length - 1];
+                
+                if (!firstReading || !lastReading || !firstReading.reading_date || !lastReading.reading_date) {
+                    this.missingMonths = [];
+                    return;
+                }
+                
+                const start = new Date(firstReading.reading_date + '-01');
+                const end = new Date(lastReading.reading_date + '-01');
+                
+                const missing = [];
+                const current = new Date(start);
+                
+                while (current <= end) {
+                    const month = current.toISOString().slice(0, 7);
+                    if (!readingMonths.includes(month)) {
+                        missing.push(month);
+                    }
+                    current.setMonth(current.getMonth() + 1);
+                }
+                
+                this.missingMonths = missing;
+            } catch (error) {
+                console.error('Error calculating missing months:', error);
                 this.missingMonths = [];
-                return;
             }
-            
-            const start = new Date(firstReading.reading_date + '-01');
-            const end = new Date(lastReading.reading_date + '-01');
-            
-            // Include initial reading month if exists
-            let startMonth = start;
-            if (this.hasInitialReading && this.initialReadingDate) {
-                const initialDate = new Date(this.initialReadingDate);
-                if (initialDate < start) {
-                    startMonth = initialDate;
-                }
-            }
-            
-            const missing = [];
-            const current = new Date(startMonth);
-            
-            while (current <= end) {
-                const month = current.toISOString().slice(0, 7);
-                if (!readingMonths.includes(month)) {
-                    missing.push(month);
-                }
-                current.setMonth(current.getMonth() + 1);
-            }
-            
-            this.missingMonths = missing;
         },
         
         createChart() {
@@ -609,9 +602,9 @@ document.addEventListener('alpine:init', () => {
             }
             
             // Prepare data (oldest to newest for chart)
-            const reversedReadings = [...this.readings].reverse();
-            const labels = reversedReadings.map(r => this.formatDate(r.reading_date));
-            const consumptionData = reversedReadings.map(r => r.consumption);
+            const sortedReadings = [...this.readings].sort((a, b) => new Date(a.reading_date) - new Date(b.reading_date));
+            const labels = sortedReadings.map(r => this.formatDate(r.reading_date));
+            const consumptionData = sortedReadings.map(r => r.consumption || 0);
             
             const ctx = canvas.getContext('2d');
             this.chart = new Chart(ctx, {
@@ -686,10 +679,8 @@ document.addEventListener('alpine:init', () => {
             // Get previous reading (from previous month or 0)
             let prevReading = 0;
             if (index < this.editableReadings.length - 1) {
-                // Previous reading is from the next older reading
                 prevReading = this.editableReadings[index + 1].current_reading;
             } else {
-                // Last (oldest) reading - use the unit's previous reading
                 prevReading = this.previousReading || 0;
             }
             
@@ -732,47 +723,63 @@ document.addEventListener('alpine:init', () => {
                 }
             }
             
-            // Prepare data for API
-            const readingsData = this.editableReadings.map(r => ({
-                id: r.id,
-                current_reading: r.current_reading,
-                reading_date: r.reading_date,
-                previous_reading: r.previous_reading,
-                consumption: r.consumption,
-                charge: r.charge
-            }));
+            // Check if any reading already exists for this month
+            const hasExistingReading = this.editableReadings.some(r => r.id);
+            if (!hasExistingReading) {
+                alert('No readings to update.');
+                return;
+            }
             
-            // Show confirmation
             if (!confirm('This will update all readings and recalculate charges. Continue?')) {
                 return;
             }
             
             try {
-                const response = await fetch(`/water/readings/bulk-matrix`, {
+                // Prepare data for API - only send readings that have been modified
+                const readingsData = this.editableReadings
+                    .filter(r => r.id) // Only send readings that exist
+                    .map(r => ({
+                        unit_id: this.unitId,
+                        current_reading: r.current_reading,
+                        reading_date: r.reading_date,
+                        existing_reading_id: r.id
+                    }));
+                
+                if (readingsData.length === 0) {
+                    alert('No readings to update.');
+                    return;
+                }
+                
+                console.log('Sending update data:', readingsData);
+                
+                const response = await fetch('/water/readings/bulk-matrix', {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({
-                        readings: readingsData.map(r => ({
-                            unit_id: this.unitId,
-                            current_reading: r.current_reading,
-                            reading_date: r.reading_date,
-                            existing_reading_id: r.id
-                        })),
-                        notes: 'Bulk update via statement page'
+                    body: JSON.stringify({ 
+                        readings: readingsData, 
+                        notes: 'Bulk update via statement page' 
                     })
                 });
                 
+                // Check if response is OK
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Server response:', text);
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Update response:', data);
                 
                 if (data.success) {
                     this.updateModalOpen = false;
                     showToast('Readings updated successfully!', 'success');
-                    await this.loadReadings();
-                    this.$dispatch('update-readings');
+                    // Reload the page to refresh data
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
                     showToast(data.message || 'Error updating readings', 'error');
                 }
@@ -795,12 +802,25 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             
-            if (!confirm(`This will create readings for ${this.missingMonths.length} missing month(s). Continue?`)) {
+            const missingCount = this.missingMonths.length;
+            if (missingCount === 0) {
+                alert('No missing months to fill.');
+                this.autoFillModalOpen = false;
+                return;
+            }
+            
+            if (!confirm(`This will create readings for ${missingCount} missing month(s). Continue?`)) {
                 return;
             }
             
             try {
                 const endMonth = new Date().toISOString().slice(0, 7);
+                console.log('Auto-fill request:', {
+                    unitId: this.unitId,
+                    start_month: this.autoFillStartMonth,
+                    end_month: endMonth
+                });
+                
                 const response = await fetch(`/water/unit/${this.unitId}/auto-fill`, {
                     method: 'POST',
                     headers: {
@@ -814,13 +834,20 @@ document.addEventListener('alpine:init', () => {
                     })
                 });
                 
+                // Check if response is OK
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Server response:', text);
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('Auto-fill response:', data);
                 
                 if (data.success) {
                     this.autoFillModalOpen = false;
-                    showToast(data.message, 'success');
-                    await this.loadReadings();
-                    this.$dispatch('update-readings');
+                    showToast(data.message || 'Auto-fill completed successfully!', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
                 } else {
                     showToast(data.message || 'Error auto-filling', 'error');
                 }
@@ -872,34 +899,41 @@ document.addEventListener('alpine:init', () => {
         
         formatDate(dateString) {
             if (!dateString) return 'N/A';
-            return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            try {
+                return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch (e) {
+                return dateString;
+            }
         },
         
         exportStatement() {
-            // Create CSV export
-            const headers = ['Reading Date', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Rate (KES/m³)', 'Charge (KES)', 'Status'];
-            const rows = this.readings.map(r => [
-                this.formatDate(r.reading_date),
-                this.formatNumber(r.previous_reading),
-                this.formatNumber(r.current_reading),
-                this.formatNumber(r.consumption),
-                this.formatNumber(r.rate_applied),
-                this.formatNumber(r.charge),
-                this.getStatusText(r.consumption)
-            ]);
-            
-            // Add summary rows
-            rows.push(['', '', '', 'TOTAL:', '', this.formatNumber(this.totalCharges), '']);
-            rows.push(['', '', '', 'AVERAGE:', '', this.formatNumber(this.averageConsumption), '']);
-            
-            const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `water-statement-${this.unitNumber}-${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
+            try {
+                const headers = ['Reading Date', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Rate (KES/m³)', 'Charge (KES)', 'Status'];
+                const rows = this.readings.map(r => [
+                    this.formatDate(r.reading_date),
+                    this.formatNumber(r.previous_reading),
+                    this.formatNumber(r.current_reading),
+                    this.formatNumber(r.consumption),
+                    this.formatNumber(r.rate_applied),
+                    this.formatNumber(r.charge),
+                    this.getStatusText(r.consumption)
+                ]);
+                
+                rows.push(['', '', '', 'TOTAL:', '', this.formatNumber(this.totalCharges), '']);
+                rows.push(['', '', '', 'AVERAGE:', '', this.formatNumber(this.averageConsumption), '']);
+                
+                const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `water-statement-${this.unitNumber}-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error('Error exporting:', error);
+                alert('Error exporting statement. Please try again.');
+            }
         },
         
         recordReading() {
@@ -916,9 +950,8 @@ function showToast(message, type = 'success') {
     if (existingToast) existingToast.remove();
     
     const toast = document.createElement('div');
-    toast.className = `toast-notification fixed bottom-4 right-4 z-[99999] px-4 py-2 rounded-lg shadow-lg text-white flex items-center gap-2 ${
-        type === 'success' ? 'bg-green-500' : 'bg-red-500'
-    }`;
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    toast.className = `toast-notification fixed bottom-4 right-4 z-[99999] px-4 py-2 rounded-lg shadow-lg text-white flex items-center gap-2 ${bgColor}`;
     toast.innerHTML = `
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             ${type === 'success' 
@@ -928,7 +961,7 @@ function showToast(message, type = 'success') {
         ${message}
     `;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => toast.remove(), 4000);
 }
 </script>
 

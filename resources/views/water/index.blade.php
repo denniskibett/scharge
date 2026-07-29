@@ -35,7 +35,6 @@
 
         <!-- Summary Cards -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <!-- Total Readings -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -50,7 +49,6 @@
                 </div>
             </div>
 
-            <!-- Total Consumption -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -67,7 +65,6 @@
                 </div>
             </div>
 
-            <!-- Total Charges -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -84,7 +81,6 @@
                 </div>
             </div>
 
-            <!-- Average Consumption -->
             <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="flex items-center justify-between">
                     <div>
@@ -145,4 +141,9 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 </script>
+
+<!-- ============================================ -->
+<!-- THIS IS THE KEY FIX - Passing estates to modal -->
+<!-- ============================================ -->
+@include('partials.modal.modal-create-reading', ['estates' => $estates ?? []])
 @endsection
