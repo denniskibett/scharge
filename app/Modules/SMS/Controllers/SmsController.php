@@ -11,29 +11,40 @@ use App\Modules\SMS\Models\SmsLog;
 use App\Modules\SMS\Models\SmsTemplate;
 use App\Modules\SMS\Models\SmsCampaign;
 use App\Modules\Properties\Models\Estate;
+use App\Models\Company;
 use App\Modules\SMS\Helpers\PhoneHelper;
 use Carbon\Carbon;
 
 class SmsController extends Controller
 {
+    /**
+     * Display the SMS broadcast page
+     */
     public function create()
     {
+        // ============================================
+        // GET ALL TENANTS WITH THEIR DATA
+        // ============================================
         $tenants = Tenant::with(['user', 'activeTenancy.unit.estate'])
             ->get()
             ->map(function ($tenant) {
                 $tenancy = $tenant->activeTenancy;
                 $unit = $tenancy ? $tenancy->unit : null;
                 
-                // ✅ Get the latest water reading from the Water Meter Readings module
                 $latestWaterReading = $unit ? WaterReading::where('unit_id', $unit->id)
                     ->latest('reading_date')
                     ->first() : null;
                 
                 $waterBill = $latestWaterReading ? (float) $latestWaterReading->charge : 0;
-                $waterConsumption = $latestWaterReading ? (float) $latestWaterReading->consumption : 0;
                 $prevRead = $latestWaterReading ? (float) $latestWaterReading->previous_reading : 0;
                 $currRead = $latestWaterReading ? (float) $latestWaterReading->current_reading : 0;
                 $readingDate = $latestWaterReading ? $latestWaterReading->reading_date : null;
+                
+                // Calculate consumption from readings if consumption is 0
+                $waterConsumption = $latestWaterReading ? (float) $latestWaterReading->consumption : 0;
+                if ($waterConsumption == 0 && $prevRead > 0 && $currRead > 0) {
+                    $waterConsumption = $currRead - $prevRead;
+                }
                 
                 $securityFee = 500;
                 $garbageFee = 300;
@@ -42,17 +53,13 @@ class SmsController extends Controller
                 $rawPhone = $tenant->user->phone ?? null;
                 $phone = $rawPhone ? PhoneHelper::clean($rawPhone) : null;
                 $isKenyan = $phone && preg_match('/^254[0-9]{9}$/', $phone);
-                $unitNumber = $unit->unit_number ?? '';
+                $unitNumber = $unit ? $unit->unit_number : '';
                 $estateName = $unit && $unit->estate ? $unit->estate->name : 'N/A';
 
-                // ✅ FIX: Reading month from the actual reading
                 $readingMonth = $readingDate ? $readingDate->format('F Y') : Carbon::now()->format('F Y');
-                
-                // ✅ FIX: Due date: 5th of next month from the reading month
                 $baseDate = $readingDate ? Carbon::parse($readingDate) : Carbon::now();
                 $dueDate = $baseDate->copy()->addMonth()->day(5)->format('Y-m-d');
 
-                // ✅ FIX: Get payment status from invoices
                 $paymentStatus = $this->getPaymentStatusForTenant($tenant->id);
 
                 return [
@@ -76,7 +83,7 @@ class SmsController extends Controller
                     'garbage_fee' => $garbageFee,
                     'total' => $total,
                     'payment_status' => $paymentStatus,
-                    'status' => $paymentStatus, // For {{status}} placeholder
+                    'status' => $paymentStatus,
                 ];
             })
             ->filter(function ($tenant) {
@@ -84,6 +91,9 @@ class SmsController extends Controller
             })
             ->values();
 
+        // ============================================
+        // INTERNATIONAL COUNT
+        // ============================================
         $internationalCount = Tenant::with('user')
             ->get()
             ->filter(function ($tenant) {
@@ -92,15 +102,60 @@ class SmsController extends Controller
                 return $phone && !preg_match('/^254[0-9]{9}$/', $phone);
             })->count();
 
+        // ============================================
+        // ALL DATA FOR TABS
+        // ============================================
         $estates = Estate::orderBy('name')->get();
-        $sandbox = config('services.kenyasms.sandbox', false);
+        $companies = Company::orderBy('name')->get();
         $templates = SmsTemplate::orderBy('name')->get();
         $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);
         $campaigns = SmsCampaign::with('creator')->latest()->paginate(20);
+        $sandbox = config('sms.kenyasms.sandbox', true);
 
-        return view('sms.broadcast', compact('tenants', 'estates', 'sandbox', 'templates', 'logs', 'internationalCount', 'campaigns'));
+        // ============================================
+        // RETURN VIEW WITH ALL DATA
+        // ============================================
+        return view('sms.broadcast', [
+            'tenants' => $tenants,
+            'estates' => $estates,
+            'companies' => $companies,
+            'templates' => $templates,
+            'logs' => $logs,
+            'campaigns' => $campaigns,
+            'sandbox' => $sandbox,
+            'internationalCount' => $internationalCount,
+        ]);
     }
 
+    /**
+     * Get payment status from invoices for a tenant
+     */
+    private function getPaymentStatusForTenant($tenantId)
+    {
+        try {
+            $tenant = Tenant::with(['activeTenancy.invoices'])->find($tenantId);
+            if (!$tenant || !$tenant->activeTenancy) {
+                return 'pending';
+            }
+            
+            $invoices = $tenant->activeTenancy->invoices;
+            $unpaid = $invoices->where('status', 'unpaid')->count();
+            $paid = $invoices->where('status', 'paid')->count();
+            
+            if ($paid > 0 && $unpaid == 0) {
+                return 'paid';
+            } elseif ($unpaid > 0) {
+                return 'unpaid';
+            }
+            return 'pending';
+        } catch (\Exception $e) {
+            return 'pending';
+        }
+    }
+
+    // ============================================
+    // SEND BULK SMS - COMPLETELY FIXED
+    // ============================================
     public function send(Request $request, KenyaSMS $kenyaSms)
     {
         $request->validate([
@@ -115,7 +170,6 @@ class SmsController extends Controller
             return back()->with('error', 'No valid recipients selected.');
         }
 
-        // Get the template from the form
         $template = $request->input('template');
         
         if (empty($template)) {
@@ -149,39 +203,47 @@ class SmsController extends Controller
                 $unitNumber = $unit ? $unit->unit_number : '';
                 $estateName = $unit && $unit->estate ? $unit->estate->name : '';
                 
-                // ✅ Get the latest water reading
                 $reading = $unit ? WaterReading::where('unit_id', $unit->id)
                     ->latest('reading_date')
                     ->first() : null;
                 
-                // ✅ Get reading data
                 $readingDate = $reading ? $reading->reading_date : null;
                 $readingMonth = $readingDate ? $readingDate->format('F Y') : Carbon::now()->format('F Y');
                 $dueDate = $readingDate ? Carbon::parse($readingDate)->addMonth()->day(5)->format('Y-m-d') : Carbon::now()->addMonth()->day(5)->format('Y-m-d');
+                
+                // Calculate consumption from readings if consumption is 0
+                $consumption = $reading ? (float) $reading->consumption : 0;
+                if ($consumption == 0 && $reading && (float) $reading->previous_reading > 0 && (float) $reading->current_reading > 0) {
+                    $consumption = (float) $reading->current_reading - (float) $reading->previous_reading;
+                }
+                
+                $waterBill = $reading ? (float) $reading->charge : 0;
                 
                 $variables['unit'] = $unitNumber;
                 $variables['unit_number'] = $unitNumber;
                 $variables['estate_name'] = $estateName;
                 $variables['name'] = $variables['name'] ?? $tenant->user->name ?? 'Tenant';
-                $variables['water_bill'] = $variables['water_bill'] ?? ($reading ? (float) $reading->charge : 0);
-                $variables['water_consumption'] = $variables['water_consumption'] ?? ($reading ? (float) $reading->consumption : 0);
-                $variables['prev_read'] = $variables['prev_read'] ?? ($reading ? (float) $reading->previous_reading : 0);
-                $variables['curr_read'] = $variables['curr_read'] ?? ($reading ? (float) $reading->current_reading : 0);
+                
+                // FIX: Convert to integer BEFORE storing in variables
+                $variables['water_bill'] = (int) ($variables['water_bill'] ?? $waterBill);
+                $variables['water_consumption'] = (int) ($variables['water_consumption'] ?? $consumption);
+                $variables['prev_read'] = (int) ($variables['prev_read'] ?? ($reading ? (float) $reading->previous_reading : 0));
+                $variables['curr_read'] = (int) ($variables['curr_read'] ?? ($reading ? (float) $reading->current_reading : 0));
                 $variables['month'] = $readingMonth;
                 $variables['reading_month'] = $readingMonth;
                 $variables['due_date'] = $dueDate;
                 
-                // ✅ Get payment status from invoices
                 $paymentStatus = $this->getPaymentStatusForTenant($recipient['id']);
                 $variables['payment_status'] = $paymentStatus;
-                $variables['status'] = $paymentStatus; // For {{status}} placeholder
+                $variables['status'] = $paymentStatus;
             }
 
+            // Set defaults
             if (!isset($variables['name']) || empty($variables['name'])) {
                 $variables['name'] = $recipient['name'] ?? 'Tenant';
             }
             if (!isset($variables['water_bill']) || empty($variables['water_bill'])) {
-                $variables['water_bill'] = $recipient['water_bill'] ?? '0.00';
+                $variables['water_bill'] = (int) ($recipient['water_bill'] ?? 0);
             }
             if (!isset($variables['unit']) || empty($variables['unit'])) {
                 $variables['unit'] = $recipient['unit'] ?? 'N/A';
@@ -192,7 +254,6 @@ class SmsController extends Controller
             if (!isset($variables['payment_status']) || empty($variables['payment_status'])) {
                 $variables['payment_status'] = 'pending';
             }
-            // ✅ Make sure status is also set
             $variables['status'] = $variables['payment_status'];
 
             // Build the message
@@ -202,6 +263,14 @@ class SmsController extends Controller
                     $message = str_replace('{{' . $key . '}}', $value, $message);
                 }
             }
+
+            // ============================================
+            // FINAL CLEANUP: Force remove .00 from everything
+            // ============================================
+            $message = preg_replace('/\b(\d+)\.00\b/', '$1', $message);
+            $message = preg_replace('/\b(\d+),(\d+)\.00\b/', '$1,$2', $message);
+            $message = str_replace('  ', ' ', $message);
+            $message = str_replace('KES KES', 'KES', $message);
 
             $preparedRecipients[] = [
                 'phone' => $recipient['phone'],
@@ -215,7 +284,6 @@ class SmsController extends Controller
             return back()->with('error', 'No valid recipients with phone numbers found.');
         }
 
-        // Create campaign
         $campaign = SmsCampaign::create([
             'name' => 'Campaign ' . now()->format('Y-m-d H:i:s'),
             'template_id' => null,
@@ -245,59 +313,9 @@ class SmsController extends Controller
         }
     }
 
-    /**
-     * Get payment status from invoices for a tenant
-     */
-    private function getPaymentStatusForTenant($tenantId)
-    {
-        try {
-            $tenant = Tenant::with(['activeTenancy.invoices'])->find($tenantId);
-            if (!$tenant || !$tenant->activeTenancy) {
-                return 'pending';
-            }
-            
-            $invoices = $tenant->activeTenancy->invoices;
-            $unpaid = $invoices->where('status', 'unpaid')->count();
-            $paid = $invoices->where('status', 'paid')->count();
-            
-            if ($paid > 0 && $unpaid == 0) {
-                return 'paid';
-            } elseif ($unpaid > 0) {
-                return 'unpaid';
-            }
-            return 'pending';
-        } catch (\Exception $e) {
-            return 'pending';
-        }
-    }
-
-    private function getTenantPaymentStatusForSMS($tenantId)
-    {
-        if (!$tenantId) {
-            return 'pending';
-        }
-        
-        try {
-            $tenant = Tenant::with(['activeTenancy.invoices'])->find($tenantId);
-            if (!$tenant || !$tenant->activeTenancy) {
-                return 'pending';
-            }
-            
-            $invoices = $tenant->activeTenancy->invoices;
-            $unpaid = $invoices->where('status', 'unpaid')->count();
-            $paid = $invoices->where('status', 'paid')->count();
-            
-            if ($paid > 0 && $unpaid == 0) {
-                return 'paid';
-            } elseif ($unpaid > 0) {
-                return 'unpaid';
-            }
-            return 'pending';
-        } catch (\Exception $e) {
-            return 'pending';
-        }
-    }
-
+    // ============================================
+    // SEND CUSTOM SMS
+    // ============================================
     public function sendCustom(Request $request, KenyaSMS $kenyaSms)
     {
         $request->validate([
@@ -329,6 +347,9 @@ class SmsController extends Controller
         }
     }
 
+    // ============================================
+    // SMS LOGS
+    // ============================================
     public function logs(Request $request)
     {
         $query = SmsLog::orderBy('created_at', 'desc');
@@ -350,6 +371,9 @@ class SmsController extends Controller
         return view('sms.logs', compact('logs'));
     }
 
+    // ============================================
+    // EXPORT SMS LOGS
+    // ============================================
     public function export(Request $request)
     {
         $query = SmsLog::orderBy('created_at', 'desc');
@@ -394,12 +418,15 @@ class SmsController extends Controller
         exit;
     }
 
+    // ============================================
+    // SMS SETTINGS
+    // ============================================
     public function settings(KenyaSMS $kenyaSms)
     {
-        $sandbox = config('services.kenyasms.sandbox', false);
-        $senderId = config('services.kenyasms.sender_id', 'SHARETENT');
-        $defaultType = config('services.kenyasms.default_type', 'transactional');
-        $apiKeyConfigured = !empty(config('services.kenyasms.key'));
+        $sandbox = config('sms.kenyasms.sandbox', true);
+        $senderId = config('sms.kenyasms.sender_id', 'SHARETENT');
+        $defaultType = config('sms.kenyasms.default_type', 'transactional');
+        $apiKeyConfigured = !empty(config('sms.kenyasms.api_key'));
 
         $balanceInfo = ['success' => false, 'balance' => null, 'error' => null];
         if ($apiKeyConfigured) {
@@ -409,6 +436,9 @@ class SmsController extends Controller
         return view('sms.settings', compact('sandbox', 'senderId', 'defaultType', 'apiKeyConfigured', 'balanceInfo'));
     }
 
+    // ============================================
+    // UPDATE SMS SETTINGS
+    // ============================================
     public function updateSettings(Request $request)
     {
         $request->validate([
@@ -419,12 +449,18 @@ class SmsController extends Controller
             ->with('info', 'To change sandbox mode, edit your .env file: set KENYASMS_SANDBOX=true or false and restart the server.');
     }
 
+    // ============================================
+    // SHOW CAMPAIGN
+    // ============================================
     public function showCampaign($id)
     {
         $campaign = SmsCampaign::with('logs', 'creator')->findOrFail($id);
         return view('sms.campaigns.show', compact('campaign'));
     }
 
+    // ============================================
+    // RESEND FAILED
+    // ============================================
     public function resendFailed(Request $request, $campaignId, KenyaSMS $kenyaSms)
     {
         $campaign = SmsCampaign::with('logs')->findOrFail($campaignId);
@@ -456,6 +492,9 @@ class SmsController extends Controller
             ->with('success', "Resent {$sent} messages successfully. {$failed} still failed.");
     }
 
+    // ============================================
+    // GET TENANT PAYMENT STATUS
+    // ============================================
     public function getTenantPaymentStatus($tenantId)
     {
         $tenant = Tenant::with(['activeTenancy.invoices'])->findOrFail($tenantId);

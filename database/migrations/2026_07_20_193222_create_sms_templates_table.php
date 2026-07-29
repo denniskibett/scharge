@@ -11,9 +11,14 @@ return new class extends Migration
         Schema::create('sms_templates', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->unsignedBigInteger('company_id')->nullable();
             $table->text('content');
+            $table->text('description')->nullable();
             $table->json('placeholders')->nullable();
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->string('category')->default('general');
+            $table->boolean('is_system')->default(false);
+            $table->integer('usage_count')->default(0);
+            $table->unsignedBigInteger('created_by')->nullable();
             $table->timestamps();
         });
     }

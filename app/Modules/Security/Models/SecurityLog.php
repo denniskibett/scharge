@@ -16,12 +16,32 @@ class SecurityLog extends Model
     protected $table = 'security';
 
     protected $fillable = [
-        'company_id', 'estate_id', 'unit_id', 'tenant_id', 'visitor_id', 'verified_by_user_id',
-        'visitor_name_snapshot', 'visitor_phone_snapshot', 'visitor_id_number_snapshot',
-        'visitor_company_snapshot', 'vehicle_registration_snapshot',
-        'access_type', 'status', 'access_time', 'exit_time', 'duration_hours',
-        'purpose', 'notes', 'approved_by', 'approved_at', 'images',
-        'ip_address', 'user_agent'
+        'company_id', 
+        'estate_id', 
+        'unit_id', 
+        'tenant_id', 
+        'visitor_id', 
+        'verified_by_user_id',
+        'visitor_name_snapshot', 
+        'visitor_phone_snapshot', 
+        'visitor_id_number_snapshot',
+        'visitor_company_snapshot', 
+        'vehicle_registration_snapshot',
+        'vehicle_type',
+        'vehicle_model',
+        'vehicle_color',
+        'access_type', 
+        'status', 
+        'access_time', 
+        'exit_time', 
+        'duration_hours',
+        'purpose', 
+        'notes', 
+        'approved_by', 
+        'approved_at', 
+        'images',
+        'ip_address', 
+        'user_agent'
     ];
 
     protected $casts = [
@@ -77,10 +97,15 @@ class SecurityLog extends Model
     public function getAccessTypeLabelAttribute()
     {
         $labels = [
-            'entry' => 'Entry', 'exit' => 'Exit', 'delivery' => 'Delivery',
-            'guest' => 'Guest Visit', 'maintenance' => 'Maintenance',
-            'emergency' => 'Emergency', 'contractor' => 'Contractor',
-            'moving' => 'Moving', 'inspection' => 'Inspection'
+            'entry' => 'Entry', 
+            'exit' => 'Exit', 
+            'delivery' => 'Delivery',
+            'guest' => 'Guest Visit', 
+            'maintenance' => 'Maintenance',
+            'emergency' => 'Emergency', 
+            'contractor' => 'Contractor',
+            'moving' => 'Moving', 
+            'inspection' => 'Inspection'
         ];
         return $labels[$this->access_type] ?? ucfirst($this->access_type);
     }

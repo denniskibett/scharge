@@ -164,7 +164,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
-        'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
+        'administration', 'companies', 'account_managers', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
         'forms', 'form_elements',
         'tables', 'basic_tables',
         'pages', 'blank_page', '404_page',
@@ -179,7 +179,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
-        'users', 'staff',
+        'account_managers', 'users', 'staff',
       ],
       'property_manager': [
         'dashboard',
@@ -362,8 +362,8 @@ document.addEventListener('alpine:init', () => {
           {
             name: 'Security',
             label: 'Security',
-            link: '/security/logs',
-            page: 'securityLogs',
+            link: '/security',
+            page: 'security',
             permission: 'security',
             icon: 'M12 2C12.4142 2 12.75 2.33579 12.75 2.75V4.25C16.1668 4.25 19.25 7.33317 19.25 10.75V18.5C19.25 20.0188 18.0188 21.25 16.5 21.25H7.5C5.98122 21.25 4.75 20.0188 4.75 18.5V10.75C4.75 7.33317 7.83317 4.25 11.25 4.25V2.75C11.25 2.33579 11.5858 2 12 2ZM11.25 5.75C8.48858 5.75 6.25 7.98858 6.25 10.75V18.5C6.25 19.1904 6.80964 19.75 7.5 19.75H16.5C17.1904 19.75 17.75 19.1904 17.75 18.5V10.75C17.75 7.98858 15.5114 5.75 12.75 5.75H11.25ZM12 9.25C12.4142 9.25 12.75 9.58579 12.75 10V15C12.75 15.4142 12.4142 15.75 12 15.75C11.5858 15.75 11.25 15.4142 11.25 15V10C11.25 9.58579 11.5858 9.25 12 9.25Z'
           }
@@ -422,6 +422,12 @@ document.addEventListener('alpine:init', () => {
                 link: '/admin/companies',
                 page: 'companies',
                 permission: 'companies'
+              },
+              {
+                label: 'Account Managers',
+                link: '/admin/account-managers',
+                page: 'accountManagers',
+                permission: 'account_managers'
               },
               {
                 label: 'Users',
@@ -668,30 +674,10 @@ document.addEventListener('alpine:init', () => {
       }
       return null;
     },
-    
-    findParentItem(page) {
-      if (!page) return null;
-      
-      for (const group of this.menuData) {
-        for (const item of group.items) {
-          if (item.children) {
-            for (const child of item.children) {
-              if (child.page === page) {
-                return item;
-              }
-            }
-          }
-        }
-      }
-      return null;
-    },
 
     setInitialActivePage() {
       // Get the current path
       const path = window.location.pathname;
-      
-      // Handle different path patterns
-      let pageKey = 'dashboard';
       
       // Check for exact matches first
       const exactMatches = {
@@ -708,12 +694,14 @@ document.addEventListener('alpine:init', () => {
         '/expenses': 'expenses',
         '/water': 'water',
         '/maintenance': 'maintenance',
+        '/security': 'security',
         '/security/logs': 'securityLogs',
         '/sms/broadcast': 'smsSend',
         '/sms/history': 'smsHistory',
         '/sms/templates': 'smsTemplates',
         '/sms/settings': 'smsSettings',
         '/admin/companies': 'companies',
+        '/admin/account-managers': 'accountManagers',
         '/users': 'users',
         '/staff': 'staff',
         '/roles': 'roles',
@@ -739,22 +727,19 @@ document.addEventListener('alpine:init', () => {
       // If not found, try to match by checking if path contains certain patterns
       if (!page) {
         if (path.includes('/sms/')) {
-          // Handle SMS sub-pages
           if (path.includes('/broadcast')) page = 'smsSend';
           else if (path.includes('/history')) page = 'smsHistory';
           else if (path.includes('/templates')) page = 'smsTemplates';
           else if (path.includes('/settings')) page = 'smsSettings';
           else page = 'smsSend';
         } else if (path.includes('/water/')) {
-          // Handle water sub-pages
           if (path.includes('/reports')) page = 'waterReports';
           else page = 'water';
         } else if (path.includes('/security/')) {
-          page = 'securityLogs';
+          page = 'security';
         } else if (path.includes('/admin/')) {
           page = 'companies';
         } else {
-          // Default to dashboard
           page = 'dashboard';
         }
       }
@@ -762,12 +747,11 @@ document.addEventListener('alpine:init', () => {
       this.activePage = page;
       this.setActiveItemLabel(page);
       
-      // Find and open the parent dropdown if this page belongs to a parent
       const parentItem = this.findParentItem(page);
       if (parentItem) {
-        this.selected = parentItem.name; // Open the parent dropdown
+        this.selected = parentItem.name;
       } else {
-        this.selected = ''; // Close all dropdowns by default
+        this.selected = '';
       }
     },
 
@@ -795,39 +779,25 @@ document.addEventListener('alpine:init', () => {
     },
 
     isActive(page) {
-      // Ensure we only return true for exact page matches
-      // and ignore undefined/null values
       if (!page) return false;
       return this.activePage === page;
     },
 
     getItemClasses(item) {
-      // For items without children (leaf items)
       if (!item.children) {
-        // Only active if the page matches exactly
         if (this.isActive(item.page)) {
           return 'text-sm bg-primary-10 text-primary';
         }
         return 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
       } 
-      // For items with children (parent items)
       else {
-        // A parent item is active ONLY IF:
-        // 1. It has a page property AND that page is active, OR
-        // 2. A child is active AND the parent has been selected/opened
         const hasActiveChild = this.isChildActive(item);
         
-        // Only mark parent as active if it's explicitly selected or has an active child
-        // AND we're on a page that belongs to this parent
-        const isParentActive = (this.selected === item.name) && hasActiveChild;
-        
-        // Special case: Don't mark parent as active if no child is active
-        // This prevents parent items from being active by default
         if (!hasActiveChild) {
           return 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
         }
         
-        return isParentActive || hasActiveChild
+        return (this.selected === item.name) && hasActiveChild
           ? 'text-sm bg-primary-10 text-primary' 
           : 'text-sm text-gray-600 dark:text-gray-400 hover:bg-primary-10 hover:text-primary';
       }
@@ -840,13 +810,12 @@ document.addEventListener('alpine:init', () => {
           : 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
       } else {
         const hasActiveChild = this.isChildActive(item);
-        const isParentActive = (this.selected === item.name) && hasActiveChild;
         
         if (!hasActiveChild) {
           return 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
         }
         
-        return isParentActive || hasActiveChild
+        return (this.selected === item.name) && hasActiveChild
           ? 'text-sm text-primary fill-current'
           : 'text-sm text-gray-600 dark:text-gray-400 group-hover:text-primary fill-current';
       }

@@ -6,7 +6,6 @@ use App\Modules\SMS\Controllers\SmsTemplateController;
 use App\Modules\SMS\Controllers\CampaignController;
 use App\Modules\SMS\Controllers\WebhookController;
 use App\Http\Controllers\MpesaController;
-use Illuminate\Support\Facades\DB;
 
 // =========================================================
 // 📨 M-PESA CALLBACK - PUBLIC ROUTE (No Auth, No CSRF)
@@ -56,11 +55,6 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::get('/campaigns', [CampaignController::class, 'index'])->name('sms.campaigns.index');
     Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('sms.campaigns.create');
     Route::post('/campaigns', [CampaignController::class, 'store'])->name('sms.campaigns.store');
-
-    // ⚠️ HISTORY MUST COME BEFORE THE {campaign} ROUTE
-    Route::get('/campaigns/history', [CampaignController::class, 'history'])->name('sms.campaigns.history');
-
-    // Campaign routes with parameters - these come AFTER history
     Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])->name('sms.campaigns.show');
     Route::get('/campaigns/{campaign}/edit', [CampaignController::class, 'edit'])->name('sms.campaigns.edit');
     Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->name('sms.campaigns.update');
@@ -112,207 +106,67 @@ Route::post('/mpesa/b2b/queue', [MpesaController::class, 'b2bQueueTimeout'])
     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 // =========================================================
-// 🧪 TEST ROUTES - KenyaSMS
+// 📊 SMS API ROUTES (For AJAX calls from frontend)
 // =========================================================
-
-// Test connection
-Route::get('/sms/test-kenyasms', function() {
-    try {
-        $sms = new \App\Modules\SMS\Services\KenyaSMSService();
-        $balance = $sms->getBalance();
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'KenyaSMS connection successful!',
-            'balance' => $balance,
-            'base_url' => env('KENYASMS_URL'),
-            'api_key' => substr(env('KENYASMS_KEY'), 0, 10) . '...',
-            'sandbox' => env('KENYASMS_SANDBOX', true),
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'KenyaSMS connection failed!',
-            'error' => $e->getMessage(),
-            'base_url' => env('KENYASMS_URL'),
-        ]);
-    }
-})->name('sms.test-kenyasms');
-
-// Test send SMS
-Route::get('/sms/test-send', function() {
-    try {
-        $sms = new \App\Modules\SMS\Services\KenyaSMSService();
-        
-        $phone = '254727371496';
-        
-        $messages = [
-            [
-                'phone' => $phone,
-                'message' => 'Hello! This is a test SMS from SCHARGE system. If you receive this, KenyaSMS integration is working!',
-            ]
-        ];
-        
-        $response = $sms->sendPersonalized($messages, [
-            'sender_id' => 'SHARETENT',
-            'message_type' => 'transactional',
-        ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'SMS sent successfully!',
-            'phone' => $phone,
-            'response' => $response,
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'SMS sending failed!',
-            'error' => $e->getMessage(),
-        ]);
-    }
-})->name('sms.test-send');
-
-// Test campaigns endpoint
-Route::get('/sms/test-campaigns', function() {
-    try {
-        $client = new \GuzzleHttp\Client();
-        
-        $response = $client->get('https://kenyasms.com/api/v1/campaigns', [
-            'headers' => [
-                'Authorization' => 'Bearer ' . env('KENYASMS_KEY'),
-                'Accept' => 'application/json',
-            ],
-            'query' => [
-                'limit' => 10,
-                'page' => 1,
-            ]
-        ]);
-        
-        $data = json_decode($response->getBody(), true);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Campaigns fetched successfully!',
-            'data' => $data,
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to fetch campaigns!',
-            'error' => $e->getMessage(),
-            'response' => $e->hasResponse() ? (string) $e->getResponse()->getBody() : null,
-        ]);
-    }
-})->name('sms.test-campaigns');
-
-// =========================================================
-// 📥 SYNC CAMPAIGNS FROM KENYASMS
-// =========================================================
-Route::get('/sms/sync-campaigns', function() {
-    try {
-        $client = new \GuzzleHttp\Client();
-        $allCampaigns = [];
-        $page = 1;
-        $hasMore = true;
-        $synced = 0;
-        $skipped = 0;
-        
-        while ($hasMore) {
-            $response = $client->get('https://kenyasms.com/api/v1/campaigns', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . env('KENYASMS_KEY'),
-                    'Accept' => 'application/json',
-                ],
-                'query' => [
-                    'limit' => 100,
-                    'page' => $page,
-                ]
-            ]);
-            
-            $data = json_decode($response->getBody(), true);
-            
-            if (isset($data['data']['campaigns']) && count($data['data']['campaigns']) > 0) {
-                $allCampaigns = array_merge($allCampaigns, $data['data']['campaigns']);
-                $page++;
-            } else {
-                $hasMore = false;
-            }
-            
-            // Safety limit
-            if ($page > 20) break;
+Route::prefix('api/sms')->middleware(['auth'])->group(function () {
+    
+    // Templates API
+    Route::get('/templates', function () {
+        try {
+            return response()->json(App\Models\SmsTemplate::all());
+        } catch (\Exception $e) {
+            return response()->json([]);
         }
-        
-        // Store in database
-        foreach ($allCampaigns as $campaign) {
-            // Extract estate from message
-            $estateId = null;
-            
-            // Look for estate name in message (e.g., "Danaff Towers")
-            if (preg_match('/^([a-zA-Z\s]+) (July|June|May|April|March)/', $campaign['message'] ?? '', $matches)) {
-                $estateName = trim($matches[1]);
-                $estate = DB::table('estates')->where('name', 'LIKE', '%' . $estateName . '%')->first();
-                if ($estate) {
-                    $estateId = $estate->id;
-                }
-            }
-            
-            // Check if already exists
-            $exists = DB::table('sms_campaign_history')->where('kenyasms_campaign_id', $campaign['id'])->first();
-            
-            if (!$exists) {
-                // Convert datetime format from ISO to MySQL
-                $sentAt = null;
-                $completedAt = null;
-                
-                if (isset($campaign['started_at'])) {
-                    $sentAt = str_replace(['T', 'Z'], [' ', ''], $campaign['started_at']);
-                }
-                if (isset($campaign['completed_at'])) {
-                    $completedAt = str_replace(['T', 'Z'], [' ', ''], $campaign['completed_at']);
-                }
-                
-                DB::table('sms_campaign_history')->insert([
-                    'kenyasms_campaign_id' => $campaign['id'],
-                    'name' => $campaign['name'] ?? 'Unknown Campaign',
-                    'message' => $campaign['message'] ?? '',
-                    'sender_id' => $campaign['sender_id'] ?? 'SHARETENT',
-                    'message_type' => $campaign['message_type'] ?? 'transactional',
-                    'status' => $campaign['status'] ?? 'unknown',
-                    'total_recipients' => $campaign['total_recipients'] ?? 0,
-                    'sent_count' => $campaign['sent_count'] ?? 0,
-                    'delivered_count' => $campaign['delivered_count'] ?? 0,
-                    'failed_count' => $campaign['failed_count'] ?? 0,
-                    'estimated_cost' => isset($campaign['estimated_cost']) ? $campaign['estimated_cost'] / 100 : 0,
-                    'actual_cost' => isset($campaign['actual_cost']) ? $campaign['actual_cost'] / 100 : 0,
-                    'cost_per_sms' => isset($campaign['price_per_sms']) ? $campaign['price_per_sms'] / 100 : 0,
-                    'sent_at' => $sentAt,
-                    'completed_at' => $completedAt,
-                    'estate_id' => $estateId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-                $synced++;
-            } else {
-                $skipped++;
-            }
-        }
-        
+    });
+    
+    Route::get('/templates/{id}/preview', function ($id) {
+        $template = App\Models\SmsTemplate::find($id);
         return response()->json([
-            'success' => true,
-            'message' => "Sync completed!",
-            'total_fetched' => count($allCampaigns),
-            'new_synced' => $synced,
-            'already_existing' => $skipped,
+            'content' => $template ? $template->content : '',
+            'name' => $template ? $template->name : ''
         ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Sync failed!',
-            'error' => $e->getMessage(),
-        ]);
-    }
-})->name('sms.sync-campaigns');
+    });
+    
+    // Campaigns API
+    Route::get('/campaigns', [CampaignController::class, 'index']);
+    Route::post('/campaigns', [CampaignController::class, 'store']);
+    Route::post('/campaigns/preview', [CampaignController::class, 'preview']);
+    Route::get('/campaigns/{id}', [CampaignController::class, 'getDetails']);
+    Route::post('/campaigns/{id}/send', [CampaignController::class, 'send']);
+    Route::post('/campaigns/{id}/retry', [CampaignController::class, 'retry']);
+    Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy']);
+    
+    // =========================================================
+    // 📊 STATUS SYNC ROUTES
+    // =========================================================
+    
+    // Resend failed messages
+    Route::post('/campaigns/{id}/resend-failed', [CampaignController::class, 'resendFailed']);
+    
+    // Sync status for all recipients in a campaign
+    Route::post('/campaigns/{id}/sync-status', [CampaignController::class, 'syncStatus']);
+    
+    // Sync status for a single recipient
+    Route::post('/recipients/{id}/sync-status', [CampaignController::class, 'syncRecipientStatus']);
+    
+    // =========================================================
+    // 🚀 NEW: RESEND INDIVIDUAL RECIPIENT (Works for pending, failed, queued)
+    // =========================================================
+    Route::post('/recipients/{id}/resend', [CampaignController::class, 'resendIndividualRecipient']);
+    
+    // Get status summary for a campaign
+    Route::get('/campaigns/{id}/status-summary', [CampaignController::class, 'getStatusSummary']);
+    
+    // =========================================================
+    // 📊 PHONE VALIDATION ROUTES
+    // =========================================================
+    
+    // Get invalid recipients for a campaign
+    Route::get('/campaigns/{id}/invalid-recipients', [CampaignController::class, 'getInvalidRecipients']);
+    
+    // Get other network recipients for a campaign
+    Route::get('/campaigns/{id}/other-network-recipients', [CampaignController::class, 'getOtherNetworkRecipients']);
+    
+    // Update tenant phone number
+    Route::put('/tenants/{tenantId}/phone', [CampaignController::class, 'updateTenantPhone']);
+});

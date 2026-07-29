@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Invoice;
+use App\Modules\Payments\Models\Invoice;
+use App\Modules\Payments\Models\InvoiceItem;
 use App\Models\Tenancy;
 use App\Models\Tenant;
 use App\Models\Payment;
-use App\Models\InvoiceItem;
 use App\Models\WaterReading;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
