@@ -74,19 +74,36 @@
 
 <script>
 // ============================================================
-// COMPLETE FIXED VERSION - PER-UNIT LOCKING (NOT MONTH LOCKING)
+// COMPLETE FIXED VERSION - WITH ESTATE RATE SUPPORT & DUPLICATE PREVENTION
 // ============================================================
 
-let currentMode = 'bulk';
-let allUnits = [];
-let allEstates = [];
-let bulkReadingsData = [];
+// Prevent duplicate declaration errors
+if (typeof currentMode === 'undefined') {
+    var currentMode = 'bulk';
+}
+if (typeof allUnits === 'undefined') {
+    var allUnits = [];
+}
+if (typeof allEstates === 'undefined') {
+    var allEstates = [];
+}
+if (typeof bulkReadingsData === 'undefined') {
+    var bulkReadingsData = [];
+}
 
 // ==================== FETCH DATA ====================
 async function fetchData() {
     try {
         console.log('Fetching units...');
         const unitsFromPage = @json($units ?? []);
+        
+        // Define estate rates manually (since they're not in the data)
+        const estateRates = {
+            1: 150,  // Danaff Towers
+            2: 200,  // Bloomfield Apartments
+            // Add more estates as needed
+        };
+        
         if (unitsFromPage.length > 0) {
             allUnits = unitsFromPage;
             console.log('Units loaded from page data:', allUnits.length);
@@ -94,12 +111,15 @@ async function fetchData() {
             const estateMap = {};
             allUnits.forEach(u => {
                 if (u.estate_id && u.estate_name) {
-                    estateMap[u.estate_id] = u.estate_name;
+                    if (!estateMap[u.estate_id]) {
+                        estateMap[u.estate_id] = u.estate_name;
+                    }
                 }
             });
             allEstates = Object.keys(estateMap).map(id => ({
                 id: id,
-                name: estateMap[id]
+                name: estateMap[id],
+                water_rate: estateRates[id] || 50
             }));
             console.log('Estates extracted from units:', allEstates.length);
             
@@ -125,12 +145,15 @@ async function fetchData() {
         const estateMap = {};
         allUnits.forEach(u => {
             if (u.estate_id && u.estate_name) {
-                estateMap[u.estate_id] = u.estate_name;
+                if (!estateMap[u.estate_id]) {
+                    estateMap[u.estate_id] = u.estate_name;
+                }
             }
         });
         allEstates = Object.keys(estateMap).map(id => ({
             id: id,
-            name: estateMap[id]
+            name: estateMap[id],
+            water_rate: estateRates[id] || 50
         }));
         console.log('Estates extracted from units:', allEstates.length);
         
@@ -333,7 +356,7 @@ function unitHasReadingForMonth(unit, month) {
 }
 
 // ==================== LOAD BULK UNITS ====================
-function loadBulkUnits() {
+async function loadBulkUnits() {
     const estateId = document.getElementById('bulkEstateSelect').value;
     const readingMonth = document.getElementById('bulkReadingMonth').value;
     
@@ -372,15 +395,26 @@ function loadBulkUnits() {
         return;
     }
     
-    const monthDisplay = readingMonth ? new Date(readingMonth + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : 'Current Month';
-    
-    // Count how many units already have readings
-    let hasReadingCount = 0;
-    for (const unit of filteredUnits) {
-        if (unitHasReadingForMonth(unit, readingMonth)) {
-            hasReadingCount++;
+    // ========== FETCH EXISTING READINGS FOR THIS MONTH ==========
+    let existingReadings = {};
+    if (readingMonth) {
+        try {
+            const unitIds = filteredUnits.map(u => u.id).join(',');
+            const response = await fetch(`/water/api/water/readings/bulk?unit_ids=${unitIds}&start_month=${readingMonth}&end_month=${readingMonth}`);
+            const data = await response.json();
+            if (data.success && data.readings) {
+                data.readings.forEach(reading => {
+                    existingReadings[reading.unit_id] = reading;
+                });
+                console.log('Existing readings found:', Object.keys(existingReadings).length);
+            }
+        } catch (error) {
+            console.warn('Could not fetch existing readings, using unit data:', error);
         }
     }
+    
+    const monthDisplay = readingMonth ? new Date(readingMonth + '-01').toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : 'Current Month';
+    let hasReadingCount = Object.keys(existingReadings).length;
     
     let infoMessage = `
         <div class="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800 mb-3">
@@ -422,12 +456,29 @@ function loadBulkUnits() {
         const unit = filteredUnits[index];
         
         // Check if this unit already has a reading for this month
-        const hasExistingReading = unitHasReadingForMonth(unit, readingMonth);
+        const existingReading = existingReadings[unit.id];
+        const hasExistingReading = !!existingReading;
         
         const prevReading = parseFloat(unit.current_water_reading) || parseFloat(unit.previous_water_reading) || 0;
-        const rate = parseFloat(unit.custom_water_rate) || parseFloat(unit.water_rate) || 50;
+        
+        // Get the estate rate from allEstates
+        let estateRate = 50;
+        if (unit.estate_id) {
+            const estate = allEstates.find(e => String(e.id) === String(unit.estate_id));
+            if (estate && estate.water_rate) {
+                estateRate = parseFloat(estate.water_rate);
+            }
+        }
+        const rate = parseFloat(unit.custom_water_rate) || estateRate;
+        
         const billingType = unit.water_billing_type || 'consumption';
         const flatRate = parseFloat(unit.water_charge) || 0;
+        
+        // If reading exists, pre-populate the values
+        const existingValue = hasExistingReading ? existingReading.current_reading : 0;
+        const existingConsumption = hasExistingReading ? existingReading.consumption : 0;
+        const existingCharge = hasExistingReading ? existingReading.charge : 0;
+        const existingId = hasExistingReading ? existingReading.id : null;
         
         const readingObj = {
             unitId: unit.id,
@@ -437,12 +488,12 @@ function loadBulkUnits() {
             rate: rate,
             billingType: billingType,
             flatRate: flatRate,
-            currentReading: 0,
-            consumption: 0,
-            amount: 0,
-            hasReading: false,
+            currentReading: existingValue,
+            consumption: existingConsumption,
+            amount: existingCharge,
+            hasReading: hasExistingReading,
             exists: hasExistingReading,
-            readingId: null
+            readingId: existingId
         };
         bulkReadingsData.push(readingObj);
         
@@ -454,6 +505,7 @@ function loadBulkUnits() {
         let inputDisabled = '';
         let inputClass = '';
         let rowClass = '';
+        let displayValue = existingValue > 0 ? existingValue : '';
         
         if (hasExistingReading) {
             unitStatus = '✅ Already Recorded';
@@ -480,13 +532,15 @@ function loadBulkUnits() {
                     <input type="number" 
                            step="0.01" 
                            data-index="${index}"
+                           value="${displayValue}"
                            oninput="updateBulkReading(this)"
                            class="w-full max-w-[120px] mx-auto block px-2 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-800 ${inputClass}"
                            placeholder="${hasExistingReading ? 'Locked' : 'Enter'}"
                            ${inputDisabled}>
+                    ${hasExistingReading ? '<span class="text-xs text-green-500 block text-center">Existing: ' + existingValue.toFixed(2) + '</span>' : ''}
                 </td>
-                <td class="px-3 py-2 text-center consumption-display">-</td>
-                <td class="px-3 py-2 text-right amount-display">-</td>
+                <td class="px-3 py-2 text-center consumption-display">${hasExistingReading && existingConsumption > 0 ? existingConsumption.toFixed(2) + ' m³' : '-'}</td>
+                <td class="px-3 py-2 text-right amount-display">${hasExistingReading && existingCharge > 0 ? 'KES ' + existingCharge.toFixed(2) : '-'}</td>
                 <td class="px-3 py-2 text-center">
                     <span class="status-badge px-2 py-0.5 rounded-full text-xs font-medium ${unitStatusClass}">
                         ${unitStatus}

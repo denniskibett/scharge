@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Unit;
 use App\Models\WaterReading;
+use App\Models\Estate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -119,7 +120,7 @@ class WaterReadingController extends Controller
             });
         
         // Get estates for the bulk mode dropdown
-        $estates = \App\Models\Estate::orderBy('name')->get();
+        $estates = Estate::orderBy('name')->get();
         
         return view('water.index', compact('groupedReadings', 'units', 'estates'));
     }
@@ -318,182 +319,182 @@ class WaterReadingController extends Controller
         }
     }
 
-public function storeBulkMatrix(Request $request)
-{
-    $validated = $request->validate([
-        'readings' => 'required|array|min:1',
-        'readings.*.unit_id' => 'required|exists:units,id',
-        'readings.*.current_reading' => 'required|numeric|min:0',
-        'readings.*.reading_date' => 'required|date',
-        'readings.*.existing_reading_id' => 'nullable|exists:water_readings,id',
-        'notes' => 'nullable|string'
-    ]);
-    
-    DB::beginTransaction();
-    
-    $results = [
-        'success' => [],
-        'failed' => [],
-        'updated' => [],
-        'skipped' => []
-    ];
-    
-    try {
-        foreach ($validated['readings'] as $readingData) {
-            $unit = Unit::find($readingData['unit_id']);
-            if (!$unit) {
-                $results['failed'][] = [
-                    'unit_id' => $readingData['unit_id'],
-                    'reason' => 'Unit not found',
-                    'month' => $readingData['reading_date']
-                ];
-                continue;
-            }
-            
-            $readingDate = Carbon::parse($readingData['reading_date']);
-            $newReading = $readingData['current_reading'];
-            
-            // Get the previous reading value
-            // First, check if there's a reading before this date
-            $readingBeforeThis = WaterReading::where('unit_id', $unit->id)
-                ->where('reading_date', '<', $readingDate)
-                ->orderBy('reading_date', 'desc')
-                ->first();
-            
-            $previousReading = $readingBeforeThis 
-                ? $readingBeforeThis->current_reading 
-                : ($unit->current_water_reading ?? 0);
-            
-            // Validate reading is not less than previous
-            if ($newReading < $previousReading) {
-                $results['failed'][] = [
-                    'unit_id' => $unit->id,
-                    'unit_number' => $unit->unit_number,
-                    'month' => $readingDate->format('Y-m'),
-                    'reason' => "Current reading ($newReading) less than previous ($previousReading)"
-                ];
-                continue;
-            }
-            
-            $consumption = $newReading - $previousReading;
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
-            
-            if ($unit->water_billing_type === 'flat') {
-                $charge = $unit->water_charge ?? 0;
-                $consumption = 0;
-            } else {
-                $charge = $consumption * $rate;
-            }
-            
-            // CRITICAL FIX: Check if we have an existing_reading_id to update
-            if (isset($readingData['existing_reading_id']) && !empty($readingData['existing_reading_id'])) {
-                // UPDATE existing reading
-                $existingReading = WaterReading::find($readingData['existing_reading_id']);
-                if ($existingReading) {
-                    $existingReading->update([
+    public function storeBulkMatrix(Request $request)
+    {
+        $validated = $request->validate([
+            'readings' => 'required|array|min:1',
+            'readings.*.unit_id' => 'required|exists:units,id',
+            'readings.*.current_reading' => 'required|numeric|min:0',
+            'readings.*.reading_date' => 'required|date',
+            'readings.*.existing_reading_id' => 'nullable|exists:water_readings,id',
+            'notes' => 'nullable|string'
+        ]);
+        
+        DB::beginTransaction();
+        
+        $results = [
+            'success' => [],
+            'failed' => [],
+            'updated' => [],
+            'skipped' => []
+        ];
+        
+        try {
+            foreach ($validated['readings'] as $readingData) {
+                $unit = Unit::find($readingData['unit_id']);
+                if (!$unit) {
+                    $results['failed'][] = [
+                        'unit_id' => $readingData['unit_id'],
+                        'reason' => 'Unit not found',
+                        'month' => $readingData['reading_date']
+                    ];
+                    continue;
+                }
+                
+                $readingDate = Carbon::parse($readingData['reading_date']);
+                $newReading = $readingData['current_reading'];
+                
+                // Get the previous reading value
+                // First, check if there's a reading before this date
+                $readingBeforeThis = WaterReading::where('unit_id', $unit->id)
+                    ->where('reading_date', '<', $readingDate)
+                    ->orderBy('reading_date', 'desc')
+                    ->first();
+                
+                $previousReading = $readingBeforeThis 
+                    ? $readingBeforeThis->current_reading 
+                    : ($unit->current_water_reading ?? 0);
+                
+                // Validate reading is not less than previous
+                if ($newReading < $previousReading) {
+                    $results['failed'][] = [
+                        'unit_id' => $unit->id,
+                        'unit_number' => $unit->unit_number,
+                        'month' => $readingDate->format('Y-m'),
+                        'reason' => "Current reading ($newReading) less than previous ($previousReading)"
+                    ];
+                    continue;
+                }
+                
+                $consumption = $newReading - $previousReading;
+                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                
+                if ($unit->water_billing_type === 'flat') {
+                    $charge = $unit->water_charge ?? 0;
+                    $consumption = 0;
+                } else {
+                    $charge = $consumption * $rate;
+                }
+                
+                // CRITICAL FIX: Check if we have an existing_reading_id to update
+                if (isset($readingData['existing_reading_id']) && !empty($readingData['existing_reading_id'])) {
+                    // UPDATE existing reading
+                    $existingReading = WaterReading::find($readingData['existing_reading_id']);
+                    if ($existingReading) {
+                        $existingReading->update([
+                            'previous_reading' => $previousReading,
+                            'current_reading' => $newReading,
+                            'consumption' => $consumption,
+                            'rate_applied' => $rate,
+                            'charge' => $charge,
+                            'reading_date' => $readingDate,
+                            'notes' => $validated['notes'] ?? $existingReading->notes
+                        ]);
+                        $results['updated'][] = [
+                            'unit_id' => $unit->id,
+                            'unit_number' => $unit->unit_number,
+                            'month' => $readingDate->format('Y-m')
+                        ];
+                    } else {
+                        $results['failed'][] = [
+                            'unit_id' => $unit->id,
+                            'unit_number' => $unit->unit_number,
+                            'month' => $readingDate->format('Y-m'),
+                            'reason' => 'Existing reading not found'
+                        ];
+                    }
+                } else {
+                    // CHECK if a reading already exists for this month (by date)
+                    $existingByDate = WaterReading::where('unit_id', $unit->id)
+                        ->whereYear('reading_date', $readingDate->year)
+                        ->whereMonth('reading_date', $readingDate->month)
+                        ->first();
+                    
+                    if ($existingByDate) {
+                        $results['skipped'][] = [
+                            'unit_id' => $unit->id,
+                            'unit_number' => $unit->unit_number,
+                            'month' => $readingDate->format('Y-m'),
+                            'reason' => 'Reading already exists for this month (use existing_reading_id to update)'
+                        ];
+                        continue;
+                    }
+                    
+                    // CREATE new reading
+                    WaterReading::create([
+                        'unit_id' => $unit->id,
                         'previous_reading' => $previousReading,
                         'current_reading' => $newReading,
                         'consumption' => $consumption,
                         'rate_applied' => $rate,
                         'charge' => $charge,
+                        'billing_type' => $unit->water_billing_type ?? 'consumption',
                         'reading_date' => $readingDate,
-                        'notes' => $validated['notes'] ?? $existingReading->notes
+                        'recorded_by' => auth()->id(),
+                        'notes' => $validated['notes'] ?? null
                     ]);
-                    $results['updated'][] = [
+                    $results['success'][] = [
                         'unit_id' => $unit->id,
                         'unit_number' => $unit->unit_number,
                         'month' => $readingDate->format('Y-m')
                     ];
-                } else {
-                    $results['failed'][] = [
-                        'unit_id' => $unit->id,
-                        'unit_number' => $unit->unit_number,
-                        'month' => $readingDate->format('Y-m'),
-                        'reason' => 'Existing reading not found'
-                    ];
                 }
-            } else {
-                // CHECK if a reading already exists for this month (by date)
-                $existingByDate = WaterReading::where('unit_id', $unit->id)
-                    ->whereYear('reading_date', $readingDate->year)
-                    ->whereMonth('reading_date', $readingDate->month)
-                    ->first();
-                
-                if ($existingByDate) {
-                    $results['skipped'][] = [
-                        'unit_id' => $unit->id,
-                        'unit_number' => $unit->unit_number,
-                        'month' => $readingDate->format('Y-m'),
-                        'reason' => 'Reading already exists for this month (use existing_reading_id to update)'
-                    ];
-                    continue;
+            }
+            
+            // Update all affected units with latest readings
+            $affectedUnitIds = array_unique(array_merge(
+                array_column($results['success'], 'unit_id'),
+                array_column($results['updated'], 'unit_id')
+            ));
+            
+            foreach ($affectedUnitIds as $unitId) {
+                $unit = Unit::find($unitId);
+                if ($unit) {
+                    $this->updateUnitWithLatestReadings($unit);
                 }
-                
-                // CREATE new reading
-                WaterReading::create([
-                    'unit_id' => $unit->id,
-                    'previous_reading' => $previousReading,
-                    'current_reading' => $newReading,
-                    'consumption' => $consumption,
-                    'rate_applied' => $rate,
-                    'charge' => $charge,
-                    'billing_type' => $unit->water_billing_type ?? 'consumption',
-                    'reading_date' => $readingDate,
-                    'recorded_by' => auth()->id(),
-                    'notes' => $validated['notes'] ?? null
-                ]);
-                $results['success'][] = [
-                    'unit_id' => $unit->id,
-                    'unit_number' => $unit->unit_number,
-                    'month' => $readingDate->format('Y-m')
-                ];
             }
-        }
-        
-        // Update all affected units with latest readings
-        $affectedUnitIds = array_unique(array_merge(
-            array_column($results['success'], 'unit_id'),
-            array_column($results['updated'], 'unit_id')
-        ));
-        
-        foreach ($affectedUnitIds as $unitId) {
-            $unit = Unit::find($unitId);
-            if ($unit) {
-                $this->updateUnitWithLatestReadings($unit);
+            
+            DB::commit();
+            
+            $message = count($results['success']) . ' reading(s) created successfully.';
+            if (count($results['updated']) > 0) {
+                $message .= ' ' . count($results['updated']) . ' reading(s) updated.';
             }
+            if (count($results['skipped']) > 0) {
+                $message .= ' ' . count($results['skipped']) . ' skipped.';
+            }
+            if (count($results['failed']) > 0) {
+                $message .= ' ' . count($results['failed']) . ' failed.';
+            }
+            
+            return response()->json([
+                'success' => count($results['success']) > 0 || count($results['updated']) > 0,
+                'message' => $message,
+                'results' => $results
+            ]);
+            
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error saving bulk matrix readings: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record readings: ' . $e->getMessage()
+            ], 500);
         }
-        
-        DB::commit();
-        
-        $message = count($results['success']) . ' reading(s) created successfully.';
-        if (count($results['updated']) > 0) {
-            $message .= ' ' . count($results['updated']) . ' reading(s) updated.';
-        }
-        if (count($results['skipped']) > 0) {
-            $message .= ' ' . count($results['skipped']) . ' skipped.';
-        }
-        if (count($results['failed']) > 0) {
-            $message .= ' ' . count($results['failed']) . ' failed.';
-        }
-        
-        return response()->json([
-            'success' => count($results['success']) > 0 || count($results['updated']) > 0,
-            'message' => $message,
-            'results' => $results
-        ]);
-        
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error saving bulk matrix readings: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to record readings: ' . $e->getMessage()
-        ], 500);
     }
-}
 
     public function storeMultiMonth(Request $request)
     {
@@ -643,6 +644,10 @@ public function storeBulkMatrix(Request $request)
         }
     }
 
+    /**
+     * Update the units table with the last two readings
+     * CRITICAL: This ensures the units table stays in sync with water_readings
+     */
     private function updateUnitWithLatestReadings(Unit $unit)
     {
         // Get the last two readings ordered by date (newest first)
@@ -1124,6 +1129,11 @@ public function storeBulkMatrix(Request $request)
         }
         
         $units = $query->get()->map(function($unit) {
+            // Get the latest reading for this unit
+            $latestReading = WaterReading::where('unit_id', $unit->id)
+                ->orderBy('reading_date', 'desc')
+                ->first();
+                
             return [
                 'id' => $unit->id,
                 'unit_number' => $unit->unit_number,
@@ -1136,7 +1146,18 @@ public function storeBulkMatrix(Request $request)
                 'current_water_reading' => (float) ($unit->current_water_reading ?? 0),
                 'previous_water_reading' => (float) ($unit->previous_water_reading ?? 0),
                 'last_reading_date' => $unit->last_reading_date,
+                // Include the estate water rate
                 'water_rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+                'estate_water_rate' => (float) ($unit->estate->water_rate ?? 50),
+                // Include latest reading if available
+                'latest_reading' => $latestReading ? [
+                    'id' => $latestReading->id,
+                    'current_reading' => (float) $latestReading->current_reading,
+                    'previous_reading' => (float) $latestReading->previous_reading,
+                    'consumption' => (float) $latestReading->consumption,
+                    'charge' => (float) $latestReading->charge,
+                    'reading_date' => $latestReading->reading_date->format('Y-m-d'),
+                ] : null,
             ];
         });
         
@@ -1396,7 +1417,7 @@ public function storeBulkMatrix(Request $request)
         
         return response()->json([
             'success' => true,
-            'message' => "Processed {$results->count()} units",
+            'message' => "Processed " . count($results) . " units",
             'results' => $results
         ]);
     }

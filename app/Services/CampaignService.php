@@ -97,10 +97,10 @@ class CampaignService
             'tenancies.unit',
             'tenancies.unit.estate',
             'tenancies.unit.waterReadings' => function($q) {
-                $q->latest()->limit(1);
+                $q->latest('reading_date')->limit(1);
             },
             'tenancies.invoices' => function($q) {
-                $q->latest()->limit(1);
+                $q->latest('created_at')->limit(1);
             }
         ]);
 
@@ -291,8 +291,12 @@ class CampaignService
     }
 
     /**
-     * Render message with tenant data - FINAL FIXED VERSION
+     * Render message with tenant data - COMPLETE FIXED VERSION
+     * Uses LATEST reading charge instead of invoice total
      * ALL .00 REMOVED
+     * FIX: Unit number from tenancy relationship
+     * FIX: Water bill from reading charge (not invoice)
+     * FIX: Rate from reading (not invoice)
      */
     public function renderMessage($templateContent, $tenant)
     {
@@ -314,17 +318,25 @@ class CampaignService
         
         $estateName = $tenancy ? $tenancy->unit->estate->name ?? 'N/A' : 'N/A';
         
-        $latestInvoice = $tenancy ? $tenancy->invoices->first() : null;
-        $waterBill = $latestInvoice ? $latestInvoice->total_amount : 0;
-        $paymentStatus = $latestInvoice ? $latestInvoice->status : 'pending';
+        // FIX: Get the LATEST reading (not the first/oldest)
+        $reading = $tenancy && $tenancy->unit 
+            ? $tenancy->unit->waterReadings()->latest('reading_date')->first() 
+            : null;
         
-        $reading = $tenancy && $tenancy->unit ? $tenancy->unit->waterReadings->first() : null;
         $prevRead = $reading ? $reading->previous_reading : 0;
         $currRead = $reading ? $reading->current_reading : 0;
         $consumption = $reading ? $reading->consumption : 0;
         if ($consumption == 0 && $prevRead > 0 && $currRead > 0) {
             $consumption = $currRead - $prevRead;
         }
+        
+        // FIX: Use reading charge instead of invoice total (THIS IS THE KEY FIX!)
+        $waterBill = $reading ? $reading->charge : 0;
+        $rateApplied = $reading ? $reading->rate_applied : 0;
+        
+        // Get latest invoice for status only
+        $latestInvoice = $tenancy ? $tenancy->invoices()->latest('created_at')->first() : null;
+        $paymentStatus = $latestInvoice ? $latestInvoice->status : 'pending';
         
         $readingDate = $reading && $reading->reading_date ? Carbon::parse($reading->reading_date) : now();
         $billMonth = $readingDate->copy();
@@ -347,14 +359,18 @@ class CampaignService
             $unpaidMessage = "{$unpaidCount} unpaid invoices totalling KES " . number_format($unpaidTotal, 0);
         }
         
+        // FIX: Get unit number from tenancy relationship
+        $unitNumber = $tenancy && $tenancy->unit ? $tenancy->unit->unit_number : ($tenant->unit_number ?? 'N/A');
+        
         $replacements = [
             '{{name}}' => $tenant->user_name ?? 'Tenant',
-            '{{unit}}' => $tenant->unit_number ?? 'N/A',
-            '{{unit_number}}' => $tenant->unit_number ?? 'N/A',
+            '{{unit}}' => $unitNumber,
+            '{{unit_number}}' => $unitNumber,
             '{{estate_name}}' => $estateName,
             '{{estate}}' => $estateName,
             '{{month}}' => $formattedBillMonth,
             '{{water_bill}}' => number_format($waterBill, 0),
+            '{{rate}}' => $rateApplied,
             '{{payment_status}}' => ucfirst($paymentStatus),
             '{{status}}' => ucfirst($paymentStatus),
             '{{due_date}}' => $formattedDueDate,
@@ -378,6 +394,9 @@ class CampaignService
         return trim($message);
     }
 
+    /**
+     * FIXED: Send campaign using stored messages
+     */
     public function sendCampaign($campaignId)
     {
         $campaign = SmsCampaign::with(['template'])->find($campaignId);
@@ -406,20 +425,6 @@ class CampaignService
             $campaign->sent_at = now();
             $campaign->save();
 
-            $preparedRecipients = [];
-            foreach ($recipients as $recipient) {
-                $preparedRecipients[] = [
-                    'id' => $recipient->id,
-                    'phone' => $recipient->phone_number,
-                    'message' => $recipient->message,
-                    'variables' => [
-                        'name' => $recipient->tenant->user->name ?? 'Tenant',
-                        'unit' => $recipient->tenant->unit_number ?? 'N/A',
-                    ]
-                ];
-            }
-
-            $templateContent = $campaign->template ? $campaign->template->content : '';
             $messageType = $campaign->campaign_type === 'promotional' ? 'promotional' : 'transactional';
 
             if ($messageType === 'promotional' && $this->kenyaSms->isQuietHours()) {
@@ -432,16 +437,40 @@ class CampaignService
                 return ['error' => 'Promotional messages cannot be sent during quiet hours (20:00 - 08:00 EAT)'];
             }
 
-            $result = $this->kenyaSms->sendPersonalized(
-                $templateContent,
-                $preparedRecipients,
-                $messageType,
-                $campaign->id
-            );
+            // Build messages array from stored recipients
+            $messages = [];
+            foreach ($recipients as $recipient) {
+                $messages[] = [
+                    'phone' => $recipient->phone_number,
+                    'message' => $recipient->message, // Use the stored message
+                ];
+            }
+
+            Log::info('Sending ' . count($messages) . ' messages via KenyaSMS');
+
+            // Send using the KenyaSMS service
+            $result = $this->kenyaSms->sendPersonalized($messages, [
+                'message_type' => $messageType,
+            ]);
 
             if ($result['success']) {
-                $campaign->sent_count = $result['data']['sent'] ?? 0;
-                $campaign->failed_count = $result['data']['failed'] ?? 0;
+                // Update recipient statuses based on response
+                $responses = $result['responses'] ?? [];
+                foreach ($recipients as $index => $recipient) {
+                    $response = $responses[$index] ?? [];
+                    if (isset($response['status']) && $response['status'] === 'success') {
+                        $recipient->status = 'sent';
+                        $recipient->sent_at = now();
+                        $recipient->message_id = $response['message_id'] ?? null;
+                        $campaign->increment('sent_count');
+                    } else {
+                        $recipient->status = 'failed';
+                        $recipient->error_message = $response['error'] ?? 'Unknown error';
+                        $campaign->increment('failed_count');
+                    }
+                    $recipient->save();
+                }
+
                 $campaign->status = $campaign->failed_count > 0 && $campaign->sent_count == 0 ? 'failed' : 'completed';
                 $campaign->save();
 
@@ -460,6 +489,7 @@ class CampaignService
                     'provider' => 'KenyaSMS'
                 ];
             } else {
+                // Mark all as failed
                 foreach ($recipients as $recipient) {
                     $recipient->update([
                         'status' => 'failed',
