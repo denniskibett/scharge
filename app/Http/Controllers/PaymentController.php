@@ -253,6 +253,13 @@ class PaymentController extends Controller
         // Format phone number
         $phone = $this->formatPhoneNumber($phone);
         
+        Log::info('📱 Processing M-Pesa payment', [
+            'phone' => $phone,
+            'amount' => $request->amount,
+            'invoice_id' => $invoice->id,
+            'tenant_id' => $tenant->id
+        ]);
+        
         // Send STK Push
         $mpesa = new \App\Services\MpesaService();
         $result = $mpesa->stkPush(
@@ -262,23 +269,29 @@ class PaymentController extends Controller
             "Payment for Invoice #{$invoice->id}"
         );
         
+        Log::info('📤 STK Push result', ['result' => $result]);
+        
         if ($result['success']) {
             // Store in pending_mpesa_payments table (backup for callback)
             try {
                 PendingMpesaPayment::create([
                     'checkout_request_id' => $result['checkout_request_id'],
+                    'merchant_request_id' => $result['merchant_request_id'] ?? null,
                     'invoice_id' => $invoice->id,
                     'tenant_id' => $tenant->id,
+                    'phone_number' => $phone,
                     'amount' => $request->amount,
-                    'phone' => $phone,
-                    'status' => 'pending'
+                    'status' => 'pending',
+                    'created_at' => now()
                 ]);
                 Log::info('✅ Pending payment stored in database', [
                     'checkout_request_id' => $result['checkout_request_id'],
                     'invoice_id' => $invoice->id
                 ]);
             } catch (\Exception $e) {
-                Log::error('Failed to store pending payment: ' . $e->getMessage());
+                Log::error('❌ Failed to store pending payment: ' . $e->getMessage(), [
+                    'trace' => $e->getTraceAsString()
+                ]);
             }
             
             // Also store in session for immediate use
