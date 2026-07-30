@@ -33,9 +33,9 @@ Route::get('/', function () {
 });
 
 // Email Verification Routes
-Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
-Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
+// Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
+// Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
+// Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
 
 // ============================================
 // AUTHENTICATION ROUTES
@@ -51,55 +51,17 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 // ============================================
 Route::middleware(['auth'])->group(function () {
 
+// ============================================
+    // DASHBOARD
     // ============================================
-    // 🔒 DASHBOARD - Role-based redirect (FIXED)
-    // ============================================
-    Route::get('/dashboard', function() {
-        $user = auth()->user();
-        
-        if (!$user) {
-            return redirect('/login');
-        }
-        
-        // Redirect based on user role
-        if ($user->hasRole('meter_reader')) {
-            return redirect()->route('water.index');
-        }
-        
-        if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
-            return redirect('/security');
-        }
-        
-        if ($user->hasRole('tenant')) {
-            return redirect()->route('tenant.dashboard');
-        }
-        
-        // Default fallback - security module
-        return redirect('/security');
-    })->name('dashboard');
-
-    // ============================================
-    // 🔒 OLD SECURITY ROUTES - Redirect to New
-    // ============================================
-    Route::get('/dashboard/security', function() {
-        return redirect('/security');
-    });
-    
-    Route::get('/dashboard/quick-entry', function() {
-        return redirect('/security/quick-entry');
-    });
-    
-    Route::get('/dashboard/visitor-mgmt', function() {
-        return redirect('/security');
-    });
-    
-    Route::get('/dashboard/new-log', function() {
-        return redirect('/security/quick-entry');
-    });
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware(['verified'])
+        ->name('dashboard');
 
     Route::get('mtickets', function () {
         return view('mtickets');
     })->name('mtickets');
+
 
     // ============================================
     // PROFILE ROUTES
@@ -224,31 +186,37 @@ Route::middleware(['auth'])->group(function () {
     // INVOICE ROUTES
     // ============================================
     Route::resource('invoices', InvoiceController::class);
+
+    // Invoice generation routes
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');
     Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllInvoices'])->name('invoices.generate.all');
+
+    // Invoice payment routes
     Route::post('/invoices/payments', [InvoiceController::class, 'processPayment'])->name('invoices.payments.store');
+
+    // Bulk invoice operations
     Route::post('/invoices/bulk-create', [InvoiceController::class, 'bulkCreate'])->name('invoices.bulk.create');
     Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing');
     Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates');
-    Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data');
-    Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
-    Route::get('/invoices/{invoice}/add-item', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
-    Route::put('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
-    Route::delete('/invoices/{invoice}/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
     Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
 
-    // Tenancy-specific invoice routes
-    Route::prefix('tenancies/{tenancy}')->group(function () {
-        Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('tenancies.invoices.store');
-        Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('tenancies.invoices.index');
-        Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('tenancies.invoices.check');
-    });
+    // Invoice data routes
+    Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data');
+    Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
 
-    // Invoice items - legacy support
+    // Invoice item routes - MAIN (using the prefix group)
     Route::prefix('invoices/{invoice}')->group(function () {
+        // CRUD operations for invoice items
         Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
         Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
         Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
+    });
+
+    // Tenancy-specific invoice routes
+    Route::prefix('tenancies/{tenancy}')->name('tenancies.')->group(function () {
+        Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('invoices.store');
+        Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('invoices.index');
+        Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('invoices.check');
     });
 
     // ============================================
@@ -309,8 +277,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Maintenance Staff routes
     Route::middleware(['role:super_admin,admin,property_manager,maintenance'])->group(function () {
-        Route::get('/maintenance/requests', [MaintenanceController::class, 'index'])->name('maintenance.index');
-        Route::put('/maintenance/requests/{request}/update', [MaintenanceController::class, 'update'])->name('maintenance.update');
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
 
@@ -476,7 +442,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
     Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
     Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
-    Route::get('/submit-request', [MaintenanceController::class, 'tenantRequest'])->name('tenant.maintenance');
 
     // ============================================
     // 📱 M-PESA STK PUSH PAYMENT ROUTES
