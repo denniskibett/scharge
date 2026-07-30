@@ -52,9 +52,29 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 Route::middleware(['auth'])->group(function () {
 
     // ============================================
-    // 🔒 DASHBOARD - Redirect to Security Module
+    // 🔒 DASHBOARD - Role-based redirect (FIXED)
     // ============================================
     Route::get('/dashboard', function() {
+        $user = auth()->user();
+        
+        if (!$user) {
+            return redirect('/login');
+        }
+        
+        // Redirect based on user role
+        if ($user->hasRole('meter_reader')) {
+            return redirect()->route('water.index');
+        }
+        
+        if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
+            return redirect('/security');
+        }
+        
+        if ($user->hasRole('tenant')) {
+            return redirect()->route('tenant.dashboard');
+        }
+        
+        // Default fallback - security module
         return redirect('/security');
     })->name('dashboard');
 

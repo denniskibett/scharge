@@ -28,6 +28,23 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Get the authenticated user
+        $user = Auth::user();
+
+        // Redirect based on user role
+        if ($user->hasRole('meter_reader')) {
+            return redirect()->route('water.index');
+        }
+
+        if ($user->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        if ($user->hasRole('tenant')) {
+            return redirect()->route('tenant.dashboard');
+        }
+
+        // Default fallback for other roles (security, etc.)
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
