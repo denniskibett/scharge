@@ -24,28 +24,52 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        try {
+            $request->authenticate();
+            $request->session()->regenerate();
 
-        $request->session()->regenerate();
+            $user = Auth::user();
+            $role = 'guest';
 
-        // Get the authenticated user
-        $user = Auth::user();
+            try {
+                if ($user && method_exists($user, 'roles') && $user->roles->isNotEmpty()) {
+                    $role = $user->roles->first()->name ?? 'guest';
+                }
+            } catch (\Exception $e) {
+                $role = 'guest';
+            }
 
-        // Redirect based on user role
-        if ($user->hasRole('meter_reader')) {
-            return redirect()->route('water.index');
+            switch ($role) {
+                case 'meter_reader':
+                    return redirect()->route('water.index');
+                case 'accountant':
+                    return redirect()->route('accountant.dashboard');
+                case 'admin':
+                case 'super_admin':
+                case 'sysadmin':
+                    return redirect()->route('admin.dashboard');
+                case 'tenant':
+                    return redirect()->route('tenant.dashboard');
+                case 'security':
+                    return redirect('/security');
+                case 'property_manager':
+                    return redirect()->route('property-manager.dashboard');
+                case 'maintenance':
+                    return redirect()->route('maintenance.dashboard');
+                case 'cleaning_staff':
+                    return redirect()->route('cleaning.dashboard');
+                case 'account_manager':
+                    return redirect()->route('admin.dashboard');
+                default:
+                    return redirect()->intended(route('dashboard', absolute: false));
+            }
+
+        } catch (\Exception $e) {
+            \Log::error('Login error: ' . $e->getMessage());
+            return back()->withErrors([
+                'email' => 'Login failed. Please try again.',
+            ]);
         }
-
-        if ($user->hasRole('admin')) {
-            return redirect()->route('admin.dashboard');
-        }
-
-        if ($user->hasRole('tenant')) {
-            return redirect()->route('tenant.dashboard');
-        }
-
-        // Default fallback for other roles (security, etc.)
-        return redirect()->intended(route('dashboard', absolute: false));
     }
 
     /**

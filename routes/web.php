@@ -52,31 +52,55 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 Route::middleware(['auth'])->group(function () {
 
     // ============================================
-    // 🔒 DASHBOARD - Role-based redirect (FIXED)
+    // 🔒 DASHBOARD - Shows role-based dashboard view
     // ============================================
-    Route::get('/dashboard', function() {
-        $user = auth()->user();
-        
-        if (!$user) {
-            return redirect('/login');
-        }
-        
-        // Redirect based on user role
-        if ($user->hasRole('meter_reader')) {
-            return redirect()->route('water.index');
-        }
-        
-        if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
-            return redirect('/security');
-        }
-        
-        if ($user->hasRole('tenant')) {
-            return redirect()->route('tenant.dashboard');
-        }
-        
-        // Default fallback - security module
-        return redirect('/security');
+    Route::get('/dashboard', function () {
+        return view('dashboard');
     })->name('dashboard');
+
+    // ============================================
+    // 🔒 ROLE-SPECIFIC DASHBOARD ROUTES
+    // ============================================
+    
+    // Admin Dashboard
+    Route::get('/admin/dashboard', function () {
+        return view('dashboard');
+    })->name('admin.dashboard');
+
+    // Accountant Dashboard
+    Route::get('/accountant/dashboard', function () {
+        return view('dashboard');
+    })->name('accountant.dashboard');
+
+    // Tenant Dashboard
+    Route::get('/tenant/dashboard', function () {
+        return view('dashboard');
+    })->name('tenant.dashboard');
+
+    // Meter Reader Dashboard (redirects to water index)
+    Route::get('/meter-reader/dashboard', function () {
+        return redirect()->route('water.index');
+    })->name('meter-reader.dashboard');
+
+    // Security Dashboard
+    Route::get('/security/dashboard', function () {
+        return redirect('/security');
+    })->name('security.dashboard');
+
+    // Property Manager Dashboard
+    Route::get('/property-manager/dashboard', function () {
+        return view('dashboard');
+    })->name('property-manager.dashboard');
+
+    // Maintenance Dashboard
+    Route::get('/maintenance/dashboard', function () {
+        return view('dashboard');
+    })->name('maintenance.dashboard');
+
+    // Cleaning Staff Dashboard
+    Route::get('/cleaning/dashboard', function () {
+        return view('dashboard');
+    })->name('cleaning.dashboard');
 
     // ============================================
     // 🔒 OLD SECURITY ROUTES - Redirect to New
