@@ -94,7 +94,7 @@ class KenyaSMS
 
             $response = Http::withHeaders($headers)
                 ->withoutVerifying()  // SSL fix for development
-                ->timeout(30)
+                ->timeout(60)  // ⬅️ FIX: Increased from 30 to 60 seconds
                 ->post($this->baseUrl . '/sms/send', $payload);
 
             Log::info('KenyaSMS: Response', [

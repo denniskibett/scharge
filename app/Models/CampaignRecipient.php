@@ -9,11 +9,9 @@ class CampaignRecipient extends Model
 {
     protected $table = 'campaign_recipients';
 
-    // Status constants matching KenyaSMS
+    // Status constants - MUST MATCH DATABASE ENUM
     const STATUS_PENDING = 'pending';
-    const STATUS_QUEUED = 'queued';
     const STATUS_SENT = 'sent';
-    const STATUS_DELIVERED = 'delivered';
     const STATUS_FAILED = 'failed';
 
     protected $fillable = [
@@ -26,13 +24,15 @@ class CampaignRecipient extends Model
         'error_message',
         'message_id',
         'provider_status',
-        'provider_response'
+        'provider_response',
+        'attempted_at', // NEW
     ];
 
     protected $casts = [
         'sent_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'attempted_at' => 'datetime', // NEW
     ];
 
     /**
@@ -52,33 +52,15 @@ class CampaignRecipient extends Model
     }
 
     /**
-     * Mark recipient as queued
-     */
-    public function markAsQueued($messageId = null)
-    {
-        $this->status = self::STATUS_QUEUED;
-        if ($messageId) {
-            $this->message_id = $messageId;
-        }
-        $this->save();
-    }
-
-    /**
      * Mark recipient as sent
      */
-    public function markAsSent()
+    public function markAsSent($messageId = null)
     {
         $this->status = self::STATUS_SENT;
         $this->sent_at = now();
-        $this->save();
-    }
-
-    /**
-     * Mark recipient as delivered
-     */
-    public function markAsDelivered()
-    {
-        $this->status = self::STATUS_DELIVERED;
+        if ($messageId) {
+            $this->message_id = $messageId;
+        }
         $this->save();
     }
 
@@ -101,27 +83,11 @@ class CampaignRecipient extends Model
     }
 
     /**
-     * Check if recipient is delivered
-     */
-    public function isDelivered()
-    {
-        return $this->status === self::STATUS_DELIVERED;
-    }
-
-    /**
      * Check if recipient is failed
      */
     public function isFailed()
     {
         return $this->status === self::STATUS_FAILED;
-    }
-
-    /**
-     * Check if recipient is queued
-     */
-    public function isQueued()
-    {
-        return $this->status === self::STATUS_QUEUED;
     }
 
     /**
@@ -139,9 +105,7 @@ class CampaignRecipient extends Model
     {
         $badges = [
             'pending' => 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-            'queued' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-            'sent' => 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-            'delivered' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+            'sent' => 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
             'failed' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
         ];
 
@@ -155,12 +119,33 @@ class CampaignRecipient extends Model
     {
         $labels = [
             'pending' => 'Pending',
-            'queued' => 'Queued',
             'sent' => 'Sent',
-            'delivered' => 'Delivered',
             'failed' => 'Failed',
         ];
 
         return $labels[$this->status] ?? ucfirst($this->status);
+    }
+
+    /**
+     * Mark recipient as queued (alias for pending)
+     * Kept for compatibility but maps to pending
+     */
+    public function markAsQueued($messageId = null)
+    {
+        $this->status = self::STATUS_PENDING;
+        if ($messageId) {
+            $this->message_id = $messageId;
+        }
+        $this->save();
+    }
+
+    /**
+     * Mark recipient as delivered (alias for sent)
+     * Kept for compatibility but maps to sent
+     */
+    public function markAsDelivered()
+    {
+        $this->status = self::STATUS_SENT;
+        $this->save();
     }
 }

@@ -11,7 +11,7 @@ class NetworkPrefix extends Model
     protected $fillable = [
         'prefix',
         'network',
-        'status',
+        'network_code',
     ];
 
     protected $casts = [
@@ -20,30 +20,11 @@ class NetworkPrefix extends Model
     ];
 
     /**
-     * Scope a query to only include active prefixes
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
-    /**
-     * Scope a query to only include Safaricom prefixes
-     */
-    public function scopeSafaricom($query)
-    {
-        return $query->where('network', 'Safaricom');
-    }
-
-    /**
      * Get the network for a given prefix
      */
     public static function getNetwork($prefix)
     {
-        $record = self::where('prefix', $prefix)
-            ->where('status', 'active')
-            ->first();
-
+        $record = self::where('prefix', $prefix)->first();
         return $record ? $record->network : null;
     }
 
@@ -54,17 +35,34 @@ class NetworkPrefix extends Model
     {
         return self::where('prefix', $prefix)
             ->where('network', 'Safaricom')
-            ->where('status', 'active')
             ->exists();
     }
 
     /**
-     * Check if a prefix is active
+     * Check if a prefix belongs to Airtel
+     */
+    public static function isAirtel($prefix)
+    {
+        return self::where('prefix', $prefix)
+            ->where('network', 'Airtel')
+            ->exists();
+    }
+
+    /**
+     * Check if a prefix belongs to Telkom
+     */
+    public static function isTelkom($prefix)
+    {
+        return self::where('prefix', $prefix)
+            ->where('network', 'Telkom')
+            ->exists();
+    }
+
+    /**
+     * Check if a prefix is active (all prefixes are active)
      */
     public static function isActivePrefix($prefix)
     {
-        return self::where('prefix', $prefix)
-            ->where('status', 'active')
-            ->exists();
+        return self::where('prefix', $prefix)->exists();
     }
 }

@@ -1,5 +1,4 @@
 <?php
-// app/Console/Kernel.php
 
 namespace App\Console;
 
@@ -58,6 +57,9 @@ class Kernel extends ConsoleKernel
         
         // Clean up old wallet transactions (keep last 2 years)
         $schedule->command('wallet:cleanup-transactions --years=2')->weekly()->sundays()->at('04:00');
+        
+        // 🆕 SMS: Clean up stuck pending recipients every 5 minutes
+        $schedule->command('sms:cleanup-stuck')->everyFiveMinutes()->name('sms-cleanup-stuck');
     }
 
     /**

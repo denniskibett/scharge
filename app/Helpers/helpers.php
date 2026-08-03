@@ -38,3 +38,23 @@ if (!function_exists('system_settings')) {
         }
     }
 }
+
+if (!function_exists('getStatusBadge')) {
+    /**
+     * Generate HTML badge for campaign/recipient status
+     *
+     * @param string $status
+     * @return string
+     */
+    function getStatusBadge($status)
+    {
+        $badges = [
+            'pending'   => '<span class="badge badge-warning">⏳ Pending</span>',
+            'sending'   => '<span class="badge badge-info">📤 Sending</span>',
+            'completed' => '<span class="badge badge-success">✅ Completed</span>',
+            'failed'    => '<span class="badge badge-danger">❌ Failed</span>',
+            'cancelled' => '<span class="badge badge-secondary">⛔ Cancelled</span>',
+        ];
+        return $badges[$status] ?? '<span class="badge badge-secondary">' . $status . '</span>';
+    }
+}

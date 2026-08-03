@@ -1,8 +1,5 @@
 @extends('layouts.app')
 
-@include('partials.modal.success-modal')
-@include('partials.modal.error-modal')
-
 @section('title', 'SMS Broadcast')
 
 @php
@@ -16,31 +13,34 @@
 @endphp
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <!-- CSRF Meta -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('partials.modal.success-modal')
+    @include('partials.modal.error-modal')
 
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">SMS Manager</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Send personalized SMS to tenants, a single number, or view history.</p>
-        @if($sandbox)
-            <div class="inline-block mt-3 rounded-full bg-yellow-100 px-4 py-1 text-sm text-yellow-800">⚠️ SANDBOX MODE – No real SMS will be sent</div>
+    <div class="container mx-auto px-4 py-6">
+        <!-- CSRF Meta -->
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">SMS Manager</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Send personalized SMS to tenants, a single number, or view history.</p>
+            @if($sandbox)
+                <div class="inline-block mt-3 rounded-full bg-yellow-100 px-4 py-1 text-sm text-yellow-800">⚠️ SANDBOX MODE – No real SMS will be sent</div>
+            @endif
+        </div>
+
+        <!-- Flash Messages -->
+        @if(session('success'))
+            <div class="mb-4 rounded-lg bg-green-100 p-4 text-green-800 border border-green-300">
+                <strong>✅ Success!</strong> {{ session('success') }}
+            </div>
         @endif
-    </div>
 
-    <!-- Flash Messages -->
-    @if(session('success'))
-        <div class="mb-4 rounded-lg bg-green-100 p-4 text-green-800 border border-green-300">
-            <strong>✅ Success!</strong> {{ session('success') }}
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="mb-4 rounded-lg bg-red-100 p-4 text-red-800 border border-red-300">
-            <strong>❌ Error!</strong> {{ session('error') }}
-        </div>
-    @endif
+        @if(session('error'))
+            <div class="mb-4 rounded-lg bg-red-100 p-4 text-red-800 border border-red-300">
+                <strong>❌ Error!</strong> {{ session('error') }}
+            </div>
+        @endif
 
     <!-- Tab Headers -->
     <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
@@ -665,73 +665,78 @@
                         </div>
                     </div>
                     
-                    <!-- Campaign Stats -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent</p>
-                            <p class="text-2xl font-bold text-green-600" id="viewCampaignSent">0</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending</p>
-                            <p class="text-2xl font-bold text-yellow-600" id="viewCampaignPendingCount">0</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failed</p>
-                            <p class="text-2xl font-bold text-red-600" id="viewCampaignFailed">0</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progress</p>
-                            <p class="text-2xl font-bold text-blue-600" id="viewCampaignProgress">0%</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Progress Bar -->
-                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-4 overflow-hidden">
-                        <div id="viewCampaignProgressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
-                    </div>
+                   <!-- Campaign Stats -->
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent</p>
+        <p class="text-2xl font-bold text-green-600" id="viewCampaignSent">0</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending</p>
+        <p class="text-2xl font-bold text-yellow-600" id="viewCampaignPendingCount">0</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failed</p>
+        <p class="text-2xl font-bold text-red-600" id="viewCampaignFailed">0</p>
+    </div>
+    <!-- 🆕 Delivered Card -->
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</p>
+        <p class="text-2xl font-bold text-green-600" id="viewCampaignDelivered">0</p>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progress</p>
+        <p class="text-2xl font-bold text-blue-600" id="viewCampaignProgress">0%</p>
+    </div>
+</div>
                     
                     <!-- TABS FOR RECIPIENTS -->
-                    <div class="mb-4">
-                        <div class="flex border-b border-gray-200 dark:border-gray-700">
-                            <button onclick="switchRecipientTab('recipients')" id="tab-recipients" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
-                                <i class="fas fa-users mr-1"></i> Recipients
-                                <span class="text-xs text-gray-500 ml-1" id="recipientTabCount">(0)</span>
-                            </button>
-                            <button onclick="switchRecipientTab('invalid')" id="tab-invalid" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-                                <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Invalid
-                                <span class="text-xs text-gray-500 ml-1" id="invalidTabCount">(0)</span>
-                            </button>
-                            <button onclick="switchRecipientTab('other')" id="tab-other" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-                                <i class="fas fa-network-wired text-yellow-500 mr-1"></i> Other Networks
-                                <span class="text-xs text-gray-500 ml-1" id="otherTabCount">(0)</span>
-                            </button>
-                            <div class="flex-1"></div>
-                            
-                            <!-- Export Dropdown -->
-                            <div class="relative inline-block text-left">
-                                <button onclick="toggleExportDropdown()" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 px-3 py-2 inline-flex items-center">
-                                    <i class="fas fa-file-export mr-1"></i> Export
-                                    <i class="fas fa-chevron-down ml-1 text-xs"></i>
-                                </button>
-                                <div id="exportDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
-                                    <div class="py-1">
-                                        <button onclick="exportRecipients()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            <i class="fas fa-file-export mr-2"></i> All Recipients
-                                        </button>
-                                        <button onclick="exportInvalidRecipients()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            <i class="fas fa-exclamation-triangle mr-2"></i> Invalid Only
-                                        </button>
-                                        <button onclick="exportDeliveredRecipients()" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            <i class="fas fa-check-circle mr-2"></i> Delivered Only
-                                        </button>
-                                        <button onclick="exportPendingRecipients()" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                            <i class="fas fa-hourglass-half mr-2"></i> Pending Only
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+<div class="mb-4">
+    <div class="flex border-b border-gray-200 dark:border-gray-700">
+        <button onclick="switchRecipientTab('recipients')" id="tab-recipients" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
+            <i class="fas fa-users mr-1"></i> Recipients
+            <span class="text-xs text-gray-500 ml-1" id="recipientTabCount">(0)</span>
+        </button>
+        <button onclick="switchRecipientTab('invalid')" id="tab-invalid" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+            <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Invalid
+            <span class="text-xs text-gray-500 ml-1" id="invalidTabCount">(0)</span>
+        </button>
+        <button onclick="switchRecipientTab('other')" id="tab-other" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+            <i class="fas fa-network-wired text-yellow-500 mr-1"></i> Other Networks
+            <span class="text-xs text-gray-500 ml-1" id="otherTabCount">(0)</span>
+        </button>
+        <!-- NEW: Failed Tab -->
+        <button onclick="switchRecipientTab('failed')" id="tab-failed" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+            <i class="fas fa-times-circle text-red-500 mr-1"></i> Failed
+            <span class="text-xs text-gray-500 ml-1" id="failedTabCount">(0)</span>
+        </button>
+        <div class="flex-1"></div>
+        
+        <!-- Export Dropdown -->
+        <div class="relative inline-block text-left">
+            <button onclick="toggleExportDropdown()" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 px-3 py-2 inline-flex items-center">
+                <i class="fas fa-file-export mr-1"></i> Export
+                <i class="fas fa-chevron-down ml-1 text-xs"></i>
+            </button>
+            <div id="exportDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
+                <div class="py-1">
+                    <button onclick="exportRecipients()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-file-export mr-2"></i> All Recipients
+                    </button>
+                    <button onclick="exportInvalidRecipients()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Invalid Only
+                    </button>
+                    <button onclick="exportDeliveredRecipients()" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-check-circle mr-2"></i> Delivered Only
+                    </button>
+                    <button onclick="exportPendingRecipients()" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <i class="fas fa-hourglass-half mr-2"></i> Pending Only
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
                     
                     <!-- Recipients Tab Content -->
                     <div id="recipientsTabContent">
@@ -760,132 +765,121 @@
                                 <i class="fas fa-redo mr-1"></i> Resend Failed
                             </button>
                             
-                            <button onclick="refreshCampaignStatus()" id="refreshStatusBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50">
-                                <i class="fas fa-sync-alt mr-1"></i> Refresh Status
+                            <!-- NEW: Resend Pending Button -->
+                            <button onclick="resendPending()" id="resendPendingBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50">
+                                <i class="fas fa-redo mr-1"></i> Resend Pending
                             </button>
-                        </div>
-                        
-                        <!-- Recipients Table -->
-                        <div class="mt-4">
-                            <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                                <table class="min-w-full">
-                                    <thead>
-                                        <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="viewRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                        <tr>
-                                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
-                                                <i class="fas fa-inbox mr-2"></i> No recipients found
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
                             
-                            <!-- Pagination -->
-                            <div class="flex items-center justify-between mt-4">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                                    <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white" onchange="changeEntriesPerPage()">
-                                        <option value="5">5</option>
-                                        <option value="10" selected>10</option>
-                                        <option value="20">20</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                        <option value="all">All</option>
-                                    </select>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">entries</span>
-                                </div>
-                                <div class="flex gap-2" id="paginationControls">
-                                    <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <span id="pageInfo" class="text-sm text-gray-600 dark:text-gray-400 px-3 py-1">Page 1 of 1</span>
-                                    <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Invalid Recipients Tab Content -->
-                    <div id="invalidTabContent" style="display: none;">
-                        <div class="mb-4">
-                            <button onclick="loadInvalidRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-red-100 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50">
-                                <i class="fas fa-sync-alt mr-1"></i> Load Invalid Recipients
-                            </button>
-                        </div>
-                        <div class="w-full overflow-x-auto rounded-xl border border-red-200 dark:border-red-800">
-                            <table class="min-w-full">
-                                <thead>
-                                    <tr class="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Current Phone</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Error</th>
-                                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="invalidRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                    <tr>
-                                        <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
-                                            <i class="fas fa-info-circle mr-1"></i> Click "Load Invalid Recipients" to view
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Other Networks Tab Content -->
-                    <div id="otherTabContent" style="display: none;">
-                        <div class="mb-4">
-                            <button onclick="loadOtherNetworkRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50">
-                                <i class="fas fa-sync-alt mr-1"></i> Load Other Networks
-                            </button>
-                        </div>
-                        <div class="w-full overflow-x-auto rounded-xl border border-yellow-200 dark:border-yellow-800">
-                            <table class="min-w-full">
-                                <thead>
-                                    <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
-                                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="otherNetworkRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                                    <tr>
-                                        <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
-                                            <i class="fas fa-info-circle mr-1"></i> Click "Load Other Networks" to view
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Close Button -->
-                    <div class="flex justify-end mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <button onclick="closeViewCampaignModal()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-6 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-600">
-                            <i class="fas fa-times mr-1"></i> Close
-                        </button>
-                    </div>
-                </div>
-            </div>
+                            <button onclick="refreshCampaignStatus()" id="refreshStatusBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50">
+    <i class="fas fa-sync-alt mr-1"></i> Refresh Status
+</button>
+
+<!-- 🆕 Check Pending Status Button -->
+<button onclick="checkPendingStatus()" id="checkPendingStatusBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50">
+    <i class="fas fa-search mr-1"></i> Check Pending Status
+</button>
+</div>
+
+<!-- Recipients Table -->
+<div class="mt-4">
+    <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+        <table class="min-w-full">
+            <thead>
+                <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parts</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent Time</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failure Reason</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="viewRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tr>
+                    <td colspan="12" class="px-4 py-8 text-center text-gray-500">
+                        <i class="fas fa-inbox mr-2"></i> No recipients found
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-4">
+        <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+            <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white" onchange="changeEntriesPerPage()">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+                <option value="all">All</option>
+            </select>
+            <span class="text-sm text-gray-600 dark:text-gray-400">entries</span>
+        </div>
+        <div class="flex gap-2" id="paginationControls">
+            <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="pageInfo" class="text-sm text-gray-600 dark:text-gray-400 px-3 py-1">Page 1 of 1</span>
+            <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
     </div>
 </div>
+</div>
+
+<!-- Other Networks Tab Content -->
+<div id="otherTabContent" style="display: none;">
+    <div class="mb-4">
+        <button onclick="loadOtherNetworkRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50">
+            <i class="fas fa-sync-alt mr-1"></i> Load Other Networks
+        </button>
+    </div>
+    <div class="w-full overflow-x-auto rounded-xl border border-yellow-200 dark:border-yellow-800">
+        <table class="min-w-full">
+            <thead>
+                <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
+                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
+                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
+                </tr>
+            </thead>
+            <tbody id="otherNetworkRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tr>
+                    <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
+                        <i class="fas fa-info-circle mr-1"></i> Click "Load Other Networks" to view
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Close & Delete Buttons -->
+<div class="flex justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <button onclick="deleteCampaign(window.currentCampaignId)" class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+        <i class="fas fa-trash mr-1"></i> Delete Campaign
+    </button>
+    <button onclick="closeViewCampaignModal()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-6 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-600">
+        <i class="fas fa-times mr-1"></i> Close
+    </button>
+</div>
+
+                </div>  <!-- closes viewCampaignContent -->
+            </div>      <!-- closes body -->
+        </div>          <!-- closes main modal content -->
+    </div>              <!-- closes positioning -->
+</div>                  <!-- closes viewCampaignModal -->
 
 <!-- ============================================ -->
 <!-- UPDATE PHONE MODAL -->
@@ -955,6 +949,7 @@ let currentFilteredRecipients = [];
 let currentRecipientFilter = 'all';
 let currentInvalidRecipients = [];
 let currentOtherNetworkRecipients = [];
+let currentFailedRecipients = [];
 
 function renderTab() {
     console.log('📋 Rendering tab:', activeTab);
@@ -1753,7 +1748,9 @@ function renderCampaigns() {
             `;
         }
         
-        if (campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'failed') {
+        // DELETE button – now appears for ALL statuses (including sent, completed)
+        const deletableStatuses = ['draft', 'scheduled', 'failed', 'pending', 'sent', 'completed'];
+        if (deletableStatuses.includes(campaign.status)) {
             actionsHtml += `
                 <button onclick="deleteCampaign(${campaign.id})" class="text-red-600 hover:text-red-900 text-sm" title="Delete Campaign">
                     <i class="fas fa-trash"></i>
@@ -1968,7 +1965,7 @@ function generateTenantPreview(templateContent) {
             '@{{estate}}': tenant.estate || 'N/A',
             '@{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
             '@{{water_bill}}': tenant.waterbill ? parseFloat(tenant.waterbill).toFixed(2) : '0.00',
-            '@{{water_consumption}}': waterConsumption,  // <-- USING CALCULATED VALUE
+            '@{{water_consumption}}': waterConsumption,
             '@{{prev_read}}': tenant.prevRead || '0',
             '@{{curr_read}}': tenant.currRead || '0',
             '@{{due_date}}': dueDate,
@@ -2027,6 +2024,7 @@ function generateTenantPreview(templateContent) {
     html += '</div>';
     previewContainer.innerHTML = html;
 }
+
 // ============================================
 // VIEW CAMPAIGN
 // ============================================
@@ -2058,56 +2056,79 @@ function viewCampaign(id) {
             if (loading) loading.style.display = 'none';
             if (content) content.style.display = 'block';
             
-            document.getElementById('viewCampaignName').textContent = data.name || 'N/A';
-            document.getElementById('viewCampaignDescription').textContent = data.description || 'No description provided';
+            // Helper to safely set text content
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = value;
+            };
             
+            // Campaign Name & Description
+            setText('viewCampaignName', data.name || 'N/A');
+            setText('viewCampaignDescription', data.description || 'No description provided');
+            
+            // Status Badge
             const statusEl = document.getElementById('viewCampaignStatus');
             if (statusEl) {
                 statusEl.textContent = capitalize(data.status);
                 statusEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadge(data.status);
             }
             
-            document.getElementById('viewCampaignTemplate').textContent = data.template ? data.template.name : 'No template';
-            document.getElementById('viewCampaignCreated').textContent = formatDate(data.created_at);
-            document.getElementById('viewCampaignTotal').textContent = data.total_recipients || 0;
-            document.getElementById('viewCampaignSent').textContent = data.sent_count || 0;
-            document.getElementById('viewCampaignFailed').textContent = data.failed_count || 0;
-            
+            // Define counts
             const counts = data.status_counts || { sent: 0, pending: 0, failed: 0, queued: 0, delivered: 0 };
             
-            document.getElementById('count-all').textContent = data.total_recipients || 0;
-            document.getElementById('count-delivered').textContent = counts.delivered || 0;
-            document.getElementById('count-sent').textContent = counts.sent || 0;
-            document.getElementById('count-queued').textContent = counts.queued || 0;
-            document.getElementById('count-pending').textContent = counts.pending || 0;
-            document.getElementById('count-failed').textContent = counts.failed || 0;
-            
-            document.getElementById('viewCampaignValid').textContent = data.validation_stats?.valid || 0;
-            document.getElementById('viewCampaignOtherNetwork').textContent = data.validation_stats?.other_network || 0;
-            document.getElementById('viewCampaignInvalid').textContent = data.validation_stats?.invalid || 0;
-            document.getElementById('viewCampaignPendingCount').textContent = counts.pending || 0;
-            
+            // Calculate progress
             const total = data.total_recipients || 0;
             const sent = data.sent_count || 0;
             const progress = total > 0 ? Math.round((sent / total) * 100) : 0;
             
-            document.getElementById('viewCampaignProgress').textContent = progress + '%';
-            document.getElementById('viewCampaignProgressBar').style.width = progress + '%';
+            // Stats Cards
+            setText('viewCampaignTemplate', data.template ? data.template.name : 'No template');
+            setText('viewCampaignCreated', formatDate(data.created_at));
+            setText('viewCampaignTotal', data.total_recipients || 0);
+            setText('viewCampaignSent', data.sent_count || 0);
+            setText('viewCampaignFailed', data.failed_count || 0);
+            setText('viewCampaignDelivered', data.delivered_count || 0);
+            setText('viewCampaignPendingCount', counts.pending || 0);
+            setText('viewCampaignProgress', progress + '%');
             
+            // Progress Bar
+            const progressBar = document.getElementById('viewCampaignProgressBar');
+            if (progressBar) {
+                progressBar.style.width = progress + '%';
+            }
+            
+            // Filter Button Counts
+            setText('count-all', data.total_recipients || 0);
+            setText('count-delivered', counts.delivered || 0);
+            setText('count-sent', counts.sent || 0);
+            setText('count-queued', counts.queued || 0);
+            setText('count-pending', counts.pending || 0);
+            setText('count-failed', counts.failed || 0);
+            
+            // Validation Stats
+            setText('viewCampaignValid', data.validation_stats?.valid || 0);
+            setText('viewCampaignOtherNetwork', data.validation_stats?.other_network || 0);
+            setText('viewCampaignInvalid', data.validation_stats?.invalid || 0);
+            
+            // Tab Counts
             const recipientCount = data.recipients ? data.recipients.length : 0;
             const invalidCount = data.validation_stats?.invalid || 0;
             const otherCount = data.validation_stats?.other_network || 0;
+            const failedCount = counts.failed || 0;
             
-            document.getElementById('recipientTabCount').textContent = `(${recipientCount})`;
-            document.getElementById('invalidTabCount').textContent = `(${invalidCount})`;
-            document.getElementById('otherTabCount').textContent = `(${otherCount})`;
+            setText('recipientTabCount', `(${recipientCount})`);
+            setText('invalidTabCount', `(${invalidCount})`);
+            setText('otherTabCount', `(${otherCount})`);
+            setText('failedTabCount', `(${failedCount})`);
             
+            // ✅ FIX: Assign recipient data and render
             currentRecipients = data.recipients || [];
             currentRecipientsFull = data.recipients || [];
             currentFilteredRecipients = currentRecipientsFull;
             currentRecipientFilter = 'all';
             currentPage = 1;
             
+            // Reset filter buttons
             const buttons = document.querySelectorAll('#viewCampaignModal .flex.flex-wrap.gap-2 button');
             buttons.forEach(btn => {
                 btn.classList.remove('bg-blue-600', 'text-white');
@@ -2119,7 +2140,21 @@ function viewCampaign(id) {
                 allBtn.classList.add('bg-blue-600', 'text-white');
             }
             
-            switchRecipientTab('recipients');
+            // 🆕 Force render the recipients table
+            if (currentFilteredRecipients.length > 0) {
+                renderPaginatedRecipients();
+            } else {
+                const tbody = document.getElementById('viewRecipientsBody');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                <i class="fas fa-inbox mr-2"></i> No recipients found for this campaign
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
         })
         .catch(error => {
             console.error('❌ Error loading campaign details:', error);
@@ -2131,11 +2166,13 @@ function viewCampaign(id) {
 // ============================================
 // RENDER RECIPIENTS
 // ============================================
+// ============================================
+// RENDER RECIPIENTS
+// ============================================
 function renderRecipients(recipients) {
     console.log('📋 Rendering recipients, count:', recipients ? recipients.length : 0);
     
     const tbody = document.getElementById('viewRecipientsBody');
-    
     if (!tbody) {
         console.warn('⚠️ viewRecipientsBody element not found');
         return;
@@ -2144,7 +2181,7 @@ function renderRecipients(recipients) {
     if (!recipients || recipients.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                <td colspan="12" class="px-4 py-8 text-center text-gray-500">
                     <i class="fas fa-inbox mr-2"></i> No recipients found for this campaign
                 </td>
             </tr>
@@ -2162,7 +2199,37 @@ function renderRecipients(recipients) {
         let estateName = recipient.estate_name || recipient.estate || 'N/A';
         let phoneNumber = recipient.phone_number || recipient.phone || '';
         
-        // UPDATED: Show resend button for failed, pending, or queued
+        // 🆕 Extract delivery report fields
+        let network = recipient.network || '';
+        let parts = recipient.parts || '';
+        let cost = recipient.cost || '';
+        let sentTime = recipient.sent_time || '';
+        let deliveredTime = recipient.delivered_time || '';
+        let failureReason = recipient.failure_reason || recipient.error_message || '';
+        
+        // Format timestamps if they look like dates
+        if (sentTime && sentTime.match(/^\d{2}:\d{2}:\d{2}$/)) {
+            // Already in HH:MM:SS format, keep as-is
+        } else if (sentTime) {
+            try {
+                const d = new Date(sentTime);
+                if (!isNaN(d)) {
+                    sentTime = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                }
+            } catch (e) { /* keep original */ }
+        }
+        
+        if (deliveredTime && deliveredTime.match(/^\d{2}:\d{2}:\d{2}$/)) {
+            // Already in HH:MM:SS format, keep as-is
+        } else if (deliveredTime) {
+            try {
+                const d = new Date(deliveredTime);
+                if (!isNaN(d)) {
+                    deliveredTime = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                }
+            } catch (e) { /* keep original */ }
+        }
+        
         let resendButton = '';
         if (recipient.status === 'failed' || recipient.status === 'pending' || recipient.status === 'queued') {
             resendButton = `
@@ -2170,6 +2237,16 @@ function renderRecipients(recipients) {
                     <i class="fas fa-redo"></i>
                 </button>
             `;
+        }
+        
+        // Failure reason display
+        let failureDisplay = '';
+        if (recipient.status === 'failed') {
+            failureDisplay = failureReason || 'No error message';
+        } else if (recipient.status === 'delivered') {
+            failureDisplay = '—';
+        } else {
+            failureDisplay = '';
         }
         
         html += `
@@ -2185,6 +2262,15 @@ function renderRecipients(recipients) {
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(phoneNumber)}</td>
+                <!-- 🆕 Delivery Report Columns -->
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(network)}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${parts}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${escapeHtml(cost)}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${escapeHtml(sentTime)}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${escapeHtml(deliveredTime)}</td>
+                <td class="px-4 py-3 text-center text-sm ${recipient.status === 'failed' ? 'text-red-500' : 'text-gray-400'}">
+                    ${escapeHtml(failureDisplay)}
+                </td>
                 <td class="px-4 py-3 text-center">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge}">
                         ${statusText}
@@ -2203,7 +2289,7 @@ function renderRecipients(recipients) {
     });
     
     tbody.innerHTML = html;
-    console.log('✅ Recipients rendered successfully');
+    console.log('✅ Recipients rendered successfully with delivery report columns');
 }
 
 // ============================================
@@ -2294,14 +2380,17 @@ function switchRecipientTab(tab) {
     const recipientsTab = document.getElementById('recipientsTabContent');
     const invalidTab = document.getElementById('invalidTabContent');
     const otherTab = document.getElementById('otherTabContent');
+    const failedTab = document.getElementById('failedTabContent');
     
     if (recipientsTab) recipientsTab.style.display = 'none';
     if (invalidTab) invalidTab.style.display = 'none';
     if (otherTab) otherTab.style.display = 'none';
+    if (failedTab) failedTab.style.display = 'none';
     
     const tabRecipients = document.getElementById('tab-recipients');
     const tabInvalid = document.getElementById('tab-invalid');
     const tabOther = document.getElementById('tab-other');
+    const tabFailed = document.getElementById('tab-failed');
     
     if (tabRecipients) {
         tabRecipients.classList.remove('border-blue-500', 'text-blue-600');
@@ -2314,6 +2403,10 @@ function switchRecipientTab(tab) {
     if (tabOther) {
         tabOther.classList.remove('border-blue-500', 'text-blue-600');
         tabOther.classList.add('border-transparent');
+    }
+    if (tabFailed) {
+        tabFailed.classList.remove('border-blue-500', 'text-blue-600');
+        tabFailed.classList.add('border-transparent');
     }
     
     if (tab === 'recipients') {
@@ -2348,6 +2441,13 @@ function switchRecipientTab(tab) {
         if (tbody && tbody.innerHTML.includes('Click "Load Other Networks" to view')) {
             loadOtherNetworkRecipients();
         }
+    } else if (tab === 'failed') {
+        if (failedTab) failedTab.style.display = 'block';
+        if (tabFailed) {
+            tabFailed.classList.add('border-blue-500', 'text-blue-600');
+            tabFailed.classList.remove('border-transparent');
+        }
+        loadFailedRecipients();
     }
 }
 
@@ -2557,7 +2657,74 @@ function resendFailed() {
         btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Resending...';
     }
     
+    const timeoutId = setTimeout(function() {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
+        }
+        toastr.warning('Request is taking longer than expected. Please check the campaign status.');
+    }, 30000);
+    
     fetch(`/api/sms/campaigns/${currentCampaignId}/resend-failed`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        },
+        signal: AbortSignal.timeout(25000)
+    })
+    .then(response => {
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
+            viewCampaign(currentCampaignId);
+        } else {
+            alert('❌ Error: ' + (data.message || 'Failed to resend messages'));
+        }
+    })
+    .catch(error => {
+        clearTimeout(timeoutId);
+        console.error('Error resending:', error);
+        alert('❌ Error resending messages: ' + (error.message || 'Unknown error'));
+    })
+    .finally(() => {
+        clearTimeout(timeoutId);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
+        }
+    });
+}
+
+// ============================================
+// RESEND PENDING MESSAGES
+// ============================================
+function resendPending() {
+    if (!currentCampaignId) {
+        alert('No campaign loaded');
+        return;
+    }
+    const pendingCount = parseInt(document.getElementById('count-pending')?.textContent || 0);
+    if (pendingCount === 0) {
+        alert('No pending messages to resend');
+        return;
+    }
+    if (!confirm(`Resend ${pendingCount} pending messages for this campaign?`)) return;
+
+    const btn = document.getElementById('resendPendingBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Resending...';
+    }
+
+    fetch(`/api/sms/campaigns/${currentCampaignId}/resend-pending`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -2571,17 +2738,17 @@ function resendFailed() {
             alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
             viewCampaign(currentCampaignId);
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to resend messages'));
+            alert('❌ Error: ' + (data.message || 'Failed to resend pending messages'));
         }
     })
     .catch(error => {
-        console.error('Error resending:', error);
-        alert('❌ Error resending messages: ' + error.message);
+        console.error('Error resending pending:', error);
+        alert('❌ Error resending pending messages: ' + error.message);
     })
     .finally(() => {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
+            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Pending';
         }
     });
 }
@@ -2631,6 +2798,127 @@ function refreshCampaignStatus() {
         }
     });
 }
+
+// ============================================
+// CHECK PENDING STATUS (NEW) – manually query KenyaSMS
+// ============================================
+function checkPendingStatus() {
+    if (!currentCampaignId) {
+        alert('No campaign loaded');
+        return;
+    }
+    
+    const pendingCount = parseInt(document.getElementById('count-pending')?.textContent || 0);
+    if (pendingCount === 0) {
+        alert('No pending messages to check');
+        return;
+    }
+    
+    if (!confirm(`Check status for ${pendingCount} pending messages with KenyaSMS?`)) return;
+    
+    const btn = document.getElementById('checkPendingStatusBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking...';
+    }
+    
+    fetch(`/api/sms/campaigns/${currentCampaignId}/check-pending`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ Status check completed!\n\nUpdated: ${data.updated}\nFailed: ${data.failed}\nPending: ${data.pending}`);
+            viewCampaign(currentCampaignId);
+        } else {
+            alert('❌ Error: ' + (data.message || 'Failed to check status'));
+        }
+    })
+    .catch(error => {
+        console.error('Error checking status:', error);
+        alert('❌ Error checking status: ' + error.message);
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-search mr-1"></i> Check Pending Status';
+        }
+    });
+}
+
+// ============================================
+// LOAD FAILED RECIPIENTS
+// ============================================
+function loadFailedRecipients() {
+    const tbody = document.getElementById('failedRecipientsBody');
+    const btn = document.getElementById('loadFailedBtn');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Loading...';
+    }
+    
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Loading failed recipients...
+            </td>
+        </tr>
+    `;
+    
+    const failed = currentRecipientsFull.filter(r => r.status === 'failed');
+    
+    if (failed.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="px-4 py-4 text-center text-green-500 text-sm">
+                    <i class="fas fa-check-circle mr-1"></i> No failed recipients found
+                </td>
+            </tr>
+        `;
+        if (btn) btn.disabled = false;
+        if (btn) btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Failed List';
+        return;
+    }
+    
+    let html = '';
+    failed.forEach(r => {
+        let displayPhone = r.phone_number || r.phone || 'N/A';
+        displayPhone = displayPhone.replace(/^254/, '0');
+        let tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
+        let unitNumber = r.unit_number || r.unit || 'N/A';
+        let estateName = r.estate_name || r.estate || 'N/A';
+        let errorMsg = r.error_message || 'No error message';
+        
+        html += `
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
+                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(tenantName)}</td>
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
+                <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
+                <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
+                <td class="px-4 py-3 text-center">
+                    <button onclick="resendSingleRecipient(${r.id})" class="text-orange-600 hover:text-orange-900 text-sm mr-2" title="Resend">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                    <button onclick="viewRecipientMessage(${r.id})" class="text-blue-600 hover:text-blue-900 text-sm" title="View Message">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    if (btn) btn.disabled = false;
+    if (btn) btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Failed List';
+}
+
 // ============================================
 // RESEND SINGLE RECIPIENT
 // ============================================
@@ -2642,23 +2930,36 @@ function resendSingleRecipient(recipientId) {
     
     if (!confirm('Resend this message to this recipient?')) return;
     
-    // Show loading state on the button
     const btn = document.querySelector(`[onclick="resendSingleRecipient(${recipientId})"]`);
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
     }
     
-    // FIXED: Use the resend endpoint (not sync-status)
+    const timeoutId = setTimeout(function() {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-redo"></i>';
+        }
+        toastr.warning('Request is taking longer than expected.');
+    }, 15000);
+    
     fetch(`/api/sms/recipients/${recipientId}/resend`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             'Accept': 'application/json'
-        }
+        },
+        signal: AbortSignal.timeout(12000)
     })
-    .then(response => response.json())
+    .then(response => {
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             alert('✅ Message resent successfully!');
@@ -2668,17 +2969,19 @@ function resendSingleRecipient(recipientId) {
         }
     })
     .catch(error => {
+        clearTimeout(timeoutId);
         console.error('Error resending:', error);
-        alert('❌ Error resending: ' + error.message);
+        alert('❌ Error resending: ' + (error.message || 'Unknown error'));
     })
     .finally(() => {
-        // Restore the button
+        clearTimeout(timeoutId);
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-redo"></i>';
         }
     });
 }
+
 // ============================================
 // VIEW RECIPIENT MESSAGE
 // ============================================
@@ -2704,7 +3007,7 @@ function loadInvalidRecipients() {
     const tbody = document.getElementById('invalidRecipientsBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
+            <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
                 <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
                 Loading...
             </td>
@@ -2712,18 +3015,22 @@ function loadInvalidRecipients() {
     `;
     
     fetch(`/api/sms/campaigns/${currentCampaignId}/invalid-recipients`, {
-        headers: {
-            'Accept': 'application/json'
-        }
+        headers: { 'Accept': 'application/json' }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            renderInvalidRecipients(data.recipients);
+            const recipients = (data.recipients || []).map(r => {
+                if (!r.id && r.campaign_recipient_id) r.id = r.campaign_recipient_id;
+                if (!r.id && r.recipient_id) r.id = r.recipient_id;
+                if (!r.id) r.id = 'temp_' + Math.random().toString(36).substr(2, 9);
+                return r;
+            });
+            renderInvalidRecipients(recipients);
         } else {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="px-4 py-4 text-center text-red-500 text-sm">
+                    <td colspan="6" class="px-4 py-4 text-center text-red-500 text-sm">
                         <i class="fas fa-exclamation-circle mr-1"></i> ${data.message || 'Failed to load invalid recipients'}
                     </td>
                 </tr>
@@ -2734,7 +3041,7 @@ function loadInvalidRecipients() {
         console.error('Error loading invalid recipients:', error);
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" class="px-4 py-4 text-center text-red-500 text-sm">
+                <td colspan="6" class="px-4 py-4 text-center text-red-500 text-sm">
                     <i class="fas fa-exclamation-circle mr-1"></i> Error loading invalid recipients
                 </td>
             </tr>
@@ -3009,8 +3316,8 @@ function retryCampaign(id) {
 
 function deleteCampaign(id) {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
-    
-    fetch(`/api/sms/campaigns/${id}`, {
+
+    fetch(`/sms/campaigns/${id}`, {
         method: 'DELETE',
         headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
@@ -3028,7 +3335,7 @@ function deleteCampaign(id) {
     })
     .catch(error => {
         console.error('Error deleting campaign:', error);
-        alert('❌ Error deleting campaign');
+        alert('❌ Error deleting campaign: ' + error.message);
     });
 }
 
@@ -3045,7 +3352,6 @@ function openCreateCampaignModal() {
     
     modal.style.display = 'block';
     
-    // Auto-generate unique campaign name
     const now = new Date();
     const dateStr = now.getFullYear() + '-' + 
                     String(now.getMonth() + 1).padStart(2, '0') + '-' + 
@@ -3081,18 +3387,12 @@ function openCreateCampaignModal() {
     }
 }
 
-// ============================================
-// CLOSE CREATE CAMPAIGN MODAL
-// ============================================
 function closeCreateCampaignModal() {
     console.log('📝 Closing create campaign modal');
     const modal = document.getElementById('createCampaignModal');
     if (modal) modal.style.display = 'none';
 }
 
-// ============================================
-// LOAD CAMPAIGN TEMPLATE PREVIEW
-// ============================================
 function loadCampaignTemplatePreview() {
     const select = document.getElementById('campaignTemplate');
     if (!select) return;
@@ -3114,9 +3414,6 @@ function loadCampaignTemplatePreview() {
     }
 }
 
-// ============================================
-// SUBMIT CAMPAIGN
-// ============================================
 function submitCampaign(event) {
     event.preventDefault();
     

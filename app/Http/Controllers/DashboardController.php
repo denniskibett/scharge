@@ -2264,8 +2264,7 @@ private function adminDashboard()
                     'water_billing_type' => $billingType,
                     'water_charge' => (float) ($unit->water_charge ?? 0),
                     'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
-                    'rate' => (float) $rate,
-                    'needs_reading' => !$unit->last_reading_date || $unit->last_reading_date->diffInDays(now()) > 30,
+                    'rate' => (float) $rate,'needs_reading' => !$unit->last_reading_date || (\Carbon\Carbon::parse($unit->last_reading_date)->diffInDays(now()) > 30),
                     'status' => $unit->status,
                     'unit_type' => $unit->unit_type,
                 ];
