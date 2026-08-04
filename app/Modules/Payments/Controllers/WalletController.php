@@ -1025,37 +1025,49 @@ class WalletController extends Controller
     }
     
 
-    public function apiGetBalance()
+    public function apiGetBalance(Request $request)
     {
         try {
-            $walletOwner = $this->getWalletOwner();
-            $walletOwner->refresh(); // Force fresh data from database
+            $user = Auth::user();
             
-            // Clear any cached balance
-            cache()->forget('wallet_balance_' . $walletOwner->id);
+            // Check if tenant_id is provided (accountant viewing tenant's balance)
+            $tenantId = $request->get('tenant_id');
             
-            $balance = (float) $walletOwner->balance;
-            
-            // Get the actual wallet from the correct relationship
-            $wallet = $walletOwner->wallet;
-            
-            $walletNumber = null;
-            $maskedWalletNumber = null;
-            
-            if ($wallet && $wallet->getKey()) {
-                $walletId = $wallet->getKey();
-                $walletNumber = str_pad((string) $walletId, 16, '0', STR_PAD_LEFT);
-                $maskedWalletNumber = '•••• •••• •••• ' . substr($walletNumber, -4);
-            } else {
-                $walletNumber = str_pad((string) $walletOwner->id, 16, '0', STR_PAD_LEFT);
-                $maskedWalletNumber = '•••• •••• •••• ' . substr($walletNumber, -4);
+            if ($tenantId) {
+                // Check if user is authorized to view other tenant's balance
+                if (!$user->hasRole('accountant') && !$user->hasRole('admin') && !$user->hasRole('property_manager')) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Unauthorized'
+                    ], 403);
+                }
+                
+                $tenant = Tenant::find($tenantId);
+                if (!$tenant) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Tenant not found'
+                    ], 404);
+                }
+                
+                $balance = (float) $tenant->balance;
+                
+                return response()->json([
+                    'success' => true,
+                    'balance' => $balance,
+                    'formatted' => 'KES ' . number_format($balance, 2),
+                    'tenant_name' => $tenant->user?->name ?? 'Unknown',
+                ]);
             }
+            
+            // Original behavior - get current user's balance
+            $walletOwner = $this->getWalletOwner();
+            $walletOwner->refresh();
+            $balance = (float) $walletOwner->balance;
             
             return response()->json([
                 'success' => true,
                 'balance' => $balance,
-                'wallet_number' => $walletNumber,
-                'masked_wallet_number' => $maskedWalletNumber,
                 'formatted' => 'KES ' . number_format($balance, 2),
             ]);
         } catch (\Exception $e) {
@@ -1067,111 +1079,110 @@ class WalletController extends Controller
         }
     }
 
-    
-/**
- * Get transaction history (API)
- */
-public function apiGetTransactions(Request $request)
-{
-    try {
-        $walletOwner = $this->getWalletOwner();
-        
-        $perPage = $request->get('per_page', 15);
-        $includePending = $request->get('include_pending', true);
-        
-        $query = $walletOwner->transactions()
-            ->orderBy('created_at', 'desc');
-        
-        // Only exclude pending if explicitly requested
-        if (!$includePending) {
-            $query->where('confirmed', true);
-        }
-        
-        $transactions = $query->paginate($perPage);
-        
-        $formattedTransactions = $transactions->through(function($tx) {
-            // Determine status based on confirmed flag and meta
-            $status = 'Completed';
-            $requiresApproval = false;
+    /**
+     * Get transaction history (API)
+     */
+    public function apiGetTransactions(Request $request)
+    {
+        try {
+            $walletOwner = $this->getWalletOwner();
             
-            if (!$tx->confirmed) {
-                $meta = $tx->meta ?? [];
-                $status = $meta['status'] ?? 'Pending Approval';
-                $requiresApproval = true;
-                
-                // Check if it's a manual top-up
-                if (($meta['payment_method'] ?? '') === 'manual') {
-                    $status = 'Pending Approval (Manual Top-up)';
-                } elseif (($meta['payment_method'] ?? '') === 'message') {
-                    $status = 'Pending Approval (Transaction Message)';
-                }
+            $perPage = $request->get('per_page', 15);
+            $includePending = $request->get('include_pending', true);
+            
+            $query = $walletOwner->transactions()
+                ->orderBy('created_at', 'desc');
+            
+            // Only exclude pending if explicitly requested
+            if (!$includePending) {
+                $query->where('confirmed', true);
             }
             
-            return [
-                'id' => $tx->id,
-                'uuid' => $tx->uuid,
-                'type' => $tx->type,
-                'amount' => (float) $tx->amount,
-                'confirmed' => (bool) $tx->confirmed,
-                'created_at' => $tx->created_at,
-                'description' => $tx->description ?? $this->getTransactionDescription($tx),
-                'payment_method' => $tx->meta['payment_method'] ?? ($tx->type === 'deposit' ? 'Unknown' : 'Wallet'),
-                'reference' => $tx->meta['reference'] ?? substr($tx->uuid, 0, 8),
-                'phone_number' => $tx->meta['phone_number'] ?? null,
-                'bill_month' => $tx->meta['bill_month'] ?? null,
-                'status' => $status,
-                'requires_approval' => $requiresApproval,
-                'is_pending' => !$tx->confirmed,
-                'meta' => $tx->meta,
-                'notes' => $tx->meta['notes'] ?? null,
-                'initiated_by' => $tx->meta['initiated_by_name'] ?? null,
-            ];
-        });
-        
-        return response()->json([
-            'success' => true,
-            'data' => $formattedTransactions->items(),
-            'current_page' => $transactions->currentPage(),
-            'per_page' => $transactions->perPage(),
-            'total' => $transactions->total(),
-            'last_page' => $transactions->lastPage(),
-            'from' => $transactions->firstItem(),
-            'to' => $transactions->lastItem(),
-        ]);
-        
-    } catch (\Exception $e) {
-        Log::error('API Get Transactions failed: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'error' => 'Failed to fetch transactions'
-        ], 500);
+            $transactions = $query->paginate($perPage);
+            
+            $formattedTransactions = $transactions->through(function($tx) {
+                // Determine status based on confirmed flag and meta
+                $status = 'Completed';
+                $requiresApproval = false;
+                
+                if (!$tx->confirmed) {
+                    $meta = $tx->meta ?? [];
+                    $status = $meta['status'] ?? 'Pending Approval';
+                    $requiresApproval = true;
+                    
+                    // Check if it's a manual top-up
+                    if (($meta['payment_method'] ?? '') === 'manual') {
+                        $status = 'Pending Approval (Manual Top-up)';
+                    } elseif (($meta['payment_method'] ?? '') === 'message') {
+                        $status = 'Pending Approval (Transaction Message)';
+                    }
+                }
+                
+                return [
+                    'id' => $tx->id,
+                    'uuid' => $tx->uuid,
+                    'type' => $tx->type,
+                    'amount' => (float) $tx->amount,
+                    'confirmed' => (bool) $tx->confirmed,
+                    'created_at' => $tx->created_at,
+                    'description' => $tx->description ?? $this->getTransactionDescription($tx),
+                    'payment_method' => $tx->meta['payment_method'] ?? ($tx->type === 'deposit' ? 'Unknown' : 'Wallet'),
+                    'reference' => $tx->meta['reference'] ?? substr($tx->uuid, 0, 8),
+                    'phone_number' => $tx->meta['phone_number'] ?? null,
+                    'bill_month' => $tx->meta['bill_month'] ?? null,
+                    'status' => $status,
+                    'requires_approval' => $requiresApproval,
+                    'is_pending' => !$tx->confirmed,
+                    'meta' => $tx->meta,
+                    'notes' => $tx->meta['notes'] ?? null,
+                    'initiated_by' => $tx->meta['initiated_by_name'] ?? null,
+                ];
+            });
+            
+            return response()->json([
+                'success' => true,
+                'data' => $formattedTransactions->items(),
+                'current_page' => $transactions->currentPage(),
+                'per_page' => $transactions->perPage(),
+                'total' => $transactions->total(),
+                'last_page' => $transactions->lastPage(),
+                'from' => $transactions->firstItem(),
+                'to' => $transactions->lastItem(),
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('API Get Transactions failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch transactions'
+            ], 500);
+        }
     }
-}
 
-/**
- * Get transaction description from meta
- */
-private function getTransactionDescription($tx): string
-{
-    $meta = $tx->meta ?? [];
-    
-    if ($tx->type === 'deposit') {
-        if (($meta['payment_method'] ?? '') === 'manual') {
-            return 'Manual Top-up - ' . ($meta['notes'] ?? 'Pending Approval');
+    /**
+     * Get transaction description from meta
+     */
+    private function getTransactionDescription($tx): string
+    {
+        $meta = $tx->meta ?? [];
+        
+        if ($tx->type === 'deposit') {
+            if (($meta['payment_method'] ?? '') === 'manual') {
+                return 'Manual Top-up - ' . ($meta['notes'] ?? 'Pending Approval');
+            }
+            if (($meta['payment_method'] ?? '') === 'message') {
+                return 'Transaction Message - ' . ($meta['bill_month'] ?? '');
+            }
+            return 'Wallet Deposit';
         }
-        if (($meta['payment_method'] ?? '') === 'message') {
-            return 'Transaction Message - ' . ($meta['bill_month'] ?? '');
+        
+        if ($tx->type === 'withdraw') {
+            return 'Wallet Withdrawal';
         }
-        return 'Wallet Deposit';
+        
+        return $tx->description ?? 'Transaction';
     }
-    
-    if ($tx->type === 'withdraw') {
-        return 'Wallet Withdrawal';
-    }
-    
-    return $tx->description ?? 'Transaction';
-}
-    
+        
     /**
      * Get statement data (API)
      */

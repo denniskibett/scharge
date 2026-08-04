@@ -601,5 +601,44 @@ class User extends Authenticatable implements Wallet
         return $this->tenant->securityLogs();
     }
 
-    
+      public function getOrCreateWallet(?string $name = null, ?string $slug = null, ?string $description = null)
+    {
+        // Try to get existing wallet
+        $wallet = $this->wallet;
+        
+        if ($wallet) {
+            return $wallet;
+        }
+        
+        // Create a new wallet if none exists
+        return $this->createWallet([
+            'name' => $name ?? ($this->name . "'s Wallet"),
+            'slug' => $slug ?? ('wallet-' . $this->id . '-' . time()),
+            'description' => $description ?? ('Main wallet for ' . $this->name),
+        ]);
+    }
+
+    /**
+     * Check if user has a wallet
+     */
+    public function hasWallet(): bool
+    {
+        return $this->wallet !== null;
+    }
+
+    /**
+     * Get wallet balance (convenience method)
+     */
+    public function getWalletBalance(): float
+    {
+        return (float) $this->balance;
+    }
+
+    /**
+     * Get formatted wallet balance
+     */
+    public function getFormattedWalletBalance(): string
+    {
+        return 'KES ' . number_format($this->getWalletBalance(), 2);
+    }
 }

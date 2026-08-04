@@ -19,23 +19,88 @@ class WalletService
 {
     /**
      * Normalize tenant to use App\Models\Tenant
+     * Ensures we always work with the correct tenant model that has the HasWallet trait
      */
     protected function normalizeTenant($tenant)
     {
+        // If it's null, return null
+        if (!$tenant) {
+            return null;
+        }
+        
+        // If it's already App\Models\Tenant, return it
+        if ($tenant instanceof Tenant) {
+            return $tenant;
+        }
+        
         // If it's the module tenant, convert to App\Models\Tenant
         if ($tenant instanceof ModuleTenant) {
-            return Tenant::find($tenant->id);
+            $normalized = Tenant::find($tenant->id);
+            if ($normalized) {
+                return $normalized;
+            }
+            // If not found in App\Models\Tenant, try to create it
+            Log::warning('ModuleTenant not found in App\Models\Tenant', [
+                'tenant_id' => $tenant->id,
+                'tenant_name' => $tenant->name ?? 'Unknown'
+            ]);
+            return $tenant; // Return as is, might work if the model uses HasWallet
         }
+        
+        // If it's a User with a tenant relationship
+        if ($tenant instanceof User) {
+            $tenantRecord = $tenant->tenant;
+            if ($tenantRecord instanceof Tenant) {
+                return $tenantRecord;
+            }
+            // Try to find the tenant by user_id
+            $normalized = Tenant::where('user_id', $tenant->id)->first();
+            if ($normalized) {
+                return $normalized;
+            }
+        }
+        
+        // If it's an integer (tenant ID), try to find it
+        if (is_numeric($tenant)) {
+            $normalized = Tenant::find($tenant);
+            if ($normalized) {
+                return $normalized;
+            }
+        }
+        
+        // Return the original - might work if it's already a wallet owner
         return $tenant;
     }
 
     /**
-     * Get wallet balance for a user/tenant
+     * Get wallet balance for a user/tenant with proper normalization
      */
     public function getBalance($walletOwner): float
     {
         $walletOwner = $this->normalizeTenant($walletOwner);
-        return (float) $walletOwner->balance;
+        if (!$walletOwner) {
+            return 0.0;
+        }
+        
+        try {
+            // Force refresh to get latest balance
+            $walletOwner->refresh();
+            $balance = (float) $walletOwner->balance;
+            
+            Log::debug('Wallet balance retrieved', [
+                'owner_type' => get_class($walletOwner),
+                'owner_id' => $walletOwner->id,
+                'balance' => $balance,
+            ]);
+            
+            return $balance;
+        } catch (\Exception $e) {
+            Log::error('Failed to get wallet balance: ' . $e->getMessage(), [
+                'owner_type' => get_class($walletOwner),
+                'owner_id' => $walletOwner->id ?? null,
+            ]);
+            return 0.0;
+        }
     }
     
     /**
@@ -46,11 +111,21 @@ class WalletService
         try {
             $walletOwner = $this->normalizeTenant($walletOwner);
             
+            if (!$walletOwner) {
+                return [
+                    'success' => false,
+                    'error' => 'Invalid wallet owner'
+                ];
+            }
+            
             DB::beginTransaction();
+            
+            // Force refresh to get latest balance
+            $walletOwner->refresh();
             
             // Check if transaction with same reference already exists
             if (isset($meta['reference'])) {
-                $existingTransaction = Transaction::where('type', 'deposit')
+                $existingTransaction = \Bavix\Wallet\Models\Transaction::where('type', 'deposit')
                     ->where('meta->reference', $meta['reference'])
                     ->first();
                     
@@ -93,6 +168,8 @@ class WalletService
                 'meta' => $metaData,
             ]);
             
+            // Refresh to get new balance
+            $walletOwner->refresh();
             $balanceAfter = (float) $walletOwner->balance;
             
             DB::commit();
@@ -107,7 +184,9 @@ class WalletService
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Wallet deposit failed: ' . $e->getMessage());
+            Log::error('Wallet deposit failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return [
                 'success' => false,
@@ -124,8 +203,17 @@ class WalletService
         try {
             $walletOwner = $this->normalizeTenant($walletOwner);
             
+            if (!$walletOwner) {
+                return [
+                    'success' => false,
+                    'error' => 'Invalid wallet owner'
+                ];
+            }
+            
             DB::beginTransaction();
             
+            // Force refresh to get latest balance
+            $walletOwner->refresh();
             $balanceBefore = (float) $walletOwner->balance;
             
             $transaction = $walletOwner->withdraw($amount, [
@@ -134,6 +222,8 @@ class WalletService
                 'meta' => array_merge($meta, ['balance_before' => $balanceBefore]),
             ]);
             
+            // Refresh to get new balance
+            $walletOwner->refresh();
             $balanceAfter = (float) $walletOwner->balance;
             
             DB::commit();
@@ -148,13 +238,17 @@ class WalletService
             ];
         } catch (InsufficientFunds $e) {
             DB::rollBack();
+            $balance = $this->getBalance($walletOwner);
             return [
                 'success' => false,
-                'error' => 'Insufficient funds. Your balance is ' . $this->getBalance($walletOwner),
+                'error' => 'Insufficient funds. Your balance is KES ' . number_format($balance, 2),
+                'balance' => $balance,
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Wallet withdrawal failed: ' . $e->getMessage());
+            Log::error('Wallet withdrawal failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
             
             return [
                 'success' => false,
@@ -171,16 +265,35 @@ class WalletService
         try {
             $walletOwner = $this->normalizeTenant($walletOwner);
             
+            if (!$walletOwner) {
+                return [
+                    'success' => false,
+                    'error' => 'Invalid wallet owner'
+                ];
+            }
+            
             DB::beginTransaction();
+            
+            // Force refresh to get latest balance
+            $walletOwner->refresh();
+            $currentBalance = (float) $walletOwner->balance;
+            
+            Log::info('payInvoice called', [
+                'tenant_id' => $walletOwner->id,
+                'tenant_type' => get_class($walletOwner),
+                'invoice_id' => $invoice->id,
+                'amount' => $amount,
+                'current_balance' => $currentBalance,
+            ]);
             
             // 1. Validate the payment
             $remainingInvoiceAmount = $invoice->remaining_amount;
             if ($amount > $remainingInvoiceAmount) {
-                throw new \Exception("Payment amount exceeds remaining invoice amount");
+                throw new \Exception("Payment amount exceeds remaining invoice amount. Remaining: KES " . number_format($remainingInvoiceAmount, 2));
             }
             
-            if ($amount > $walletOwner->balance) {
-                throw new \Exception("Insufficient wallet balance. Available: KES " . number_format($walletOwner->balance, 2));
+            if ($amount > $currentBalance) {
+                throw new \Exception("Insufficient wallet balance. Available: KES " . number_format($currentBalance, 2) . ", Required: KES " . number_format($amount, 2));
             }
             
             // Get balance before withdrawal
@@ -196,7 +309,15 @@ class WalletService
                 ])
             ]);
             
+            // Refresh to get new balance
+            $walletOwner->refresh();
             $balanceAfter = (float) $walletOwner->balance;
+            
+            Log::info('Withdrawal successful', [
+                'transaction_id' => $withdrawalTransaction->id,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
+            ]);
             
             // 3. Distribute payment across invoice items and create payment records
             $allocations = $this->distributePaymentToItems(
@@ -212,6 +333,9 @@ class WalletService
             // 4. Update invoice totals and status
             $this->updateInvoiceAfterPayment($invoice);
             
+            // Refresh invoice to get latest data
+            $invoice->refresh();
+            
             DB::commit();
             
             return [
@@ -224,7 +348,7 @@ class WalletService
                 'transaction_uuid' => $withdrawalTransaction->uuid,
                 'invoice' => [
                     'id' => $invoice->id,
-                    'remaining_amount' => $invoice->refresh()->remaining_amount,
+                    'remaining_amount' => $invoice->remaining_amount,
                     'total_paid' => $invoice->total_paid,
                     'status' => $invoice->status,
                 ],
@@ -233,9 +357,11 @@ class WalletService
             
         } catch (InsufficientFunds $e) {
             DB::rollBack();
+            $balance = $this->getBalance($walletOwner);
             return [
                 'success' => false,
-                'error' => 'Insufficient wallet balance. Available: KES ' . number_format($walletOwner->balance, 2),
+                'error' => 'Insufficient wallet balance. Available: KES ' . number_format($balance, 2),
+                'balance' => $balance,
             ];
         } catch (\Exception $e) {
             DB::rollBack();
@@ -270,6 +396,10 @@ class WalletService
         $remainingAmount = $amount;
         $allocations = [];
         
+        // Get the authenticated user
+        $user = auth()->user();
+        $userId = $user ? $user->id : null;
+        
         foreach ($items as $item) {
             if ($remainingAmount <= 0) break;
             
@@ -281,7 +411,7 @@ class WalletService
             $allocatedAmount = min($remainingAmount, $itemRemaining);
             
             try {
-                // Create payment record for this item
+                // Create payment record for this item - use the recordWalletPayment method
                 $payment = Payment::recordWalletPayment(
                     tenant: $walletOwner,
                     invoice: $invoice,
@@ -290,7 +420,7 @@ class WalletService
                     balanceBefore: $balanceBefore,
                     balanceAfter: $balanceAfter,
                     transactionReference: $transactionUuid,
-                    user: $walletOwner->user ?? null,
+                    user: $user,
                     meta: array_merge($meta, [
                         'allocated_from_total_payment' => $amount,
                         'payment_distribution_date' => now()->toISOString(),
@@ -332,7 +462,7 @@ class WalletService
                 balanceBefore: $balanceBefore,
                 balanceAfter: $balanceAfter,
                 transactionReference: $transactionUuid,
-                user: $walletOwner->user ?? null,
+                user: $user,
                 meta: array_merge($meta, [
                     'type' => 'overpayment_credit',
                     'allocated_from_total_payment' => $amount,
@@ -404,6 +534,13 @@ class WalletService
             $from = $this->normalizeTenant($from);
             $to = $this->normalizeTenant($to);
             
+            if (!$from || !$to) {
+                return [
+                    'success' => false,
+                    'error' => 'Invalid wallet owner'
+                ];
+            }
+            
             DB::beginTransaction();
             
             $fromBalanceBefore = (float) $from->balance;
@@ -418,6 +555,8 @@ class WalletService
                 ])
             ]);
             
+            $from->refresh();
+            $to->refresh();
             $fromBalanceAfter = (float) $from->balance;
             $toBalanceAfter = (float) $to->balance;
             
@@ -456,6 +595,11 @@ class WalletService
     public function getTransactions($walletOwner, int $perPage = 20)
     {
         $walletOwner = $this->normalizeTenant($walletOwner);
+        
+        if (!$walletOwner) {
+            return collect();
+        }
+        
         return $walletOwner->transactions()
             ->orderBy('created_at', 'desc')
             ->paginate($perPage);
@@ -467,6 +611,11 @@ class WalletService
     public function getFilteredTransactions($walletOwner, array $filters = [], int $perPage = 20)
     {
         $walletOwner = $this->normalizeTenant($walletOwner);
+        
+        if (!$walletOwner) {
+            return collect();
+        }
+        
         $query = $walletOwner->transactions();
         
         if (isset($filters['from_date'])) {
@@ -486,10 +635,10 @@ class WalletService
 
     /**
      * Process a direct payment (deposit + pay invoice in one transaction)
-     * FIXED: Accept either tenant type and normalize
+     * FIXED: Properly normalizes tenant and checks balance correctly
      */
     public function processDirectPayment(
-        $tenant, // Changed from Tenant $tenant to accept either type
+        $tenant,
         Invoice $invoice,
         float $amount,
         string $paymentMethod,
@@ -497,170 +646,350 @@ class WalletService
         array $meta = []
     ): array {
         try {
-            // Normalize tenant to App\Models\Tenant
+            // FIRST: Normalize the tenant to ensure we're working with the correct model
             $tenant = $this->normalizeTenant($tenant);
             
             if (!$tenant) {
                 return [
                     'success' => false,
-                    'error' => 'Tenant not found'
+                    'error' => 'Invalid tenant provided'
                 ];
             }
             
+            Log::info('Processing direct payment - Tenant normalized', [
+                'tenant_id' => $tenant->id,
+                'tenant_type' => get_class($tenant),
+                'original_type' => get_class($this->normalizeTenant($tenant)),
+            ]);
+            
             DB::beginTransaction();
             
-            // 1. Validate the payment
-            $remainingInvoiceAmount = $invoice->remaining_amount;
+            // FORCE REFRESH: Get the latest balance from the database
+            $tenant->refresh();
+            $balanceBefore = (float) $tenant->balance;
             
-            // Calculate how much goes to invoice vs wallet
-            $amountToPayInvoice = min($amount, $remainingInvoiceAmount);
-            $amountToRemainInWallet = $amount - $amountToPayInvoice;
-            
-            \Log::info('Processing direct payment', [
-                'total_amount' => $amount,
-                'invoice_remaining' => $remainingInvoiceAmount,
-                'to_invoice' => $amountToPayInvoice,
-                'to_wallet' => $amountToRemainInWallet
+            Log::info('Direct payment - Current balance', [
+                'tenant_id' => $tenant->id,
+                'balance_before' => $balanceBefore,
+                'amount' => $amount,
+                'invoice_remaining' => $invoice->remaining_amount,
             ]);
             
-            // Get balances before any operations
-            $balanceBeforeDeposit = (float) $tenant->balance;
+            // Calculate how much goes to invoice and how much to wallet (excess)
+            $remainingAmount = $invoice->remaining_amount;
+            $amountToInvoice = min($amount, $remainingAmount);
+            $amountToWallet = $amount - $amountToInvoice;
             
-            // 2. DEPOSIT FULL amount to tenant's wallet
+            // Check if we have enough balance for the full amount
+            // We need the full amount because we're depositing first
+            if ($balanceBefore < $amount) {
+                DB::rollBack();
+                Log::warning('Direct payment - Insufficient balance', [
+                    'balance' => $balanceBefore,
+                    'amount' => $amount,
+                ]);
+                return [
+                    'success' => false,
+                    'error' => "Insufficient wallet balance. Available: KES " . number_format($balanceBefore, 2) . ", Required: KES " . number_format($amount, 2),
+                    'balance' => $balanceBefore,
+                ];
+            }
+            
+            // 1. Deposit the full amount first (this adds to wallet)
             $depositTransaction = $tenant->deposit($amount, [
-                'description' => 'Direct payment deposit of KES ' . number_format($amount, 2),
-                'invoice_id' => $invoice->id,
+                'description' => "Payment received for invoice #{$invoice->invoice_number}",
                 'meta' => array_merge($meta, [
-                    'type' => 'direct_payment_deposit',
                     'payment_method' => $paymentMethod,
                     'external_reference' => $externalReference,
-                    'is_direct_payment' => true,
-                    'total_amount' => $amount,
-                    'invoice_payment_amount' => $amountToPayInvoice,
-                    'wallet_credit_amount' => $amountToRemainInWallet,
+                    'invoice_id' => $invoice->id,
+                    'payment_type' => 'direct_payment',
+                    'amount_to_invoice' => $amountToInvoice,
+                    'amount_to_wallet' => $amountToWallet,
+                    'balance_before' => $balanceBefore,
                 ])
             ]);
             
+            Log::info('Direct payment - Deposit completed', [
+                'deposit_transaction_id' => $depositTransaction->id,
+                'deposit_amount' => $amount,
+            ]);
+            
+            // Refresh balance after deposit
+            $tenant->refresh();
             $balanceAfterDeposit = (float) $tenant->balance;
-            \Log::info('After deposit', ['balance' => $balanceAfterDeposit]);
             
-            // 3. WITHDRAW only the invoice amount (not the full amount)
-            $withdrawalTransaction = null;
-            $balanceAfterWithdrawal = $balanceAfterDeposit;
+            Log::info('Direct payment - Balance after deposit', [
+                'balance_after_deposit' => $balanceAfterDeposit,
+            ]);
             
-            if ($amountToPayInvoice > 0) {
-                $withdrawalTransaction = $tenant->withdraw($amountToPayInvoice, [
-                    'description' => 'Invoice payment - ' . ($invoice->invoice_number ?? 'INV-' . $invoice->id),
-                    'invoice_id' => $invoice->id,
-                    'meta' => array_merge($meta, [
-                        'type' => 'invoice_payment',
-                        'payment_method' => $paymentMethod,
-                        'external_reference' => $externalReference,
-                        'is_direct_payment' => true,
-                        'balance_before' => $balanceAfterDeposit,
-                        'amount_paid_to_invoice' => $amountToPayInvoice,
-                    ])
-                ]);
+            // 2. Pay the invoice from the wallet (withdraw the amount that goes to invoice)
+            $walletPayment = null;
+            if ($amountToInvoice > 0) {
+                // Use the payInvoiceFromWallet method which handles the withdrawal and distribution
+                $walletPayment = $this->payInvoiceFromWallet($tenant, $invoice, $amountToInvoice);
                 
-                $balanceAfterWithdrawal = (float) $tenant->balance;
-                \Log::info('After withdrawal', ['balance' => $balanceAfterWithdrawal]);
+                if (!$walletPayment['success']) {
+                    throw new \Exception('Failed to pay invoice: ' . ($walletPayment['error'] ?? 'Unknown error'));
+                }
+                
+                Log::info('Direct payment - Invoice paid from wallet', [
+                    'invoice_id' => $invoice->id,
+                    'amount_to_invoice' => $amountToInvoice,
+                    'transaction_id' => $walletPayment['transaction_id'] ?? null,
+                ]);
             }
             
-            // 4. Create Payment record (direct, completed)
-            $payment = Payment::recordDirectPayment(
-                tenant: $tenant,
-                invoice: $invoice,
-                amount: $amountToPayInvoice,
-                paymentMethod: $paymentMethod,
-                externalReference: $externalReference,
-                user: auth()->user(),
-                meta: array_merge($meta, [
-                    'total_deposited' => $amount,
-                    'amount_paid_to_invoice' => $amountToPayInvoice,
-                    'amount_added_to_wallet' => $amountToRemainInWallet,
-                    'deposit_transaction_id' => $depositTransaction->id,
-                    'deposit_transaction_uuid' => $depositTransaction->uuid,
-                    'withdrawal_transaction_id' => $withdrawalTransaction?->id,
-                    'withdrawal_transaction_uuid' => $withdrawalTransaction?->uuid,
-                    'balance_before_deposit' => $balanceBeforeDeposit,
-                    'balance_after_deposit' => $balanceAfterDeposit,
-                    'balance_after_withdrawal' => $balanceAfterWithdrawal,
-                    'has_excess_wallet_balance' => $amountToRemainInWallet > 0,
-                ])
-            );
+            // 3. Get the final balance
+            $tenant->refresh();
+            $balanceAfter = (float) $tenant->balance;
             
-            // 5. Distribute payment across invoice items (only if paying invoice)
-            $allocations = [];
-            if ($amountToPayInvoice > 0) {
-                $allocations = $this->distributePaymentToItemsDirect(
-                    $invoice,
-                    $amountToPayInvoice,
-                    $payment->id
-                );
-            }
+            // 4. Create the payment record with ONLY the fields that exist in the table
+            $payment = Payment::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => auth()->id(),
+                'invoice_id' => $invoice->id,
+                'invoice_item_id' => null,
+                'payment_method' => $paymentMethod,
+                'source' => $meta['source'] ?? Payment::SOURCE_ADMIN,
+                'amount' => $amount,
+                'wallet_balance_before' => $balanceBefore,
+                'wallet_balance_after' => $balanceAfter,
+                'transaction_reference' => $depositTransaction ? $depositTransaction->uuid : ($walletPayment['transaction_uuid'] ?? $externalReference),
+                'external_reference' => $externalReference,
+                'status' => Payment::STATUS_COMPLETED,
+                'is_reconciled' => true,
+                'reconciled_at' => now(),
+                'reconciled_by' => auth()->id(),
+                'meta' => array_merge($meta, [
+                    'notes' => $meta['notes'] ?? null,
+                    'payment_datetime' => $meta['payment_datetime'] ?? now()->toISOString(),
+                    'payment_month' => $meta['payment_month'] ?? now()->format('Y-m'),
+                    'source' => 'wallet_payment',
+                    'created_by' => auth()->id(),
+                    'created_by_name' => auth()->user()->name ?? 'System',
+                    'amount_to_invoice' => $amountToInvoice,
+                    'amount_to_wallet' => $amountToWallet,
+                    'deposit_transaction_id' => $depositTransaction ? $depositTransaction->id : null,
+                    'deposit_transaction_uuid' => $depositTransaction ? $depositTransaction->uuid : null,
+                    'wallet_transaction_id' => $walletPayment['transaction_id'] ?? null,
+                    'wallet_transaction_uuid' => $walletPayment['transaction_uuid'] ?? null,
+                    'payment_date' => now()->toISOString(),
+                    'invoice_remaining_before' => $remainingAmount,
+                    'invoice_remaining_after' => $invoice->refresh()->remaining_amount,
+                ]),
+            ]);
             
-            // 6. Update invoice totals and status (only if paying invoice)
-            if ($amountToPayInvoice > 0) {
-                $this->updateInvoiceAfterPayment($invoice);
-            }
+            // Refresh invoice to get latest status
+            $invoice->refresh();
             
             DB::commit();
             
-            // Build response message
-            $message = '';
-            if ($amountToPayInvoice > 0 && $amountToRemainInWallet > 0) {
-                $message = sprintf(
-                    'Payment processed! KES %s paid towards invoice #%s. KES %s added to wallet balance.',
-                    number_format($amountToPayInvoice, 2),
-                    $invoice->invoice_number ?? $invoice->id,
-                    number_format($amountToRemainInWallet, 2)
-                );
-            } elseif ($amountToPayInvoice > 0) {
-                $message = sprintf(
-                    'Invoice #%s paid! KES %s deducted.',
-                    $invoice->invoice_number ?? $invoice->id,
-                    number_format($amountToPayInvoice, 2)
-                );
-            } else {
-                $message = sprintf(
-                    'KES %s added to wallet balance.',
-                    number_format($amountToRemainInWallet, 2)
-                );
-            }
+            Log::info('Direct payment completed successfully', [
+                'payment_id' => $payment->id,
+                'amount' => $amount,
+                'amount_to_invoice' => $amountToInvoice,
+                'amount_to_wallet' => $amountToWallet,
+                'final_balance' => $balanceAfter,
+                'invoice_status' => $invoice->status,
+            ]);
             
             return [
                 'success' => true,
-                'message' => $message,
+                'message' => 'Payment processed successfully',
                 'payment_id' => $payment->id,
+                'wallet_balance' => $balanceAfter,
+                'amount_paid_to_invoice' => $amountToInvoice,
+                'amount_added_to_wallet' => $amountToWallet,
                 'payment' => $payment,
-                'deposit_transaction_id' => $depositTransaction->id,
-                'withdrawal_transaction_id' => $withdrawalTransaction?->id,
-                'invoice' => $amountToPayInvoice > 0 ? [
-                    'id' => $invoice->id,
-                    'remaining_amount' => $invoice->refresh()->remaining_amount,
-                    'total_paid' => $invoice->total_paid,
-                    'status' => $invoice->status,
-                ] : null,
-                'allocations' => $allocations,
-                'wallet_balance' => $balanceAfterWithdrawal,
-                'wallet_balance_before' => $balanceBeforeDeposit,
-                'amount_paid_to_invoice' => $amountToPayInvoice,
-                'amount_added_to_wallet' => $amountToRemainInWallet,
+                'invoice' => $invoice,
             ];
             
+        } catch (InsufficientFunds $e) {
+            DB::rollBack();
+            $balance = $this->getBalance($tenant);
+            return [
+                'success' => false,
+                'error' => "Insufficient wallet balance. Available: KES " . number_format($balance, 2),
+                'balance' => $balance,
+            ];
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Direct payment failed: ' . $e->getMessage(), [
-                'tenant_id' => $tenant->id ?? 'unknown',
-                'invoice_id' => $invoice->id,
-                'amount' => $amount,
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'tenant_id' => $tenant->id ?? null,
+                'invoice_id' => $invoice->id ?? null,
             ]);
             
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
             ];
+        }
+    }
+
+    /**
+     * Pay an invoice from the tenant's wallet balance
+     * FIXED: Properly normalizes tenant and checks balance
+     */
+    protected function payInvoiceFromWallet($tenant, Invoice $invoice, float $amount): array
+    {
+        try {
+            // Normalize tenant
+            $tenant = $this->normalizeTenant($tenant);
+            
+            if (!$tenant) {
+                return [
+                    'success' => false,
+                    'error' => 'Invalid tenant provided'
+                ];
+            }
+            
+            // Force refresh to get latest balance
+            $tenant->refresh();
+            $balanceBefore = (float) $tenant->balance;
+            
+            Log::debug('payInvoiceFromWallet called', [
+                'tenant_id' => $tenant->id,
+                'tenant_type' => get_class($tenant),
+                'balance_before' => $balanceBefore,
+                'amount' => $amount,
+                'invoice_id' => $invoice->id,
+            ]);
+            
+            // Check if sufficient balance
+            if ($balanceBefore < $amount) {
+                return [
+                    'success' => false,
+                    'error' => "Insufficient wallet balance. Available: KES " . number_format($balanceBefore, 2) . ", Required: KES " . number_format($amount, 2),
+                    'balance' => $balanceBefore,
+                ];
+            }
+            
+            // Withdraw from wallet (this is the payment)
+            $transaction = $tenant->withdraw($amount, [
+                'description' => "Payment for invoice #{$invoice->invoice_number}",
+                'meta' => [
+                    'invoice_id' => $invoice->id,
+                    'payment_type' => 'invoice_payment',
+                    'paid_by' => auth()->id(),
+                    'paid_by_name' => auth()->user()->name ?? 'System',
+                    'balance_before' => $balanceBefore,
+                ]
+            ]);
+            
+            // Refresh to get new balance
+            $tenant->refresh();
+            $balanceAfter = (float) $tenant->balance;
+            
+            Log::debug('Withdrawal completed in payInvoiceFromWallet', [
+                'transaction_id' => $transaction->id,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfter,
+            ]);
+            
+            // Update invoice payment status using the centralized method
+            $invoice->total_paid = (float) $invoice->payments()->sum('amount') + $amount;
+            
+            if ($invoice->total_paid >= $invoice->total_amount) {
+                $invoice->status = 'paid';
+            } elseif ($invoice->total_paid > 0) {
+                $invoice->status = 'partial';
+            }
+            $invoice->save();
+            
+            // Update invoice items paid amounts
+            $this->distributePaymentToInvoiceItems($invoice, $amount);
+            
+            // Refresh tenant balance again
+            $tenant->refresh();
+            $balanceAfterFinal = (float) $tenant->balance;
+            
+            // Create payment record for the wallet transaction
+            $payment = Payment::create([
+                'tenant_id' => $tenant->id,
+                'user_id' => auth()->id(),
+                'invoice_id' => $invoice->id,
+                'payment_method' => 'wallet',
+                'source' => Payment::SOURCE_WEB,
+                'amount' => $amount,
+                'wallet_balance_before' => $balanceBefore,
+                'wallet_balance_after' => $balanceAfterFinal,
+                'transaction_reference' => $transaction->uuid,
+                'status' => Payment::STATUS_COMPLETED,
+                'is_reconciled' => true,
+                'reconciled_at' => now(),
+                'reconciled_by' => auth()->id(),
+                'meta' => [
+                    'invoice_id' => $invoice->id,
+                    'payment_type' => 'wallet_payment',
+                    'bavix_transaction_id' => $transaction->id,
+                    'paid_by' => auth()->id(),
+                    'paid_by_name' => auth()->user()->name ?? 'System',
+                    'amount' => $amount,
+                ],
+            ]);
+            
+            return [
+                'success' => true,
+                'transaction_id' => $transaction->id,
+                'transaction_uuid' => $transaction->uuid,
+                'payment_id' => $payment->id,
+                'balance_before' => $balanceBefore,
+                'balance_after' => $balanceAfterFinal,
+            ];
+            
+        } catch (InsufficientFunds $e) {
+            Log::error('payInvoiceFromWallet - InsufficientFunds: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => 'Insufficient wallet balance. Available: KES ' . number_format($this->getBalance($tenant), 2),
+            ];
+        } catch (\Exception $e) {
+            Log::error('payInvoiceFromWallet failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'tenant_id' => $tenant->id ?? null,
+                'invoice_id' => $invoice->id ?? null,
+            ]);
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Distribute payment to invoice items
+     * FIXED: Use actual database columns instead of accessor
+     */
+    protected function distributePaymentToInvoiceItems(Invoice $invoice, float $amount): void
+    {
+        // Use the actual columns to filter items with remaining balance
+        // Instead of where('remaining_amount', '>', 0) which doesn't exist as a column
+        $items = $invoice->items()
+            ->whereRaw('amount > COALESCE(paid_amount, 0)')
+            ->get();
+        
+        if ($items->isEmpty()) {
+            return;
+        }
+        
+        $remainingToDistribute = $amount;
+        
+        foreach ($items as $item) {
+            if ($remainingToDistribute <= 0) {
+                break;
+            }
+            
+            // Calculate remaining using the accessor (works on the model instance)
+            $itemRemaining = $item->remaining_amount;
+            $amountForItem = min($remainingToDistribute, $itemRemaining);
+            
+            if ($amountForItem > 0) {
+                $item->paid_amount = ($item->paid_amount ?? 0) + $amountForItem;
+                $item->save();
+                
+                $remainingToDistribute -= $amountForItem;
+            }
         }
     }
 
@@ -700,5 +1029,57 @@ class WalletService
         }
         
         return $allocations;
+    }
+
+    /**
+     * Check if a tenant has a wallet
+     */
+    public function hasWallet($walletOwner): bool
+    {
+        $walletOwner = $this->normalizeTenant($walletOwner);
+        
+        if (!$walletOwner) {
+            return false;
+        }
+        
+        try {
+            $wallet = $walletOwner->wallet;
+            return $wallet !== null;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Get wallet details
+     */
+    public function getWalletDetails($walletOwner): ?array
+    {
+        $walletOwner = $this->normalizeTenant($walletOwner);
+        
+        if (!$walletOwner) {
+            return null;
+        }
+        
+        try {
+            $wallet = $walletOwner->wallet;
+            
+            if (!$wallet) {
+                return null;
+            }
+            
+            return [
+                'id' => $wallet->id,
+                'uuid' => $wallet->uuid,
+                'name' => $wallet->name,
+                'slug' => $wallet->slug,
+                'balance' => (float) $wallet->balance,
+                'formatted_balance' => 'KES ' . number_format($wallet->balance, 2),
+                'created_at' => $wallet->created_at,
+            ];
+        } catch (\Exception $e) {
+            Log::error('Failed to get wallet details: ' . $e->getMessage());
+            return null;
+        }
     }
 }

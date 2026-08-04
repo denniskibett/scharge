@@ -67,7 +67,7 @@
                         </div>
                     </div>
 
-                    <!-- Filter Form (reloads page) -->
+                    <!-- Filter Form -->
                     <form method="GET" action="{{ route('sms.campaigns.index') }}" class="row mb-3">
                         <div class="col-md-3">
                             <select name="status" class="form-control" onchange="this.form.submit()">
@@ -119,22 +119,31 @@
                                             <a href="{{ route('sms.campaigns.show', $campaign->id) }}" class="btn btn-sm btn-info" title="View Details">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+
+                                            <!-- Edit (added) -->
+                                            <a href="{{ route('sms.campaigns.edit', $campaign->id) }}" class="btn btn-sm btn-primary" title="Edit Campaign">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+
                                             <!-- Send (only for pending/failed) -->
                                             @if(in_array($campaign->status, ['pending', 'failed']))
                                             <button onclick="sendCampaign({{ $campaign->id }})" class="btn btn-sm btn-success" title="Send Campaign">
                                                 <i class="fas fa-paper-plane"></i>
                                             </button>
                                             @endif
+
                                             <!-- Duplicate -->
                                             <button onclick="duplicateCampaign({{ $campaign->id }})" class="btn btn-sm btn-warning" title="Duplicate">
                                                 <i class="fas fa-copy"></i>
                                             </button>
+
                                             <!-- Delete (only for pending/failed) -->
                                             @if(in_array($campaign->status, ['pending', 'failed']))
                                             <button onclick="deleteCampaign({{ $campaign->id }})" class="btn btn-sm btn-danger" title="Delete">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                             @endif
+
                                             <!-- Export -->
                                             <a href="{{ route('sms.campaigns.export', $campaign->id) }}" class="btn btn-sm btn-secondary" title="Export CSV">
                                                 <i class="fas fa-file-export"></i>
