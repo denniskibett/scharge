@@ -21,6 +21,9 @@ class Kernel extends ConsoleKernel
         \App\Console\Commands\CreateTenantWallets::class,
         \App\Console\Commands\CreateWalletsForActiveTenants::class,
         \App\Console\Commands\InitializeTenantWallets::class,
+        
+        // ✅ ADDED: SMS Cleanup Command
+        \App\Console\Commands\CleanupStuckSmsRecipients::class,
     ];
 
     /**
@@ -58,6 +61,9 @@ class Kernel extends ConsoleKernel
         
         // Clean up old wallet transactions (keep last 2 years)
         $schedule->command('wallet:cleanup-transactions --years=2')->weekly()->sundays()->at('04:00');
+
+        // ✅ ADDED: SMS Cleanup - Mark stuck pending messages as failed every 5 minutes
+        $schedule->command('sms:cleanup-stuck')->everyFiveMinutes()->name('sms-cleanup');
     }
 
     /**

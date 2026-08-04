@@ -32,11 +32,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Email Verification Routes
-// Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
-// Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-// Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
-
 // ============================================
 // AUTHENTICATION ROUTES
 // ============================================
@@ -51,9 +46,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 // ============================================
 Route::middleware(['auth'])->group(function () {
 
-// ============================================
     // DASHBOARD
-    // ============================================
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware(['verified'])
         ->name('dashboard');
@@ -62,10 +55,7 @@ Route::middleware(['auth'])->group(function () {
         return view('mtickets');
     })->name('mtickets');
 
-
-    // ============================================
     // PROFILE ROUTES
-    // ============================================
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
@@ -76,9 +66,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/data', [ProfileController::class, 'getUserData'])->name('data');
     });
 
-    // ============================================
     // STATIC / DEMO PAGES
-    // ============================================
     Route::get('/index', function () { return view('index'); })->name('index');
     Route::get('/invoice', function () { return view('invoice'); })->name('invoice');
     Route::get('/404', function () { return view('404'); })->name('404');
@@ -100,9 +88,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bar-chart', function () { return view('bar-chart'); })->name('bar-chart');
     Route::get('/dash', function () { return view('dash'); })->name('dash');
 
-    // ============================================
     // SYSTEM ROUTES
-    // ============================================
     Route::prefix('system')->name('system.')->group(function () {
         Route::get('/', [SystemController::class, 'index'])->name('index');
         Route::put('/update', [SystemController::class, 'update'])->name('update');
@@ -112,9 +98,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/debug', [SystemController::class, 'debug'])->name('debug');
     });
 
-    // ============================================
     // ADMIN USER MANAGEMENT ROUTES
-    // ============================================
     Route::prefix('admin/users')->name('admin.users.')->group(function () {
         Route::resource('users', App\Http\Controllers\Admin\UserController::class)
             ->parameters(['users' => 'user']);
@@ -125,29 +109,21 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{user}/activate', [App\Http\Controllers\Admin\UserController::class, 'activate'])->name('activate');
     });
 
-    // ============================================
     // ADMIN ROLES ROUTES
-    // ============================================
     Route::prefix('admin/roles')->name('admin.roles.')->group(function () {
         Route::get('/list', [App\Http\Controllers\Admin\UserController::class, 'getRoles'])->name('list');
     });
 
-    // ============================================
     // API USERS ROUTES
-    // ============================================
     Route::prefix('api/users')->name('api.users.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'getUsers'])->name('index');
         Route::get('/staff', [App\Http\Controllers\Admin\UserController::class, 'getStaffUsers'])->name('staff');
     });
 
-    // ============================================
     // ESTATE ROUTES
-    // ============================================
     Route::resource('estates', EstateController::class);
 
-    // ============================================
     // UNIT ROUTES
-    // ============================================
     Route::resource('units', UnitController::class);
     Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
     Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
@@ -155,24 +131,18 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
     Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
 
-    // ============================================
     // EXPENSE ROUTES
-    // ============================================
     Route::resource('expenses', ExpenseController::class);
     Route::resource('expense-categories', ExpenseCategoryController::class);
     Route::resource('payees', PayeeController::class);
 
-    // ============================================
     // TENANT ROUTES
-    // ============================================
     Route::resource('tenants', TenantController::class);
     Route::post('/tenants/bulk-store', [TenantController::class, 'bulkStore'])->name('tenants.bulkStore');
     Route::post('/tenants/{tenant}/invoices', [TenantController::class, 'storeInvoice'])->name('tenants.store.invoice');
     Route::post('/tenants/{tenant}/payments', [TenantController::class, 'storePayment'])->name('tenants.store.payment');
 
-    // ============================================
     // TENANCY ROUTES
-    // ============================================
     Route::resource('tenancies', TenancyController::class);
     Route::get('/tenancies/{tenancy}/invoice-data', [InvoiceController::class, 'getInvoiceData'])->name('tenancies.invoice-data');
     Route::get('/tenancies/{tenancy}/check-invoice-status', [InvoiceController::class, 'checkInvoiceGenerationStatus'])->name('tenancies.check-invoice-status');
@@ -182,55 +152,38 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tenancies/{tenancy}/invoices/bulk-missing', [InvoiceController::class, 'generateMissingInvoicesBulk'])->name('tenancies.invoices.bulk-missing');
     Route::post('/tenancies/{tenancy}/payments', [PaymentController::class, 'store'])->name('tenancies.payments.store');
 
-    // ============================================
     // INVOICE ROUTES
-    // ============================================
     Route::resource('invoices', InvoiceController::class);
-
-    // Invoice generation routes
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');
     Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllInvoices'])->name('invoices.generate.all');
-
-    // Invoice payment routes
     Route::post('/invoices/payments', [InvoiceController::class, 'processPayment'])->name('invoices.payments.store');
-
-    // Bulk invoice operations
     Route::post('/invoices/bulk-create', [InvoiceController::class, 'bulkCreate'])->name('invoices.bulk.create');
     Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing');
     Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates');
     Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
-
-    // Invoice data routes
     Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data');
     Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
 
-    // Invoice item routes - MAIN (using the prefix group)
     Route::prefix('invoices/{invoice}')->group(function () {
-        // CRUD operations for invoice items
         Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
         Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
         Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
     });
 
-    // Tenancy-specific invoice routes
     Route::prefix('tenancies/{tenancy}')->name('tenancies.')->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('invoices.store');
         Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('invoices.index');
         Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('invoices.check');
     });
 
-    // ============================================
     // PAYMENT ROUTES
-    // ============================================
     Route::resource('payments', PaymentController::class);
     Route::post('/payments/bulk', [PaymentController::class, 'bulkStore'])->name('payments.bulk.store');
     Route::get('/payments/create-data', [PaymentController::class, 'getCreateData'])->name('payments.create-data');
     Route::get('/payments/tenant/{tenantId}/invoices', [PaymentController::class, 'getTenantInvoices'])->name('payments.tenant.invoices');
     Route::get('/api/invoices/{invoice}/details', [PaymentController::class, 'getInvoiceDetails'])->name('api.invoices.details');
 
-    // ============================================
     // WATER READING ROUTES
-    // ============================================
     Route::prefix('water')->name('water.')->group(function () {
         Route::get('/', [WaterReadingController::class, 'index'])->name('index');
         Route::post('/readings', [WaterReadingController::class, 'store'])->name('readings.store');
@@ -251,54 +204,40 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
 
-    // Meter Reader specific routes
     Route::middleware(['role:super_admin,admin,property_manager,meter_reader'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
         Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
     });
 
-    // ============================================
     // CLEANING ROUTES
-    // ============================================
     Route::middleware(['role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
         Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
         Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
         Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
     });
 
-    // ============================================
     // MAINTENANCE ROUTES
-    // ============================================
     Route::resource('maintenance', MaintenanceController::class);
     Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])->name('maintenance.unit.history');
     Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
     Route::get('/tenant/maintenance', [MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
     Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data');
 
-    // Maintenance Staff routes
     Route::middleware(['role:super_admin,admin,property_manager,maintenance'])->group(function () {
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
 
-    // ============================================
     // STAFF ROUTES
-    // ============================================
     Route::resource('staff', StaffController::class);
 
-    // ============================================
     // REPORT ROUTES
-    // ============================================
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/financial', [ReportController::class, 'financial'])->name('financial');
         Route::get('/invoices', [ReportController::class, 'invoices'])->name('invoices');
         Route::get('/payments', [ReportController::class, 'payments'])->name('payments');
     });
 
-    // ============================================
-    // WALLET MODULE ROUTES - COMPLETE
-    // ============================================
-    
-    // ===== TENANT / CUSTOMER WALLET ROUTES =====
+    // WALLET MODULE ROUTES
     Route::prefix('wallet')->name('wallet.')->group(function () {
         Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'getBalance'])->name('balance');
@@ -322,8 +261,7 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/cards/{card}/default', [App\Modules\Payments\Controllers\WalletController::class, 'setDefaultCard'])->name('cards.default');
         Route::post('/notifications/read', [App\Modules\Payments\Controllers\WalletController::class, 'markNotificationsRead'])->name('notifications.read');
     });
-    
-    // ===== API WALLET ROUTES (AJAX) =====
+
     Route::prefix('api/wallet')->name('api.wallet.')->group(function () {
         Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetBalance'])->name('balance');
         Route::get('/tenant-details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTenantDetails'])->name('tenant-details');
@@ -340,8 +278,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/invoice/{invoice}/details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetInvoiceDetails'])->name('invoice.details');
         Route::post('/verify-pin', [App\Modules\Payments\Controllers\WalletController::class, 'verifyPin'])->name('verify-pin');
     });
-    
-    // ===== ADMIN WALLET MANAGEMENT ROUTES =====
+
     Route::prefix('admin/wallets')->name('admin.wallets.')->group(function () {
         Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         Route::get('/report', [App\Modules\Payments\Controllers\WalletController::class, 'report'])->name('report');
@@ -353,7 +290,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{user}/unfreeze', [App\Modules\Payments\Controllers\WalletController::class, 'unfreeze'])->name('unfreeze');
     });
 
-    // ===== TENANT WALLET WEB ROUTES (form submissions) =====
     Route::prefix('wallet')->name('tenant.wallet.')->group(function () {
         Route::post('/deposit', [App\Modules\Payments\Controllers\WalletController::class, 'deposit'])->name('deposit');
         Route::post('/withdraw', [App\Modules\Payments\Controllers\WalletController::class, 'withdraw'])->name('withdraw');
@@ -362,9 +298,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/transactions/export', [App\Modules\Payments\Controllers\WalletController::class, 'exportTransactions'])->name('transactions.export');
     });
 
-    // ============================================
-    // SUBSCRIPTION MODULE ROUTES - Admin Section
-    // ============================================
+    // SUBSCRIPTION MODULE ROUTES
     Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->group(function () {
         Route::resource('plans', SubscriptionController::class)
             ->parameters(['plans' => 'plan'])
@@ -393,16 +327,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/subscription/{subscription}/resume', [SubscriptionController::class, 'resumeSubscription'])->name('subscription.resume');
         
         Route::prefix('api')->name('api.')->group(function () {
-            Route::get('/plans/data', [SubscriptionController::class, 'getPlansData'])->name('plans.data');
-            Route::get('/plans/{plan}', [SubscriptionController::class, 'getPlan'])->name('plans.show');
-            Route::get('/plans/{plan}/subscribers', [SubscriptionController::class, 'getSubscribers'])->name('plans.subscribers');
-            Route::get('/company-subscriptions', [SubscriptionController::class, 'getCompanySubscriptions'])->name('company-subscriptions');
+            Route::get('/plans/data', [SubscriptionController::class, 'getPlansData'])->name('api.plans.data');
+            Route::get('/plans/{plan}', [SubscriptionController::class, 'getPlan'])->name('api.plans.show');
+            Route::get('/plans/{plan}/subscribers', [SubscriptionController::class, 'getSubscribers'])->name('api.plans.subscribers');
+            Route::get('/company-subscriptions', [SubscriptionController::class, 'getCompanySubscriptions'])->name('api.company-subscriptions');
         });
     });
 
-    // ============================================
-    // COMPANY MANAGEMENT ROUTES - Admin Section
-    // ============================================
+    // COMPANY MANAGEMENT ROUTES
     Route::prefix('admin/companies')->name('admin.companies.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
         Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
@@ -423,9 +355,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
     });
 
-    // ============================================
-    // ACCOUNT MANAGER MANAGEMENT ROUTES - Admin Section
-    // ============================================
+    // ACCOUNT MANAGER MANAGEMENT ROUTES
     Route::prefix('admin/account-managers')->name('admin.account-managers.')->group(function () {
         Route::get('/', [AccountManagerController::class, 'index'])->name('index');
         Route::get('/create', [AccountManagerController::class, 'create'])->name('create');
@@ -436,16 +366,12 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}', [AccountManagerController::class, 'destroy'])->name('destroy');
     });
 
-    // ============================================
     // TENANT SPECIFIC ROUTES
-    // ============================================
     Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
     Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
     Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
 
-    // ============================================
-    // 📱 M-PESA STK PUSH PAYMENT ROUTES
-    // ============================================
+    // M-PESA STK PUSH PAYMENT ROUTES
     Route::prefix('payments/mpesa')->name('payments.mpesa.')->group(function () {
         Route::post('/stk-push', [PaymentController::class, 'initiateMpesaStkPush'])->name('stk-push');
         Route::get('/status', [PaymentController::class, 'checkMpesaStatus'])->name('status');
@@ -453,22 +379,40 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/pay', [MpesaController::class, 'stkPush'])->name('process');
     });
 
+    // ============================================
+    // ✅ FIXED: MODULE ROUTES (MOVED INSIDE AUTH)
+    // ============================================
+
+    // SMS Module Routes
+    require base_path('app/Modules/SMS/routes.php');
+
+    // Security Module Routes
+    require base_path('app/Modules/Security/routes.php');
+
+    // Users Module Routes
+    Route::prefix('users')->group(function () {
+        require base_path('app/Modules/Users/routes.php');
+    });
+
 });
+// ⬅️ END OF AUTH GROUP
 
 // ============================================
-// MODULE ROUTES
+// PUBLIC / API FALLBACK ROUTES (OUTSIDE AUTH)
 // ============================================
 
-// SMS Module Routes
-require base_path('app/Modules/SMS/routes.php');
+Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
 
-// Security Module Routes
-require base_path('app/Modules/Security/routes.php');
+Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
+    Route::get('/accountant/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTransactionsForAccountant'])->name('api.wallet.accountant.transactions');
+    Route::get('/pending-deposits', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetPendingDeposits'])->name('api.wallet.pending-deposits');
+    Route::post('/approve-deposit/{transactionId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiApproveDeposit'])->name('api.wallet.approve-deposit');
+    Route::post('/reject-deposit/{transactionId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiRejectDeposit'])->name('api.wallet.reject-deposit');
+});
 
 // ============================================
 // 📱 TEST SMS ROUTES (Temporary - Remove after testing)
 // ============================================
-
 Route::get('/test-sms-config', function () {
     return response()->json([
         'sms_config' => config('sms.kenyasms'),
@@ -491,7 +435,6 @@ Route::prefix('test-sms')->group(function () {
 // ============================================
 // 🔍 DEBUG ROUTES (Temporary - Remove after testing)
 // ============================================
-
 Route::get('/debug-mpesa', function () {
     try {
         $mpesa = new \App\Services\MpesaService();
@@ -512,20 +455,5 @@ Route::get('/debug-mpesa', function () {
     }
 });
 
-// Users Module Routes
-Route::prefix('users')->group(function () {
-    require base_path('app/Modules/Users/routes.php');
-});
-
-// ============================================
-// API FALLBACK ROUTES (outside auth middleware)
-// ============================================
-Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
-
-// Accountant transaction endpoints
-Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
-    Route::get('/accountant/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTransactionsForAccountant'])->name('api.wallet.accountant.transactions');
-    Route::get('/pending-deposits', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetPendingDeposits'])->name('api.wallet.pending-deposits');
-    Route::post('/approve-deposit/{transactionId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiApproveDeposit'])->name('api.wallet.approve-deposit');
-    Route::post('/reject-deposit/{transactionId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiRejectDeposit'])->name('api.wallet.reject-deposit');
-});
+// TEMPORARY TEST: Minimal route
+require base_path('routes/sms-test.php');
