@@ -54,7 +54,6 @@ class NetworkPrefix extends Model
     {
         return self::where('prefix', $prefix)
             ->where('network', 'Safaricom')
-            ->where('status', 'active')
             ->exists();
     }
 
