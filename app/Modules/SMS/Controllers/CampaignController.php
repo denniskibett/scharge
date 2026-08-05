@@ -8,10 +8,9 @@ use App\Models\SmsTemplate;
 use App\Models\Estate;
 use App\Models\Company;
 use App\Models\Tenant;
-use App\Models\Tenancy;
-use App\Models\Unit;
-use App\Services\CampaignService;
-use App\Services\SmsStatusService;
+use App\Models\CampaignRecipient;
+use App\Modules\SMS\Services\CampaignService;
+use App\Modules\SMS\Services\SmsStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
@@ -26,14 +25,29 @@ class CampaignController extends Controller
         $this->campaignService = $campaignService;
     }
 
-    /**
-     * Display a listing of campaigns (API endpoint - returns JSON)
-     */
+    // ============================================================
+    // INDEX – HTML view (no AJAX)
+    // ============================================================
     public function index(Request $request)
     {
+        $query = SmsCampaign::with(['template', 'creator'])
+            ->orderBy('created_at', 'desc');
+        
+        if ($request->has('status') && $request->status !== 'all' && $request->status !== '') {
+            $query->where('status', $request->status);
+        }
+        
+        $campaigns = $query->paginate(20);
+        
+        return view('sms.campaigns.index', compact('campaigns'));
+    }
+
+    // ============================================================
+    // API INDEX – returns JSON (used by broadcast tab)
+    // ============================================================
+    public function apiIndex(Request $request)
+    {
         try {
-            Log::info('Campaigns API called', ['filters' => $request->all()]);
-            
             $query = SmsCampaign::with(['template', 'creator'])
                 ->orderBy('created_at', 'desc');
             
@@ -45,13 +59,11 @@ class CampaignController extends Controller
             $stats = $this->calculateStats($campaigns);
             
             return response()->json([
+                'success' => true,
                 'campaigns' => $campaigns,
                 'stats' => $stats
             ]);
-            
         } catch (\Exception $e) {
-            Log::error('Failed to fetch campaigns: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch campaigns: ' . $e->getMessage()
@@ -59,9 +71,9 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Calculate campaign statistics
-     */
+    // ============================================================
+    // STATS HELPER
+    // ============================================================
     private function calculateStats($campaigns)
     {
         $stats = [
@@ -72,9 +84,9 @@ class CampaignController extends Controller
         ];
 
         foreach ($campaigns as $campaign) {
-            if ($campaign->status === 'completed' || $campaign->status === 'sent') {
+            if ($campaign->status === 'completed') {
                 $stats['sent']++;
-            } else if ($campaign->status === 'pending' || $campaign->status === 'scheduled' || $campaign->status === 'sending') {
+            } else if ($campaign->status === 'pending' || $campaign->status === 'sending') {
                 $stats['pending']++;
             } else if ($campaign->status === 'failed') {
                 $stats['failed']++;
@@ -84,9 +96,9 @@ class CampaignController extends Controller
         return $stats;
     }
 
-    /**
-     * Show the form for creating a new campaign (Web view)
-     */
+    // ============================================================
+    // CREATE – Web view
+    // ============================================================
     public function create()
     {
         $templates = SmsTemplate::all();
@@ -96,10 +108,9 @@ class CampaignController extends Controller
         return view('sms.campaigns.create', compact('templates', 'estates', 'companies'));
     }
 
-    /**
-     * Store a newly created campaign (API endpoint)
-     * Auto-creates recipients for the campaign with phone validation
-     */
+    // ============================================================
+    // STORE – API
+    // ============================================================
     public function store(Request $request)
     {
         try {
@@ -128,7 +139,6 @@ class CampaignController extends Controller
 
             $template = SmsTemplate::find($request->template_id);
             
-            // Get validated recipients
             $recipientsResult = $this->campaignService->getRecipientsWithValidation($request->filters ?? []);
             
             $campaignData = [
@@ -136,7 +146,7 @@ class CampaignController extends Controller
                 'description' => $request->description,
                 'template_id' => $request->template_id,
                 'filters' => $request->filters ?? [],
-                'status' => $request->scheduled_at ? 'scheduled' : 'draft',
+                'status' => 'pending',
                 'scheduled_at' => $request->scheduled_at,
                 'created_by' => auth()->id(),
                 'campaign_type' => $request->campaign_type ?? 'general',
@@ -148,7 +158,6 @@ class CampaignController extends Controller
                 'other_network' => count($recipientsResult['other_network'])
             ]);
 
-            // Create campaign (this will auto-create recipients for valid numbers only)
             $campaign = $this->campaignService->createCampaign($campaignData);
 
             return response()->json([
@@ -176,9 +185,9 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Preview recipients for a campaign (API endpoint)
-     */
+    // ============================================================
+    // PREVIEW – API
+    // ============================================================
     public function preview(Request $request)
     {
         try {
@@ -199,20 +208,16 @@ class CampaignController extends Controller
                 )
                 ->where('tenancies.status', 'active');
             
-            // Filter by estate
             if (!empty($request->filters['estate_id'])) {
                 $query->where('units.estate_id', $request->filters['estate_id']);
             }
             
-            // Filter by company
             if (!empty($request->filters['company_id'])) {
                 $query->where('units.company_id', $request->filters['company_id']);
             }
             
-            // Filter by invoice status
             if (!empty($request->filters['invoice_status'])) {
                 $status = $request->filters['invoice_status'];
-                
                 $query->whereHas('tenancies.invoices', function($q) use ($status) {
                     if ($status === 'unpaid' || $status === 'overdue') {
                         $q->whereIn('status', ['unpaid', 'draft']);
@@ -224,7 +229,6 @@ class CampaignController extends Controller
                 });
             }
             
-            // Only get tenants with phone numbers
             $query->whereNotNull('users.phone')
                   ->where('users.phone', '!=', '')
                   ->where('users.phone', '!=', 'null');
@@ -245,7 +249,6 @@ class CampaignController extends Controller
             $tenantData = [];
             
             foreach ($tenants as $tenant) {
-                // Get phone
                 $phone = preg_replace('/[^0-9]/', '', $tenant->phone ?? '');
                 $isValid = preg_match('/^(07|01|2547|2541)\d{8}$/', $phone) && strlen($phone) >= 10;
                 
@@ -255,14 +258,9 @@ class CampaignController extends Controller
                     $invalid++;
                 }
                 
-                // Get tenancy
                 $tenancy = $tenant->tenancies->first();
                 $unit = $tenancy ? $tenancy->unit : null;
-                
-                // Get water reading
                 $reading = $unit ? $unit->waterReadings->first() : null;
-                
-                // Get latest invoice
                 $invoice = $tenancy ? $tenancy->invoices->first() : null;
                 
                 $tenantData[] = [
@@ -294,7 +292,6 @@ class CampaignController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Preview failed: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Preview failed: ' . $e->getMessage()
@@ -302,9 +299,9 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Display the specified campaign (Web view)
-     */
+    // ============================================================
+    // SHOW – Web view
+    // ============================================================
     public function show($id)
     {
         $campaign = SmsCampaign::with(['recipients.tenant', 'template', 'creator'])
@@ -312,103 +309,120 @@ class CampaignController extends Controller
         return view('sms.campaigns.show', compact('campaign'));
     }
 
-    /**
-     * Get campaign details with recipient statuses (API endpoint)
-     * UPDATED: Now includes message_id, provider_status, provider_response
-     */
-    public function getDetails($id)
-    {
-        try {
-            $campaign = SmsCampaign::with([
-                'template', 
-                'creator',
-                'recipients' => function($q) {
-                    $q->with(['tenant' => function($q2) {
-                        $q2->with([
-                            'user',
-                            'tenancies' => function($q3) {
-                                $q3->where('status', 'active')->with([
-                                    'unit' => function($q4) {
-                                        $q4->with('estate');
-                                    }
-                                ]);
-                            }
-                        ]);
-                    }]);
-                }
-            ])->findOrFail($id);
+    // ============================================================
+// GET DETAILS – API (for AJAX)
+// ============================================================
+public function getDetails($id)
+{
+    try {
+        $campaign = SmsCampaign::with([
+            'template', 
+            'creator',
+            'recipients' => function($q) {
+                $q->with(['tenant' => function($q2) {
+                    $q2->with([
+                        'user',
+                        'tenancies' => function($q3) {
+                            $q3->where('status', 'active')->with([
+                                'unit' => function($q4) {
+                                    $q4->with('estate');
+                                }
+                            ]);
+                        }
+                    ]);
+                }]);
+            }
+        ])->findOrFail($id);
+        
+        // Status counts
+        $statusCounts = [
+            'sent' => $campaign->recipients->where('status', 'sent')->count(),
+            'pending' => $campaign->recipients->where('status', 'pending')->count(),
+            'failed' => $campaign->recipients->where('status', 'failed')->count(),
+            'delivered' => $campaign->delivered_count ?? 0,
+        ];
+        
+        // Build recipient data, parsing provider_response
+        $recipients = $campaign->recipients->map(function($recipient) {
+            $tenant = $recipient->tenant;
+            $user = $tenant ? $tenant->user : null;
+            $tenancy = $tenant ? $tenant->tenancies->first() : null;
+            $unit = $tenancy ? $tenancy->unit : null;
+            $estate = $unit ? $unit->estate : null;
             
-            // Get recipient status counts
-            $statusCounts = [
-                'sent' => $campaign->recipients->where('status', 'sent')->count(),
-                'pending' => $campaign->recipients->where('status', 'pending')->count(),
-                'failed' => $campaign->recipients->where('status', 'failed')->count(),
-                'queued' => $campaign->recipients->where('status', 'queued')->count(),
-                'delivered' => $campaign->recipients->where('status', 'delivered')->count(),
-            ];
+            // Decode provider_response JSON
+            $providerData = json_decode($recipient->provider_response, true) ?? [];
             
-            // Format recipients with ALL columns
-            $recipients = $campaign->recipients->map(function($recipient) {
-                $tenant = $recipient->tenant;
-                $user = $tenant ? $tenant->user : null;
-                $tenancy = $tenant ? $tenant->tenancies->first() : null;
-                $unit = $tenancy ? $tenancy->unit : null;
-                $estate = $unit ? $unit->estate : null;
+            // Format cost
+            $costDisplay = null;
+            if (isset($providerData['cost_kes'])) {
+                $costDisplay = number_format($providerData['cost_kes'], 2) . ' KES';
+            } elseif (isset($providerData['cost'])) {
+                $costDisplay = $providerData['cost'] . ' SMS';
+            }
+            
+            return [
+                'id' => $recipient->id,
+                'tenant_id' => $recipient->tenant_id,
+                'tenant_name' => $user ? $user->name : ($tenant->name ?? 'Unknown'),
+                'tenant_phone' => $user ? $user->phone : '',
+                'unit_number' => $unit ? $unit->unit_number : 'N/A',
+                'estate_name' => $estate ? $estate->name : 'N/A',
+                'phone_number' => $recipient->phone_number,
+                'message' => $recipient->message,
+                'status' => $recipient->status,
+                'sent_at' => $recipient->sent_at,
+                'error_message' => $recipient->error_message,
+                'message_id' => $recipient->message_id,
+                'provider_status' => $recipient->provider_status,
+                'provider_response' => $recipient->provider_response,
+                'updated_at' => $recipient->updated_at,
                 
-                return [
-                    'id' => $recipient->id,
-                    'tenant_id' => $recipient->tenant_id,
-                    'tenant_name' => $user ? $user->name : ($tenant->name ?? 'Unknown'),
-                    'tenant_phone' => $user ? $user->phone : '',
-                    'unit_number' => $unit ? $unit->unit_number : 'N/A',
-                    'estate_name' => $estate ? $estate->name : 'N/A',
-                    'phone_number' => $recipient->phone_number,
-                    'message' => $recipient->message,
-                    'status' => $recipient->status,
-                    'sent_at' => $recipient->sent_at,
-                    'error_message' => $recipient->error_message,
-                    'message_id' => $recipient->message_id,
-                    'provider_status' => $recipient->provider_status,
-                    'provider_response' => $recipient->provider_response,
-                    'updated_at' => $recipient->updated_at
-                ];
-            });
-            
-            return response()->json([
-                'id' => $campaign->id,
-                'name' => $campaign->name,
-                'description' => $campaign->description,
-                'status' => $campaign->status,
-                'total_recipients' => $campaign->total_recipients,
-                'sent_count' => $campaign->sent_count,
-                'failed_count' => $campaign->failed_count,
-                'status_counts' => $statusCounts,
-                'recipients' => $recipients,
-                'template' => $campaign->template,
-                'creator' => $campaign->creator,
-                'created_at' => $campaign->created_at,
-                'scheduled_at' => $campaign->scheduled_at
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Campaign details failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Campaign not found: ' . $e->getMessage()
-            ], 404);
-        }
+                // Delivery report fields – corrected mapping
+                'network' => $providerData['network'] ?? null,
+                'parts' => $providerData['parts'] ?? null,
+                'cost' => $costDisplay,
+                'sent_time' => $providerData['sent_at'] ?? null,
+                'delivered_time' => $providerData['delivered_at'] ?? null,
+                'failure_reason' => $providerData['error_code'] ?? null,
+            ];
+        });
+        
+        return response()->json([
+            'id' => $campaign->id,
+            'name' => $campaign->name,
+            'description' => $campaign->description,
+            'status' => $campaign->status,
+            'total_recipients' => $campaign->total_recipients,
+            'sent_count' => $campaign->sent_count,
+            'failed_count' => $campaign->failed_count,
+            'delivered_count' => $campaign->delivered_count,
+            'status_counts' => $statusCounts,
+            'recipients' => $recipients,
+            'template' => $campaign->template,
+            'creator' => $campaign->creator,
+            'created_at' => $campaign->created_at,
+            'scheduled_at' => $campaign->scheduled_at
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Campaign details failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Campaign not found: ' . $e->getMessage()
+        ], 404);
     }
+}
 
-    /**
-     * Send a campaign (API endpoint)
-     */
+    // ============================================================
+    // SEND – API
+    // ============================================================
     public function send($id)
     {
         try {
             $campaign = SmsCampaign::findOrFail($id);
             
-            // Check if campaign can be sent
-            if (!in_array($campaign->status, ['draft', 'scheduled', 'failed', 'pending'])) {
+            if (!in_array($campaign->status, ['pending', 'failed'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Campaign cannot be sent in its current state: ' . $campaign->status
@@ -439,7 +453,6 @@ class CampaignController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Campaign send failed: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send campaign: ' . $e->getMessage()
@@ -447,9 +460,85 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Retry failed messages in a campaign (API endpoint)
-     */
+    // ============================================================
+    // DUPLICATE – API
+    // ============================================================
+    public function duplicate($id)
+    {
+        try {
+            $campaign = SmsCampaign::with('recipients')->findOrFail($id);
+            
+            $newCampaign = $campaign->replicate();
+            $newCampaign->name = $campaign->name . ' (Copy)';
+            $newCampaign->status = 'pending';
+            $newCampaign->sent_count = 0;
+            $newCampaign->failed_count = 0;
+            $newCampaign->created_by = auth()->id();
+            $newCampaign->save();
+
+            foreach ($campaign->recipients as $recipient) {
+                $newRecipient = $recipient->replicate();
+                $newRecipient->campaign_id = $newCampaign->id;
+                $newRecipient->status = 'pending';
+                $newRecipient->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Campaign duplicated successfully',
+                'campaign' => $newCampaign
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to duplicate campaign: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to duplicate campaign: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================================
+    // EXPORT – CSV download
+    // ============================================================
+    public function export($id)
+    {
+        try {
+            $campaign = SmsCampaign::with('recipients')->findOrFail($id);
+            $filename = 'campaign_' . $campaign->id . '_' . date('Y-m-d') . '.csv';
+
+            $headers = [
+                'Content-Type' => 'text/csv',
+                'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            ];
+
+            $callback = function() use ($campaign) {
+                $handle = fopen('php://output', 'w');
+                fputcsv($handle, ['Phone', 'Message', 'Status', 'Sent At', 'Error']);
+
+                foreach ($campaign->recipients as $recipient) {
+                    fputcsv($handle, [
+                        $recipient->phone_number,
+                        $recipient->message,
+                        $recipient->status,
+                        $recipient->sent_at,
+                        $recipient->error_message,
+                    ]);
+                }
+                fclose($handle);
+            };
+
+            return response()->stream($callback, 200, $headers);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to export campaign: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to export campaign');
+        }
+    }
+
+    // ============================================================
+    // RETRY FAILED – API
+    // ============================================================
     public function retry($id)
     {
         try {
@@ -481,7 +570,6 @@ class CampaignController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Campaign retry failed: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retry: ' . $e->getMessage()
@@ -489,15 +577,13 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Remove the specified campaign (API endpoint)
-     */
+    // ============================================================
+    // DELETE – API (FIXED – now allows any status)
+    // ============================================================
     public function destroy($id)
     {
         try {
-            $campaign = SmsCampaign::whereIn('status', ['draft', 'scheduled', 'failed'])
-                ->findOrFail($id);
-            
+            $campaign = SmsCampaign::findOrFail($id);
             $campaign->delete();
             
             return response()->json([
@@ -514,19 +600,15 @@ class CampaignController extends Controller
         }
     }
 
-    // ============================================
-    // RESEND FAILED & STATUS SYNC METHODS
-    // ============================================
-
-    /**
-     * Resend failed messages in a campaign (API endpoint)
-     */
+    // ============================================================
+    // RESEND FAILED – API
+    // ============================================================
     public function resendFailed($id)
     {
         try {
             $campaign = SmsCampaign::findOrFail($id);
             
-            $failedRecipients = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
+            $failedRecipients = CampaignRecipient::where('campaign_id', $campaign->id)
                 ->where('status', 'failed')
                 ->get();
             
@@ -589,10 +671,10 @@ class CampaignController extends Controller
                 }
             }
 
-            $campaign->sent_count = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
-                ->whereIn('status', ['sent', 'delivered'])
+            $campaign->sent_count = CampaignRecipient::where('campaign_id', $campaign->id)
+                ->where('status', 'sent')
                 ->count();
-            $campaign->failed_count = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
+            $campaign->failed_count = CampaignRecipient::where('campaign_id', $campaign->id)
                 ->where('status', 'failed')
                 ->count();
             $campaign->save();
@@ -610,7 +692,6 @@ class CampaignController extends Controller
             
         } catch (\Exception $e) {
             Log::error('Resend failed: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to resend messages: ' . $e->getMessage()
@@ -618,87 +699,103 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Sync status for a campaign (API endpoint)
-     */
-    public function syncStatus($id, SmsStatusService $statusService)
-    {
-        try {
-            $campaign = SmsCampaign::findOrFail($id);
-            
-            Log::info('Syncing campaign status', ['campaign_id' => $id]);
-            
-            $result = $statusService->syncCampaignStatus($campaign->id);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Status sync completed',
-                'data' => $result
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Status sync failed: ' . $e->getMessage(), [
-                'campaign_id' => $id,
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+ // ============================================================
+// RESEND PENDING – API (Uses new personalized endpoint)
+// ============================================================
+public function resendPending($id)
+{
+    // 🔵 ADD THIS LINE TO CONFIRM THE CONTROLLER IS CALLED
+    Log::info('🚀 Step 2: resendPending controller called for campaign: ' . $id);
+
+    try {
+        $campaign = SmsCampaign::findOrFail($id);
+        
+        // Check if there are pending recipients
+        $pendingCount = CampaignRecipient::where('campaign_id', $campaign->id)
+            ->where('status', 'pending')
+            ->count();
+        
+        if ($pendingCount === 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to sync status: ' . $e->getMessage()
-            ], 500);
+                'message' => 'No pending messages to resend.'
+            ], 400);
         }
-    }
-
-    /**
-     * Sync status for a single recipient (API endpoint)
-     */
-    public function syncRecipientStatus($id, SmsStatusService $statusService)
-    {
-        try {
-            Log::info('Syncing recipient status', ['recipient_id' => $id]);
-            
-            $result = $statusService->syncRecipientStatus($id);
-            
-            return response()->json($result);
-            
-        } catch (\Exception $e) {
-            Log::error('Recipient status sync failed: ' . $e->getMessage(), [
-                'recipient_id' => $id,
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+        
+        $result = $this->campaignService->resendPending($campaign->id);
+        
+        if (isset($result['error'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to sync recipient status: ' . $e->getMessage()
-            ], 500);
+                'message' => $result['error']
+            ], 400);
         }
+        
+        return response()->json([
+            'success' => true,
+            'message' => "Resent {$result['sent']} pending messages",
+            'data' => $result
+        ]);
+        
+    } catch (\Exception $e) {
+        Log::error('Resend pending failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to resend pending messages: ' . $e->getMessage()
+        ], 500);
     }
+}
+   // ============================================================
+// STATUS SYNC – API (Uses new KenyaSMS campaign sync)
+// ============================================================
+public function syncStatus($id)
+{
+    try {
+        $campaign = SmsCampaign::findOrFail($id);
+        $result = $this->campaignService->syncCampaignStatus($campaign->id);
+        
+        if (isset($result['error'])) {
+            // If the error is a 500 from KenyaSMS, return a friendly message
+            if (strpos($result['error'], '500') !== false || strpos($result['error'], 'Server Error') !== false) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Status sync is currently unavailable in sandbox mode. Please try in production, or check your KenyaSMS integration.',
+                    'data' => $result
+                ], 200); // Return 200 so the UI doesn't show a hard error
+            }
+            return response()->json([
+                'success' => false,
+                'message' => $result['error']
+            ], 400);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Status sync completed',
+            'data' => $result
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Status sync failed: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to sync status: ' . $e->getMessage()
+        ], 500);
+    }
+}
 
-    /**
-     * Get status summary for a campaign (API endpoint)
-     */
     public function getStatusSummary($id, SmsStatusService $statusService)
     {
         try {
             $campaign = SmsCampaign::findOrFail($id);
-            
-            Log::info('Getting status summary', ['campaign_id' => $id]);
-            
             $summary = $statusService->getStatusSummary($campaign->id);
-            
             return response()->json([
                 'success' => true,
                 'campaign_id' => $id,
                 'campaign_name' => $campaign->name,
                 'summary' => $summary
             ]);
-            
         } catch (\Exception $e) {
-            Log::error('Failed to get status summary: ' . $e->getMessage(), [
-                'campaign_id' => $id,
-                'trace' => $e->getTraceAsString()
-            ]);
-            
+            Log::error('Failed to get status summary: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get status summary: ' . $e->getMessage()
@@ -706,41 +803,24 @@ class CampaignController extends Controller
         }
     }
 
-    // ============================================
-    // PHONE VALIDATION METHODS
-    // ============================================
-
-    /**
-     * Get invalid recipients for a campaign (API endpoint)
-     */
+    // ============================================================
+    // PHONE VALIDATION – API
+    // ============================================================
     public function getInvalidRecipients($id)
     {
         try {
             $campaign = SmsCampaign::findOrFail($id);
-            
             $filters = json_decode($campaign->filters, true) ?? [];
             $invalidRecipients = $this->campaignService->getInvalidRecipients($filters);
             
             return response()->json([
                 'success' => true,
                 'campaign_id' => $id,
-                'count' => $invalidRecipients->count(),
-                'recipients' => $invalidRecipients->map(function($tenant) {
-                    return [
-                        'id' => $tenant->id,
-                        'name' => $tenant->user_name ?? $tenant->name ?? 'Unknown',
-                        'phone' => $tenant->phone ?? '',
-                        'formatted_phone' => $tenant->formatted_phone ?? '',
-                        'unit_number' => $tenant->unit_number ?? 'N/A',
-                        'estate_name' => $tenant->estate->name ?? 'N/A',
-                        'error' => 'Invalid phone number format'
-                    ];
-                })
+                'count' => count($invalidRecipients),
+                'recipients' => $invalidRecipients
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get invalid recipients: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get invalid recipients: ' . $e->getMessage()
@@ -748,37 +828,21 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Get other network recipients for a campaign (API endpoint)
-     */
     public function getOtherNetworkRecipients($id)
     {
         try {
             $campaign = SmsCampaign::findOrFail($id);
-            
             $filters = json_decode($campaign->filters, true) ?? [];
             $otherNetworkRecipients = $this->campaignService->getOtherNetworkRecipients($filters);
             
             return response()->json([
                 'success' => true,
                 'campaign_id' => $id,
-                'count' => $otherNetworkRecipients->count(),
-                'recipients' => $otherNetworkRecipients->map(function($tenant) {
-                    return [
-                        'id' => $tenant->id,
-                        'name' => $tenant->user_name ?? $tenant->name ?? 'Unknown',
-                        'phone' => $tenant->phone ?? '',
-                        'formatted_phone' => $tenant->formatted_phone ?? '',
-                        'unit_number' => $tenant->unit_number ?? 'N/A',
-                        'estate_name' => $tenant->estate->name ?? 'N/A',
-                        'error' => 'Other network (Airtel/Telkom)'
-                    ];
-                })
+                'count' => count($otherNetworkRecipients),
+                'recipients' => $otherNetworkRecipients
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to get other network recipients: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get other network recipients: ' . $e->getMessage()
@@ -786,9 +850,6 @@ class CampaignController extends Controller
         }
     }
 
-    /**
-     * Update phone number for a tenant (API endpoint)
-     */
     public function updateTenantPhone(Request $request, $tenantId)
     {
         try {
@@ -837,10 +898,8 @@ class CampaignController extends Controller
                 'phone' => $phone,
                 'tenant_id' => $tenantId
             ]);
-            
         } catch (\Exception $e) {
             Log::error('Failed to update tenant phone: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update phone: ' . $e->getMessage()
@@ -848,29 +907,19 @@ class CampaignController extends Controller
         }
     }
 
-    // ============================================
-    // RESEND INDIVIDUAL RECIPIENT
-    // ============================================
-
-    /**
-     * Resend an individual recipient (works for pending, failed, queued)
-     * No message_id required - this actually sends the SMS
-     */
     public function resendIndividualRecipient($id)
     {
         try {
-            $recipient = \App\Models\CampaignRecipient::with(['campaign', 'tenant'])->findOrFail($id);
+            $recipient = CampaignRecipient::with(['campaign', 'tenant'])->findOrFail($id);
             $campaign = $recipient->campaign;
             
-            // Check if recipient can be resent
-            if (!in_array($recipient->status, ['failed', 'pending', 'queued'])) {
+            if (!in_array($recipient->status, ['failed', 'pending'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Recipient status is ' . $recipient->status . '. Cannot resend.'
                 ], 400);
             }
             
-            // Check if tenant exists
             if (!$recipient->tenant) {
                 return response()->json([
                     'success' => false,
@@ -878,8 +927,7 @@ class CampaignController extends Controller
                 ], 404);
             }
             
-            // Get template
-            $template = \App\Models\SmsTemplate::find($campaign->template_id);
+            $template = SmsTemplate::find($campaign->template_id);
             if (!$template) {
                 return response()->json([
                     'success' => false,
@@ -888,9 +936,7 @@ class CampaignController extends Controller
             }
             
             $templateContent = $template->content;
-            
-            // Render message using CampaignService
-            $campaignService = app(\App\Services\CampaignService::class);
+            $campaignService = app(CampaignService::class);
             $message = $campaignService->renderMessage($templateContent, $recipient->tenant);
             
             Log::info('Resending SMS to individual recipient', [
@@ -900,12 +946,7 @@ class CampaignController extends Controller
                 'message_length' => strlen($message)
             ]);
             
-            // ============================================
-            // FIX: Determine valid message type
-            // ============================================
             $messageType = ($campaign->campaign_type === 'promotional') ? 'promotional' : 'transactional';
-            
-            // Send the SMS
             $kenyaSms = app(\App\Modules\SMS\Services\KenyaSMS::class);
             $result = $kenyaSms->sendOne(
                 $recipient->phone_number,
@@ -915,18 +956,16 @@ class CampaignController extends Controller
             );
             
             if ($result['success']) {
-                // Update recipient status
                 $recipient->status = 'sent';
                 $recipient->sent_at = now();
                 $recipient->message_id = $result['message_id'] ?? null;
                 $recipient->error_message = null;
                 $recipient->save();
                 
-                // Update campaign counts
-                $campaign->sent_count = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
-                    ->whereIn('status', ['sent', 'delivered'])
+                $campaign->sent_count = CampaignRecipient::where('campaign_id', $campaign->id)
+                    ->where('status', 'sent')
                     ->count();
-                $campaign->failed_count = \App\Models\CampaignRecipient::where('campaign_id', $campaign->id)
+                $campaign->failed_count = CampaignRecipient::where('campaign_id', $campaign->id)
                     ->where('status', 'failed')
                     ->count();
                 $campaign->save();
@@ -937,22 +976,36 @@ class CampaignController extends Controller
                     'data' => $result
                 ]);
             } else {
-                // Update recipient with error
                 $recipient->error_message = $result['error'] ?? 'Resend failed';
                 $recipient->save();
-                
                 return response()->json([
                     'success' => false,
                     'message' => 'Failed to resend: ' . ($result['error'] ?? 'Unknown error')
                 ], 400);
             }
-            
         } catch (\Exception $e) {
             Log::error('Failed to resend individual recipient: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to resend: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================================
+    // CHECK PENDING STATUS – API (NEW)
+    // ============================================================
+    public function checkPendingStatus($id)
+    {
+        try {
+            $campaign = SmsCampaign::findOrFail($id);
+            $result = $this->campaignService->checkPendingStatus($campaign->id);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            Log::error('Check pending status failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check pending status: ' . $e->getMessage()
             ], 500);
         }
     }

@@ -164,7 +164,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
-        'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
+        'administration', 'companies', 'account_managers', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
         'forms', 'form_elements',
         'tables', 'basic_tables',
         'pages', 'blank_page', '404_page',
@@ -179,7 +179,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
-        'users', 'staff',
+        'users', 'staff', 'account_managers',
       ],
       'property_manager': [
         'dashboard',
@@ -422,6 +422,12 @@ document.addEventListener('alpine:init', () => {
                 link: '/admin/companies',
                 page: 'companies',
                 permission: 'companies'
+              },
+              {
+                label: 'Account Managers',
+                link: '/admin/account-managers',
+                page: 'accountManagers',
+                permission: 'account_managers'
               },
               {
                 label: 'Users',
@@ -714,6 +720,7 @@ document.addEventListener('alpine:init', () => {
         '/sms/templates': 'smsTemplates',
         '/sms/settings': 'smsSettings',
         '/admin/companies': 'companies',
+        '/admin/account-managers': 'accountManagers',
         '/users': 'users',
         '/staff': 'staff',
         '/roles': 'roles',

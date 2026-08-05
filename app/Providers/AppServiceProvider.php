@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Auth;
 use App\Modules\System\Models\System;
 use App\Helpers\SystemHelper;
+use App\Services\SmsStatusService;
+use App\Modules\SMS\Services\KenyaSMS;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +17,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register SmsStatusService as a singleton
+        $this->app->singleton(SmsStatusService::class, function ($app) {
+            return new SmsStatusService($app->make(KenyaSMS::class));
+        });
     }
 
     /**

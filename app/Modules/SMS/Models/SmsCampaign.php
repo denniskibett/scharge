@@ -11,14 +11,11 @@ class SmsCampaign extends Model
 {
     protected $table = 'sms_campaigns';
 
-    // Status constants
-    const STATUS_DRAFT = 'draft';
-    const STATUS_SCHEDULED = 'scheduled';
+    // Status constants - MUST MATCH DATABASE ENUM
+    const STATUS_PENDING = 'pending';
     const STATUS_SENDING = 'sending';
     const STATUS_COMPLETED = 'completed';
     const STATUS_FAILED = 'failed';
-    const STATUS_PENDING = 'pending';
-    const STATUS_PARTIAL = 'partial';
 
     protected $fillable = [
         'name',
@@ -29,10 +26,12 @@ class SmsCampaign extends Model
         'total_recipients',
         'sent_count',
         'failed_count',
+        'delivered_count',   // 🆕 ADDED
         'status',
         'scheduled_at',
         'sent_at',
-        'created_by'
+        'created_by',
+        'kenyasms_campaign_id',
     ];
 
     protected $casts = [
@@ -40,7 +39,11 @@ class SmsCampaign extends Model
         'scheduled_at' => 'datetime',
         'sent_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'sent_count' => 'integer',
+        'failed_count' => 'integer',
+        'delivered_count' => 'integer',   // 🆕 ADDED
+        'total_recipients' => 'integer',
     ];
 
     /**
@@ -81,13 +84,10 @@ class SmsCampaign extends Model
     public function getStatusBadgeAttribute()
     {
         $badges = [
-            'draft' => 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
-            'scheduled' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-            'sending' => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
             'pending' => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+            'sending' => 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
             'completed' => 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
             'failed' => 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-            'partial' => 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
         ];
 
         return $badges[$this->status] ?? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
@@ -98,19 +98,28 @@ class SmsCampaign extends Model
      */
     public function getStatusLabelAttribute()
     {
-        return ucfirst($this->status);
+        $labels = [
+            'pending' => 'Pending',
+            'sending' => 'Sending',
+            'completed' => 'Completed',
+            'failed' => 'Failed',
+        ];
+
+        return $labels[$this->status] ?? ucfirst($this->status);
     }
 
     /**
-     * Get progress percentage
+     * Get progress percentage (based on delivered count, or sent count)
      */
     public function getProgressAttribute()
     {
-        if ($this->total_recipients == 0) {
+        $total = $this->total_recipients ?? 0;
+        if ($total == 0) {
             return 0;
         }
-        $sent = $this->sent_count ?? 0;
-        return round(($sent / $this->total_recipients) * 100, 1);
+        // Prefer delivered count if available, else sent count
+        $done = $this->delivered_count ?? $this->sent_count ?? 0;
+        return round(($done / $total) * 100, 1);
     }
 
     /**
@@ -118,7 +127,7 @@ class SmsCampaign extends Model
      */
     public function canBeSent()
     {
-        return in_array($this->status, [self::STATUS_DRAFT, self::STATUS_SCHEDULED, self::STATUS_FAILED, self::STATUS_PENDING]);
+        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_FAILED]);
     }
 
     /**
