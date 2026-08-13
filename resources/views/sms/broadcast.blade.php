@@ -16,6 +16,71 @@
     @include('partials.modal.success-modal')
     @include('partials.modal.error-modal')
 
+    {{-- ============================================================ --}}
+    {{-- FIXED MODAL CSS – No padding-right to prevent sidebar shift --}}
+    {{-- ============================================================ --}}
+    <style>
+        /* Campaign View Modal */
+        #viewCampaignModal {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: flex-end;
+            align-items: flex-start;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        #viewCampaignModal.active {
+            display: flex;
+        }
+
+        #viewCampaignModal .modal-content {
+            background: #fff;
+            width: 92%;
+            max-width: 92%;
+            min-width: 800px;
+            margin: 0 20px 0 auto;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Update Phone Modal */
+        #updatePhoneModal {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #updatePhoneModal.active {
+            display: flex;
+        }
+
+        #updatePhoneModal .modal-content {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 0.75rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        /* Prevent body scroll when modal is open – NO PADDING-RIGHT */
+        body.modal-open {
+            overflow: hidden;
+        }
+    </style>
+
     <div class="container mx-auto px-4 py-6">
         <!-- CSRF Meta -->
         <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -42,564 +107,571 @@
             </div>
         @endif
 
-    <!-- Tab Headers -->
-    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-        <button onclick="activeTab = 'tenants'; renderTab()" id="tab-tenants" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">Send to Tenants</button>
-        <button onclick="activeTab = 'custom'; renderTab()" id="tab-custom" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">Send Custom SMS</button>
-        <button onclick="activeTab = 'history'; renderTab()" id="tab-history" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">SMS History</button>
-        <button onclick="activeTab = 'campaigns'; renderTab()" id="tab-campaigns" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">Campaigns</button>
-    </div>
+        <!-- Tab Headers -->
+        <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+            <button onclick="activeTab = 'tenants'; renderTab()" id="tab-tenants" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">Send to Tenants</button>
+            <button onclick="activeTab = 'custom'; renderTab()" id="tab-custom" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">Send Custom SMS</button>
+            <button onclick="activeTab = 'history'; renderTab()" id="tab-history" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">SMS History</button>
+            <button onclick="activeTab = 'campaigns'; renderTab()" id="tab-campaigns" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">Campaigns</button>
+        </div>
 
-    <!-- ============================================ -->
-    <!-- TAB 1: SEND TO TENANTS -->
-    <!-- ============================================ -->
-    <div id="tenants-tab" style="display: block;">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            
-            <!-- Load Saved Template Section -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Load Saved Template</label>
-                <select id="templateSelect" class="dark:bg-dark-900 h-11 w-full md:w-1/2 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    <option value="">-- Select Template --</option>
-                    @foreach($templates as $template)
-                        <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
-                    @endforeach
-                </select>
-            </div>
+        <!-- ============================================ -->
+        <!-- TAB 1: SEND TO TENANTS -->
+        <!-- ============================================ -->
+        <div id="tenants-tab" style="display: block;">
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                
+                <!-- Load Saved Template Section -->
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Load Saved Template</label>
+                    <select id="templateSelect" class="dark:bg-dark-900 h-11 w-full md:w-1/2 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <option value="">-- Select Template --</option>
+                        @foreach($templates as $template)
+                            <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
 
-            <!-- Message Template Section -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
-                @verbatim
-                <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}">Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}
+                <!-- Message Template Section -->
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
+                    @verbatim
+                    <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}">Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}
 
 {{unpaid_list}}</textarea>
-                @endverbatim
-                <div class="flex flex-wrap gap-2 mt-2">
-                    <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message</span>
+                    @endverbatim
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, total_due</span>
+                    </div>
+                    <div id="charCounter" class="mt-2 text-sm"></div>
+                    <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                        🔧 Make Compact (reduce characters)
+                    </button>
                 </div>
-                <div id="charCounter" class="mt-2 text-sm"></div>
-                <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                    🔧 Make Compact (reduce characters)
-                </button>
-            </div>
 
-            <!-- Preview Section -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700" id="previewSection" style="display: none;">
-                <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Preview (first 3)</h3>
-                <div id="previewContainer" class="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"></div>
-            </div>
+                <!-- Preview Section -->
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700" id="previewSection" style="display: none;">
+                    <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Preview (first 3)</h3>
+                    <div id="previewContainer" class="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"></div>
+                </div>
 
-            <!-- Filters Section -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate Filter</label>
-                        <select id="estateFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
-                            <option value="">All Estates</option>
-                            @foreach($estates as $estate)
-                                <option value="{{ $estate->id }}">{{ $estate->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Payment Status</label>
-                        <select id="paymentStatusFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
-                            <option value="">All</option>
-                            <option value="paid">Paid</option>
-                            <option value="pending">Pending</option>
-                            <option value="overdue">Overdue</option>
-                        </select>
-                    </div>
-                    
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Min Bill Amount</label>
-                        <input type="number" id="minBillFilter" placeholder="0" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" oninput="applyFiltersAndRender()">
-                    </div>
-                    
-                    <div>
-                        <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Search</label>
-                        <div class="relative">
-                            <input type="text" id="tenantSearch" placeholder="Search by name, phone, unit..." class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] pl-10 h-10" oninput="applyFiltersAndRender()">
-                            <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
+                <!-- Filters Section -->
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate Filter</label>
+                            <select id="estateFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
+                                <option value="">All Estates</option>
+                                @foreach($estates as $estate)
+                                    <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Payment Status</label>
+                            <select id="paymentStatusFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
+                                <option value="">All</option>
+                                <option value="paid">Paid</option>
+                                <option value="pending">Pending</option>
+                                <option value="overdue">Overdue</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Min Bill Amount</label>
+                            <input type="number" id="minBillFilter" placeholder="0" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" oninput="applyFiltersAndRender()">
+                        </div>
+                        
+                        <div>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Search</label>
+                            <div class="relative">
+                                <input type="text" id="tenantSearch" placeholder="Search by name, phone, unit..." class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] pl-10 h-10" oninput="applyFiltersAndRender()">
+                                <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Selected Count and Send Button Row -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <div class="flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex items-center gap-4">
-                        <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Selected:</span>
-                        <span id="selectedCount" class="text-2xl font-bold text-blue-600">0</span>
-                        <span class="text-sm text-gray-500">tenants</span>
+                <!-- Selected Count and Send Button Row -->
+                <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Selected:</span>
+                            <span id="selectedCount" class="text-2xl font-bold text-blue-600">0</span>
+                            <span class="text-sm text-gray-500">tenants</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" id="selectAllBtn" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <button type="button" id="selectNoneBtn" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
+                                <i class="fas fa-times"></i> Clear All
+                            </button>
+                            <button type="button" id="hidePaidBtn" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
+                                <i class="fas fa-eye-slash"></i> <span id="hidePaidLabel">Hide Paid</span>
+                            </button>
+                        </div>
+                        <button type="submit" form="bulkForm" id="sendSmsBtn" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-paper-plane"></i> Send SMS to Tenants
+                        </button>
                     </div>
-                    <div class="flex gap-2">
-                        <button type="button" id="selectAllBtn" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">Select All</button>
-                        <button type="button" id="selectNoneBtn" class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">Clear All</button>
-                    </div>
-                    <button type="submit" form="bulkForm" id="sendSmsBtn" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        Send SMS to Tenants
-                    </button>
                 </div>
-            </div>
 
-            <!-- Tenants Table Section -->
-            <div class="p-6">
-                <div class="w-full overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr class="border-gray-100 border-y dark:border-gray-800">
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    <input type="checkbox" id="toggleAllCheckbox" onchange="toggleAllCheckboxes()">
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('name')">
-                                    Name <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('phone')">
-                                    Phone <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('unit')">
-                                    Unit <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('estate')">
-                                    Estate <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('water_bill')">
-                                    Water Bill <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('prev_read')">
-                                    Previous Reading <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('curr_read')">
-                                    Current Reading <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('due_date')">
-                                    Due Date <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('payment_status')">
-                                    Payment Status <span class="sort-icon inline-block ml-1">↕️</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody id="tenantsTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                            @forelse($tenants as $tenant)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 tenant-row" 
-                                data-estate-id="{{ $tenant['estate_id'] ?? '' }}" 
-                                data-name="{{ $tenant['name'] ?? '' }}" 
-                                data-name-lower="{{ strtolower($tenant['name'] ?? '') }}" 
-                                data-phone="{{ $tenant['phone'] ?? '' }}" 
-                                data-unit="{{ $tenant['unit_number'] ?? '' }}"
-                                data-unit-lower="{{ strtolower($tenant['unit_number'] ?? '') }}"
-                                data-estate="{{ $tenant['estate_name'] ?? '' }}"
-                                data-estate-lower="{{ strtolower($tenant['estate_name'] ?? '') }}"
-                                data-water-bill="{{ $tenant['water_bill'] ?? 0 }}"
-                                data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
-                                data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
-                                data-month="{{ $tenant['reading_month'] ?? '' }}"
-                                data-due-date="{{ $tenant['due_date'] ?? '' }}"
-                                data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
-                                <td class="px-4 py-3">
-                                    <input type="checkbox" class="tenant-checkbox" 
-                                        data-id="{{ $tenant['id'] ?? '' }}"
-                                        data-phone="{{ $tenant['phone'] ?? '' }}"
-                                        data-name="{{ $tenant['name'] ?? '' }}"
-                                        data-unit="{{ $tenant['unit_number'] ?? '' }}"
-                                        data-estate="{{ $tenant['estate_name'] ?? '' }}"
-                                        data-estate-id="{{ $tenant['estate_id'] ?? '' }}"
-                                        data-waterbill="{{ $tenant['water_bill'] ?? 0 }}"
-                                        data-consumption="{{ $tenant['water_consumption'] ?? 0 }}"
-                                        data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
-                                        data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
-                                        data-month="{{ $tenant['reading_month'] ?? '' }}"
-                                        data-due-date="{{ $tenant['due_date'] ?? '' }}"
-                                        data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <span class="text-blue-600 font-medium text-sm">{{ substr($tenant['name'] ?? 'T', 0, 1) }}</span>
+                <!-- Tenants Table Section -->
+                <div class="p-6">
+                    <div class="w-full overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-50 dark:bg-gray-800">
+                                <tr class="border-gray-100 border-y dark:border-gray-800">
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        <input type="checkbox" id="toggleAllCheckbox" onchange="toggleAllCheckboxes()">
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('name')">
+                                        Name <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('phone')">
+                                        Phone <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('unit')">
+                                        Unit <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('estate')">
+                                        Estate <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('water_bill')">
+                                        Water Bill <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('prev_read')">
+                                        Previous Reading <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('curr_read')">
+                                        Current Reading <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('due_date')">
+                                        Due Date <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('payment_status')">
+                                        Payment Status <span class="sort-icon inline-block ml-1">↕️</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="tenantsTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                @forelse($tenants as $tenant)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 tenant-row" 
+                                    data-estate-id="{{ $tenant['estate_id'] ?? '' }}" 
+                                    data-name="{{ $tenant['name'] ?? '' }}" 
+                                    data-name-lower="{{ strtolower($tenant['name'] ?? '') }}" 
+                                    data-phone="{{ $tenant['phone'] ?? '' }}" 
+                                    data-unit="{{ $tenant['unit_number'] ?? '' }}"
+                                    data-unit-lower="{{ strtolower($tenant['unit_number'] ?? '') }}"
+                                    data-estate="{{ $tenant['estate_name'] ?? '' }}"
+                                    data-estate-lower="{{ strtolower($tenant['estate_name'] ?? '') }}"
+                                    data-water-bill="{{ $tenant['water_bill'] ?? 0 }}"
+                                    data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
+                                    data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
+                                    data-month="{{ $tenant['reading_month'] ?? '' }}"
+                                    data-due-date="{{ $tenant['due_date'] ?? '' }}"
+                                    data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
+                                    <td class="px-4 py-3">
+                                        <input type="checkbox" class="tenant-checkbox" 
+                                            data-id="{{ $tenant['id'] ?? '' }}"
+                                            data-phone="{{ $tenant['phone'] ?? '' }}"
+                                            data-name="{{ $tenant['name'] ?? '' }}"
+                                            data-unit="{{ $tenant['unit_number'] ?? '' }}"
+                                            data-estate="{{ $tenant['estate_name'] ?? '' }}"
+                                            data-estate-id="{{ $tenant['estate_id'] ?? '' }}"
+                                            data-waterbill="{{ $tenant['water_bill'] ?? 0 }}"
+                                            data-consumption="{{ $tenant['water_consumption'] ?? 0 }}"
+                                            data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
+                                            data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
+                                            data-month="{{ $tenant['reading_month'] ?? '' }}"
+                                            data-due-date="{{ $tenant['due_date'] ?? '' }}"
+                                            data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <span class="text-blue-600 font-medium text-sm">{{ substr($tenant['name'] ?? 'T', 0, 1) }}</span>
+                                            </div>
+                                            <span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenant['name'] ?? 'Unknown' }}</span>
                                         </div>
-                                        <span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenant['name'] ?? 'Unknown' }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['phone'] ?? '' }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['unit_number'] ?? '' }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['estate_name'] ?? '' }}</td>
-                                <td class="px-4 py-3 text-right text-sm font-medium text-gray-800">KES {{ number_format($tenant['water_bill'] ?? 0, 2) }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['prev_read'] ?? 0 }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['curr_read'] ?? 0 }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['due_date'] ?? '' }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        @if(($tenant['payment_status'] ?? 'pending') === 'paid') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                        @elseif(($tenant['payment_status'] ?? 'pending') === 'unpaid') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                        @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                                        @endif">
-                                        {{ ucfirst($tenant['payment_status'] ?? 'pending') }}
-                                    </span>
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="10" class="px-4 py-8 text-center text-gray-500">No tenants found.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['phone'] ?? '' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['unit_number'] ?? '' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['estate_name'] ?? '' }}</td>
+                                    <td class="px-4 py-3 text-right text-sm font-medium text-gray-800">KES {{ number_format($tenant['water_bill'] ?? 0, 2) }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['prev_read'] ?? 0 }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['curr_read'] ?? 0 }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['due_date'] ?? '' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                            @if(($tenant['payment_status'] ?? 'pending') === 'paid') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                            @elseif(($tenant['payment_status'] ?? 'pending') === 'unpaid') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                            @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            @endif">
+                                            {{ ucfirst($tenant['payment_status'] ?? 'pending') }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="10" class="px-4 py-8 text-center text-gray-500">No tenants found.</td>
+                                </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-600">Show:</span>
+                            <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm" onchange="entriesPerPageChange()">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2" id="paginationControls">
+                            <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Previous</button>
+                            <span id="pageInfo" class="text-sm text-gray-600 px-3 py-1">Page 1 of 1</span>
+                            <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Next</button>
+                        </div>
+                    </div>
                 </div>
-                
-                <div class="flex items-center justify-between mt-4">
-                    <div class="flex items-center gap-2">
-                        <span class="text-sm text-gray-600">Show:</span>
-                        <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm" onchange="entriesPerPageChange()">
-                            <option value="10">10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                            <option value="all">All</option>
+
+                <form method="POST" action="{{ route('sms.send') }}" id="bulkForm">
+                    @csrf
+                    <input type="hidden" name="recipients" id="recipientsJson">
+                    <input type="hidden" name="message_type" id="messageTypeHidden" value="transactional">
+                    <input type="hidden" name="template" id="templateHidden">
+                </form>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- TAB 2: SEND CUSTOM SMS -->
+        <!-- ============================================ -->
+        <div id="custom-tab" style="display: none;">
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6">
+                    @csrf
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Phone Number</label>
+                        <input type="text" name="phone" placeholder="e.g., 254712345678 or 0712345678" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+                        <p class="mt-1 text-xs text-gray-500">Enter in format: 254712345678 or 0712345678</p>
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Type</label>
+                        <select name="message_type" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                            <option value="transactional">Transactional</option>
+                            <option value="promotional">Promotional</option>
                         </select>
                     </div>
-                    <div class="flex gap-2" id="paginationControls">
-                        <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Previous</button>
-                        <span id="pageInfo" class="text-sm text-gray-600 px-3 py-1">Page 1 of 1</span>
-                        <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Next</button>
-                    </div>
-                </div>
-            </div>
-
-            <form method="POST" action="{{ route('sms.send') }}" id="bulkForm">
-                @csrf
-                <input type="hidden" name="recipients" id="recipientsJson">
-                <input type="hidden" name="message_type" id="messageTypeHidden" value="transactional">
-                <input type="hidden" name="template" id="templateHidden">
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- TAB 2: SEND CUSTOM SMS -->
-    <!-- ============================================ -->
-    <div id="custom-tab" style="display: none;">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <form method="POST" action="{{ route('sms.send-custom') }}" class="p-6 space-y-6">
-                @csrf
-                <div>
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Phone Number</label>
-                    <input type="text" name="phone" placeholder="e.g., 254712345678 or 0712345678" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
-                    <p class="mt-1 text-xs text-gray-500">Enter in format: 254712345678 or 0712345678</p>
-                </div>
-                <div>
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Type</label>
-                    <select name="message_type" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                        <option value="transactional">Transactional</option>
-                        <option value="promotional">Promotional</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message</label>
-                    <textarea name="message" rows="4" required class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"></textarea>
-                </div>
-                <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">Send SMS Now</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- TAB 3: SMS HISTORY -->
-    <!-- ============================================ -->
-    <div id="history-tab" style="display: none;">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="p-6">
-                <div class="w-full overflow-x-auto">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr class="border-gray-100 border-y dark:border-gray-800">
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent At</th>
-                             </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                            @forelse($logs as $log)
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $log->id ?? '' }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $log->recipient_phone ?? '' }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ Str::limit($log->message ?? '', 60) }}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ $log->message_type ?? 'transactional' }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                        @if(($log->status ?? '') === 'sent') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
-                                        @elseif(($log->status ?? '') === 'failed') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
-                                        @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
-                                        @endif">
-                                        {{ $log->status ?? 'pending' }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">{{ isset($log->created_at) ? $log->created_at->format('d/m/Y H:i') : '' }}</td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500">No logs found.</td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                @if(method_exists($logs, 'links'))
-                <div class="mt-4">
-                    {{ $logs->links() }}
-                </div>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    <!-- ============================================ -->
-    <!-- TAB 4: CAMPAIGNS -->
-    <!-- ============================================ -->
-    <div id="campaigns-tab" style="display: none;">
-        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="p-6">
-                <!-- Header -->
-                <div class="flex justify-between items-center mb-4">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Campaigns</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Manage your SMS campaigns</p>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message</label>
+                        <textarea name="message" rows="4" required class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"></textarea>
                     </div>
-                    <button onclick="openCreateCampaignModal()" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">
-                        <i class="fas fa-plus"></i> New Campaign
-                    </button>
-                </div>
+                    <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">Send SMS Now</button>
+                </form>
+            </div>
+        </div>
 
-                <!-- Filter Tabs -->
-                <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                    <button onclick="filterCampaigns('all')" id="filter-all" class="px-3 py-1 text-sm rounded-lg transition-colors bg-blue-600 text-white">All</button>
-                    <button onclick="filterCampaigns('draft')" id="filter-draft" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Draft</button>
-                    <button onclick="filterCampaigns('scheduled')" id="filter-scheduled" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Scheduled</button>
-                    <button onclick="filterCampaigns('sending')" id="filter-sending" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Sending</button>
-                    <button onclick="filterCampaigns('completed')" id="filter-completed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Completed</button>
-                    <button onclick="filterCampaigns('failed')" id="filter-failed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Failed</button>
-                </div>
-
-                <!-- Stats -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
-                        <p class="text-2xl font-bold text-gray-800 dark:text-white" id="statsTotal">0</p>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Sent</p>
-                        <p class="text-2xl font-bold text-green-600" id="statsSent">0</p>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Pending</p>
-                        <p class="text-2xl font-bold text-yellow-600" id="statsPending">0</p>
-                    </div>
-                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Failed</p>
-                        <p class="text-2xl font-bold text-red-600" id="statsFailed">0</p>
-                    </div>
-                </div>
-
-                <!-- Campaigns Table -->
-                <div class="w-full overflow-x-auto">
-                    <div id="campaignsLoading" class="text-center py-8">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <p class="mt-2 text-gray-500">Loading campaigns...</p>
-                    </div>
-                    <div id="campaignsTable" style="display: none;">
+        <!-- ============================================ -->
+        <!-- TAB 3: SMS HISTORY -->
+        <!-- ============================================ -->
+        <div id="history-tab" style="display: none;">
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="p-6">
+                    <div class="w-full overflow-x-auto">
                         <table class="min-w-full">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr class="border-gray-100 border-y dark:border-gray-800">
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failed</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent At</th>
                                 </tr>
                             </thead>
-                            <tbody id="campaignsTableBody">
-                                <!-- Rows populated by JavaScript -->
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                                @forelse($logs as $log)
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $log->id ?? '' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $log->recipient_phone ?? '' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ Str::limit($log->message ?? '', 60) }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $log->message_type ?? 'transactional' }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                            @if(($log->status ?? '') === 'sent') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                                            @elseif(($log->status ?? '') === 'failed') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
+                                            @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
+                                            @endif">
+                                            {{ $log->status ?? 'pending' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ isset($log->created_at) ? $log->created_at->format('d/m/Y H:i') : '' }}</td>
+                                </tr>
+                                @empty
+                                <tr>
+                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">No logs found.</td>
+                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
+                    @if(method_exists($logs, 'links'))
+                    <div class="mt-4">
+                        {{ $logs->links() }}
+                    </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================ -->
+        <!-- TAB 4: CAMPAIGNS -->
+        <!-- ============================================ -->
+        <div id="campaigns-tab" style="display: none;">
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="p-6">
+                    <!-- Header -->
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Campaigns</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Manage your SMS campaigns</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="loadKenyaSmsCampaigns()" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-green-700">
+                                <i class="fas fa-cloud-download-alt"></i> Sync from KenyaSMS
+                            </button>
+                            <button onclick="openCreateCampaignModal()" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">
+                                <i class="fas fa-plus"></i> New Campaign
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                        <button onclick="filterCampaigns('all')" id="filter-all" class="px-3 py-1 text-sm rounded-lg transition-colors bg-blue-600 text-white">All</button>
+                        <button onclick="filterCampaigns('draft')" id="filter-draft" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Draft</button>
+                        <button onclick="filterCampaigns('scheduled')" id="filter-scheduled" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Scheduled</button>
+                        <button onclick="filterCampaigns('sending')" id="filter-sending" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Sending</button>
+                        <button onclick="filterCampaigns('completed')" id="filter-completed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Completed</button>
+                        <button onclick="filterCampaigns('failed')" id="filter-failed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Failed</button>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
+                            <p class="text-2xl font-bold text-gray-800 dark:text-white" id="statsTotal">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Sent</p>
+                            <p class="text-2xl font-bold text-green-600" id="statsSent">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Pending</p>
+                            <p class="text-2xl font-bold text-yellow-600" id="statsPending">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Failed</p>
+                            <p class="text-2xl font-bold text-red-600" id="statsFailed">0</p>
+                        </div>
+                    </div>
+
+                    <!-- Campaigns Table -->
+                    <div class="w-full overflow-x-auto">
+                        <div id="campaignsLoading" class="text-center py-8">
+                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                            <p class="mt-2 text-gray-500">Loading campaigns...</p>
+                        </div>
+                        <div id="campaignsTable" style="display: none;">
+                            <table class="min-w-full">
+                                <thead class="bg-gray-50 dark:bg-gray-800">
+                                    <tr class="border-gray-100 border-y dark:border-gray-800">
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failed</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="campaignsTableBody">
+                                    <!-- Rows populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ============================================ -->
-<!-- CREATE CAMPAIGN MODAL -->
-<!-- ============================================ -->
-<div id="createCampaignModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeCreateCampaignModal()"></div>
-    <div class="relative min-h-screen flex items-start justify-end">
-        <div class="relative bg-white dark:bg-gray-800 shadow-2xl w-full max-w-3xl overflow-y-auto" style="max-height: 100vh;">
-            
-            <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                        <i class="fas fa-plus-circle text-blue-600 mr-2"></i> Create New Campaign
-                    </h3>
-                    <button onclick="closeCreateCampaignModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
+    <!-- ============================================ -->
+    <!-- CREATE CAMPAIGN MODAL -->
+    <!-- ============================================ -->
+    <div id="createCampaignModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeCreateCampaignModal()"></div>
+        <div class="relative min-h-screen flex items-start justify-end">
+            <div class="relative bg-white dark:bg-gray-800 shadow-2xl w-full max-w-3xl overflow-y-auto" style="max-height: 100vh;">
+                
+                <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                            <i class="fas fa-plus-circle text-blue-600 mr-2"></i> Create New Campaign
+                        </h3>
+                        <button onclick="closeCreateCampaignModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="px-6 py-6" style="max-height: calc(100vh - 100px); overflow-y: auto;">
-                <form id="createCampaignForm" onsubmit="submitCampaign(event)" class="space-y-5">
-                    @csrf
-                    
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Campaign Name <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" id="campaignName" 
-                               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" 
-                               placeholder="Enter campaign name" required>
-                    </div>
-
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Description <span class="text-xs text-gray-400 font-normal">(e.g., July 2027)</span>
-                        </label>
-                        <textarea id="campaignDescription" rows="3" 
-                                  class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" 
-                                  placeholder="e.g., July 2027 water bill campaign"></textarea>
-                    </div>
-
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            SMS Template <span class="text-red-500">*</span>
-                        </label>
-                        <select id="campaignTemplate" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="loadCampaignTemplatePreview()" required>
-                            <option value="">Select Template</option>
-                            @foreach($templates as $template)
-                                <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div id="campaignTemplatePreview" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700" style="display: none;">
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Template Preview</label>
-                        <div class="bg-white dark:bg-gray-900 p-3 rounded-lg">
-                            <pre id="campaignTemplateContent" class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap font-sans"></pre>
-                        </div>
-                        <div id="campaignTenantPreviewContainer" style="display: none;">
-                            <hr class="border-gray-200 dark:border-gray-700 my-3">
-                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                                <i class="fas fa-users mr-1"></i> Tenant Preview (first 3)
-                            </label>
-                            <div id="campaignTenantPreview" class="space-y-2 max-h-60 overflow-y-auto"></div>
-                        </div>
-                    </div>
-
-                    <hr class="border-gray-200 dark:border-gray-700">
-
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Campaign Type</label>
-                        <select id="campaignType" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                            <option value="water_bill">Water Bill Reminder</option>
-                            <option value="rent_reminder">Rent Reminder</option>
-                            <option value="payment_confirm">Payment Confirmation</option>
-                            <option value="maintenance">Maintenance Update</option>
-                            <option value="lease_expiry">Lease Expiry Notice</option>
-                            <option value="general">General Broadcast</option>
-                        </select>
-                    </div>
-
-                    <hr class="border-gray-200 dark:border-gray-700">
-
-                    <div>
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                            <i class="fas fa-filter mr-2"></i> Filter Recipients
-                        </h4>
+                
+                <div class="px-6 py-6" style="max-height: calc(100vh - 100px); overflow-y: auto;">
+                    <form id="createCampaignForm" onsubmit="submitCampaign(event)" class="space-y-5">
+                        @csrf
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Company</label>
-                                <select id="campaignFilterCompany" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="filterEstatesByCompany()">
-                                    <option value="">All Companies</option>
-                                    @foreach($companies as $company)
-                                        <option value="{{ $company->id }}">{{ $company->name }}</option>
-                                    @endforeach
-                                </select>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Campaign Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="campaignName" 
+                                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" 
+                                   placeholder="Enter campaign name" required>
+                        </div>
+
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Description <span class="text-xs text-gray-400 font-normal">(e.g., July 2027)</span>
+                            </label>
+                            <textarea id="campaignDescription" rows="3" 
+                                      class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" 
+                                      placeholder="e.g., July 2027 water bill campaign"></textarea>
+                        </div>
+
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                SMS Template <span class="text-red-500">*</span>
+                            </label>
+                            <select id="campaignTemplate" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="loadCampaignTemplatePreview()" required>
+                                <option value="">Select Template</option>
+                                @foreach($templates as $template)
+                                    <option value="{{ $template->id }}" data-content="{{ $template->content }}">{{ $template->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div id="campaignTemplatePreview" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700" style="display: none;">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Template Preview</label>
+                            <div class="bg-white dark:bg-gray-900 p-3 rounded-lg">
+                                <pre id="campaignTemplateContent" class="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap font-sans"></pre>
                             </div>
-                            
-                            <div>
-                                <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate</label>
-                                <select id="campaignFilterEstate" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
-                                    <option value="">All Estates</option>
-                                    @foreach($estates as $estate)
-                                        <option value="{{ $estate->id }}" data-company="{{ $estate->company_id }}">{{ $estate->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            
-                            <div class="md:col-span-2">
-                                <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Invoice Status</label>
-                                <select id="campaignFilterStatus" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
-                                    <option value="">All Statuses</option>
-                                    <option value="paid">Paid</option>
-                                    <option value="unpaid">Unpaid</option>
-                                    <option value="partial">Partial</option>
-                                </select>
+                            <div id="campaignTenantPreviewContainer" style="display: none;">
+                                <hr class="border-gray-200 dark:border-gray-700 my-3">
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    <i class="fas fa-users mr-1"></i> Tenant Preview (first 3)
+                                </label>
+                                <div id="campaignTenantPreview" class="space-y-2 max-h-60 overflow-y-auto"></div>
                             </div>
                         </div>
-                    </div>
 
-                    <div>
-                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Schedule Send <span class="text-gray-400 text-xs font-normal">(Optional)</span>
-                        </label>
-                        <input type="datetime-local" id="campaignSchedule" 
-                               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
-                        <p class="text-xs text-gray-400 mt-1.5">Leave empty to send immediately</p>
-                    </div>
+                        <hr class="border-gray-200 dark:border-gray-700">
 
-                    <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                        <button type="button" 
-                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]" 
-                                onclick="closeCreateCampaignModal()">
-                            <i class="fas fa-times mr-1"></i> Cancel
-                        </button>
-                        <button type="submit" 
-                                id="submitCampaignBtn"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span id="submitCampaignText">Create Campaign</span>
-                        </button>
-                    </div>
-                </form>
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Campaign Type</label>
+                            <select id="campaignType" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                <option value="water_bill">Water Bill Reminder</option>
+                                <option value="rent_reminder">Rent Reminder</option>
+                                <option value="payment_confirm">Payment Confirmation</option>
+                                <option value="maintenance">Maintenance Update</option>
+                                <option value="lease_expiry">Lease Expiry Notice</option>
+                                <option value="general">General Broadcast</option>
+                            </select>
+                        </div>
+
+                        <hr class="border-gray-200 dark:border-gray-700">
+
+                        <div>
+                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                <i class="fas fa-filter mr-2"></i> Filter Recipients
+                            </h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Company</label>
+                                    <select id="campaignFilterCompany" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="filterEstatesByCompany()">
+                                        <option value="">All Companies</option>
+                                        @foreach($companies as $company)
+                                            <option value="{{ $company->id }}">{{ $company->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                
+                                <div>
+                                    <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate</label>
+                                    <select id="campaignFilterEstate" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
+                                        <option value="">All Estates</option>
+                                        @foreach($estates as $estate)
+                                            <option value="{{ $estate->id }}" data-company="{{ $estate->company_id }}">{{ $estate->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Invoice Status</label>
+                                    <select id="campaignFilterStatus" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
+                                        <option value="">All Statuses</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="unpaid">Unpaid</option>
+                                        <option value="partial">Partial</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Schedule Send <span class="text-gray-400 text-xs font-normal">(Optional)</span>
+                            </label>
+                            <input type="datetime-local" id="campaignSchedule" 
+                                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+                            <p class="text-xs text-gray-400 mt-1.5">Leave empty to send immediately</p>
+                        </div>
+
+                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" 
+                                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]" 
+                                    onclick="closeCreateCampaignModal()">
+                                <i class="fas fa-times mr-1"></i> Cancel
+                            </button>
+                            <button type="submit" 
+                                    id="submitCampaignBtn"
+                                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span id="submitCampaignText">Create Campaign</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- ============================================ -->
-<!-- VIEW CAMPAIGN MODAL -->
-<!-- ============================================ -->
-<div id="viewCampaignModal" class="fixed inset-0 z-[99999] overflow-y-auto" style="display: none;">
-    <div class="flex items-start justify-end min-h-screen pr-4 pt-4">
-        <div class="fixed inset-0 bg-gray-900/70 dark:bg-gray-900/80 transition-opacity" onclick="closeViewCampaignModal()"></div>
-
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden" style="z-index: 100000; width: 92%; max-width: 92%; min-width: 800px; margin-right: 20px; height: 92vh; max-height: 92vh;">
-            
-            <!-- Header -->
+    <!-- ============================================ -->
+    <!-- VIEW CAMPAIGN MODAL -->
+    <!-- ============================================ -->
+    <div id="viewCampaignModal" style="display: none;">
+        <div class="modal-content">
             <div class="bg-white dark:bg-gray-800 px-6 py-3.5 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
@@ -611,7 +683,6 @@
                 </div>
             </div>
             
-            <!-- Body -->
             <div class="px-6 py-5 overflow-y-auto flex-1" style="max-height: calc(92vh - 70px);">
                 <div id="viewCampaignLoading" class="text-center py-12">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -665,78 +736,76 @@
                         </div>
                     </div>
                     
-                   <!-- Campaign Stats -->
-<div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent</p>
-        <p class="text-2xl font-bold text-green-600" id="viewCampaignSent">0</p>
-    </div>
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending</p>
-        <p class="text-2xl font-bold text-yellow-600" id="viewCampaignPendingCount">0</p>
-    </div>
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failed</p>
-        <p class="text-2xl font-bold text-red-600" id="viewCampaignFailed">0</p>
-    </div>
-    <!-- 🆕 Delivered Card -->
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</p>
-        <p class="text-2xl font-bold text-green-600" id="viewCampaignDelivered">0</p>
-    </div>
-    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
-        <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progress</p>
-        <p class="text-2xl font-bold text-blue-600" id="viewCampaignProgress">0%</p>
-    </div>
-</div>
+                    <!-- Campaign Stats -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent</p>
+                            <p class="text-2xl font-bold text-green-600" id="viewCampaignSent">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pending</p>
+                            <p class="text-2xl font-bold text-yellow-600" id="viewCampaignPendingCount">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failed</p>
+                            <p class="text-2xl font-bold text-red-600" id="viewCampaignFailed">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</p>
+                            <p class="text-2xl font-bold text-green-600" id="viewCampaignDelivered">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Progress</p>
+                            <p class="text-2xl font-bold text-blue-600" id="viewCampaignProgress">0%</p>
+                        </div>
+                    </div>
                     
                     <!-- TABS FOR RECIPIENTS -->
-<div class="mb-4">
-    <div class="flex border-b border-gray-200 dark:border-gray-700">
-        <button onclick="switchRecipientTab('recipients')" id="tab-recipients" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
-            <i class="fas fa-users mr-1"></i> Recipients
-            <span class="text-xs text-gray-500 ml-1" id="recipientTabCount">(0)</span>
-        </button>
-        <button onclick="switchRecipientTab('invalid')" id="tab-invalid" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-            <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Invalid
-            <span class="text-xs text-gray-500 ml-1" id="invalidTabCount">(0)</span>
-        </button>
-        <button onclick="switchRecipientTab('other')" id="tab-other" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-            <i class="fas fa-network-wired text-yellow-500 mr-1"></i> Other Networks
-            <span class="text-xs text-gray-500 ml-1" id="otherTabCount">(0)</span>
-        </button>
-        <!-- NEW: Failed Tab -->
-        <button onclick="switchRecipientTab('failed')" id="tab-failed" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
-            <i class="fas fa-times-circle text-red-500 mr-1"></i> Failed
-            <span class="text-xs text-gray-500 ml-1" id="failedTabCount">(0)</span>
-        </button>
-        <div class="flex-1"></div>
-        
-        <!-- Export Dropdown -->
-        <div class="relative inline-block text-left">
-            <button onclick="toggleExportDropdown()" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 px-3 py-2 inline-flex items-center">
-                <i class="fas fa-file-export mr-1"></i> Export
-                <i class="fas fa-chevron-down ml-1 text-xs"></i>
-            </button>
-            <div id="exportDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
-                <div class="py-1">
-                    <button onclick="exportRecipients()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-file-export mr-2"></i> All Recipients
-                    </button>
-                    <button onclick="exportInvalidRecipients()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-exclamation-triangle mr-2"></i> Invalid Only
-                    </button>
-                    <button onclick="exportDeliveredRecipients()" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-check-circle mr-2"></i> Delivered Only
-                    </button>
-                    <button onclick="exportPendingRecipients()" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">
-                        <i class="fas fa-hourglass-half mr-2"></i> Pending Only
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+                    <div class="mb-4">
+                        <div class="flex border-b border-gray-200 dark:border-gray-700">
+                            <button onclick="switchRecipientTab('recipients')" id="tab-recipients" class="py-2 px-4 text-sm font-medium border-b-2 border-blue-500 text-blue-600 dark:text-blue-400">
+                                <i class="fas fa-users mr-1"></i> Recipients
+                                <span class="text-xs text-gray-500 ml-1" id="recipientTabCount">(0)</span>
+                            </button>
+                            <button onclick="switchRecipientTab('invalid')" id="tab-invalid" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+                                <i class="fas fa-exclamation-triangle text-red-500 mr-1"></i> Invalid
+                                <span class="text-xs text-gray-500 ml-1" id="invalidTabCount">(0)</span>
+                            </button>
+                            <button onclick="switchRecipientTab('other')" id="tab-other" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+                                <i class="fas fa-network-wired text-yellow-500 mr-1"></i> Other Networks
+                                <span class="text-xs text-gray-500 ml-1" id="otherTabCount">(0)</span>
+                            </button>
+                            <button onclick="switchRecipientTab('failed')" id="tab-failed" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-blue-600 dark:hover:text-blue-400">
+                                <i class="fas fa-times-circle text-red-500 mr-1"></i> Failed
+                                <span class="text-xs text-gray-500 ml-1" id="failedTabCount">(0)</span>
+                            </button>
+                            <div class="flex-1"></div>
+                            
+                            <!-- Export Dropdown -->
+                            <div class="relative inline-block text-left">
+                                <button onclick="toggleExportDropdown()" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 px-3 py-2 inline-flex items-center">
+                                    <i class="fas fa-file-export mr-1"></i> Export
+                                    <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                                </button>
+                                <div id="exportDropdown" class="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 hidden">
+                                    <div class="py-1">
+                                        <button onclick="exportRecipients()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-file-export mr-2"></i> All Recipients
+                                        </button>
+                                        <button onclick="exportInvalidRecipients()" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-exclamation-triangle mr-2"></i> Invalid Only
+                                        </button>
+                                        <button onclick="exportDeliveredRecipients()" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-check-circle mr-2"></i> Delivered Only
+                                        </button>
+                                        <button onclick="exportPendingRecipients()" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                            <i class="fas fa-hourglass-half mr-2"></i> Pending Only
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     
                     <!-- Recipients Tab Content -->
                     <div id="recipientsTabContent">
@@ -765,130 +834,124 @@
                                 <i class="fas fa-redo mr-1"></i> Resend Failed
                             </button>
                             
-                            <!-- NEW: Resend Pending Button -->
                             <button onclick="resendPending()" id="resendPendingBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50">
                                 <i class="fas fa-redo mr-1"></i> Resend Pending
                             </button>
                             
                             <button onclick="refreshCampaignStatus()" id="refreshStatusBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50">
-    <i class="fas fa-sync-alt mr-1"></i> Refresh Status
-</button>
+                                <i class="fas fa-sync-alt mr-1"></i> Refresh Status
+                            </button>
 
-<!-- 🆕 Check Pending Status Button -->
-<button onclick="checkPendingStatus()" id="checkPendingStatusBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50">
-    <i class="fas fa-search mr-1"></i> Check Pending Status
-</button>
-</div>
+                            <button onclick="checkPendingStatus()" id="checkPendingStatusBtn" class="px-3 py-1.5 text-xs rounded-lg transition-colors bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50">
+                                <i class="fas fa-search mr-1"></i> Check Pending Status
+                            </button>
+                        </div>
 
-<!-- Recipients Table -->
-<div class="mt-4">
-    <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-        <table class="min-w-full">
-            <thead>
-                <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parts</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent Time</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failure Reason</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="viewRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                <tr>
-                    <td colspan="12" class="px-4 py-8 text-center text-gray-500">
-                        <i class="fas fa-inbox mr-2"></i> No recipients found
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    
-    <!-- Pagination -->
-    <div class="flex items-center justify-between mt-4">
-        <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-            <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white" onchange="changeEntriesPerPage()">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="all">All</option>
-            </select>
-            <span class="text-sm text-gray-600 dark:text-gray-400">entries</span>
-        </div>
-        <div class="flex gap-2" id="paginationControls">
-            <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <span id="pageInfo" class="text-sm text-gray-600 dark:text-gray-400 px-3 py-1">Page 1 of 1</span>
-            <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-    </div>
-</div>
-</div>
+                        <!-- Recipients Table -->
+                        <div class="mt-4">
+                            <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                                <table class="min-w-full">
+                                    <thead>
+                                        <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parts</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent Time</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failure Reason</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="viewRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                        <tr>
+                                            <td colspan="12" class="px-4 py-8 text-center text-gray-500">
+                                                <i class="fas fa-inbox mr-2"></i> No recipients found
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            <div class="flex items-center justify-between mt-4">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+                                    <select id="entriesPerPageRecipients" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-white" onchange="changeEntriesPerPage()">
+                                        <option value="5">5</option>
+                                        <option value="10" selected>10</option>
+                                        <option value="20">20</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                        <option value="all">All</option>
+                                    </select>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">entries</span>
+                                </div>
+                                <div class="flex gap-2" id="paginationControls">
+                                    <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <span id="pageInfo" class="text-sm text-gray-600 dark:text-gray-400 px-3 py-1">Page 1 of 1</span>
+                                    <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-<!-- Other Networks Tab Content -->
-<div id="otherTabContent" style="display: none;">
-    <div class="mb-4">
-        <button onclick="loadOtherNetworkRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50">
-            <i class="fas fa-sync-alt mr-1"></i> Load Other Networks
-        </button>
-    </div>
-    <div class="w-full overflow-x-auto rounded-xl border border-yellow-200 dark:border-yellow-800">
-        <table class="min-w-full">
-            <thead>
-                <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
-                    <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
-                </tr>
-            </thead>
-            <tbody id="otherNetworkRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
-                <tr>
-                    <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
-                        <i class="fas fa-info-circle mr-1"></i> Click "Load Other Networks" to view
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-<!-- Close & Delete Buttons -->
-<div class="flex justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-    <button onclick="deleteCampaign(window.currentCampaignId)" class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-        <i class="fas fa-trash mr-1"></i> Delete Campaign
-    </button>
-    <button onclick="closeViewCampaignModal()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-6 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-600">
-        <i class="fas fa-times mr-1"></i> Close
-    </button>
-</div>
+                    <!-- Other Networks Tab Content -->
+                    <div id="otherTabContent" style="display: none;">
+                        <div class="mb-4">
+                            <button onclick="loadOtherNetworkRecipients()" class="inline-flex items-center gap-2 rounded-lg bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50">
+                                <i class="fas fa-sync-alt mr-1"></i> Load Other Networks
+                            </button>
+                        </div>
+                        <div class="w-full overflow-x-auto rounded-xl border border-yellow-200 dark:border-yellow-800">
+                            <table class="min-w-full">
+                                <thead>
+                                    <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
+                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
+                                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="otherNetworkRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tr>
+                                        <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
+                                            <i class="fas fa-info-circle mr-1"></i> Click "Load Other Networks" to view
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
+                    <!-- Close & Delete Buttons -->
+                    <div class="flex justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <button onclick="deleteCampaign(window.currentCampaignId)" class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-6 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                            <i class="fas fa-trash mr-1"></i> Delete Campaign
+                        </button>
+                        <button onclick="closeViewCampaignModal()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-6 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-600">
+                            <i class="fas fa-times mr-1"></i> Close
+                        </button>
+                    </div>
                 </div>  <!-- closes viewCampaignContent -->
             </div>      <!-- closes body -->
         </div>          <!-- closes main modal content -->
-    </div>              <!-- closes positioning -->
-</div>                  <!-- closes viewCampaignModal -->
+    </div>              <!-- closes viewCampaignModal -->
 
-<!-- ============================================ -->
-<!-- UPDATE PHONE MODAL -->
-<!-- ============================================ -->
-<div id="updatePhoneModal" class="fixed inset-0 z-[99999] overflow-y-auto" style="display: none;">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-gray-900/70 dark:bg-gray-900/80 transition-opacity" onclick="closeUpdatePhoneModal()"></div>
-        
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden" style="z-index: 100000;">
+    <!-- ============================================ -->
+    <!-- UPDATE PHONE MODAL -->
+    <!-- ============================================ -->
+    <div id="updatePhoneModal" style="display: none;">
+        <div class="modal-content">
             <div class="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
@@ -929,1014 +992,1765 @@
             </div>
         </div>
     </div>
-</div>
 
-<script>
-// ============================================
-// TAB SWITCHING
-// ============================================
-let activeTab = 'tenants';
-let currentPage = 1;
-let rowsPerPage = 10;
-let sortColumn = '';
-let sortDirection = 'asc';
-let allRows = [];
-let allTenantsData = [];
-let currentCampaignId = null;
-let currentRecipients = [];
-let currentRecipientsFull = [];
-let currentFilteredRecipients = [];
-let currentRecipientFilter = 'all';
-let currentInvalidRecipients = [];
-let currentOtherNetworkRecipients = [];
-let currentFailedRecipients = [];
+    @verbatim
+    <script>
+        // ============================================
+        // TAB SWITCHING
+        // ============================================
+        let activeTab = 'tenants';
+        let currentPage = 1;
+        let hidePaid = false;
+        let rowsPerPage = 10;
+        let sortColumn = '';
+        let sortDirection = 'asc';
+        let allRows = [];
+        let allTenantsData = [];
+        let currentCampaignId = null;
+        let currentRecipients = [];
+        let currentRecipientsFull = [];
+        let currentFilteredRecipients = [];
+        let currentRecipientFilter = 'all';
+        let currentInvalidRecipients = [];
+        let currentOtherNetworkRecipients = [];
+        let currentFailedRecipients = [];
 
-function renderTab() {
-    console.log('📋 Rendering tab:', activeTab);
-    
-    const tenantsTab = document.getElementById('tenants-tab');
-    const customTab = document.getElementById('custom-tab');
-    const historyTab = document.getElementById('history-tab');
-    const campaignsTab = document.getElementById('campaigns-tab');
-    
-    if (tenantsTab) tenantsTab.style.display = 'none';
-    if (customTab) customTab.style.display = 'none';
-    if (historyTab) historyTab.style.display = 'none';
-    if (campaignsTab) campaignsTab.style.display = 'none';
-    
-    const activeTabElement = document.getElementById(activeTab + '-tab');
-    if (activeTabElement) {
-        activeTabElement.style.display = 'block';
-        console.log('✅ Showing tab:', activeTab);
-    } else {
-        console.error('❌ Tab not found:', activeTab + '-tab');
-    }
-    
-    const tabIds = ['tab-tenants', 'tab-custom', 'tab-history', 'tab-campaigns'];
-    tabIds.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn) {
-            btn.classList.remove('border-blue-500', 'text-blue-600');
-            btn.classList.add('border-transparent');
+       // ============================================================
+// FORMAT MONTH YEAR - FIXED
+// ============================================================
+function formatMonthYear(dateStr) {
+    if (!dateStr) return 'Unknown';
+    try {
+        let date;
+        // Handle YYYY-MM-DD format (e.g., "2026-05-01")
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            date = new Date(dateStr);
         }
-    });
-    
-    const activeBtn = document.getElementById('tab-' + activeTab);
-    if (activeBtn) {
-        activeBtn.classList.add('border-blue-500', 'text-blue-600');
-        activeBtn.classList.remove('border-transparent');
-    }
-    
-    if (activeTab === 'campaigns') {
-        console.log('🔄 Loading campaigns...');
-        loadCampaigns();
-    }
-}
-
-// ============================================
-// DOM READY
-// ============================================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 DOM Ready - Initializing...');
-    
-    const templateSelect = document.getElementById('templateSelect');
-    if (templateSelect) {
-        templateSelect.addEventListener('change', function() {
-            let selected = this.options[this.selectedIndex];
-            let content = selected.getAttribute('data-content');
-            if (content) {
-                document.getElementById('template').value = content;
-                updatePreview();
-            }
-        });
-    }
-    
-    initRows();
-    renderTab();
-    
-    const entriesSelect = document.getElementById('entriesPerPage');
-    if (entriesSelect) {
-        entriesSelect.addEventListener('change', entriesPerPageChange);
-    }
-    
-    const templateTextarea = document.getElementById('template');
-    if (templateTextarea) {
-        templateTextarea.addEventListener('input', function() {
-            const charCount = this.value.length;
-            const counter = document.getElementById('charCounter');
-            if (counter) {
-                counter.textContent = charCount + ' characters';
-                if (charCount > 160) {
-                    counter.textContent += ' (' + Math.ceil(charCount / 160) + ' SMS)';
-                    counter.className = 'mt-2 text-sm text-yellow-600 dark:text-yellow-400';
-                } else {
-                    counter.className = 'mt-2 text-sm text-gray-500 dark:text-gray-400';
-                }
-            }
-        });
-    }
-    
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function() {
-            document.querySelectorAll('.tenant-checkbox:visible').forEach(cb => {
-                cb.checked = true;
-            });
-            updateSelectedCount();
-        });
-    }
-    
-    const selectNoneBtn = document.getElementById('selectNoneBtn');
-    if (selectNoneBtn) {
-        selectNoneBtn.addEventListener('click', function() {
-            document.querySelectorAll('.tenant-checkbox').forEach(cb => {
-                cb.checked = false;
-            });
-            updateSelectedCount();
-        });
-    }
-    
-    if (activeTab === 'campaigns') {
-        loadCampaigns();
-    }
-});
-
-// ============================================
-// SEND TO TENANTS - Functions
-// ============================================
-function getAllTenantsData() {
-    const rows = document.querySelectorAll('.tenant-row');
-    allTenantsData = [];
-    rows.forEach(row => {
-        const checkbox = row.querySelector('.tenant-checkbox');
-        if (checkbox) {
-            allTenantsData.push({
-                id: checkbox.dataset.id || '',
-                phone: checkbox.dataset.phone || '',
-                name: checkbox.dataset.name || 'Tenant',
-                unit: checkbox.dataset.unit || 'N/A',
-                estate: checkbox.dataset.estate || 'N/A',
-                estateId: checkbox.dataset.estateId || '',
-                waterbill: checkbox.dataset.waterbill || 0,
-                consumption: checkbox.dataset.consumption || 0,
-                prevRead: checkbox.dataset.prevRead || 0,
-                currRead: checkbox.dataset.currRead || 0,
-                month: checkbox.dataset.month || 'N/A',
-                dueDate: checkbox.dataset.dueDate || 'N/A',
-                paymentStatus: checkbox.dataset.paymentStatus || 'pending',
-                row: row,
-                checkbox: checkbox
-            });
+        // Handle YYYY-MM format (e.g., "2026-05")
+        else if (dateStr.match(/^\d{4}-\d{2}$/)) {
+            date = new Date(dateStr + '-01');
         }
-    });
-    console.log('📊 Loaded tenants data:', allTenantsData.length, 'tenants');
-    return allTenantsData;
-}
-
-function toggleAllCheckboxes() {
-    const masterCheckbox = document.getElementById('toggleAllCheckbox');
-    if (!masterCheckbox) return;
-    const isChecked = masterCheckbox.checked;
-    document.querySelectorAll('.tenant-checkbox').forEach(cb => {
-        cb.checked = isChecked;
-    });
-    updateSelectedCount();
-}
-
-function getVisibleCheckboxes() {
-    return Array.from(document.querySelectorAll('.tenant-checkbox')).filter(cb => {
-        const row = cb.closest('.tenant-row');
-        return row && row.style.display !== 'none';
-    });
-}
-
-function getAllSelectedCheckboxes() {
-    return Array.from(document.querySelectorAll('.tenant-checkbox')).filter(cb => cb.checked);
-}
-
-function initRows() {
-    allRows = Array.from(document.querySelectorAll('.tenant-row'));
-    getAllTenantsData();
-    applyFiltersAndRender();
-    updateSelectedCount();
-    updateMasterCheckboxState();
-}
-
-function updateMasterCheckboxState() {
-    const masterCheckbox = document.getElementById('toggleAllCheckbox');
-    if (!masterCheckbox) return;
-    
-    const allCheckboxes = document.querySelectorAll('.tenant-checkbox');
-    const checkedCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
-    
-    if (allCheckboxes.length === 0) {
-        masterCheckbox.checked = false;
-        masterCheckbox.indeterminate = false;
-    } else if (checkedCheckboxes.length === allCheckboxes.length) {
-        masterCheckbox.checked = true;
-        masterCheckbox.indeterminate = false;
-    } else if (checkedCheckboxes.length > 0) {
-        masterCheckbox.checked = false;
-        masterCheckbox.indeterminate = true;
-    } else {
-        masterCheckbox.checked = false;
-        masterCheckbox.indeterminate = false;
-    }
-}
-
-function applyFiltersAndRender() {
-    const estateFilter = document.getElementById('estateFilter');
-    const tenantSearch = document.getElementById('tenantSearch');
-    const paymentStatusFilter = document.getElementById('paymentStatusFilter');
-    const minBillFilter = document.getElementById('minBillFilter');
-    
-    if (!estateFilter || !tenantSearch || !paymentStatusFilter || !minBillFilter) {
-        return;
-    }
-    
-    let selectedEstateId = estateFilter.value;
-    let searchTerm = tenantSearch.value.toLowerCase();
-    let paymentStatus = paymentStatusFilter.value;
-    let minBill = parseFloat(minBillFilter.value) || 0;
-    
-    let visibleRows = allRows.filter(row => {
-        let estateId = row.getAttribute('data-estate-id');
-        let name = row.getAttribute('data-name-lower') || '';
-        let phone = row.getAttribute('data-phone') || '';
-        let unit = row.getAttribute('data-unit-lower') || '';
-        let estate = row.getAttribute('data-estate-lower') || '';
-        let waterBill = parseFloat(row.getAttribute('data-water-bill')) || 0;
-        let payment = row.getAttribute('data-payment-status') || 'pending';
-        
-        let matchesEstate = selectedEstateId === '' || estateId == selectedEstateId;
-        let matchesSearch = searchTerm === '' || 
-            name.includes(searchTerm) || 
-            phone.includes(searchTerm) || 
-            unit.includes(searchTerm) ||
-            estate.includes(searchTerm);
-        let matchesPayment = paymentStatus === '' || payment === paymentStatus;
-        let matchesBill = waterBill >= minBill;
-        
-        return matchesEstate && matchesSearch && matchesPayment && matchesBill;
-    });
-    
-    if (sortColumn) {
-        visibleRows.sort((a, b) => {
-            let aVal, bVal;
-            switch(sortColumn) {
-                case 'name': aVal = a.getAttribute('data-name') || ''; bVal = b.getAttribute('data-name') || ''; break;
-                case 'phone': aVal = a.getAttribute('data-phone') || ''; bVal = b.getAttribute('data-phone') || ''; break;
-                case 'unit': aVal = a.getAttribute('data-unit') || ''; bVal = b.getAttribute('data-unit') || ''; break;
-                case 'estate': aVal = a.getAttribute('data-estate') || ''; bVal = b.getAttribute('data-estate') || ''; break;
-                case 'water_bill': aVal = parseFloat(a.getAttribute('data-water-bill')) || 0; bVal = parseFloat(b.getAttribute('data-water-bill')) || 0; break;
-                default: aVal = a.getAttribute('data-name') || ''; bVal = b.getAttribute('data-name') || '';
-            }
-            if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-            if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-    }
-    
-    const entriesSelect = document.getElementById('entriesPerPage');
-    const showAll = entriesSelect ? entriesSelect.value === 'all' : false;
-    
-    let paginatedRows;
-    if (showAll) {
-        paginatedRows = visibleRows;
-    } else {
-        const start = (currentPage - 1) * rowsPerPage;
-        const end = start + rowsPerPage;
-        paginatedRows = visibleRows.slice(start, end);
-    }
-    
-    allRows.forEach(row => row.style.display = 'none');
-    paginatedRows.forEach(row => row.style.display = '');
-    
-    const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
-    const pageInfo = document.getElementById('pageInfo');
-    if (pageInfo) {
-        pageInfo.innerText = showAll ? 'Showing all' : `Page ${currentPage} of ${totalPages || 1}`;
-    }
-    
-    updateSelectedCount();
-}
-
-function entriesPerPageChange() {
-    const entriesSelect = document.getElementById('entriesPerPage');
-    if (!entriesSelect) return;
-    
-    if (entriesSelect.value === 'all') {
-        rowsPerPage = 999999;
-    } else {
-        rowsPerPage = parseInt(entriesSelect.value);
-    }
-    currentPage = 1;
-    applyFiltersAndRender();
-}
-
-function sortTable(column) {
-    if (sortColumn === column) {
-        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn = column;
-        sortDirection = 'asc';
-    }
-    applyFiltersAndRender();
-}
-
-function prevPage() {
-    if (currentPage > 1) {
-        currentPage--;
-        applyFiltersAndRender();
-    }
-}
-
-function nextPage() {
-    const visibleRows = allRows.filter(row => row.style.display !== 'none').length;
-    const totalPages = Math.ceil(visibleRows / rowsPerPage);
-    if (currentPage < totalPages) {
-        currentPage++;
-        applyFiltersAndRender();
-    }
-}
-
-function updatePreview() {
-    let template = document.getElementById('template')?.value || '';
-    let allSelected = getAllSelectedCheckboxes();
-    let selectedCount = allSelected.length;
-    
-    const previewSection = document.getElementById('previewSection');
-    const previewContainer = document.getElementById('previewContainer');
-    const previewCount = document.getElementById('previewCount');
-    
-    if (!previewSection || !previewContainer) return;
-    
-    if (selectedCount > 0 && template.trim() !== '') {
-        previewSection.style.display = 'block';
-        if (previewCount) {
-            previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants`;
+        // Handle "May 2026" format
+        else if (dateStr.match(/^[A-Za-z]+ \d{4}$/)) {
+            return dateStr;
+        }
+        // Try parsing as-is
+        else {
+            date = new Date(dateStr);
         }
         
-        let previews = [];
-        const maxPreview = Math.min(3, selectedCount);
-        
-        for (let i = 0; i < maxPreview; i++) {
-            let cb = allSelected[i];
-            
-            let phone = cb.getAttribute('data-phone') || '';
-            let name = cb.getAttribute('data-name') || 'Tenant';
-            let unit = cb.getAttribute('data-unit') || 'N/A';
-            let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0);
-            let consumption = cb.getAttribute('data-consumption') || '0';
-            let estate_name = cb.getAttribute('data-estate') || 'N/A';
-            let prev_read = cb.getAttribute('data-prev-read') || '0';
-            let curr_read = cb.getAttribute('data-curr-read') || '0';
-            let month = cb.getAttribute('data-month') || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-            let dueDate = cb.getAttribute('data-due-date') || new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0];
-            let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
-            
-            // Calculate unpaid invoice data
-            let isUnpaid = paymentStatus === 'unpaid' || paymentStatus === 'pending' || paymentStatus === 'overdue';
-            let unpaidCount = isUnpaid ? 2 : 0;
-            let unpaidTotal = isUnpaid ? 3000.00 : 0;
-            let unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
-            let unpaidMessage = unpaidCount === 0 
-                ? 'no pending invoices' 
-                : (unpaidCount === 1 
-                    ? `1 unpaid invoice of KES ${unpaidTotal.toFixed(2)}` 
-                    : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`);
-            
-            let formattedDueDate = dueDate;
+        if (date && !isNaN(date)) {
+            return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        }
+    } catch (e) { /* ignore */ }
+    return dateStr;
+}
+        // ============================================
+        // HELPER: Escape HTML
+        // ============================================
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ============================================
+        // HELPER: Capitalize
+        // ============================================
+        function capitalize(str) {
+            if (!str) return '';
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // ============================================
+        // HELPER: Format Date
+        // ============================================
+        function formatDate(date) {
+            if (!date) return 'N/A';
             try {
-                const d = new Date(dueDate);
-                if (!isNaN(d)) {
-                    formattedDueDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                }
+                return new Date(date).toLocaleString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             } catch (e) {
-                formattedDueDate = dueDate;
+                return 'N/A';
             }
-            
-            let formattedWaterBill = water_bill.toFixed(2);
-            
-            let message = template;
-            
-            message = message.replace(/\{\{name\}\}/g, name);
-            message = message.replace(/\{\{unit\}\}/g, unit);
-            message = message.replace(/\{\{unit_number\}\}/g, unit);
-            message = message.replace(/\{\{water_bill\}\}/g, formattedWaterBill);
-            message = message.replace(/\{\{water_consumption\}\}/g, consumption);
-            message = message.replace(/\{\{due_date\}\}/g, formattedDueDate);
-            message = message.replace(/\{\{month\}\}/g, month);
-            message = message.replace(/\{\{estate_name\}\}/g, estate_name);
-            message = message.replace(/\{\{estate\}\}/g, estate_name);
-            message = message.replace(/\{\{prev_read\}\}/g, prev_read);
-            message = message.replace(/\{\{curr_read\}\}/g, curr_read);
-            message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
-            message = message.replace(/\{\{status\}\}/g, paymentStatus);
-            
-            // NEW: Replace unpaid invoice variables
-            message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
-            message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
-            message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
-            message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
-            
-            message = message.replace(/\{\{[^}]*\}\}/g, '');
-            
-            const msgLength = message.length;
-            const isUnicode = /[^\x00-\x7F]/.test(message);
-            const partsPerSms = isUnicode ? 70 : 160;
-            const parts = Math.ceil(msgLength / partsPerSms);
-            
-            let statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-            if (paymentStatus === 'paid') statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-            else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-            
-            previews.push({
-                phone: phone,
-                name: name,
-                unit: unit,
-                estate: estate_name,
-                water_bill: formattedWaterBill,
-                water_consumption: consumption,
-                prev_read: prev_read,
-                curr_read: curr_read,
-                month: month,
-                due_date: formattedDueDate,
-                paymentStatus: paymentStatus,
-                message: message,
-                length: msgLength,
-                parts: parts,
-                statusColor: statusColor,
-                unpaid_count: unpaidCount,
-                unpaid_total: unpaidTotal.toFixed(2),
-                unpaid_list: unpaidList,
-                unpaid_message: unpaidMessage
+        }
+
+        // ============================================
+        // HELPER: Get Status Badge
+        // ============================================
+        function getStatusBadge(status) {
+            const badges = {
+                'draft': 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+                'pending': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'scheduled': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+                'sending': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+                'sent': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                'completed': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                'failed': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                'delivered': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+                'queued': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+            };
+            return badges[status] || 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
+        }
+
+        // ============================================
+        // HELPER: Copy to clipboard
+        // ============================================
+        function copyToClipboard(text) {
+            if (!text) return;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 Copied to clipboard!');
+            }).catch(() => {
+                const input = document.createElement('input');
+                input.value = text;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('📋 Copied to clipboard!');
             });
         }
-        
-        let html = '';
-        previews.forEach((p) => {
-            let unpaidInfo = '';
-            if (p.unpaid_count > 0) {
-                unpaidInfo = `
-                    <span class="text-xs text-orange-600 dark:text-orange-400 ml-2">
-                        ⚠️ ${p.unpaid_count} unpaid (KES ${p.unpaid_total})
-                    </span>
+
+        // ============================================
+        // HELPER: Show toast notification
+        // ============================================
+        function showToast(message) {
+            if (typeof toastr !== 'undefined') {
+                toastr.success(message);
+                return;
+            }
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #1a202c;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 999999;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                max-width: 400px;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ============================================
+        // RENDER TAB
+        // ============================================
+        function renderTab() {
+            console.log('📋 Rendering tab:', activeTab);
+            
+            const tenantsTab = document.getElementById('tenants-tab');
+            const customTab = document.getElementById('custom-tab');
+            const historyTab = document.getElementById('history-tab');
+            const campaignsTab = document.getElementById('campaigns-tab');
+            
+            if (tenantsTab) tenantsTab.style.display = 'none';
+            if (customTab) customTab.style.display = 'none';
+            if (historyTab) historyTab.style.display = 'none';
+            if (campaignsTab) campaignsTab.style.display = 'none';
+            
+            const activeTabElement = document.getElementById(activeTab + '-tab');
+            if (activeTabElement) {
+                activeTabElement.style.display = 'block';
+                console.log('✅ Showing tab:', activeTab);
+            } else {
+                console.error('❌ Tab not found:', activeTab + '-tab');
+            }
+            
+            const tabIds = ['tab-tenants', 'tab-custom', 'tab-history', 'tab-campaigns'];
+            tabIds.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent');
+                }
+            });
+            
+            const activeBtn = document.getElementById('tab-' + activeTab);
+            if (activeBtn) {
+                activeBtn.classList.add('border-blue-500', 'text-blue-600');
+                activeBtn.classList.remove('border-transparent');
+            }
+            
+            if (activeTab === 'campaigns') {
+                console.log('🔄 Loading campaigns...');
+                loadCampaigns();
+            }
+        }
+
+        // ============================================
+        // DOM READY
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 DOM Ready - Initializing...');
+            
+            const templateSelect = document.getElementById('templateSelect');
+            if (templateSelect) {
+                templateSelect.addEventListener('change', function() {
+                    let selected = this.options[this.selectedIndex];
+                    let content = selected.getAttribute('data-content');
+                    if (content) {
+                        document.getElementById('template').value = content;
+                        updatePreview();
+                    }
+                });
+            }
+            
+            initRows();
+            renderTab();
+            
+            const entriesSelect = document.getElementById('entriesPerPage');
+            if (entriesSelect) {
+                entriesSelect.addEventListener('change', entriesPerPageChange);
+            }
+            
+            const templateTextarea = document.getElementById('template');
+            if (templateTextarea) {
+                templateTextarea.addEventListener('input', function() {
+                    const charCount = this.value.length;
+                    const counter = document.getElementById('charCounter');
+                    if (counter) {
+                        counter.textContent = charCount + ' characters';
+                        if (charCount > 160) {
+                            counter.textContent += ' (' + Math.ceil(charCount / 160) + ' SMS)';
+                            counter.className = 'mt-2 text-sm text-yellow-600 dark:text-yellow-400';
+                        } else {
+                            counter.className = 'mt-2 text-sm text-gray-500 dark:text-gray-400';
+                        }
+                    }
+                });
+            }
+            
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            if (selectAllBtn) {
+                selectAllBtn.addEventListener('click', function() {
+                    document.querySelectorAll('.tenant-row').forEach(row => {
+                        if (row.style.display !== 'none') {
+                            const checkbox = row.querySelector('.tenant-checkbox');
+                            if (checkbox) checkbox.checked = true;
+                        }
+                    });
+                    updateSelectedCount();
+                });
+            }
+            
+            const selectNoneBtn = document.getElementById('selectNoneBtn');
+            if (selectNoneBtn) {
+                selectNoneBtn.addEventListener('click', function() {
+                    document.querySelectorAll('.tenant-checkbox').forEach(cb => {
+                        cb.checked = false;
+                    });
+                    updateSelectedCount();
+                });
+            }
+            
+            const hidePaidBtn = document.getElementById('hidePaidBtn');
+            if (hidePaidBtn) {
+                hidePaidBtn.addEventListener('click', function() {
+                    hidePaid = !hidePaid;
+                    const label = document.getElementById('hidePaidLabel');
+                    if (label) {
+                        label.textContent = hidePaid ? 'Show All' : 'Hide Paid';
+                    }
+                    const icon = this.querySelector('i');
+                    if (icon) {
+                        icon.className = hidePaid ? 'fas fa-eye' : 'fas fa-eye-slash';
+                    }
+                    applyFiltersAndRender();
+                });
+            }
+            
+            if (activeTab === 'campaigns') {
+                loadCampaigns();
+            }
+        });
+
+        // ============================================
+        // SEND TO TENANTS - Functions
+        // ============================================
+        function getAllTenantsData() {
+            const rows = document.querySelectorAll('.tenant-row');
+            allTenantsData = [];
+            rows.forEach(row => {
+                const checkbox = row.querySelector('.tenant-checkbox');
+                if (checkbox) {
+                    allTenantsData.push({
+                        id: checkbox.dataset.id || '',
+                        phone: checkbox.dataset.phone || '',
+                        name: checkbox.dataset.name || 'Tenant',
+                        unit: checkbox.dataset.unit || 'N/A',
+                        estate: checkbox.dataset.estate || 'N/A',
+                        estateId: checkbox.dataset.estateId || '',
+                        waterbill: checkbox.dataset.waterbill || 0,
+                        consumption: checkbox.dataset.consumption || 0,
+                        prevRead: checkbox.dataset.prevRead || 0,
+                        currRead: checkbox.dataset.currRead || 0,
+                        month: checkbox.dataset.month || 'N/A',
+                        dueDate: checkbox.dataset.dueDate || 'N/A',
+                        paymentStatus: checkbox.dataset.paymentStatus || 'pending',
+                        row: row,
+                        checkbox: checkbox
+                    });
+                }
+            });
+            console.log('📊 Loaded tenants data:', allTenantsData.length, 'tenants');
+            return allTenantsData;
+        }
+
+        function toggleAllCheckboxes() {
+            const masterCheckbox = document.getElementById('toggleAllCheckbox');
+            if (!masterCheckbox) return;
+            const isChecked = masterCheckbox.checked;
+            document.querySelectorAll('.tenant-checkbox').forEach(cb => {
+                cb.checked = isChecked;
+            });
+            updateSelectedCount();
+        }
+
+        function getVisibleCheckboxes() {
+            return Array.from(document.querySelectorAll('.tenant-checkbox')).filter(cb => {
+                const row = cb.closest('.tenant-row');
+                return row && row.style.display !== 'none';
+            });
+        }
+
+        function getAllSelectedCheckboxes() {
+            return Array.from(document.querySelectorAll('.tenant-checkbox')).filter(cb => cb.checked);
+        }
+
+        function initRows() {
+            allRows = Array.from(document.querySelectorAll('.tenant-row'));
+            getAllTenantsData();
+            applyFiltersAndRender();
+            updateSelectedCount();
+            updateMasterCheckboxState();
+        }
+
+        function updateMasterCheckboxState() {
+            const masterCheckbox = document.getElementById('toggleAllCheckbox');
+            if (!masterCheckbox) return;
+            
+            const allCheckboxes = document.querySelectorAll('.tenant-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.tenant-checkbox:checked');
+            
+            if (allCheckboxes.length === 0) {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = false;
+            } else if (checkedCheckboxes.length === allCheckboxes.length) {
+                masterCheckbox.checked = true;
+                masterCheckbox.indeterminate = false;
+            } else if (checkedCheckboxes.length > 0) {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = true;
+            } else {
+                masterCheckbox.checked = false;
+                masterCheckbox.indeterminate = false;
+            }
+        }
+
+        function applyFiltersAndRender() {
+            const estateFilter = document.getElementById('estateFilter');
+            const tenantSearch = document.getElementById('tenantSearch');
+            const paymentStatusFilter = document.getElementById('paymentStatusFilter');
+            const minBillFilter = document.getElementById('minBillFilter');
+            
+            if (!estateFilter || !tenantSearch || !paymentStatusFilter || !minBillFilter) {
+                return;
+            }
+            
+            let selectedEstateId = estateFilter.value;
+            let searchTerm = tenantSearch.value.toLowerCase();
+            let paymentStatus = paymentStatusFilter.value;
+            let minBill = parseFloat(minBillFilter.value) || 0;
+            
+            let visibleRows = allRows.filter(row => {
+                let estateId = row.getAttribute('data-estate-id');
+                let name = row.getAttribute('data-name-lower') || '';
+                let phone = row.getAttribute('data-phone') || '';
+                let unit = row.getAttribute('data-unit-lower') || '';
+                let estate = row.getAttribute('data-estate-lower') || '';
+                let waterBill = parseFloat(row.getAttribute('data-water-bill')) || 0;
+                let payment = row.getAttribute('data-payment-status') || 'pending';
+                
+                let matchesEstate = selectedEstateId === '' || estateId == selectedEstateId;
+                let matchesSearch = searchTerm === '' || 
+                    name.includes(searchTerm) || 
+                    phone.includes(searchTerm) || 
+                    unit.includes(searchTerm) ||
+                    estate.includes(searchTerm);
+                let matchesPayment = paymentStatus === '' || payment === paymentStatus;
+                let matchesBill = waterBill >= minBill;
+                
+                if (hidePaid && payment === 'paid') {
+                    return false;
+                }
+                
+                return matchesEstate && matchesSearch && matchesPayment && matchesBill;
+            });
+            
+            if (sortColumn) {
+                visibleRows.sort((a, b) => {
+                    let aVal, bVal;
+                    switch(sortColumn) {
+                        case 'name': aVal = a.getAttribute('data-name') || ''; bVal = b.getAttribute('data-name') || ''; break;
+                        case 'phone': aVal = a.getAttribute('data-phone') || ''; bVal = b.getAttribute('data-phone') || ''; break;
+                        case 'unit': aVal = a.getAttribute('data-unit') || ''; bVal = b.getAttribute('data-unit') || ''; break;
+                        case 'estate': aVal = a.getAttribute('data-estate') || ''; bVal = b.getAttribute('data-estate') || ''; break;
+                        case 'water_bill': aVal = parseFloat(a.getAttribute('data-water-bill')) || 0; bVal = parseFloat(b.getAttribute('data-water-bill')) || 0; break;
+                        default: aVal = a.getAttribute('data-name') || ''; bVal = b.getAttribute('data-name') || '';
+                    }
+                    if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+                    if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+            
+            const entriesSelect = document.getElementById('entriesPerPage');
+            const showAll = entriesSelect ? entriesSelect.value === 'all' : false;
+            
+            let paginatedRows;
+            if (showAll) {
+                paginatedRows = visibleRows;
+            } else {
+                const start = (currentPage - 1) * rowsPerPage;
+                const end = start + rowsPerPage;
+                paginatedRows = visibleRows.slice(start, end);
+            }
+            
+            allRows.forEach(row => row.style.display = 'none');
+            paginatedRows.forEach(row => row.style.display = '');
+            
+            const totalPages = Math.ceil(visibleRows.length / rowsPerPage);
+            const pageInfo = document.getElementById('pageInfo');
+            if (pageInfo) {
+                pageInfo.innerText = showAll ? 'Showing all' : `Page ${currentPage} of ${totalPages || 1}`;
+            }
+            
+            updateSelectedCount();
+        }
+
+        function entriesPerPageChange() {
+            const entriesSelect = document.getElementById('entriesPerPage');
+            if (!entriesSelect) return;
+            
+            if (entriesSelect.value === 'all') {
+                rowsPerPage = 999999;
+            } else {
+                rowsPerPage = parseInt(entriesSelect.value);
+            }
+            currentPage = 1;
+            applyFiltersAndRender();
+        }
+
+        function sortTable(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+            applyFiltersAndRender();
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                applyFiltersAndRender();
+            }
+        }
+
+        function nextPage() {
+            const visibleRows = allRows.filter(row => row.style.display !== 'none').length;
+            const totalPages = Math.ceil(visibleRows / rowsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                applyFiltersAndRender();
+            }
+        }
+
+        // ============================================
+        // UPDATE PREVIEW – sends clean current_month to API
+        // ============================================
+        function updatePreview() {
+            let template = document.getElementById('template')?.value || '';
+            let allSelected = getAllSelectedCheckboxes();
+            let selectedCount = allSelected.length;
+
+            const previewSection = document.getElementById('previewSection');
+            const previewContainer = document.getElementById('previewContainer');
+            const previewCount = document.getElementById('previewCount');
+
+            if (!previewSection || !previewContainer) return;
+
+            if (selectedCount === 0 || template.trim() === '') {
+                previewSection.style.display = 'none';
+                if (previewCount) previewCount.textContent = '';
+                return;
+            }
+
+            const tenantIds = Array.from(allSelected)
+                .map(cb => cb.getAttribute('data-id'))
+                .filter(id => id && id !== '');
+
+            let currentMonth = null;
+            const firstCb = allSelected[0];
+            if (firstCb) {
+                let monthAttr = firstCb.getAttribute('data-month') || '';
+                if (monthAttr) {
+                    try {
+                        const parts = monthAttr.split(' ');
+                        if (parts.length === 2) {
+                            const monthName = parts[0];
+                            const year = parts[1];
+                            const monthNum = new Date(Date.parse(monthName + ' 1, 2000')).getMonth() + 1;
+                            if (monthNum) {
+                                currentMonth = year + '-' + String(monthNum).padStart(2, '0');
+                            }
+                        } else {
+                            const d = new Date(monthAttr);
+                            if (!isNaN(d)) {
+                                currentMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                            }
+                        }
+                    } catch (e) { /* fallback */ }
+                }
+                if (!currentMonth) {
+                    const d = new Date();
+                    currentMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+            }
+
+            console.log('📤 Sending current_month:', currentMonth);
+
+            previewSection.style.display = 'block';
+            previewContainer.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Loading invoice data...</div>';
+            if (previewCount) previewCount.textContent = 'Loading...';
+
+            fetch('/api/sms/preview-invoices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({
+                    tenant_ids: tenantIds,
+                    current_month: currentMonth
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📥 API response:', data);
+                if (data.success && data.invoices) {
+                    renderPreviewWithData(data.invoices, template, allSelected, selectedCount);
+                } else {
+                    throw new Error('No invoice data returned');
+                }
+            })
+            .catch(error => {
+                console.warn('⚠️ Falling back to dummy data:', error);
+                renderPreviewWithDummyData(template, allSelected, selectedCount);
+            });
+        }
+
+        // ============================================================
+        // RENDER PREVIEW WITH REAL INVOICE DATA
+        // ============================================================
+        function renderPreviewWithData(invoiceData, template, allSelected, selectedCount) {
+            console.log('📥 invoiceData received:', invoiceData);
+            const previewCount = document.getElementById('previewCount');
+            if (previewCount) {
+                previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants`;
+            }
+
+            let previews = [];
+            const maxPreview = Math.min(3, selectedCount);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < maxPreview; i++) {
+                let cb = allSelected[i];
+                let tenantId = cb.dataset.id || '';
+                let tenantInvoices = invoiceData[tenantId] || [];
+                console.log(`🔍 Tenant ${tenantId} invoices:`, tenantInvoices);
+
+                let currentMonthY = '';
+                let monthAttr = cb.getAttribute('data-month') || '';
+                if (monthAttr) {
+                    try {
+                        const d = new Date(monthAttr);
+                        if (!isNaN(d)) {
+                            currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                        }
+                    } catch (e) {}
+                }
+                if (!currentMonthY && tenantInvoices.length > 0) {
+                    let latest = tenantInvoices.reduce((a, b) => {
+                        return (a.billing_month > b.billing_month) ? a : b;
+                    });
+                    if (latest && latest.billing_month) {
+                        currentMonthY = latest.billing_month.substring(0, 7);
+                    }
+                }
+                if (!currentMonthY) {
+                    const d = new Date();
+                    currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+                console.log(`📅 currentMonthY: ${currentMonthY}`);
+
+                let currentInvoice = tenantInvoices.find(inv => {
+                    if (!inv.billing_month) return false;
+                    let invMonth = inv.billing_month.substring(0, 7);
+                    return invMonth === currentMonthY;
+                });
+                let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
+                console.log(`💵 currentBill from invoices: ${currentBill}`);
+
+                let dueDateFormatted = '';
+                if (currentMonthY) {
+                    try {
+                        let parts = currentMonthY.split('-');
+                        let year = parseInt(parts[0]);
+                        let month = parseInt(parts[1]);
+                        let dueMonth = month + 1;
+                        let dueYear = year;
+                        if (dueMonth > 12) {
+                            dueMonth = 1;
+                            dueYear++;
+                        }
+                        let dueDateObj = new Date(dueYear, dueMonth - 1, 5);
+                        dueDateFormatted = dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    } catch (e) { /* ignore */ }
+                }
+
+                let olderInvoices = tenantInvoices.filter(inv => {
+                    if (!inv.billing_month) return false;
+                    let invMonth = inv.billing_month.substring(0, 7);
+                    if (invMonth >= currentMonthY) return false;
+
+                    let dueDate;
+                    if (inv.due_date) {
+                        dueDate = new Date(inv.due_date);
+                    } else {
+                        dueDate = new Date(inv.billing_month);
+                        dueDate.setMonth(dueDate.getMonth() + 1);
+                        dueDate.setDate(5);
+                    }
+                    dueDate.setHours(0, 0, 0, 0);
+                    return dueDate <= today;
+                });
+
+                olderInvoices = olderInvoices.sort((a, b) => {
+                    return new Date(a.billing_month) - new Date(b.billing_month);
+                });
+
+                let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
+                let unpaidTotal = olderTotal;
+                let totalDue = currentBill + unpaidTotal;
+
+                let unpaidCount = olderInvoices.length;
+                let unpaidList = olderInvoices.map(inv => {
+                    let billingMonth = formatMonthYear(inv.billing_month);
+                    return (inv.status || 'unpaid') + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
+                }).join('\n');
+
+                let unpaidMessage = unpaidCount === 0
+                    ? 'no overdue invoices'
+                    : (unpaidCount === 1
+                        ? '1 overdue invoice of KES ' + Number(olderTotal).toFixed(2)
+                        : unpaidCount + ' overdue invoices totaling KES ' + Number(olderTotal).toFixed(2)
+                    );
+
+                let phone = cb.getAttribute('data-phone') || '';
+                let name = cb.getAttribute('data-name') || 'Tenant';
+                let unit = cb.getAttribute('data-unit') || 'N/A';
+                let consumption = cb.getAttribute('data-consumption') || '0';
+                let estate_name = cb.getAttribute('data-estate') || 'N/A';
+                let prev_read = cb.getAttribute('data-prev-read') || '0';
+                let curr_read = cb.getAttribute('data-curr-read') || '0';
+                let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+
+                let currentMonthLabel = '';
+                if (currentMonthY) {
+                    try {
+                        const d = new Date(currentMonthY + '-01');
+                        currentMonthLabel = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+                    } catch (e) {
+                        currentMonthLabel = cb.getAttribute('data-month') || '';
+                    }
+                } else {
+                    currentMonthLabel = cb.getAttribute('data-month') || '';
+                }
+
+                let message = template;
+                message = message.replace(/\{\{name\}\}/g, name);
+                message = message.replace(/\{\{unit\}\}/g, unit);
+                message = message.replace(/\{\{unit_number\}\}/g, unit);
+                message = message.replace(/\{\{water_bill\}\}/g, currentBill.toFixed(2));
+                message = message.replace(/\{\{water_consumption\}\}/g, consumption);
+                message = message.replace(/\{\{month\}\}/g, currentMonthLabel);
+                message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+                message = message.replace(/\{\{estate\}\}/g, estate_name);
+                message = message.replace(/\{\{prev_read\}\}/g, prev_read);
+                message = message.replace(/\{\{curr_read\}\}/g, curr_read);
+                message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
+                message = message.replace(/\{\{status\}\}/g, paymentStatus);
+                message = message.replace(/\{\{due_date\}\}/g, dueDateFormatted);
+                message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
+                message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
+                message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
+                message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+                message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
+                message = message.replace(/\{\{[^}]*\}\}/g, '');
+
+                const msgLength = message.length;
+                const isUnicode = /[^\x00-\x7F]/.test(message);
+                const partsPerSms = isUnicode ? 70 : 160;
+                const parts = Math.ceil(msgLength / partsPerSms);
+
+                let statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                if (paymentStatus === 'paid') statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+
+                previews.push({
+                    phone, name, unit, estate: estate_name,
+                    water_bill: currentBill.toFixed(2),
+                    water_consumption: consumption,
+                    prev_read, curr_read, month: currentMonthLabel,
+                    due_date: dueDateFormatted,
+                    paymentStatus,
+                    message,
+                    length: msgLength,
+                    parts,
+                    statusColor,
+                    unpaid_count: unpaidCount,
+                    unpaid_total: unpaidTotal.toFixed(2),
+                    unpaid_list: unpaidList,
+                    unpaid_message: unpaidMessage,
+                    total_due: totalDue.toFixed(2)
+                });
+            }
+
+            renderPreviewHTML(previews, selectedCount);
+        }
+
+        // ============================================================
+        // RENDER PREVIEW WITH DUMMY DATA (FALLBACK)
+        // ============================================================
+        function renderPreviewWithDummyData(template, allSelected, selectedCount) {
+            const previewCount = document.getElementById('previewCount');
+            if (previewCount) {
+                previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants (demo preview)`;
+            }
+
+            let previews = [];
+            const maxPreview = Math.min(3, selectedCount);
+
+            for (let i = 0; i < maxPreview; i++) {
+                let cb = allSelected[i];
+                let phone = cb.getAttribute('data-phone') || '';
+                let name = cb.getAttribute('data-name') || 'Tenant';
+                let unit = cb.getAttribute('data-unit') || 'N/A';
+                let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0);
+                let consumption = cb.getAttribute('data-consumption') || '0';
+                let estate_name = cb.getAttribute('data-estate') || 'N/A';
+                let prev_read = cb.getAttribute('data-prev-read') || '0';
+                let curr_read = cb.getAttribute('data-curr-read') || '0';
+                let month = cb.getAttribute('data-month') || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+                let dueDate = cb.getAttribute('data-due-date') || new Date(Date.now() + 14*24*60*60*1000).toISOString().split('T')[0];
+                let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+
+                let unpaidCount = 0;
+                let unpaidTotal = 0;
+                let unpaidList = '';
+                let totalDue = water_bill;
+
+                const tenantName = name.toLowerCase();
+                if (tenantName.includes('d00-shop') || tenantName.includes('shop')) {
+                    unpaidCount = 2;
+                    unpaidTotal = 4500.00;
+                    unpaidList = 'unpaid (June 2026): KES 1,950.00\nunpaid (May 2026): KES 2,550.00';
+                    totalDue = water_bill + 4500.00;
+                } else if (tenantName.includes('dennis') || tenantName.includes('john d09')) {
+                    unpaidCount = 0;
+                    unpaidTotal = 0;
+                    unpaidList = '';
+                    totalDue = water_bill;
+                } else {
+                    unpaidCount = 2;
+                    unpaidTotal = 3000.00;
+                    unpaidList = 'unpaid (June 2026): KES 1,500.00\nunpaid (May 2026): KES 1,500.00';
+                    totalDue = water_bill + 3000.00;
+                }
+
+                let formattedDueDate = dueDate;
+                try {
+                    const d = new Date(dueDate);
+                    if (!isNaN(d)) {
+                        formattedDueDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    }
+                } catch (e) {}
+
+                let formattedWaterBill = water_bill.toFixed(2);
+                let unpaidMessage = unpaidCount === 0 
+                    ? 'no pending invoices' 
+                    : (unpaidCount === 1 
+                        ? `1 unpaid invoice of KES ${unpaidTotal.toFixed(2)}` 
+                        : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`);
+
+                let message = template;
+                message = message.replace(/\{\{name\}\}/g, name);
+                message = message.replace(/\{\{unit\}\}/g, unit);
+                message = message.replace(/\{\{unit_number\}\}/g, unit);
+                message = message.replace(/\{\{water_bill\}\}/g, formattedWaterBill);
+                message = message.replace(/\{\{water_consumption\}\}/g, consumption);
+                message = message.replace(/\{\{due_date\}\}/g, formattedDueDate);
+                message = message.replace(/\{\{month\}\}/g, month);
+                message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+                message = message.replace(/\{\{estate\}\}/g, estate_name);
+                message = message.replace(/\{\{prev_read\}\}/g, prev_read);
+                message = message.replace(/\{\{curr_read\}\}/g, curr_read);
+                message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
+                message = message.replace(/\{\{status\}\}/g, paymentStatus);
+                message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
+                message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
+                message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
+                message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+                message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
+                message = message.replace(/\{\{[^}]*\}\}/g, '');
+
+                const msgLength = message.length;
+                const isUnicode = /[^\x00-\x7F]/.test(message);
+                const partsPerSms = isUnicode ? 70 : 160;
+                const parts = Math.ceil(msgLength / partsPerSms);
+
+                let statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+                if (paymentStatus === 'paid') statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+                else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+
+                previews.push({
+                    phone, name, unit, estate: estate_name,
+                    water_bill: formattedWaterBill,
+                    water_consumption: consumption,
+                    prev_read, curr_read, month,
+                    due_date: formattedDueDate,
+                    paymentStatus,
+                    message,
+                    length: msgLength,
+                    parts,
+                    statusColor,
+                    unpaid_count: unpaidCount,
+                    unpaid_total: unpaidTotal.toFixed(2),
+                    unpaid_list: unpaidList,
+                    unpaid_message: unpaidMessage,
+                    total_due: totalDue.toFixed(2)
+                });
+            }
+
+            renderPreviewHTML(previews, selectedCount);
+        }
+
+        // ============================================================
+        // RENDER THE PREVIEW HTML (shared by both real and dummy)
+        // ============================================================
+        function renderPreviewHTML(previews, selectedCount) {
+            const previewContainer = document.getElementById('previewContainer');
+            let html = '';
+            previews.forEach((p) => {
+                let unpaidInfo = p.unpaid_count > 0
+                    ? `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${p.unpaid_count} unpaid (KES ${p.unpaid_total})</span>`
+                    : '';
+
+                html += `
+                    <div class="border rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-sm text-gray-800 dark:text-white">${escapeHtml(p.name)}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.unit)}</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500">•</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.estate)}</span>
+                                ${unpaidInfo}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.statusColor}">
+                                    ${p.paymentStatus.charAt(0).toUpperCase() + p.paymentStatus.slice(1)}
+                                </span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(p.phone)}</span>
+                            </div>
+                        </div>
+                        <div class="px-4 py-3">
+                            <div class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-sans leading-relaxed">
+                                ${escapeHtml(p.message)}
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+                            <div class="flex items-center gap-3 text-xs">
+                                <span class="text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-${p.length > 160 ? 'exclamation-triangle text-yellow-500' : 'check-circle text-green-500'} mr-1"></i>
+                                    ${p.length} characters
+                                </span>
+                                <span class="text-gray-400 dark:text-gray-500">|</span>
+                                <span class="text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-envelope mr-1"></i>
+                                    ${p.parts} SMS part${p.parts > 1 ? 's' : ''}
+                                </span>
+                                <span class="text-gray-400 dark:text-gray-500">|</span>
+                                <span class="text-gray-500 dark:text-gray-400">
+                                    <i class="fas fa-money-bill-wave mr-1"></i>
+                                    KES ${(p.parts * 0.45).toFixed(2)}
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-400 dark:text-gray-500">
+                                    Reading: ${p.prev_read} → ${p.curr_read}
+                                </span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500">|</span>
+                                <span class="text-xs text-gray-400 dark:text-gray-500">
+                                    Bill: KES ${p.water_bill}
+                                </span>
+                                ${p.unpaid_count > 0 ? `
+                                <span class="text-xs text-orange-600 dark:text-orange-400">|</span>
+                                <span class="text-xs text-orange-600 dark:text-orange-400">
+                                    Unpaid: KES ${p.unpaid_total}
+                                </span>
+                                ` : ''}
+                                ${p.total_due ? `
+                                <span class="text-xs text-blue-600 dark:text-blue-400">|</span>
+                                <span class="text-xs text-blue-600 dark:text-blue-400">
+                                    Total Due: KES ${p.total_due}
+                                </span>
+                                ` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (selectedCount > 3) {
+                html += `
+                    <div class="text-center text-sm text-gray-500 dark:text-gray-400 py-2 border-t border-gray-200 dark:border-gray-700">
+                        <i class="fas fa-ellipsis-h mr-1"></i>
+                        ${selectedCount - 3} more tenant(s) will receive the same message
+                    </div>
                 `;
             }
+
+            previewContainer.innerHTML = html;
+        }
+
+        // ============================================
+        // UPDATE SELECTED COUNT
+        // ============================================
+        function updateSelectedCount() {
+            let allSelected = getAllSelectedCheckboxes();
+            let selectedCount = allSelected.length;
             
-            html += `
-                <div class="border rounded-lg overflow-hidden bg-white dark:bg-gray-800 shadow-sm">
-                    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                        <div class="flex items-center gap-2">
-                            <span class="font-medium text-sm text-gray-800 dark:text-white">${escapeHtml(p.name)}</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.unit)}</span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">•</span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.estate)}</span>
-                            ${unpaidInfo}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${p.statusColor}">
-                                ${p.paymentStatus.charAt(0).toUpperCase() + p.paymentStatus.slice(1)}
-                            </span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">${escapeHtml(p.phone)}</span>
-                        </div>
-                    </div>
-                    
-                    <div class="px-4 py-3">
-                        <div class="text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap font-sans leading-relaxed">
-                            ${escapeHtml(p.message)}
-                        </div>
-                    </div>
-                    
-                    <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
-                        <div class="flex items-center gap-3 text-xs">
-                            <span class="text-gray-500 dark:text-gray-400">
-                                <i class="fas fa-${p.length > 160 ? 'exclamation-triangle text-yellow-500' : 'check-circle text-green-500'} mr-1"></i>
-                                ${p.length} characters
-                            </span>
-                            <span class="text-gray-400 dark:text-gray-500">|</span>
-                            <span class="text-gray-500 dark:text-gray-400">
-                                <i class="fas fa-envelope mr-1"></i>
-                                ${p.parts} SMS part${p.parts > 1 ? 's' : ''}
-                            </span>
-                            <span class="text-gray-400 dark:text-gray-500">|</span>
-                            <span class="text-gray-500 dark:text-gray-400">
-                                <i class="fas fa-money-bill-wave mr-1"></i>
-                                KES ${(p.parts * 0.45).toFixed(2)}
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs text-gray-400 dark:text-gray-500">
-                                Reading: ${p.prev_read} → ${p.curr_read}
-                            </span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">|</span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">
-                                Bill: KES ${p.water_bill}
-                            </span>
-                            ${p.unpaid_count > 0 ? `
-                            <span class="text-xs text-orange-600 dark:text-orange-400">|</span>
-                            <span class="text-xs text-orange-600 dark:text-orange-400">
-                                Unpaid: KES ${p.unpaid_total}
-                            </span>
-                            ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
+            const selectedCountEl = document.getElementById('selectedCount');
+            if (selectedCountEl) {
+                selectedCountEl.innerText = selectedCount;
+            }
+            
+            updateMasterCheckboxState();
+            
+            const sendBtn = document.getElementById('sendSmsBtn');
+            if (sendBtn) {
+                sendBtn.disabled = selectedCount === 0;
+            }
+            
+            updatePreview();
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target.classList && e.target.classList.contains('tenant-checkbox')) {
+                updateSelectedCount();
+            }
         });
-        
-        if (selectedCount > 3) {
-            html += `
-                <div class="text-center text-sm text-gray-500 dark:text-gray-400 py-2 border-t border-gray-200 dark:border-gray-700">
-                    <i class="fas fa-ellipsis-h mr-1"></i>
-                    ${selectedCount - 3} more tenant(s) will receive the same message
-                </div>
-            `;
-        }
-        
-        previewContainer.innerHTML = html;
-    } else {
-        previewSection.style.display = 'none';
-        if (previewCount) {
-            previewCount.textContent = '';
-        }
-    }
-}
 
-function updateSelectedCount() {
-    let allSelected = getAllSelectedCheckboxes();
-    let selectedCount = allSelected.length;
-    
-    const selectedCountEl = document.getElementById('selectedCount');
-    if (selectedCountEl) {
-        selectedCountEl.innerText = selectedCount;
-    }
-    
-    updateMasterCheckboxState();
-    
-    const sendBtn = document.getElementById('sendSmsBtn');
-    if (sendBtn) {
-        sendBtn.disabled = selectedCount === 0;
-    }
-    
-    updatePreview();
-}
-
-document.addEventListener('change', function(e) {
-    if (e.target.classList && e.target.classList.contains('tenant-checkbox')) {
-        updateSelectedCount();
-    }
-});
-
-function makeMessageCompact() {
-    const template = document.getElementById('template');
-    if (!template) return;
-    
-    let message = template.value;
-    message = message.replace(/\s+/g, ' ').trim();
-    message = message.replace(/\bplease\b/g, '');
-    message = message.replace(/\bwill\b/g, '');
-    message = message.replace(/\byour\b/g, '');
-    message = message.replace(/\bPaybill\b/g, 'PB');
-    message = message.replace(/\bAmount\b/g, 'Amt');
-    message = message.replace(/\bDue\b/g, 'Due:');
-    message = message.replace(/\bStatus\b/g, 'Stat');
-    
-    template.value = message.trim();
-    updatePreview();
-    
-    const event = new Event('input');
-    template.dispatchEvent(event);
-}
-
-// ============================================
-// BULK FORM SUBMIT
-// ============================================
-const bulkForm = document.getElementById('bulkForm');
-if (bulkForm) {
-    bulkForm.addEventListener('submit', function(e) {
-        let selected = [];
-        let template = document.getElementById('template').value;
-        
-        if (!template.trim()) {
-            alert('Please enter a message template.');
-            e.preventDefault();
-            return false;
+        // ============================================
+        // MAKE MESSAGE COMPACT
+        // ============================================
+        function makeMessageCompact() {
+            const template = document.getElementById('template');
+            if (!template) return;
+            
+            let message = template.value;
+            message = message.replace(/\s+/g, ' ').trim();
+            message = message.replace(/\bplease\b/g, '');
+            message = message.replace(/\bwill\b/g, '');
+            message = message.replace(/\byour\b/g, '');
+            message = message.replace(/\bPaybill\b/g, 'PB');
+            message = message.replace(/\bAmount\b/g, 'Amt');
+            message = message.replace(/\bDue\b/g, 'Due:');
+            message = message.replace(/\bStatus\b/g, 'Stat');
+            
+            template.value = message.trim();
+            updatePreview();
+            
+            const event = new Event('input');
+            template.dispatchEvent(event);
         }
-        
-        let allSelected = getAllSelectedCheckboxes();
-        
-        if (allSelected.length === 0) {
-            alert('Please select at least one tenant.');
-            e.preventDefault();
-            return false;
-        }
-        
-        const submitBtn = document.getElementById('sendSmsBtn');
-        const originalText = submitBtn ? submitBtn.innerHTML : 'Send SMS';
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '⏳ Sending...';
-        }
-        
-        allSelected.forEach(cb => {
-            let phone = cb.getAttribute('data-phone');
-            if (!phone) return;
-            
-            let name = cb.getAttribute('data-name') || 'Tenant';
-            let unit = cb.getAttribute('data-unit') || 'N/A';
-            let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0).toFixed(2);
-            let consumption = cb.getAttribute('data-consumption') || '0';
-            let estate_name = cb.getAttribute('data-estate') || '';
-            let prev_read = cb.getAttribute('data-prev-read') || '0';
-            let curr_read = cb.getAttribute('data-curr-read') || '0';
-            let month = cb.getAttribute('data-month');
-            let dueDate = cb.getAttribute('data-due-date');
-            let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
-            
-            // Calculate unpaid invoice data
-            let isUnpaid = paymentStatus === 'unpaid' || paymentStatus === 'pending' || paymentStatus === 'overdue';
-            let unpaidCount = isUnpaid ? 2 : 0;
-            let unpaidTotal = isUnpaid ? 3000.00 : 0;
-            let unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
-            let unpaidMessage = unpaidCount === 0 
-                ? 'no pending invoices' 
-                : (unpaidCount === 1 
-                    ? `1 unpaid invoice of KES ${unpaidTotal.toFixed(2)}` 
-                    : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`);
-            
-            let message = template;
-            message = message.replace(/\{\{name\}\}/g, name);
-            message = message.replace(/\{\{unit\}\}/g, unit);
-            message = message.replace(/\{\{unit_number\}\}/g, unit);
-            message = message.replace(/\{\{water_bill\}\}/g, water_bill);
-            message = message.replace(/\{\{water_consumption\}\}/g, consumption);
-            message = message.replace(/\{\{due_date\}\}/g, dueDate);
-            message = message.replace(/\{\{month\}\}/g, month);
-            message = message.replace(/\{\{estate_name\}\}/g, estate_name);
-            message = message.replace(/\{\{estate\}\}/g, estate_name);
-            message = message.replace(/\{\{prev_read\}\}/g, prev_read);
-            message = message.replace(/\{\{curr_read\}\}/g, curr_read);
-            message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
-            message = message.replace(/\{\{status\}\}/g, paymentStatus);
-            
-            // NEW: Replace unpaid invoice variables
-            message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
-            message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
-            message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
-            message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
-            
-            message = message.replace(/\{\{[^}]*\}\}/g, '');
-            
-            selected.push({
-                phone: phone,
-                message: message,
-                id: cb.getAttribute('data-id')
+
+        // ============================================
+        // BULK FORM SUBMIT
+        // ============================================
+        const bulkForm = document.getElementById('bulkForm');
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', function(e) {
+                let selected = [];
+                let template = document.getElementById('template').value;
+                
+                if (!template.trim()) {
+                    alert('Please enter a message template.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                let allSelected = getAllSelectedCheckboxes();
+                
+                if (allSelected.length === 0) {
+                    alert('Please select at least one tenant.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                const submitBtn = document.getElementById('sendSmsBtn');
+                const originalText = submitBtn ? submitBtn.innerHTML : 'Send SMS';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '⏳ Sending...';
+                }
+                
+                allSelected.forEach(cb => {
+                    let phone = cb.getAttribute('data-phone');
+                    if (!phone) return;
+                    
+                    let name = cb.getAttribute('data-name') || 'Tenant';
+                    let unit = cb.getAttribute('data-unit') || 'N/A';
+                    let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0).toFixed(2);
+                    let consumption = cb.getAttribute('data-consumption') || '0';
+                    let estate_name = cb.getAttribute('data-estate') || '';
+                    let prev_read = cb.getAttribute('data-prev-read') || '0';
+                    let curr_read = cb.getAttribute('data-curr-read') || '0';
+                    let month = cb.getAttribute('data-month');
+                    let dueDate = cb.getAttribute('data-due-date');
+                    let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+                    
+                    let isUnpaid = paymentStatus === 'unpaid' || paymentStatus === 'pending' || paymentStatus === 'overdue';
+                    let unpaidCount = isUnpaid ? 2 : 0;
+                    let unpaidTotal = isUnpaid ? 3000.00 : 0;
+                    let unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
+                    let unpaidMessage = unpaidCount === 0 
+                        ? 'no pending invoices' 
+                        : (unpaidCount === 1 
+                            ? `1 unpaid invoice of KES ${unpaidTotal.toFixed(2)}` 
+                            : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`);
+                    
+                    let message = template;
+                    message = message.replace(/\{\{name\}\}/g, name);
+                    message = message.replace(/\{\{unit\}\}/g, unit);
+                    message = message.replace(/\{\{unit_number\}\}/g, unit);
+                    message = message.replace(/\{\{water_bill\}\}/g, water_bill);
+                    message = message.replace(/\{\{water_consumption\}\}/g, consumption);
+                    message = message.replace(/\{\{due_date\}\}/g, dueDate);
+                    message = message.replace(/\{\{month\}\}/g, month);
+                    message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+                    message = message.replace(/\{\{estate\}\}/g, estate_name);
+                    message = message.replace(/\{\{prev_read\}\}/g, prev_read);
+                    message = message.replace(/\{\{curr_read\}\}/g, curr_read);
+                    message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
+                    message = message.replace(/\{\{status\}\}/g, paymentStatus);
+                    message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
+                    message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
+                    message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
+                    message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+                    message = message.replace(/\{\{[^}]*\}\}/g, '');
+                    
+                    selected.push({
+                        phone: phone,
+                        message: message,
+                        id: cb.getAttribute('data-id')
+                    });
+                });
+                
+                document.getElementById('recipientsJson').value = JSON.stringify(selected);
+                document.getElementById('templateHidden').value = template;
+                
+                setTimeout(() => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                    alert('✅ SMS sent to ' + selected.length + ' tenants!');
+                }, 1000);
+                
+                e.preventDefault();
+                return false;
             });
-        });
-        
-        document.getElementById('recipientsJson').value = JSON.stringify(selected);
-        document.getElementById('templateHidden').value = template;
-        
-        setTimeout(() => {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-            }
-            alert('✅ SMS sent to ' + selected.length + ' tenants!');
-        }, 1000);
-        
-        e.preventDefault();
-        return false;
-    });
-}
+        }
 
-// ============================================
-// CAMPAIGNS - JavaScript
-// ============================================
-let campaignsData = [];
-let currentCampaignFilter = 'all';
+        // ============================================
+        // CAMPAIGNS - JavaScript
+        // ============================================
+        let campaignsData = [];
+        let currentCampaignFilter = 'all';
 
-function loadCampaigns() {
-    console.log('🔄 Loading campaigns...');
-    
-    const loadingEl = document.getElementById('campaignsLoading');
-    const tableEl = document.getElementById('campaignsTable');
-    
-    if (loadingEl) loadingEl.style.display = 'block';
-    if (tableEl) tableEl.style.display = 'none';
-    
-    fetch('/api/sms/campaigns')
-        .then(response => {
-            console.log('📥 Response status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        function loadCampaigns() {
+            currentCampaignFilter = 'all';
+
+            const filterButtons = document.querySelectorAll('#campaigns-tab .flex.flex-wrap.gap-2 button');
+            filterButtons.forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            const allBtn = document.getElementById('filter-all');
+            if (allBtn) {
+                allBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                allBtn.classList.add('bg-blue-600', 'text-white');
             }
-            return response.json();
-        })
-        .then(data => {
-            console.log('📥 Campaigns data received:', data);
-            campaignsData = data.campaigns || [];
-            console.log('📊 Campaigns loaded:', campaignsData.length);
-            updateCampaignStats(data.stats || { total: 0, sent: 0, pending: 0, failed: 0 });
+
+            console.log('🔄 Loading campaigns...');
+            
+            const loadingEl = document.getElementById('campaignsLoading');
+            const tableEl = document.getElementById('campaignsTable');
+            
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (tableEl) tableEl.style.display = 'none';
+            
+            fetch('/api/sms/campaigns')
+                .then(response => {
+                    console.log('📥 Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📥 Campaigns data received:', data);
+                    campaignsData = data.campaigns || [];
+                    console.log('📊 Campaigns loaded:', campaignsData.length);
+                    updateCampaignStats(data.stats || { total: 0, sent: 0, pending: 0, failed: 0 });
+                    renderCampaigns();
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (tableEl) tableEl.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('❌ Error loading campaigns:', error);
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (tableEl) {
+                        tableEl.style.display = 'block';
+                        const tbody = document.getElementById('campaignsTableBody');
+                        if (tbody) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-red-500">
+                                        <i class="fas fa-exclamation-circle mr-2"></i> 
+                                        Error loading campaigns: ${error.message}
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }
+                });
+        }
+
+        // ============================================
+        // LOAD CAMPAIGNS FROM KENYASMS
+        // ============================================
+        function loadKenyaSmsCampaigns() {
+            console.log('🔄 Fetching campaigns from KenyaSMS...');
+            
+            const loadingEl = document.getElementById('campaignsLoading');
+            const tableEl = document.getElementById('campaignsTable');
+            const tbody = document.getElementById('campaignsTableBody');
+            
+            if (loadingEl) loadingEl.style.display = 'block';
+            if (tableEl) tableEl.style.display = 'none';
+            
+            fetch('/api/sms/campaigns/kenyasms')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('📥 KenyaSMS campaigns received:', data);
+                    
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (tableEl) tableEl.style.display = 'block';
+                    
+                    let campaignsArray = [];
+                    
+                    if (data.success && data.campaigns) {
+                        if (Array.isArray(data.campaigns)) {
+                            campaignsArray = data.campaigns;
+                        } else if (typeof data.campaigns === 'object') {
+                            if (data.campaigns.campaigns && Array.isArray(data.campaigns.campaigns)) {
+                                campaignsArray = data.campaigns.campaigns;
+                            } else if (data.campaigns.data && Array.isArray(data.campaigns.data)) {
+                                campaignsArray = data.campaigns.data;
+                            } else {
+                                const values = Object.values(data.campaigns);
+                                for (const val of values) {
+                                    if (Array.isArray(val) && val.length > 0) {
+                                        campaignsArray = val;
+                                        break;
+                                    }
+                                }
+                                if (campaignsArray.length === 0) {
+                                    const entries = Object.entries(data.campaigns);
+                                    if (entries.length > 0 && entries.every(([key, val]) => typeof val === 'object' && val !== null)) {
+                                        campaignsArray = entries.map(([key, val]) => ({ ...val, id: val.id || key }));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    if (!Array.isArray(campaignsArray)) {
+                        campaignsArray = [];
+                    }
+                    
+                    console.log('📊 Processed campaigns array:', campaignsArray);
+                    console.log('📊 Array length:', campaignsArray.length);
+                    
+                    if (!campaignsArray || campaignsArray.length === 0) {
+                        if (tbody) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">
+                                        <i class="fas fa-info-circle mr-2"></i> No campaigns found in KenyaSMS
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                        updateCampaignStats({ total: 0, sent: 0, pending: 0, failed: 0 });
+                        return;
+                    }
+                    
+                    const stats = {
+                        total: campaignsArray.length,
+                        sent: campaignsArray.filter(c => c.status === 'completed' || c.status === 'sent').length,
+                        pending: campaignsArray.filter(c => c.status === 'pending' || c.status === 'sending').length,
+                        failed: campaignsArray.filter(c => c.status === 'failed').length,
+                    };
+                    updateCampaignStats(stats);
+                    
+                    if (!tbody) return;
+                    
+                    let html = '';
+                    campaignsArray.forEach((campaign, index) => {
+                        const statusBadge = getStatusBadge(campaign.status);
+                        const statusText = capitalize(campaign.status);
+                        const date = formatDate(campaign.created_at);
+                        const campaignId = campaign.id || 'temp-' + index;
+                        
+                        html += `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                                <td class="px-4 py-3 text-sm text-gray-500">${campaignId}</td>
+                                <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">
+                                    ${escapeHtml(campaign.name || 'Unnamed Campaign')}
+                                    <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                                        KenyaSMS
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">${campaign.recipients || 0}</td>
+                                <td class="px-4 py-3 text-sm text-green-600">${campaign.delivered || campaign.sent || 0}</td>
+                                <td class="px-4 py-3 text-sm text-red-600">${campaign.failed || 0}</td>
+                                <td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
+                                <td class="px-4 py-3">
+                                    <button onclick="viewKenyaSmsCampaign('${campaignId}')" class="text-blue-600 hover:underline text-sm">View</button>
+                                    <button onclick="importKenyaSmsCampaign('${campaignId}')" class="text-green-600 hover:underline text-sm ml-2">Import</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                    
+                })
+                .catch(error => {
+                    console.error('❌ Error loading KenyaSMS campaigns:', error);
+                    if (loadingEl) loadingEl.style.display = 'none';
+                    if (tableEl) {
+                        tableEl.style.display = 'block';
+                        if (tbody) {
+                            tbody.innerHTML = `
+                                <tr>
+                                    <td colspan="8" class="px-4 py-8 text-center text-red-500">
+                                        <i class="fas fa-exclamation-circle mr-2"></i> 
+                                        Error loading campaigns from KenyaSMS: ${error.message}
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    }
+                });
+        }
+
+        // ============================================
+        // VIEW KENYASMS CAMPAIGN DETAILS
+        // ============================================
+        function viewKenyaSmsCampaign(campaignId) {
+            console.log('👁️ Viewing KenyaSMS campaign:', campaignId);
+            
+            fetch('/api/sms/campaigns')
+                .then(r => r.json())
+                .then(data => {
+                    const localCampaign = data.campaigns.find(c => c.kenyasms_campaign_id === campaignId);
+                    
+                    if (localCampaign) {
+                        viewCampaign(localCampaign.id);
+                    } else {
+                        if (confirm(`This campaign is not yet imported to your local database.\n\nDo you want to import it now?`)) {
+                            importKenyaSmsCampaign(campaignId);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking local campaigns:', error);
+                    if (confirm(`This campaign is not yet imported to your local database.\n\nDo you want to import it now?`)) {
+                        importKenyaSmsCampaign(campaignId);
+                    }
+                });
+        }
+
+        // ============================================
+        // IMPORT KENYASMS CAMPAIGN
+        // ============================================
+        function importKenyaSmsCampaign(campaignId) {
+            if (!confirm(`Import KenyaSMS campaign "${campaignId}" to your local database?`)) return;
+            
+            const buttons = document.querySelectorAll(`[onclick*="importKenyaSmsCampaign('${campaignId}')"]`);
+            let btn = null;
+            buttons.forEach(b => {
+                if (b.textContent.includes('Import') || b.innerHTML.includes('Import')) {
+                    btn = b;
+                }
+            });
+            
+            if (btn) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing...';
+                btn.disabled = true;
+            }
+            
+            fetch(`/api/sms/campaigns/kenyasms/${campaignId}/import`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Campaign imported successfully!\n\nRecipients imported: ${data.recipients_imported || 0}`);
+                    loadCampaigns();
+                    loadKenyaSmsCampaigns();
+                    if (data.campaign_id) {
+                        setTimeout(() => viewCampaign(data.campaign_id), 500);
+                    }
+                } else if (data.message && data.message.includes('already imported')) {
+                    alert(`ℹ️ Campaign already imported locally. Opening it now...`);
+                    fetch('/api/sms/campaigns')
+                        .then(r => r.json())
+                        .then(campaignsData => {
+                            const campaign = campaignsData.campaigns.find(c => c.kenyasms_campaign_id === campaignId);
+                            if (campaign) {
+                                viewCampaign(campaign.id);
+                            } else {
+                                alert('⚠️ Campaign found but could not open. Please refresh and try again.');
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error finding campaign:', err);
+                            alert('⚠️ Could not open campaign. Please refresh and try again.');
+                        });
+                } else {
+                    alert('❌ Error importing campaign: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Import error:', error);
+                alert('❌ Error importing campaign: ' + error.message);
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.innerHTML = 'Import';
+                    btn.disabled = false;
+                }
+            });
+        }
+
+        // ============================================
+        // UPDATE CAMPAIGN STATS
+        // ============================================
+        function updateCampaignStats(stats) {
+            const totalEl = document.getElementById('statsTotal');
+            const sentEl = document.getElementById('statsSent');
+            const pendingEl = document.getElementById('statsPending');
+            const failedEl = document.getElementById('statsFailed');
+            
+            if (totalEl) totalEl.textContent = stats.total || 0;
+            if (sentEl) sentEl.textContent = stats.sent || 0;
+            if (pendingEl) pendingEl.textContent = stats.pending || 0;
+            if (failedEl) failedEl.textContent = stats.failed || 0;
+        }
+
+        // ============================================
+        // FILTER CAMPAIGNS
+        // ============================================
+        function filterCampaigns(filter) {
+            currentCampaignFilter = filter;
+            
+            const buttons = document.querySelectorAll('#campaigns-tab .flex.flex-wrap.gap-2 button');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            
+            const activeBtn = document.getElementById('filter-' + filter);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                activeBtn.classList.add('bg-blue-600', 'text-white');
+            }
+            
             renderCampaigns();
-            if (loadingEl) loadingEl.style.display = 'none';
-            if (tableEl) tableEl.style.display = 'block';
-        })
-        .catch(error => {
-            console.error('❌ Error loading campaigns:', error);
-            if (loadingEl) loadingEl.style.display = 'none';
-            if (tableEl) {
-                tableEl.style.display = 'block';
-                const tbody = document.getElementById('campaignsTableBody');
-                if (tbody) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-red-500">
-                                <i class="fas fa-exclamation-circle mr-2"></i> 
-                                Error loading campaigns: ${error.message}
-                            </td>
-                        </tr>
-                    `;
+        }
+
+        // ============================================
+        // RENDER CAMPAIGNS
+        // ============================================
+        function renderCampaigns() {
+            console.log('🎨 Rendering campaigns, data:', campaignsData);
+            const tbody = document.getElementById('campaignsTableBody');
+            if (!tbody) return;
+            
+            if (!campaignsData || campaignsData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500">No campaigns found.</td></tr>';
+                return;
+            }
+            
+            let html = '';
+            campaignsData.forEach(campaign => {
+                const statusBadge = getStatusBadge(campaign.status);
+                const statusText = capitalize(campaign.status);
+                const date = formatDate(campaign.created_at);
+                html += `
+                    <tr>
+                        <td class="px-4 py-3 text-sm text-gray-500">${campaign.id}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">${campaign.total_recipients || 0}</td>
+                        <td class="px-4 py-3 text-sm text-green-600">${campaign.sent_count || 0}</td>
+                        <td class="px-4 py-3 text-sm text-red-600">${campaign.failed_count || 0}</td>
+                        <td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
+                        <td class="px-4 py-3">
+                            <button onclick="viewCampaign(${campaign.id})" class="text-blue-600 hover:underline">View</button>
+                            <button onclick="sendCampaign(${campaign.id})" class="text-green-600 hover:underline">Send</button>
+                            <button onclick="deleteCampaign(${campaign.id})" class="text-red-600 hover:underline">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // ============================================
+        // FILTER ESTATES BY COMPANY
+        // ============================================
+        function filterEstatesByCompany() {
+            const companyId = document.getElementById('campaignFilterCompany').value;
+            const estateSelect = document.getElementById('campaignFilterEstate');
+            if (!estateSelect) return;
+            
+            const options = estateSelect.querySelectorAll('option');
+            options.forEach(option => {
+                if (option.value === '') {
+                    option.style.display = 'block';
+                    return;
+                }
+                const optionCompany = option.getAttribute('data-company');
+                if (!companyId || optionCompany == companyId) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            estateSelect.value = '';
+        }
+
+        // ============================================
+        // UPDATE CAMPAIGN PREVIEW ON ESTATE CHANGE
+        // ============================================
+        function updateCampaignPreviewOnEstateChange() {
+            console.log('🔄 Estate changed in campaign modal');
+            const select = document.getElementById('campaignTemplate');
+            const selected = select ? select.options[select.selectedIndex] : null;
+            const content = selected ? selected.getAttribute('data-content') : null;
+            
+            if (content) {
+                generateTenantPreview(content);
+            } else {
+                const previewContainerDiv = document.getElementById('campaignTenantPreviewContainer');
+                if (previewContainerDiv) previewContainerDiv.style.display = 'none';
+                const previewContainer = document.getElementById('campaignTenantPreview');
+                if (previewContainer) previewContainer.innerHTML = '';
+            }
+        }
+
+        // ============================================
+        // GENERATE TENANT PREVIEW (CAMPAIGN MODAL)
+        // ============================================
+        function generateTenantPreview(templateContent) {
+            const estateId = document.getElementById('campaignFilterEstate').value;
+            const previewContainer = document.getElementById('campaignTenantPreview');
+            const previewContainerDiv = document.getElementById('campaignTenantPreviewContainer');
+            
+            if (!previewContainer || !previewContainerDiv) return;
+            
+            if (!estateId || !templateContent) {
+                previewContainerDiv.style.display = 'none';
+                return;
+            }
+            
+            previewContainerDiv.style.display = 'block';
+            previewContainer.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Loading tenant preview...</div>';
+            
+            const tenantRows = document.querySelectorAll('.tenant-row');
+            let filteredTenants = [];
+            let tenantIds = [];
+            
+            tenantRows.forEach(row => {
+                const rowEstateId = row.getAttribute('data-estate-id') || '';
+                const paymentStatus = row.getAttribute('data-payment-status') || 'pending';
+                const name = row.getAttribute('data-name') || 'Tenant';
+                const phone = row.getAttribute('data-phone') || '';
+                const unit = row.getAttribute('data-unit') || 'N/A';
+                const estate = row.getAttribute('data-estate') || 'N/A';
+                const waterBill = parseFloat(row.getAttribute('data-water-bill') || 0);
+                const prevRead = row.getAttribute('data-prev-read') || '0';
+                const currRead = row.getAttribute('data-curr-read') || '0';
+                const month = row.getAttribute('data-month') || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+                const dueDate = row.getAttribute('data-due-date') || 'N/A';
+                const consumption = row.getAttribute('data-consumption') || '0';
+                const tenantId = row.querySelector('.tenant-checkbox')?.getAttribute('data-id') || '';
+                
+                if (estateId && rowEstateId != estateId) return;
+                
+                const invoiceStatus = document.getElementById('campaignFilterStatus').value;
+                if (invoiceStatus && paymentStatus !== invoiceStatus) return;
+                
+                if (!phone) return;
+                
+                let waterConsumption = parseFloat(consumption) || 0;
+                if (waterConsumption == 0 && parseFloat(prevRead) > 0 && parseFloat(currRead) > 0) {
+                    waterConsumption = parseFloat(currRead) - parseFloat(prevRead);
+                }
+                
+                filteredTenants.push({
+                    tenantId: tenantId,
+                    name: name,
+                    phone: phone,
+                    unit: unit,
+                    estate: estate,
+                    estateId: rowEstateId,
+                    waterbill: waterBill,
+                    waterConsumption: waterConsumption,
+                    prevRead: prevRead,
+                    currRead: currRead,
+                    month: month,
+                    dueDate: dueDate,
+                    paymentStatus: paymentStatus,
+                    row: row,
+                    phoneRaw: phone
+                });
+                
+                if (tenantId) {
+                    tenantIds.push(tenantId);
+                }
+            });
+            
+            if (filteredTenants.length === 0) {
+                previewContainerDiv.style.display = 'block';
+                previewContainer.innerHTML = `
+                    <div class="text-center py-4 text-gray-500">
+                        <i class="fas fa-info-circle mr-2"></i> No tenants found in this estate.
+                    </div>
+                `;
+                return;
+            }
+            
+            let currentMonth = null;
+            if (filteredTenants[0]?.month) {
+                try {
+                    const d = new Date(filteredTenants[0].month);
+                    if (!isNaN(d)) {
+                        currentMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                    }
+                } catch (e) {
+                    currentMonth = null;
                 }
             }
-        });
-}
-
-function updateCampaignStats(stats) {
-    const totalEl = document.getElementById('statsTotal');
-    const sentEl = document.getElementById('statsSent');
-    const pendingEl = document.getElementById('statsPending');
-    const failedEl = document.getElementById('statsFailed');
-    
-    if (totalEl) totalEl.textContent = stats.total || 0;
-    if (sentEl) sentEl.textContent = stats.sent || 0;
-    if (pendingEl) pendingEl.textContent = stats.pending || 0;
-    if (failedEl) failedEl.textContent = stats.failed || 0;
-}
-
-function filterCampaigns(filter) {
-    currentCampaignFilter = filter;
-    
-    const buttons = document.querySelectorAll('#campaigns-tab .flex.flex-wrap.gap-2 button');
-    buttons.forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-    });
-    
-    const activeBtn = document.getElementById('filter-' + filter);
-    if (activeBtn) {
-        activeBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-        activeBtn.classList.add('bg-blue-600', 'text-white');
-    }
-    
-    renderCampaigns();
-}
-
-function renderCampaigns() {
-    console.log('🎨 Rendering campaigns, current filter:', currentCampaignFilter);
-    console.log('📊 Campaigns data:', campaignsData);
-    
-    let filtered = campaignsData;
-    if (currentCampaignFilter !== 'all') {
-        filtered = campaignsData.filter(c => c.status === currentCampaignFilter);
-    }
-    
-    console.log('📊 Filtered campaigns:', filtered.length);
-    
-    const tbody = document.getElementById('campaignsTableBody');
-    if (!tbody) return;
-    
-    if (filtered.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="px-4 py-8 text-center text-gray-500">
-                    <i class="fas fa-inbox mr-2"></i> No campaigns found.
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    filtered.forEach(campaign => {
-        const statusBadge = getStatusBadge(campaign.status);
-        const statusText = capitalize(campaign.status);
-        const date = formatDate(campaign.created_at);
-        
-        let actionsHtml = '';
-        actionsHtml += `
-            <button onclick="viewCampaign(${campaign.id})" class="text-blue-600 hover:text-blue-900 text-sm" title="View Details">
-                <i class="fas fa-eye"></i>
-            </button>
-        `;
-        
-        if (campaign.status === 'draft' || campaign.status === 'scheduled' || campaign.status === 'failed') {
-            actionsHtml += `
-                <button onclick="sendCampaign(${campaign.id})" class="text-green-600 hover:text-green-900 text-sm" title="Send Campaign">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
-            `;
+            
+            console.log('📤 Fetching invoices for tenant IDs:', tenantIds);
+            console.log('📤 Current month:', currentMonth);
+            
+            fetch('/api/sms/preview-invoices', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    tenant_ids: tenantIds,
+                    current_month: currentMonth
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('📥 Invoice data for campaign preview:', data);
+                const invoiceData = data.success ? data.invoices : {};
+                renderCampaignPreviewWithData(filteredTenants, templateContent, invoiceData, previewContainer);
+            })
+            .catch(error => {
+                console.warn('⚠️ Failed to fetch invoice data, falling back to dummy data:', error);
+                renderCampaignPreviewWithDummy(filteredTenants, templateContent, previewContainer);
+            });
         }
-        
-        if (campaign.status === 'failed') {
-            actionsHtml += `
-                <button onclick="retryCampaign(${campaign.id})" class="text-yellow-600 hover:text-yellow-900 text-sm" title="Retry Failed">
-                    <i class="fas fa-redo"></i>
-                </button>
-            `;
-        }
-        
-        // DELETE button – now appears for ALL statuses (including sent, completed)
-        const deletableStatuses = ['draft', 'scheduled', 'failed', 'pending', 'sent', 'completed'];
-        if (deletableStatuses.includes(campaign.status)) {
-            actionsHtml += `
-                <button onclick="deleteCampaign(${campaign.id})" class="text-red-600 hover:text-red-900 text-sm" title="Delete Campaign">
-                    <i class="fas fa-trash"></i>
-                </button>
-            `;
-        }
-        
-        html += `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 border-b border-gray-200 dark:border-gray-700">
-                <td class="px-4 py-3 text-sm text-gray-500">${campaign.id}</td>
-                <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
-                <td class="px-4 py-3 text-sm text-gray-500">${campaign.total_recipients || 0}</td>
-                <td class="px-4 py-3 text-sm text-green-600">${campaign.sent_count || 0}</td>
-                <td class="px-4 py-3 text-sm text-red-600">${campaign.failed_count || 0}</td>
-                <td class="px-4 py-3">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge}">
-                        ${statusText}
-                    </span>
-                </td>
-                <td class="px-4 py-3">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        ${actionsHtml}
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-    console.log('✅ Campaigns rendered successfully');
-}
 
-function getStatusBadge(status) {
-    const badges = {
-        'draft': 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
-        'pending': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-        'scheduled': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-        'sending': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-        'sent': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-        'completed': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-        'failed': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-    };
-    return badges[status] || 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200';
-}
-
-function capitalize(str) {
-    if (!str) return '';
-    return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-function formatDate(date) {
-    if (!date) return 'N/A';
-    try {
-        return new Date(date).toLocaleString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-    } catch (e) {
-        return 'N/A';
-    }
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function filterEstatesByCompany() {
-    const companyId = document.getElementById('campaignFilterCompany').value;
-    const estateSelect = document.getElementById('campaignFilterEstate');
-    if (!estateSelect) return;
+        // ============================================
+// RENDER CAMPAIGN PREVIEW WITH REAL DATA - FIXED
+// ============================================
+function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, container) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    const options = estateSelect.querySelectorAll('option');
-    options.forEach(option => {
-        if (option.value === '') {
-            option.style.display = 'block';
-            return;
-        }
-        const optionCompany = option.getAttribute('data-company');
-        if (!companyId || optionCompany == companyId) {
-            option.style.display = 'block';
-        } else {
-            option.style.display = 'none';
-        }
-    });
-    estateSelect.value = '';
-}
-
-function updateCampaignPreviewOnEstateChange() {
-    console.log('🔄 Estate changed in campaign modal');
-    const select = document.getElementById('campaignTemplate');
-    const selected = select ? select.options[select.selectedIndex] : null;
-    const content = selected ? selected.getAttribute('data-content') : null;
-    
-    if (content) {
-        generateTenantPreview(content);
-    } else {
-        const previewContainerDiv = document.getElementById('campaignTenantPreviewContainer');
-        if (previewContainerDiv) previewContainerDiv.style.display = 'none';
-        const previewContainer = document.getElementById('campaignTenantPreview');
-        if (previewContainer) previewContainer.innerHTML = '';
-    }
-}
-
-function generateTenantPreview(templateContent) {
-    const estateId = document.getElementById('campaignFilterEstate').value;
-    const previewContainer = document.getElementById('campaignTenantPreview');
-    const previewContainerDiv = document.getElementById('campaignTenantPreviewContainer');
-    
-    if (!previewContainer || !previewContainerDiv) return;
-    
-    if (!estateId || !templateContent) {
-        previewContainerDiv.style.display = 'none';
-        return;
-    }
-    
-    // Get ALL tenant rows
-    const tenantRows = document.querySelectorAll('.tenant-row');
-    let filteredTenants = [];
-    
-    tenantRows.forEach(row => {
-        const rowEstateId = row.getAttribute('data-estate-id') || '';
-        const paymentStatus = row.getAttribute('data-payment-status') || 'pending';
-        const name = row.getAttribute('data-name') || 'Tenant';
-        const phone = row.getAttribute('data-phone') || '';
-        const unit = row.getAttribute('data-unit') || 'N/A';
-        const estate = row.getAttribute('data-estate') || 'N/A';
-        const waterBill = parseFloat(row.getAttribute('data-water-bill') || 0);
-        const prevRead = row.getAttribute('data-prev-read') || '0';
-        const currRead = row.getAttribute('data-curr-read') || '0';
-        const month = row.getAttribute('data-month') || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-        const dueDate = row.getAttribute('data-due-date') || 'N/A';
-        const consumption = row.getAttribute('data-consumption') || '0';
-        
-        if (estateId && rowEstateId != estateId) return;
-        
-        const invoiceStatus = document.getElementById('campaignFilterStatus').value;
-        if (invoiceStatus && paymentStatus !== invoiceStatus) return;
-        
-        if (!phone) return;
-        
-        // Calculate consumption
-        let waterConsumption = parseFloat(consumption) || 0;
-        if (waterConsumption == 0 && parseFloat(prevRead) > 0 && parseFloat(currRead) > 0) {
-            waterConsumption = parseFloat(currRead) - parseFloat(prevRead);
-        }
-        
-        filteredTenants.push({
-            name: name,
-            phone: phone,
-            unit: unit,
-            estate: estate,
-            estateId: rowEstateId,
-            waterbill: waterBill,
-            waterConsumption: waterConsumption,
-            prevRead: prevRead,
-            currRead: currRead,
-            month: month,
-            dueDate: dueDate,
-            paymentStatus: paymentStatus
-        });
-    });
-    
-    if (filteredTenants.length === 0) {
-        previewContainerDiv.style.display = 'block';
-        previewContainer.innerHTML = `
-            <div class="text-center py-4 text-gray-500">
-                <i class="fas fa-info-circle mr-2"></i> No tenants found in this estate.
-            </div>
-        `;
-        return;
-    }
-    
-    previewContainerDiv.style.display = 'block';
+    console.log('🔍 Rendering with invoiceData:', invoiceData);
+    console.log('🔍 invoiceData keys:', Object.keys(invoiceData));
     
     let html = '<div class="space-y-3">';
-    const previewTenants = filteredTenants.slice(0, 3);
+    const previewTenants = tenants.slice(0, 3);
     
     previewTenants.forEach(tenant => {
-        let message = templateContent;
+        let tenantInvoices = [];
+        const tenantId = tenant.tenantId;
+        
+        console.log(`🔍 Looking for invoices for tenant ID: ${tenantId} (${tenant.name})`);
+        
+        // Try to find invoices for this tenant
+        if (invoiceData[String(tenantId)]) {
+            tenantInvoices = invoiceData[String(tenantId)];
+            console.log(`✅ Found invoices using string key "${String(tenantId)}"`);
+        } else if (invoiceData[Number(tenantId)]) {
+            tenantInvoices = invoiceData[Number(tenantId)];
+            console.log(`✅ Found invoices using number key "${Number(tenantId)}"`);
+        } else {
+            for (const key in invoiceData) {
+                if (String(key) === String(tenantId) || 
+                    String(key) === String(Number(tenantId)) ||
+                    String(tenantId) === String(key).replace(/[^0-9]/g, '')) {
+                    tenantInvoices = invoiceData[key];
+                    console.log(`✅ Found invoices using key "${key}" (matched to ${tenantId})`);
+                    break;
+                }
+            }
+        }
+        
+        console.log(`🔍 Tenant ${tenantId} (${tenant.name}) - Invoices found:`, tenantInvoices.length);
+        
+        // --- Determine current month ---
+        let currentMonthY = '';
+        if (tenant.month) {
+            try {
+                const d = new Date(tenant.month);
+                if (!isNaN(d)) {
+                    currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+            } catch (e) {
+                console.warn('⚠️ Error parsing tenant month:', tenant.month, e);
+            }
+        }
+        
+        if (!currentMonthY && tenantInvoices.length > 0) {
+            let latest = tenantInvoices.reduce((a, b) => {
+                return (a.billing_month > b.billing_month) ? a : b;
+            }, tenantInvoices[0]);
+            if (latest && latest.billing_month) {
+                currentMonthY = latest.billing_month.substring(0, 7);
+            }
+        }
+        
+        if (!currentMonthY) {
+            const d = new Date();
+            currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+        
+        console.log(`📅 Tenant ${tenantId} currentMonthY: ${currentMonthY}`);
+        
+        // --- Find current month's invoice ---
+        let currentInvoice = tenantInvoices.find(inv => {
+            if (!inv.billing_month) return false;
+            let invMonth = inv.billing_month.substring(0, 7);
+            return invMonth === currentMonthY;
+        });
+        let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
+        
+        // If no invoice found, use the tenant's waterbill from the table as fallback
+        if (currentBill === 0 && tenant.waterbill > 0) {
+            console.warn(`⚠️ No invoice found for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
+            currentBill = tenant.waterbill;
+        }
+        
+        console.log(`💵 Tenant ${tenantId} currentBill: ${currentBill}`);
+        
+        // --- Filter older overdue invoices ---
+        let olderInvoices = tenantInvoices.filter(inv => {
+            if (!inv.billing_month) return false;
+            let invMonth = inv.billing_month.substring(0, 7);
+            if (invMonth >= currentMonthY) return false;
+            
+            let dueDate;
+            if (inv.due_date) {
+                dueDate = new Date(inv.due_date);
+            } else {
+                dueDate = new Date(inv.billing_month);
+                dueDate.setMonth(dueDate.getMonth() + 1);
+                dueDate.setDate(5);
+            }
+            dueDate.setHours(0, 0, 0, 0);
+            
+            return dueDate <= today;
+        });
+        
+        let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
+        let unpaidTotal = olderTotal;
+        let totalDue = currentBill + unpaidTotal;
+        let unpaidCount = olderInvoices.length;
+        
+        // ✅ BUILD UNPAID LIST - CORRECTED
+        let unpaidList = '';
+        if (olderInvoices.length > 0) {
+            unpaidList = olderInvoices.map(inv => {
+                let billingMonth = formatMonthYear(inv.billing_month);
+                return (inv.status || 'unpaid') + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
+            }).join('\n');
+        }
         
         let dueDate = tenant.dueDate || 'N/A';
         try {
@@ -1948,40 +2762,40 @@ function generateTenantPreview(templateContent) {
             dueDate = tenant.dueDate || 'N/A';
         }
         
-        const isUnpaid = tenant.paymentStatus === 'unpaid' || tenant.paymentStatus === 'pending' || tenant.paymentStatus === 'overdue';
-        const unpaidCount = isUnpaid ? 2 : 0;
-        const unpaidTotal = isUnpaid ? '3000.00' : '0.00';
-        const unpaidList = isUnpaid ? 'Oct 2024: KES 1,500.00, Nov 2024: KES 1,500.00' : '';
-        const unpaidMessage = isUnpaid ? '2 unpaid invoices totaling KES 3,000.00' : 'No pending invoices';
-        
-        // Use the pre-calculated water consumption
         const waterConsumption = tenant.waterConsumption || 0;
         
+        // ✅ REPLACE PLACEHOLDERS - CORRECTED
+        let message = templateContent;
         const placeholders = {
-            '@{{name}}': tenant.name || 'Tenant',
-            '@{{unit}}': tenant.unit || 'N/A',
-            '@{{unit_number}}': tenant.unit || 'N/A',
-            '@{{estate_name}}': tenant.estate || 'N/A',
-            '@{{estate}}': tenant.estate || 'N/A',
-            '@{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
-            '@{{water_bill}}': tenant.waterbill ? parseFloat(tenant.waterbill).toFixed(2) : '0.00',
-            '@{{water_consumption}}': waterConsumption,
-            '@{{prev_read}}': tenant.prevRead || '0',
-            '@{{curr_read}}': tenant.currRead || '0',
-            '@{{due_date}}': dueDate,
-            '@{{payment_status}}': tenant.paymentStatus || 'pending',
-            '@{{status}}': tenant.paymentStatus || 'pending',
-            '@{{unpaid_count}}': String(unpaidCount),
-            '@{{unpaid_total}}': unpaidTotal,
-            '@{{unpaid_list}}': unpaidList,
-            '@{{unpaid_message}}': unpaidMessage
+            '{{name}}': tenant.name || 'Tenant',
+            '{{unit}}': tenant.unit || 'N/A',
+            '{{unit_number}}': tenant.unit || 'N/A',
+            '{{estate_name}}': tenant.estate || 'N/A',
+            '{{estate}}': tenant.estate || 'N/A',
+            '{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+            '{{water_bill}}': currentBill.toFixed(2),
+            '{{water_consumption}}': String(waterConsumption),
+            '{{prev_read}}': tenant.prevRead || '0',
+            '{{curr_read}}': tenant.currRead || '0',
+            '{{due_date}}': dueDate,
+            '{{payment_status}}': tenant.paymentStatus || 'pending',
+            '{{status}}': tenant.paymentStatus || 'pending',
+            '{{unpaid_count}}': String(unpaidCount),
+            '{{unpaid_total}}': unpaidTotal.toFixed(2),
+            '{{unpaid_list}}': unpaidList,
+            '{{unpaid_message}}': unpaidCount === 0 ? 'no overdue invoices' : unpaidCount + ' overdue invoices totaling KES ' + unpaidTotal.toFixed(2),
+            '{{total_due}}': totalDue.toFixed(2)
         };
         
+        // ✅ Apply all replacements
         for (const [key, value] of Object.entries(placeholders)) {
             message = message.split(key).join(value);
         }
         
+        // ✅ Remove any remaining placeholders
         message = message.replace(/\{\{[^}]*\}\}/g, '');
+        
+        console.log(`📨 Final message for ${tenant.name}:`, message);
         
         let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
         if (tenant.paymentStatus === 'paid') {
@@ -1991,7 +2805,7 @@ function generateTenantPreview(templateContent) {
         }
         
         let unpaidBadge = '';
-        if (isUnpaid) {
+        if (unpaidCount > 0) {
             unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} unpaid</span>`;
         }
         
@@ -2005,16 +2819,17 @@ function generateTenantPreview(templateContent) {
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass}">
                         ${escapeHtml(tenant.paymentStatus || 'pending')}
                     </span>
-                    <span class="text-gray-500 dark:text-gray-400">Bill: KES ${tenant.waterbill ? parseFloat(tenant.waterbill).toFixed(2) : '0.00'}</span>
+                    <span class="text-gray-500 dark:text-gray-400">Bill: KES ${currentBill.toFixed(2)}</span>
                     <span class="text-gray-500 dark:text-gray-400">Unit: ${escapeHtml(tenant.unit || 'N/A')}</span>
                     <span class="text-gray-500 dark:text-gray-400">Reading: ${tenant.prevRead || 0} → ${tenant.currRead || 0}</span>
-                    ${isUnpaid ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid: KES ${unpaidTotal}</span>` : ''}
+                    ${unpaidCount > 0 ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid: KES ${unpaidTotal.toFixed(2)}</span>` : ''}
+                    ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` : ''}
                 </div>
             </div>
         `;
     });
     
-    const totalCount = filteredTenants.length;
+    const totalCount = tenants.length;
     html += `
         <div class="text-xs text-gray-500 mt-2 text-center">
             Showing ${Math.min(3, totalCount)} of ${totalCount} tenant(s) in this estate
@@ -2022,113 +2837,318 @@ function generateTenantPreview(templateContent) {
     `;
     
     html += '</div>';
-    previewContainer.innerHTML = html;
+    container.innerHTML = html;
 }
-
-// ============================================
-// VIEW CAMPAIGN
-// ============================================
-function viewCampaign(id) {
-    currentCampaignId = id;
-    console.log('👁️ Viewing campaign:', id);
-    
-    const modal = document.getElementById('viewCampaignModal');
-    const loading = document.getElementById('viewCampaignLoading');
-    const content = document.getElementById('viewCampaignContent');
-    
-    if (modal) modal.style.display = 'block';
-    if (loading) loading.style.display = 'block';
-    if (content) content.style.display = 'none';
-    
-    document.body.style.overflow = 'hidden';
-    
-    fetch(`/api/sms/campaigns/${id}`)
-        .then(response => {
-            console.log('📥 API Response status:', response.status);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('📥 FULL Campaign data received:', data);
+        // ============================================
+        // RENDER CAMPAIGN PREVIEW WITH DUMMY DATA (FALLBACK)
+        // ============================================
+        function renderCampaignPreviewWithDummy(tenants, templateContent, container) {
+            let html = '<div class="space-y-3">';
+            const previewTenants = tenants.slice(0, 3);
             
+            previewTenants.forEach(tenant => {
+                let currentBill = tenant.waterbill || 0;
+                let unpaidCount = 0;
+                let unpaidTotal = 0;
+                let unpaidList = '';
+                let totalDue = currentBill;
+                
+                const isUnpaid = tenant.paymentStatus === 'unpaid' || tenant.paymentStatus === 'pending' || tenant.paymentStatus === 'overdue';
+                if (isUnpaid) {
+                    unpaidCount = 2;
+                    unpaidTotal = 3000.00;
+                    unpaidList = 'Oct 2024: KES 1,500.00\nNov 2024: KES 1,500.00';
+                    totalDue = currentBill + 3000.00;
+                }
+                
+                let dueDate = tenant.dueDate || 'N/A';
+                try {
+                    const d = new Date(dueDate);
+                    if (!isNaN(d)) {
+                        dueDate = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    }
+                } catch (e) {
+                    dueDate = tenant.dueDate || 'N/A';
+                }
+                
+                const waterConsumption = tenant.waterConsumption || 0;
+                let message = templateContent;
+                
+                const placeholders = {
+                    '{{name}}': tenant.name || 'Tenant',
+                    '{{unit}}': tenant.unit || 'N/A',
+                    '{{unit_number}}': tenant.unit || 'N/A',
+                    '{{estate_name}}': tenant.estate || 'N/A',
+                    '{{estate}}': tenant.estate || 'N/A',
+                    '{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
+                    '{{water_bill}}': currentBill.toFixed(2),
+                    '{{water_consumption}}': waterConsumption,
+                    '{{prev_read}}': tenant.prevRead || '0',
+                    '{{curr_read}}': tenant.currRead || '0',
+                    '{{due_date}}': dueDate,
+                    '{{payment_status}}': tenant.paymentStatus || 'pending',
+                    '{{status}}': tenant.paymentStatus || 'pending',
+                    '{{unpaid_count}}': String(unpaidCount),
+                    '{{unpaid_total}}': unpaidTotal.toFixed(2),
+                    '{{unpaid_list}}': unpaidList,
+                    '{{unpaid_message}}': unpaidCount === 0 ? 'no pending invoices' : `${unpaidCount} unpaid invoices totaling KES ${unpaidTotal.toFixed(2)}`,
+                    '{{total_due}}': totalDue.toFixed(2)
+                };
+                
+                for (const [key, value] of Object.entries(placeholders)) {
+                    message = message.split(key).join(value);
+                }
+                
+                message = message.replace(/\{\{[^}]*\}\}/g, '');
+                
+                let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+                if (tenant.paymentStatus === 'paid') {
+                    statusBadgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+                } else if (tenant.paymentStatus === 'unpaid' || tenant.paymentStatus === 'overdue') {
+                    statusBadgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+                }
+                
+                let unpaidBadge = '';
+                if (unpaidCount > 0) {
+                    unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} unpaid</span>`;
+                }
+                
+                html += `
+                    <div class="border-l-4 border-blue-300 pl-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <strong>To:</strong> ${escapeHtml(tenant.phone || 'N/A')} (${escapeHtml(tenant.name || 'Tenant')}) ${unpaidBadge}
+                        </p>
+                        <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-wrap">${escapeHtml(message)}</div>
+                        <div class="flex flex-wrap gap-2 mt-1 text-xs">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass}">
+                                ${escapeHtml(tenant.paymentStatus || 'pending')}
+                            </span>
+                            <span class="text-gray-500 dark:text-gray-400">Bill: KES ${currentBill.toFixed(2)}</span>
+                            <span class="text-gray-500 dark:text-gray-400">Unit: ${escapeHtml(tenant.unit || 'N/A')}</span>
+                            <span class="text-gray-500 dark:text-gray-400">Reading: ${tenant.prevRead || 0} → ${tenant.currRead || 0}</span>
+                            ${unpaidCount > 0 ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid: KES ${unpaidTotal.toFixed(2)}</span>` : ''}
+                            ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const totalCount = tenants.length;
+            html += `
+                <div class="text-xs text-gray-500 mt-2 text-center">
+                    Showing ${Math.min(3, totalCount)} of ${totalCount} tenant(s) in this estate (dummy data)
+                </div>
+            `;
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // ============================================
+        // VIEW CAMPAIGN – Uses direct route
+        // ============================================
+        function viewCampaign(id) {
+            currentCampaignId = id;
+            console.log('👁️ Viewing campaign:', id);
+            
+            const modal = document.getElementById('viewCampaignModal');
+            const loading = document.getElementById('viewCampaignLoading');
+            const content = document.getElementById('viewCampaignContent');
+            
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            }
+            if (loading) loading.style.display = 'block';
+            if (content) content.style.display = 'none';
+            
+            fetch(`/campaign/${id}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                console.log('📥 API Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('📥 FULL Campaign data received:', data);
+                
+                if (data.campaign) {
+                    const formattedData = {
+                        id: data.campaign.id,
+                        name: data.campaign.name,
+                        description: data.campaign.description,
+                        status: data.campaign.status,
+                        total_recipients: data.recipient_count || data.campaign.total_recipients || 0,
+                        sent_count: data.campaign.sent_count || 0,
+                        failed_count: data.campaign.failed_count || 0,
+                        delivered_count: data.campaign.delivered_count || 0,
+                        created_at: data.campaign.created_at,
+                        template: null,
+                        recipients: data.recipients || [],
+                        status_counts: {
+                            sent: data.campaign.sent_count || 0,
+                            pending: 0,
+                            failed: data.campaign.failed_count || 0,
+                            queued: 0,
+                            delivered: data.campaign.delivered_count || 0
+                        },
+                        validation_stats: {
+                            valid: 0,
+                            other_network: 0,
+                            invalid: 0
+                        }
+                    };
+                    renderCampaignDetails(formattedData, loading, content);
+                } else {
+                    renderCampaignDetails(data, loading, content);
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading campaign details:', error);
+                if (loading) loading.style.display = 'none';
+                alert('❌ Error loading campaign details: ' + error.message);
+            });
+        }
+
+        // ============================================
+        // RENDER CAMPAIGN DETAILS
+        // ============================================
+        function renderCampaignDetails(data, loading, content) {
             if (loading) loading.style.display = 'none';
             if (content) content.style.display = 'block';
             
-            // Helper to safely set text content
             const setText = (id, value) => {
                 const el = document.getElementById(id);
-                if (el) el.textContent = value;
+                if (el) el.textContent = value ?? 'N/A';
             };
             
-            // Campaign Name & Description
-            setText('viewCampaignName', data.name || 'N/A');
-            setText('viewCampaignDescription', data.description || 'No description provided');
+            const campaign = data.campaign || data;
+            const recipients = data.recipients || [];
+            const recipientCount = data.recipient_count || recipients.length || 0;
             
-            // Status Badge
+            setText('viewCampaignName', campaign.name || 'N/A');
+            setText('viewCampaignDescription', campaign.description || 'No description provided');
+            
             const statusEl = document.getElementById('viewCampaignStatus');
             if (statusEl) {
-                statusEl.textContent = capitalize(data.status);
-                statusEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadge(data.status);
+                statusEl.textContent = capitalize(campaign.status || 'pending');
+                statusEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadge(campaign.status || 'pending');
             }
             
-            // Define counts
-            const counts = data.status_counts || { sent: 0, pending: 0, failed: 0, queued: 0, delivered: 0 };
-            
-            // Calculate progress
-            const total = data.total_recipients || 0;
-            const sent = data.sent_count || 0;
+            const total = campaign.total_recipients || recipientCount || 0;
+            const sent = campaign.sent_count || 0;
+            const failed = campaign.failed_count || 0;
+            const delivered = campaign.delivered_count || 0;
+            const pending = total - sent - failed;
             const progress = total > 0 ? Math.round((sent / total) * 100) : 0;
             
-            // Stats Cards
-            setText('viewCampaignTemplate', data.template ? data.template.name : 'No template');
-            setText('viewCampaignCreated', formatDate(data.created_at));
-            setText('viewCampaignTotal', data.total_recipients || 0);
-            setText('viewCampaignSent', data.sent_count || 0);
-            setText('viewCampaignFailed', data.failed_count || 0);
-            setText('viewCampaignDelivered', data.delivered_count || 0);
-            setText('viewCampaignPendingCount', counts.pending || 0);
+            setText('viewCampaignTemplate', campaign.template_name || 'No template');
+            setText('viewCampaignCreated', formatDate(campaign.created_at));
+            setText('viewCampaignTotal', total);
+            setText('viewCampaignSent', sent);
+            setText('viewCampaignFailed', failed);
+            setText('viewCampaignDelivered', delivered || 0);
+            setText('viewCampaignPendingCount', pending > 0 ? pending : 0);
             setText('viewCampaignProgress', progress + '%');
             
-            // Progress Bar
             const progressBar = document.getElementById('viewCampaignProgressBar');
             if (progressBar) {
                 progressBar.style.width = progress + '%';
             }
             
-            // Filter Button Counts
-            setText('count-all', data.total_recipients || 0);
-            setText('count-delivered', counts.delivered || 0);
-            setText('count-sent', counts.sent || 0);
-            setText('count-queued', counts.queued || 0);
-            setText('count-pending', counts.pending || 0);
-            setText('count-failed', counts.failed || 0);
+            const recipientData = recipients.map(recipient => {
+                const phone = recipient.phone_number || recipient.phone || '';
+                const name = recipient.tenant_name || recipient.name || 'Unknown';
+                const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
+                const estateName = recipient.estate_name || recipient.estate || 'N/A';
+                const status = recipient.status || 'pending';
+                const message = recipient.message || '';
+                const errorMsg = recipient.error_message || recipient.failure_reason || '';
+                const network = recipient.network || '';
+                const parts = recipient.parts || '';
+                const cost = recipient.cost || '';
+                const deliveredTime = recipient.delivered_time || '';
+                
+                let sentTime = '';
+                if (recipient.sent_at) {
+                    try {
+                        const d = new Date(recipient.sent_at);
+                        if (!isNaN(d)) {
+                            sentTime = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        }
+                    } catch (e) {
+                        sentTime = recipient.sent_at;
+                    }
+                }
+                
+                return {
+                    id: recipient.id || recipient.recipient_id,
+                    phone: phone,
+                    phone_number: phone,
+                    name: name,
+                    tenant_name: name,
+                    unit_number: unitNumber,
+                    unit: unitNumber,
+                    estate_name: estateName,
+                    estate: estateName,
+                    status: status,
+                    message: message,
+                    error_message: errorMsg,
+                    failure_reason: errorMsg,
+                    network: network,
+                    parts: parts,
+                    cost: cost,
+                    sent_time: sentTime,
+                    delivered_time: deliveredTime,
+                    sent_at: recipient.sent_at || '',
+                    provider_status: recipient.provider_status || '',
+                    provider_response: recipient.provider_response || '',
+                };
+            });
             
-            // Validation Stats
-            setText('viewCampaignValid', data.validation_stats?.valid || 0);
-            setText('viewCampaignOtherNetwork', data.validation_stats?.other_network || 0);
-            setText('viewCampaignInvalid', data.validation_stats?.invalid || 0);
+            const statusCounts = {
+                sent: recipientData.filter(r => r.status === 'sent').length,
+                pending: recipientData.filter(r => r.status === 'pending').length,
+                failed: recipientData.filter(r => r.status === 'failed').length,
+                queued: recipientData.filter(r => r.status === 'queued').length,
+                delivered: recipientData.filter(r => r.status === 'delivered').length,
+            };
             
-            // Tab Counts
-            const recipientCount = data.recipients ? data.recipients.length : 0;
-            const invalidCount = data.validation_stats?.invalid || 0;
-            const otherCount = data.validation_stats?.other_network || 0;
-            const failedCount = counts.failed || 0;
+            const validationStats = {
+                valid: recipientData.filter(r => r.phone && r.phone.match(/^2547[0-9]{8}$/)).length,
+                other_network: recipientData.filter(r => r.phone && r.phone.match(/^254[^7][0-9]{8}$/)).length,
+                invalid: recipientData.filter(r => !r.phone || !r.phone.match(/^254[0-9]{9}$/)).length,
+            };
             
-            setText('recipientTabCount', `(${recipientCount})`);
-            setText('invalidTabCount', `(${invalidCount})`);
-            setText('otherTabCount', `(${otherCount})`);
-            setText('failedTabCount', `(${failedCount})`);
+            setText('viewCampaignValid', validationStats.valid || 0);
+            setText('viewCampaignOtherNetwork', validationStats.other_network || 0);
+            setText('viewCampaignInvalid', validationStats.invalid || 0);
             
-            // ✅ FIX: Assign recipient data and render
-            currentRecipients = data.recipients || [];
-            currentRecipientsFull = data.recipients || [];
-            currentFilteredRecipients = currentRecipientsFull;
+            setText('count-all', recipientData.length);
+            setText('count-delivered', statusCounts.delivered || 0);
+            setText('count-sent', statusCounts.sent || 0);
+            setText('count-queued', statusCounts.queued || 0);
+            setText('count-pending', statusCounts.pending || 0);
+            setText('count-failed', statusCounts.failed || 0);
+            
+            setText('recipientTabCount', `(${recipientData.length})`);
+            setText('invalidTabCount', `(${validationStats.invalid || 0})`);
+            setText('otherTabCount', `(${validationStats.other_network || 0})`);
+            setText('failedTabCount', `(${statusCounts.failed || 0})`);
+            
+            currentRecipients = recipientData;
+            currentRecipientsFull = recipientData;
+            currentFilteredRecipients = recipientData;
             currentRecipientFilter = 'all';
             currentPage = 1;
             
-            // Reset filter buttons
             const buttons = document.querySelectorAll('#viewCampaignModal .flex.flex-wrap.gap-2 button');
             buttons.forEach(btn => {
                 btn.classList.remove('bg-blue-600', 'text-white');
@@ -2140,7 +3160,6 @@ function viewCampaign(id) {
                 allBtn.classList.add('bg-blue-600', 'text-white');
             }
             
-            // 🆕 Force render the recipients table
             if (currentFilteredRecipients.length > 0) {
                 renderPaginatedRecipients();
             } else {
@@ -2148,26 +3167,17 @@ function viewCampaign(id) {
                 if (tbody) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                            <td colspan="12" class="px-4 py-8 text-center text-gray-500">
                                 <i class="fas fa-inbox mr-2"></i> No recipients found for this campaign
                             </td>
                         </tr>
                     `;
                 }
             }
-        })
-        .catch(error => {
-            console.error('❌ Error loading campaign details:', error);
-            if (loading) loading.style.display = 'none';
-            alert('❌ Error loading campaign details: ' + error.message);
-        });
-}
+        }
 
 // ============================================
-// RENDER RECIPIENTS
-// ============================================
-// ============================================
-// RENDER RECIPIENTS
+// RENDER RECIPIENTS – With Updated Actions
 // ============================================
 function renderRecipients(recipients) {
     console.log('📋 Rendering recipients, count:', recipients ? recipients.length : 0);
@@ -2190,64 +3200,25 @@ function renderRecipients(recipients) {
     }
     
     let html = '';
-    recipients.forEach(recipient => {
-        const statusBadge = getStatusBadge(recipient.status);
-        const statusText = capitalize(recipient.status);
+    recipients.forEach((recipient) => {
+        const id = recipient.id || recipient.recipient_id;
+        const phone = recipient.phone || recipient.phone_number || '';
+        const status = recipient.status || 'pending';
+        const message = recipient.message || '';
+        const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
+        const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
+        const estateName = recipient.estate_name || recipient.estate || 'N/A';
+        const network = recipient.network || '';
+        const parts = recipient.parts || '';
+        const cost = recipient.cost || '';
+        const sentTime = recipient.sent_time || '';
+        const deliveredTime = recipient.delivered_time || '';
+        const failureReason = recipient.failure_reason || recipient.error_message || '';
         
-        let tenantName = recipient.tenant_name || recipient.tenant?.name || recipient.name || 'Unknown';
-        let unitNumber = recipient.unit_number || recipient.unit || 'N/A';
-        let estateName = recipient.estate_name || recipient.estate || 'N/A';
-        let phoneNumber = recipient.phone_number || recipient.phone || '';
-        
-        // 🆕 Extract delivery report fields
-        let network = recipient.network || '';
-        let parts = recipient.parts || '';
-        let cost = recipient.cost || '';
-        let sentTime = recipient.sent_time || '';
-        let deliveredTime = recipient.delivered_time || '';
-        let failureReason = recipient.failure_reason || recipient.error_message || '';
-        
-        // Format timestamps if they look like dates
-        if (sentTime && sentTime.match(/^\d{2}:\d{2}:\d{2}$/)) {
-            // Already in HH:MM:SS format, keep as-is
-        } else if (sentTime) {
-            try {
-                const d = new Date(sentTime);
-                if (!isNaN(d)) {
-                    sentTime = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                }
-            } catch (e) { /* keep original */ }
-        }
-        
-        if (deliveredTime && deliveredTime.match(/^\d{2}:\d{2}:\d{2}$/)) {
-            // Already in HH:MM:SS format, keep as-is
-        } else if (deliveredTime) {
-            try {
-                const d = new Date(deliveredTime);
-                if (!isNaN(d)) {
-                    deliveredTime = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                }
-            } catch (e) { /* keep original */ }
-        }
-        
-        let resendButton = '';
-        if (recipient.status === 'failed' || recipient.status === 'pending' || recipient.status === 'queued') {
-            resendButton = `
-                <button onclick="resendSingleRecipient(${recipient.id})" class="text-orange-600 hover:text-orange-900 text-xs" title="Resend this message">
-                    <i class="fas fa-redo"></i>
-                </button>
-            `;
-        }
-        
-        // Failure reason display
-        let failureDisplay = '';
-        if (recipient.status === 'failed') {
-            failureDisplay = failureReason || 'No error message';
-        } else if (recipient.status === 'delivered') {
-            failureDisplay = '—';
-        } else {
-            failureDisplay = '';
-        }
+        const statusBadge = getStatusBadge(status);
+        const statusText = capitalize(status);
+        const canResend = ['failed', 'pending', 'queued'].includes(status);
+        const isSent = status === 'sent' || status === 'delivered';
         
         html += `
             <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
@@ -2261,15 +3232,21 @@ function renderRecipients(recipients) {
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(phoneNumber)}</td>
-                <!-- 🆕 Delivery Report Columns -->
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(network)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${parts}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${escapeHtml(cost)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${escapeHtml(sentTime)}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${escapeHtml(deliveredTime)}</td>
-                <td class="px-4 py-3 text-center text-sm ${recipient.status === 'failed' ? 'text-red-500' : 'text-gray-400'}">
-                    ${escapeHtml(failureDisplay)}
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    ${escapeHtml(phone)}
+                    <button onclick="copyToClipboard('${escapeHtml(phone)}')" 
+                            class="ml-1 text-xs text-blue-500 hover:text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 hover:border-blue-400" 
+                            title="Copy phone number">
+                        Copy
+                    </button>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(network) || '-'}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${parts || '-'}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${cost || '-'}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${sentTime || '-'}</td>
+                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${deliveredTime || '-'}</td>
+                <td class="px-4 py-3 text-center text-sm ${status === 'failed' ? 'text-red-500' : 'text-gray-400'}">
+                    ${status === 'failed' ? escapeHtml(failureReason) : '-'}
                 </td>
                 <td class="px-4 py-3 text-center">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge}">
@@ -2277,10 +3254,42 @@ function renderRecipients(recipients) {
                     </span>
                 </td>
                 <td class="px-4 py-3 text-center">
-                    <div class="flex items-center justify-center gap-2">
-                        ${resendButton}
-                        <button onclick="viewRecipientMessage(${recipient.id})" class="text-blue-600 hover:text-blue-900 text-xs" title="View Message">
-                            <i class="fas fa-envelope"></i>
+                    <div class="flex flex-wrap items-center justify-center gap-1">
+                        ${canResend ? `
+                        <button onclick="resendSingleRecipient(${id})" 
+                                class="text-xs px-2 py-1 rounded bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-200"
+                                title="Resend this message">
+                            Resend
+                        </button>
+                        ` : ''}
+                        <button onclick="viewRecipientMessage(${id})" 
+                                class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-200"
+                                title="View Message">
+                            View
+                        </button>
+                        <button onclick="copyRecipientMessage(${id})" 
+                                class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200"
+                                title="Copy Message">
+                            Copy
+                        </button>
+                        ${status === 'failed' ? `
+                        <button onclick="viewFailureReason(${id})" 
+                                class="text-xs px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200 border border-red-200"
+                                title="View Failure Reason">
+                            Error
+                        </button>
+                        ` : ''}
+                        ${isSent ? `
+                        <button onclick="viewDeliveryDetails(${id})" 
+                                class="text-xs px-2 py-1 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-200"
+                                title="View Delivery Details">
+                            Delivery
+                        </button>
+                        ` : ''}
+                        <button onclick="updateRecipientPhone(${id})" 
+                                class="text-xs px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-200"
+                                title="Update Phone Number">
+                            Update Phone
                         </button>
                     </div>
                 </td>
@@ -2289,637 +3298,803 @@ function renderRecipients(recipients) {
     });
     
     tbody.innerHTML = html;
-    console.log('✅ Recipients rendered successfully with delivery report columns');
+    console.log('✅ Recipients rendered with updated actions');
 }
 
 // ============================================
-// FILTER RECIPIENTS
+// VIEW DELIVERY DETAILS
 // ============================================
-function filterRecipients(status) {
-    currentRecipientFilter = status;
-    
-    const buttons = document.querySelectorAll('#viewCampaignModal .flex.flex-wrap.gap-2 button');
-    buttons.forEach(btn => {
-        btn.classList.remove('bg-blue-600', 'text-white');
-        btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-    });
-    
-    const activeBtn = document.getElementById('filter-recipients-' + status);
-    if (activeBtn) {
-        activeBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-        activeBtn.classList.add('bg-blue-600', 'text-white');
-    }
-    
-    if (status === 'all') {
-        currentFilteredRecipients = currentRecipientsFull || [];
-    } else {
-        currentFilteredRecipients = (currentRecipientsFull || []).filter(r => r.status === status);
-    }
-    
-    currentPage = 1;
-    renderPaginatedRecipients();
-}
-
-// ============================================
-// PAGINATION FUNCTIONS
-// ============================================
-function changeEntriesPerPage() {
-    const select = document.getElementById('entriesPerPage');
-    if (!select) return;
-    
-    if (select.value === 'all') {
-        rowsPerPage = 999999;
-    } else {
-        rowsPerPage = parseInt(select.value);
-    }
-    currentPage = 1;
-    renderPaginatedRecipients();
-}
-
-function getTotalPages() {
-    const total = currentFilteredRecipients.length;
-    return Math.ceil(total / rowsPerPage);
-}
-
-function renderPaginatedRecipients() {
-    const total = currentFilteredRecipients.length;
-    const totalPages = getTotalPages();
-    const start = (currentPage - 1) * rowsPerPage;
-    const end = Math.min(start + rowsPerPage, total);
-    const paginated = currentFilteredRecipients.slice(start, end);
-    
-    const pageInfo = document.getElementById('pageInfo');
-    if (pageInfo) {
-        pageInfo.textContent = total > 0 ? `Page ${currentPage} of ${totalPages}` : 'No entries';
-    }
-    
-    renderRecipients(paginated);
-}
-
-function prevPage() {
-    if (currentPage > 1) {
-        currentPage--;
-        renderPaginatedRecipients();
-    }
-}
-
-function nextPage() {
-    const totalPages = getTotalPages();
-    if (currentPage < totalPages) {
-        currentPage++;
-        renderPaginatedRecipients();
-    }
-}
-
-// ============================================
-// TAB SWITCHING FOR RECIPIENT TABS
-// ============================================
-function switchRecipientTab(tab) {
-    console.log('🔄 Switching to tab:', tab);
-    
-    const recipientsTab = document.getElementById('recipientsTabContent');
-    const invalidTab = document.getElementById('invalidTabContent');
-    const otherTab = document.getElementById('otherTabContent');
-    const failedTab = document.getElementById('failedTabContent');
-    
-    if (recipientsTab) recipientsTab.style.display = 'none';
-    if (invalidTab) invalidTab.style.display = 'none';
-    if (otherTab) otherTab.style.display = 'none';
-    if (failedTab) failedTab.style.display = 'none';
-    
-    const tabRecipients = document.getElementById('tab-recipients');
-    const tabInvalid = document.getElementById('tab-invalid');
-    const tabOther = document.getElementById('tab-other');
-    const tabFailed = document.getElementById('tab-failed');
-    
-    if (tabRecipients) {
-        tabRecipients.classList.remove('border-blue-500', 'text-blue-600');
-        tabRecipients.classList.add('border-transparent');
-    }
-    if (tabInvalid) {
-        tabInvalid.classList.remove('border-blue-500', 'text-blue-600');
-        tabInvalid.classList.add('border-transparent');
-    }
-    if (tabOther) {
-        tabOther.classList.remove('border-blue-500', 'text-blue-600');
-        tabOther.classList.add('border-transparent');
-    }
-    if (tabFailed) {
-        tabFailed.classList.remove('border-blue-500', 'text-blue-600');
-        tabFailed.classList.add('border-transparent');
-    }
-    
-    if (tab === 'recipients') {
-        if (recipientsTab) recipientsTab.style.display = 'block';
-        if (tabRecipients) {
-            tabRecipients.classList.add('border-blue-500', 'text-blue-600');
-            tabRecipients.classList.remove('border-transparent');
-        }
-        if (currentFilteredRecipients.length > 0) {
-            renderPaginatedRecipients();
-        } else if (currentRecipientsFull && currentRecipientsFull.length > 0) {
-            currentFilteredRecipients = currentRecipientsFull;
-            renderPaginatedRecipients();
-        }
-    } else if (tab === 'invalid') {
-        if (invalidTab) invalidTab.style.display = 'block';
-        if (tabInvalid) {
-            tabInvalid.classList.add('border-blue-500', 'text-blue-600');
-            tabInvalid.classList.remove('border-transparent');
-        }
-        const tbody = document.getElementById('invalidRecipientsBody');
-        if (tbody && tbody.innerHTML.includes('Click "Load Invalid Recipients" to view')) {
-            loadInvalidRecipients();
-        }
-    } else if (tab === 'other') {
-        if (otherTab) otherTab.style.display = 'block';
-        if (tabOther) {
-            tabOther.classList.add('border-blue-500', 'text-blue-600');
-            tabOther.classList.remove('border-transparent');
-        }
-        const tbody = document.getElementById('otherNetworkRecipientsBody');
-        if (tbody && tbody.innerHTML.includes('Click "Load Other Networks" to view')) {
-            loadOtherNetworkRecipients();
-        }
-    } else if (tab === 'failed') {
-        if (failedTab) failedTab.style.display = 'block';
-        if (tabFailed) {
-            tabFailed.classList.add('border-blue-500', 'text-blue-600');
-            tabFailed.classList.remove('border-transparent');
-        }
-        loadFailedRecipients();
-    }
-}
-
-// ============================================
-// EXPORT FUNCTIONS
-// ============================================
-function toggleExportDropdown() {
-    const dropdown = document.getElementById('exportDropdown');
-    if (dropdown) {
-        dropdown.classList.toggle('hidden');
-    }
-}
-
-document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById('exportDropdown');
-    const button = event.target.closest('.relative.inline-block');
-    if (!button && dropdown) {
-        dropdown.classList.add('hidden');
-    }
-});
-
-function exportRecipients() {
-    if (!currentRecipientsFull || currentRecipientsFull.length === 0) {
-        alert('No recipients to export');
+function viewDeliveryDetails(recipientId) {
+    const recipient = currentRecipientsFull.find(r => r.id === recipientId || r.recipient_id === recipientId);
+    if (!recipient) {
+        alert('Recipient not found');
         return;
     }
     
-    let csv = 'Tenant,Unit,Estate,Phone,Status,Message,Provider Status,Error Message,Updated At\n';
-    currentRecipientsFull.forEach(r => {
-        const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
-        const unitNumber = r.unit_number || r.unit || 'N/A';
-        const estateName = r.estate_name || r.estate || 'N/A';
-        const phoneNumber = r.phone_number || r.phone || '';
-        const status = r.status || 'pending';
-        const message = (r.message || '').replace(/,/g, ';');
-        const providerStatus = r.provider_status || '';
-        const errorMessage = (r.error_message || '').replace(/,/g, ';');
-        const updatedAt = r.updated_at || '';
-        
-        csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${message}","${providerStatus}","${errorMessage}","${updatedAt}"\n`;
-    });
+    const phone = recipient.phone || recipient.phone_number || 'N/A';
+    const status = recipient.status || 'N/A';
+    const sentTime = recipient.sent_time || recipient.sent_at || 'N/A';
+    const deliveredTime = recipient.delivered_time || 'N/A';
+    const network = recipient.network || 'N/A';
+    const parts = recipient.parts || 'N/A';
+    const cost = recipient.cost || 'N/A';
+    const providerStatus = recipient.provider_status || 'N/A';
+    const message = recipient.message || 'No message';
     
-    downloadCSV(csv, `recipients_all_${currentCampaignId || 'campaign'}.csv`);
-    toggleExportDropdown();
+    alert(`📬 Delivery Details\n\n` +
+          `Tenant: ${recipient.tenant_name || 'Unknown'}\n` +
+          `Phone: ${phone}\n` +
+          `Status: ${status}\n` +
+          `Network: ${network}\n` +
+          `Parts: ${parts}\n` +
+          `Cost: ${cost}\n` +
+          `Sent: ${sentTime}\n` +
+          `Delivered: ${deliveredTime}\n` +
+          `Provider Status: ${providerStatus}\n\n` +
+          `Message:\n${message.substring(0, 200)}${message.length > 200 ? '...' : ''}`);
 }
 
-function exportInvalidRecipients() {
-    const invalidRecipients = currentInvalidRecipients || [];
-    
-    if (invalidRecipients.length === 0) {
-        alert('No invalid recipients found to export');
-        toggleExportDropdown();
-        return;
-    }
-    
-    let csv = 'Tenant,Unit,Estate,Phone,Status,Error Message,Updated At\n';
-    invalidRecipients.forEach(r => {
-        const tenantName = r.name || 'Unknown';
-        const unitNumber = r.unit_number || 'N/A';
-        const estateName = r.estate_name || r.estate || 'N/A';
-        let phoneNumber = r.phone || '';
-        phoneNumber = phoneNumber.replace(/^\+/, '').replace(/^254/, '0');
-        if (phoneNumber.match(/^[7-9][0-9]{8}$/)) {
-            phoneNumber = '0' + phoneNumber;
-        }
-        const status = r.status || 'pending';
-        let errorMsg = r.error || 'Invalid phone number format';
-        const cleaned = (r.phone || '').replace(/[^0-9]/g, '');
-        if (cleaned.match(/^254[^7][0-9]{8}$/) || cleaned.match(/^0[^7][0-9]{8}$/)) {
-            errorMsg = 'Other network (Airtel/Telkom) - Not Safaricom';
-        }
-        const updatedAt = r.updated_at || '';
-        
-        csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${errorMsg}","${updatedAt}"\n`;
-    });
-    
-    downloadCSV(csv, `recipients_invalid_${currentCampaignId || 'campaign'}.csv`);
-    toggleExportDropdown();
-}
-
-function exportOtherNetworkRecipients() {
-    const otherRecipients = currentOtherNetworkRecipients || [];
-    
-    if (otherRecipients.length === 0) {
-        alert('No other network recipients found to export');
-        toggleExportDropdown();
-        return;
-    }
-    
-    let csv = 'Tenant,Unit,Estate,Phone,Status,Network,Updated At\n';
-    otherRecipients.forEach(r => {
-        const tenantName = r.name || 'Unknown';
-        const unitNumber = r.unit_number || 'N/A';
-        const estateName = r.estate_name || r.estate || 'N/A';
-        let phoneNumber = r.phone || '';
-        phoneNumber = phoneNumber.replace(/^\+/, '').replace(/^254/, '0');
-        if (phoneNumber.match(/^[7-9][0-9]{8}$/)) {
-            phoneNumber = '0' + phoneNumber;
-        }
-        const status = r.status || 'pending';
-        const network = r.error || 'Other Network (Airtel/Telkom)';
-        const updatedAt = r.updated_at || '';
-        
-        csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${network}","${updatedAt}"\n`;
-    });
-    
-    downloadCSV(csv, `recipients_other_network_${currentCampaignId || 'campaign'}.csv`);
-    toggleExportDropdown();
-}
-
-function exportDeliveredRecipients() {
-    if (!currentRecipientsFull || currentRecipientsFull.length === 0) {
-        alert('No recipients to export');
-        return;
-    }
-    
-    const delivered = currentRecipientsFull.filter(r => r.status === 'delivered' || r.status === 'sent');
-    
-    if (delivered.length === 0) {
-        alert('No delivered recipients found to export');
-        toggleExportDropdown();
-        return;
-    }
-    
-    let csv = 'Tenant,Unit,Estate,Phone,Status,Sent At,Message\n';
-    delivered.forEach(r => {
-        const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
-        const unitNumber = r.unit_number || r.unit || 'N/A';
-        const estateName = r.estate_name || r.estate || 'N/A';
-        let phoneNumber = r.phone_number || r.phone || '';
-        phoneNumber = phoneNumber.replace(/^254/, '0');
-        const status = r.status || 'pending';
-        const sentAt = r.sent_at || '';
-        const message = (r.message || '').replace(/,/g, ';');
-        
-        csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${sentAt}","${message}"\n`;
-    });
-    
-    downloadCSV(csv, `recipients_delivered_${currentCampaignId || 'campaign'}.csv`);
-    toggleExportDropdown();
-}
-
-function exportPendingRecipients() {
-    if (!currentRecipientsFull || currentRecipientsFull.length === 0) {
-        alert('No recipients to export');
-        return;
-    }
-    
-    const pending = currentRecipientsFull.filter(r => r.status === 'pending' || r.status === 'queued');
-    
-    if (pending.length === 0) {
-        alert('No pending recipients found to export');
-        toggleExportDropdown();
-        return;
-    }
-    
-    let csv = 'Tenant,Unit,Estate,Phone,Status,Message\n';
-    pending.forEach(r => {
-        const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
-        const unitNumber = r.unit_number || r.unit || 'N/A';
-        const estateName = r.estate_name || r.estate || 'N/A';
-        let phoneNumber = r.phone_number || r.phone || '';
-        phoneNumber = phoneNumber.replace(/^254/, '0');
-        const status = r.status || 'pending';
-        const message = (r.message || '').replace(/,/g, ';');
-        
-        csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${message}"\n`;
-    });
-    
-    downloadCSV(csv, `recipients_pending_${currentCampaignId || 'campaign'}.csv`);
-    toggleExportDropdown();
-}
-
-function downloadCSV(csv, filename) {
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-}
-
+        // ============================================
+// COPY RECIPIENT MESSAGE
 // ============================================
-// RESEND FAILED MESSAGES
+function copyRecipientMessage(recipientId) {
+    const recipient = currentRecipientsFull.find(r => r.id === recipientId || r.recipient_id === recipientId);
+    if (!recipient) {
+        alert('Recipient not found');
+        return;
+    }
+    const message = recipient.message || '';
+    if (!message) {
+        alert('No message to copy');
+        return;
+    }
+    copyToClipboard(message);
+    showToast('📋 Message copied to clipboard!');
+}
 // ============================================
-function resendFailed() {
-    if (!currentCampaignId) {
-        alert('No campaign loaded');
+// VIEW FAILURE REASON
+// ============================================
+function viewFailureReason(recipientId) {
+    const recipient = currentRecipientsFull.find(r => r.id === recipientId || r.recipient_id === recipientId);
+    if (!recipient) {
+        alert('Recipient not found');
+        return;
+    }
+    const error = recipient.error_message || recipient.failure_reason || 'No error message available';
+    const providerStatus = recipient.provider_status || '';
+    const phone = recipient.phone || recipient.phone_number || 'N/A';
+    const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
+    
+    alert(`❌ Failure Reason\n\n` +
+          `Tenant: ${tenantName}\n` +
+          `Phone: ${phone}\n` +
+          `Provider Status: ${providerStatus || 'N/A'}\n\n` +
+          `Error: ${error}`);
+}
+
+        // ============================================
+// VIEW RECIPIENT MESSAGE
+// ============================================
+function viewRecipientMessage(recipientId) {
+    const recipient = currentRecipientsFull.find(r => r.id === recipientId || r.recipient_id === recipientId);
+    if (!recipient) {
+        alert('Recipient not found');
         return;
     }
     
-    const failedCount = parseInt(document.getElementById('count-failed')?.textContent || 0);
-    if (failedCount === 0) {
-        alert('No failed messages to resend');
+    const phone = recipient.phone || recipient.phone_number || 'N/A';
+    const status = recipient.status || 'N/A';
+    const message = recipient.message || 'No message';
+    const error = recipient.error_message || recipient.failure_reason || '';
+    const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
+    const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
+    const estateName = recipient.estate_name || recipient.estate || 'N/A';
+    
+    alert(`📨 Message Details\n\n` +
+          `Tenant: ${tenantName}\n` +
+          `Unit: ${unitNumber}\n` +
+          `Estate: ${estateName}\n` +
+          `Phone: ${phone}\n` +
+          `Status: ${status}\n\n` +
+          `Message:\n${message}\n\n` +
+          `${error ? 'Error: ' + error : ''}`);
+}
+
+       // ============================================
+// UPDATE RECIPIENT PHONE
+// ============================================
+function updateRecipientPhone(recipientId) {
+    const recipient = currentRecipientsFull.find(r => r.id === recipientId || r.recipient_id === recipientId);
+    if (!recipient) {
+        alert('Recipient not found');
         return;
     }
     
-    if (!confirm(`Resend ${failedCount} failed messages for this campaign?`)) return;
+    const currentPhone = recipient.phone || recipient.phone_number || '';
+    const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
+    const newPhone = prompt(`Enter new phone number for ${tenantName}:`, currentPhone);
     
-    const btn = document.getElementById('resendFailedBtn');
+    if (newPhone === null) return;
+    if (newPhone.trim() === '') {
+        alert('Phone number cannot be empty');
+        return;
+    }
+    
+    const tenantId = recipient.tenant_id;
+    if (!tenantId) {
+        alert('Tenant ID not found for this recipient');
+        return;
+    }
+    
+    const btn = document.querySelector(`[onclick="updateRecipientPhone(${recipientId})"]`);
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Resending...';
+        btn.textContent = 'Saving...';
     }
     
-    const timeoutId = setTimeout(function() {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
-        }
-        toastr.warning('Request is taking longer than expected. Please check the campaign status.');
-    }, 30000);
-    
-    fetch(`/api/sms/campaigns/${currentCampaignId}/resend-failed`, {
-        method: 'POST',
+    fetch(`/api/sms/tenants/${tenantId}/phone`, {
+        method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
             'Accept': 'application/json'
         },
-        signal: AbortSignal.timeout(25000)
-    })
-    .then(response => {
-        clearTimeout(timeoutId);
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
-            viewCampaign(currentCampaignId);
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to resend messages'));
-        }
-    })
-    .catch(error => {
-        clearTimeout(timeoutId);
-        console.error('Error resending:', error);
-        alert('❌ Error resending messages: ' + (error.message || 'Unknown error'));
-    })
-    .finally(() => {
-        clearTimeout(timeoutId);
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
-        }
-    });
-}
-
-// ============================================
-// RESEND PENDING MESSAGES
-// ============================================
-function resendPending() {
-    if (!currentCampaignId) {
-        alert('No campaign loaded');
-        return;
-    }
-    const pendingCount = parseInt(document.getElementById('count-pending')?.textContent || 0);
-    if (pendingCount === 0) {
-        alert('No pending messages to resend');
-        return;
-    }
-    if (!confirm(`Resend ${pendingCount} pending messages for this campaign?`)) return;
-
-    const btn = document.getElementById('resendPendingBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Resending...';
-    }
-
-    fetch(`/api/sms/campaigns/${currentCampaignId}/resend-pending`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        }
+        body: JSON.stringify({ phone: newPhone.trim() })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
+            alert('✅ Phone number updated successfully!');
             viewCampaign(currentCampaignId);
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to resend pending messages'));
+            alert('❌ Error: ' + (data.message || 'Failed to update phone'));
         }
     })
     .catch(error => {
-        console.error('Error resending pending:', error);
-        alert('❌ Error resending pending messages: ' + error.message);
+        console.error('Error updating phone:', error);
+        alert('❌ Error updating phone: ' + error.message);
     })
     .finally(() => {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Pending';
+            btn.textContent = 'Update Phone';
         }
     });
 }
+        // ============================================
+        // FILTER RECIPIENTS
+        // ============================================
+        function filterRecipients(status) {
+            currentRecipientFilter = status;
+            
+            const buttons = document.querySelectorAll('#viewCampaignModal .flex.flex-wrap.gap-2 button');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+            });
+            
+            const activeBtn = document.getElementById('filter-recipients-' + status);
+            if (activeBtn) {
+                activeBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+                activeBtn.classList.add('bg-blue-600', 'text-white');
+            }
+            
+            if (status === 'all') {
+                currentFilteredRecipients = currentRecipientsFull || [];
+            } else {
+                currentFilteredRecipients = (currentRecipientsFull || []).filter(r => r.status === status);
+            }
+            
+            currentPage = 1;
+            renderPaginatedRecipients();
+        }
 
-// ============================================
-// REFRESH CAMPAIGN STATUS
-// ============================================
-function refreshCampaignStatus() {
-    if (!currentCampaignId) {
-        alert('No campaign loaded');
-        return;
-    }
-    
-    if (!confirm('Refresh status for all recipients in this campaign?')) return;
-    
-    const btn = document.getElementById('refreshStatusBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Syncing...';
-    }
-    
-    fetch(`/api/sms/campaigns/${currentCampaignId}/sync-status`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
+        // ============================================
+        // PAGINATION FUNCTIONS FOR RECIPIENTS MODAL
+        // ============================================
+        function changeEntriesPerPage() {
+            const select = document.getElementById('entriesPerPageRecipients');
+            if (!select) return;
+            
+            if (select.value === 'all') {
+                rowsPerPage = 999999;
+            } else {
+                rowsPerPage = parseInt(select.value);
+            }
+            currentPage = 1;
+            renderPaginatedRecipients();
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`✅ Status sync completed!\n\nSynced: ${data.data.synced}\nFailed: ${data.data.failed}\nStatus changes: ${data.data.status_changes?.length || 0}`);
-            viewCampaign(currentCampaignId);
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to sync status'));
-        }
-    })
-    .catch(error => {
-        console.error('Error refreshing status:', error);
-        alert('❌ Error refreshing status: ' + error.message);
-    })
-    .finally(() => {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Status';
-        }
-    });
-}
 
-// ============================================
-// CHECK PENDING STATUS (NEW) – manually query KenyaSMS
-// ============================================
-function checkPendingStatus() {
-    if (!currentCampaignId) {
-        alert('No campaign loaded');
-        return;
-    }
-    
-    const pendingCount = parseInt(document.getElementById('count-pending')?.textContent || 0);
-    if (pendingCount === 0) {
-        alert('No pending messages to check');
-        return;
-    }
-    
-    if (!confirm(`Check status for ${pendingCount} pending messages with KenyaSMS?`)) return;
-    
-    const btn = document.getElementById('checkPendingStatusBtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking...';
-    }
-    
-    fetch(`/api/sms/campaigns/${currentCampaignId}/check-pending`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
+        function getTotalPages() {
+            const total = currentFilteredRecipients.length;
+            return Math.ceil(total / rowsPerPage);
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert(`✅ Status check completed!\n\nUpdated: ${data.updated}\nFailed: ${data.failed}\nPending: ${data.pending}`);
-            viewCampaign(currentCampaignId);
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to check status'));
-        }
-    })
-    .catch(error => {
-        console.error('Error checking status:', error);
-        alert('❌ Error checking status: ' + error.message);
-    })
-    .finally(() => {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-search mr-1"></i> Check Pending Status';
-        }
-    });
-}
 
-// ============================================
-// LOAD FAILED RECIPIENTS
-// ============================================
-function loadFailedRecipients() {
-    const tbody = document.getElementById('failedRecipientsBody');
-    const btn = document.getElementById('loadFailedBtn');
-    
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Loading...';
-    }
-    
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
-                <i class="fas fa-spinner fa-spin mr-2"></i> Loading failed recipients...
-            </td>
-        </tr>
-    `;
-    
-    const failed = currentRecipientsFull.filter(r => r.status === 'failed');
-    
-    if (failed.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="px-4 py-4 text-center text-green-500 text-sm">
-                    <i class="fas fa-check-circle mr-1"></i> No failed recipients found
-                </td>
-            </tr>
-        `;
-        if (btn) btn.disabled = false;
-        if (btn) btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Failed List';
-        return;
-    }
-    
-    let html = '';
-    failed.forEach(r => {
-        let displayPhone = r.phone_number || r.phone || 'N/A';
-        displayPhone = displayPhone.replace(/^254/, '0');
-        let tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
-        let unitNumber = r.unit_number || r.unit || 'N/A';
-        let estateName = r.estate_name || r.estate || 'N/A';
-        let errorMsg = r.error_message || 'No error message';
-        
-        html += `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(tenantName)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
-                <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
-                <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
-                <td class="px-4 py-3 text-center">
-                    <button onclick="resendSingleRecipient(${r.id})" class="text-orange-600 hover:text-orange-900 text-sm mr-2" title="Resend">
-                        <i class="fas fa-redo"></i>
-                    </button>
-                    <button onclick="viewRecipientMessage(${r.id})" class="text-blue-600 hover:text-blue-900 text-sm" title="View Message">
-                        <i class="fas fa-envelope"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-    if (btn) btn.disabled = false;
-    if (btn) btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Failed List';
-}
+        function renderPaginatedRecipients() {
+            const total = currentFilteredRecipients.length;
+            const totalPages = getTotalPages();
+            const start = (currentPage - 1) * rowsPerPage;
+            const end = Math.min(start + rowsPerPage, total);
+            const paginated = currentFilteredRecipients.slice(start, end);
+            
+            const pageInfo = document.getElementById('pageInfo');
+            if (pageInfo) {
+                pageInfo.textContent = total > 0 ? `Page ${currentPage} of ${totalPages}` : 'No entries';
+            }
+            
+            renderRecipients(paginated);
+        }
 
-// ============================================
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPaginatedRecipients();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = getTotalPages();
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPaginatedRecipients();
+            }
+        }
+
+        // ============================================
+        // TAB SWITCHING FOR RECIPIENT TABS
+        // ============================================
+        function switchRecipientTab(tab) {
+            console.log('🔄 Switching to tab:', tab);
+            
+            const recipientsTab = document.getElementById('recipientsTabContent');
+            const invalidTab = document.getElementById('invalidTabContent');
+            const otherTab = document.getElementById('otherTabContent');
+            const failedTab = document.getElementById('failedTabContent');
+            
+            if (recipientsTab) recipientsTab.style.display = 'none';
+            if (invalidTab) invalidTab.style.display = 'none';
+            if (otherTab) otherTab.style.display = 'none';
+            if (failedTab) failedTab.style.display = 'none';
+            
+            const tabRecipients = document.getElementById('tab-recipients');
+            const tabInvalid = document.getElementById('tab-invalid');
+            const tabOther = document.getElementById('tab-other');
+            const tabFailed = document.getElementById('tab-failed');
+            
+            if (tabRecipients) {
+                tabRecipients.classList.remove('border-blue-500', 'text-blue-600');
+                tabRecipients.classList.add('border-transparent');
+            }
+            if (tabInvalid) {
+                tabInvalid.classList.remove('border-blue-500', 'text-blue-600');
+                tabInvalid.classList.add('border-transparent');
+            }
+            if (tabOther) {
+                tabOther.classList.remove('border-blue-500', 'text-blue-600');
+                tabOther.classList.add('border-transparent');
+            }
+            if (tabFailed) {
+                tabFailed.classList.remove('border-blue-500', 'text-blue-600');
+                tabFailed.classList.add('border-transparent');
+            }
+            
+            if (tab === 'recipients') {
+                if (recipientsTab) recipientsTab.style.display = 'block';
+                if (tabRecipients) {
+                    tabRecipients.classList.add('border-blue-500', 'text-blue-600');
+                    tabRecipients.classList.remove('border-transparent');
+                }
+                if (currentFilteredRecipients.length > 0) {
+                    renderPaginatedRecipients();
+                } else if (currentRecipientsFull && currentRecipientsFull.length > 0) {
+                    currentFilteredRecipients = currentRecipientsFull;
+                    renderPaginatedRecipients();
+                }
+            } else if (tab === 'invalid') {
+                if (invalidTab) invalidTab.style.display = 'block';
+                if (tabInvalid) {
+                    tabInvalid.classList.add('border-blue-500', 'text-blue-600');
+                    tabInvalid.classList.remove('border-transparent');
+                }
+                const tbody = document.getElementById('invalidRecipientsBody');
+                if (tbody && tbody.innerHTML.includes('Click "Load Invalid Recipients" to view')) {
+                    loadInvalidRecipients();
+                }
+            } else if (tab === 'other') {
+                if (otherTab) otherTab.style.display = 'block';
+                if (tabOther) {
+                    tabOther.classList.add('border-blue-500', 'text-blue-600');
+                    tabOther.classList.remove('border-transparent');
+                }
+                const tbody = document.getElementById('otherNetworkRecipientsBody');
+                if (tbody && tbody.innerHTML.includes('Click "Load Other Networks" to view')) {
+                    loadOtherNetworkRecipients();
+                }
+            } else if (tab === 'failed') {
+                if (failedTab) failedTab.style.display = 'block';
+                if (tabFailed) {
+                    tabFailed.classList.add('border-blue-500', 'text-blue-600');
+                    tabFailed.classList.remove('border-transparent');
+                }
+                loadFailedRecipients();
+            }
+        }
+
+        // ============================================
+        // TOGGLE EXPORT DROPDOWN
+        // ============================================
+        function toggleExportDropdown() {
+            const dropdown = document.getElementById('exportDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
+        }
+
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('exportDropdown');
+            const button = event.target.closest('.relative.inline-block');
+            if (!button && dropdown) {
+                dropdown.classList.add('hidden');
+            }
+        });
+
+        // ============================================
+        // EXPORT FUNCTIONS
+        // ============================================
+        function exportRecipients() {
+            if (!currentRecipientsFull || currentRecipientsFull.length === 0) {
+                alert('No recipients to export');
+                return;
+            }
+            
+            let csv = 'Tenant,Unit,Estate,Phone,Status,Message,Provider Status,Error Message,Updated At\n';
+            currentRecipientsFull.forEach(r => {
+                const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
+                const unitNumber = r.unit_number || r.unit || 'N/A';
+                const estateName = r.estate_name || r.estate || 'N/A';
+                const phoneNumber = r.phone_number || r.phone || '';
+                const status = r.status || 'pending';
+                const message = (r.message || '').replace(/,/g, ';');
+                const providerStatus = r.provider_status || '';
+                const errorMessage = (r.error_message || '').replace(/,/g, ';');
+                const updatedAt = r.updated_at || '';
+                
+                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${message}","${providerStatus}","${errorMessage}","${updatedAt}"\n`;
+            });
+            
+            downloadCSV(csv, `recipients_all_${currentCampaignId || 'campaign'}.csv`);
+            toggleExportDropdown();
+        }
+
+        function exportInvalidRecipients() {
+            const invalidRecipients = currentInvalidRecipients || [];
+            
+            if (invalidRecipients.length === 0) {
+                alert('No invalid recipients found to export');
+                toggleExportDropdown();
+                return;
+            }
+            
+            let csv = 'Tenant,Unit,Estate,Phone,Status,Error Message,Updated At\n';
+            invalidRecipients.forEach(r => {
+                const tenantName = r.name || 'Unknown';
+                const unitNumber = r.unit_number || 'N/A';
+                const estateName = r.estate_name || r.estate || 'N/A';
+                let phoneNumber = r.phone || '';
+                phoneNumber = phoneNumber.replace(/^\+/, '').replace(/^254/, '0');
+                if (phoneNumber.match(/^[7-9][0-9]{8}$/)) {
+                    phoneNumber = '0' + phoneNumber;
+                }
+                const status = r.status || 'pending';
+                let errorMsg = r.error || 'Invalid phone number format';
+                const cleaned = (r.phone || '').replace(/[^0-9]/g, '');
+                if (cleaned.match(/^254[^7][0-9]{8}$/) || cleaned.match(/^0[^7][0-9]{8}$/)) {
+                    errorMsg = 'Other network (Airtel/Telkom) - Not Safaricom';
+                }
+                const updatedAt = r.updated_at || '';
+                
+                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${errorMsg}","${updatedAt}"\n`;
+            });
+            
+            downloadCSV(csv, `recipients_invalid_${currentCampaignId || 'campaign'}.csv`);
+            toggleExportDropdown();
+        }
+
+        function exportOtherNetworkRecipients() {
+            const otherRecipients = currentOtherNetworkRecipients || [];
+            
+            if (otherRecipients.length === 0) {
+                alert('No other network recipients found to export');
+                toggleExportDropdown();
+                return;
+            }
+            
+            let csv = 'Tenant,Unit,Estate,Phone,Status,Network,Updated At\n';
+            otherRecipients.forEach(r => {
+                const tenantName = r.name || 'Unknown';
+                const unitNumber = r.unit_number || 'N/A';
+                const estateName = r.estate_name || r.estate || 'N/A';
+                let phoneNumber = r.phone || '';
+                phoneNumber = phoneNumber.replace(/^\+/, '').replace(/^254/, '0');
+                if (phoneNumber.match(/^[7-9][0-9]{8}$/)) {
+                    phoneNumber = '0' + phoneNumber;
+                }
+                const status = r.status || 'pending';
+                const network = r.error || 'Other Network (Airtel/Telkom)';
+                const updatedAt = r.updated_at || '';
+                
+                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${network}","${updatedAt}"\n`;
+            });
+            
+            downloadCSV(csv, `recipients_other_network_${currentCampaignId || 'campaign'}.csv`);
+            toggleExportDropdown();
+        }
+
+        function exportDeliveredRecipients() {
+            if (!currentRecipientsFull || currentRecipientsFull.length === 0) {
+                alert('No recipients to export');
+                return;
+            }
+            
+            const delivered = currentRecipientsFull.filter(r => r.status === 'delivered' || r.status === 'sent');
+            
+            if (delivered.length === 0) {
+                alert('No delivered recipients found to export');
+                toggleExportDropdown();
+                return;
+            }
+            
+            let csv = 'Tenant,Unit,Estate,Phone,Status,Sent At,Message\n';
+            delivered.forEach(r => {
+                const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
+                const unitNumber = r.unit_number || r.unit || 'N/A';
+                const estateName = r.estate_name || r.estate || 'N/A';
+                let phoneNumber = r.phone_number || r.phone || '';
+                phoneNumber = phoneNumber.replace(/^254/, '0');
+                const status = r.status || 'pending';
+                const sentAt = r.sent_at || '';
+                const message = (r.message || '').replace(/,/g, ';');
+                
+                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${sentAt}","${message}"\n`;
+            });
+            
+            downloadCSV(csv, `recipients_delivered_${currentCampaignId || 'campaign'}.csv`);
+            toggleExportDropdown();
+        }
+
+        function exportPendingRecipients() {
+            if (!currentRecipientsFull || currentRecipientsFull.length === 0) {
+                alert('No recipients to export');
+                return;
+            }
+            
+            const pending = currentRecipientsFull.filter(r => r.status === 'pending' || r.status === 'queued');
+            
+            if (pending.length === 0) {
+                alert('No pending recipients found to export');
+                toggleExportDropdown();
+                return;
+            }
+            
+            let csv = 'Tenant,Unit,Estate,Phone,Status,Message\n';
+            pending.forEach(r => {
+                const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
+                const unitNumber = r.unit_number || r.unit || 'N/A';
+                const estateName = r.estate_name || r.estate || 'N/A';
+                let phoneNumber = r.phone_number || r.phone || '';
+                phoneNumber = phoneNumber.replace(/^254/, '0');
+                const status = r.status || 'pending';
+                const message = (r.message || '').replace(/,/g, ';');
+                
+                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${message}"\n`;
+            });
+            
+            downloadCSV(csv, `recipients_pending_${currentCampaignId || 'campaign'}.csv`);
+            toggleExportDropdown();
+        }
+
+        // ============================================
+        // DOWNLOAD CSV
+        // ============================================
+        function downloadCSV(csv, filename) {
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // ============================================
+        // RESEND FAILED MESSAGES
+        // ============================================
+        function resendFailed() {
+            if (!currentCampaignId) {
+                alert('No campaign loaded');
+                return;
+            }
+            
+            const failedCount = parseInt(document.getElementById('count-failed')?.textContent || 0);
+            if (failedCount === 0) {
+                alert('No failed messages to resend');
+                return;
+            }
+            
+            if (!confirm(`Resend ${failedCount} failed messages for this campaign?`)) return;
+            
+            const btn = document.getElementById('resendFailedBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Resending...';
+            }
+            
+            const timeoutId = setTimeout(function() {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
+                }
+                toastr.warning('Request is taking longer than expected. Please check the campaign status.');
+            }, 30000);
+            
+            fetch(`/api/sms/campaigns/${currentCampaignId}/resend-failed`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                },
+                signal: AbortSignal.timeout(25000)
+            })
+            .then(response => {
+                clearTimeout(timeoutId);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
+                    viewCampaign(currentCampaignId);
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to resend messages'));
+                }
+            })
+            .catch(error => {
+                clearTimeout(timeoutId);
+                console.error('Error resending:', error);
+                alert('❌ Error resending messages: ' + (error.message || 'Unknown error'));
+            })
+            .finally(() => {
+                clearTimeout(timeoutId);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Failed';
+                }
+            });
+        }
+
+        // ============================================
+        // RESEND PENDING MESSAGES
+        // ============================================
+        function resendPending() {
+            if (!currentCampaignId) {
+                alert('No campaign loaded');
+                return;
+            }
+            const pendingCount = parseInt(document.getElementById('count-pending')?.textContent || 0);
+            if (pendingCount === 0) {
+                alert('No pending messages to resend');
+                return;
+            }
+            if (!confirm(`Resend ${pendingCount} pending messages for this campaign?`)) return;
+
+            const btn = document.getElementById('resendPendingBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Resending...';
+            }
+
+            fetch(`/api/sms/campaigns/${currentCampaignId}/resend-pending`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
+                    viewCampaign(currentCampaignId);
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to resend pending messages'));
+                }
+            })
+            .catch(error => {
+                console.error('Error resending pending:', error);
+                alert('❌ Error resending pending messages: ' + error.message);
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-redo mr-1"></i> Resend Pending';
+                }
+            });
+        }
+
+        // ============================================
+        // REFRESH CAMPAIGN STATUS
+        // ============================================
+        function refreshCampaignStatus() {
+            if (!currentCampaignId) {
+                alert('No campaign loaded');
+                return;
+            }
+            
+            if (!confirm('Refresh status for all recipients in this campaign?')) return;
+            
+            const btn = document.getElementById('refreshStatusBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Syncing...';
+            }
+            
+            fetch(`/api/sms/campaigns/${currentCampaignId}/sync-status`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Status sync completed!\n\nSynced: ${data.data.synced}\nFailed: ${data.data.failed}\nStatus changes: ${data.data.status_changes?.length || 0}`);
+                    viewCampaign(currentCampaignId);
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to sync status'));
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing status:', error);
+                alert('❌ Error refreshing status: ' + error.message);
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Status';
+                }
+            });
+        }
+
+        // ============================================
+        // CHECK PENDING STATUS
+        // ============================================
+        function checkPendingStatus() {
+            if (!currentCampaignId) {
+                alert('No campaign loaded');
+                return;
+            }
+            
+            const pendingCount = parseInt(document.getElementById('count-pending')?.textContent || 0);
+            if (pendingCount === 0) {
+                alert('No pending messages to check');
+                return;
+            }
+            
+            if (!confirm(`Check status for ${pendingCount} pending messages with KenyaSMS?`)) return;
+            
+            const btn = document.getElementById('checkPendingStatusBtn');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Checking...';
+            }
+            
+            fetch(`/api/sms/campaigns/${currentCampaignId}/check-pending`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ Status check completed!\n\nUpdated: ${data.updated}\nFailed: ${data.failed}\nPending: ${data.pending}`);
+                    viewCampaign(currentCampaignId);
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to check status'));
+                }
+            })
+            .catch(error => {
+                console.error('Error checking status:', error);
+                alert('❌ Error checking status: ' + error.message);
+            })
+            .finally(() => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-search mr-1"></i> Check Pending Status';
+                }
+            });
+        }
+
+        // ============================================
+        // LOAD FAILED RECIPIENTS
+        // ============================================
+        function loadFailedRecipients() {
+            const tbody = document.getElementById('failedRecipientsBody');
+            const btn = document.getElementById('loadFailedBtn');
+            
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Loading...';
+            }
+            
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
+                        <i class="fas fa-spinner fa-spin mr-2"></i> Loading failed recipients...
+                    </td>
+                </tr>
+            `;
+            
+            const failed = currentRecipientsFull.filter(r => r.status === 'failed');
+            
+            if (failed.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-4 text-center text-green-500 text-sm">
+                            <i class="fas fa-check-circle mr-1"></i> No failed recipients found
+                        </td>
+                    </tr>
+                `;
+                if (btn) btn.disabled = false;
+                if (btn) btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Failed List';
+                return;
+            }
+            
+            let html = '';
+            failed.forEach(r => {
+                let displayPhone = r.phone_number || r.phone || 'N/A';
+                displayPhone = displayPhone.replace(/^254/, '0');
+                let tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
+                let unitNumber = r.unit_number || r.unit || 'N/A';
+                let estateName = r.estate_name || r.estate || 'N/A';
+                let errorMsg = r.error_message || 'No error message';
+                
+                html += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
+                        <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(tenantName)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
+                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
+                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="resendSingleRecipient(${r.id})" class="text-orange-600 hover:text-orange-900 text-sm mr-2" title="Resend">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button onclick="viewRecipientMessage(${r.id})" class="text-blue-600 hover:text-blue-900 text-sm" title="View Message">
+                                <i class="fas fa-envelope"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
+            if (btn) btn.disabled = false;
+            if (btn) btn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i> Refresh Failed List';
+        }
+
+       // ============================================
 // RESEND SINGLE RECIPIENT
 // ============================================
 function resendSingleRecipient(recipientId) {
@@ -2933,13 +4108,13 @@ function resendSingleRecipient(recipientId) {
     const btn = document.querySelector(`[onclick="resendSingleRecipient(${recipientId})"]`);
     if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        btn.textContent = 'Sending...';
     }
     
     const timeoutId = setTimeout(function() {
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo"></i>';
+            btn.textContent = 'Resend';
         }
         toastr.warning('Request is taking longer than expected.');
     }, 15000);
@@ -2977,518 +4152,526 @@ function resendSingleRecipient(recipientId) {
         clearTimeout(timeoutId);
         if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-redo"></i>';
+            btn.textContent = 'Resend';
         }
     });
 }
 
-// ============================================
-// VIEW RECIPIENT MESSAGE
-// ============================================
-function viewRecipientMessage(recipientId) {
-    const recipient = currentRecipientsFull.find(r => r.id === recipientId);
-    if (!recipient) {
-        alert('Recipient not found');
-        return;
-    }
-    
-    alert(`📨 Message Details\n\nTenant: ${recipient.tenant_name || 'Unknown'}\nPhone: ${recipient.phone_number || 'N/A'}\nStatus: ${recipient.status || 'N/A'}\n\nMessage:\n${recipient.message || 'No message'}\n\n${recipient.error_message ? 'Error: ' + recipient.error_message : ''}`);
-}
-
-// ============================================
-// PHONE VALIDATION FUNCTIONS
-// ============================================
-function loadInvalidRecipients() {
-    if (!currentCampaignId) {
-        alert('No campaign loaded');
-        return;
-    }
-    
-    const tbody = document.getElementById('invalidRecipientsBody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
-                <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                Loading...
-            </td>
-        </tr>
-    `;
-    
-    fetch(`/api/sms/campaigns/${currentCampaignId}/invalid-recipients`, {
-        headers: { 'Accept': 'application/json' }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const recipients = (data.recipients || []).map(r => {
-                if (!r.id && r.campaign_recipient_id) r.id = r.campaign_recipient_id;
-                if (!r.id && r.recipient_id) r.id = r.recipient_id;
-                if (!r.id) r.id = 'temp_' + Math.random().toString(36).substr(2, 9);
-                return r;
-            });
-            renderInvalidRecipients(recipients);
-        } else {
+        // ============================================
+        // LOAD INVALID RECIPIENTS
+        // ============================================
+        function loadInvalidRecipients() {
+            if (!currentCampaignId) {
+                alert('No campaign loaded');
+                return;
+            }
+            
+            const tbody = document.getElementById('invalidRecipientsBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-4 py-4 text-center text-red-500 text-sm">
-                        <i class="fas fa-exclamation-circle mr-1"></i> ${data.message || 'Failed to load invalid recipients'}
+                    <td colspan="6" class="px-4 py-4 text-center text-gray-500 text-sm">
+                        <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        Loading...
                     </td>
                 </tr>
             `;
+            
+            fetch(`/api/sms/campaigns/${currentCampaignId}/invalid-recipients`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const recipients = (data.recipients || []).map(r => {
+                        if (!r.id && r.campaign_recipient_id) r.id = r.campaign_recipient_id;
+                        if (!r.id && r.recipient_id) r.id = r.recipient_id;
+                        if (!r.id) r.id = 'temp_' + Math.random().toString(36).substr(2, 9);
+                        return r;
+                    });
+                    renderInvalidRecipients(recipients);
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="px-4 py-4 text-center text-red-500 text-sm">
+                                <i class="fas fa-exclamation-circle mr-1"></i> ${data.message || 'Failed to load invalid recipients'}
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading invalid recipients:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="px-4 py-4 text-center text-red-500 text-sm">
+                            <i class="fas fa-exclamation-circle mr-1"></i> Error loading invalid recipients
+                        </td>
+                    </tr>
+                `;
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error loading invalid recipients:', error);
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="6" class="px-4 py-4 text-center text-red-500 text-sm">
-                    <i class="fas fa-exclamation-circle mr-1"></i> Error loading invalid recipients
-                </td>
-            </tr>
-        `;
-    });
-}
 
-function renderInvalidRecipients(recipients) {
-    currentInvalidRecipients = recipients || [];
-    
-    const tbody = document.getElementById('invalidRecipientsBody');
-    
-    const invalidTabCount = document.getElementById('invalidTabCount');
-    if (invalidTabCount) {
-        invalidTabCount.textContent = `(${recipients ? recipients.length : 0})`;
-    }
-    
-    if (!recipients || recipients.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="px-4 py-4 text-center text-green-500 text-sm">
-                    <i class="fas fa-check-circle mr-1"></i> No invalid recipients found
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    recipients.forEach(recipient => {
-        let displayPhone = recipient.phone || 'N/A';
-        displayPhone = displayPhone.replace(/^\+/, '').replace(/^254/, '0');
-        if (displayPhone.match(/^[7-9][0-9]{8}$/)) {
-            displayPhone = '0' + displayPhone;
+        function renderInvalidRecipients(recipients) {
+            currentInvalidRecipients = recipients || [];
+            
+            const tbody = document.getElementById('invalidRecipientsBody');
+            
+            const invalidTabCount = document.getElementById('invalidTabCount');
+            if (invalidTabCount) {
+                invalidTabCount.textContent = `(${recipients ? recipients.length : 0})`;
+            }
+            
+            if (!recipients || recipients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-4 text-center text-green-500 text-sm">
+                            <i class="fas fa-check-circle mr-1"></i> No invalid recipients found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            recipients.forEach(recipient => {
+                let displayPhone = recipient.phone || 'N/A';
+                displayPhone = displayPhone.replace(/^\+/, '').replace(/^254/, '0');
+                if (displayPhone.match(/^[7-9][0-9]{8}$/)) {
+                    displayPhone = '0' + displayPhone;
+                }
+                
+                let errorMsg = recipient.error || 'Invalid phone number format';
+                const cleaned = (recipient.phone || '').replace(/[^0-9]/g, '');
+                if (cleaned.match(/^254[^7][0-9]{8}$/) || cleaned.match(/^0[^7][0-9]{8}$/)) {
+                    errorMsg = 'Other network (Airtel/Telkom) - Not Safaricom';
+                }
+                
+                const estateName = recipient.estate_name || recipient.estate || 'N/A';
+                
+                html += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
+                        <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
+                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
+                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openUpdatePhoneModal(${recipient.id}, '${escapeHtml(recipient.name)}', '${escapeHtml(recipient.phone || '')}')" 
+                                    class="text-blue-600 hover:text-blue-900 text-sm">
+                                <i class="fas fa-edit"></i> Update
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
         }
-        
-        let errorMsg = recipient.error || 'Invalid phone number format';
-        const cleaned = (recipient.phone || '').replace(/[^0-9]/g, '');
-        if (cleaned.match(/^254[^7][0-9]{8}$/) || cleaned.match(/^0[^7][0-9]{8}$/)) {
-            errorMsg = 'Other network (Airtel/Telkom) - Not Safaricom';
-        }
-        
-        const estateName = recipient.estate_name || recipient.estate || 'N/A';
-        
-        html += `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
-                <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
-                <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
-                <td class="px-4 py-3 text-center">
-                    <button onclick="openUpdatePhoneModal(${recipient.id}, '${escapeHtml(recipient.name)}', '${escapeHtml(recipient.phone || '')}')" 
-                            class="text-blue-600 hover:text-blue-900 text-sm">
-                        <i class="fas fa-edit"></i> Update
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-}
 
-function loadOtherNetworkRecipients() {
-    if (!currentCampaignId) {
-        alert('No campaign loaded');
-        return;
-    }
-    
-    const tbody = document.getElementById('otherNetworkRecipientsBody');
-    tbody.innerHTML = `
-        <tr>
-            <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
-                <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                Loading...
-            </td>
-        </tr>
-    `;
-    
-    fetch(`/api/sms/campaigns/${currentCampaignId}/other-network-recipients`, {
-        headers: {
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            renderOtherNetworkRecipients(data.recipients);
-        } else {
+        // ============================================
+        // LOAD OTHER NETWORK RECIPIENTS
+        // ============================================
+        function loadOtherNetworkRecipients() {
+            if (!currentCampaignId) {
+                alert('No campaign loaded');
+                return;
+            }
+            
+            const tbody = document.getElementById('otherNetworkRecipientsBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="px-4 py-4 text-center text-red-500 text-sm">
-                        <i class="fas fa-exclamation-circle mr-1"></i> ${data.message || 'Failed to load other network recipients'}
+                    <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
+                        <div class="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        Loading...
                     </td>
                 </tr>
             `;
-        }
-    })
-    .catch(error => {
-        console.error('Error loading other network recipients:', error);
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="px-4 py-4 text-center text-red-500 text-sm">
-                    <i class="fas fa-exclamation-circle mr-1"></i> Error loading other network recipients
-                </td>
-            </tr>
-        `;
-    });
-}
-
-function renderOtherNetworkRecipients(recipients) {
-    currentOtherNetworkRecipients = recipients || [];
-    
-    const tbody = document.getElementById('otherNetworkRecipientsBody');
-    
-    const otherTabCount = document.getElementById('otherTabCount');
-    if (otherTabCount) {
-        otherTabCount.textContent = `(${recipients ? recipients.length : 0})`;
-    }
-    
-    if (!recipients || recipients.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="px-4 py-4 text-center text-green-500 text-sm">
-                    <i class="fas fa-check-circle mr-1"></i> No other network recipients found
-                </td>
-            </tr>
-        `;
-        return;
-    }
-    
-    let html = '';
-    recipients.forEach(recipient => {
-        let displayPhone = recipient.phone || 'N/A';
-        displayPhone = displayPhone.replace(/^254/, '0');
-        
-        html += `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
-                <td class="px-4 py-3 text-sm text-yellow-600">${escapeHtml(displayPhone)}</td>
-                <td class="px-4 py-3 text-sm text-yellow-600">${escapeHtml(recipient.error || 'Other Network (Airtel/Telkom)')}</td>
-                <td class="px-4 py-3 text-center">
-                    <button onclick="openUpdatePhoneModal(${recipient.id}, '${escapeHtml(recipient.name)}', '${escapeHtml(recipient.phone || '')}')" 
-                            class="text-blue-600 hover:text-blue-900 text-sm">
-                        <i class="fas fa-edit"></i> Update
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-}
-
-function openUpdatePhoneModal(tenantId, tenantName, currentPhone) {
-    document.getElementById('updateTenantId').value = tenantId;
-    document.getElementById('updateTenantName').textContent = tenantName;
-    document.getElementById('updatePhoneInput').value = currentPhone;
-    document.getElementById('updatePhoneModal').style.display = 'block';
-    document.body.style.overflow = 'hidden';
-}
-
-function closeUpdatePhoneModal() {
-    document.getElementById('updatePhoneModal').style.display = 'none';
-    document.body.style.overflow = '';
-}
-
-function saveUpdatedPhone() {
-    const tenantId = document.getElementById('updateTenantId').value;
-    const phone = document.getElementById('updatePhoneInput').value.trim();
-    
-    if (!phone) {
-        alert('Please enter a phone number');
-        return;
-    }
-    
-    const btn = document.getElementById('savePhoneBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
-    
-    fetch(`/api/sms/tenants/${tenantId}/phone`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify({ phone: phone })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ Phone number updated successfully!');
-            closeUpdatePhoneModal();
-            viewCampaign(currentCampaignId);
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to update phone'));
-        }
-    })
-    .catch(error => {
-        console.error('Error updating phone:', error);
-        alert('❌ Error updating phone: ' + error.message);
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-save mr-1"></i> Save';
-    });
-}
-
-function closeViewCampaignModal() {
-    const modal = document.getElementById('viewCampaignModal');
-    if (modal) modal.style.display = 'none';
-    document.body.style.overflow = '';
-}
-
-// ============================================
-// CAMPAIGN ACTIONS
-// ============================================
-function sendCampaign(id) {
-    if (!confirm('Are you sure you want to send this campaign?')) return;
-    
-    fetch(`/api/sms/campaigns/${id}/send`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ Campaign is being sent!');
-            loadCampaigns();
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to send campaign'));
-        }
-    })
-    .catch(error => {
-        console.error('Error sending campaign:', error);
-        alert('❌ Error sending campaign');
-    });
-}
-
-function retryCampaign(id) {
-    if (!confirm('Retry failed messages for this campaign?')) return;
-    
-    fetch(`/api/sms/campaigns/${id}/retry`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ Retrying failed messages!');
-            loadCampaigns();
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to retry'));
-        }
-    })
-    .catch(error => {
-        console.error('Error retrying campaign:', error);
-        alert('❌ Error retrying campaign');
-    });
-}
-
-function deleteCampaign(id) {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
-
-    fetch(`/sms/campaigns/${id}`, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('✅ Campaign deleted successfully!');
-            loadCampaigns();
-        } else {
-            alert('❌ Error: ' + (data.message || 'Failed to delete campaign'));
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting campaign:', error);
-        alert('❌ Error deleting campaign: ' + error.message);
-    });
-}
-
-// ============================================
-// OPEN CREATE CAMPAIGN MODAL
-// ============================================
-function openCreateCampaignModal() {
-    console.log('📝 Opening create campaign modal');
-    const modal = document.getElementById('createCampaignModal');
-    if (!modal) {
-        console.error('❌ Create campaign modal not found');
-        return;
-    }
-    
-    modal.style.display = 'block';
-    
-    const now = new Date();
-    const dateStr = now.getFullYear() + '-' + 
-                    String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-                    String(now.getDate()).padStart(2, '0') + ' ' + 
-                    String(now.getHours()).padStart(2, '0') + ':' + 
-                    String(now.getMinutes()).padStart(2, '0') + ':' + 
-                    String(now.getSeconds()).padStart(2, '0');
-    const campaignName = 'Campaign ' + dateStr;
-    
-    document.getElementById('campaignName').value = campaignName;
-    document.getElementById('campaignDescription').value = '';
-    document.getElementById('campaignTemplate').value = '';
-    document.getElementById('campaignType').value = 'general';
-    document.getElementById('campaignFilterCompany').value = '';
-    document.getElementById('campaignFilterEstate').value = '';
-    document.getElementById('campaignFilterStatus').value = '';
-    document.getElementById('campaignSchedule').value = '';
-    document.getElementById('campaignTemplatePreview').style.display = 'none';
-    document.getElementById('campaignTemplateContent').textContent = '';
-    
-    const previewContainer = document.getElementById('campaignTenantPreviewContainer');
-    if (previewContainer) previewContainer.style.display = 'none';
-    const previewEl = document.getElementById('campaignTenantPreview');
-    if (previewEl) previewEl.innerHTML = '';
-    
-    const estateSelect = document.getElementById('campaignFilterEstate');
-    if (estateSelect) {
-        const options = estateSelect.querySelectorAll('option');
-        options.forEach(option => {
-            option.style.display = 'block';
-        });
-        estateSelect.value = '';
-    }
-}
-
-function closeCreateCampaignModal() {
-    console.log('📝 Closing create campaign modal');
-    const modal = document.getElementById('createCampaignModal');
-    if (modal) modal.style.display = 'none';
-}
-
-function loadCampaignTemplatePreview() {
-    const select = document.getElementById('campaignTemplate');
-    if (!select) return;
-    
-    const selected = select.options[select.selectedIndex];
-    const content = selected ? selected.getAttribute('data-content') : null;
-    
-    console.log('📝 Template selected:', selected ? selected.text : 'None');
-    
-    const previewDiv = document.getElementById('campaignTemplatePreview');
-    const contentEl = document.getElementById('campaignTemplateContent');
-    
-    if (content && previewDiv && contentEl) {
-        previewDiv.style.display = 'block';
-        contentEl.textContent = content;
-        generateTenantPreview(content);
-    } else if (previewDiv) {
-        previewDiv.style.display = 'none';
-    }
-}
-
-function submitCampaign(event) {
-    event.preventDefault();
-    
-    const name = document.getElementById('campaignName').value.trim();
-    const description = document.getElementById('campaignDescription').value.trim();
-    const templateId = document.getElementById('campaignTemplate').value;
-    const campaignType = document.getElementById('campaignType').value;
-    const companyId = document.getElementById('campaignFilterCompany').value;
-    const estateId = document.getElementById('campaignFilterEstate').value;
-    const invoiceStatus = document.getElementById('campaignFilterStatus').value;
-    const scheduledAt = document.getElementById('campaignSchedule').value;
-    
-    if (!name) {
-        alert('Please enter a campaign name');
-        return;
-    }
-    if (!templateId) {
-        alert('Please select an SMS template');
-        return;
-    }
-    
-    const submitBtn = document.getElementById('submitCampaignBtn');
-    const submitText = document.getElementById('submitCampaignText');
-    if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = 'Creating...';
-    
-    const formData = {
-        name: name,
-        description: description,
-        template_id: parseInt(templateId),
-        campaign_type: campaignType,
-        filters: {
-            company_id: companyId || '',
-            estate_id: estateId || '',
-            invoice_status: invoiceStatus || ''
-        },
-        scheduled_at: scheduledAt || null
-    };
-    
-    console.log('📤 Submitting campaign:', formData);
-    
-    fetch('/api/sms/campaigns', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-            'Accept': 'application/json'
-        },
-        body: JSON.stringify(formData)
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => {
-                throw new Error(err.message || 'Something went wrong');
+            
+            fetch(`/api/sms/campaigns/${currentCampaignId}/other-network-recipients`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderOtherNetworkRecipients(data.recipients);
+                } else {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="px-4 py-4 text-center text-red-500 text-sm">
+                                <i class="fas fa-exclamation-circle mr-1"></i> ${data.message || 'Failed to load other network recipients'}
+                            </td>
+                        </tr>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading other network recipients:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-4 text-center text-red-500 text-sm">
+                            <i class="fas fa-exclamation-circle mr-1"></i> Error loading other network recipients
+                        </td>
+                    </tr>
+                `;
             });
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            closeCreateCampaignModal();
-            loadCampaigns();
-            alert('✅ Campaign created successfully!');
-        } else {
-            throw new Error(data.message || 'Something went wrong');
+
+        function renderOtherNetworkRecipients(recipients) {
+            currentOtherNetworkRecipients = recipients || [];
+            
+            const tbody = document.getElementById('otherNetworkRecipientsBody');
+            
+            const otherTabCount = document.getElementById('otherTabCount');
+            if (otherTabCount) {
+                otherTabCount.textContent = `(${recipients ? recipients.length : 0})`;
+            }
+            
+            if (!recipients || recipients.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="px-4 py-4 text-center text-green-500 text-sm">
+                            <i class="fas fa-check-circle mr-1"></i> No other network recipients found
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            let html = '';
+            recipients.forEach(recipient => {
+                let displayPhone = recipient.phone || 'N/A';
+                displayPhone = displayPhone.replace(/^254/, '0');
+                
+                html += `
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
+                        <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
+                        <td class="px-4 py-3 text-sm text-yellow-600">${escapeHtml(displayPhone)}</td>
+                        <td class="px-4 py-3 text-sm text-yellow-600">${escapeHtml(recipient.error || 'Other Network (Airtel/Telkom)')}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button onclick="openUpdatePhoneModal(${recipient.id}, '${escapeHtml(recipient.name)}', '${escapeHtml(recipient.phone || '')}')" 
+                                    class="text-blue-600 hover:text-blue-900 text-sm">
+                                <i class="fas fa-edit"></i> Update
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = html;
         }
-    })
-    .catch(error => {
-        console.error('Error creating campaign:', error);
-        alert('❌ Error: ' + error.message);
-    })
-    .finally(() => {
-        if (submitBtn) submitBtn.disabled = false;
-        if (submitText) submitText.textContent = 'Create Campaign';
-    });
-}
+
+        // ============================================
+        // UPDATE PHONE MODAL
+        // ============================================
+        function openUpdatePhoneModal(tenantId, tenantName, currentPhone) {
+            document.getElementById('updateTenantId').value = tenantId;
+            document.getElementById('updateTenantName').textContent = tenantName;
+            document.getElementById('updatePhoneInput').value = currentPhone;
+            const modal = document.getElementById('updatePhoneModal');
+            if (modal) {
+                modal.style.display = 'block';
+                modal.classList.add('active');
+                document.body.classList.add('modal-open');
+            }
+        }
+
+        function closeUpdatePhoneModal() {
+            const modal = document.getElementById('updatePhoneModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        function saveUpdatedPhone() {
+            const tenantId = document.getElementById('updateTenantId').value;
+            const phone = document.getElementById('updatePhoneInput').value.trim();
+            
+            if (!phone) {
+                alert('Please enter a phone number');
+                return;
+            }
+            
+            const btn = document.getElementById('savePhoneBtn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Saving...';
+            
+            fetch(`/api/sms/tenants/${tenantId}/phone`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ phone: phone })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Phone number updated successfully!');
+                    closeUpdatePhoneModal();
+                    viewCampaign(currentCampaignId);
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to update phone'));
+                }
+            })
+            .catch(error => {
+                console.error('Error updating phone:', error);
+                alert('❌ Error updating phone: ' + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save mr-1"></i> Save';
+            });
+        }
+
+        // ============================================
+        // CLOSE VIEW CAMPAIGN MODAL
+        // ============================================
+        function closeViewCampaignModal() {
+            const modal = document.getElementById('viewCampaignModal');
+            if (modal) {
+                modal.style.display = 'none';
+                modal.classList.remove('active');
+                document.body.classList.remove('modal-open');
+            }
+        }
+
+        // ============================================
+        // CAMPAIGN ACTIONS
+        // ============================================
+        function sendCampaign(id) {
+            if (!confirm('Are you sure you want to send this campaign?')) return;
+            
+            fetch(`/api/sms/campaigns/${id}/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Campaign is being sent!');
+                    loadCampaigns();
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to send campaign'));
+                }
+            })
+            .catch(error => {
+                console.error('Error sending campaign:', error);
+                alert('❌ Error sending campaign');
+            });
+        }
+
+        function retryCampaign(id) {
+            if (!confirm('Retry failed messages for this campaign?')) return;
+            
+            fetch(`/api/sms/campaigns/${id}/retry`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Retrying failed messages!');
+                    loadCampaigns();
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to retry'));
+                }
+            })
+            .catch(error => {
+                console.error('Error retrying campaign:', error);
+                alert('❌ Error retrying campaign');
+            });
+        }
+
+        function deleteCampaign(id) {
+            if (!confirm('Are you sure you want to delete this campaign?')) return;
+
+            fetch(`/sms/campaigns/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ Campaign deleted successfully!');
+                    loadCampaigns();
+                } else {
+                    alert('❌ Error: ' + (data.message || 'Failed to delete campaign'));
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting campaign:', error);
+                alert('❌ Error deleting campaign: ' + error.message);
+            });
+        }
+
+        // ============================================
+        // OPEN CREATE CAMPAIGN MODAL
+        // ============================================
+        function openCreateCampaignModal() {
+            console.log('📝 Opening create campaign modal');
+            const modal = document.getElementById('createCampaignModal');
+            if (!modal) {
+                console.error('❌ Create campaign modal not found');
+                return;
+            }
+            
+            modal.style.display = 'block';
+            
+            const now = new Date();
+            const dateStr = now.getFullYear() + '-' + 
+                            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                            String(now.getDate()).padStart(2, '0') + ' ' + 
+                            String(now.getHours()).padStart(2, '0') + ':' + 
+                            String(now.getMinutes()).padStart(2, '0') + ':' + 
+                            String(now.getSeconds()).padStart(2, '0');
+            const campaignName = 'Campaign ' + dateStr;
+            
+            document.getElementById('campaignName').value = campaignName;
+            document.getElementById('campaignDescription').value = '';
+            document.getElementById('campaignTemplate').value = '';
+            document.getElementById('campaignType').value = 'general';
+            document.getElementById('campaignFilterCompany').value = '';
+            document.getElementById('campaignFilterEstate').value = '';
+            document.getElementById('campaignFilterStatus').value = '';
+            document.getElementById('campaignSchedule').value = '';
+            document.getElementById('campaignTemplatePreview').style.display = 'none';
+            document.getElementById('campaignTemplateContent').textContent = '';
+            
+            const previewContainer = document.getElementById('campaignTenantPreviewContainer');
+            if (previewContainer) previewContainer.style.display = 'none';
+            const previewEl = document.getElementById('campaignTenantPreview');
+            if (previewEl) previewEl.innerHTML = '';
+            
+            const estateSelect = document.getElementById('campaignFilterEstate');
+            if (estateSelect) {
+                const options = estateSelect.querySelectorAll('option');
+                options.forEach(option => {
+                    option.style.display = 'block';
+                });
+                estateSelect.value = '';
+            }
+        }
+
+        function closeCreateCampaignModal() {
+            console.log('📝 Closing create campaign modal');
+            const modal = document.getElementById('createCampaignModal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        function loadCampaignTemplatePreview() {
+            const select = document.getElementById('campaignTemplate');
+            if (!select) return;
+            
+            const selected = select.options[select.selectedIndex];
+            const content = selected ? selected.getAttribute('data-content') : null;
+            
+            console.log('📝 Template selected:', selected ? selected.text : 'None');
+            
+            const previewDiv = document.getElementById('campaignTemplatePreview');
+            const contentEl = document.getElementById('campaignTemplateContent');
+            
+            if (content && previewDiv && contentEl) {
+                previewDiv.style.display = 'block';
+                contentEl.textContent = content;
+                generateTenantPreview(content);
+            } else if (previewDiv) {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        function submitCampaign(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('campaignName').value.trim();
+            const description = document.getElementById('campaignDescription').value.trim();
+            const templateId = document.getElementById('campaignTemplate').value;
+            const campaignType = document.getElementById('campaignType').value;
+            const companyId = document.getElementById('campaignFilterCompany').value;
+            const estateId = document.getElementById('campaignFilterEstate').value;
+            const invoiceStatus = document.getElementById('campaignFilterStatus').value;
+            const scheduledAt = document.getElementById('campaignSchedule').value;
+            
+            if (!name) {
+                alert('Please enter a campaign name');
+                return;
+            }
+            if (!templateId) {
+                alert('Please select an SMS template');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitCampaignBtn');
+            const submitText = document.getElementById('submitCampaignText');
+            if (submitBtn) submitBtn.disabled = true;
+            if (submitText) submitText.textContent = 'Creating...';
+            
+            const formData = {
+                name: name,
+                description: description,
+                template_id: parseInt(templateId),
+                campaign_type: campaignType,
+                filters: {
+                    company_id: companyId || '',
+                    estate_id: estateId || '',
+                    invoice_status: invoiceStatus || ''
+                },
+                scheduled_at: scheduledAt || null
+            };
+            
+            console.log('📤 Submitting campaign:', formData);
+            
+            fetch('/api/sms/campaigns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || 'Something went wrong');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    closeCreateCampaignModal();
+                    loadCampaigns();
+                    alert('✅ Campaign created successfully!');
+                } else {
+                    throw new Error(data.message || 'Something went wrong');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating campaign:', error);
+                alert('❌ Error: ' + error.message);
+            })
+            .finally(() => {
+                if (submitBtn) submitBtn.disabled = false;
+                if (submitText) submitText.textContent = 'Create Campaign';
+            });
+        }
 </script>
+    @endverbatim
 @endsection

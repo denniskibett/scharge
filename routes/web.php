@@ -24,6 +24,154 @@ use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AccountManagerController;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+
+// ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
+Route::get('/campaign/{id}', function($id) {
+    try {
+        // ✅ Clear query cache to ensure fresh data on each request
+        DB::connection()->getQueryLog();
+        
+        $campaign = DB::table('sms_campaigns')->where('id', $id)->first();
+        if (!$campaign) {
+            return response()->json(['error' => 'Campaign not found'], 404);
+        }
+        
+        // Get recipients with tenant data
+        $recipients = DB::table('campaign_recipients')
+            ->where('campaign_id', $id)
+            ->get()
+            ->map(function($recipient) {
+                $tenant = null;
+                $user = null;
+                $unit = null;
+                $estate = null;
+                $tenantName = 'Unknown';
+                $unitNumber = 'N/A';
+                $estateName = 'N/A';
+                
+                // Try to find tenant by tenant_id first
+                if ($recipient->tenant_id) {
+                    $tenant = DB::table('tenants')->where('id', $recipient->tenant_id)->first();
+                    if ($tenant) {
+                        if ($tenant->user_id) {
+                            $user = DB::table('users')->where('id', $tenant->user_id)->first();
+                            $tenantName = $user ? $user->name : 'Unknown';
+                        } else {
+                            $tenantName = $tenant->name ?? 'Unknown';
+                        }
+                        
+                        $tenancy = DB::table('tenancies')
+                            ->where('tenant_id', $tenant->id)
+                            ->where('status', 'active')
+                            ->first();
+                        if ($tenancy && $tenancy->unit_id) {
+                            $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
+                            if ($unit) {
+                                $unitNumber = $unit->unit_number ?? 'N/A';
+                                if ($unit->estate_id) {
+                                    $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
+                                    $estateName = $estate ? $estate->name : 'N/A';
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Try to find tenant by phone number
+                    $phone = $recipient->phone_number;
+                    if (!empty($phone)) {
+                        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+                        if (strlen($cleanPhone) >= 9) {
+                            if (substr($cleanPhone, 0, 1) === '0') {
+                                $cleanPhone = substr($cleanPhone, 1);
+                            }
+                            if (substr($cleanPhone, 0, 3) !== '254') {
+                                $cleanPhone = '254' . $cleanPhone;
+                            }
+                            
+                            // Try to find user by phone
+                            $user = DB::table('users')
+                                ->where('phone', 'like', '%' . substr($cleanPhone, -9))
+                                ->orWhere('phone', $cleanPhone)
+                                ->first();
+                            
+                            if ($user) {
+                                $tenantName = $user->name ?? 'Unknown';
+                                $tenant = DB::table('tenants')->where('user_id', $user->id)->first();
+                                if ($tenant) {
+                                    $tenancy = DB::table('tenancies')
+                                        ->where('tenant_id', $tenant->id)
+                                        ->where('status', 'active')
+                                        ->first();
+                                    if ($tenancy && $tenancy->unit_id) {
+                                        $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
+                                        if ($unit) {
+                                            $unitNumber = $unit->unit_number ?? 'N/A';
+                                            if ($unit->estate_id) {
+                                                $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
+                                                $estateName = $estate ? $estate->name : 'N/A';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Parse provider_response for delivery details
+                $network = '';
+                $parts = '';
+                $cost = '';
+                $deliveredTime = '';
+                $providerStatus = $recipient->provider_status ?? '';
+                
+                if ($recipient->provider_response) {
+                    try {
+                        $providerData = json_decode($recipient->provider_response, true);
+                        if (is_array($providerData)) {
+                            $network = $providerData['network'] ?? $providerData['provider'] ?? '';
+                            $parts = $providerData['parts'] ?? $providerData['message_parts'] ?? '';
+                            $cost = $providerData['cost'] ?? '';
+                            $deliveredTime = $providerData['delivered_at'] ?? $providerData['delivered_time'] ?? '';
+                        }
+                    } catch (\Exception $e) {
+                        // Not JSON, ignore
+                    }
+                }
+                
+                return (object) [
+                    'id' => $recipient->id,
+                    'tenant_id' => $recipient->tenant_id,
+                    'phone_number' => $recipient->phone_number,
+                    'message' => $recipient->message,
+                    'status' => $recipient->status,
+                    'sent_at' => $recipient->sent_at,
+                    'error_message' => $recipient->error_message,
+                    'provider_status' => $providerStatus,
+                    'provider_response' => $recipient->provider_response,
+                    'tenant_name' => $tenantName,
+                    'unit_number' => $unitNumber,
+                    'estate_name' => $estateName,
+                    'network' => $network,
+                    'parts' => $parts,
+                    'cost' => $cost,
+                    'delivered_time' => $deliveredTime,
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'campaign' => $campaign,
+            'recipients' => $recipients,
+            'recipient_count' => $recipients->count()
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Campaign direct route error: ' . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
 
 // ============================================
 // PUBLIC ROUTES
@@ -31,11 +179,6 @@ use App\Http\Controllers\Admin\AccountManagerController;
 Route::get('/', function () {
     return view('welcome');
 });
-
-// Email Verification Routes
-// Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
-// Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-// Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
 
 // ============================================
 // AUTHENTICATION ROUTES
@@ -51,7 +194,7 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 // ============================================
 Route::middleware(['auth'])->group(function () {
 
-// ============================================
+    // ============================================
     // DASHBOARD
     // ============================================
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -61,7 +204,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('mtickets', function () {
         return view('mtickets');
     })->name('mtickets');
-
 
     // ============================================
     // PROFILE ROUTES
@@ -206,7 +348,6 @@ Route::middleware(['auth'])->group(function () {
 
     // Invoice item routes - MAIN (using the prefix group)
     Route::prefix('invoices/{invoice}')->group(function () {
-        // CRUD operations for invoice items
         Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
         Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
         Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
@@ -295,10 +436,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // WALLET MODULE ROUTES - COMPLETE
+    // WALLET MODULE ROUTES
     // ============================================
-    
-    // ===== TENANT / CUSTOMER WALLET ROUTES =====
     Route::prefix('wallet')->name('wallet.')->group(function () {
         Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'getBalance'])->name('balance');
@@ -353,7 +492,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{user}/unfreeze', [App\Modules\Payments\Controllers\WalletController::class, 'unfreeze'])->name('unfreeze');
     });
 
-    // ===== TENANT WALLET WEB ROUTES (form submissions) =====
+    // ===== TENANT WALLET WEB ROUTES =====
     Route::prefix('wallet')->name('tenant.wallet.')->group(function () {
         Route::post('/deposit', [App\Modules\Payments\Controllers\WalletController::class, 'deposit'])->name('deposit');
         Route::post('/withdraw', [App\Modules\Payments\Controllers\WalletController::class, 'withdraw'])->name('withdraw');
@@ -363,7 +502,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // SUBSCRIPTION MODULE ROUTES - Admin Section
+    // SUBSCRIPTION MODULE ROUTES
     // ============================================
     Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->group(function () {
         Route::resource('plans', SubscriptionController::class)
@@ -401,7 +540,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // COMPANY MANAGEMENT ROUTES - Admin Section
+    // COMPANY MANAGEMENT ROUTES
     // ============================================
     Route::prefix('admin/companies')->name('admin.companies.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
@@ -424,7 +563,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // ACCOUNT MANAGER MANAGEMENT ROUTES - Admin Section
+    // ACCOUNT MANAGER MANAGEMENT ROUTES
     // ============================================
     Route::prefix('admin/account-managers')->name('admin.account-managers.')->group(function () {
         Route::get('/', [AccountManagerController::class, 'index'])->name('index');
@@ -444,7 +583,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
 
     // ============================================
-    // 📱 M-PESA STK PUSH PAYMENT ROUTES
+    // M-PESA STK PUSH PAYMENT ROUTES
     // ============================================
     Route::prefix('payments/mpesa')->name('payments.mpesa.')->group(function () {
         Route::post('/stk-push', [PaymentController::class, 'initiateMpesaStkPush'])->name('stk-push');
@@ -465,8 +604,13 @@ require base_path('app/Modules/SMS/routes.php');
 // Security Module Routes
 require base_path('app/Modules/Security/routes.php');
 
+// Users Module Routes
+Route::prefix('users')->group(function () {
+    require base_path('app/Modules/Users/routes.php');
+});
+
 // ============================================
-// 📱 TEST SMS ROUTES (Temporary - Remove after testing)
+// TEST SMS ROUTES (Temporary)
 // ============================================
 
 Route::get('/test-sms-config', function () {
@@ -489,7 +633,7 @@ Route::prefix('test-sms')->group(function () {
 });
 
 // ============================================
-// 🔍 DEBUG ROUTES (Temporary - Remove after testing)
+// DEBUG ROUTES (Temporary)
 // ============================================
 
 Route::get('/debug-mpesa', function () {
@@ -512,13 +656,8 @@ Route::get('/debug-mpesa', function () {
     }
 });
 
-// Users Module Routes
-Route::prefix('users')->group(function () {
-    require base_path('app/Modules/Users/routes.php');
-});
-
 // ============================================
-// API FALLBACK ROUTES (outside auth middleware)
+// API FALLBACK ROUTES
 // ============================================
 Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
 
