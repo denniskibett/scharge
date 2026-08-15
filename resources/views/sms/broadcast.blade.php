@@ -443,20 +443,23 @@
             <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="p-6">
                     <!-- Header -->
-                    <div class="flex justify-between items-center mb-4">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Campaigns</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Manage your SMS campaigns</p>
-                        </div>
-                        <div class="flex gap-2">
-                            <button onclick="loadKenyaSmsCampaigns()" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-green-700">
-                                <i class="fas fa-cloud-download-alt"></i> Sync from KenyaSMS
-                            </button>
-                            <button onclick="openCreateCampaignModal()" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">
-                                <i class="fas fa-plus"></i> New Campaign
-                            </button>
-                        </div>
-                    </div>
+           <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Campaigns</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Manage your SMS campaigns</p>
+            </div>
+         <div class="flex gap-2 flex-wrap">
+        <button onclick="listKenyaSmsCampaigns()" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-purple-700">
+            <i class="fas fa-cloud"></i> View KenyaSMS
+        </button>
+        <button onclick="importKenyaSmsCampaigns()" id="importKenyaSmsBtn" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-green-700">
+            <i class="fas fa-cloud-download-alt"></i> Import from KenyaSMS
+        </button>
+        <button onclick="openCreateCampaignModal()" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">
+            <i class="fas fa-plus"></i> New Campaign
+        </button>
+    </div>
+</div>
 
                     <!-- Filter Tabs -->
                     <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
@@ -992,6 +995,41 @@
             </div>
         </div>
     </div>
+    <!-- ============================================ -->
+<!-- UPDATE PHONE MODAL -->
+<!-- ============================================ -->
+<div id="updatePhoneModal" style="display: none;">
+    <div class="modal-content">
+        ... (existing content) ...
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- KENYASMS CAMPAIGNS MODAL -->
+<!-- ============================================ -->
+<div id="kenyaSmsModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeKenyaSmsModal()"></div>
+    <div class="relative min-h-screen flex items-center justify-center p-4">
+        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden">
+            <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
+                        <i class="fas fa-cloud text-purple-600 mr-2"></i> KenyaSMS Campaigns
+                    </h3>
+                    <button onclick="closeKenyaSmsModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="kenyaSmsModalContent" class="px-6 py-4 overflow-y-auto" style="max-height: calc(85vh - 70px);">
+                <div class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p class="mt-2 text-gray-500">Loading campaigns from KenyaSMS...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
 
     @verbatim
     <script>
@@ -1568,185 +1606,198 @@ function formatMonthYear(dateStr) {
         }
 
         // ============================================================
-        // RENDER PREVIEW WITH REAL INVOICE DATA
-        // ============================================================
-        function renderPreviewWithData(invoiceData, template, allSelected, selectedCount) {
-            console.log('📥 invoiceData received:', invoiceData);
-            const previewCount = document.getElementById('previewCount');
-            if (previewCount) {
-                previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants`;
-            }
+// RENDER PREVIEW WITH REAL INVOICE DATA (UPDATED)
+// ============================================================
+function renderPreviewWithData(invoiceData, template, allSelected, selectedCount) {
+    console.log('📥 invoiceData received:', invoiceData);
+    const previewCount = document.getElementById('previewCount');
+    if (previewCount) {
+        previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants`;
+    }
 
-            let previews = [];
-            const maxPreview = Math.min(3, selectedCount);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+    let previews = [];
+    const maxPreview = Math.min(3, selectedCount);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-            for (let i = 0; i < maxPreview; i++) {
-                let cb = allSelected[i];
-                let tenantId = cb.dataset.id || '';
-                let tenantInvoices = invoiceData[tenantId] || [];
-                console.log(`🔍 Tenant ${tenantId} invoices:`, tenantInvoices);
+    for (let i = 0; i < maxPreview; i++) {
+        let cb = allSelected[i];
+        let tenantId = cb.dataset.id || '';
+        let tenantInvoices = invoiceData[tenantId] || [];
+        console.log(`🔍 Tenant ${tenantId} invoices:`, tenantInvoices);
 
-                let currentMonthY = '';
-                let monthAttr = cb.getAttribute('data-month') || '';
-                if (monthAttr) {
-                    try {
-                        const d = new Date(monthAttr);
-                        if (!isNaN(d)) {
-                            currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-                        }
-                    } catch (e) {}
-                }
-                if (!currentMonthY && tenantInvoices.length > 0) {
-                    let latest = tenantInvoices.reduce((a, b) => {
-                        return (a.billing_month > b.billing_month) ? a : b;
-                    });
-                    if (latest && latest.billing_month) {
-                        currentMonthY = latest.billing_month.substring(0, 7);
-                    }
-                }
-                if (!currentMonthY) {
-                    const d = new Date();
+        // --- Determine current month (from checkbox) ---
+        let currentMonthY = '';
+        let monthAttr = cb.getAttribute('data-month') || '';
+        if (monthAttr) {
+            try {
+                const d = new Date(monthAttr);
+                if (!isNaN(d)) {
                     currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                 }
-                console.log(`📅 currentMonthY: ${currentMonthY}`);
-
-                let currentInvoice = tenantInvoices.find(inv => {
-                    if (!inv.billing_month) return false;
-                    let invMonth = inv.billing_month.substring(0, 7);
-                    return invMonth === currentMonthY;
-                });
-                let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
-                console.log(`💵 currentBill from invoices: ${currentBill}`);
-
-                let dueDateFormatted = '';
-                if (currentMonthY) {
-                    try {
-                        let parts = currentMonthY.split('-');
-                        let year = parseInt(parts[0]);
-                        let month = parseInt(parts[1]);
-                        let dueMonth = month + 1;
-                        let dueYear = year;
-                        if (dueMonth > 12) {
-                            dueMonth = 1;
-                            dueYear++;
-                        }
-                        let dueDateObj = new Date(dueYear, dueMonth - 1, 5);
-                        dueDateFormatted = dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    } catch (e) { /* ignore */ }
-                }
-
-                let olderInvoices = tenantInvoices.filter(inv => {
-                    if (!inv.billing_month) return false;
-                    let invMonth = inv.billing_month.substring(0, 7);
-                    if (invMonth >= currentMonthY) return false;
-
-                    let dueDate;
-                    if (inv.due_date) {
-                        dueDate = new Date(inv.due_date);
-                    } else {
-                        dueDate = new Date(inv.billing_month);
-                        dueDate.setMonth(dueDate.getMonth() + 1);
-                        dueDate.setDate(5);
-                    }
-                    dueDate.setHours(0, 0, 0, 0);
-                    return dueDate <= today;
-                });
-
-                olderInvoices = olderInvoices.sort((a, b) => {
-                    return new Date(a.billing_month) - new Date(b.billing_month);
-                });
-
-                let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
-                let unpaidTotal = olderTotal;
-                let totalDue = currentBill + unpaidTotal;
-
-                let unpaidCount = olderInvoices.length;
-                let unpaidList = olderInvoices.map(inv => {
-                    let billingMonth = formatMonthYear(inv.billing_month);
-                    return (inv.status || 'unpaid') + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
-                }).join('\n');
-
-                let unpaidMessage = unpaidCount === 0
-                    ? 'no overdue invoices'
-                    : (unpaidCount === 1
-                        ? '1 overdue invoice of KES ' + Number(olderTotal).toFixed(2)
-                        : unpaidCount + ' overdue invoices totaling KES ' + Number(olderTotal).toFixed(2)
-                    );
-
-                let phone = cb.getAttribute('data-phone') || '';
-                let name = cb.getAttribute('data-name') || 'Tenant';
-                let unit = cb.getAttribute('data-unit') || 'N/A';
-                let consumption = cb.getAttribute('data-consumption') || '0';
-                let estate_name = cb.getAttribute('data-estate') || 'N/A';
-                let prev_read = cb.getAttribute('data-prev-read') || '0';
-                let curr_read = cb.getAttribute('data-curr-read') || '0';
-                let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
-
-                let currentMonthLabel = '';
-                if (currentMonthY) {
-                    try {
-                        const d = new Date(currentMonthY + '-01');
-                        currentMonthLabel = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-                    } catch (e) {
-                        currentMonthLabel = cb.getAttribute('data-month') || '';
-                    }
-                } else {
-                    currentMonthLabel = cb.getAttribute('data-month') || '';
-                }
-
-                let message = template;
-                message = message.replace(/\{\{name\}\}/g, name);
-                message = message.replace(/\{\{unit\}\}/g, unit);
-                message = message.replace(/\{\{unit_number\}\}/g, unit);
-                message = message.replace(/\{\{water_bill\}\}/g, currentBill.toFixed(2));
-                message = message.replace(/\{\{water_consumption\}\}/g, consumption);
-                message = message.replace(/\{\{month\}\}/g, currentMonthLabel);
-                message = message.replace(/\{\{estate_name\}\}/g, estate_name);
-                message = message.replace(/\{\{estate\}\}/g, estate_name);
-                message = message.replace(/\{\{prev_read\}\}/g, prev_read);
-                message = message.replace(/\{\{curr_read\}\}/g, curr_read);
-                message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
-                message = message.replace(/\{\{status\}\}/g, paymentStatus);
-                message = message.replace(/\{\{due_date\}\}/g, dueDateFormatted);
-                message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
-                message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
-                message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
-                message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
-                message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
-                message = message.replace(/\{\{[^}]*\}\}/g, '');
-
-                const msgLength = message.length;
-                const isUnicode = /[^\x00-\x7F]/.test(message);
-                const partsPerSms = isUnicode ? 70 : 160;
-                const parts = Math.ceil(msgLength / partsPerSms);
-
-                let statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
-                if (paymentStatus === 'paid') statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
-                else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
-
-                previews.push({
-                    phone, name, unit, estate: estate_name,
-                    water_bill: currentBill.toFixed(2),
-                    water_consumption: consumption,
-                    prev_read, curr_read, month: currentMonthLabel,
-                    due_date: dueDateFormatted,
-                    paymentStatus,
-                    message,
-                    length: msgLength,
-                    parts,
-                    statusColor,
-                    unpaid_count: unpaidCount,
-                    unpaid_total: unpaidTotal.toFixed(2),
-                    unpaid_list: unpaidList,
-                    unpaid_message: unpaidMessage,
-                    total_due: totalDue.toFixed(2)
-                });
-            }
-
-            renderPreviewHTML(previews, selectedCount);
+            } catch (e) {}
         }
+        // Fallback: use latest invoice's billing_month
+        if (!currentMonthY && tenantInvoices.length > 0) {
+            let latest = tenantInvoices.reduce((a, b) => {
+                return (a.billing_month > b.billing_month) ? a : b;
+            });
+            if (latest && latest.billing_month) {
+                currentMonthY = latest.billing_month.substring(0, 7);
+            }
+        }
+        // Final fallback: today
+        if (!currentMonthY) {
+            const d = new Date();
+            currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        }
+        console.log(`📅 currentMonthY: ${currentMonthY}`);
+
+        // --- GET CURRENT MONTH'S BILL FROM INVOICE DATA ---
+        let currentInvoice = tenantInvoices.find(inv => {
+            if (!inv.billing_month) return false;
+            let invMonth = inv.billing_month.substring(0, 7);
+            return invMonth === currentMonthY;
+        });
+        let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
+        console.log(`💵 currentBill from invoices: ${currentBill}`);
+        console.log(`💵 waterbill from checkbox: ${parseFloat(cb.getAttribute('data-waterbill') || 0)}`);
+
+        // ✅ FIX: If no current invoice OR invoice amount is 0, use the checkbox's waterbill as fallback
+        if ((!currentInvoice || currentBill === 0) && parseFloat(cb.getAttribute('data-waterbill') || 0) > 0) {
+            let fallbackBill = parseFloat(cb.getAttribute('data-waterbill') || 0);
+            console.warn(`⚠️ No invoice or invoice amount is 0 for tenant ${tenantId}, using checkbox waterbill: ${fallbackBill}`);
+            currentBill = fallbackBill;
+        }
+        console.log(`💵 FINAL currentBill: ${currentBill}`);
+
+        // --- Compute due date for current month ---
+        let dueDateFormatted = '';
+        if (currentMonthY) {
+            try {
+                let parts = currentMonthY.split('-');
+                let year = parseInt(parts[0]);
+                let month = parseInt(parts[1]);
+                let dueMonth = month + 1;
+                let dueYear = year;
+                if (dueMonth > 12) {
+                    dueMonth = 1;
+                    dueYear++;
+                }
+                let dueDateObj = new Date(dueYear, dueMonth - 1, 5);
+                dueDateFormatted = dueDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+            } catch (e) { /* ignore */ }
+        }
+
+        // --- Filter OLDER invoices (billing_month < currentMonthY) AND due_date <= today ---
+        let olderInvoices = tenantInvoices.filter(inv => {
+            if (!inv.billing_month) return false;
+            let invMonth = inv.billing_month.substring(0, 7);
+            if (invMonth >= currentMonthY) return false;
+
+            let dueDate;
+            if (inv.due_date) {
+                dueDate = new Date(inv.due_date);
+            } else {
+                dueDate = new Date(inv.billing_month);
+                dueDate.setMonth(dueDate.getMonth() + 1);
+                dueDate.setDate(5);
+            }
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate <= today;
+        });
+
+        let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
+        let unpaidTotal = olderTotal;
+        let totalDue = currentBill + unpaidTotal;
+
+        let unpaidCount = olderInvoices.length;
+        let unpaidList = olderInvoices.map(inv => {
+            let billingMonth = formatMonthYear(inv.billing_month);
+            return (inv.status || 'unpaid') + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
+        }).join('\n');
+
+        let unpaidMessage = unpaidCount === 0
+            ? 'no overdue invoices'
+            : (unpaidCount === 1
+                ? '1 overdue invoice of KES ' + Number(olderTotal).toFixed(2)
+                : unpaidCount + ' overdue invoices totaling KES ' + Number(olderTotal).toFixed(2)
+            );
+
+        // ----- Gather other data from the checkbox -----
+        let phone = cb.getAttribute('data-phone') || '';
+        let name = cb.getAttribute('data-name') || 'Tenant';
+        let unit = cb.getAttribute('data-unit') || 'N/A';
+        let consumption = cb.getAttribute('data-consumption') || '0';
+        let estate_name = cb.getAttribute('data-estate') || 'N/A';
+        let prev_read = cb.getAttribute('data-prev-read') || '0';
+        let curr_read = cb.getAttribute('data-curr-read') || '0';
+        let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+
+        let currentMonthLabel = '';
+        if (currentMonthY) {
+            try {
+                const d = new Date(currentMonthY + '-01');
+                currentMonthLabel = d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+            } catch (e) {
+                currentMonthLabel = cb.getAttribute('data-month') || '';
+            }
+        } else {
+            currentMonthLabel = cb.getAttribute('data-month') || '';
+        }
+
+        // ----- Replace placeholders -----
+        let message = template;
+        message = message.replace(/\{\{name\}\}/g, name);
+        message = message.replace(/\{\{unit\}\}/g, unit);
+        message = message.replace(/\{\{unit_number\}\}/g, unit);
+        message = message.replace(/\{\{water_bill\}\}/g, currentBill.toFixed(2));
+        message = message.replace(/\{\{water_consumption\}\}/g, consumption);
+        message = message.replace(/\{\{month\}\}/g, currentMonthLabel);
+        message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+        message = message.replace(/\{\{estate\}\}/g, estate_name);
+        message = message.replace(/\{\{prev_read\}\}/g, prev_read);
+        message = message.replace(/\{\{curr_read\}\}/g, curr_read);
+        message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
+        message = message.replace(/\{\{status\}\}/g, paymentStatus);
+        message = message.replace(/\{\{due_date\}\}/g, dueDateFormatted);
+        message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
+        message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
+        message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
+        message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+        message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
+        message = message.replace(/\{\{[^}]*\}\}/g, '');
+
+        const msgLength = message.length;
+        const isUnicode = /[^\x00-\x7F]/.test(message);
+        const partsPerSms = isUnicode ? 70 : 160;
+        const parts = Math.ceil(msgLength / partsPerSms);
+
+        let statusColor = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400';
+        if (paymentStatus === 'paid') statusColor = 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400';
+        else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
+
+        previews.push({
+            phone, name, unit, estate: estate_name,
+            water_bill: currentBill.toFixed(2),
+            water_consumption: consumption,
+            prev_read, curr_read, month: currentMonthLabel,
+            due_date: dueDateFormatted,
+            paymentStatus,
+            message,
+            length: msgLength,
+            parts,
+            statusColor,
+            unpaid_count: unpaidCount,
+            unpaid_total: unpaidTotal.toFixed(2),
+            unpaid_list: unpaidList,
+            unpaid_message: unpaidMessage,
+            total_due: totalDue.toFixed(2)
+        });
+    }
+
+    renderPreviewHTML(previews, selectedCount);
+}
 
         // ============================================================
         // RENDER PREVIEW WITH DUMMY DATA (FALLBACK)
@@ -2166,6 +2217,311 @@ function formatMonthYear(dateStr) {
                     }
                 });
         }
+        // ============================================
+// KENYASMS CAMPAIGN FUNCTIONS
+// ============================================
+
+/**
+ * List campaigns from KenyaSMS
+ */
+function listKenyaSmsCampaigns() {
+    const modal = document.getElementById('kenyaSmsModal');
+    const content = document.getElementById('kenyaSmsModalContent');
+    
+    // Show modal with loading state
+    modal.style.display = 'block';
+    content.innerHTML = `
+        <div class="text-center py-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p class="mt-2 text-gray-500">Loading campaigns from KenyaSMS...</p>
+        </div>
+    `;
+
+    fetch('/api/sms/campaigns/kenyasms')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderKenyaSmsCampaigns(data.campaigns, data.total);
+            } else {
+                content.innerHTML = `
+                    <div class="text-center py-8 text-red-500">
+                        <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                        <p>${data.message || 'Failed to load campaigns'}</p>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching KenyaSMS campaigns:', error);
+            content.innerHTML = `
+                <div class="text-center py-8 text-red-500">
+                    <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                    <p>Error loading campaigns: ${error.message}</p>
+                </div>
+            `;
+        });
+}
+
+/**
+ * Render KenyaSMS campaigns in the modal
+ */
+function renderKenyaSmsCampaigns(campaigns, total) {
+    const content = document.getElementById('kenyaSmsModalContent');
+    
+    // Ensure campaigns is an array
+    if (!campaigns || typeof campaigns !== 'object') {
+        campaigns = [];
+    }
+    if (!Array.isArray(campaigns)) {
+        campaigns = Object.values(campaigns);
+    }
+    campaigns = campaigns.filter(c => c && typeof c === 'object');
+    
+    if (campaigns.length === 0) {
+        content.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-inbox text-4xl mb-2"></i>
+                <p>No campaigns found in KenyaSMS.</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Count imported campaigns
+    const importedCount = campaigns.filter(c => c.is_imported).length;
+    const notImportedCount = campaigns.length - importedCount;
+
+    let html = `
+        <div class="mb-4 flex justify-between items-center flex-wrap gap-2">
+            <div class="text-sm text-gray-500 dark:text-gray-400">
+                Showing <strong>${campaigns.length}</strong> of ${total || campaigns.length} campaigns
+                <span class="ml-2 text-xs">
+                    <span class="text-green-600">✅ ${importedCount} imported</span>
+                    <span class="text-gray-400 mx-1">|</span>
+                    <span class="text-orange-600">📥 ${notImportedCount} available</span>
+                </span>
+            </div>
+            <div class="text-xs text-gray-400">
+                <i class="fas fa-info-circle mr-1"></i> Click "Import" to match recipients with unit numbers
+            </div>
+        </div>
+        <div class="w-full overflow-x-auto">
+            <table class="min-w-full">
+                <thead class="bg-gray-50 dark:bg-gray-800">
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Campaign</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Recipients</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failed</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rate</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+    `;
+
+    campaigns.forEach(campaign => {
+        const statusBadge = getStatusBadge(campaign.status);
+        const statusText = capitalize(campaign.status || 'unknown');
+        const isImported = campaign.is_imported || false;
+        
+        const rowClass = isImported ? 'bg-green-50 dark:bg-green-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150';
+        
+        let rateColor = 'text-gray-500';
+        if (campaign.success_rate >= 90) rateColor = 'text-green-600';
+        else if (campaign.success_rate >= 70) rateColor = 'text-yellow-600';
+        else if (campaign.success_rate > 0) rateColor = 'text-red-600';
+        
+        html += `
+            <tr class="${rowClass}">
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</span>
+                        ${isImported ? '<span class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ Imported</span>' : ''}
+                    </div>
+                    <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">${escapeHtml(campaign.sender_id || 'No Sender')} • ${escapeHtml(campaign.message_type || '')}</div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                    ${campaign.formatted_date || 'N/A'}
+                </td>
+                <td class="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                    ${campaign.recipients}
+                </td>
+                <td class="px-4 py-3 text-center text-sm text-green-600 font-medium">
+                    ${campaign.delivered}
+                </td>
+                <td class="px-4 py-3 text-center text-sm text-red-600 font-medium">
+                    ${campaign.failed}
+                </td>
+                <td class="px-4 py-3 text-center text-sm font-medium ${rateColor}">
+                    ${campaign.success_rate}%
+                </td>
+                <td class="px-4 py-3">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">
+                        ${statusText}
+                    </span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                    ${isImported ? `
+                        <span class="text-xs text-gray-400">Already imported</span>
+                    ` : `
+                        <button onclick="importSingleKenyaSmsCampaign('${campaign.id}')" 
+                                class="text-green-600 hover:text-green-900 text-sm font-medium transition-colors" 
+                                title="Import this campaign to match with unit numbers">
+                            <i class="fas fa-cloud-download-alt mr-1"></i> Import
+                        </button>
+                    `}
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between flex-wrap gap-2">
+            <span>
+                <i class="fas fa-check-circle text-green-600 mr-1"></i> Imported campaigns are already in your local system
+            </span>
+            <span>
+                <i class="fas fa-download text-blue-600 mr-1"></i> Import to match recipients with unit numbers
+            </span>
+        </div>
+    `;
+
+    content.innerHTML = html;
+}
+
+/**
+ * Import a single campaign from KenyaSMS
+ */
+function importSingleKenyaSmsCampaign(campaignId) {
+    if (!confirm('Import this campaign from KenyaSMS?\n\nThis will:\n• Match phone numbers to local tenants\n• Show you which tenants received the message\n• Show you which tenants did NOT receive it\n\nContinue?')) {
+        return;
+    }
+
+    const btn = event.target.closest('button');
+    const originalText = btn ? btn.innerHTML : 'Importing...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Importing...';
+    }
+
+    fetch(`/api/sms/campaigns/kenyasms/${campaignId}/import`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let msg = `✅ Campaign imported successfully!\n\n`;
+            msg += `📊 Total recipients: ${data.recipients_imported || 0}\n`;
+            msg += `🏠 Matched to tenants: ${data.matched_tenants || 0}\n`;
+            msg += `⚠️ Unmatched phones: ${data.unmatched_phones || 0}\n`;
+            msg += `\n🔍 Check the campaign in the list above to see unit numbers.`;
+            
+            alert(msg);
+            closeKenyaSmsModal();
+            loadCampaigns(); // Refresh the local campaigns list
+        } else {
+            alert('❌ Error: ' + (data.message || 'Failed to import campaign'));
+        }
+    })
+    .catch(error => {
+        console.error('Error importing campaign:', error);
+        alert('❌ Error importing campaign: ' + error.message);
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+}
+
+/**
+ * Import all campaigns from KenyaSMS
+ */
+function importKenyaSmsCampaigns() {
+    if (!confirm('This will fetch ALL campaigns from KenyaSMS and import them locally.\n\nExisting campaigns will be skipped.\nContinue?')) {
+        return;
+    }
+    
+    const btn = document.getElementById('importKenyaSmsBtn');
+    const originalText = btn ? btn.innerHTML : 'Importing...';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Importing all...';
+    }
+    
+    fetch('/api/sms/campaigns/import-kenyasms', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            'Accept': 'application/json'
+        }
+    })
+    .then(async response => {
+        const text = await response.text();
+        try {
+            return JSON.parse(text);
+        } catch (e) {
+            console.error('Invalid JSON response:', text);
+            throw new Error('Server returned invalid response. Please check the logs.');
+        }
+    })
+    .then(data => {
+        if (data.success) {
+            let msg = `✅ ${data.message}\n\n`;
+            msg += `Imported: ${data.data.imported}\n`;
+            msg += `Skipped: ${data.data.skipped}\n`;
+            if (data.data.errors && data.data.errors.length > 0) {
+                msg += `\n⚠️ Errors: ${data.data.errors.length}`;
+                console.log('Import errors:', data.data.errors);
+            }
+            alert(msg);
+            loadCampaigns(); // Refresh the campaigns list
+        } else {
+            alert('❌ Error: ' + (data.message || 'Failed to import campaigns'));
+        }
+    })
+    .catch(error => {
+        console.error('Error importing campaigns:', error);
+        alert('❌ Error importing campaigns: ' + error.message);
+    })
+    .finally(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+}
+
+/**
+ * Close KenyaSMS modal
+ */
+function closeKenyaSmsModal() {
+    const modal = document.getElementById('kenyaSmsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('kenyaSmsModal');
+    if (modal && modal.style.display === 'block') {
+        if (event.target.closest('.fixed.inset-0.bg-gray-900/50')) {
+            closeKenyaSmsModal();
+        }
+    }
+});
 
         // ============================================
         // LOAD CAMPAIGNS FROM KENYASMS
@@ -2433,43 +2789,52 @@ function formatMonthYear(dateStr) {
             renderCampaigns();
         }
 
-        // ============================================
-        // RENDER CAMPAIGNS
-        // ============================================
         function renderCampaigns() {
-            console.log('🎨 Rendering campaigns, data:', campaignsData);
-            const tbody = document.getElementById('campaignsTableBody');
-            if (!tbody) return;
-            
-            if (!campaignsData || campaignsData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-gray-500">No campaigns found.</td></tr>';
-                return;
-            }
-            
-            let html = '';
-            campaignsData.forEach(campaign => {
-                const statusBadge = getStatusBadge(campaign.status);
-                const statusText = capitalize(campaign.status);
-                const date = formatDate(campaign.created_at);
-                html += `
-                    <tr>
-                        <td class="px-4 py-3 text-sm text-gray-500">${campaign.id}</td>
-                        <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500">${campaign.total_recipients || 0}</td>
-                        <td class="px-4 py-3 text-sm text-green-600">${campaign.sent_count || 0}</td>
-                        <td class="px-4 py-3 text-sm text-red-600">${campaign.failed_count || 0}</td>
-                        <td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
-                        <td class="px-4 py-3">
-                            <button onclick="viewCampaign(${campaign.id})" class="text-blue-600 hover:underline">View</button>
-                            <button onclick="sendCampaign(${campaign.id})" class="text-green-600 hover:underline">Send</button>
-                            <button onclick="deleteCampaign(${campaign.id})" class="text-red-600 hover:underline">Delete</button>
-                        </td>
-                    </tr>
-                `;
-            });
-            tbody.innerHTML = html;
+    console.log('🎨 Rendering campaigns, data:', campaignsData);
+    const tbody = document.getElementById('campaignsTableBody');
+    if (!tbody) return;
+    
+    if (!campaignsData || campaignsData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500">No campaigns found.</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    campaignsData.forEach(campaign => {
+        const statusBadge = getStatusBadge(campaign.status);
+        const statusText = capitalize(campaign.status);
+        const date = formatDate(campaign.created_at);
+        
+        // ✅ Determine source badge based on the source field
+        let sourceBadge = '';
+        if (campaign.source === 'kenyasms_imported') {
+            sourceBadge = '<span class="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">📥 Imported</span>';
+        } else if (campaign.source === 'local') {
+            sourceBadge = '<span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">📤 Local</span>';
+        } else {
+            sourceBadge = '<span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Unknown</span>';
         }
+        
+        html += `
+            <tr>
+                <td class="px-4 py-3 text-sm text-gray-500">${campaign.id}</td>
+                <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</td>
+                <td class="px-4 py-3">${sourceBadge}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
+                <td class="px-4 py-3 text-sm text-gray-500">${campaign.total_recipients || 0}</td>
+                <td class="px-4 py-3 text-sm text-green-600">${campaign.sent_count || 0}</td>
+                <td class="px-4 py-3 text-sm text-red-600">${campaign.failed_count || 0}</td>
+                <td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
+                <td class="px-4 py-3">
+                    <button onclick="viewCampaign(${campaign.id})" class="text-blue-600 hover:underline">View</button>
+                    <button onclick="sendCampaign(${campaign.id})" class="text-green-600 hover:underline">Send</button>
+                    <button onclick="deleteCampaign(${campaign.id})" class="text-red-600 hover:underline">Delete</button>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
 
         // ============================================
         // FILTER ESTATES BY COMPANY
@@ -2634,9 +2999,6 @@ function formatMonthYear(dateStr) {
             });
         }
 
-        // ============================================
-// RENDER CAMPAIGN PREVIEW WITH REAL DATA - FIXED
-// ============================================
 function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, container) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -2644,16 +3006,25 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
     console.log('🔍 Rendering with invoiceData:', invoiceData);
     console.log('🔍 invoiceData keys:', Object.keys(invoiceData));
     
+    const previewLimit = 10;
     let html = '<div class="space-y-3">';
-    const previewTenants = tenants.slice(0, 3);
+    const previewTenants = tenants.slice(0, previewLimit);
+    let hasOutstanding = false;
+    
+    // Helper: Check if invoice is unpaid or partial
+    function isUnpaidOrPartial(status) {
+        return ['unpaid', 'partial', 'overdue'].includes(status);
+    }
     
     previewTenants.forEach(tenant => {
         let tenantInvoices = [];
         const tenantId = tenant.tenantId;
         
         console.log(`🔍 Looking for invoices for tenant ID: ${tenantId} (${tenant.name})`);
+        console.log(`🔍 Tenant waterbill from table: ${tenant.waterbill}`);
+        console.log(`🔍 Tenant payment status: ${tenant.paymentStatus}`);
         
-        // Try to find invoices for this tenant
+        // Find invoices for this tenant (using multiple key formats)
         if (invoiceData[String(tenantId)]) {
             tenantInvoices = invoiceData[String(tenantId)];
             console.log(`✅ Found invoices using string key "${String(tenantId)}"`);
@@ -2703,28 +3074,38 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         console.log(`📅 Tenant ${tenantId} currentMonthY: ${currentMonthY}`);
         
-        // --- Find current month's invoice ---
+        // --- Find current month's invoice (show for accountability) ---
         let currentInvoice = tenantInvoices.find(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
             return invMonth === currentMonthY;
         });
         let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
+        let currentStatus = currentInvoice ? currentInvoice.status : 'unknown';
         
-        // If no invoice found, use the tenant's waterbill from the table as fallback
-        if (currentBill === 0 && tenant.waterbill > 0) {
-            console.warn(`⚠️ No invoice found for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
+        console.log(`💵 currentBill from invoices: ${currentBill}`);
+        console.log(`📊 currentStatus: ${currentStatus}`);
+        
+        // ✅ If no invoice, fallback to tenant waterbill
+        if ((!currentInvoice || currentBill === 0) && tenant.waterbill > 0) {
+            console.warn(`⚠️ No invoice for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
             currentBill = tenant.waterbill;
+            currentStatus = 'unknown';
         }
         
-        console.log(`💵 Tenant ${tenantId} currentBill: ${currentBill}`);
-        
-        // --- Filter older overdue invoices ---
+        // --- Filter OLDER invoices (billing_month < currentMonthY) ---
+        // ✅ Include ONLY unpaid, partial, and overdue – EXCLUDE paid invoices
         let olderInvoices = tenantInvoices.filter(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
+            
+            // Only older invoices
             if (invMonth >= currentMonthY) return false;
             
+            // ✅ EXCLUDE paid invoices from older invoices
+            if (!isUnpaidOrPartial(inv.status)) return false;
+            
+            // Check if due date is today or earlier
             let dueDate;
             if (inv.due_date) {
                 dueDate = new Date(inv.due_date);
@@ -2738,20 +3119,35 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             return dueDate <= today;
         });
         
+        // Calculate totals
         let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
-        let unpaidTotal = olderTotal;
-        let totalDue = currentBill + unpaidTotal;
+        let unpaidTotal = olderTotal; // Only unpaid/partial older invoices
+        let totalDue = currentBill + unpaidTotal; // Current bill (whether paid or not) + older unpaid/partial
+        
         let unpaidCount = olderInvoices.length;
         
-        // ✅ BUILD UNPAID LIST - CORRECTED
+        console.log(`💰 Tenant ${tenantId} totalDue: ${totalDue}`);
+        console.log(`💰 Tenant ${tenantId} currentBill: ${currentBill}`);
+        console.log(`💰 Tenant ${tenantId} unpaidTotal: ${unpaidTotal}`);
+        console.log(`🔍 Tenant ${tenantId} olderInvoices count: ${unpaidCount}`);
+        console.log(`🔍 Tenant ${tenantId} currentStatus: ${currentStatus}`);
+        
+        // ✅ Build unpaid list (only older unpaid/partial invoices)
         let unpaidList = '';
         if (olderInvoices.length > 0) {
             unpaidList = olderInvoices.map(inv => {
                 let billingMonth = formatMonthYear(inv.billing_month);
-                return (inv.status || 'unpaid') + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
+                let statusLabel = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
+                return statusLabel + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
             }).join('\n');
         }
         
+        // ✅ Track if any outstanding balance exists
+        if (totalDue > 0) {
+            hasOutstanding = true;
+        }
+        
+        // Format due date
         let dueDate = tenant.dueDate || 'N/A';
         try {
             const d = new Date(dueDate);
@@ -2764,7 +3160,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         const waterConsumption = tenant.waterConsumption || 0;
         
-        // ✅ REPLACE PLACEHOLDERS - CORRECTED
+        // --- Replace placeholders ---
         let message = templateContent;
         const placeholders = {
             '{{name}}': tenant.name || 'Tenant',
@@ -2783,56 +3179,94 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             '{{unpaid_count}}': String(unpaidCount),
             '{{unpaid_total}}': unpaidTotal.toFixed(2),
             '{{unpaid_list}}': unpaidList,
-            '{{unpaid_message}}': unpaidCount === 0 ? 'no overdue invoices' : unpaidCount + ' overdue invoices totaling KES ' + unpaidTotal.toFixed(2),
-            '{{total_due}}': totalDue.toFixed(2)
+            '{{unpaid_message}}': unpaidCount === 0 ? 'no overdue invoices' : unpaidCount + ' unpaid/partial invoices totaling KES ' + unpaidTotal.toFixed(2),
+            '{{total_due}}': totalDue.toFixed(2),
+            '{{current_status}}': currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1),
         };
         
-        // ✅ Apply all replacements
+        // Apply all replacements
         for (const [key, value] of Object.entries(placeholders)) {
             message = message.split(key).join(value);
         }
         
-        // ✅ Remove any remaining placeholders
+        // Remove any remaining placeholders
         message = message.replace(/\{\{[^}]*\}\}/g, '');
+        
+        // ✅ CLEAN THE MESSAGE – remove excessive blank lines
+        function cleanMessage(msg) {
+            // Remove multiple consecutive newlines (keep max 2)
+            msg = msg.replace(/\n{3,}/g, '\n\n');
+            // Remove trailing spaces before newline
+            msg = msg.replace(/[ \t]+\n/g, '\n');
+            // Remove leading/trailing newlines
+            msg = msg.trim();
+            return msg;
+        }
+        message = cleanMessage(message);
         
         console.log(`📨 Final message for ${tenant.name}:`, message);
         
+        // --- Build HTML ---
         let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
         if (tenant.paymentStatus === 'paid') {
             statusBadgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
         } else if (tenant.paymentStatus === 'unpaid' || tenant.paymentStatus === 'overdue') {
             statusBadgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        } else if (tenant.paymentStatus === 'partial') {
+            statusBadgeClass = 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
         }
         
         let unpaidBadge = '';
         if (unpaidCount > 0) {
-            unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} unpaid</span>`;
+            unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} overdue</span>`;
         }
+        
+        // ✅ Show current bill status if it's paid
+        let currentBillStatus = '';
+        if (currentStatus === 'paid') {
+            currentBillStatus = ` (Paid)`;
+        } else if (currentStatus === 'partial') {
+            currentBillStatus = ` (Partial)`;
+        }
+        
+        let paymentStatusDisplay = (tenant.paymentStatus || 'pending').charAt(0).toUpperCase() + (tenant.paymentStatus || 'pending').slice(1);
         
         html += `
             <div class="border-l-4 border-blue-300 pl-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
                 <p class="text-xs text-gray-500 dark:text-gray-400">
                     <strong>To:</strong> ${escapeHtml(tenant.phone || 'N/A')} (${escapeHtml(tenant.name || 'Tenant')}) ${unpaidBadge}
+                    <span class="text-xs text-gray-400 ml-2">Status: ${paymentStatusDisplay}</span>
                 </p>
                 <div class="text-sm text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-wrap">${escapeHtml(message)}</div>
                 <div class="flex flex-wrap gap-2 mt-1 text-xs">
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusBadgeClass}">
-                        ${escapeHtml(tenant.paymentStatus || 'pending')}
+                        ${paymentStatusDisplay}
                     </span>
-                    <span class="text-gray-500 dark:text-gray-400">Bill: KES ${currentBill.toFixed(2)}</span>
+                    <span class="text-gray-500 dark:text-gray-400">Current Bill: KES ${currentBill.toFixed(2)}${currentBillStatus}</span>
                     <span class="text-gray-500 dark:text-gray-400">Unit: ${escapeHtml(tenant.unit || 'N/A')}</span>
                     <span class="text-gray-500 dark:text-gray-400">Reading: ${tenant.prevRead || 0} → ${tenant.currRead || 0}</span>
-                    ${unpaidCount > 0 ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid: KES ${unpaidTotal.toFixed(2)}</span>` : ''}
-                    ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` : ''}
+                    ${unpaidCount > 0 ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid/Partial: KES ${unpaidTotal.toFixed(2)}</span>` : ''}
+                    ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` : 
+                    `<span class="text-green-600 dark:text-green-400">| ✅ All paid</span>`}
                 </div>
             </div>
         `;
     });
     
+    // Show message if no outstanding balance
+    if (!hasOutstanding) {
+        html += `
+            <div class="text-center py-4 text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                All selected tenants have paid their bills – no SMS will be sent.
+            </div>
+        `;
+    }
+    
     const totalCount = tenants.length;
     html += `
         <div class="text-xs text-gray-500 mt-2 text-center">
-            Showing ${Math.min(3, totalCount)} of ${totalCount} tenant(s) in this estate
+            Showing ${Math.min(previewLimit, totalCount)} of ${totalCount} tenant(s)
         </div>
     `;
     

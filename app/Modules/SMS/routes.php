@@ -139,7 +139,10 @@ Route::prefix('api/sms')->middleware(['auth'])->group(function () {
     Route::post('/campaigns/preview', [CampaignController::class, 'preview']);
     Route::get('/campaigns/kenyasms', [CampaignController::class, 'listFromKenyaSMS']);
     
-    // ✅ IMPORT ROUTE - Add this line
+    // ✅ IMPORT ALL CAMPAIGNS - ADD THIS ROUTE
+    Route::post('/campaigns/import-kenyasms', [CampaignController::class, 'importKenyaSmsCampaigns']);
+    
+    // ✅ IMPORT SINGLE CAMPAIGN
     Route::post('/campaigns/kenyasms/{campaignId}/import', [CampaignController::class, 'importFromKenyaSMS']);
     
     // Generic {id} route - must come after specific routes
