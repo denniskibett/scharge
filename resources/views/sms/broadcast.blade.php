@@ -437,90 +437,143 @@
         </div>
 
         <!-- ============================================ -->
-        <!-- TAB 4: CAMPAIGNS -->
-        <!-- ============================================ -->
-        <div id="campaigns-tab" style="display: none;">
-            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="p-6">
-                    <!-- Header -->
-           <div class="flex justify-between items-center mb-4">
-            <div>
-              <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Campaigns</h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Manage your SMS campaigns</p>
+<!-- TAB 4: CAMPAIGNS -->
+<!-- ============================================ -->
+<div id="campaigns-tab" style="display: none;">
+    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="p-6">
+            <!-- Header -->
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Campaigns</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Manage your SMS campaigns</p>
+                    <!-- Sandbox Status Indicator -->
+                    @if($sandbox)
+                        <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                            <span class="inline-block h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></span>
+                            🔒 SANDBOX MODE – Showing local campaigns only
+                        </div>
+                    @else
+                        <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            <span class="inline-block h-2 w-2 rounded-full bg-green-400"></span>
+                            🌐 LIVE MODE – Showing all campaigns (including KenyaSMS)
+                        </div>
+                    @endif
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Source Filter (only show in live mode) -->
+                    @if(!$sandbox)
+                    <div class="relative">
+                        <select id="sourceFilter" onchange="filterCampaignsBySource()" 
+                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                            <option value="all">All Sources</option>
+                            <option value="local">📤 Local</option>
+                            <option value="kenyasms_imported">📥 Imported from KenyaSMS</option>
+                        </select>
+                    </div>
+                    @endif
+                    
+                    <button onclick="listKenyaSmsCampaigns()" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-purple-700">
+                        <i class="fas fa-cloud"></i> View KenyaSMS
+                    </button>
+                    @if(!$sandbox)
+                    <button onclick="importKenyaSmsCampaigns()" id="importKenyaSmsBtn" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-green-700">
+                        <i class="fas fa-cloud-download-alt"></i> Import from KenyaSMS
+                    </button>
+                    @endif
+                    <button onclick="openCreateCampaignModal()" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">
+                        <i class="fas fa-plus"></i> New Campaign
+                    </button>
+                </div>
             </div>
-         <div class="flex gap-2 flex-wrap">
-        <button onclick="listKenyaSmsCampaigns()" class="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-purple-700">
-            <i class="fas fa-cloud"></i> View KenyaSMS
-        </button>
-        <button onclick="importKenyaSmsCampaigns()" id="importKenyaSmsBtn" class="inline-flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-green-700">
-            <i class="fas fa-cloud-download-alt"></i> Import from KenyaSMS
-        </button>
-        <button onclick="openCreateCampaignModal()" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700">
-            <i class="fas fa-plus"></i> New Campaign
-        </button>
-    </div>
-</div>
 
-                    <!-- Filter Tabs -->
-                    <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
-                        <button onclick="filterCampaigns('all')" id="filter-all" class="px-3 py-1 text-sm rounded-lg transition-colors bg-blue-600 text-white">All</button>
-                        <button onclick="filterCampaigns('draft')" id="filter-draft" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Draft</button>
-                        <button onclick="filterCampaigns('scheduled')" id="filter-scheduled" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Scheduled</button>
-                        <button onclick="filterCampaigns('sending')" id="filter-sending" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Sending</button>
-                        <button onclick="filterCampaigns('completed')" id="filter-completed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Completed</button>
-                        <button onclick="filterCampaigns('failed')" id="filter-failed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Failed</button>
-                    </div>
+            <!-- Filter Info Bar -->
+            <div id="filterInfo" class="mb-3 text-sm text-gray-500 dark:text-gray-400 hidden">
+                <span id="filterText"></span>
+                <button onclick="resetSourceFilter()" class="text-blue-600 hover:underline ml-2">Clear filter</button>
+            </div>
 
-                    <!-- Stats -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
-                            <p class="text-2xl font-bold text-gray-800 dark:text-white" id="statsTotal">0</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Sent</p>
-                            <p class="text-2xl font-bold text-green-600" id="statsSent">0</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Pending</p>
-                            <p class="text-2xl font-bold text-yellow-600" id="statsPending">0</p>
-                        </div>
-                        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Failed</p>
-                            <p class="text-2xl font-bold text-red-600" id="statsFailed">0</p>
-                        </div>
-                    </div>
+            <!-- Sandbox Notice for Imported Campaigns -->
+            @if($sandbox)
+            <div class="mb-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800 p-3">
+                <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>Sandbox Mode Active:</strong> Only local campaigns are shown. 
+                    To view imported KenyaSMS campaigns, set <code class="bg-yellow-100 dark:bg-yellow-900/30 px-1 py-0.5 rounded">KENYASMS_SANDBOX=false</code> in your .env file.
+                </p>
+            </div>
+            @endif
 
-                    <!-- Campaigns Table -->
-                    <div class="w-full overflow-x-auto">
-                        <div id="campaignsLoading" class="text-center py-8">
-                            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                            <p class="mt-2 text-gray-500">Loading campaigns...</p>
-                        </div>
-                        <div id="campaignsTable" style="display: none;">
-                            <table class="min-w-full">
-                                <thead class="bg-gray-50 dark:bg-gray-800">
-                                    <tr class="border-gray-100 border-y dark:border-gray-800">
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failed</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="campaignsTableBody">
-                                    <!-- Rows populated by JavaScript -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+            <!-- Filter Tabs -->
+            <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">
+                <button onclick="filterCampaigns('all')" id="filter-all" class="px-3 py-1 text-sm rounded-lg transition-colors bg-blue-600 text-white">All</button>
+                <button onclick="filterCampaigns('draft')" id="filter-draft" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Draft</button>
+                <button onclick="filterCampaigns('pending')" id="filter-pending" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Pending</button>
+                <button onclick="filterCampaigns('scheduled')" id="filter-scheduled" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Scheduled</button>
+                <button onclick="filterCampaigns('sending')" id="filter-sending" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Sending</button>
+                <button onclick="filterCampaigns('completed')" id="filter-completed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Completed</button>
+                <button onclick="filterCampaigns('failed')" id="filter-failed" class="px-3 py-1 text-sm rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600">Failed</button>
+                <span class="ml-auto text-xs text-gray-400 self-center" id="campaignCount">0 campaigns</span>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Total</p>
+                    <p class="text-2xl font-bold text-gray-800 dark:text-white" id="statsTotal">0</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Sent</p>
+                    <p class="text-2xl font-bold text-green-600" id="statsSent">0</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Pending</p>
+                    <p class="text-2xl font-bold text-yellow-600" id="statsPending">0</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Failed</p>
+                    <p class="text-2xl font-bold text-red-600" id="statsFailed">0</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">📤 Local</p>
+                    <p class="text-2xl font-bold text-blue-600" id="statsLocal">0</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">📥 Imported</p>
+                    <p class="text-2xl font-bold text-purple-600" id="statsImported">0</p>
+                </div>
+            </div>
+
+            <!-- Campaigns Table -->
+            <div class="w-full overflow-x-auto">
+                <div id="campaignsLoading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-500">Loading campaigns...</p>
+                </div>
+                <div id="campaignsTable" style="display: none;">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-50 dark:bg-gray-800">
+                            <tr class="border-gray-100 border-y dark:border-gray-800">
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failed</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaignsTableBody">
+                            <!-- Rows populated by JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
     <!-- ============================================ -->
     <!-- CREATE CAMPAIGN MODAL -->
@@ -995,14 +1048,6 @@
             </div>
         </div>
     </div>
-    <!-- ============================================ -->
-<!-- UPDATE PHONE MODAL -->
-<!-- ============================================ -->
-<div id="updatePhoneModal" style="display: none;">
-    <div class="modal-content">
-        ... (existing content) ...
-    </div>
-</div>
 
 <!-- ============================================ -->
 <!-- KENYASMS CAMPAIGNS MODAL -->
@@ -1010,7 +1055,7 @@
 <div id="kenyaSmsModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
     <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeKenyaSmsModal()"></div>
     <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-5xl max-h-[85vh] overflow-hidden">
+        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
             <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
@@ -1021,7 +1066,7 @@
                     </button>
                 </div>
             </div>
-            <div id="kenyaSmsModalContent" class="px-6 py-4 overflow-y-auto" style="max-height: calc(85vh - 70px);">
+            <div id="kenyaSmsModalContent" class="px-6 py-4 overflow-y-auto" style="max-height: calc(90vh - 70px);">
                 <div class="text-center py-8">
                     <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
                     <p class="mt-2 text-gray-500">Loading campaigns from KenyaSMS...</p>
@@ -1029,7 +1074,7 @@
             </div>
         </div>
     </div>
-</div> 
+</div>
 
     @verbatim
     <script>
@@ -2153,70 +2198,154 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             });
         }
 
-        // ============================================
-        // CAMPAIGNS - JavaScript
-        // ============================================
         let campaignsData = [];
         let currentCampaignFilter = 'all';
+        let currentSourceFilter = 'all';
+        let isSandbox = true;
 
-        function loadCampaigns() {
-            currentCampaignFilter = 'all';
+function loadCampaigns() {
+    // 🔄 RESET FILTER TO 'ALL'
+    currentCampaignFilter = 'all';
+    const sourceFilter = document.getElementById('sourceFilter');
+    if (sourceFilter) {
+        currentSourceFilter = sourceFilter.value;
+    }
 
-            const filterButtons = document.querySelectorAll('#campaigns-tab .flex.flex-wrap.gap-2 button');
-            filterButtons.forEach(btn => {
-                btn.classList.remove('bg-blue-600', 'text-white');
-                btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-            });
-            const allBtn = document.getElementById('filter-all');
-            if (allBtn) {
-                allBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
-                allBtn.classList.add('bg-blue-600', 'text-white');
+    // Update filter button styles
+    const filterButtons = document.querySelectorAll('#campaigns-tab .flex.flex-wrap.gap-2 button');
+    filterButtons.forEach(btn => {
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+    });
+    const allBtn = document.getElementById('filter-all');
+    if (allBtn) {
+        allBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+        allBtn.classList.add('bg-blue-600', 'text-white');
+    }
+
+    console.log('🔄 Loading campaigns...');
+    
+    const loadingEl = document.getElementById('campaignsLoading');
+    const tableEl = document.getElementById('campaignsTable');
+    
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (tableEl) tableEl.style.display = 'none';
+    
+    fetch('/api/sms/campaigns')
+        .then(response => {
+            console.log('📥 Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
+            return response.json();
+        })
+        .then(data => {
+            console.log('📥 Campaigns data received:', data);
+            
+            // ✅ Store sandbox status
+            isSandbox = data.sandbox || true;
+            
+            campaignsData = data.campaigns || [];
+            console.log('📊 Campaigns loaded:', campaignsData.length);
+            console.log('📊 Sandbox mode:', isSandbox);
+            
+            // ✅ Update stats
+            updateCampaignStats(data.stats || { total: 0, sent: 0, pending: 0, failed: 0 });
+            
+            // ✅ Apply source filter if set (only in live mode)
+            if (!isSandbox) {
+                const sourceFilter = document.getElementById('sourceFilter');
+                if (sourceFilter && sourceFilter.value !== 'all') {
+                    currentSourceFilter = sourceFilter.value;
+                    showFilterInfo(sourceFilter.value);
+                } else {
+                    hideFilterInfo();
+                }
+            }
+            
+            renderCampaigns();
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (tableEl) tableEl.style.display = 'block';
+        })
+        .catch(error => {
+            console.error('❌ Error loading campaigns:', error);
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (tableEl) {
+                tableEl.style.display = 'block';
+                const tbody = document.getElementById('campaignsTableBody');
+                if (tbody) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="9" class="px-4 py-8 text-center text-red-500">
+                                <i class="fas fa-exclamation-circle mr-2"></i> 
+                                Error loading campaigns: ${error.message}
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+        });
+}
+// ============================================
+// SOURCE FILTER FUNCTIONS
+// ============================================
 
-            console.log('🔄 Loading campaigns...');
-            
-            const loadingEl = document.getElementById('campaignsLoading');
-            const tableEl = document.getElementById('campaignsTable');
-            
-            if (loadingEl) loadingEl.style.display = 'block';
-            if (tableEl) tableEl.style.display = 'none';
-            
-            fetch('/api/sms/campaigns')
-                .then(response => {
-                    console.log('📥 Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('📥 Campaigns data received:', data);
-                    campaignsData = data.campaigns || [];
-                    console.log('📊 Campaigns loaded:', campaignsData.length);
-                    updateCampaignStats(data.stats || { total: 0, sent: 0, pending: 0, failed: 0 });
-                    renderCampaigns();
-                    if (loadingEl) loadingEl.style.display = 'none';
-                    if (tableEl) tableEl.style.display = 'block';
-                })
-                .catch(error => {
-                    console.error('❌ Error loading campaigns:', error);
-                    if (loadingEl) loadingEl.style.display = 'none';
-                    if (tableEl) {
-                        tableEl.style.display = 'block';
-                        const tbody = document.getElementById('campaignsTableBody');
-                        if (tbody) {
-                            tbody.innerHTML = `
-                                <tr>
-                                    <td colspan="8" class="px-4 py-8 text-center text-red-500">
-                                        <i class="fas fa-exclamation-circle mr-2"></i> 
-                                        Error loading campaigns: ${error.message}
-                                    </td>
-                                </tr>
-                            `;
-                        }
-                    }
-                });
-        }
+/**
+ * Filter campaigns by source (Local / Imported)
+ */
+function filterCampaignsBySource() {
+    const sourceFilter = document.getElementById('sourceFilter');
+    if (!sourceFilter) return;
+    
+    currentSourceFilter = sourceFilter.value;
+    
+    if (currentSourceFilter !== 'all') {
+        showFilterInfo(currentSourceFilter);
+    } else {
+        hideFilterInfo();
+    }
+    
+    renderCampaigns();
+}
+
+/**
+ * Show filter info bar
+ */
+function showFilterInfo(source) {
+    const filterInfo = document.getElementById('filterInfo');
+    const filterText = document.getElementById('filterText');
+    if (filterInfo && filterText) {
+        filterInfo.classList.remove('hidden');
+        const labels = {
+            'local': '📤 Showing local campaigns only',
+            'kenyasms_imported': '📥 Showing imported campaigns only'
+        };
+        filterText.textContent = labels[source] || 'Filtered by source';
+    }
+}
+
+/**
+ * Hide filter info bar
+ */
+function hideFilterInfo() {
+    const filterInfo = document.getElementById('filterInfo');
+    if (filterInfo) {
+        filterInfo.classList.add('hidden');
+    }
+}
+
+/**
+ * Reset source filter
+ */
+function resetSourceFilter() {
+    const sourceFilter = document.getElementById('sourceFilter');
+    if (sourceFilter) {
+        sourceFilter.value = 'all';
+    }
+    currentSourceFilter = 'all';
+    hideFilterInfo();
+    renderCampaigns();
+}
         // ============================================
 // KENYASMS CAMPAIGN FUNCTIONS
 // ============================================
@@ -2789,27 +2918,51 @@ document.addEventListener('click', function(event) {
             renderCampaigns();
         }
 
-        function renderCampaigns() {
+function renderCampaigns() {
     console.log('🎨 Rendering campaigns, data:', campaignsData);
     const tbody = document.getElementById('campaignsTableBody');
     if (!tbody) return;
     
-    if (!campaignsData || campaignsData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500">No campaigns found.</td></tr>';
+    // ✅ Apply filters
+    let filteredData = campaignsData;
+    
+    // ✅ If in sandbox mode, only show local campaigns
+    if (isSandbox) {
+        filteredData = filteredData.filter(c => c.source === 'local' || c.source === null);
+    }
+    
+    // Apply source filter (only in live mode)
+    if (!isSandbox && currentSourceFilter !== 'all') {
+        filteredData = filteredData.filter(c => c.source === currentSourceFilter);
+    }
+    
+    // Apply status filter
+    if (currentCampaignFilter !== 'all') {
+        filteredData = filteredData.filter(c => c.status === currentCampaignFilter);
+    }
+    
+    if (filteredData.length === 0) {
+        let message = 'No campaigns found.';
+        if (isSandbox) {
+            message = '🔒 Sandbox mode: No local campaigns found. Create a new campaign to test.';
+        } else if (currentSourceFilter !== 'all' || currentCampaignFilter !== 'all') {
+            message = 'No campaigns match the current filters.';
+        }
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-gray-500">${message}</td></tr>`;
         return;
     }
     
     let html = '';
-    campaignsData.forEach(campaign => {
+    filteredData.forEach(campaign => {
         const statusBadge = getStatusBadge(campaign.status);
         const statusText = capitalize(campaign.status);
         const date = formatDate(campaign.created_at);
         
-        // ✅ Determine source badge based on the source field
+        // ✅ Determine source badge
         let sourceBadge = '';
         if (campaign.source === 'kenyasms_imported') {
             sourceBadge = '<span class="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">📥 Imported</span>';
-        } else if (campaign.source === 'local') {
+        } else if (campaign.source === 'local' || campaign.source === null) {
             sourceBadge = '<span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">📤 Local</span>';
         } else {
             sourceBadge = '<span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Unknown</span>';
@@ -2834,6 +2987,19 @@ document.addEventListener('click', function(event) {
         `;
     });
     tbody.innerHTML = html;
+    
+    // Update campaign count
+    const countEl = document.getElementById('campaignCount');
+    if (countEl) {
+        const total = filteredData.length;
+        let sourceLabel = '';
+        if (isSandbox) {
+            sourceLabel = ' (Sandbox - Local only)';
+        } else if (currentSourceFilter !== 'all') {
+            sourceLabel = ` (${currentSourceFilter === 'local' ? 'Local' : 'Imported'})`;
+        }
+        countEl.textContent = `${total} campaign${total !== 1 ? 's' : ''}${sourceLabel}`;
+    }
 }
 
         // ============================================

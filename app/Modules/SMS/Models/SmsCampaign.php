@@ -18,21 +18,22 @@ class SmsCampaign extends Model
     const STATUS_FAILED = 'failed';
 
     protected $fillable = [
-        'name',
-        'description',
-        'template_id',
-        'campaign_type',
-        'filters',
-        'total_recipients',
-        'sent_count',
-        'failed_count',
-        'delivered_count',   // 🆕 ADDED
-        'status',
-        'scheduled_at',
-        'sent_at',
-        'created_by',
-        'kenyasms_campaign_id',
-    ];
+    'name',
+    'description',
+    'template_id',
+    'filters',
+    'status',
+    'scheduled_at',
+    'campaign_type',
+    'created_by',
+    'total_recipients',
+    'sent_count',
+    'failed_count',
+    'delivered_count',
+    'kenyasms_campaign_id',
+    'source',      // ✅ Add this
+    'source_id',   // ✅ Add this
+   ];
 
     protected $casts = [
         'filters' => 'array',

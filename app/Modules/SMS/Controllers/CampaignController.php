@@ -45,13 +45,16 @@ class CampaignController extends Controller
         return view('sms.campaigns.index', compact('campaigns'));
     }
 
-    // ============================================================
+// ============================================================
 // API INDEX – returns JSON (used by broadcast tab)
 // ============================================================
 public function apiIndex(Request $request)
 {
     try {
-        // ✅ Include source and source_id in select
+        $sandbox = config('sms.kenyasms.sandbox', true);
+        
+        // ✅ If sandbox is true, show ONLY local campaigns
+        // ✅ If sandbox is false, show ALL campaigns (local + imported)
         $query = SmsCampaign::select(
             'id',
             'name',
@@ -62,11 +65,19 @@ public function apiIndex(Request $request)
             'failed_count',
             'delivered_count',
             'status',
-            'source',           // ✅ Added
-            'source_id',        // ✅ Added
+            'source',
+            'source_id',
             'created_at',
             'updated_at'
         )->orderBy('created_at', 'desc');
+        
+        // ✅ If sandbox is true, only show local campaigns
+        if ($sandbox) {
+            $query->where(function($q) {
+                $q->where('source', 'local')
+                  ->orWhereNull('source');
+            });
+        }
         
         if ($request->has('status') && $request->status !== 'all' && $request->status !== '') {
             $query->where('status', $request->status);
@@ -74,7 +85,6 @@ public function apiIndex(Request $request)
         
         $campaigns = $query->get();
         
-        // ✅ Include source and source_id in the mapped array
         $campaignsArray = $campaigns->map(function ($campaign) {
             return [
                 'id' => $campaign->id,
@@ -86,8 +96,8 @@ public function apiIndex(Request $request)
                 'failed_count' => $campaign->failed_count ?? 0,
                 'delivered_count' => $campaign->delivered_count ?? 0,
                 'status' => $campaign->status ?? 'pending',
-                'source' => $campaign->source ?? 'local',  // ✅ Added
-                'source_id' => $campaign->source_id,       // ✅ Added
+                'source' => $campaign->source ?? 'local',
+                'source_id' => $campaign->source_id,
                 'created_at' => $campaign->created_at ? $campaign->created_at->toISOString() : null,
                 'updated_at' => $campaign->updated_at ? $campaign->updated_at->toISOString() : null,
             ];
@@ -103,7 +113,8 @@ public function apiIndex(Request $request)
         return response()->json([
             'success' => true,
             'campaigns' => $campaignsArray,
-            'stats' => $stats
+            'stats' => $stats,
+            'sandbox' => $sandbox, // ✅ Include sandbox status
         ]);
         
     } catch (\Exception $e) {
@@ -115,46 +126,47 @@ public function apiIndex(Request $request)
     }
 }
 // ============================================================
-// LIST CAMPAIGNS FROM KENYASMS – API (FIXED)
+// LIST CAMPAIGNS FROM KENYASMS – API (Auto-fetch based on sandbox)
 // ============================================================
 public function listFromKenyaSMS(Request $request)
 {
     try {
-        $page = $request->input('page', 1);
-        $limit = $request->input('limit', 20);
-        $status = $request->input('status', null);
-
-        \Log::info('📡 listFromKenyaSMS called', [
-            'page' => $page,
-            'limit' => $limit,
-            'status' => $status
-        ]);
-
-        $result = app(KenyaSMS::class)->listCampaigns($page, $limit, $status);
-
-        \Log::info('📡 KenyaSMS listCampaigns result', [
-            'success' => $result['success'] ?? false,
-            'campaigns_count' => count($result['campaigns'] ?? []),
-            'total' => $result['total'] ?? 0,
-            'error' => $result['error'] ?? null
-        ]);
-
-        // ✅ ALWAYS return mock data if API fails OR returns empty
-        if (!$result['success'] || empty($result['campaigns']) || count($result['campaigns']) === 0) {
-            \Log::warning('⚠️ KenyaSMS returned empty or failed, using mock data', [
-                'success' => $result['success'] ?? false,
-                'error' => $result['error'] ?? null
-            ]);
+        $sandbox = config('sms.kenyasms.sandbox', true);
+        
+        // ✅ If sandbox is true, show mock data
+        if ($sandbox) {
+            \Log::info('📡 Sandbox mode: Showing mock campaigns');
             
             $mockCampaigns = $this->getMockKenyaSmsCampaigns();
+            // ✅ Add source to mock campaigns
+            $mockCampaigns = array_map(function($campaign) {
+                $campaign['source'] = 'mock';
+                return $campaign;
+            }, $mockCampaigns);
+            
             return response()->json([
                 'success' => true,
                 'campaigns' => array_values($mockCampaigns),
                 'total' => count($mockCampaigns),
                 'page' => 1,
                 'limit' => 20,
-                'message' => 'Showing mock data (KenyaSMS returned no campaigns)'
+                'sandbox' => true,
+                'message' => 'Sandbox mode: Showing mock campaigns. Set KENYASMS_SANDBOX=false to fetch real campaigns.'
             ]);
+        }
+        
+        // ✅ Live mode: Fetch from KenyaSMS
+        $page = $request->input('page', 1);
+        $limit = $request->input('limit', 20);
+        $status = $request->input('status', null);
+
+        $result = app(KenyaSMS::class)->listCampaigns($page, $limit, $status);
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'message' => $result['error'] ?? 'Failed to fetch campaigns from KenyaSMS',
+            ], 400);
         }
 
         // ✅ Ensure campaigns is always an array
@@ -168,14 +180,7 @@ public function listFromKenyaSMS(Request $request)
             $campaigns = $campaigns->toArray();
         }
 
-        // ✅ Log the first campaign structure for debugging
-        if (!empty($campaigns)) {
-            $first = (array) reset($campaigns);
-            \Log::info('📡 First campaign keys', ['keys' => array_keys($first)]);
-            \Log::info('📡 First campaign data', ['data' => $first]);
-        }
-
-        // ✅ Get all imported campaign IDs
+        // ✅ Get all imported campaign IDs to show which are already imported
         $importedIds = SmsCampaign::whereNotNull('kenyasms_campaign_id')
             ->pluck('kenyasms_campaign_id')
             ->map(function($id) { return (string) $id; })
@@ -187,27 +192,15 @@ public function listFromKenyaSMS(Request $request)
                 $campaign = (array) $campaign;
             }
             
-            // ✅ EXTRACT THE CAMPAIGN ID - try all possible keys
             $id = $campaign['id'] ?? $campaign['campaign_id'] ?? $campaign['_id'] ?? $campaign['campaignId'] ?? null;
-            
-            // ✅ Try multiple field names for campaign name
             $name = $campaign['name'] ?? $campaign['campaign_name'] ?? $campaign['title'] ?? 'Unnamed Campaign';
+            $recipients = (int) ($campaign['recipients'] ?? $campaign['total_recipients'] ?? $campaign['total'] ?? $campaign['count'] ?? 0);
+            $delivered = (int) ($campaign['delivered'] ?? $campaign['delivered_count'] ?? 0);
+            $failed = (int) ($campaign['failed'] ?? $campaign['failed_count'] ?? 0);
+            $status = $campaign['status'] ?? $campaign['campaign_status'] ?? 'unknown';
+            $cost = $campaign['cost'] ?? $campaign['total_cost'] ?? '0.00';
+            $createdAt = $campaign['created_at'] ?? $campaign['created'] ?? null;
             
-            // ✅ Try multiple field names for recipient counts
-            $recipients = (int) ($campaign['recipients'] ?? $campaign['total_recipients'] ?? $campaign['total'] ?? $campaign['count'] ?? $campaign['recipient_count'] ?? 0);
-            $delivered = (int) ($campaign['delivered'] ?? $campaign['delivered_count'] ?? $campaign['deliveredCount'] ?? 0);
-            $failed = (int) ($campaign['failed'] ?? $campaign['failed_count'] ?? $campaign['failedCount'] ?? 0);
-            
-            // ✅ Try multiple field names for status
-            $status = $campaign['status'] ?? $campaign['campaign_status'] ?? $campaign['state'] ?? 'unknown';
-            
-            // ✅ Try multiple field names for cost
-            $cost = $campaign['cost'] ?? $campaign['total_cost'] ?? $campaign['amount'] ?? '0.00';
-            
-            // ✅ Try multiple field names for created date
-            $createdAt = $campaign['created_at'] ?? $campaign['created'] ?? $campaign['date'] ?? null;
-            
-            // ✅ Format the created date
             $formattedDate = null;
             if ($createdAt) {
                 try {
@@ -217,14 +210,13 @@ public function listFromKenyaSMS(Request $request)
                 }
             }
             
-            // ✅ Check if already imported
             $isImported = in_array((string) $id, $importedIds);
             
             return [
                 'id' => $id,
                 'name' => $name,
-                'sender_id' => $campaign['sender_id'] ?? $campaign['sender'] ?? $campaign['senderId'] ?? '',
-                'message_type' => $campaign['message_type'] ?? $campaign['type'] ?? $campaign['campaign_type'] ?? 'transactional',
+                'sender_id' => $campaign['sender_id'] ?? $campaign['sender'] ?? '',
+                'message_type' => $campaign['message_type'] ?? $campaign['type'] ?? 'transactional',
                 'recipients' => $recipients,
                 'delivered' => $delivered,
                 'failed' => $failed,
@@ -250,6 +242,7 @@ public function listFromKenyaSMS(Request $request)
             'page' => (int) ($result['page'] ?? 1),
             'limit' => (int) ($result['limit'] ?? 20),
             'imported_count' => count($importedIds),
+            'sandbox' => false,
         ]);
     } catch (\Exception $e) {
         \Log::error('❌ listFromKenyaSMS error: ' . $e->getMessage());
@@ -262,6 +255,7 @@ public function listFromKenyaSMS(Request $request)
             'total' => count($mockCampaigns),
             'page' => 1,
             'limit' => 20,
+            'sandbox' => true,
             'message' => 'Using mock data (error: ' . $e->getMessage() . ')'
         ]);
     }
