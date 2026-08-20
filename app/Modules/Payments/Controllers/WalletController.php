@@ -11,6 +11,7 @@ use App\Modules\Payments\Models\Invoice;
 use App\Modules\Payments\Models\Transaction;
 use App\Modules\Payments\Models\CompanyPaymentMethod;
 use App\Models\Company;
+use App\Modules\Payments\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
