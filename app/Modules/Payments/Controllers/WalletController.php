@@ -101,15 +101,37 @@ class WalletController extends Controller
                 'transaction_message' => 'nullable|string',
                 'bill_month' => 'nullable|string',
                 'notes' => 'nullable|string',
+                'tenant_id' => 'nullable|exists:tenants,id', // Added for accountant payments
             ]);
             
+            // Get the wallet owner - support accountant paying for tenant
             $walletOwner = $this->getWalletOwner();
+            $user = Auth::user();
+            
+            // Check if this is an accountant paying for a specific tenant
+            $targetTenantId = $request->input('tenant_id');
+            if ($targetTenantId && ($user->hasRole('accountant') || $user->hasRole('admin'))) {
+                $targetTenant = Tenant::find($targetTenantId);
+                if ($targetTenant) {
+                    $walletOwner = $targetTenant;
+                    Log::info('Accountant depositing for tenant', [
+                        'accountant_id' => $user->id,
+                        'tenant_id' => $targetTenant->id,
+                        'tenant_name' => $targetTenant->user?->name ?? 'Unknown'
+                    ]);
+                }
+            }
             
             // Determine confirmation status
-            // STK Push (mpesa, bank, card) = auto-confirmed (confirmed = 1)
-            // Message and Manual = pending approval (confirmed = 0)
             $autoConfirmedMethods = ['mpesa', 'bank', 'card'];
             $isAutoConfirmed = in_array($request->payment_method, $autoConfirmedMethods);
+            
+            // Accountants can auto-confirm manual deposits
+            $isAccountant = $user->hasRole('accountant') || $user->hasRole('admin');
+            if ($isAccountant && $request->payment_method === 'manual') {
+                $isAutoConfirmed = true; // Accountant's manual deposits are auto-confirmed
+            }
+            
             $confirmed = $isAutoConfirmed ? 1 : 0;
             
             // Generate unique reference
@@ -151,13 +173,16 @@ class WalletController extends Controller
                 'confirmed' => $confirmed,
                 'status' => $confirmed ? 'completed' : 'pending_approval',
                 'requires_approval' => !$confirmed,
+                'deposited_by' => $user->id,
+                'deposited_by_name' => $user->name,
+                'deposited_by_role' => $user->role?->name ?? 'user',
             ];
             
             // Add notes for manual top-up
             if ($request->payment_method === 'manual') {
                 $metaData['notes'] = $request->notes;
-                $metaData['initiated_by'] = Auth::user()->id;
-                $metaData['initiated_by_name'] = Auth::user()->name;
+                $metaData['initiated_by'] = $user->id;
+                $metaData['initiated_by_name'] = $user->name;
             }
             
             // Add parsed data if in message mode
@@ -167,18 +192,21 @@ class WalletController extends Controller
             }
             
             // For auto-confirmed deposits, update balance immediately
-            // For pending deposits, just create the transaction record without updating balance
             if ($confirmed) {
                 $transaction = $walletOwner->deposit($amount, [
                     'description' => 'Wallet deposit via ' . ucfirst($request->payment_method) . 
-                                    ($request->bill_month ? ' for ' . $request->bill_month : ''),
+                                    ($request->bill_month ? ' for ' . $request->bill_month : '') .
+                                    ($isAccountant && $request->tenant_id ? ' (by accountant)' : ''),
                     'meta' => $metaData,
                 ]);
                 $walletOwner->refresh();
                 $newBalance = (float) $walletOwner->balance;
+                
+                // Create payment record for the deposit
+                $this->createPaymentRecordForDeposit($walletOwner, $amount, $transaction, $request);
             } else {
                 $transaction = $this->createPendingTransaction($walletOwner, $amount, $metaData);
-                $newBalance = (float) $walletOwner->balance; // Balance unchanged
+                $newBalance = (float) $walletOwner->balance;
             }
             
             // Get wallet details
@@ -192,7 +220,7 @@ class WalletController extends Controller
             }
             
             $message = $confirmed 
-                ? 'Successfully deposited KES ' . number_format($amount, 2)
+                ? 'Successfully deposited KES ' . number_format($amount, 2) . ' to ' . ($walletOwner->user?->name ?? 'tenant') . '\'s wallet'
                 : 'Deposit request submitted. Pending approval by accountant.';
             
             return response()->json([
@@ -206,6 +234,8 @@ class WalletController extends Controller
                     'wallet_number' => $walletNumber,
                     'confirmed' => $confirmed,
                     'requires_approval' => !$confirmed,
+                    'tenant_name' => $walletOwner->user?->name ?? 'Unknown',
+                    'tenant_id' => $walletOwner->id,
                 ]
             ]);
             
@@ -225,17 +255,151 @@ class WalletController extends Controller
     }
 
     /**
+     * Create payment record for deposit
+     */
+    protected function createPaymentRecordForDeposit($walletOwner, float $amount, $transaction, $request)
+    {
+        try {
+            $meta = $transaction->meta ?? [];
+            $externalReference = $meta['reference'] ?? $request->reference ?? $transaction->uuid;
+            
+            // Get parsed data if available
+            $parsedData = $meta['parsed_data'] ?? [];
+            $paymentMethod = $meta['payment_method'] ?? 'unknown';
+            
+            // Determine actual payment method from message if available
+            $transactionMessage = $meta['transaction_message'] ?? '';
+            if ($transactionMessage) {
+                $messageLower = strtolower($transactionMessage);
+                if (strpos($messageLower, 'pesalink') !== false) {
+                    $paymentMethod = 'pesalink';
+                } elseif (strpos($messageLower, 'paybill') !== false || strpos($messageLower, 'pay bill') !== false) {
+                    $paymentMethod = 'mpesa_paybill';
+                } elseif (strpos($messageLower, 'mpesa') !== false || strpos($messageLower, 'm-pesa') !== false) {
+                    $paymentMethod = 'mpesa';
+                } elseif (strpos($messageLower, 'bank') !== false || strpos($messageLower, 'transfer') !== false) {
+                    $paymentMethod = 'bank_transfer';
+                } elseif (strpos($messageLower, 'cash') !== false) {
+                    $paymentMethod = 'cash';
+                }
+            }
+            
+            $payment = Payment::create([
+                'tenant_id' => $walletOwner->id,
+                'user_id' => $walletOwner->user_id ?? null,
+                'invoice_id' => null,
+                'invoice_item_id' => null,
+                'payment_method' => $paymentMethod,
+                'source' => Payment::SOURCE_ADMIN,
+                'amount' => $amount,
+                'wallet_balance_before' => $meta['balance_before'] ?? null,
+                'wallet_balance_after' => (float) $walletOwner->balance,
+                'transaction_reference' => $transaction->uuid,
+                'external_reference' => $externalReference,
+                'status' => Payment::STATUS_COMPLETED,
+                'is_reconciled' => true,
+                'reconciled_at' => now(),
+                'reconciled_by' => Auth::id(),
+                'meta' => array_merge($meta, [
+                    'type' => 'wallet_deposit',
+                    'deposit_type' => 'balance_add',
+                    'deposited_at' => now()->toISOString(),
+                    'deposited_by' => Auth::id(),
+                    'deposited_by_name' => Auth::user()->name,
+                    'external_reference' => $externalReference,
+                    'payment_method' => $paymentMethod,
+                ]),
+            ]);
+            
+            Log::info('Payment record created for deposit', [
+                'payment_id' => $payment->id,
+                'tenant_id' => $walletOwner->id,
+                'amount' => $amount,
+                'transaction_uuid' => $transaction->uuid,
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to create payment record for deposit: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Create a pending transaction without updating wallet balance
+     */
+    protected function createPendingTransaction($walletOwner, float $amount, array $metaData)
+    {
+        $wallet = $walletOwner->wallet;
+        
+        if (!$wallet) {
+            $wallet = $walletOwner->createWallet([
+                'name' => 'Default Wallet',
+                'slug' => 'default',
+                'description' => 'Main wallet',
+            ]);
+        }
+        
+        $externalReference = $metaData['reference'] ?? null;
+        if (isset($metaData['parsed_data']['transaction_id'])) {
+            $externalReference = $metaData['parsed_data']['transaction_id'];
+        }
+        
+        $transaction = new \Bavix\Wallet\Models\Transaction();
+        $transaction->payable_type = get_class($walletOwner);
+        $transaction->payable_id = $walletOwner->getKey();
+        $transaction->wallet_id = $wallet->getKey();
+        $transaction->type = 'deposit';
+        $transaction->amount = $amount;
+        $transaction->confirmed = false;
+        $transaction->meta = $metaData;
+        $transaction->uuid = (string) \Illuminate\Support\Str::uuid();
+        $transaction->created_at = now();
+        $transaction->updated_at = now();
+        $transaction->save();
+        
+        try {
+            $payment = Payment::create([
+                'tenant_id' => $walletOwner->id,
+                'user_id' => $walletOwner->user_id ?? null,
+                'invoice_id' => null,
+                'invoice_item_id' => null,
+                'payment_method' => 'pending_deposit',
+                'source' => Payment::SOURCE_WEB,
+                'amount' => $amount,
+                'wallet_balance_before' => (float) $walletOwner->balance,
+                'wallet_balance_after' => (float) $walletOwner->balance,
+                'transaction_reference' => $transaction->uuid,
+                'external_reference' => $externalReference,
+                'status' => Payment::STATUS_PENDING,
+                'is_reconciled' => false,
+                'meta' => array_merge($metaData, [
+                    'pending_deposit' => true,
+                    'created_at' => now()->toISOString(),
+                ]),
+            ]);
+            
+            Log::info('Payment record created for pending deposit', [
+                'payment_id' => $payment->id,
+                'external_reference' => $externalReference,
+                'transaction_uuid' => $transaction->uuid,
+            ]);
+        } catch (\Exception $e) {
+            Log::warning('Could not create payment record for pending deposit: ' . $e->getMessage());
+        }
+        
+        return $transaction;
+    }
+
+    /**
      * Approve a pending deposit (Accountant only)
      */
     public function apiApproveDeposit(Request $request, $transactionId)
     {
         try {
-            \Log::info('=== API Approve Deposit Called ===', [
+            Log::info('=== API Approve Deposit Called ===', [
                 'transaction_id' => $transactionId,
                 'user_id' => Auth::id()
             ]);
             
-            // Check if user is accountant
             $user = Auth::user();
             
             if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
@@ -245,10 +409,9 @@ class WalletController extends Controller
                 ], 403);
             }
             
-            // Get the transaction from Bavix wallet model
             $transaction = \Bavix\Wallet\Models\Transaction::findOrFail($transactionId);
             
-            \Log::info('Transaction found:', [
+            Log::info('Transaction found:', [
                 'id' => $transaction->id,
                 'confirmed' => $transaction->confirmed,
                 'payable_type' => $transaction->payable_type,
@@ -263,17 +426,15 @@ class WalletController extends Controller
                 ], 400);
             }
             
-            // Find the wallet owner
             $walletOwner = null;
             $payableType = $transaction->payable_type;
             $payableId = $transaction->payable_id;
             
-            \Log::info('Looking for wallet owner', [
+            Log::info('Looking for wallet owner', [
                 'payable_type' => $payableType,
                 'payable_id' => $payableId
             ]);
             
-            // Try to find the tenant using the correct model
             if ($payableType === 'App\Models\Tenant' || $payableType === 'App\Modules\Tenants\Models\Tenant') {
                 $tenantModel = $payableType === 'App\Models\Tenant' 
                     ? \App\Models\Tenant::class 
@@ -282,7 +443,7 @@ class WalletController extends Controller
                 $walletOwner = $tenantModel::with('user')->find($payableId);
                 
                 if (!$walletOwner) {
-                    \Log::error('Tenant not found', [
+                    Log::error('Tenant not found', [
                         'payable_type' => $payableType,
                         'payable_id' => $payableId
                     ]);
@@ -292,7 +453,7 @@ class WalletController extends Controller
                     ], 400);
                 }
                 
-                \Log::info('Tenant found:', [
+                Log::info('Tenant found:', [
                     'tenant_id' => $walletOwner->id,
                     'tenant_name' => $walletOwner->user?->name ?? 'Unknown'
                 ]);
@@ -306,41 +467,28 @@ class WalletController extends Controller
             $amount = (float) $transaction->amount;
             $meta = $transaction->meta ?? [];
             
-            // ================================================================
-            // EXTRACT EXTERNAL REFERENCE FROM META
-            // ================================================================
             $externalReference = null;
             $paymentMethod = $meta['payment_method'] ?? 'unknown';
             $parsedData = $meta['parsed_data'] ?? [];
             
-            // Get the transaction ID from parsed data (for message deposits)
             if ($paymentMethod === 'message' && isset($parsedData['transaction_id'])) {
                 $externalReference = $parsedData['transaction_id'];
-            } 
-            // For manual deposits with reference
-            elseif (isset($meta['reference'])) {
+            } elseif (isset($meta['reference'])) {
                 $externalReference = $meta['reference'];
-            }
-            // Fallback to transaction uuid
-            else {
+            } else {
                 $externalReference = $transaction->uuid;
             }
             
-            \Log::info('External Reference extracted:', [
+            Log::info('External Reference extracted:', [
                 'external_reference' => $externalReference,
                 'payment_method' => $paymentMethod,
-                'parsed_data' => $parsedData
             ]);
             
-            // ================================================================
-            // DETERMINE THE ACTUAL PAYMENT METHOD FROM THE MESSAGE
-            // ================================================================
             $actualPaymentMethod = $paymentMethod;
             $transactionMessage = $meta['transaction_message'] ?? '';
             
             if ($transactionMessage) {
                 $messageLower = strtolower($transactionMessage);
-                
                 if (strpos($messageLower, 'pesalink') !== false) {
                     $actualPaymentMethod = 'pesalink';
                 } elseif (strpos($messageLower, 'paybill') !== false || strpos($messageLower, 'pay bill') !== false) {
@@ -354,17 +502,10 @@ class WalletController extends Controller
                 }
             }
             
-            \Log::info('Actual payment method determined:', [
-                'original' => $paymentMethod,
-                'actual' => $actualPaymentMethod,
-                'message' => $transactionMessage
-            ]);
-            
-            // Ensure the wallet exists
             $wallet = $walletOwner->wallet;
             
             if (!$wallet) {
-                \Log::info('Creating wallet for tenant', ['tenant_id' => $walletOwner->id]);
+                Log::info('Creating wallet for tenant', ['tenant_id' => $walletOwner->id]);
                 $wallet = $walletOwner->createWallet([
                     'name' => ($walletOwner->user?->name ?? 'Tenant') . "'s Wallet",
                     'slug' => 'wallet-' . $walletOwner->id . '-' . time(),
@@ -372,15 +513,15 @@ class WalletController extends Controller
                 ]);
             }
             
-            \Log::info('Wallet found/created:', [
+            Log::info('Wallet found/created:', [
                 'wallet_id' => $wallet->id,
                 'current_balance' => $wallet->balance
             ]);
             
-            // Process the deposit using the wallet owner
+            // Process the deposit
             $depositTx = $walletOwner->deposit($amount, [
                 'description' => $transaction->description ?? 'Approved deposit',
-                'meta' => array_merge($transaction->meta ?? [], [
+                'meta' => array_merge($meta, [
                     'approved_at' => now()->toISOString(),
                     'approved_by' => $user->id,
                     'approved_by_name' => $user->name,
@@ -391,12 +532,11 @@ class WalletController extends Controller
                 ])
             ]);
             
-            \Log::info('Deposit processed:', [
+            Log::info('Deposit processed:', [
                 'deposit_tx_id' => $depositTx->id,
                 'new_balance' => $walletOwner->balance
             ]);
             
-            // Update the original transaction
             $transaction->confirmed = true;
             $transaction->meta = array_merge($transaction->meta ?? [], [
                 'approved_at' => now()->toISOString(),
@@ -412,9 +552,6 @@ class WalletController extends Controller
             $walletOwner->refresh();
             $newBalance = (float) $walletOwner->balance;
             
-            // ================================================================
-            // UPDATE PAYMENT RECORD WITH EXTERNAL REFERENCE
-            // ================================================================
             $this->updatePaymentRecordForApproval(
                 $transaction, 
                 $user, 
@@ -423,7 +560,6 @@ class WalletController extends Controller
                 $parsedData
             );
             
-            // Dispatch event for real-time updates
             event(new \App\Events\WalletUpdated($walletOwner, $newBalance, $depositTx));
             
             return response()->json([
@@ -440,13 +576,13 @@ class WalletController extends Controller
             ]);
             
         } catch (\Bavix\Wallet\Exceptions\WalletNotFound $e) {
-            \Log::error('Wallet not found error: ' . $e->getMessage());
+            Log::error('Wallet not found error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'error' => 'Wallet not found. Please ensure the tenant has a wallet.'
             ], 400);
         } catch (\Exception $e) {
-            \Log::error('API Approve Deposit failed: ' . $e->getMessage(), [
+            Log::error('API Approve Deposit failed: ' . $e->getMessage(), [
                 'transaction_id' => $transactionId,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -467,55 +603,43 @@ class WalletController extends Controller
             $reference = $meta['reference'] ?? $transaction->uuid;
             $transactionMessage = $meta['transaction_message'] ?? '';
             
-            // If external reference not provided, try to get it from meta
             if (!$externalReference) {
                 $externalReference = $meta['reference'] ?? $parsedData['transaction_id'] ?? $transaction->uuid;
             }
             
-            \Log::info('Looking for payment record', [
+            Log::info('Looking for payment record', [
                 'reference' => $reference,
                 'external_reference' => $externalReference,
                 'transaction_uuid' => $transaction->uuid
             ]);
             
-            // First try to find by transaction_reference (UUID)
             $payment = Payment::where('transaction_reference', $transaction->uuid)->first();
             
-            // If not found, try by external_reference
             if (!$payment && $externalReference) {
                 $payment = Payment::where('external_reference', $externalReference)->first();
             }
             
-            // If still not found, try by reference in meta
             if (!$payment) {
                 $payment = Payment::where('transaction_reference', $reference)->first();
             }
             
             if ($payment) {
-                // Update payment record
                 $payment->status = 'completed';
                 $payment->is_reconciled = true;
                 $payment->reconciled_at = now();
                 $payment->reconciled_by = $user->id;
-                
-                // CRITICAL: Always set transaction_reference to link to wallet transaction
                 $payment->transaction_reference = $transaction->uuid;
                 
-                // CRITICAL: ALWAYS set external_reference if provided and not null
-                // This ensures it gets updated even if previously null
                 if ($externalReference && $externalReference !== $transaction->uuid) {
                     $payment->external_reference = $externalReference;
                 } elseif (!$payment->external_reference && $externalReference) {
-                    // Force set if it was null
                     $payment->external_reference = $externalReference;
                 }
                 
-                // Update payment method if actual method is determined
                 if ($actualPaymentMethod) {
                     $payment->payment_method = $actualPaymentMethod;
                 }
                 
-                // Update meta with full details
                 $paymentMeta = $payment->meta ?? [];
                 $paymentMeta = array_merge($paymentMeta, [
                     'approved_at' => now()->toISOString(),
@@ -527,30 +651,24 @@ class WalletController extends Controller
                     'transaction_message' => $transactionMessage,
                     'parsed_data' => $parsedData,
                     'actual_payment_method' => $actualPaymentMethod,
-                    'source_deposit_transaction_id' => $transaction->id,
                 ]);
                 $payment->meta = $paymentMeta;
-                
                 $payment->save();
                 
-                \Log::info('Payment record updated', [
+                Log::info('Payment record updated', [
                     'payment_id' => $payment->id,
                     'transaction_reference' => $payment->transaction_reference,
                     'external_reference' => $payment->external_reference,
-                    'payment_method' => $payment->payment_method,
                 ]);
             } else {
-                \Log::warning('No payment record found for reference', [
+                Log::warning('No payment record found for reference', [
                     'reference' => $reference,
                     'external_reference' => $externalReference,
-                    'transaction_uuid' => $transaction->uuid
                 ]);
-                
-                // Create a payment record if it doesn't exist
                 $this->createPaymentRecordForApproval($transaction, $user, $externalReference, $actualPaymentMethod, $parsedData);
             }
         } catch (\Exception $e) {
-            \Log::warning('Could not update payment record: ' . $e->getMessage());
+            Log::warning('Could not update payment record: ' . $e->getMessage());
         }
     }
 
@@ -563,7 +681,6 @@ class WalletController extends Controller
             $meta = $transaction->meta ?? [];
             $tenant = null;
             
-            // Find the tenant
             if ($transaction->payable_type === 'App\Models\Tenant' || $transaction->payable_type === 'App\Modules\Tenants\Models\Tenant') {
                 $tenantModel = $transaction->payable_type === 'App\Models\Tenant' 
                     ? \App\Models\Tenant::class 
@@ -572,7 +689,7 @@ class WalletController extends Controller
             }
             
             if (!$tenant) {
-                \Log::warning('Cannot create payment record: Tenant not found', [
+                Log::warning('Cannot create payment record: Tenant not found', [
                     'payable_type' => $transaction->payable_type,
                     'payable_id' => $transaction->payable_id
                 ]);
@@ -582,10 +699,8 @@ class WalletController extends Controller
             $transactionMessage = $meta['transaction_message'] ?? '';
             $amount = (float) $transaction->amount;
             
-            // Determine the payment method from the message
             $paymentMethod = $actualPaymentMethod ?? 'deposit';
             
-            // Parse the message to extract payment method details
             if ($transactionMessage) {
                 $messageLower = strtolower($transactionMessage);
                 if (strpos($messageLower, 'pesalink') !== false) {
@@ -601,18 +716,17 @@ class WalletController extends Controller
                 }
             }
             
-            // Create the payment record
             $payment = Payment::create([
                 'tenant_id' => $tenant->id,
                 'user_id' => $tenant->user_id ?? null,
-                'invoice_id' => null, // Not linked to a specific invoice for deposits
+                'invoice_id' => null,
                 'invoice_item_id' => null,
                 'payment_method' => $paymentMethod,
                 'source' => Payment::SOURCE_ADMIN,
                 'amount' => $amount,
                 'wallet_balance_before' => $meta['balance_before'] ?? null,
-                'wallet_balance_after' => null, // Will be updated after deposit
-                'transaction_reference' => $transaction->uuid, // Link to wallet transaction
+                'wallet_balance_after' => null,
+                'transaction_reference' => $transaction->uuid,
                 'external_reference' => $externalReference ?? $meta['reference'] ?? $parsedData['transaction_id'] ?? null,
                 'status' => Payment::STATUS_COMPLETED,
                 'is_reconciled' => true,
@@ -632,15 +746,14 @@ class WalletController extends Controller
                 ],
             ]);
             
-            \Log::info('Payment record created for approved deposit', [
+            Log::info('Payment record created for approved deposit', [
                 'payment_id' => $payment->id,
                 'transaction_reference' => $payment->transaction_reference,
                 'external_reference' => $payment->external_reference,
-                'payment_method' => $payment->payment_method,
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Failed to create payment record for approved deposit: ' . $e->getMessage());
+            Log::error('Failed to create payment record for approved deposit: ' . $e->getMessage());
         }
     }
 
@@ -652,7 +765,6 @@ class WalletController extends Controller
         try {
             $user = Auth::user();
             
-            // Check if user is accountant
             if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
                 return response()->json([
                     'success' => false,
@@ -660,15 +772,12 @@ class WalletController extends Controller
                 ], 403);
             }
             
-            // Get company ID from user
             $companyId = $user->company_id;
             
-            // Get tenant IDs for this company
             $tenantIds = \App\Modules\Tenants\Models\Tenant::whereHas('activeTenancy.unit.estate', function($q) use ($companyId) {
                 $q->where('company_id', $companyId);
             })->pluck('id')->toArray();
             
-            // Find pending transactions for tenants in this company
             $pendingDeposits = \Bavix\Wallet\Models\Transaction::where('type', 'deposit')
                 ->where('confirmed', false)
                 ->where(function($query) use ($tenantIds) {
@@ -683,13 +792,10 @@ class WalletController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
             
-            // Format the response
             $formatted = $pendingDeposits->map(function($tx) {
-                // Get tenant from payable relationship or manually
                 $tenant = $tx->payable;
                 
                 if (!$tenant) {
-                    // Try to find tenant manually
                     $payableType = $tx->payable_type;
                     $payableId = $tx->payable_id;
                     
@@ -734,6 +840,53 @@ class WalletController extends Controller
     }
 
     /**
+     * Reject a pending deposit
+     */
+    public function apiRejectDeposit(Request $request, $transactionId)
+    {
+        try {
+            $user = Auth::user();
+            
+            if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Unauthorized. Only accountants can reject deposits.'
+                ], 403);
+            }
+            
+            $transaction = Transaction::findOrFail($transactionId);
+            
+            if ($transaction->confirmed) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Transaction already confirmed'
+                ], 400);
+            }
+            
+            $transaction->confirmed = false;
+            $transaction->meta = array_merge($transaction->meta ?? [], [
+                'rejected_at' => now()->toISOString(),
+                'rejected_by' => $user->id,
+                'rejected_by_name' => $user->name,
+                'status' => 'rejected'
+            ]);
+            $transaction->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Deposit rejected successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('API Reject Deposit failed: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Parse transaction message to extract data
      */
     private function parseTransactionMessage($message)
@@ -752,35 +905,32 @@ class WalletController extends Controller
         
         if (!$message) return $parsed;
         
-        // Extract amount
         if (preg_match('/(?:KES|KSH|KSh|Ksh)[\s\.]*([\d,]+(?:\.\d{2})?)/i', $message, $match)) {
             $parsed['amount'] = (float) str_replace(',', '', $match[1]);
         }
         
-        // Extract transaction ID
         if (preg_match('/\b([A-Z0-9]{8,12})\b/', $message, $match)) {
             $parsed['transaction_id'] = $match[1];
         }
         
-        // Extract date
         if (preg_match('/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/', $message, $match)) {
             $parsed['date'] = "{$match[1]}/{$match[2]}/{$match[3]}";
         }
         
-        // Extract phone number
         if (preg_match('/\b(07\d{8}|01\d{8})\b/', $message, $match)) {
             $parsed['phone_number'] = $match[1];
         }
         
-        // Extract paybill
         if (preg_match('/\((\d{5,7})\)/', $message, $match)) {
             $parsed['paybill_number'] = $match[1];
         }
         
         return $parsed;
     }
-        
-   
+    
+    /**
+     * API Transfer
+     */
     public function apiTransfer(Request $request)
     {
         try {
@@ -793,7 +943,6 @@ class WalletController extends Controller
             
             $walletOwner = $this->getWalletOwner();
             
-            // Don't allow self-transfer
             if ($walletOwner instanceof User && $walletOwner->email === $request->recipient_email) {
                 return response()->json([
                     'success' => false,
@@ -817,7 +966,6 @@ class WalletController extends Controller
                 ], 404);
             }
             
-            // Get recipient's wallet owner (tenant if they are tenant, otherwise user)
             $recipientWallet = $recipient->isTenant() && $recipient->tenant ? $recipient->tenant : $recipient;
             
             $result = $this->walletService->transfer($walletOwner, $recipientWallet, $request->amount, [
@@ -856,63 +1004,141 @@ class WalletController extends Controller
         }
     }
     
-   
+    /**
+     * API Pay Invoice
+     */
     public function apiPayInvoice(Request $request, $invoiceId)
     {
         try {
-            \Log::info('=== STARTING PAYMENT ===');
+            Log::info('=== API Pay Invoice Called ===', [
+                'invoice_id' => $invoiceId,
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
             
             $invoice = Invoice::with('items')->findOrFail($invoiceId);
             
             $request->validate([
                 'amount' => 'required|numeric|min:0.01|max:' . $invoice->remaining_amount,
+                'tenant_id' => 'nullable|exists:tenants,id', // Accountant can specify tenant
             ]);
             
-            $walletOwner = $this->getWalletOwner();
+            $user = Auth::user();
+            $isAccountant = $user->hasRole('accountant') || $user->hasRole('admin');
             
-            // Verify tenant owns this invoice
-            if ($walletOwner instanceof Tenant) {
-                $tenancy = $walletOwner->activeTenancy;
-                if (!$tenancy || $tenancy->id !== $invoice->tenancy_id) {
+            // Determine the wallet owner
+            $walletOwner = null;
+            
+            if ($isAccountant && $request->has('tenant_id')) {
+                // Accountant paying for a tenant
+                $tenant = Tenant::find($request->tenant_id);
+                if (!$tenant) {
                     return response()->json([
                         'success' => false,
-                        'error' => 'You are not authorized to pay this invoice.'
-                    ], 403);
+                        'error' => 'Tenant not found'
+                    ], 404);
+                }
+                $walletOwner = $tenant;
+                Log::info('Accountant paying for tenant', [
+                    'accountant_id' => $user->id,
+                    'tenant_id' => $tenant->id
+                ]);
+            } else {
+                // Regular user paying their own invoice
+                $walletOwner = $this->getWalletOwner();
+                
+                // Verify tenant owns this invoice
+                if ($walletOwner instanceof Tenant) {
+                    $tenancy = $walletOwner->activeTenancy;
+                    if (!$tenancy || $tenancy->id !== $invoice->tenancy_id) {
+                        return response()->json([
+                            'success' => false,
+                            'error' => 'You are not authorized to pay this invoice.'
+                        ], 403);
+                    }
                 }
             }
             
-            // Check sufficient balance
-            if ($walletOwner->balance < $request->amount) {
+            if (!$walletOwner) {
                 return response()->json([
                     'success' => false,
-                    'error' => 'Insufficient wallet balance. Available: KES ' . number_format($walletOwner->balance, 2)
+                    'error' => 'No wallet owner found'
                 ], 400);
             }
             
-            \Log::info('Calling walletService->payInvoice', [
-                'amount' => $request->amount,
-                'balance' => $walletOwner->balance
+            $amount = (float) $request->amount;
+            $currentBalance = (float) $walletOwner->balance;
+            
+            Log::info('Wallet balance check', [
+                'tenant_id' => $walletOwner->id,
+                'current_balance' => $currentBalance,
+                'amount' => $amount,
+                'is_accountant' => $isAccountant
             ]);
             
-            $result = $this->walletService->payInvoice($walletOwner, $invoice, $request->amount);
+            // ================================================================
+            // CRITICAL FIX: If insufficient balance and user is accountant,
+            // deposit the amount first, then pay the invoice
+            // ================================================================
+            if ($currentBalance < $amount && $isAccountant) {
+                Log::info('Insufficient balance for accountant payment - depositing first', [
+                    'balance' => $currentBalance,
+                    'amount' => $amount,
+                    'shortfall' => $amount - $currentBalance
+                ]);
+                
+                // Deposit the required amount to the tenant's wallet first
+                $depositResult = $this->walletService->deposit($walletOwner, $amount, [
+                    'description' => 'Accountant deposit for invoice payment',
+                    'reference' => 'DEP-PAY-' . time() . '-' . uniqid(),
+                    'source' => 'accountant_payment',
+                    'payment_method' => 'accountant_deposit',
+                    'notes' => 'Auto-deposit by accountant for invoice #' . ($invoice->invoice_number ?? $invoice->id),
+                    'deposited_by' => $user->id,
+                    'deposited_by_name' => $user->name,
+                ]);
+                
+                if (!$depositResult['success']) {
+                    Log::error('Auto-deposit failed for accountant payment', [
+                        'error' => $depositResult['error'] ?? 'Unknown error',
+                        'tenant_id' => $walletOwner->id,
+                        'amount' => $amount
+                    ]);
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Failed to deposit funds: ' . ($depositResult['error'] ?? 'Unknown error')
+                    ], 400);
+                }
+                
+                // Refresh balance after deposit
+                $walletOwner->refresh();
+                $newBalance = (float) $walletOwner->balance;
+                
+                Log::info('Auto-deposit successful', [
+                    'tenant_id' => $walletOwner->id,
+                    'new_balance' => $newBalance,
+                    'deposit_transaction_id' => $depositResult['transaction_id'] ?? null
+                ]);
+            }
             
-            \Log::info('WalletService result', ['result' => $result]);
+            // Now pay the invoice (balance should be sufficient now)
+            $result = $this->walletService->payInvoice($walletOwner, $invoice, $amount);
+            
+            Log::info('WalletService result', ['result' => $result]);
             
             if ($result['success']) {
-                // Get updated invoice with fresh data
                 $invoice->refresh();
                 $invoice->load('items');
                 
-                \Log::info('Payment successful, returning response');
-                
                 return response()->json([
                     'success' => true,
-                    'message' => sprintf('Successfully paid KES %s', number_format($request->amount, 2)),
+                    'message' => sprintf('Successfully paid KES %s', number_format($amount, 2)),
                     'data' => [
                         'new_balance' => $result['balance'],
                         'formatted_balance' => 'KES ' . number_format($result['balance'], 2),
                         'payment_id' => $result['payment_id'] ?? null,
                         'transaction_id' => $result['transaction_id'] ?? null,
+                        'tenant_name' => $walletOwner->user?->name ?? 'Unknown',
                         'invoice' => [
                             'id' => $invoice->id,
                             'invoice_number' => $invoice->invoice_number,
@@ -921,17 +1147,6 @@ class WalletController extends Controller
                             'remaining_amount' => (float) $invoice->remaining_amount,
                             'payment_percentage' => $invoice->payment_percentage,
                             'status' => $invoice->status,
-                            'items' => $invoice->items->map(function($item) {
-                                return [
-                                    'id' => $item->id,
-                                    'description' => $item->description,
-                                    'amount' => (float) $item->amount,
-                                    'paid_amount' => (float) ($item->paid_amount ?? 0),
-                                    'remaining_amount' => (float) $item->remaining_amount,
-                                    'is_fully_paid' => $item->isFullyPaid(),
-                                    'payment_percentage' => $item->payment_percentage,
-                                ];
-                            }),
                         ],
                         'allocations' => $result['allocations'] ?? [],
                     ]
@@ -950,7 +1165,7 @@ class WalletController extends Controller
                 'error' => 'Validation failed'
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('API Pay Invoice failed: ' . $e->getMessage(), [
+            Log::error('API Pay Invoice failed: ' . $e->getMessage(), [
                 'invoice_id' => $invoiceId,
                 'user_id' => Auth::id(),
                 'trace' => $e->getTraceAsString()
@@ -961,8 +1176,10 @@ class WalletController extends Controller
             ], 500);
         }
     }
-
     
+    /**
+     * API Pay Multiple Invoices
+     */
     public function apiPayMultipleInvoices(Request $request)
     {
         try {
@@ -974,10 +1191,8 @@ class WalletController extends Controller
             
             $walletOwner = $this->getWalletOwner();
             
-            // Calculate total amount
             $totalAmount = collect($request->payments)->sum('amount');
             
-            // Check sufficient balance
             if ($walletOwner->balance < $totalAmount) {
                 return response()->json([
                     'success' => false,
@@ -1020,22 +1235,16 @@ class WalletController extends Controller
         }
     }
     
-    public function getBalance($walletOwner): float
-    {
-        return (float) $walletOwner->balance;
-    }
-    
-
+    /**
+     * Get balance (API)
+     */
     public function apiGetBalance(Request $request)
     {
         try {
             $user = Auth::user();
-            
-            // Check if tenant_id is provided (accountant viewing tenant's balance)
             $tenantId = $request->get('tenant_id');
             
             if ($tenantId) {
-                // Check if user is authorized to view other tenant's balance
                 if (!$user->hasRole('accountant') && !$user->hasRole('admin') && !$user->hasRole('property_manager')) {
                     return response()->json([
                         'success' => false,
@@ -1061,7 +1270,6 @@ class WalletController extends Controller
                 ]);
             }
             
-            // Original behavior - get current user's balance
             $walletOwner = $this->getWalletOwner();
             $walletOwner->refresh();
             $balance = (float) $walletOwner->balance;
@@ -1094,7 +1302,6 @@ class WalletController extends Controller
             $query = $walletOwner->transactions()
                 ->orderBy('created_at', 'desc');
             
-            // Only exclude pending if explicitly requested
             if (!$includePending) {
                 $query->where('confirmed', true);
             }
@@ -1102,7 +1309,6 @@ class WalletController extends Controller
             $transactions = $query->paginate($perPage);
             
             $formattedTransactions = $transactions->through(function($tx) {
-                // Determine status based on confirmed flag and meta
                 $status = 'Completed';
                 $requiresApproval = false;
                 
@@ -1111,7 +1317,6 @@ class WalletController extends Controller
                     $status = $meta['status'] ?? 'Pending Approval';
                     $requiresApproval = true;
                     
-                    // Check if it's a manual top-up
                     if (($meta['payment_method'] ?? '') === 'manual') {
                         $status = 'Pending Approval (Manual Top-up)';
                     } elseif (($meta['payment_method'] ?? '') === 'message') {
@@ -1174,6 +1379,9 @@ class WalletController extends Controller
             if (($meta['payment_method'] ?? '') === 'message') {
                 return 'Transaction Message - ' . ($meta['bill_month'] ?? '');
             }
+            if (isset($meta['deposited_by_name']) && isset($meta['deposited_by_role']) && $meta['deposited_by_role'] === 'accountant') {
+                return 'Deposit by Accountant: ' . ($meta['deposited_by_name'] ?? 'Unknown');
+            }
             return 'Wallet Deposit';
         }
         
@@ -1183,7 +1391,7 @@ class WalletController extends Controller
         
         return $tx->description ?? 'Transaction';
     }
-        
+
     /**
      * Get statement data (API)
      */
@@ -1239,7 +1447,6 @@ class WalletController extends Controller
             $invoice = Invoice::with('items')->findOrFail($invoiceId);
             $walletOwner = $this->getWalletOwner();
             
-            // Verify authorization
             if ($walletOwner instanceof Tenant) {
                 $tenancy = $walletOwner->activeTenancy;
                 if (!$tenancy || $tenancy->id !== $invoice->tenancy_id) {
@@ -1310,15 +1517,12 @@ class WalletController extends Controller
             
             $activeTenancy = $tenant->activeTenancy;
             
-            // Get wallet from Bavix
             $wallet = $tenant->wallet;
             $walletId = $wallet ? $wallet->getKey() : null;
             
-            // Generate wallet number (16-digit padded from wallet ID)
             $fullWalletNumber = $walletId ? str_pad((string) $walletId, 16, '0', STR_PAD_LEFT) : str_pad((string) $tenant->id, 16, '0', STR_PAD_LEFT);
             $maskedWalletNumber = '•••• •••• •••• ' . substr($fullWalletNumber, -4);
             
-            // Initialize default values
             $tenantDetails = [
                 'name' => $user->name ?? 'N/A',
                 'company' => null,
@@ -1336,7 +1540,6 @@ class WalletController extends Controller
                 'default_payment_method' => null,
             ];
             
-            // Get unit and estate information from active tenancy
             if ($activeTenancy) {
                 $unit = $activeTenancy->unit;
                 if ($unit) {
@@ -1352,7 +1555,6 @@ class WalletController extends Controller
                             $tenantDetails['company'] = $company->name;
                             $companyDetails['name'] = $company->name;
                             
-                            // Get company payment methods
                             $paymentMethods = CompanyPaymentMethod::where('company_id', $company->id)
                                 ->where('is_active', true)
                                 ->get();
@@ -1435,12 +1637,9 @@ class WalletController extends Controller
                 'pin' => 'required|string|size:4',
             ]);
             
-            // Implement your PIN verification logic here
             $user = Auth::user();
             
-            // Example: Check against stored PIN hash
-            // if (Hash::check($request->pin, $user->wallet_pin)) {
-            if ($request->pin === '1234') { // Placeholder - replace with actual verification
+            if ($request->pin === '1234') {
                 return response()->json(['success' => true]);
             }
             
@@ -1463,7 +1662,6 @@ class WalletController extends Controller
         }
     }
 
-    
     /**
      * Withdraw money (POST form submission)
      */
@@ -1504,7 +1702,6 @@ class WalletController extends Controller
         
         $walletOwner = $this->getWalletOwner();
         
-        // Don't allow self-transfer
         if ($walletOwner instanceof User && $walletOwner->email === $request->recipient_email) {
             return redirect()->route('wallet.index')
                 ->with('error', 'You cannot transfer to yourself.');
@@ -1522,7 +1719,6 @@ class WalletController extends Controller
                 ->with('error', 'Recipient not found.');
         }
         
-        // Get recipient's wallet owner (tenant if they are tenant, otherwise user)
         $recipientWallet = $recipient->isTenant() && $recipient->tenant ? $recipient->tenant : $recipient;
         
         $result = $this->walletService->transfer($walletOwner, $recipientWallet, $request->amount, [
@@ -1551,7 +1747,6 @@ class WalletController extends Controller
         
         $walletOwner = $this->getWalletOwner();
         
-        // Verify tenant owns this invoice
         if ($walletOwner instanceof Tenant) {
             $tenancy = $walletOwner->activeTenancy;
             if (!$tenancy || $tenancy->id !== $invoice->tenancy_id) {
@@ -1628,7 +1823,9 @@ class WalletController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-
+    /**
+     * API Get Pending Invoices
+     */
     public function apiGetPendingInvoices()
     {
         try {
@@ -1639,7 +1836,6 @@ class WalletController extends Controller
             
             $walletOwner = $this->getWalletOwner();
             
-            // Check if user is tenant
             if (!($walletOwner instanceof Tenant)) {
                 Log::warning('Non-tenant attempted to access pending invoices', [
                     'user_id' => Auth::id(),
@@ -1661,7 +1857,6 @@ class WalletController extends Controller
                 'tenant_name' => $walletOwner->name
             ]);
             
-            // Check for active tenancy
             $activeTenancy = $walletOwner->activeTenancy;
             
             if (!$activeTenancy) {
@@ -1684,7 +1879,6 @@ class WalletController extends Controller
                 'unit_id' => $activeTenancy->unit_id
             ]);
             
-            // Fetch invoices
             $invoices = Invoice::where('tenancy_id', $activeTenancy->id)
                 ->whereIn('status', ['unpaid', 'partial'])
                 ->with('items')
@@ -1695,12 +1889,6 @@ class WalletController extends Controller
                 'count' => $invoices->count(),
                 'tenancy_id' => $activeTenancy->id
             ]);
-            
-            if ($invoices->isEmpty()) {
-                Log::info('No pending invoices found for tenancy', [
-                    'tenancy_id' => $activeTenancy->id
-                ]);
-            }
             
             $formattedInvoices = $invoices->map(function($invoice) {
                 return [
@@ -1751,127 +1939,5 @@ class WalletController extends Controller
                 ]
             ], 500);
         }
-    }
-
-    /**
-     * Reject a pending deposit
-     */
-    public function apiRejectDeposit(Request $request, $transactionId)
-    {
-        try {
-            $user = Auth::user();
-            
-            // Check if user is accountant
-            if (!$user->hasRole('accountant') && !$user->hasRole('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Unauthorized. Only accountants can reject deposits.'
-                ], 403);
-            }
-            
-            $transaction = Transaction::findOrFail($transactionId);
-            
-            if ($transaction->confirmed) {
-                return response()->json([
-                    'success' => false,
-                    'error' => 'Transaction already confirmed'
-                ], 400);
-            }
-            
-            // Update the transaction as rejected
-            $transaction->confirmed = false;
-            $transaction->meta = array_merge($transaction->meta ?? [], [
-                'rejected_at' => now()->toISOString(),
-                'rejected_by' => $user->id,
-                'rejected_by_name' => $user->name,
-                'status' => 'rejected'
-            ]);
-            $transaction->save();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Deposit rejected successfully'
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('API Reject Deposit failed: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Create a pending transaction without updating wallet balance
-     */
-    protected function createPendingTransaction($walletOwner, float $amount, array $metaData)
-    {
-        // Get the wallet
-        $wallet = $walletOwner->wallet;
-        
-        if (!$wallet) {
-            $wallet = $walletOwner->createWallet([
-                'name' => 'Default Wallet',
-                'slug' => 'default',
-                'description' => 'Main wallet',
-            ]);
-        }
-        
-        // Extract external reference from parsed data if available
-        $externalReference = null;
-        if (isset($metaData['parsed_data']['transaction_id'])) {
-            $externalReference = $metaData['parsed_data']['transaction_id'];
-        } elseif (isset($metaData['reference'])) {
-            $externalReference = $metaData['reference'];
-        }
-        
-        // Create transaction record directly (Bavix would normally do this)
-        $transaction = new \Bavix\Wallet\Models\Transaction();
-        $transaction->payable_type = get_class($walletOwner);
-        $transaction->payable_id = $walletOwner->getKey();
-        $transaction->wallet_id = $wallet->getKey();
-        $transaction->type = 'deposit';
-        $transaction->amount = $amount;
-        $transaction->confirmed = false;
-        $transaction->meta = $metaData;
-        $transaction->uuid = (string) \Illuminate\Support\Str::uuid();
-        $transaction->created_at = now();
-        $transaction->updated_at = now();
-        $transaction->save();
-        
-        // Also create a payment record for the pending deposit
-        // This ensures the payment shows up even before approval
-        try {
-            $payment = Payment::create([
-                'tenant_id' => $walletOwner->id,
-                'user_id' => $walletOwner->user_id ?? null,
-                'invoice_id' => null,
-                'invoice_item_id' => null,
-                'payment_method' => 'pending_deposit',
-                'source' => Payment::SOURCE_WEB,
-                'amount' => $amount,
-                'wallet_balance_before' => (float) $walletOwner->balance,
-                'wallet_balance_after' => (float) $walletOwner->balance,
-                'transaction_reference' => $transaction->uuid,
-                'external_reference' => $externalReference,
-                'status' => Payment::STATUS_PENDING,
-                'is_reconciled' => false,
-                'meta' => array_merge($metaData, [
-                    'pending_deposit' => true,
-                    'created_at' => now()->toISOString(),
-                ]),
-            ]);
-            
-            \Log::info('Payment record created for pending deposit', [
-                'payment_id' => $payment->id,
-                'external_reference' => $externalReference,
-                'transaction_uuid' => $transaction->uuid,
-            ]);
-        } catch (\Exception $e) {
-            \Log::warning('Could not create payment record for pending deposit: ' . $e->getMessage());
-        }
-        
-        return $transaction;
     }
 }

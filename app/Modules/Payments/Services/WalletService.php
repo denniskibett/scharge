@@ -258,7 +258,7 @@ class WalletService
     }
     
     /**
-     * Pay invoice from wallet
+     * Pay an invoice from wallet
      */
     public function payInvoice($walletOwner, Invoice $invoice, float $amount, array $meta = []): array
     {
@@ -276,36 +276,25 @@ class WalletService
             
             // Force refresh to get latest balance
             $walletOwner->refresh();
-            $currentBalance = (float) $walletOwner->balance;
-            
-            Log::info('payInvoice called', [
-                'tenant_id' => $walletOwner->id,
-                'tenant_type' => get_class($walletOwner),
-                'invoice_id' => $invoice->id,
-                'amount' => $amount,
-                'current_balance' => $currentBalance,
-            ]);
-            
-            // 1. Validate the payment
-            $remainingInvoiceAmount = $invoice->remaining_amount;
-            if ($amount > $remainingInvoiceAmount) {
-                throw new \Exception("Payment amount exceeds remaining invoice amount. Remaining: KES " . number_format($remainingInvoiceAmount, 2));
-            }
-            
-            if ($amount > $currentBalance) {
-                throw new \Exception("Insufficient wallet balance. Available: KES " . number_format($currentBalance, 2) . ", Required: KES " . number_format($amount, 2));
-            }
-            
-            // Get balance before withdrawal
             $balanceBefore = (float) $walletOwner->balance;
             
-            // 2. Withdraw from tenant's wallet
-            $withdrawalTransaction = $walletOwner->withdraw($amount, [
-                'description' => 'Invoice payment - ' . ($invoice->invoice_number ?? 'INV-' . $invoice->id),
-                'invoice_id' => $invoice->id,
+            // Check if sufficient balance
+            if ($balanceBefore < $amount) {
+                DB::rollBack();
+                return [
+                    'success' => false,
+                    'error' => "Insufficient wallet balance. Available: KES " . number_format($balanceBefore, 2) . ", Required: KES " . number_format($amount, 2),
+                    'balance' => $balanceBefore,
+                ];
+            }
+            
+            // Withdraw from wallet
+            $transaction = $walletOwner->withdraw($amount, [
+                'description' => $meta['description'] ?? "Payment for invoice #{$invoice->invoice_number}",
                 'meta' => array_merge($meta, [
-                    'type' => 'invoice_payment',
-                    'balance_before' => $balanceBefore
+                    'invoice_id' => $invoice->id,
+                    'payment_type' => 'invoice_payment',
+                    'balance_before' => $balanceBefore,
                 ])
             ]);
             
@@ -313,65 +302,70 @@ class WalletService
             $walletOwner->refresh();
             $balanceAfter = (float) $walletOwner->balance;
             
-            Log::info('Withdrawal successful', [
-                'transaction_id' => $withdrawalTransaction->id,
-                'balance_before' => $balanceBefore,
-                'balance_after' => $balanceAfter,
+            // Update invoice
+            $invoice->total_paid = (float) $invoice->payments()->sum('amount') + $amount;
+            
+            if ($invoice->total_paid >= $invoice->total_amount) {
+                $invoice->status = 'paid';
+            } elseif ($invoice->total_paid > 0) {
+                $invoice->status = 'partial';
+            }
+            $invoice->save();
+            
+            // Update invoice items paid amounts
+            $this->distributePaymentToInvoiceItems($invoice, $amount);
+            
+            // Create payment record (ONLY ONE)
+            $payment = Payment::create([
+                'tenant_id' => $walletOwner->id,
+                'user_id' => auth()->id(),
+                'invoice_id' => $invoice->id,
+                'payment_method' => $meta['payment_method'] ?? 'wallet',
+                'source' => Payment::SOURCE_WEB,
+                'amount' => $amount,
+                'wallet_balance_before' => $balanceBefore,
+                'wallet_balance_after' => $balanceAfter,
+                'transaction_reference' => $transaction->uuid,
+                'external_reference' => $meta['external_reference'] ?? null,
+                'status' => Payment::STATUS_COMPLETED,
+                'is_reconciled' => true,
+                'reconciled_at' => now(),
+                'reconciled_by' => auth()->id(),
+                'meta' => array_merge($meta, [
+                    'invoice_id' => $invoice->id,
+                    'payment_type' => 'wallet_payment',
+                    'bavix_transaction_id' => $transaction->id,
+                    'bavix_transaction_uuid' => $transaction->uuid,
+                    'created_by' => auth()->id(),
+                    'created_by_name' => auth()->user()->name ?? 'System',
+                ]),
             ]);
             
-            // 3. Distribute payment across invoice items and create payment records
-            $allocations = $this->distributePaymentToItems(
-                $walletOwner,
-                $invoice,
-                $amount,
-                $withdrawalTransaction->uuid,
-                $balanceBefore,
-                $balanceAfter,
-                $meta
-            );
-            
-            // 4. Update invoice totals and status
-            $this->updateInvoiceAfterPayment($invoice);
-            
-            // Refresh invoice to get latest data
             $invoice->refresh();
             
             DB::commit();
             
             return [
                 'success' => true,
-                'balance' => $balanceAfter,
+                'transaction_id' => $transaction->id,
+                'transaction_uuid' => $transaction->uuid,
+                'payment_id' => $payment->id,
+                'payment' => $payment,
                 'balance_before' => $balanceBefore,
                 'balance_after' => $balanceAfter,
-                'payment_id' => $allocations[0]['payment_id'] ?? null,
-                'transaction_id' => $withdrawalTransaction->id,
-                'transaction_uuid' => $withdrawalTransaction->uuid,
-                'invoice' => [
-                    'id' => $invoice->id,
-                    'remaining_amount' => $invoice->remaining_amount,
-                    'total_paid' => $invoice->total_paid,
-                    'status' => $invoice->status,
-                ],
-                'allocations' => $allocations,
             ];
             
         } catch (InsufficientFunds $e) {
             DB::rollBack();
-            $balance = $this->getBalance($walletOwner);
             return [
                 'success' => false,
-                'error' => 'Insufficient wallet balance. Available: KES ' . number_format($balance, 2),
-                'balance' => $balance,
+                'error' => 'Insufficient wallet balance',
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Invoice payment failed: ' . $e->getMessage(), [
-                'invoice_id' => $invoice->id,
-                'amount' => $amount,
-                'wallet_owner_id' => $walletOwner->id,
-                'trace' => $e->getTraceAsString()
+            Log::error('payInvoice failed: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
-            
             return [
                 'success' => false,
                 'error' => $e->getMessage(),
