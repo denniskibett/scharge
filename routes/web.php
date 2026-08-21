@@ -24,12 +24,24 @@ use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AccountManagerController;
+use App\Http\Controllers\PublicInvoiceController;
+
+require __DIR__ . '/mpesa.php';
 
 // ============================================
 // PUBLIC ROUTES
 // ============================================
 Route::get('/', function () {
     return view('welcome');
+});
+
+// ============================================
+// PUBLIC INVOICE PAYMENT ROUTES (No Auth Required)
+// ============================================
+Route::prefix('public')->name('public.')->group(function () {
+    Route::get('/invoice/{invoice}', [PublicInvoiceController::class, 'show'])->name('invoice.show');
+    Route::post('/invoice/{invoice}/pay', [PublicInvoiceController::class, 'pay'])->name('invoice.pay');
+    Route::get('/invoice/{invoice}/status/{checkoutId}', [PublicInvoiceController::class, 'checkStatus'])->name('invoice.status');
 });
 
 // Email Verification Routes

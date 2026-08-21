@@ -36,29 +36,74 @@ class MpesaService
     /**
      * Get OAuth Access Token
      */
+
     public function getAccessToken()
     {
+        // Try to get from cache first
+        $cacheKey = 'mpesa_access_token';
+        if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            $cachedToken = \Illuminate\Support\Facades\Cache::get($cacheKey);
+            Log::info('M-Pesa: Using cached access token');
+            return $cachedToken;
+        }
+
         $url = $this->baseUrl . '/oauth/v1/generate?grant_type=client_credentials';
+        
+        Log::info('M-Pesa: Requesting access token', [
+            'url' => $url,
+            'environment' => $this->environment,
+            'consumer_key' => substr($this->consumerKey, 0, 10) . '...'
+        ]);
         
         try {
             $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
+                ->timeout(30)
+                ->retry(3, 1000)
                 ->get($url);
+
+            $statusCode = $response->status();
+            $responseBody = $response->body();
+
+            Log::info('M-Pesa: Access token response', [
+                'status' => $statusCode,
+                'body' => substr($responseBody, 0, 500)
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
-                Log::info('M-Pesa: Access token generated successfully');
-                return $data['access_token'];
+                
+                if (isset($data['access_token'])) {
+                    // Cache for 50 minutes (tokens expire after 1 hour)
+                    \Illuminate\Support\Facades\Cache::put($cacheKey, $data['access_token'], 3000);
+                    
+                    Log::info('M-Pesa: Access token generated and cached successfully');
+                    return $data['access_token'];
+                } else {
+                    Log::error('M-Pesa: No access_token in response', ['response' => $data]);
+                    return null;
+                }
+            }
+
+            // Handle specific error cases
+            $errorMessage = 'Unknown error';
+            if ($response->json() && isset($response->json()['errorMessage'])) {
+                $errorMessage = $response->json()['errorMessage'];
+            } elseif ($response->json() && isset($response->json()['error_description'])) {
+                $errorMessage = $response->json()['error_description'];
             }
 
             Log::error('M-Pesa: Failed to get access token', [
-                'response' => $response->body()
+                'status' => $statusCode,
+                'error' => $errorMessage,
+                'response' => $responseBody
             ]);
 
             return null;
 
         } catch (\Exception $e) {
-            Log::error('M-Pesa: Access token error', [
-                'error' => $e->getMessage()
+            Log::error('M-Pesa: Access token request exception', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             return null;
         }
@@ -68,10 +113,11 @@ class MpesaService
     // 📱 STK PUSH (Lipa Na M-Pesa Online)
     // =========================================================
 
+
     /**
      * Send STK Push to customer's phone
      */
-    public function stkPush($phone, $amount, $accountReference, $transactionDesc = 'Payment')
+    public function stkPush($phone, $amount, $accountReference, $transactionDesc = 'Payment', $invoiceId = null, $userId = null)
     {
         $token = $this->getAccessToken();
         
@@ -86,8 +132,6 @@ class MpesaService
         
         $timestamp = date('YmdHis');
         $password = base64_encode($this->shortcode . $this->passkey . $timestamp);
-
-        // Format phone number
         $phone = $this->formatPhoneNumber($phone);
 
         $payload = [
@@ -108,7 +152,7 @@ class MpesaService
             'phone' => $phone,
             'amount' => $amount,
             'account_reference' => $accountReference,
-            'url' => $url
+            'invoice_id' => $invoiceId
         ]);
 
         try {
@@ -122,12 +166,38 @@ class MpesaService
             ]);
 
             if ($response->successful() && isset($responseData['ResponseCode']) && $responseData['ResponseCode'] === '0') {
+                $checkoutRequestId = $responseData['CheckoutRequestID'] ?? null;
+                $merchantRequestId = $responseData['MerchantRequestID'] ?? null;
+                
+                if ($checkoutRequestId) {
+                    try {
+                        // ✅ ONLY create MpesaStk record - NO PendingMpesaPayment
+                        \App\Models\MpesaStk::createFromRequest(
+                            $checkoutRequestId,
+                            $merchantRequestId,
+                            $phone,
+                            $amount,
+                            $invoiceId,
+                            $userId
+                        );
+                        
+                        Log::info('✅ M-Pesa STK record stored in database', [
+                            'checkout_request_id' => $checkoutRequestId,
+                            'invoice_id' => $invoiceId
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('❌ Failed to store M-Pesa STK record: ' . $e->getMessage(), [
+                            'checkout_request_id' => $checkoutRequestId
+                        ]);
+                    }
+                }
+
                 return [
                     'success' => true,
                     'data' => $responseData,
                     'message' => $responseData['CustomerMessage'] ?? 'STK Push sent successfully',
-                    'checkout_request_id' => $responseData['CheckoutRequestID'] ?? null,
-                    'merchant_request_id' => $responseData['MerchantRequestID'] ?? null
+                    'checkout_request_id' => $checkoutRequestId,
+                    'merchant_request_id' => $merchantRequestId
                 ];
             }
 
