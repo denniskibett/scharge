@@ -299,7 +299,7 @@
                     {{-- Transaction Message Textarea --}}
                     <div class="mb-4">
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Transaction Message *
+                            Transaction Message * 
                         </label>
                         <textarea
                             x-model="transactionMessage"
