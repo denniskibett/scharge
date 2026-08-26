@@ -16,5 +16,8 @@ class DatabaseSeeder extends Seeder
         
         // Then create users with roles
         $this->call(UserSeeder::class);
+        
+        // Then create SMS templates
+        $this->call(SmsTemplateSeeder::class);
     }
 }

@@ -133,27 +133,37 @@
                 </div>
 
                 <!-- Message Template Section -->
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
-                    @verbatim
-                    <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}">Hi {{name}}, you have {{unpaid_message}}. Paybill 7263733 Acc {{unit}}
+<div class="p-6 border-b border-gray-200 dark:border-gray-700">
+    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
+    @verbatim
+    <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Enter your message template here">{{estate_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))
 
-{{unpaid_list}}</textarea>
-                    @endverbatim
-                    <div class="flex flex-wrap gap-2 mt-2">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, total_due</span>
-                    </div>
-                    <div id="charCounter" class="mt-2 text-sm"></div>
-                    <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                        🔧 Make Compact (reduce characters)
-                    </button>
-                </div>
+Paybill: 7263733
+Acc: {{unit}}
+Amount: KES {{water_bill}}
+Due: {{due_date}}
+Status: {{payment_status}}
 
-                <!-- Preview Section -->
-                <div class="p-6 border-b border-gray-200 dark:border-gray-700" id="previewSection" style="display: none;">
-                    <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Preview (first 3)</h3>
-                    <div id="previewContainer" class="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"></div>
-                </div>
+{{unpaid_section}}
+
+Total Due: KES {{total_due}}
+
+For queries: 0701262902</textarea>
+    @endverbatim
+    <div class="flex flex-wrap gap-2 mt-2">
+        <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, unpaid_section, total_due</span>
+    </div>
+    <div id="charCounter" class="mt-2 text-sm"></div>
+    <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+        🔧 Make Compact (reduce characters)
+    </button>
+</div>
+
+<!-- Preview Section -->
+<div class="p-6 border-b border-gray-200 dark:border-gray-700" id="previewSection" style="display: none;">
+    <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Preview (first 3)</h3>
+    <div id="previewContainer" class="space-y-2 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg"></div>
+</div>
 
                 <!-- Filters Section -->
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -1650,11 +1660,10 @@ function formatMonthYear(dateStr) {
             });
         }
 
-        // ============================================================
+// ============================================================
 // RENDER PREVIEW WITH REAL INVOICE DATA (UPDATED)
 // ============================================================
 function renderPreviewWithData(invoiceData, template, allSelected, selectedCount) {
-    console.log('📥 invoiceData received:', invoiceData);
     const previewCount = document.getElementById('previewCount');
     if (previewCount) {
         previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants`;
@@ -1669,21 +1678,10 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let cb = allSelected[i];
         let tenantId = cb.dataset.id || '';
         let tenantInvoices = invoiceData[tenantId] || [];
-        console.log(`🔍 Tenant ${tenantId} invoices:`, tenantInvoices);
 
-        // --- Determine current month (from checkbox) ---
+        // --- Determine current month from the latest invoice ---
         let currentMonthY = '';
-        let monthAttr = cb.getAttribute('data-month') || '';
-        if (monthAttr) {
-            try {
-                const d = new Date(monthAttr);
-                if (!isNaN(d)) {
-                    currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-                }
-            } catch (e) {}
-        }
-        // Fallback: use latest invoice's billing_month
-        if (!currentMonthY && tenantInvoices.length > 0) {
+        if (tenantInvoices.length > 0) {
             let latest = tenantInvoices.reduce((a, b) => {
                 return (a.billing_month > b.billing_month) ? a : b;
             });
@@ -1691,32 +1689,17 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                 currentMonthY = latest.billing_month.substring(0, 7);
             }
         }
-        // Final fallback: today
         if (!currentMonthY) {
-            const d = new Date();
-            currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            let monthAttr = cb.getAttribute('data-month') || '';
+            try {
+                const d = new Date(monthAttr);
+                if (!isNaN(d)) {
+                    currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+                }
+            } catch (e) { /* ignore */ }
         }
-        console.log(`📅 currentMonthY: ${currentMonthY}`);
 
-        // --- GET CURRENT MONTH'S BILL FROM INVOICE DATA ---
-        let currentInvoice = tenantInvoices.find(inv => {
-            if (!inv.billing_month) return false;
-            let invMonth = inv.billing_month.substring(0, 7);
-            return invMonth === currentMonthY;
-        });
-        let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
-        console.log(`💵 currentBill from invoices: ${currentBill}`);
-        console.log(`💵 waterbill from checkbox: ${parseFloat(cb.getAttribute('data-waterbill') || 0)}`);
-
-        // ✅ FIX: If no current invoice OR invoice amount is 0, use the checkbox's waterbill as fallback
-        if ((!currentInvoice || currentBill === 0) && parseFloat(cb.getAttribute('data-waterbill') || 0) > 0) {
-            let fallbackBill = parseFloat(cb.getAttribute('data-waterbill') || 0);
-            console.warn(`⚠️ No invoice or invoice amount is 0 for tenant ${tenantId}, using checkbox waterbill: ${fallbackBill}`);
-            currentBill = fallbackBill;
-        }
-        console.log(`💵 FINAL currentBill: ${currentBill}`);
-
-        // --- Compute due date for current month ---
+        // --- Compute due date for the current month's bill (5th of next month) ---
         let dueDateFormatted = '';
         if (currentMonthY) {
             try {
@@ -1753,21 +1736,37 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         });
 
         let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
+        let currentBill = parseFloat(cb.getAttribute('data-waterbill') || 0);
+        let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
+
+        // --- If tenant is fully paid, zero everything ---
+        if (paymentStatus === 'paid') {
+            currentBill = 0;
+            olderTotal = 0;
+        }
+
         let unpaidTotal = olderTotal;
         let totalDue = currentBill + unpaidTotal;
-
         let unpaidCount = olderInvoices.length;
-        let unpaidList = olderInvoices.map(inv => {
-            let billingMonth = formatMonthYear(inv.billing_month);
-            return (inv.status || 'unpaid') + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
-        }).join('\n');
 
-        let unpaidMessage = unpaidCount === 0
-            ? 'no overdue invoices'
-            : (unpaidCount === 1
-                ? '1 overdue invoice of KES ' + Number(olderTotal).toFixed(2)
-                : unpaidCount + ' overdue invoices totaling KES ' + Number(olderTotal).toFixed(2)
-            );
+        // --- Build unpaid list: each invoice on its own line; prefix status only if not 'unpaid' ---
+        let unpaidList = '';
+        if (unpaidCount > 0) {
+            unpaidList = olderInvoices.map(inv => {
+                let billingMonth = formatMonthYear(inv.billing_month);
+                let prefix = '';
+                if (inv.status !== 'unpaid') {
+                    prefix = inv.status.charAt(0).toUpperCase() + inv.status.slice(1) + ' ';
+                }
+                return prefix + '(' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
+            }).join('\n');
+        }
+
+        // --- Build unpaid section (only the "Unpaid:" header and the list, no total line) ---
+        let unpaidSection = '';
+        if (unpaidCount > 0) {
+            unpaidSection = 'Unpaid:\n' + unpaidList;
+        }
 
         // ----- Gather other data from the checkbox -----
         let phone = cb.getAttribute('data-phone') || '';
@@ -1777,8 +1776,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let estate_name = cb.getAttribute('data-estate') || 'N/A';
         let prev_read = cb.getAttribute('data-prev-read') || '0';
         let curr_read = cb.getAttribute('data-curr-read') || '0';
-        let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
 
+        // Determine the month label for the current bill
         let currentMonthLabel = '';
         if (currentMonthY) {
             try {
@@ -1809,7 +1808,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         message = message.replace(/\{\{unpaid_count\}\}/g, unpaidCount);
         message = message.replace(/\{\{unpaid_total\}\}/g, unpaidTotal.toFixed(2));
         message = message.replace(/\{\{unpaid_list\}\}/g, unpaidList);
-        message = message.replace(/\{\{unpaid_message\}\}/g, unpaidMessage);
+        message = message.replace(/\{\{unpaid_message\}\}/g, unpaidCount > 0 ? unpaidCount + ' unpaid/partial invoices totaling KES ' + unpaidTotal.toFixed(2) : '');
+        message = message.replace(/\{\{unpaid_section\}\}/g, unpaidSection);
         message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
         message = message.replace(/\{\{[^}]*\}\}/g, '');
 
@@ -1836,7 +1836,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             unpaid_count: unpaidCount,
             unpaid_total: unpaidTotal.toFixed(2),
             unpaid_list: unpaidList,
-            unpaid_message: unpaidMessage,
+            unpaid_message: unpaidCount > 0 ? unpaidCount + ' unpaid/partial invoices totaling KES ' + unpaidTotal.toFixed(2) : '',
+            unpaid_section: unpaidSection,
             total_due: totalDue.toFixed(2)
         });
     }
@@ -1847,7 +1848,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         // ============================================================
         // RENDER PREVIEW WITH DUMMY DATA (FALLBACK)
         // ============================================================
-        function renderPreviewWithDummyData(template, allSelected, selectedCount) {
+        function renderPreviewWithDummyData(template, allSelected, selectedCount) { 
             const previewCount = document.getElementById('previewCount');
             if (previewCount) {
                 previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants (demo preview)`;
@@ -3287,9 +3288,16 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         // Calculate totals
         let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
-        let unpaidTotal = olderTotal; // Only unpaid/partial older invoices
-        let totalDue = currentBill + unpaidTotal; // Current bill (whether paid or not) + older unpaid/partial
+        let paymentStatus = tenant.paymentStatus || 'pending';
         
+        // --- If tenant is fully paid, zero everything ---
+        if (paymentStatus === 'paid') {
+            currentBill = 0;
+            olderTotal = 0;
+        }
+        
+        let unpaidTotal = olderTotal;
+        let totalDue = currentBill + unpaidTotal;
         let unpaidCount = olderInvoices.length;
         
         console.log(`💰 Tenant ${tenantId} totalDue: ${totalDue}`);
@@ -3298,14 +3306,23 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         console.log(`🔍 Tenant ${tenantId} olderInvoices count: ${unpaidCount}`);
         console.log(`🔍 Tenant ${tenantId} currentStatus: ${currentStatus}`);
         
-        // ✅ Build unpaid list (only older unpaid/partial invoices)
+        // ✅ Build unpaid list – each invoice on its own line, status prefix only if not 'unpaid'
         let unpaidList = '';
-        if (olderInvoices.length > 0) {
+        if (unpaidCount > 0) {
             unpaidList = olderInvoices.map(inv => {
                 let billingMonth = formatMonthYear(inv.billing_month);
-                let statusLabel = inv.status.charAt(0).toUpperCase() + inv.status.slice(1);
-                return statusLabel + ' (' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
+                let prefix = '';
+                if (inv.status !== 'unpaid') {
+                    prefix = inv.status.charAt(0).toUpperCase() + inv.status.slice(1) + ' ';
+                }
+                return prefix + '(' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
             }).join('\n');
+        }
+        
+        // ✅ Build unpaid section (only "Unpaid:" header + list, no total line)
+        let unpaidSection = '';
+        if (unpaidCount > 0) {
+            unpaidSection = 'Unpaid:\n' + unpaidList;
         }
         
         // ✅ Track if any outstanding balance exists
@@ -3340,12 +3357,13 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             '{{prev_read}}': tenant.prevRead || '0',
             '{{curr_read}}': tenant.currRead || '0',
             '{{due_date}}': dueDate,
-            '{{payment_status}}': tenant.paymentStatus || 'pending',
-            '{{status}}': tenant.paymentStatus || 'pending',
+            '{{payment_status}}': paymentStatus,
+            '{{status}}': paymentStatus,
             '{{unpaid_count}}': String(unpaidCount),
             '{{unpaid_total}}': unpaidTotal.toFixed(2),
             '{{unpaid_list}}': unpaidList,
-            '{{unpaid_message}}': unpaidCount === 0 ? 'no overdue invoices' : unpaidCount + ' unpaid/partial invoices totaling KES ' + unpaidTotal.toFixed(2),
+            '{{unpaid_message}}': unpaidCount === 0 ? '' : unpaidCount + ' unpaid/partial invoices totaling KES ' + unpaidTotal.toFixed(2),
+            '{{unpaid_section}}': unpaidSection,
             '{{total_due}}': totalDue.toFixed(2),
             '{{current_status}}': currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1),
         };
@@ -3374,11 +3392,11 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         // --- Build HTML ---
         let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-        if (tenant.paymentStatus === 'paid') {
+        if (paymentStatus === 'paid') {
             statusBadgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-        } else if (tenant.paymentStatus === 'unpaid' || tenant.paymentStatus === 'overdue') {
+        } else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') {
             statusBadgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-        } else if (tenant.paymentStatus === 'partial') {
+        } else if (paymentStatus === 'partial') {
             statusBadgeClass = 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
         }
         
@@ -3395,7 +3413,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             currentBillStatus = ` (Partial)`;
         }
         
-        let paymentStatusDisplay = (tenant.paymentStatus || 'pending').charAt(0).toUpperCase() + (tenant.paymentStatus || 'pending').slice(1);
+        let paymentStatusDisplay = (paymentStatus || 'pending').charAt(0).toUpperCase() + (paymentStatus || 'pending').slice(1);
         
         html += `
             <div class="border-l-4 border-blue-300 pl-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
