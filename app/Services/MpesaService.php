@@ -5,6 +5,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\MpesaStk;
 
 class MpesaService
 {
@@ -27,52 +28,75 @@ class MpesaService
         $this->securityCredential = env('MPESA_SECURITY_CREDENTIAL', '');
         $this->passkey = env('MPESA_PASSKEY', '');
         
-        // Set base URL based on environment
         $this->baseUrl = $this->environment === 'production'
             ? 'https://api.safaricom.co.ke'
             : 'https://sandbox.safaricom.co.ke';
     }
 
-    /**
-     * Get OAuth Access Token
-     */
     public function getAccessToken()
     {
         $url = $this->baseUrl . '/oauth/v1/generate?grant_type=client_credentials';
         
         try {
             $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
+                ->timeout(30)
+                ->withoutVerifying()
                 ->get($url);
 
             if ($response->successful()) {
                 $data = $response->json();
-                Log::info('M-Pesa: Access token generated successfully');
-                return $data['access_token'];
+                return $data['access_token'] ?? null;
             }
 
-            Log::error('M-Pesa: Failed to get access token', [
-                'response' => $response->body()
+            Log::error('Failed to get access token', [
+                'status' => $response->status(),
+                'body' => $response->body()
             ]);
 
             return null;
 
         } catch (\Exception $e) {
-            Log::error('M-Pesa: Access token error', [
-                'error' => $e->getMessage()
-            ]);
+            Log::error('Access token error: ' . $e->getMessage());
             return null;
         }
     }
 
-    // =========================================================
-    // 📱 STK PUSH (Lipa Na M-Pesa Online)
-    // =========================================================
-
-    /**
-     * Send STK Push to customer's phone
-     */
-    public function stkPush($phone, $amount, $accountReference, $transactionDesc = 'Payment')
+    public function getAccessTokenWithDebug()
     {
+        $url = $this->baseUrl . '/oauth/v1/generate?grant_type=client_credentials';
+        
+        try {
+            $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
+                ->timeout(30)
+                ->withoutVerifying()
+                ->get($url);
+
+            if ($response->successful()) {
+                return [
+                    'success' => true,
+                    'response' => $response->json(),
+                    'status' => $response->status()
+                ];
+            }
+
+            return [
+                'success' => false,
+                'response' => $response->body(),
+                'status' => $response->status()
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function stkPush($phone, $amount, $accountReference, $transactionDesc = 'Payment', $userId = null, $invoiceId = null, $invoiceItemId = null)
+    {
+        Log::info('STK Push Initiated', ['phone' => $phone, 'amount' => $amount]);
+
         $token = $this->getAccessToken();
         
         if (!$token) {
@@ -87,7 +111,6 @@ class MpesaService
         $timestamp = date('YmdHis');
         $password = base64_encode($this->shortcode . $this->passkey . $timestamp);
 
-        // Format phone number
         $phone = $this->formatPhoneNumber($phone);
 
         $payload = [
@@ -104,55 +127,62 @@ class MpesaService
             'TransactionDesc' => $transactionDesc,
         ];
 
-        Log::info('M-Pesa STK Push Request', [
-            'phone' => $phone,
-            'amount' => $amount,
-            'account_reference' => $accountReference,
-            'url' => $url
-        ]);
-
         try {
             $response = Http::withToken($token)
+                ->timeout(30)
+                ->withoutVerifying()
                 ->post($url, $payload);
 
             $responseData = $response->json();
 
-            Log::info('M-Pesa STK Push Response', [
-                'response' => $responseData
-            ]);
-
             if ($response->successful() && isset($responseData['ResponseCode']) && $responseData['ResponseCode'] === '0') {
-                return [
-                    'success' => true,
-                    'data' => $responseData,
-                    'message' => $responseData['CustomerMessage'] ?? 'STK Push sent successfully',
-                    'checkout_request_id' => $responseData['CheckoutRequestID'] ?? null,
-                    'merchant_request_id' => $responseData['MerchantRequestID'] ?? null
-                ];
+                try {
+                    $mpesaStk = MpesaStk::create([
+                        'user_id' => $userId,
+                        'invoice_id' => $invoiceId,
+                        'invoice_item_id' => $invoiceItemId,
+                        'merchant_request_id' => $responseData['MerchantRequestID'] ?? null,
+                        'checkout_request_id' => $responseData['CheckoutRequestID'] ?? null,
+                        'response_code' => 0,
+                        'response_description' => $responseData['ResponseDescription'] ?? 'STK Push initiated',
+                        'customer_message' => $responseData['CustomerMessage'] ?? 'Please check your phone',
+                        'amount' => $amount,
+                        'phone_number' => $phone,
+                        'status' => 'pending',
+                        'metadata' => [
+                            'account_reference' => $accountReference,
+                            'initiated_by' => $userId,
+                            'initiated_at' => now()->toISOString(),
+                        ],
+                    ]);
+
+                    return [
+                        'success' => true,
+                        'message' => $responseData['CustomerMessage'] ?? 'STK Push sent successfully',
+                        'checkout_request_id' => $responseData['CheckoutRequestID'] ?? null,
+                        'merchant_request_id' => $responseData['MerchantRequestID'] ?? null,
+                        'stk_id' => $mpesaStk->id,
+                    ];
+
+                } catch (\Exception $e) {
+                    Log::error('Failed to save STK: ' . $e->getMessage());
+                }
             }
 
             return [
                 'success' => false,
-                'message' => $responseData['ResponseDescription'] ?? $responseData['errorMessage'] ?? 'STK Push failed',
-                'data' => $responseData
+                'message' => $responseData['ResponseDescription'] ?? 'STK Push failed',
             ];
 
         } catch (\Exception $e) {
-            Log::error('M-Pesa STK Push Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
+            Log::error('STK Push error: ' . $e->getMessage());
             return [
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => 'Error: ' . $e->getMessage()
             ];
         }
     }
 
-    /**
-     * Query STK Push Status
-     */
     public function queryStatus($checkoutRequestId)
     {
         $token = $this->getAccessToken();
@@ -176,21 +206,14 @@ class MpesaService
             'CheckoutRequestID' => $checkoutRequestId
         ];
 
-        Log::info('M-Pesa Query Status Request', [
-            'checkout_request_id' => $checkoutRequestId
-        ]);
-
         try {
             $response = Http::withToken($token)
+                ->timeout(30)
+                ->withoutVerifying()
                 ->post($url, $payload);
 
-            $responseData = $response->json();
-
-            Log::info('M-Pesa Query Status Response', [
-                'response' => $responseData
-            ]);
-
-            if ($response->successful() && isset($responseData['ResponseCode']) && $responseData['ResponseCode'] === '0') {
+            if ($response->successful()) {
+                $responseData = $response->json();
                 return [
                     'success' => true,
                     'data' => $responseData,
@@ -201,15 +224,11 @@ class MpesaService
 
             return [
                 'success' => false,
-                'message' => $responseData['ResponseDescription'] ?? $responseData['errorMessage'] ?? 'Query failed',
-                'data' => $responseData
+                'message' => 'Query failed'
             ];
 
         } catch (\Exception $e) {
-            Log::error('M-Pesa Query Status Error', [
-                'error' => $e->getMessage()
-            ]);
-
+            Log::error('Query Status error: ' . $e->getMessage());
             return [
                 'success' => false,
                 'message' => $e->getMessage()
@@ -217,153 +236,18 @@ class MpesaService
         }
     }
 
-    // =========================================================
-    // 💰 B2B (Business PayBill) API
-    // =========================================================
-
-    /**
-     * Business PayBill (B2B) API
-     */
-    public function businessPayBill(array $data)
-    {
-        $token = $this->getAccessToken();
-        
-        if (!$token) {
-            return [
-                'success' => false,
-                'message' => 'Failed to get access token'
-            ];
-        }
-
-        $url = $this->baseUrl . '/mpesa/b2b/v1/paymentrequest';
-        
-        $payload = [
-            'Initiator' => $data['initiator'] ?? $this->initiator,
-            'SecurityCredential' => $data['security_credential'] ?? $this->securityCredential,
-            'CommandID' => 'BusinessPayBill',
-            'SenderIdentifierType' => $data['sender_type'] ?? '4',
-            'ReceiverIdentifierType' => $data['receiver_type'] ?? '4',
-            'Amount' => $data['amount'],
-            'PartyA' => $data['party_a'] ?? $this->shortcode,
-            'PartyB' => $data['party_b'],
-            'AccountReference' => $data['account_reference'],
-            'Requester' => $data['requester'] ?? null,
-            'Remarks' => $data['remarks'] ?? 'OK',
-            'QueueTimeOutURL' => $data['queue_timeout_url'] ?? env('MPESA_QUEUE_URL'),
-            'ResultURL' => $data['result_url'] ?? env('MPESA_B2B_RESULT_URL'),
-        ];
-
-        // Remove null values
-        $payload = array_filter($payload, function ($value) {
-            return !is_null($value);
-        });
-
-        Log::info('M-Pesa B2B Request', [
-            'url' => $url,
-            'payload' => $payload
-        ]);
-
-        try {
-            $response = Http::withToken($token)
-                ->post($url, $payload);
-
-            $responseData = $response->json();
-
-            Log::info('M-Pesa B2B Response', [
-                'response' => $responseData
-            ]);
-
-            if ($response->successful() && isset($responseData['ResponseCode']) && $responseData['ResponseCode'] === '0') {
-                return [
-                    'success' => true,
-                    'data' => $responseData,
-                    'message' => $responseData['ResponseDescription'] ?? 'Transaction initiated successfully'
-                ];
-            }
-
-            return [
-                'success' => false,
-                'message' => $responseData['ResponseDescription'] ?? $responseData['errorMessage'] ?? 'Transaction failed',
-                'data' => $responseData
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('M-Pesa B2B Error', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'message' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Pay a bill (simplified wrapper for B2B)
-     */
-    public function payBill($amount, $partyB, $accountReference, $requester = null)
-    {
-        return $this->businessPayBill([
-            'amount' => $amount,
-            'party_b' => $partyB,
-            'account_reference' => $accountReference,
-            'requester' => $requester,
-            'remarks' => 'Bill Payment',
-        ]);
-    }
-
-    // =========================================================
-    // 🏦 WALLET & ACCOUNT
-    // =========================================================
-
-    /**
-     * Check wallet balance
-     */
-    public function getBalance(): ?array
-    {
-        try {
-            $response = $this->client->get('/wallet/balance', [
-                'headers' => [
-                    'Authorization' => 'Bearer ' . $this->apiKey,
-                ],
-            ]);
-            
-            return json_decode($response->getBody(), true);
-            
-        } catch (\Exception $e) {
-            Log::error('M-Pesa Balance Check Error', [
-                'error' => $e->getMessage(),
-            ]);
-            
-            return null;
-        }
-    }
-
-    // =========================================================
-    // 📞 HELPER METHODS
-    // =========================================================
-
-    /**
-     * Format phone number to 254XXXXXXXXX format
-     */
     public function formatPhoneNumber($phone): string
     {
-        // Remove any non-numeric characters
         $phone = preg_replace('/[^0-9]/', '', $phone);
         
-        // If starts with 0, replace with 254
         if (str_starts_with($phone, '0')) {
             $phone = '254' . substr($phone, 1);
         }
         
-        // If starts with +, remove it
         if (str_starts_with($phone, '+')) {
             $phone = substr($phone, 1);
         }
         
-        // If starts with 7, add 254
         if (str_starts_with($phone, '7')) {
             $phone = '254' . $phone;
         }

@@ -30,7 +30,6 @@ use Illuminate\Support\Facades\Log;
 // ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
 Route::get('/campaign/{id}', function($id) {
     try {
-        // ✅ Clear query cache to ensure fresh data on each request
         DB::connection()->getQueryLog();
         
         $campaign = DB::table('sms_campaigns')->where('id', $id)->first();
@@ -38,7 +37,6 @@ Route::get('/campaign/{id}', function($id) {
             return response()->json(['error' => 'Campaign not found'], 404);
         }
         
-        // Get recipients with tenant data
         $recipients = DB::table('campaign_recipients')
             ->where('campaign_id', $id)
             ->get()
@@ -51,7 +49,6 @@ Route::get('/campaign/{id}', function($id) {
                 $unitNumber = 'N/A';
                 $estateName = 'N/A';
                 
-                // Try to find tenant by tenant_id first
                 if ($recipient->tenant_id) {
                     $tenant = DB::table('tenants')->where('id', $recipient->tenant_id)->first();
                     if ($tenant) {
@@ -78,7 +75,6 @@ Route::get('/campaign/{id}', function($id) {
                         }
                     }
                 } else {
-                    // Try to find tenant by phone number
                     $phone = $recipient->phone_number;
                     if (!empty($phone)) {
                         $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
@@ -90,7 +86,6 @@ Route::get('/campaign/{id}', function($id) {
                                 $cleanPhone = '254' . $cleanPhone;
                             }
                             
-                            // Try to find user by phone
                             $user = DB::table('users')
                                 ->where('phone', 'like', '%' . substr($cleanPhone, -9))
                                 ->orWhere('phone', $cleanPhone)
@@ -120,7 +115,6 @@ Route::get('/campaign/{id}', function($id) {
                     }
                 }
                 
-                // Parse provider_response for delivery details
                 $network = '';
                 $parts = '';
                 $cost = '';
@@ -592,7 +586,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/pay', [MpesaController::class, 'stkPush'])->name('process');
     });
 
-});
+}); // END OF AUTHENTICATED ROUTES
 
 // ============================================
 // MODULE ROUTES

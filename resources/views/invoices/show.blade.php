@@ -383,16 +383,60 @@
         <!--</div>-->
       </div>
 
-      <!-- Action Buttons -->
-      @if($invoice->status !== 'paid')
+      <!-- In the Action Buttons section -->
       <div class="flex items-center justify-end gap-3 p-5 pt-0 no-print">
-        <button 
-          @click="processPayment()"
-          class="flex items-center justify-center rounded-lg bg-success-500 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-success-600">
-          Proceed to Payment
-        </button>
+          @if($invoice->status !== 'paid')
+          <!-- Copy Payment Link Button -->
+          <button 
+              onclick="copyPaymentLink()"
+              class="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+          >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+              </svg>
+              Share Payment Link
+          </button>
+          
+          
+          <button 
+              @click="processPayment()"
+              class="flex items-center justify-center rounded-lg bg-success-500 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-success-600"
+          >
+              Proceed to Payment
+          </button>
+          @endif
       </div>
-      @endif
+
+      <script>
+      function copyPaymentLink() {
+          const url = `{{ url('public/invoice/' . $invoice->id) }}`;
+          
+          if (navigator.clipboard) {
+              navigator.clipboard.writeText(url).then(() => {
+                  showToast('success', '✅ Payment link copied to clipboard!');
+              });
+          } else {
+              // Fallback
+              const textarea = document.createElement('textarea');
+              textarea.value = url;
+              document.body.appendChild(textarea);
+              textarea.select();
+              document.execCommand('copy');
+              document.body.removeChild(textarea);
+              showToast('success', '✅ Payment link copied to clipboard!');
+          }
+      }
+
+      function showToast(type, message) {
+          const toast = document.createElement('div');
+          toast.className = `fixed bottom-4 right-4 z-50 rounded-lg px-4 py-3 text-white text-sm shadow-lg ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+          toast.innerText = message;
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 3000);
+      }
+      </script>
+      
     </div>
     <!-- Invoice Mainbox End -->
   </div>

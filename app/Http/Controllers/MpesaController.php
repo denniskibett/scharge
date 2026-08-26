@@ -4,11 +4,12 @@
 namespace App\Http\Controllers;
 
 use App\Services\MpesaService;
-use App\Models\PendingMpesaPayment;
+use App\Models\MpesaStk;
 use App\Models\Payment;
 use App\Modules\Payments\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class MpesaController extends Controller
 {
@@ -43,13 +44,17 @@ class MpesaController extends Controller
             $validated['phone'],
             $validated['amount'],
             $validated['account_reference'],
-            $validated['description'] ?? 'Payment'
+            $validated['description'] ?? 'Payment',
+            auth()->id(),
+            null,
+            null
         );
 
         if ($result['success']) {
             return redirect()->back()
                 ->with('success', '✅ STK Push sent! Please check your phone and enter your M-Pesa PIN.')
-                ->with('checkout_request_id', $result['checkout_request_id'] ?? null);
+                ->with('checkout_request_id', $result['checkout_request_id'] ?? null)
+                ->with('stk_id', $result['stk_id'] ?? null);
         }
 
         return redirect()->back()
@@ -123,173 +128,292 @@ class MpesaController extends Controller
 
     /**
      * STK Push Callback - M-Pesa sends payment confirmation here
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function stkCallback(Request $request)
     {
         $payload = $request->all();
         
-        Log::info('M-Pesa STK Callback Received', $payload);
+        Log::info('📨 M-Pesa STK Callback Received', [
+            'payload' => $payload,
+            'timestamp' => now()->toISOString()
+        ]);
         
         if (isset($payload['Body']['stkCallback'])) {
             $callback = $payload['Body']['stkCallback'];
             
             $resultCode = $callback['ResultCode'] ?? null;
+            $resultDesc = $callback['ResultDesc'] ?? null;
             $checkoutRequestId = $callback['CheckoutRequestID'] ?? null;
+            $merchantRequestId = $callback['MerchantRequestID'] ?? null;
             
-            Log::info('Callback details', [
+            Log::info('📊 Callback details', [
                 'result_code' => $resultCode,
-                'checkout_request_id' => $checkoutRequestId
+                'result_desc' => $resultDesc,
+                'checkout_request_id' => $checkoutRequestId,
+                'merchant_request_id' => $merchantRequestId
             ]);
             
+            // ✅ Find the STK record by checkout_request_id
+            $mpesaStk = MpesaStk::where('checkout_request_id', $checkoutRequestId)->first();
+            
+            if (!$mpesaStk) {
+                Log::warning('⚠️ No mpesa_stks record found for checkout_request_id', [
+                    'checkout_request_id' => $checkoutRequestId
+                ]);
+                
+                // Try by merchant_request_id as fallback
+                $mpesaStk = MpesaStk::where('merchant_request_id', $merchantRequestId)->first();
+                
+                if (!$mpesaStk) {
+                    Log::error('❌ No mpesa_stks record found for merchant_request_id either', [
+                        'merchant_request_id' => $merchantRequestId
+                    ]);
+                    // Still return success to avoid retries
+                    return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
+                }
+            }
+            
+            Log::info('✅ Found mpesa_stks record', [
+                'id' => $mpesaStk->id,
+                'checkout_request_id' => $mpesaStk->checkout_request_id,
+                'invoice_id' => $mpesaStk->invoice_id
+            ]);
+            
+            // ✅ Update the STK record with callback results
+            $mpesaStk->response_code = $resultCode; // 0 = success, 1+ = failure
+            $mpesaStk->result_code = $resultCode;
+            $mpesaStk->response_description = $resultDesc;
+            $mpesaStk->customer_message = $resultCode == 0
+                ? 'Payment completed successfully'
+                : 'Payment failed: ' . $resultDesc;
+            
+            // Update status
+            $mpesaStk->status = ($resultCode == 0) ? 'completed' : 'failed';
+            
+            // Extract metadata if success
+            $metadata = [];
             if ($resultCode == 0) {
-                // Extract payment details
-                $metadata = [];
                 if (isset($callback['CallbackMetadata']['Item'])) {
                     foreach ($callback['CallbackMetadata']['Item'] as $item) {
                         $metadata[$item['Name']] = $item['Value'] ?? null;
                     }
                 }
                 
-                $amount = $metadata['Amount'] ?? null;
-                $receiptNumber = $metadata['MpesaReceiptNumber'] ?? null;
-                $phoneNumber = $metadata['PhoneNumber'] ?? null;
+                $mpesaStk->mpesa_receipt_number = $metadata['MpesaReceiptNumber'] ?? null;
+                $mpesaStk->transaction_date = isset($metadata['TransactionDate'])
+                    ? Carbon::createFromFormat('YmdHis', (string) $metadata['TransactionDate'])
+                    : null;
                 
-                Log::info('Payment details extracted', [
-                    'amount' => $amount,
-                    'receipt' => $receiptNumber,
-                    'phone' => $phoneNumber
+                Log::info('💰 Payment details extracted', [
+                    'amount' => $metadata['Amount'] ?? null,
+                    'receipt' => $mpesaStk->mpesa_receipt_number,
+                    'phone' => $metadata['PhoneNumber'] ?? null,
+                    'transaction_date' => $mpesaStk->transaction_date
                 ]);
-                
-                // Try to find invoice from session first
-                $invoiceId = session('mpesa_invoice_id');
-                $pending = null;
-                
-                // If not found in session, try database
-                if (!$invoiceId) {
-                    $pending = PendingMpesaPayment::where('checkout_request_id', $checkoutRequestId)->first();
-                    if ($pending) {
-                        $invoiceId = $pending->invoice_id;
-                        Log::info('Found pending payment in database', [
-                            'invoice_id' => $invoiceId,
-                            'checkout_request_id' => $checkoutRequestId
-                        ]);
-                    }
-                }
-                
-                if ($invoiceId) {
-                    $invoice = Invoice::find($invoiceId);
-                    
-                    if ($invoice && $invoice->status !== 'paid') {
-                        try {
-                            // Create payment record
-                            $payment = Payment::create([
-                                'invoice_id' => $invoice->id,
-                                'tenant_id' => $invoice->tenancy->tenant_id ?? ($pending->tenant_id ?? null),
-                                'amount' => $amount ?? $pending->amount ?? $invoice->remaining_amount ?? $invoice->total_amount,
-                                'payment_method' => 'mpesa_paybill',
-                                'payment_date' => now(),
-                                'reference_number' => $receiptNumber,
-                                'external_reference' => $receiptNumber,
-                                'payer_name' => $invoice->tenancy->tenant->user->name ?? 'M-Pesa Payment',
-                                'notes' => "M-Pesa STK Push payment. Transaction: {$receiptNumber}",
-                                'status' => 'completed',
-                                'is_reconciled' => true,
-                                'reconciled_at' => now(),
-                                'meta' => [
-                                    'mpesa_receipt' => $receiptNumber,
-                                    'mpesa_phone' => $phoneNumber,
-                                    'checkout_request_id' => $checkoutRequestId,
-                                    'source' => 'mpesa_stk_push'
-                                ]
-                            ]);
-                            
-                            // Update invoice status
-                            $invoice->total_paid = ($invoice->total_paid ?? 0) + $payment->amount;
-                            $invoice->status = $invoice->total_paid >= $invoice->total_amount ? 'paid' : 'partial';
-                            $invoice->save();
-                            
-                            // Update pending payment status
-                            if ($pending) {
-                                $pending->update(['status' => 'completed']);
-                            }
-                            
-                            Log::info('✅ Invoice marked as paid', [
-                                'invoice_id' => $invoice->id,
-                                'receipt' => $receiptNumber,
-                                'payment_id' => $payment->id,
-                                'source' => $pending ? 'database' : 'session'
-                            ]);
-                            
-                            // Clear session
-                            session()->forget(['mpesa_invoice_id', 'mpesa_checkout_id']);
-                            
-                        } catch (\Exception $e) {
-                            Log::error('❌ Failed to create payment: ' . $e->getMessage(), [
-                                'invoice_id' => $invoiceId,
-                                'receipt' => $receiptNumber
-                            ]);
-                        }
-                    } else {
-                        Log::warning('Invoice not found or already paid', [
-                            'invoice_id' => $invoiceId,
-                            'status' => $invoice->status ?? 'not found'
-                        ]);
-                    }
-                } else {
-                    Log::warning('No invoice found for callback', [
-                        'checkout_request_id' => $checkoutRequestId,
-                        'session_invoice_id' => session('mpesa_invoice_id')
-                    ]);
-                }
+            }
+            
+            // Save metadata
+            $existingMeta = $mpesaStk->metadata ?? [];
+            $existingMeta['callback_result'] = [
+                'result_code' => $resultCode,
+                'result_desc' => $resultDesc,
+                'metadata' => $metadata,
+                'callback_payload' => $payload,
+                'processed_at' => now()->toISOString(),
+            ];
+            $mpesaStk->metadata = $existingMeta;
+            $mpesaStk->save();
+            
+            Log::info('✅ mpesa_stks record updated', [
+                'id' => $mpesaStk->id,
+                'response_code' => $mpesaStk->response_code,
+                'status' => $mpesaStk->status,
+                'receipt' => $mpesaStk->mpesa_receipt_number
+            ]);
+            
+            // ✅ Process payment if success
+            if ($resultCode == 0) {
+                $this->processSuccessfulPayment($mpesaStk, $metadata);
             } else {
                 Log::error('❌ M-Pesa payment failed', [
                     'result_code' => $resultCode,
-                    'checkout_request_id' => $checkoutRequestId
+                    'result_desc' => $resultDesc,
+                    'checkout_request_id' => $checkoutRequestId,
+                    'stk_id' => $mpesaStk->id
                 ]);
             }
+        } else {
+            Log::warning('⚠️ Invalid callback payload structure', [
+                'payload_keys' => array_keys($payload)
+            ]);
         }
         
+        // Always return success to M-Pesa
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
     }
 
     /**
-     * B2B Result URL - M-Pesa calls this for B2B transactions
+     * Process a successful M-Pesa payment
+     *
+     * @param MpesaStk $mpesaStk
+     * @param array $metadata
+     * @return void
+     */
+    protected function processSuccessfulPayment(MpesaStk $mpesaStk, array $metadata)
+    {
+        try {
+            $amount = $metadata['Amount'] ?? $mpesaStk->amount;
+            $receiptNumber = $metadata['MpesaReceiptNumber'] ?? null;
+            $phoneNumber = $metadata['PhoneNumber'] ?? $mpesaStk->phone_number;
+            $invoiceId = $mpesaStk->invoice_id;
+            
+            Log::info('💰 Processing successful payment', [
+                'stk_id' => $mpesaStk->id,
+                'invoice_id' => $invoiceId,
+                'amount' => $amount,
+                'receipt' => $receiptNumber
+            ]);
+            
+            if (!$invoiceId) {
+                Log::warning('⚠️ No invoice_id in STK record, cannot process payment');
+                return;
+            }
+            
+            $invoice = Invoice::find($invoiceId);
+            if (!$invoice) {
+                Log::warning('⚠️ Invoice not found', ['invoice_id' => $invoiceId]);
+                return;
+            }
+            
+            if ($invoice->status === 'paid') {
+                Log::warning('⚠️ Invoice already paid', ['invoice_id' => $invoiceId]);
+                return;
+            }
+            
+            // Check duplicate payment
+            $existingPayment = Payment::where('external_reference', $receiptNumber)
+                ->orWhere('meta->mpesa_receipt', $receiptNumber)
+                ->first();
+            if ($existingPayment) {
+                Log::warning('⚠️ Payment already exists for this receipt', [
+                    'receipt' => $receiptNumber,
+                    'payment_id' => $existingPayment->id
+                ]);
+                // Update STK with existing payment ID
+                $mpesaStk->payment_id = $existingPayment->id;
+                $mpesaStk->save();
+                return;
+            }
+            
+            // Create payment record
+            $payment = Payment::create([
+                'invoice_id' => $invoice->id,
+                'tenant_id' => $invoice->tenancy->tenant_id ?? null,
+                'user_id' => $mpesaStk->user_id,
+                'amount' => $amount,
+                'payment_method' => 'mpesa_stk',
+                'transaction_reference' => $mpesaStk->checkout_request_id,
+                'external_reference' => $receiptNumber,
+                'payer_name' => $invoice->tenancy?->tenant?->user?->name ?? 'M-Pesa Payment',
+                'status' => 'completed',
+                'is_reconciled' => true,
+                'reconciled_at' => now(),
+                'payment_month' => $invoice->billing_month ?? now()->format('Y-m'),
+                'payment_datetime' => now(),
+                'meta' => [
+                    'mpesa_stk_id' => $mpesaStk->id,
+                    'mpesa_receipt' => $receiptNumber,
+                    'mpesa_phone' => $phoneNumber,
+                    'checkout_request_id' => $mpesaStk->checkout_request_id,
+                    'merchant_request_id' => $mpesaStk->merchant_request_id,
+                    'source' => 'mpesa_stk_push',
+                    'callback_timestamp' => now()->toISOString(),
+                    'response_code' => 0,
+                    'transaction_date' => $mpesaStk->transaction_date?->toISOString(),
+                ]
+            ]);
+            
+            Log::info('✅ Payment record created', [
+                'payment_id' => $payment->id,
+                'amount' => $payment->amount,
+                'receipt' => $receiptNumber
+            ]);
+            
+            // Update invoice
+            $invoice->total_paid = ($invoice->total_paid ?? 0) + $amount;
+            $invoice->status = $invoice->total_paid >= $invoice->total_amount ? 'paid' : 'partial';
+            $invoice->save();
+            
+            Log::info('✅ Invoice updated', [
+                'invoice_id' => $invoice->id,
+                'new_status' => $invoice->status,
+                'total_paid' => $invoice->total_paid,
+                'remaining' => $invoice->remaining_amount
+            ]);
+            
+            // Link payment to STK
+            $mpesaStk->payment_id = $payment->id;
+            $meta = $mpesaStk->metadata ?? [];
+            $meta['payment_id'] = $payment->id;
+            $meta['payment_processed_at'] = now()->toISOString();
+            $meta['invoice_status_after'] = $invoice->status;
+            $mpesaStk->metadata = $meta;
+            $mpesaStk->save();
+            
+            Log::info('✅ Payment processing completed successfully', [
+                'stk_id' => $mpesaStk->id,
+                'payment_id' => $payment->id,
+                'invoice_id' => $invoice->id,
+                'response_code' => 0
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ Failed to process successful payment: ' . $e->getMessage(), [
+                'stk_id' => $mpesaStk->id ?? null,
+                'invoice_id' => $mpesaStk->invoice_id ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    }
+
+    /**
+     * B2B Result URL
      */
     public function b2bResult(Request $request)
     {
         $payload = $request->all();
         Log::info('M-Pesa B2B Result Received', $payload);
-        
-        if (isset($payload['Result'])) {
-            $result = $payload['Result'];
-            $resultCode = $result['ResultCode'] ?? null;
-            $resultDesc = $result['ResultDesc'] ?? null;
-            $transactionId = $result['TransactionID'] ?? null;
-            
-            if ($resultCode == 0) {
-                Log::info('✅ B2B Payment successful', [
-                    'transaction_id' => $transactionId,
-                    'result_desc' => $resultDesc
-                ]);
-            } else {
-                Log::error('❌ B2B Payment failed', [
-                    'transaction_id' => $transactionId,
-                    'result_code' => $resultCode,
-                    'result_desc' => $resultDesc
-                ]);
-            }
-        }
-        
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
     }
 
     /**
-     * B2B Queue Timeout URL - M-Pesa calls this on timeout
+     * B2B Queue Timeout URL
      */
     public function b2bQueueTimeout(Request $request)
     {
         $payload = $request->all();
         Log::warning('M-Pesa B2B Queue Timeout', $payload);
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
+    }
+
+    /**
+     * C2B Confirmation
+     */
+    public function confirmation(Request $request)
+    {
+        Log::info('M-Pesa C2B Confirmation Received', $request->all());
+        return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
+    }
+
+    /**
+     * C2B Validation
+     */
+    public function validation(Request $request)
+    {
+        Log::info('M-Pesa C2B Validation Received', $request->all());
         return response()->json(['ResultCode' => 0, 'ResultDesc' => 'Success']);
     }
 }

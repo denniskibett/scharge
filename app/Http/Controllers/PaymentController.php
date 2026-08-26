@@ -4,10 +4,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
-use App\Models\PendingMpesaPayment;
+use App\Models\MpesaStk;
 use App\Modules\Payments\Models\Invoice;
 use App\Modules\Tenants\Models\Tenant;
 use App\Modules\Payments\Services\WalletService;
+use App\Services\MpesaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,18 +24,271 @@ class PaymentController extends Controller
         $this->walletService = $walletService;
     }
 
+    /**
+     * Process M-Pesa STK Push payment - Bypasses wallet balance check
+     */
+    protected function processMpesaPayment($request, $tenant, $invoice)
+    {
+        Log::info('📱 Processing M-Pesa Payment - START', [
+            'tenant_id' => $tenant->id ?? null,
+            'invoice_id' => $invoice->id ?? null,
+            'amount' => $request->amount ?? null,
+        ]);
+        
+        // Get phone number
+        $phone = $request->mpesa_phone ?? $tenant->user->phone ?? null;
+        
+        if (!$phone) {
+            Log::error('❌ No phone number found for M-Pesa payment');
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Phone number required for M-Pesa payment. Please enter your M-Pesa phone number.'
+            ], 400);
+        }
+        
+        // Format phone number
+        $mpesaService = new MpesaService();
+        $phone = $mpesaService->formatPhoneNumber($phone);
+        
+        Log::info('📱 Formatted phone number', ['formatted_phone' => $phone]);
+        
+        // Send STK Push
+        $result = $mpesaService->stkPush(
+            $phone,
+            $request->amount,
+            $invoice->invoice_number ?? 'INV-' . $invoice->id,
+            "Payment for Invoice #{$invoice->id}",
+            auth()->id(),
+            $invoice->id,
+            null
+        );
+        
+        Log::info('📥 STK Push Result', [
+            'success' => $result['success'] ?? false,
+            'message' => $result['message'] ?? null,
+            'checkout_request_id' => $result['checkout_request_id'] ?? null,
+        ]);
+        
+        if ($result['success']) {
+            // Store in session
+            session([
+                'mpesa_invoice_id' => $invoice->id,
+                'mpesa_checkout_id' => $result['checkout_request_id'],
+                'mpesa_phone' => $phone,
+                'mpesa_amount' => $request->amount,
+                'mpesa_tenant_id' => $tenant->id,
+                'mpesa_stk_id' => $result['stk_id'],
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => '✅ STK Push sent to ' . $phone . '! Please check your phone and enter your M-Pesa PIN to complete payment.',
+                'checkout_request_id' => $result['checkout_request_id'],
+                'stk_id' => $result['stk_id'],
+                'is_mpesa' => true,
+                'phone' => $phone,
+                'response_code' => 0,
+                'status' => 'pending_confirmation'
+            ]);
+        }
+        
+        Log::error('❌ STK Push failed', [
+            'message' => $result['message'] ?? 'Unknown error',
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => '❌ STK Push failed: ' . ($result['message'] ?? 'Please try again.')
+        ], 400);
+    }
+
+    /**
+     * Check M-Pesa STK Push payment status (AJAX endpoint)
+     */
+    public function checkMpesaStatus(Request $request)
+    {
+        $request->validate([
+            'checkout_request_id' => 'required|string',
+        ]);
+
+        Log::info('🔍 Checking M-Pesa Status', [
+            'checkout_request_id' => $request->checkout_request_id
+        ]);
+
+        try {
+            $mpesa = new MpesaService();
+            $result = $mpesa->queryStatus($request->checkout_request_id);
+            
+            // Check local database for STK record
+            $mpesaStk = MpesaStk::where('checkout_request_id', $request->checkout_request_id)->first();
+            
+            Log::info('📊 Status Check Result', [
+                'api_success' => $result['success'] ?? false,
+                'local_record_exists' => !is_null($mpesaStk),
+            ]);
+            
+            if ($result['success']) {
+                $responseData = [
+                    'success' => true,
+                    'status' => $result['status'] ?? 'pending',
+                    'message' => $result['message'],
+                    'data' => $result['data']
+                ];
+                
+                if ($mpesaStk) {
+                    $responseData['local_status'] = [
+                        'response_code' => $mpesaStk->response_code,
+                        'response_description' => $mpesaStk->response_description,
+                        'customer_message' => $mpesaStk->customer_message,
+                        'receipt_number' => $mpesaStk->mpesa_receipt_number,
+                        'transaction_date' => $mpesaStk->transaction_date,
+                        'is_success' => $mpesaStk->response_code == 0,
+                        'has_payment' => isset($mpesaStk->metadata['payment_id']),
+                        'payment_id' => $mpesaStk->metadata['payment_id'] ?? null,
+                    ];
+                }
+                
+                return response()->json($responseData);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => $result['message'] ?? 'Status check failed'
+            ], 400);
+            
+        } catch (\Exception $e) {
+            Log::error('❌ M-Pesa status check error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check payment status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Store a new payment - M-Pesa bypasses wallet balance check
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'tenancy_id' => 'sometimes|exists:tenancies,id',
+            'tenant_id' => 'required_without:tenancy_id|exists:tenants,id',
+            'invoice_id' => 'required|exists:invoices,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill,mpesa,mpesa_stk',
+            'external_reference' => 'nullable|string',
+            'payment_datetime' => 'required_if:payment_method,cash,bank_transfer|nullable|date',
+            'payment_month' => 'required_if:payment_method,cash,bank_transfer|nullable|string',
+            'notes' => 'nullable|string',
+            'mpesa_phone' => 'required_if:payment_method,mpesa,mpesa_paybill,mpesa_stk|nullable|string',
+        ]);
+        
+        try {
+            // Get tenant and invoice
+            $tenant = Tenant::find($request->tenant_id);
+            if (!$tenant && $request->tenancy_id) {
+                $tenant = Tenant::whereHas('activeTenancy', function($q) use ($request) {
+                    $q->where('id', $request->tenancy_id);
+                })->first();
+            }
+            
+            $invoice = Invoice::findOrFail($request->invoice_id);
+            
+            // ✅ IMPORTANT: M-Pesa payments bypass wallet balance check
+            if (in_array($request->payment_method, ['mpesa', 'mpesa_paybill', 'mpesa_stk'])) {
+                return $this->processMpesaPayment($request, $tenant, $invoice);
+            }
+            
+            // For non-M-Pesa payments, check wallet balance
+            return $this->processRegularPayment($request, $tenant, $invoice);
+            
+        } catch (\Exception $e) {
+            Log::error('Error creating payment: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to record payment: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Process regular payment (Cash, Bank Transfer) - Requires wallet balance
+     */
+    protected function processRegularPayment($request, $tenant, $invoice)
+    {
+        if (!$request->payment_datetime || !$request->payment_month) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment date and month are required for this payment method.'
+            ], 400);
+        }
+        
+        if ($invoice->tenancy->tenant_id !== $tenant->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invoice does not belong to this tenant'
+            ], 400);
+        }
+        
+        // Check wallet balance for regular payments
+        $walletBalance = $tenant->balance ?? 0;
+        if ($walletBalance < $request->amount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Insufficient wallet balance. Available: KES ' . number_format($walletBalance, 2)
+            ], 400);
+        }
+        
+        $result = $this->walletService->processDirectPayment(
+            tenant: $tenant,
+            invoice: $invoice,
+            amount: $request->amount,
+            paymentMethod: $request->payment_method,
+            externalReference: $request->external_reference ?? 'MANUAL-' . time(),
+            meta: [
+                'notes' => $request->notes,
+                'payment_datetime' => $request->payment_datetime,
+                'payment_month' => $request->payment_month,
+                'source' => 'admin_panel',
+                'created_by' => auth()->id(),
+                'created_by_name' => auth()->user()->name,
+            ]
+        );
+        
+        if ($result['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'] ?? 'Payment processed successfully!',
+                'data' => [
+                    'payment_id' => $result['payment_id'],
+                    'wallet_balance' => $result['wallet_balance'],
+                    'amount_paid_to_invoice' => $result['amount_paid_to_invoice'],
+                    'amount_added_to_wallet' => $result['amount_added_to_wallet'],
+                    'invoice' => $result['invoice'],
+                ]
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => $result['error'] ?? 'Payment processing failed'
+        ], 400);
+    }
+
+    /**
+     * Display a listing of payments
+     */
     public function index()
     {
         $user = Auth::user();
         $company = $user->company;
         
-        // Get payments based on user role
         if ($user->hasRole('sysadmin')) {
             $payments = Payment::with(['tenant.user', 'invoice', 'invoice.items', 'user'])
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else if ($company) {
-            // For company-specific users, filter payments by company through invoice->tenancy->unit
             $payments = Payment::whereHas('invoice.tenancy.unit', function($q) use ($company) {
                     $q->where('company_id', $company->id);
                 })
@@ -45,7 +299,6 @@ class PaymentController extends Controller
             $payments = collect();
         }
         
-        // Get tenants for the dropdown
         $tenants = [];
         if ($company) {
             $tenants = Tenant::whereHas('user', function($q) use ($company) {
@@ -62,7 +315,6 @@ class PaymentController extends Controller
                 });
         }
         
-        // Get invoices for the dropdown
         $invoices = [];
         if ($company) {
             $invoices = Invoice::whereHas('tenancy.unit', function($q) use ($company) {
@@ -85,7 +337,6 @@ class PaymentController extends Controller
                 });
         }
         
-        // Map payments to structured data for the frontend
         $paymentsData = $payments->map(function ($payment) {
             return [
                 'id' => $payment->id,
@@ -125,7 +376,6 @@ class PaymentController extends Controller
             $payment = Payment::with(['tenant.user', 'invoice.items', 'invoice.tenancy.unit.estate', 'user'])
                 ->findOrFail($id);
             
-            // Check authorization
             if (!$user->hasRole('sysadmin') && $company) {
                 $paymentCompany = $payment->invoice?->tenancy?->unit?->estate?->company_id;
                 if ($paymentCompany != $company->id) {
@@ -186,223 +436,6 @@ class PaymentController extends Controller
     }
 
     /**
-     * Store a new payment - Handles both regular and M-Pesa STK Push payments
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'tenancy_id' => 'sometimes|exists:tenancies,id',
-            'tenant_id' => 'required_without:tenancy_id|exists:tenants,id',
-            'invoice_id' => 'required|exists:invoices,id',
-            'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill,mpesa',
-            'external_reference' => 'nullable|string',
-            'payment_datetime' => 'required_if:payment_method,cash,bank_transfer|nullable|date',
-            'payment_month' => 'required_if:payment_method,cash,bank_transfer|nullable|string',
-            'notes' => 'nullable|string',
-            'mpesa_phone' => 'required_if:payment_method,mpesa,mpesa_paybill|nullable|string',
-        ]);
-        
-        try {
-            // Get tenant and invoice
-            $tenant = Tenant::find($request->tenant_id);
-            if (!$tenant && $request->tenancy_id) {
-                $tenant = Tenant::whereHas('activeTenancy', function($q) use ($request) {
-                    $q->where('id', $request->tenancy_id);
-                })->first();
-            }
-            
-            $invoice = Invoice::findOrFail($request->invoice_id);
-            
-            // =========================================================
-            // 📱 M-PESA PAYBILL - STK PUSH
-            // =========================================================
-            if (in_array($request->payment_method, ['mpesa', 'mpesa_paybill'])) {
-                return $this->processMpesaPayment($request, $tenant, $invoice);
-            }
-            
-            // =========================================================
-            // 💰 REGULAR PAYMENT (Cash, Bank Transfer)
-            // =========================================================
-            return $this->processRegularPayment($request, $tenant, $invoice);
-            
-        } catch (\Exception $e) {
-            Log::error('Error creating payment: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to record payment: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Process M-Pesa STK Push payment
-     */
-    protected function processMpesaPayment($request, $tenant, $invoice)
-    {
-        // Get phone number
-        $phone = $request->mpesa_phone ?? $tenant->user->phone ?? null;
-        
-        if (!$phone) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Phone number required for M-Pesa payment. Please enter your M-Pesa phone number.'
-            ], 400);
-        }
-        
-        // Format phone number
-        $phone = $this->formatPhoneNumber($phone);
-        
-        Log::info('📱 Processing M-Pesa payment', [
-            'phone' => $phone,
-            'amount' => $request->amount,
-            'invoice_id' => $invoice->id,
-            'tenant_id' => $tenant->id
-        ]);
-        
-        // Send STK Push
-        $mpesa = new \App\Services\MpesaService();
-        $result = $mpesa->stkPush(
-            $phone,
-            $request->amount,
-            $invoice->invoice_number ?? 'INV-' . $invoice->id,
-            "Payment for Invoice #{$invoice->id}"
-        );
-        
-        Log::info('📤 STK Push result', ['result' => $result]);
-        
-        if ($result['success']) {
-            // Store in pending_mpesa_payments table (backup for callback)
-            try {
-                PendingMpesaPayment::create([
-                    'checkout_request_id' => $result['checkout_request_id'],
-                    'merchant_request_id' => $result['merchant_request_id'] ?? null,
-                    'invoice_id' => $invoice->id,
-                    'tenant_id' => $tenant->id,
-                    'phone_number' => $phone,
-                    'amount' => $request->amount,
-                    'status' => 'pending',
-                    'created_at' => now()
-                ]);
-                Log::info('✅ Pending payment stored in database', [
-                    'checkout_request_id' => $result['checkout_request_id'],
-                    'invoice_id' => $invoice->id
-                ]);
-            } catch (\Exception $e) {
-                Log::error('❌ Failed to store pending payment: ' . $e->getMessage(), [
-                    'trace' => $e->getTraceAsString()
-                ]);
-            }
-            
-            // Also store in session for immediate use
-            session([
-                'mpesa_invoice_id' => $invoice->id,
-                'mpesa_checkout_id' => $result['checkout_request_id'],
-                'mpesa_phone' => $phone,
-                'mpesa_amount' => $request->amount,
-                'mpesa_tenant_id' => $tenant->id,
-            ]);
-            
-            return response()->json([
-                'success' => true,
-                'message' => '✅ STK Push sent to ' . $phone . '! Please check your phone.',
-                'checkout_request_id' => $result['checkout_request_id'],
-                'is_mpesa' => true,
-                'phone' => $phone
-            ]);
-        }
-        
-        return response()->json([
-            'success' => false,
-            'message' => '❌ STK Push failed: ' . ($result['message'] ?? 'Please try again.')
-        ], 400);
-    }
-
-    /**
-     * Process regular payment (Cash, Bank Transfer)
-     */
-    protected function processRegularPayment($request, $tenant, $invoice)
-    {
-        // Validate required fields for regular payment
-        if (!$request->payment_datetime || !$request->payment_month) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment date and month are required for this payment method.'
-            ], 400);
-        }
-        
-        // Check if invoice belongs to this tenant
-        if ($invoice->tenancy->tenant_id !== $tenant->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invoice does not belong to this tenant'
-            ], 400);
-        }
-        
-        // Process the direct payment using wallet service
-        $result = $this->walletService->processDirectPayment(
-            tenant: $tenant,
-            invoice: $invoice,
-            amount: $request->amount,
-            paymentMethod: $request->payment_method,
-            externalReference: $request->external_reference ?? 'MANUAL-' . time(),
-            meta: [
-                'notes' => $request->notes,
-                'payment_datetime' => $request->payment_datetime,
-                'payment_month' => $request->payment_month,
-                'source' => 'admin_panel',
-                'created_by' => auth()->id(),
-                'created_by_name' => auth()->user()->name,
-            ]
-        );
-        
-        if ($result['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => $result['message'] ?? 'Payment processed successfully!',
-                'data' => [
-                    'payment_id' => $result['payment_id'],
-                    'wallet_balance' => $result['wallet_balance'],
-                    'amount_paid_to_invoice' => $result['amount_paid_to_invoice'],
-                    'amount_added_to_wallet' => $result['amount_added_to_wallet'],
-                    'invoice' => $result['invoice'],
-                ]
-            ]);
-        }
-        
-        return response()->json([
-            'success' => false,
-            'message' => $result['error'] ?? 'Payment processing failed'
-        ], 400);
-    }
-
-    /**
-     * Format phone number for M-Pesa
-     */
-    private function formatPhoneNumber($phone)
-    {
-        // Remove spaces and special characters
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-        
-        // If starts with 0, replace with 254
-        if (str_starts_with($phone, '0')) {
-            $phone = '254' . substr($phone, 1);
-        }
-        
-        // If starts with 7, add 254
-        if (str_starts_with($phone, '7')) {
-            $phone = '254' . $phone;
-        }
-        
-        // If starts with +, remove it
-        if (str_starts_with($phone, '+')) {
-            $phone = substr($phone, 1);
-        }
-        
-        return $phone;
-    }
-
-    /**
      * Get invoices for a specific tenant (AJAX endpoint)
      */
     public function getTenantInvoices($tenantId)
@@ -450,122 +483,267 @@ class PaymentController extends Controller
     }
 
     /**
-     * Check M-Pesa STK Push payment status (AJAX endpoint)
+     * Get payment creation data (AJAX endpoint)
      */
-    public function checkMpesaStatus(Request $request)
+    public function getCreateData(Request $request)
     {
-        $request->validate([
-            'checkout_request_id' => 'required|string',
-        ]);
-
         try {
-            $mpesa = new \App\Services\MpesaService();
-            $result = $mpesa->queryStatus($request->checkout_request_id);
+            $user = Auth::user();
+            $company = $user->company;
             
-            if ($result['success']) {
-                return response()->json([
-                    'success' => true,
-                    'status' => $result['status'] ?? 'pending',
-                    'message' => $result['message'],
-                    'data' => $result['data']
-                ]);
+            $tenants = [];
+            if ($company) {
+                $tenants = Tenant::whereHas('user', function($q) use ($company) {
+                        $q->where('company_id', $company->id);
+                    })
+                    ->with('user', 'activeTenancy.unit')
+                    ->get()
+                    ->map(function($tenant) {
+                        return [
+                            'id' => $tenant->id,
+                            'name' => $tenant->user->name ?? 'Unknown',
+                            'unit_number' => $tenant->activeTenancy?->unit?->unit_number ?? 'No Unit',
+                        ];
+                    });
+            }
+            
+            $invoices = [];
+            if ($company) {
+                $invoices = Invoice::whereHas('tenancy.unit', function($q) use ($company) {
+                        $q->where('company_id', $company->id);
+                    })
+                    ->whereIn('status', ['unpaid', 'partial'])
+                    ->with('tenancy.tenant.user')
+                    ->orderBy('billing_month', 'desc')
+                    ->get()
+                    ->map(function($invoice) {
+                        $tenantName = $invoice->tenancy?->tenant?->user?->name ?? 'Unknown';
+                        $invoiceNumber = $invoice->invoice_number ?? 'INV-' . $invoice->id;
+                        $billingMonth = $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '';
+                        return [
+                            'id' => $invoice->id,
+                            'label' => $tenantName . ' - ' . $invoiceNumber . ($billingMonth ? ' (' . $billingMonth . ')' : ''),
+                            'total_amount' => (float) $invoice->total_amount,
+                            'remaining_amount' => (float) $invoice->remaining_amount,
+                            'tenant_id' => $invoice->tenancy?->tenant_id,
+                        ];
+                    });
             }
             
             return response()->json([
-                'success' => false,
-                'message' => $result['message'] ?? 'Status check failed'
-            ], 400);
-            
+                'success' => true,
+                'tenants' => $tenants,
+                'invoices' => $invoices
+            ]);
         } catch (\Exception $e) {
-            Log::error('M-Pesa status check error: ' . $e->getMessage());
+            Log::error('Error fetching payment creation data: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to check payment status'
+                'message' => 'Failed to fetch data'
             ], 500);
         }
     }
 
     /**
-     * Update an existing payment (for status/reconciliation updates)
+     * Get invoice details for payment (AJAX endpoint)
      */
-    public function update(Request $request, $id)
+    public function getInvoiceDetails($invoiceId)
+    {
+        try {
+            $invoice = Invoice::with('items', 'tenancy.tenant.user')->findOrFail($invoiceId);
+            
+            return response()->json([
+                'success' => true,
+                'invoice' => [
+                    'id' => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number ?? 'INV-' . $invoice->id,
+                    'billing_month' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('M Y') : '-',
+                    'total_amount' => (float) $invoice->total_amount,
+                    'total_paid' => (float) $invoice->total_paid,
+                    'remaining_amount' => (float) $invoice->remaining_amount,
+                    'status' => $invoice->status,
+                    'tenant_id' => $invoice->tenancy?->tenant_id,
+                    'tenant_name' => $invoice->tenancy?->tenant?->user?->name ?? 'Unknown',
+                    'items' => $invoice->items->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'description' => $item->description,
+                            'amount' => (float) $item->amount,
+                            'paid_amount' => (float) ($item->paid_amount ?? 0),
+                            'remaining_amount' => (float) $item->remaining_amount,
+                            'item_type' => $item->item_type,
+                        ];
+                    }),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching invoice details: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch invoice details'
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk store payments
+     */
+    public function bulkStore(Request $request)
     {
         $request->validate([
-            'status' => 'sometimes|string|in:pending,completed,failed,cancelled,refunded',
-            'is_reconciled' => 'sometimes|boolean',
-            'notes' => 'nullable|string',
+            'payments' => 'required|array',
+            'payments.*.tenant_id' => 'required|exists:tenants,id',
+            'payments.*.invoice_id' => 'required|exists:invoices,id',
+            'payments.*.amount' => 'required|numeric|min:0.01',
+            'payments.*.payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill',
+            'payments.*.payment_datetime' => 'required|date',
+            'payments.*.payment_month' => 'required|string',
         ]);
         
         try {
-            $payment = Payment::findOrFail($id);
+            $results = [];
+            $errors = [];
             
-            $updateData = [];
-            
-            if ($request->has('status')) {
-                $updateData['status'] = $request->status;
-            }
-            
-            if ($request->has('is_reconciled')) {
-                $updateData['is_reconciled'] = $request->is_reconciled;
-                if ($request->is_reconciled) {
-                    $updateData['reconciled_at'] = now();
-                    $updateData['reconciled_by'] = Auth::id();
+            foreach ($request->payments as $index => $paymentData) {
+                try {
+                    $tenant = Tenant::find($paymentData['tenant_id']);
+                    $invoice = Invoice::find($paymentData['invoice_id']);
+                    
+                    if (!$tenant || !$invoice) {
+                        $errors[] = "Row " . ($index + 1) . ": Tenant or invoice not found";
+                        continue;
+                    }
+                    
+                    $result = $this->walletService->processDirectPayment(
+                        tenant: $tenant,
+                        invoice: $invoice,
+                        amount: $paymentData['amount'],
+                        paymentMethod: $paymentData['payment_method'],
+                        externalReference: $paymentData['external_reference'] ?? 'BULK-' . time() . '-' . $index,
+                        meta: [
+                            'payment_datetime' => $paymentData['payment_datetime'],
+                            'payment_month' => $paymentData['payment_month'],
+                            'source' => 'bulk_upload',
+                            'created_by' => auth()->id(),
+                            'created_by_name' => auth()->user()->name,
+                            'bulk_index' => $index,
+                        ]
+                    );
+                    
+                    if ($result['success']) {
+                        $results[] = [
+                            'row' => $index + 1,
+                            'tenant_id' => $tenant->id,
+                            'invoice_id' => $invoice->id,
+                            'amount' => $paymentData['amount'],
+                            'payment_id' => $result['payment_id'],
+                            'status' => 'success'
+                        ];
+                    } else {
+                        $errors[] = "Row " . ($index + 1) . ": " . ($result['error'] ?? 'Payment failed');
+                    }
+                } catch (\Exception $e) {
+                    $errors[] = "Row " . ($index + 1) . ": " . $e->getMessage();
                 }
             }
             
-            // Merge meta updates
-            $meta = $payment->meta ?? [];
-            $meta['updated_at'] = now()->toISOString();
-            $meta['updated_by'] = Auth::id();
-            $meta['updated_by_name'] = Auth::user()->name;
-            if ($request->has('notes')) {
-                $meta['update_notes'] = $request->notes;
-            }
-            $updateData['meta'] = $meta;
-            
-            $payment->update($updateData);
-            
             return response()->json([
-                'success' => true,
-                'message' => 'Payment updated successfully',
-                'payment' => $payment
+                'success' => count($errors) === 0,
+                'message' => count($results) . ' payments processed successfully' . (count($errors) > 0 ? ', ' . count($errors) . ' failed' : ''),
+                'results' => $results,
+                'errors' => $errors
             ]);
+            
         } catch (\Exception $e) {
-            Log::error('Error updating payment: ' . $e->getMessage());
+            Log::error('Error processing bulk payments: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update payment'
+                'message' => 'Failed to process bulk payments: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Delete a payment
+     * Tenant payment (for tenant-facing endpoints)
      */
-    public function destroy($id)
+    public function tenantPayment(Request $request)
     {
+        $request->validate([
+            'invoice_id' => 'required|exists:invoices,id',
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string|in:wallet,mpesa_stk',
+            'phone' => 'required_if:payment_method,mpesa_stk|nullable|string',
+        ]);
+        
         try {
-            $payment = Payment::findOrFail($id);
+            $user = Auth::user();
+            $tenant = $user->tenant;
             
-            // Don't allow deletion of completed payments that affect wallet balance
-            if ($payment->status === Payment::STATUS_COMPLETED && $payment->payment_method === Payment::METHOD_WALLET) {
+            if (!$tenant) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete completed wallet payments as they affect balance history'
+                    'message' => 'Tenant not found'
                 ], 400);
             }
             
-            $payment->delete();
+            $invoice = Invoice::findOrFail($request->invoice_id);
+            
+            $tenancy = $tenant->activeTenancy;
+            if (!$tenancy || $tenancy->id !== $invoice->tenancy_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You are not authorized to pay this invoice'
+                ], 403);
+            }
+            
+            if ($request->payment_method === 'wallet') {
+                // Check wallet balance
+                if ($tenant->balance < $request->amount) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Insufficient wallet balance. Available: KES ' . number_format($tenant->balance, 2)
+                    ], 400);
+                }
+                
+                $result = $this->walletService->payInvoice($tenant, $invoice, $request->amount);
+                
+                if ($result['success']) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Payment successful! KES ' . number_format($request->amount, 2) . ' paid from wallet.',
+                        'new_balance' => $result['balance'],
+                        'invoice_status' => $invoice->refresh()->status,
+                    ]);
+                }
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['error'] ?? 'Payment failed'
+                ], 400);
+            } elseif ($request->payment_method === 'mpesa_stk') {
+                // M-Pesa bypasses wallet balance
+                return $this->processMpesaPayment(
+                    new Request([
+                        'mpesa_phone' => $request->phone,
+                        'amount' => $request->amount,
+                        'invoice_id' => $invoice->id,
+                        'payment_method' => 'mpesa_stk',
+                    ]),
+                    $tenant,
+                    $invoice
+                );
+            }
             
             return response()->json([
-                'success' => true,
-                'message' => 'Payment deleted successfully'
-            ]);
+                'success' => false,
+                'message' => 'Invalid payment method'
+            ], 400);
+            
         } catch (\Exception $e) {
-            Log::error('Error deleting payment: ' . $e->getMessage());
+            Log::error('Error processing tenant payment: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete payment'
+                'message' => 'Failed to process payment: ' . $e->getMessage()
             ], 500);
         }
     }
