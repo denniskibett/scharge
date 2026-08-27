@@ -207,6 +207,26 @@ class SmsController extends Controller
     }
 
     // ============================================
+    // Clean and truncate message – preserves line breaks
+    // ============================================
+ protected function cleanAndTruncateMessage($message)
+{
+    // Split lines, clean each line, rejoin
+    $lines = explode("\n", $message);
+    $lines = array_map(function($line) {
+        return trim(preg_replace('/[ \t]+/', ' ', $line));
+    }, $lines);
+    $cleaned = implode("\n", $lines);
+    $cleaned = preg_replace("/\n{2,}/", "\n", $cleaned);
+    $cleaned = trim($cleaned);
+
+    if (mb_strlen($cleaned) > 300) {
+        $cleaned = mb_substr($cleaned, 0, 297) . '...';
+    }
+    return $cleaned;
+}
+
+    // ============================================
     // SEND BULK SMS
     // ============================================
     public function send(Request $request, KenyaSMS $kenyaSms)
@@ -381,6 +401,9 @@ class SmsController extends Controller
             $message = preg_replace('/\b(\d+),(\d+)\.00\b/', '$1,$2', $message);
             $message = str_replace('  ', ' ', $message);
             $message = str_replace('KES KES', 'KES', $message);
+
+            // Clean and truncate to max 2 SMS parts
+            $message = $this->cleanAndTruncateMessage($message);
 
             $preparedRecipients[] = [
                 'phone' => $recipient['phone'],

@@ -136,19 +136,16 @@
 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
     <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
     @verbatim
-    <textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Enter your message template here">{{estate_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))
-
+    <textarea id="template" name="template" rows="4" ...>
+{{estate_name}} {{month}} Water Bill - ({{water_consumption}}units (last {{prev_read}}→ new {{curr_read}})
 Paybill: 7263733
 Acc: {{unit}}
 Amount: KES {{water_bill}}
 Due: {{due_date}}
 Status: {{payment_status}}
-
-{{unpaid_section}}
-
-Total Due: KES {{total_due}}
-
-For queries: 0701262902</textarea>
+{{unpaid_section}}Total Due: KES {{total_due}}
+Queries: 0701262902
+    </textarea>
     @endverbatim
     <div class="flex flex-wrap gap-2 mt-2">
         <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, unpaid_section, total_due</span>
@@ -158,7 +155,6 @@ For queries: 0701262902</textarea>
         🔧 Make Compact (reduce characters)
     </button>
 </div>
-
 <!-- Preview Section -->
 <div class="p-6 border-b border-gray-200 dark:border-gray-700" id="previewSection" style="display: none;">
     <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Preview (first 3)</h3>
@@ -1063,24 +1059,47 @@ For queries: 0701262902</textarea>
 <!-- KENYASMS CAMPAIGNS MODAL -->
 <!-- ============================================ -->
 <div id="kenyaSmsModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+    <!-- Overlay -->
     <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeKenyaSmsModal()"></div>
+    
+    <!-- Modal Container -->
     <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
-            <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                        <i class="fas fa-cloud text-purple-600 mr-2"></i> KenyaSMS Campaigns
-                    </h3>
-                    <button onclick="closeKenyaSmsModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
+        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden">
+            
+            <!-- Sticky Header with Close Button -->
+            <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-cloud text-purple-600 dark:text-purple-400 text-xl"></i>
+                    <h3 class="text-xl font-semibold text-gray-800 dark:text-white">KenyaSMS Campaigns</h3>
+                    @if(config('sms.kenyasms.sandbox', true))
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                            <span class="inline-block h-1.5 w-1.5 rounded-full bg-yellow-400 mr-1 animate-pulse"></span>
+                            Sandbox
+                        </span>
+                    @endif
+                </div>
+                <button onclick="closeKenyaSmsModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <i class="fas fa-times text-2xl"></i>
+                </button>
+            </div>
+            
+            <!-- Scrollable Body -->
+            <div id="kenyaSmsModalContent" class="px-6 py-4 overflow-y-auto" style="max-height: calc(90vh - 80px);">
+                <!-- Content will be injected by JavaScript -->
+                <div class="text-center py-12">
+                    <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
+                    <p class="mt-3 text-gray-500 dark:text-gray-400">Loading campaigns from KenyaSMS...</p>
                 </div>
             </div>
-            <div id="kenyaSmsModalContent" class="px-6 py-4 overflow-y-auto" style="max-height: calc(90vh - 70px);">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-                    <p class="mt-2 text-gray-500">Loading campaigns from KenyaSMS...</p>
-                </div>
+            
+            <!-- Sticky Footer with Close Button -->
+            <div class="sticky bottom-0 z-10 bg-white dark:bg-gray-800 px-6 py-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button onclick="refreshKenyaSmsCampaigns()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-100 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+                <button onclick="closeKenyaSmsModal()" class="inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:ring-gray-600 dark:hover:bg-gray-600">
+                    <i class="fas fa-times mr-1"></i> Close
+                </button>
             </div>
         </div>
     </div>
@@ -1138,6 +1157,26 @@ function formatMonthYear(dateStr) {
     } catch (e) { /* ignore */ }
     return dateStr;
 }
+// ============================================================
+// CLEAN AND TRUNCATE MESSAGE – preserves line breaks
+// ============================================================
+function cleanAndTruncateMessage(msg) {
+    // Split into lines, clean each line individually
+    let lines = msg.split('\n');
+    lines = lines.map(line => line.replace(/[ \t]+/g, ' ').trim());
+    // Rejoin with newlines
+    let cleaned = lines.join('\n');
+    // Collapse multiple newlines to one (if any)
+    cleaned = cleaned.replace(/\n{2,}/g, '\n');
+    cleaned = cleaned.trim();
+
+    // Truncate to max 300 characters
+    if (cleaned.length > 300) {
+        cleaned = cleaned.substring(0, 297) + '...';
+    }
+    return cleaned;
+}
+
         // ============================================
         // HELPER: Escape HTML
         // ============================================
@@ -1762,10 +1801,10 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             }).join('\n');
         }
 
-        // --- Build unpaid section (only the "Unpaid:" header and the list, no total line) ---
+        // --- Build unpaid section with trailing newline ---
         let unpaidSection = '';
         if (unpaidCount > 0) {
-            unpaidSection = 'Unpaid:\n' + unpaidList;
+            unpaidSection = 'Unpaid:\n' + unpaidList + '\n';
         }
 
         // ----- Gather other data from the checkbox -----
@@ -1812,6 +1851,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         message = message.replace(/\{\{unpaid_section\}\}/g, unpaidSection);
         message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
         message = message.replace(/\{\{[^}]*\}\}/g, '');
+
+        // ✅ No truncation in preview – keep line breaks as-is
 
         const msgLength = message.length;
         const isUnicode = /[^\x00-\x7F]/.test(message);
@@ -2358,25 +2399,28 @@ function listKenyaSmsCampaigns() {
     const modal = document.getElementById('kenyaSmsModal');
     const content = document.getElementById('kenyaSmsModalContent');
     
-    // Show modal with loading state
     modal.style.display = 'block';
     content.innerHTML = `
-        <div class="text-center py-8">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <p class="mt-2 text-gray-500">Loading campaigns from KenyaSMS...</p>
+        <div class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
+            <p class="mt-3 text-gray-500 dark:text-gray-400">Loading campaigns from KenyaSMS...</p>
         </div>
     `;
 
     fetch('/api/sms/campaigns/kenyasms')
         .then(response => response.json())
         .then(data => {
+            console.log('📥 KenyaSMS API response:', data);
             if (data.success) {
                 renderKenyaSmsCampaigns(data.campaigns, data.total);
             } else {
                 content.innerHTML = `
-                    <div class="text-center py-8 text-red-500">
-                        <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                    <div class="text-center py-12 text-red-500">
+                        <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
                         <p>${data.message || 'Failed to load campaigns'}</p>
+                        <button onclick="refreshKenyaSmsCampaigns()" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            <i class="fas fa-sync-alt"></i> Retry
+                        </button>
                     </div>
                 `;
             }
@@ -2384,34 +2428,50 @@ function listKenyaSmsCampaigns() {
         .catch(error => {
             console.error('Error fetching KenyaSMS campaigns:', error);
             content.innerHTML = `
-                <div class="text-center py-8 text-red-500">
-                    <i class="fas fa-exclamation-circle text-4xl mb-2"></i>
+                <div class="text-center py-12 text-red-500">
+                    <i class="fas fa-exclamation-circle text-4xl mb-3"></i>
                     <p>Error loading campaigns: ${error.message}</p>
+                    <button onclick="refreshKenyaSmsCampaigns()" class="mt-3 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        <i class="fas fa-sync-alt"></i> Retry
+                    </button>
                 </div>
             `;
         });
 }
-
 /**
- * Render KenyaSMS campaigns in the modal
+ * Refresh KenyaSMS campaigns (reloads the list)
  */
+function refreshKenyaSmsCampaigns() {
+    listKenyaSmsCampaigns();
+}
+/**
+ * Close KenyaSMS modal
+ */
+function closeKenyaSmsModal() {
+    const modal = document.getElementById('kenyaSmsModal');
+    if (modal) modal.style.display = 'none';
+}
+
+// Close modal when clicking outside (already handled by onclick on overlay)
+
 function renderKenyaSmsCampaigns(campaigns, total) {
     const content = document.getElementById('kenyaSmsModalContent');
     
     // Ensure campaigns is an array
-    if (!campaigns || typeof campaigns !== 'object') {
-        campaigns = [];
-    }
-    if (!Array.isArray(campaigns)) {
-        campaigns = Object.values(campaigns);
-    }
+    if (!campaigns || typeof campaigns !== 'object') campaigns = [];
+    if (!Array.isArray(campaigns)) campaigns = Object.values(campaigns);
     campaigns = campaigns.filter(c => c && typeof c === 'object');
     
+    // If no campaigns, show empty state
     if (campaigns.length === 0) {
         content.innerHTML = `
-            <div class="text-center py-8 text-gray-500">
-                <i class="fas fa-inbox text-4xl mb-2"></i>
-                <p>No campaigns found in KenyaSMS.</p>
+            <div class="text-center py-12 text-gray-500 dark:text-gray-400">
+                <i class="fas fa-inbox text-5xl mb-3 text-gray-300 dark:text-gray-600"></i>
+                <p class="text-lg font-medium">No campaigns found in KenyaSMS.</p>
+                <p class="text-sm mt-1">Try refreshing or check your KenyaSMS account.</p>
+                <button onclick="refreshKenyaSmsCampaigns()" class="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
             </div>
         `;
         return;
@@ -2422,7 +2482,7 @@ function renderKenyaSmsCampaigns(campaigns, total) {
     const notImportedCount = campaigns.length - importedCount;
 
     let html = `
-        <div class="mb-4 flex justify-between items-center flex-wrap gap-2">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div class="text-sm text-gray-500 dark:text-gray-400">
                 Showing <strong>${campaigns.length}</strong> of ${total || campaigns.length} campaigns
                 <span class="ml-2 text-xs">
@@ -2435,7 +2495,7 @@ function renderKenyaSmsCampaigns(campaigns, total) {
                 <i class="fas fa-info-circle mr-1"></i> Click "Import" to match recipients with unit numbers
             </div>
         </div>
-        <div class="w-full overflow-x-auto">
+        <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
             <table class="min-w-full">
                 <thead class="bg-gray-50 dark:bg-gray-800">
                     <tr class="border-b border-gray-200 dark:border-gray-700">
@@ -2512,7 +2572,7 @@ function renderKenyaSmsCampaigns(campaigns, total) {
                 </tbody>
             </table>
         </div>
-        <div class="mt-4 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3 flex justify-between flex-wrap gap-2">
+        <div class="mt-4 text-xs text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-3 flex flex-wrap justify-between gap-2">
             <span>
                 <i class="fas fa-check-circle text-green-600 mr-1"></i> Imported campaigns are already in your local system
             </span>
@@ -2646,10 +2706,13 @@ function closeKenyaSmsModal() {
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
     const modal = document.getElementById('kenyaSmsModal');
-    if (modal && modal.style.display === 'block') {
-        if (event.target.closest('.fixed.inset-0.bg-gray-900/50')) {
-            closeKenyaSmsModal();
-        }
+    if (!modal || modal.style.display !== 'block') {
+        return;
+    }
+    // Check if the click is on the overlay (the first child with class 'fixed.inset-0')
+    const overlay = modal.querySelector('.fixed.inset-0');
+    if (overlay && event.target === overlay) {
+        closeKenyaSmsModal();
     }
 });
 
@@ -2927,9 +2990,9 @@ function renderCampaigns() {
     // ✅ Apply filters
     let filteredData = campaignsData;
     
-    // ✅ If in sandbox mode, only show local campaigns
+    // ✅ If in sandbox mode, show local + imported campaigns (for testing)
     if (isSandbox) {
-        filteredData = filteredData.filter(c => c.source === 'local' || c.source === null);
+        filteredData = filteredData.filter(c => c.source === 'local' || c.source === null || c.source === 'kenyasms_imported');
     }
     
     // Apply source filter (only in live mode)
@@ -2945,7 +3008,7 @@ function renderCampaigns() {
     if (filteredData.length === 0) {
         let message = 'No campaigns found.';
         if (isSandbox) {
-            message = '🔒 Sandbox mode: No local campaigns found. Create a new campaign to test.';
+            message = '🔒 Sandbox mode: No local or imported campaigns found. Create a new campaign to test.';
         } else if (currentSourceFilter !== 'all' || currentCampaignFilter !== 'all') {
             message = 'No campaigns match the current filters.';
         }
@@ -2995,7 +3058,7 @@ function renderCampaigns() {
         const total = filteredData.length;
         let sourceLabel = '';
         if (isSandbox) {
-            sourceLabel = ' (Sandbox - Local only)';
+            sourceLabel = ' (Sandbox - Local + Imported)';
         } else if (currentSourceFilter !== 'all') {
             sourceLabel = ` (${currentSourceFilter === 'local' ? 'Local' : 'Imported'})`;
         }
@@ -3178,7 +3241,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
     const previewTenants = tenants.slice(0, previewLimit);
     let hasOutstanding = false;
     
-    // Helper: Check if invoice is unpaid or partial
     function isUnpaidOrPartial(status) {
         return ['unpaid', 'partial', 'overdue'].includes(status);
     }
@@ -3191,7 +3253,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         console.log(`🔍 Tenant waterbill from table: ${tenant.waterbill}`);
         console.log(`🔍 Tenant payment status: ${tenant.paymentStatus}`);
         
-        // Find invoices for this tenant (using multiple key formats)
         if (invoiceData[String(tenantId)]) {
             tenantInvoices = invoiceData[String(tenantId)];
             console.log(`✅ Found invoices using string key "${String(tenantId)}"`);
@@ -3212,7 +3273,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         console.log(`🔍 Tenant ${tenantId} (${tenant.name}) - Invoices found:`, tenantInvoices.length);
         
-        // --- Determine current month ---
         let currentMonthY = '';
         if (tenant.month) {
             try {
@@ -3241,7 +3301,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         console.log(`📅 Tenant ${tenantId} currentMonthY: ${currentMonthY}`);
         
-        // --- Find current month's invoice (show for accountability) ---
         let currentInvoice = tenantInvoices.find(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
@@ -3253,26 +3312,17 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         console.log(`💵 currentBill from invoices: ${currentBill}`);
         console.log(`📊 currentStatus: ${currentStatus}`);
         
-        // ✅ If no invoice, fallback to tenant waterbill
         if ((!currentInvoice || currentBill === 0) && tenant.waterbill > 0) {
             console.warn(`⚠️ No invoice for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
             currentBill = tenant.waterbill;
             currentStatus = 'unknown';
         }
         
-        // --- Filter OLDER invoices (billing_month < currentMonthY) ---
-        // ✅ Include ONLY unpaid, partial, and overdue – EXCLUDE paid invoices
         let olderInvoices = tenantInvoices.filter(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
-            
-            // Only older invoices
             if (invMonth >= currentMonthY) return false;
-            
-            // ✅ EXCLUDE paid invoices from older invoices
             if (!isUnpaidOrPartial(inv.status)) return false;
-            
-            // Check if due date is today or earlier
             let dueDate;
             if (inv.due_date) {
                 dueDate = new Date(inv.due_date);
@@ -3282,15 +3332,12 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 dueDate.setDate(5);
             }
             dueDate.setHours(0, 0, 0, 0);
-            
             return dueDate <= today;
         });
         
-        // Calculate totals
         let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
         let paymentStatus = tenant.paymentStatus || 'pending';
         
-        // --- If tenant is fully paid, zero everything ---
         if (paymentStatus === 'paid') {
             currentBill = 0;
             olderTotal = 0;
@@ -3306,7 +3353,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         console.log(`🔍 Tenant ${tenantId} olderInvoices count: ${unpaidCount}`);
         console.log(`🔍 Tenant ${tenantId} currentStatus: ${currentStatus}`);
         
-        // ✅ Build unpaid list – each invoice on its own line, status prefix only if not 'unpaid'
         let unpaidList = '';
         if (unpaidCount > 0) {
             unpaidList = olderInvoices.map(inv => {
@@ -3319,18 +3365,16 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             }).join('\n');
         }
         
-        // ✅ Build unpaid section (only "Unpaid:" header + list, no total line)
+        // ✅ Build unpaid section with trailing newline
         let unpaidSection = '';
         if (unpaidCount > 0) {
-            unpaidSection = 'Unpaid:\n' + unpaidList;
+            unpaidSection = 'Unpaid:\n' + unpaidList + '\n';
         }
         
-        // ✅ Track if any outstanding balance exists
         if (totalDue > 0) {
             hasOutstanding = true;
         }
         
-        // Format due date
         let dueDate = tenant.dueDate || 'N/A';
         try {
             const d = new Date(dueDate);
@@ -3343,7 +3387,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         const waterConsumption = tenant.waterConsumption || 0;
         
-        // --- Replace placeholders ---
         let message = templateContent;
         const placeholders = {
             '{{name}}': tenant.name || 'Tenant',
@@ -3368,29 +3411,14 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             '{{current_status}}': currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1),
         };
         
-        // Apply all replacements
         for (const [key, value] of Object.entries(placeholders)) {
             message = message.split(key).join(value);
         }
         
-        // Remove any remaining placeholders
         message = message.replace(/\{\{[^}]*\}\}/g, '');
-        
-        // ✅ CLEAN THE MESSAGE – remove excessive blank lines
-        function cleanMessage(msg) {
-            // Remove multiple consecutive newlines (keep max 2)
-            msg = msg.replace(/\n{3,}/g, '\n\n');
-            // Remove trailing spaces before newline
-            msg = msg.replace(/[ \t]+\n/g, '\n');
-            // Remove leading/trailing newlines
-            msg = msg.trim();
-            return msg;
-        }
-        message = cleanMessage(message);
         
         console.log(`📨 Final message for ${tenant.name}:`, message);
         
-        // --- Build HTML ---
         let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
         if (paymentStatus === 'paid') {
             statusBadgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
@@ -3405,7 +3433,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} overdue</span>`;
         }
         
-        // ✅ Show current bill status if it's paid
         let currentBillStatus = '';
         if (currentStatus === 'paid') {
             currentBillStatus = ` (Paid)`;
@@ -3437,7 +3464,6 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         `;
     });
     
-    // Show message if no outstanding balance
     if (!hasOutstanding) {
         html += `
             <div class="text-center py-4 text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg">
