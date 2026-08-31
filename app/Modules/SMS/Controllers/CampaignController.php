@@ -69,7 +69,6 @@ class CampaignController extends Controller
                 'updated_at'
             )->orderBy('created_at', 'desc');
             
-            // If sandbox is true, only show local campaigns
             if ($sandbox) {
                 $query->where(function($q) {
                     $q->where('source', 'local')
@@ -133,13 +132,11 @@ class CampaignController extends Controller
             $sandbox = config('sms.kenyasms.sandbox', true);
             Log::info('📡 listFromKenyaSMS called, sandbox: ' . ($sandbox ? 'true' : 'false'));
 
-            // If sandbox is true, return mock data immediately
             if ($sandbox) {
                 Log::info('📡 Sandbox mode – returning mock campaigns');
                 return $this->getMockCampaignsResponse(['sandbox' => true]);
             }
 
-            // Live mode – fetch from KenyaSMS
             $page = $request->input('page', 1);
             $limit = $request->input('limit', 20);
             $status = $request->input('status', null);
@@ -153,13 +150,11 @@ class CampaignController extends Controller
                 'error' => $result['error'] ?? null,
             ]);
 
-            // If API call fails or returns no data, fallback to mock
             if (!$result['success'] || empty($result['data']['campaigns'] ?? [])) {
                 Log::warning('⚠️ KenyaSMS API returned no campaigns or error, falling back to mock data');
                 return $this->getMockCampaignsResponse(['reason' => 'API returned no campaigns']);
             }
 
-            // Extract campaigns – support multiple response structures
             $campaigns = $result['data']['campaigns'];
 
             if (empty($campaigns)) {
@@ -167,7 +162,6 @@ class CampaignController extends Controller
                 return $this->getMockCampaignsResponse(['reason' => 'No campaigns in response']);
             }
 
-            // Get already imported campaign IDs
             $importedIds = SmsCampaign::whereNotNull('kenyasms_campaign_id')
                 ->pluck('kenyasms_campaign_id')
                 ->map(function($id) { return (string) $id; })
@@ -218,7 +212,6 @@ class CampaignController extends Controller
                 ];
             }, $campaigns);
 
-            // Remove campaigns with null ID
             $mappedCampaigns = array_filter($mappedCampaigns, function($campaign) {
                 return !empty($campaign['id']);
             });
@@ -310,22 +303,18 @@ class CampaignController extends Controller
     public function getDetails($id)
     {
         try {
-            // AUTO-SYNC: If campaign has a KenyaSMS ID, sync status before returning
             $campaign = SmsCampaign::find($id);
             if ($campaign && $campaign->kenyasms_campaign_id) {
                 $this->campaignService->syncCampaignStatus($id);
             }
 
-            // Re-fetch campaign with relations after sync
             $campaign = SmsCampaign::with(['template', 'creator'])
                 ->findOrFail($id);
             
-            // Get recipients with tenant and status info
             $recipients = CampaignRecipient::where('campaign_id', $campaign->id)
                 ->with(['tenant.user', 'tenant.activeTenancy.unit.estate'])
                 ->get();
             
-            // Compute status counts
             $statusCounts = [
                 'sent' => $recipients->where('status', 'sent')->count(),
                 'pending' => $recipients->where('status', 'pending')->count(),
@@ -334,7 +323,6 @@ class CampaignController extends Controller
                 'delivered' => $recipients->where('status', 'delivered')->count(),
             ];
             
-            // Compute validation stats from recipients' phone numbers
             $valid = 0;
             $otherNetwork = 0;
             $invalid = 0;
@@ -354,7 +342,6 @@ class CampaignController extends Controller
                 'invalid' => $invalid,
             ];
             
-            // Build recipient data for the frontend
             $recipientData = $recipients->map(function ($recipient) {
                 $tenant = $recipient->tenant;
                 $user = $tenant ? $tenant->user : null;
@@ -487,7 +474,6 @@ class CampaignController extends Controller
     // ============================================================
     protected function cleanAndTruncateMessage($message)
     {
-        // Split lines, clean each line, rejoin
         $lines = explode("\n", $message);
         $lines = array_map(function($line) {
             return trim(preg_replace('/[ \t]+/', ' ', $line));
@@ -533,7 +519,6 @@ class CampaignController extends Controller
                 ->keyBy('id');
         }
 
-        // Fetch all unpaid/partial invoices
         $unpaidInvoices = DB::table('invoices')
             ->join('tenancies', 'tenancies.id', '=', 'invoices.tenancy_id')
             ->join('tenants', 'tenants.id', '=', 'tenancies.tenant_id')
@@ -550,7 +535,6 @@ class CampaignController extends Controller
             ->orderBy('invoices.billing_month', 'asc')
             ->get();
 
-        // Transform each invoice to include computed due_date
         $transformedInvoices = $unpaidInvoices->map(function ($inv) {
             $dueDate = Carbon::parse($inv->billing_month)->addMonth()->day(5);
             return (object) [
@@ -585,7 +569,6 @@ class CampaignController extends Controller
             $variables = $recipient['variables'] ?? [];
             $tenantId = $recipient['id'] ?? null;
             
-            // Get tenant data if available
             if ($tenantId && $tenantData->has($tenantId)) {
                 $tenant = $tenantData->get($tenantId);
                 $activeTenancy = $tenant->activeTenancy;
@@ -621,10 +604,8 @@ class CampaignController extends Controller
                 $variables['status'] = $paymentStatus;
             }
 
-            // Get invoices for this tenant
             $invoices = $tenantId ? ($groupedInvoices->get($tenantId) ?? collect([])) : collect([]);
 
-            // DETERMINE CURRENT MONTH FROM LATEST INVOICE
             $currentMonthY = '';
             if ($invoices->isNotEmpty()) {
                 $latest = $invoices->sortByDesc('billing_month')->first();
@@ -632,12 +613,10 @@ class CampaignController extends Controller
                     $currentMonthY = Carbon::parse($latest->billing_month)->format('Y-m');
                 }
             }
-            // Fallback to reading month if no invoices
             if (empty($currentMonthY)) {
                 $currentMonthY = Carbon::parse($variables['month'] ?? now()->format('F Y'))->format('Y-m');
             }
 
-            // Filter older invoices: billing_month < currentMonthY AND due_date <= today
             $today = Carbon::today();
             $olderInvoices = $invoices->filter(function($inv) use ($currentMonthY, $today) {
                 $billingMonthY = Carbon::parse($inv->billing_month)->format('Y-m');
@@ -650,19 +629,17 @@ class CampaignController extends Controller
             $olderCount = $olderInvoices->count();
             $olderTotal = $olderInvoices->sum('amount');
 
-            // Current month's bill
             $currentBill = (int) ($variables['water_bill'] ?? 0);
             $unpaidTotal = $olderTotal;
             $totalDue = $currentBill + $olderTotal;
 
-            // Build unpaid list - each invoice on its own line
             $unpaidList = $olderInvoices->map(function($inv) {
                 $billingMonth = Carbon::parse($inv->billing_month)->format('F Y');
                 return $inv->status . ' (' . $billingMonth . '): KES ' . number_format($inv->amount, 2);
             })->implode("\n");
 
             // Build unpaid section (without extra blank lines)
-            $unpaidSection = $olderCount > 0 ? "Unpaid:\n" . $unpaidList : '';
+            $unpaidSection = $olderCount > 0 ? "Unpaid:\n" . $unpaidList . "\n" : '';
 
             $unpaidMessage = $olderCount === 0
                 ? 'no overdue invoices'
@@ -671,7 +648,6 @@ class CampaignController extends Controller
                     : $olderCount . ' overdue invoices totaling KES ' . number_format($olderTotal, 2)
                 );
 
-            // Add all variables for replacement
             $variables['unpaid_count'] = $olderCount;
             $variables['unpaid_total'] = number_format($unpaidTotal, 2);
             $variables['unpaid_list'] = $unpaidList;
@@ -679,7 +655,6 @@ class CampaignController extends Controller
             $variables['unpaid_section'] = $unpaidSection;
             $variables['total_due'] = number_format($totalDue, 2);
 
-            // Fallback defaults
             if (!isset($variables['name']) || empty($variables['name'])) {
                 $variables['name'] = $recipient['name'] ?? 'Tenant';
             }
@@ -697,7 +672,6 @@ class CampaignController extends Controller
             }
             $variables['status'] = $variables['payment_status'];
 
-            // Replace placeholders in the message
             $message = $template;
             foreach ($variables as $key => $value) {
                 if ($value !== null) {
@@ -705,16 +679,12 @@ class CampaignController extends Controller
                 }
             }
             
-            // Clean up the message
             $message = preg_replace('/\b(\d+)\.00\b/', '$1', $message);
             $message = preg_replace('/\b(\d+),(\d+)\.00\b/', '$1,$2', $message);
             $message = str_replace('  ', ' ', $message);
             $message = str_replace('KES KES', 'KES', $message);
-            
-            // Remove any remaining unreplaced placeholders
             $message = preg_replace('/\{\{[^}]*\}\}/', '', $message);
 
-            // Clean and truncate to max 2 SMS parts
             $message = $this->cleanAndTruncateMessage($message);
 
             $preparedRecipients[] = [
@@ -748,7 +718,6 @@ class CampaignController extends Controller
             'created_by' => auth()->id(),
         ]);
 
-        // Save personalized messages to campaign_recipients
         foreach ($preparedRecipients as $recipient) {
             CampaignRecipient::create([
                 'campaign_id' => $campaign->id,
@@ -1346,7 +1315,6 @@ class CampaignController extends Controller
             $page = $request->input('page', 1);
             $limit = $request->input('limit', 100);
             
-            // Step 1: Fetch campaigns from KenyaSMS
             $result = app(KenyaSMS::class)->listCampaigns($page, $limit);
             
             \Log::info('📥 KenyaSMS listCampaigns result', [
@@ -1355,13 +1323,11 @@ class CampaignController extends Controller
                 'error' => $result['error'] ?? null
             ]);
             
-            // If API fails or returns empty, use mock data
             if (!$result['success'] || empty($result['data']['campaigns'] ?? [])) {
                 \Log::warning('⚠️ Using mock data for import');
                 return $this->importMockCampaigns();
             }
             
-            // Process real campaigns from KenyaSMS
             $campaigns = $result['data']['campaigns'];
             $imported = 0;
             $skipped = 0;
@@ -1370,24 +1336,19 @@ class CampaignController extends Controller
             
             foreach ($campaigns as $remoteCampaign) {
                 try {
-                    // Get campaign ID
                     $remoteId = $remoteCampaign['id'] ?? $remoteCampaign['campaign_id'] ?? null;
                     if (empty($remoteId)) {
                         $errors[] = 'Campaign has no ID: ' . json_encode($remoteCampaign);
                         continue;
                     }
                     
-                    // Check if campaign already exists locally
                     $existing = SmsCampaign::where('kenyasms_campaign_id', $remoteId)->first();
                     if ($existing) {
                         $skipped++;
                         continue;
                     }
                     
-                    // Get campaign name
                     $name = $remoteCampaign['name'] ?? $remoteCampaign['campaign_name'] ?? 'Imported Campaign ' . $remoteId;
-                    
-                    // Get counts
                     $recipients = (int) ($remoteCampaign['recipients'] ?? $remoteCampaign['total_recipients'] ?? 0);
                     $delivered = (int) ($remoteCampaign['delivered'] ?? $remoteCampaign['delivered_count'] ?? 0);
                     $failed = (int) ($remoteCampaign['failed'] ?? $remoteCampaign['failed_count'] ?? 0);
@@ -1395,7 +1356,6 @@ class CampaignController extends Controller
                     $messageType = $remoteCampaign['message_type'] ?? $remoteCampaign['type'] ?? 'transactional';
                     $createdAt = $remoteCampaign['created_at'] ?? $remoteCampaign['created'] ?? now();
                     
-                    // Create campaign
                     $campaign = SmsCampaign::create([
                         'name' => $name,
                         'description' => 'Imported from KenyaSMS on ' . now()->format('Y-m-d H:i:s'),
@@ -1519,7 +1479,6 @@ class CampaignController extends Controller
                 return response()->json(['success' => false, 'message' => 'Invalid campaign ID.'], 400);
             }
 
-            // Check if already imported
             $existing = SmsCampaign::where('kenyasms_campaign_id', $campaignId)->first();
             if ($existing) {
                 return response()->json([
@@ -1554,7 +1513,6 @@ class CampaignController extends Controller
                 $messageType = $campaignData['message_type'] ?? 'transactional';
                 $createdAt = Carbon::parse($campaignData['created_at'] ?? now())->format('Y-m-d H:i:s');
             } else {
-                // Real KenyaSMS – fetch from API
                 $kenyaSms = app(KenyaSMS::class);
                 $statusResult = $kenyaSms->getCampaignStatus($campaignId);
                 if (!$statusResult['success']) {
@@ -1568,7 +1526,6 @@ class CampaignController extends Controller
                 $createdAt = $statusData['created_at'] ?? now();
             }
 
-            // ✅ Create the campaign
             $campaign = SmsCampaign::create([
                 'name' => $campaignName,
                 'description' => ($isMock ? 'Imported from mock KenyaSMS data' : 'Imported from KenyaSMS on ' . now()->format('Y-m-d H:i:s')),
@@ -1586,32 +1543,17 @@ class CampaignController extends Controller
                 'created_at' => $createdAt,
             ]);
 
-            // ✅ Get all tenants with phone numbers
             $tenants = Tenant::with(['user', 'activeTenancy.unit.estate'])
                 ->whereHas('user', function($q) {
                     $q->whereNotNull('phone')->where('phone', '!=', '');
                 })
                 ->get();
 
-            $phoneMap = [];
-            foreach ($tenants as $tenant) {
-                $phone = preg_replace('/[^0-9]/', '', $tenant->user->phone);
-                if (substr($phone, 0, 1) === '0') {
-                    $phone = substr($phone, 1);
-                }
-                if (substr($phone, 0, 3) !== '254') {
-                    $phone = '254' . $phone;
-                }
-                $phoneMap[$phone] = $tenant;
-                $phoneMap[substr($phone, -9)] = $tenant;
-            }
-
             $matched = 0;
             $unmatched = 0;
             $created = 0;
             $errors = [];
 
-            // Create recipients – use real tenants if available, otherwise generate mock
             for ($i = 1; $i <= $recipientCount; $i++) {
                 if ($i <= count($tenants)) {
                     $tenant = $tenants[$i - 1];
@@ -1621,7 +1563,6 @@ class CampaignController extends Controller
                     $tenantId = $tenant->id;
                     $matched++;
                 } else {
-                    // Generate mock phone
                     $phone = '2547' . str_pad($i, 8, '0', STR_PAD_LEFT);
                     $tenantId = null;
                     $unmatched++;
@@ -1648,7 +1589,6 @@ class CampaignController extends Controller
                 }
             }
 
-            // Update campaign counts
             $campaign->total_recipients = $created;
             $campaign->sent_count = CampaignRecipient::where('campaign_id', $campaign->id)->whereIn('status', ['sent', 'delivered'])->count();
             $campaign->failed_count = CampaignRecipient::where('campaign_id', $campaign->id)->where('status', 'failed')->count();
@@ -1691,7 +1631,7 @@ class CampaignController extends Controller
             [
                 'id' => 'mock-1',
                 'name' => 'API Single SMS - 5136',
-                'sender_id' => 'SHARETENT',
+                'sender_id' => 'DANAFFKENYA',
                 'message_type' => 'transactional',
                 'recipients' => 1,
                 'delivered' => 1,
@@ -1704,7 +1644,7 @@ class CampaignController extends Controller
             [
                 'id' => 'mock-2',
                 'name' => 'Personalized API Campaign 1',
-                'sender_id' => 'SHARETENT',
+                'sender_id' => 'DANAFFKENYA',
                 'message_type' => 'transactional',
                 'recipients' => 76,
                 'delivered' => 64,
@@ -1717,7 +1657,7 @@ class CampaignController extends Controller
             [
                 'id' => 'mock-3',
                 'name' => 'Personalized API Campaign 2',
-                'sender_id' => 'SHARETENT',
+                'sender_id' => 'DANAFFKENYA',
                 'message_type' => 'transactional',
                 'recipients' => 215,
                 'delivered' => 180,
@@ -1730,7 +1670,7 @@ class CampaignController extends Controller
             [
                 'id' => 'mock-4',
                 'name' => 'Personalized API Campaign 3',
-                'sender_id' => 'SHARETENT',
+                'sender_id' => 'DANAFFKENYA',
                 'message_type' => 'transactional',
                 'recipients' => 2,
                 'delivered' => 2,

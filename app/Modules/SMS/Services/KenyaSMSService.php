@@ -24,7 +24,7 @@ class KenyaSMSService
         
         $this->baseUrl = rtrim(env('KENYASMS_URL', 'https://kenyasms.com'), '/');
         $this->apiKey = env('KENYASMS_KEY');
-        $this->senderId = env('KENYASMS_SENDER_ID', 'TextSMS');
+        $this->senderId = env('KENYASMS_SENDER_ID', 'DANAFFKENYA');
         $this->defaultType = env('KENYASMS_DEFAULT_TYPE', 'transactional');
         $this->sandbox = env('KENYASMS_SANDBOX', true);
     }

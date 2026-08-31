@@ -22,9 +22,9 @@ class KenyaSMS
     public function __construct()
     {
         $this->apiKey = config('sms.kenyasms.api_key', '');
-        $this->senderId = config('sms.kenyasms.sender_id', 'SHARETENT');
+        $this->senderId = config('sms.kenyasms.sender_id', 'DANAFFKENYA');
         $this->sandbox = config('sms.kenyasms.sandbox', true);
-        $this->baseUrl = config('sms.kenyasms.base_url', 'https://kenyasms.com/api/v1');
+        $this->baseUrl = rtrim(config('sms.kenyasms.base_url', 'https://kenyasms.com/api/v1'), '/');
         $this->defaultType = config('sms.kenyasms.default_type', 'transactional');
         $this->webhookUrl = config('sms.kenyasms.webhook_url');
         $this->inboundWebhookUrl = config('sms.kenyasms.inbound_webhook_url');
@@ -462,6 +462,7 @@ class KenyaSMS
 
     /**
      * Get aggregated status of a campaign from KenyaSMS
+     * ✅ CORRECTED ENDPOINT: /campaigns/{id}
      */
     public function getCampaignStatus($campaignId)
     {
@@ -491,16 +492,34 @@ class KenyaSMS
                 'Accept' => 'application/json'
             ];
 
+            // ✅ FIX: Use correct endpoint (no /status suffix)
+            $url = $this->baseUrl . '/campaigns/' . $campaignId;
+            Log::info('KenyaSMS: Getting campaign status', ['url' => $url]);
+
             $response = Http::withHeaders($headers)
                 ->withoutVerifying()
                 ->timeout(30)
-                ->get($this->baseUrl . '/campaigns/' . $campaignId . '/status');
+                ->get($url);
+
+            Log::info('KenyaSMS: Campaign status response', [
+                'status' => $response->status(),
+                'body' => $response->body()
+            ]);
 
             if ($response->successful()) {
                 $data = $response->json();
+                $campaignData = $data['data'] ?? $data;
+                
+                // Normalize response
                 return [
                     'success' => true,
-                    'data' => $data['data'] ?? $data
+                    'data' => [
+                        'sent' => $campaignData['sent'] ?? $campaignData['sent_count'] ?? 0,
+                        'failed' => $campaignData['failed'] ?? $campaignData['failed_count'] ?? 0,
+                        'delivered' => $campaignData['delivered'] ?? $campaignData['delivered_count'] ?? 0,
+                        'status' => $campaignData['status'] ?? 'unknown',
+                        'total' => $campaignData['total_recipients'] ?? 0,
+                    ]
                 ];
             }
 
@@ -594,13 +613,11 @@ class KenyaSMS
      */
     public function listCampaigns($page = 1, $limit = 20, $status = null)
     {
-        // ✅ Check if API key is configured
         if (empty($this->apiKey)) {
             Log::warning('KenyaSMS: API key not configured, returning mock data');
             return $this->getMockCampaigns();
         }
 
-        // ✅ If sandbox is enabled, return mock data
         if ($this->sandbox) {
             Log::info('KenyaSMS: Sandbox mode enabled, returning mock campaigns');
             return $this->getMockCampaigns();
@@ -644,7 +661,6 @@ class KenyaSMS
                 ];
             }
 
-            // ✅ If API returns an error, log it and return mock data
             Log::error('KenyaSMS: Failed to list campaigns', [
                 'status_code' => $response->status(),
                 'body' => $response->body(),
@@ -658,7 +674,6 @@ class KenyaSMS
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // ✅ Return mock data on any exception
             return $this->getMockCampaigns();
         }
     }
@@ -674,7 +689,7 @@ class KenyaSMS
                 [
                     'id' => 'mock-1',
                     'name' => 'API Single SMS - 5136',
-                    'sender_id' => $this->senderId ?? 'SHARETENT',
+                    'sender_id' => $this->senderId ?? 'DANAFFKENYA',
                     'message_type' => 'transactional',
                     'recipients' => 1,
                     'delivered' => 1,
@@ -686,7 +701,7 @@ class KenyaSMS
                 [
                     'id' => 'mock-2',
                     'name' => 'Personalized API Campaign 1',
-                    'sender_id' => $this->senderId ?? 'SHARETENT',
+                    'sender_id' => $this->senderId ?? 'DANAFFKENYA',
                     'message_type' => 'transactional',
                     'recipients' => 76,
                     'delivered' => 64,
@@ -698,7 +713,7 @@ class KenyaSMS
                 [
                     'id' => 'mock-3',
                     'name' => 'Personalized API Campaign 2',
-                    'sender_id' => $this->senderId ?? 'SHARETENT',
+                    'sender_id' => $this->senderId ?? 'DANAFFKENYA',
                     'message_type' => 'transactional',
                     'recipients' => 215,
                     'delivered' => 180,
@@ -710,7 +725,7 @@ class KenyaSMS
                 [
                     'id' => 'mock-4',
                     'name' => 'Personalized API Campaign 3',
-                    'sender_id' => $this->senderId ?? 'SHARETENT',
+                    'sender_id' => $this->senderId ?? 'DANAFFKENYA',
                     'message_type' => 'transactional',
                     'recipients' => 2,
                     'delivered' => 2,
@@ -864,6 +879,9 @@ class KenyaSMS
         }
     }
 
+    /**
+     * ✅ CORRECTED BALANCE ENDPOINT: /account/balance
+     */
     public function getBalance()
     {
         $cacheKey = 'kenyasms_balance';
@@ -888,10 +906,11 @@ class KenyaSMS
                 'Accept' => 'application/json'
             ];
 
+            // ✅ FIX: Correct endpoint
             $response = Http::withHeaders($headers)
                 ->withoutVerifying()
                 ->timeout(30)
-                ->get($this->baseUrl . '/wallet/balance');
+                ->get($this->baseUrl . '/account/balance');
 
             if ($response->successful()) {
                 $data = $response->json();

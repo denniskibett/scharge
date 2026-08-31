@@ -136,16 +136,15 @@
 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
     <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Message Template</label>
     @verbatim
-    <textarea id="template" name="template" rows="4" ...>
-{{estate_name}} {{month}} Water Bill - ({{water_consumption}}units (last {{prev_read}}→ new {{curr_read}})
+<textarea id="template" name="template" rows="4" class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" placeholder="Enter your message template here">{{estate_name}} {{month}} Water Bill - ({{water_consumption}}units (last {{prev_read}}→ new {{curr_read}})
 Paybill: 7263733
 Acc: {{unit}}
 Amount: KES {{water_bill}}
 Due: {{due_date}}
 Status: {{payment_status}}
+
 {{unpaid_section}}Total Due: KES {{total_due}}
-Queries: 0701262902
-    </textarea>
+Queries: 0701262902</textarea>
     @endverbatim
     <div class="flex flex-wrap gap-2 mt-2">
         <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, unpaid_section, total_due</span>
@@ -1134,47 +1133,60 @@ function formatMonthYear(dateStr) {
     if (!dateStr) return 'Unknown';
     try {
         let date;
-        // Handle YYYY-MM-DD format (e.g., "2026-05-01")
         if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             date = new Date(dateStr);
-        }
-        // Handle YYYY-MM format (e.g., "2026-05")
-        else if (dateStr.match(/^\d{4}-\d{2}$/)) {
+        } else if (dateStr.match(/^\d{4}-\d{2}$/)) {
             date = new Date(dateStr + '-01');
-        }
-        // Handle "May 2026" format
-        else if (dateStr.match(/^[A-Za-z]+ \d{4}$/)) {
+        } else if (dateStr.match(/^[A-Za-z]+ \d{4}$/)) {
             return dateStr;
-        }
-        // Try parsing as-is
-        else {
+        } else {
             date = new Date(dateStr);
         }
-        
         if (date && !isNaN(date)) {
             return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
         }
     } catch (e) { /* ignore */ }
     return dateStr;
 }
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function capitalize(str) {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function cleanAndTruncateMessage(msg) {
+    msg = msg.replace(/[ \t]+\n/g, '\n');
+    msg = msg.replace(/\n{3,}/g, '\n\n');
+    msg = msg.trim();
+    const MAX_CHARS = 300;
+    if (msg.length > MAX_CHARS) {
+        msg = msg.substring(0, MAX_CHARS - 3) + '...';
+    }
+    return msg;
+}
 // ============================================================
 // CLEAN AND TRUNCATE MESSAGE – preserves line breaks
 // ============================================================
 function cleanAndTruncateMessage(msg) {
-    // Split into lines, clean each line individually
-    let lines = msg.split('\n');
-    lines = lines.map(line => line.replace(/[ \t]+/g, ' ').trim());
-    // Rejoin with newlines
-    let cleaned = lines.join('\n');
-    // Collapse multiple newlines to one (if any)
-    cleaned = cleaned.replace(/\n{2,}/g, '\n');
-    cleaned = cleaned.trim();
+    // Remove spaces before newlines
+    msg = msg.replace(/[ \t]+\n/g, '\n');
+    // Collapse three or more newlines to two (one blank line)
+    msg = msg.replace(/\n{3,}/g, '\n\n');
+    // Trim leading/trailing newlines and spaces
+    msg = msg.trim();
 
-    // Truncate to max 300 characters
-    if (cleaned.length > 300) {
-        cleaned = cleaned.substring(0, 297) + '...';
+    const MAX_CHARS = 300;
+    if (msg.length > MAX_CHARS) {
+        msg = msg.substring(0, MAX_CHARS - 3) + '...';
     }
-    return cleaned;
+    return msg;
 }
 
         // ============================================
@@ -1778,7 +1790,6 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let currentBill = parseFloat(cb.getAttribute('data-waterbill') || 0);
         let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
 
-        // --- If tenant is fully paid, zero everything ---
         if (paymentStatus === 'paid') {
             currentBill = 0;
             olderTotal = 0;
@@ -1788,7 +1799,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let totalDue = currentBill + unpaidTotal;
         let unpaidCount = olderInvoices.length;
 
-        // --- Build unpaid list: each invoice on its own line; prefix status only if not 'unpaid' ---
+        // --- Build unpaid list ---
         let unpaidList = '';
         if (unpaidCount > 0) {
             unpaidList = olderInvoices.map(inv => {
@@ -1801,13 +1812,13 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             }).join('\n');
         }
 
-        // --- Build unpaid section with trailing newline ---
+        // --- unpaidSection: header is "Unpaid bills:" ---
         let unpaidSection = '';
         if (unpaidCount > 0) {
-            unpaidSection = 'Unpaid:\n' + unpaidList + '\n';
+            unpaidSection = 'Unpaid bills:\n' + unpaidList + '\n';
         }
 
-        // ----- Gather other data from the checkbox -----
+        // ----- Gather other data -----
         let phone = cb.getAttribute('data-phone') || '';
         let name = cb.getAttribute('data-name') || 'Tenant';
         let unit = cb.getAttribute('data-unit') || 'N/A';
@@ -1816,7 +1827,6 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let prev_read = cb.getAttribute('data-prev-read') || '0';
         let curr_read = cb.getAttribute('data-curr-read') || '0';
 
-        // Determine the month label for the current bill
         let currentMonthLabel = '';
         if (currentMonthY) {
             try {
@@ -1852,7 +1862,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         message = message.replace(/\{\{total_due\}\}/g, totalDue.toFixed(2));
         message = message.replace(/\{\{[^}]*\}\}/g, '');
 
-        // ✅ No truncation in preview – keep line breaks as-is
+        // Clean and truncate
+        message = cleanAndTruncateMessage(message);
 
         const msgLength = message.length;
         const isUnicode = /[^\x00-\x7F]/.test(message);
@@ -3228,31 +3239,33 @@ function renderCampaigns() {
                 renderCampaignPreviewWithDummy(filteredTenants, templateContent, previewContainer);
             });
         }
-
-function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, container) {
+    // ============================================================
+    // RENDER CAMPAIGN PREVIEW WITH DATA (UPDATED)
+    // ============================================================
+ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, container) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     console.log('🔍 Rendering with invoiceData:', invoiceData);
     console.log('🔍 invoiceData keys:', Object.keys(invoiceData));
-    
+
     const previewLimit = 10;
     let html = '<div class="space-y-3">';
     const previewTenants = tenants.slice(0, previewLimit);
     let hasOutstanding = false;
-    
+
     function isUnpaidOrPartial(status) {
         return ['unpaid', 'partial', 'overdue'].includes(status);
     }
-    
+
     previewTenants.forEach(tenant => {
         let tenantInvoices = [];
         const tenantId = tenant.tenantId;
-        
+
         console.log(`🔍 Looking for invoices for tenant ID: ${tenantId} (${tenant.name})`);
         console.log(`🔍 Tenant waterbill from table: ${tenant.waterbill}`);
         console.log(`🔍 Tenant payment status: ${tenant.paymentStatus}`);
-        
+
         if (invoiceData[String(tenantId)]) {
             tenantInvoices = invoiceData[String(tenantId)];
             console.log(`✅ Found invoices using string key "${String(tenantId)}"`);
@@ -3261,7 +3274,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             console.log(`✅ Found invoices using number key "${Number(tenantId)}"`);
         } else {
             for (const key in invoiceData) {
-                if (String(key) === String(tenantId) || 
+                if (String(key) === String(tenantId) ||
                     String(key) === String(Number(tenantId)) ||
                     String(tenantId) === String(key).replace(/[^0-9]/g, '')) {
                     tenantInvoices = invoiceData[key];
@@ -3270,9 +3283,9 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 }
             }
         }
-        
+
         console.log(`🔍 Tenant ${tenantId} (${tenant.name}) - Invoices found:`, tenantInvoices.length);
-        
+
         let currentMonthY = '';
         if (tenant.month) {
             try {
@@ -3284,7 +3297,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 console.warn('⚠️ Error parsing tenant month:', tenant.month, e);
             }
         }
-        
+
         if (!currentMonthY && tenantInvoices.length > 0) {
             let latest = tenantInvoices.reduce((a, b) => {
                 return (a.billing_month > b.billing_month) ? a : b;
@@ -3293,14 +3306,14 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 currentMonthY = latest.billing_month.substring(0, 7);
             }
         }
-        
+
         if (!currentMonthY) {
             const d = new Date();
             currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         }
-        
+
         console.log(`📅 Tenant ${tenantId} currentMonthY: ${currentMonthY}`);
-        
+
         let currentInvoice = tenantInvoices.find(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
@@ -3308,16 +3321,16 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         });
         let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
         let currentStatus = currentInvoice ? currentInvoice.status : 'unknown';
-        
+
         console.log(`💵 currentBill from invoices: ${currentBill}`);
         console.log(`📊 currentStatus: ${currentStatus}`);
-        
+
         if ((!currentInvoice || currentBill === 0) && tenant.waterbill > 0) {
             console.warn(`⚠️ No invoice for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
             currentBill = tenant.waterbill;
             currentStatus = 'unknown';
         }
-        
+
         let olderInvoices = tenantInvoices.filter(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
@@ -3334,25 +3347,25 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             dueDate.setHours(0, 0, 0, 0);
             return dueDate <= today;
         });
-        
+
         let olderTotal = olderInvoices.reduce((sum, inv) => sum + parseFloat(inv.amount || 0), 0);
         let paymentStatus = tenant.paymentStatus || 'pending';
-        
+
         if (paymentStatus === 'paid') {
             currentBill = 0;
             olderTotal = 0;
         }
-        
+
         let unpaidTotal = olderTotal;
         let totalDue = currentBill + unpaidTotal;
         let unpaidCount = olderInvoices.length;
-        
+
         console.log(`💰 Tenant ${tenantId} totalDue: ${totalDue}`);
         console.log(`💰 Tenant ${tenantId} currentBill: ${currentBill}`);
         console.log(`💰 Tenant ${tenantId} unpaidTotal: ${unpaidTotal}`);
         console.log(`🔍 Tenant ${tenantId} olderInvoices count: ${unpaidCount}`);
         console.log(`🔍 Tenant ${tenantId} currentStatus: ${currentStatus}`);
-        
+
         let unpaidList = '';
         if (unpaidCount > 0) {
             unpaidList = olderInvoices.map(inv => {
@@ -3364,17 +3377,17 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 return prefix + '(' + billingMonth + '): KES ' + Number(inv.amount).toFixed(2);
             }).join('\n');
         }
-        
-        // ✅ Build unpaid section with trailing newline
+
+        // --- unpaidSection: header is "Unpaid bills:" ---
         let unpaidSection = '';
         if (unpaidCount > 0) {
-            unpaidSection = 'Unpaid:\n' + unpaidList + '\n';
+            unpaidSection = 'Unpaid bills:\n' + unpaidList + '\n';
         }
-        
+
         if (totalDue > 0) {
             hasOutstanding = true;
         }
-        
+
         let dueDate = tenant.dueDate || 'N/A';
         try {
             const d = new Date(dueDate);
@@ -3384,9 +3397,9 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         } catch (e) {
             dueDate = tenant.dueDate || 'N/A';
         }
-        
+
         const waterConsumption = tenant.waterConsumption || 0;
-        
+
         let message = templateContent;
         const placeholders = {
             '{{name}}': tenant.name || 'Tenant',
@@ -3410,38 +3423,43 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             '{{total_due}}': totalDue.toFixed(2),
             '{{current_status}}': currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1),
         };
-        
+
         for (const [key, value] of Object.entries(placeholders)) {
             message = message.split(key).join(value);
         }
-        
+
         message = message.replace(/\{\{[^}]*\}\}/g, '');
-        
-        console.log(`📨 Final message for ${tenant.name}:`, message);
-        
-        let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-        if (paymentStatus === 'paid') {
-            statusBadgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-        } else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') {
-            statusBadgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-        } else if (paymentStatus === 'partial') {
-            statusBadgeClass = 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+
+        function cleanMessage(msg) {
+            msg = msg.replace(/[ \t]+\n/g, '\n');
+            msg = msg.replace(/\n{3,}/g, '\n\n');
+            msg = msg.trim();
+            const MAX_CHARS = 300;
+            if (msg.length > MAX_CHARS) {
+                msg = msg.substring(0, MAX_CHARS - 3) + '...';
+            }
+            return msg;
         }
-        
+        message = cleanMessage(message);
+
+        console.log(`📨 Final message for ${tenant.name}:`, message);
+
+        let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+        if (paymentStatus === 'paid') statusBadgeClass = 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+        else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusBadgeClass = 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+        else if (paymentStatus === 'partial') statusBadgeClass = 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200';
+
         let unpaidBadge = '';
         if (unpaidCount > 0) {
             unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} overdue</span>`;
         }
-        
+
         let currentBillStatus = '';
-        if (currentStatus === 'paid') {
-            currentBillStatus = ` (Paid)`;
-        } else if (currentStatus === 'partial') {
-            currentBillStatus = ` (Partial)`;
-        }
-        
+        if (currentStatus === 'paid') currentBillStatus = ' (Paid)';
+        else if (currentStatus === 'partial') currentBillStatus = ' (Partial)';
+
         let paymentStatusDisplay = (paymentStatus || 'pending').charAt(0).toUpperCase() + (paymentStatus || 'pending').slice(1);
-        
+
         html += `
             <div class="border-l-4 border-blue-300 pl-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-r-lg">
                 <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -3457,13 +3475,13 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                     <span class="text-gray-500 dark:text-gray-400">Unit: ${escapeHtml(tenant.unit || 'N/A')}</span>
                     <span class="text-gray-500 dark:text-gray-400">Reading: ${tenant.prevRead || 0} → ${tenant.currRead || 0}</span>
                     ${unpaidCount > 0 ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid/Partial: KES ${unpaidTotal.toFixed(2)}</span>` : ''}
-                    ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` : 
+                    ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` :
                     `<span class="text-green-600 dark:text-green-400">| ✅ All paid</span>`}
                 </div>
             </div>
         `;
     });
-    
+
     if (!hasOutstanding) {
         html += `
             <div class="text-center py-4 text-gray-500 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -3472,14 +3490,14 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             </div>
         `;
     }
-    
+
     const totalCount = tenants.length;
     html += `
         <div class="text-xs text-gray-500 mt-2 text-center">
             Showing ${Math.min(previewLimit, totalCount)} of ${totalCount} tenant(s)
         </div>
     `;
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
