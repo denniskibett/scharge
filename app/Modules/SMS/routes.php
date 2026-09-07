@@ -50,7 +50,7 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::post('/settings', [SmsController::class, 'updateSettings'])->name('sms.settings.update');
 
     // =========================================================
-    // 📊 CAMPAIGNS - Full CRUD
+    // 📊 CAMPAIGNS - Full CRUD (Web routes)
     // =========================================================
     Route::get('/campaigns', [CampaignController::class, 'index'])->name('sms.campaigns.index');
     Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('sms.campaigns.create');
@@ -65,6 +65,8 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::post('/campaigns/{campaign}/duplicate', [CampaignController::class, 'duplicate'])->name('sms.campaigns.duplicate');
     Route::post('/campaigns/{campaign}/cancel', [CampaignController::class, 'cancel'])->name('sms.campaigns.cancel');
     Route::post('/campaigns/{campaign}/resend-failed', [CampaignController::class, 'resendFailed'])->name('sms.campaigns.resend-failed');
+    Route::post('/campaigns/{campaign}/resend-pending', [CampaignController::class, 'resendPending'])->name('sms.campaigns.resend-pending');
+    Route::post('/campaigns/{campaign}/check-pending', [CampaignController::class, 'checkPendingStatus'])->name('sms.campaigns.check-pending');
     
     // Reports & Export
     Route::get('/campaigns/{campaign}/export', [CampaignController::class, 'export'])->name('sms.campaigns.export');
@@ -127,46 +129,43 @@ Route::prefix('api/sms')->middleware(['auth'])->group(function () {
         ]);
     });
     
-    // Campaigns API
-    Route::get('/campaigns', [CampaignController::class, 'index']);
+    // =========================================================
+    // 📊 CAMPAIGNS API
+    // =========================================================
+    
+    // Specific routes first
+    Route::get('/campaigns', [CampaignController::class, 'apiIndex']);
     Route::post('/campaigns', [CampaignController::class, 'store']);
     Route::post('/campaigns/preview', [CampaignController::class, 'preview']);
+    Route::get('/campaigns/kenyasms', [CampaignController::class, 'listFromKenyaSMS']);
+    
+    // ✅ IMPORT ALL CAMPAIGNS - ADD THIS ROUTE
+    Route::post('/campaigns/import-kenyasms', [CampaignController::class, 'importKenyaSmsCampaigns']);
+    
+    // ✅ IMPORT SINGLE CAMPAIGN
+    Route::post('/campaigns/kenyasms/{campaignId}/import', [CampaignController::class, 'importFromKenyaSMS']);
+    
+    // Generic {id} route - must come after specific routes
     Route::get('/campaigns/{id}', [CampaignController::class, 'getDetails']);
+    
+    // Other campaign routes
     Route::post('/campaigns/{id}/send', [CampaignController::class, 'send']);
     Route::post('/campaigns/{id}/retry', [CampaignController::class, 'retry']);
     Route::delete('/campaigns/{id}', [CampaignController::class, 'destroy']);
-    
-    // =========================================================
-    // 📊 STATUS SYNC ROUTES
-    // =========================================================
-    
-    // Resend failed messages
     Route::post('/campaigns/{id}/resend-failed', [CampaignController::class, 'resendFailed']);
-    
-    // Sync status for all recipients in a campaign
+    Route::post('/campaigns/{id}/resend-pending', [CampaignController::class, 'resendPending']);
+    Route::post('/campaigns/{id}/check-pending', [CampaignController::class, 'checkPendingStatus']);
     Route::post('/campaigns/{id}/sync-status', [CampaignController::class, 'syncStatus']);
     
-    // Sync status for a single recipient
+    // Recipient routes
     Route::post('/recipients/{id}/sync-status', [CampaignController::class, 'syncRecipientStatus']);
-    
-    // =========================================================
-    // 🚀 NEW: RESEND INDIVIDUAL RECIPIENT (Works for pending, failed, queued)
-    // =========================================================
     Route::post('/recipients/{id}/resend', [CampaignController::class, 'resendIndividualRecipient']);
-    
-    // Get status summary for a campaign
     Route::get('/campaigns/{id}/status-summary', [CampaignController::class, 'getStatusSummary']);
-    
-    // =========================================================
-    // 📊 PHONE VALIDATION ROUTES
-    // =========================================================
-    
-    // Get invalid recipients for a campaign
     Route::get('/campaigns/{id}/invalid-recipients', [CampaignController::class, 'getInvalidRecipients']);
-    
-    // Get other network recipients for a campaign
     Route::get('/campaigns/{id}/other-network-recipients', [CampaignController::class, 'getOtherNetworkRecipients']);
-    
-    // Update tenant phone number
     Route::put('/tenants/{tenantId}/phone', [CampaignController::class, 'updateTenantPhone']);
+
+    // Preview invoices
+    Route::post('/preview-invoices', [CampaignController::class, 'previewInvoices'])
+        ->name('sms.api.preview-invoices');
 });

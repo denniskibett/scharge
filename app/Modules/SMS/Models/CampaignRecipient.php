@@ -11,7 +11,7 @@ use Carbon\Carbon;
 
 class CampaignRecipient extends Model
 {
-    protected $table = 'sms_campaign_recipients';
+protected $table = 'campaign_recipients';
     
     protected $fillable = [
         'campaign_id',
