@@ -1,5 +1,4 @@
 <?php
-// app/Modules/SMS/Services/KenyaSMSService.php
 
 namespace App\Modules\SMS\Services;
 
@@ -19,7 +18,7 @@ class KenyaSMSService
     {
         $this->client = new Client([
             'timeout' => 30,
-            'verify' => false, // For development only
+            'verify' => false,
         ]);
         
         $this->baseUrl = rtrim(env('KENYASMS_URL', 'https://kenyasms.com'), '/');
@@ -526,7 +525,90 @@ class KenyaSMSService
             ];
         }
     }
-    
+
+    /**
+     * List campaigns from KenyaSMS
+     * Uses GET /campaigns
+     */
+ public function listCampaigns($page = 1, $perPage = 20, $status = null)
+{
+    $url = $this->baseUrl . '/campaigns';
+
+    $headers = [
+        'Authorization' => 'Bearer ' . $this->apiKey,
+        'Accept' => 'application/json',
+    ];
+
+    if ($this->sandbox) {
+        $headers['X-Sandbox-Mode'] = 'true';
+    }
+
+    $query = ['page' => $page, 'per_page' => $perPage];
+    if ($status) {
+        $query['status'] = $status;
+    }
+
+    try {
+        Log::info('📡 Calling KenyaSMS listCampaigns', ['url' => $url, 'query' => $query]);
+
+        $response = $this->client->get($url, [
+            'headers' => $headers,
+            'query' => $query,
+        ]);
+
+        $result = json_decode($response->getBody(), true);
+
+        Log::info('📡 KenyaSMS listCampaigns response', ['result' => $result]);
+
+        // If the API returns a standard structure with 'data.campaigns'
+        if (isset($result['data']['campaigns']) && is_array($result['data']['campaigns'])) {
+            return [
+                'success' => true,
+                'data' => $result['data'],
+            ];
+        }
+
+        // If the API returns a different structure (e.g., just an array of campaigns)
+        if (isset($result['campaigns']) && is_array($result['campaigns'])) {
+            return [
+                'success' => true,
+                'data' => ['campaigns' => $result['campaigns']],
+            ];
+        }
+
+        // If we got an error message
+        if (isset($result['error'])) {
+            return [
+                'success' => false,
+                'error' => $result['error'],
+            ];
+        }
+
+        // Fallback: treat the whole response as a list of campaigns
+        if (is_array($result)) {
+            return [
+                'success' => true,
+                'data' => ['campaigns' => $result],
+            ];
+        }
+
+        return [
+            'success' => false,
+            'error' => 'Unexpected response structure from KenyaSMS',
+        ];
+
+    } catch (\Exception $e) {
+        Log::error('KenyaSMS listCampaigns error', [
+            'error' => $e->getMessage(),
+            'url' => $url,
+        ]);
+
+        return [
+            'success' => false,
+            'error' => $e->getMessage(),
+        ];
+    }
+}
     /**
      * Format phone number for KenyaSMS
      */
@@ -547,5 +629,13 @@ class KenyaSMSService
         }
         
         return $phone;
+    }
+
+    /**
+     * Alias for formatPhone (for compatibility)
+     */
+    public function formatPhoneNumber($phone)
+    {
+        return $this->formatPhone($phone);
     }
 }

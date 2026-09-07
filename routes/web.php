@@ -3,15 +3,15 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\SystemController;
 use App\Http\Controllers\EstateController;
-use App\Http\Controllers\UnitController; 
+use App\Http\Controllers\UnitController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PayeeController;
-use App\Http\Controllers\PaymentController; 
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ExpenseCategoryController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TenantController;
-use App\Http\Controllers\TenancyController; 
+use App\Http\Controllers\TenancyController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\CleaningController;
@@ -27,7 +27,7 @@ use App\Http\Controllers\Admin\AccountManagerController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-// ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
+// ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details
 Route::get('/campaign/{id}', function($id) {
     try {
         DB::connection()->getQueryLog();
@@ -586,7 +586,36 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/pay', [MpesaController::class, 'stkPush'])->name('process');
     });
 
-}); // END OF AUTHENTICATED ROUTES
+    // ============================================
+    // SMS MODULE API ROUTES (AJAX) – UPDATED
+    // ============================================
+    Route::prefix('api/sms')->group(function () {
+        // ====== KENYASMS ROUTES (must come BEFORE {id}) ======
+        Route::get('/campaigns/kenyasms', [App\Modules\SMS\Controllers\CampaignController::class, 'listFromKenyaSMS']);
+        Route::post('/campaigns/kenyasms/{campaignId}/import', [App\Modules\SMS\Controllers\CampaignController::class, 'importFromKenyaSMS']);
+        Route::post('/campaigns/import-kenyasms', [App\Modules\SMS\Controllers\CampaignController::class, 'importKenyaSmsCampaigns']);
+
+        // ====== STANDARD CAMPAIGN ROUTES ======
+        Route::get('/campaigns', [App\Modules\SMS\Controllers\CampaignController::class, 'apiIndex']);
+        Route::post('/campaigns', [App\Modules\SMS\Controllers\CampaignController::class, 'store']);
+        Route::get('/campaigns/{id}', [App\Modules\SMS\Controllers\CampaignController::class, 'getDetails']);
+        Route::post('/campaigns/{id}/send', [App\Modules\SMS\Controllers\CampaignController::class, 'send']);
+        Route::post('/campaigns/{id}/retry', [App\Modules\SMS\Controllers\CampaignController::class, 'retry']);
+        Route::delete('/campaigns/{id}', [App\Modules\SMS\Controllers\CampaignController::class, 'destroy']);
+        Route::post('/campaigns/{id}/resend-failed', [App\Modules\SMS\Controllers\CampaignController::class, 'resendFailed']);
+        Route::post('/campaigns/{id}/resend-pending', [App\Modules\SMS\Controllers\CampaignController::class, 'resendPending']);
+        Route::post('/campaigns/{id}/check-pending', [App\Modules\SMS\Controllers\CampaignController::class, 'checkPendingStatus']);
+        Route::post('/campaigns/{id}/sync-status', [App\Modules\SMS\Controllers\CampaignController::class, 'syncStatus']);
+        Route::post('/campaigns/{id}/sync-recipients', [App\Modules\SMS\Controllers\CampaignController::class, 'syncRecipientsFromKenyaSMS']);
+        Route::post('/recipients/{id}/resend', [App\Modules\SMS\Controllers\CampaignController::class, 'resendIndividualRecipient']);
+        Route::get('/campaigns/{id}/status-summary', [App\Modules\SMS\Controllers\CampaignController::class, 'getStatusSummary']);
+        Route::get('/campaigns/{id}/invalid-recipients', [App\Modules\SMS\Controllers\CampaignController::class, 'getInvalidRecipients']);
+        Route::get('/campaigns/{id}/other-network-recipients', [App\Modules\SMS\Controllers\CampaignController::class, 'getOtherNetworkRecipients']);
+        Route::put('/tenants/{tenantId}/phone', [App\Modules\SMS\Controllers\CampaignController::class, 'updateTenantPhone']);
+        Route::post('/preview-invoices', [App\Modules\SMS\Controllers\CampaignController::class, 'previewInvoices']);
+    });
+
+});
 
 // ============================================
 // MODULE ROUTES
