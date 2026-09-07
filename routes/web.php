@@ -28,6 +28,153 @@ use App\Http\Controllers\PublicInvoiceController;
 
 require __DIR__ . '/mpesa.php';
 
+// ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
+Route::get('/campaign/{id}', function($id) {
+    try {
+        // ✅ Clear query cache to ensure fresh data on each request
+        DB::connection()->getQueryLog();
+        
+        $campaign = DB::table('sms_campaigns')->where('id', $id)->first();
+        if (!$campaign) {
+            return response()->json(['error' => 'Campaign not found'], 404);
+        }
+        
+        // Get recipients with tenant data
+        $recipients = DB::table('campaign_recipients')
+            ->where('campaign_id', $id)
+            ->get()
+            ->map(function($recipient) {
+                $tenant = null;
+                $user = null;
+                $unit = null;
+                $estate = null;
+                $tenantName = 'Unknown';
+                $unitNumber = 'N/A';
+                $estateName = 'N/A';
+                
+                // Try to find tenant by tenant_id first
+                if ($recipient->tenant_id) {
+                    $tenant = DB::table('tenants')->where('id', $recipient->tenant_id)->first();
+                    if ($tenant) {
+                        if ($tenant->user_id) {
+                            $user = DB::table('users')->where('id', $tenant->user_id)->first();
+                            $tenantName = $user ? $user->name : 'Unknown';
+                        } else {
+                            $tenantName = $tenant->name ?? 'Unknown';
+                        }
+                        
+                        $tenancy = DB::table('tenancies')
+                            ->where('tenant_id', $tenant->id)
+                            ->where('status', 'active')
+                            ->first();
+                        if ($tenancy && $tenancy->unit_id) {
+                            $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
+                            if ($unit) {
+                                $unitNumber = $unit->unit_number ?? 'N/A';
+                                if ($unit->estate_id) {
+                                    $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
+                                    $estateName = $estate ? $estate->name : 'N/A';
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Try to find tenant by phone number
+                    $phone = $recipient->phone_number;
+                    if (!empty($phone)) {
+                        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+                        if (strlen($cleanPhone) >= 9) {
+                            if (substr($cleanPhone, 0, 1) === '0') {
+                                $cleanPhone = substr($cleanPhone, 1);
+                            }
+                            if (substr($cleanPhone, 0, 3) !== '254') {
+                                $cleanPhone = '254' . $cleanPhone;
+                            }
+                            
+                            // Try to find user by phone
+                            $user = DB::table('users')
+                                ->where('phone', 'like', '%' . substr($cleanPhone, -9))
+                                ->orWhere('phone', $cleanPhone)
+                                ->first();
+                            
+                            if ($user) {
+                                $tenantName = $user->name ?? 'Unknown';
+                                $tenant = DB::table('tenants')->where('user_id', $user->id)->first();
+                                if ($tenant) {
+                                    $tenancy = DB::table('tenancies')
+                                        ->where('tenant_id', $tenant->id)
+                                        ->where('status', 'active')
+                                        ->first();
+                                    if ($tenancy && $tenancy->unit_id) {
+                                        $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
+                                        if ($unit) {
+                                            $unitNumber = $unit->unit_number ?? 'N/A';
+                                            if ($unit->estate_id) {
+                                                $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
+                                                $estateName = $estate ? $estate->name : 'N/A';
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                // Parse provider_response for delivery details
+                $network = '';
+                $parts = '';
+                $cost = '';
+                $deliveredTime = '';
+                $providerStatus = $recipient->provider_status ?? '';
+                
+                if ($recipient->provider_response) {
+                    try {
+                        $providerData = json_decode($recipient->provider_response, true);
+                        if (is_array($providerData)) {
+                            $network = $providerData['network'] ?? $providerData['provider'] ?? '';
+                            $parts = $providerData['parts'] ?? $providerData['message_parts'] ?? '';
+                            $cost = $providerData['cost'] ?? '';
+                            $deliveredTime = $providerData['delivered_at'] ?? $providerData['delivered_time'] ?? '';
+                        }
+                    } catch (\Exception $e) {
+                        // Not JSON, ignore
+                    }
+                }
+                
+                return (object) [
+                    'id' => $recipient->id,
+                    'tenant_id' => $recipient->tenant_id,
+                    'phone_number' => $recipient->phone_number,
+                    'message' => $recipient->message,
+                    'status' => $recipient->status,
+                    'sent_at' => $recipient->sent_at,
+                    'error_message' => $recipient->error_message,
+                    'provider_status' => $providerStatus,
+                    'provider_response' => $recipient->provider_response,
+                    'tenant_name' => $tenantName,
+                    'unit_number' => $unitNumber,
+                    'estate_name' => $estateName,
+                    'network' => $network,
+                    'parts' => $parts,
+                    'cost' => $cost,
+                    'delivered_time' => $deliveredTime,
+                ];
+            });
+        
+        return response()->json([
+            'success' => true,
+            'campaign' => $campaign,
+            'recipients' => $recipients,
+            'recipient_count' => $recipients->count()
+        ]);
+    } catch (\Exception $e) {
+        Log::error('Campaign direct route error: ' . $e->getMessage());
+        return response()->json(['error' => $e->getMessage()], 500);
+    }
+});
+
+
 // ============================================
 // PUBLIC ROUTES
 // ============================================
