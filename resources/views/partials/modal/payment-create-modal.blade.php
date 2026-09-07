@@ -363,7 +363,6 @@ document.addEventListener('alpine:init', () => {
           this.form.mpesa_phone = data.phone;
         }
         
-        // Set tenancy details from passed data
         this.tenancyDetails = {
           tenant_name: data.tenant_name || '',
           unit_number: data.unit_number || '',
@@ -430,7 +429,6 @@ document.addEventListener('alpine:init', () => {
     },
     
     handlePaymentMethodChange() {
-      // Reset M-Pesa status when switching methods
       this.resetMpesaStatus();
     },
     
@@ -570,17 +568,24 @@ document.addEventListener('alpine:init', () => {
         
         if (response.ok && data.success) {
           if (data.is_mpesa) {
-            // M-Pesa STK Push sent - start polling
             this.showMpesaStatus(data.checkout_request_id);
           } else {
-            // Regular payment success
             this.closeModal();
-            alert(data.message || 'Payment recorded successfully!');
+            // ✅ NO BROWSER ALERT - Using alert modal
+            window.alertModal.showSuccess('Payment Successful', data.message || 'Payment recorded successfully!');
             setTimeout(() => {
               window.location.reload();
             }, 1500);
           }
+        } else if (data.requires_confirmation) {
+          this.loading = false;
+          // ✅ NO BROWSER CONFIRM - Using alert modal
+          this.showInsufficientBalanceConfirmation(data);
         } else {
+          // ✅ NO BROWSER ALERT - Using alert modal for errors
+          if (data.message) {
+            window.alertModal.showError('Payment Failed', data.message);
+          }
           this.formErrors = [data.message || 'Failed to record payment'];
           const modalContent = document.querySelector('.fixed.inset-y-0.right-0');
           if (modalContent) {
@@ -590,6 +595,92 @@ document.addEventListener('alpine:init', () => {
         }
       } catch (error) {
         console.error('Error:', error);
+        // ✅ NO BROWSER ALERT - Using alert modal
+        window.alertModal.showError('Error', 'An error occurred. Please try again.');
+        this.formErrors = ['An error occurred. Please try again.'];
+        this.loading = false;
+      }
+    },
+    
+    showInsufficientBalanceConfirmation(data) {
+      const currency = data.data?.currency || 'KSh ';
+      const formattedBalance = data.data?.formatted_balance || currency + '0.00';
+      const formattedAmount = data.data?.formatted_amount || currency + '0.00';
+      const tenantName = data.data?.tenant_name || 'Tenant';
+      
+      // ✅ NO BROWSER CONFIRM - Using alert modal
+      window.alertModal.show(
+        'warning',
+        '⚠️ Insufficient Wallet Balance',
+        `Payment amount (${formattedAmount}) exceeds wallet balance (${formattedBalance}). ${tenantName} will need to top up their wallet. Continue?`,
+        [],
+        {
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Continue',
+          cancelButtonText: 'Cancel',
+          onConfirm: () => {
+            this.proceedWithPayment();
+          },
+          onCancel: () => {
+            this.loading = false;
+          }
+        }
+      );
+    },
+    
+    async proceedWithPayment() {
+      this.loading = true;
+      
+      try {
+        const response = await fetch(`/payments`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            tenancy_id: this.tenancyId,
+            invoice_id: this.form.invoice_id,
+            amount: this.form.amount,
+            payment_method: this.form.payment_method === 'mpesa' ? 'mpesa_paybill' : this.form.payment_method,
+            mpesa_phone: this.form.mpesa_phone,
+            transaction_id: this.form.transaction_id,
+            transaction_message: this.form.transaction_message,
+            paid_to: this.form.paid_to,
+            payer_name: this.form.payer_name,
+            payment_datetime: this.form.payment_datetime,
+            payment_month: this.form.payment_month,
+            confirm_insufficient_balance: true
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          if (data.is_mpesa) {
+            this.showMpesaStatus(data.checkout_request_id);
+          } else {
+            this.closeModal();
+            // ✅ NO BROWSER ALERT - Using alert modal
+            window.alertModal.showSuccess('Payment Successful', data.message || 'Payment recorded successfully!');
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+          }
+        } else {
+          // ✅ NO BROWSER ALERT - Using alert modal
+          if (data.message) {
+            window.alertModal.showError('Payment Failed', data.message);
+          }
+          this.formErrors = [data.message || 'Failed to record payment'];
+          this.loading = false;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        // ✅ NO BROWSER ALERT - Using alert modal
+        window.alertModal.showError('Error', 'An error occurred. Please try again.');
         this.formErrors = ['An error occurred. Please try again.'];
         this.loading = false;
       }
@@ -607,8 +698,6 @@ document.addEventListener('alpine:init', () => {
       this.mpesaStatus.attempts = 0;
       
       this.loading = false;
-      
-      // Start polling
       this.startPolling();
     },
     
@@ -633,7 +722,6 @@ document.addEventListener('alpine:init', () => {
             const status = data.status || 'pending';
             
             if (status === '0' || status === 'completed' || status === 'success') {
-              // Payment successful
               clearInterval(this.mpesaStatus.interval);
               this.mpesaStatus.interval = null;
               this.mpesaStatus.progress = 100;
@@ -649,7 +737,6 @@ document.addEventListener('alpine:init', () => {
               }, 3000);
               
             } else if (status === '1' || status === 'failed' || status === 'error') {
-              // Payment failed
               clearInterval(this.mpesaStatus.interval);
               this.mpesaStatus.interval = null;
               this.mpesaStatus.title = '❌ Payment Failed';
@@ -660,11 +747,8 @@ document.addEventListener('alpine:init', () => {
             }
           }
         })
-        .catch(() => {
-          // Silent fail - continue polling
-        });
+        .catch(() => {});
         
-        // Timeout after max attempts
         if (this.mpesaStatus.attempts >= this.mpesaStatus.maxAttempts) {
           clearInterval(this.mpesaStatus.interval);
           this.mpesaStatus.interval = null;

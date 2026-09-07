@@ -685,9 +685,20 @@ document.addEventListener('alpine:init', () => {
     },
     
     confirmDelete(item) {
-      if (confirm(`Are you sure you want to delete "${item.description || item.item_type}" item?`)) {
-        this.deleteItem(item.id);
-      }
+      window.alertModal.show(
+        'warning',
+        'Confirm Delete',
+        `Are you sure you want to delete "${item.description || item.item_type}" item?`,
+        [],
+        {
+          showCancelButton: true,
+          confirmButtonText: 'Yes, Delete',
+          cancelButtonText: 'Cancel',
+          onConfirm: () => {
+            this.deleteItem(item.id);
+          }
+        }
+      );
     },
     
     async deleteItem(itemId) {
@@ -705,11 +716,11 @@ document.addEventListener('alpine:init', () => {
         if (response.ok && data.success) {
           window.location.reload();
         } else {
-          alert(data.message || 'Failed to delete item');
+          window.alertModal.showError('Delete Failed', data.message || 'Failed to delete item');
         }
       } catch (error) {
         console.error('Error deleting item:', error);
-        alert('An error occurred while deleting the item');
+        window.alertModal.showError('Error', 'An error occurred while deleting the item');
       }
     },
     

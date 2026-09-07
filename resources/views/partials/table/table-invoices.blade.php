@@ -283,6 +283,7 @@
 </div>
 
 <!-- Include Modals AFTER the table content but ensure they are in the DOM -->
+@include('partials.modal.alert-modal')
 @include('partials.modal.invoice-create-modal')
 @include('partials.modal.invoice-bulk-modal', ['mappedActiveTenancies' => $mappedActiveTenancies ?? collect()])
 @include('partials.modal.payments-create-modal', ['invoices' => $paymentInvoices ?? []])

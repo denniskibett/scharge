@@ -959,15 +959,49 @@ document.addEventListener('alpine:init', () => {
       
       // Check if amount exceeds wallet balance (warning only)
       if (this.walletBalance !== null && parseFloat(this.form.amount) > this.walletBalance) {
-        if (!confirm(`⚠️ Warning: Payment amount (${this.formatCurrency(this.form.amount)}) exceeds wallet balance (${this.formatCurrency(this.walletBalance)}). The tenant will need to top up their wallet. Continue?`)) {
+        const proceed = await new Promise((resolve) => {
+          window.alertModal.show(
+            'warning',
+            '⚠️ Insufficient Wallet Balance',
+            `Payment amount (${this.formatCurrency(this.form.amount)}) exceeds wallet balance (${this.formatCurrency(this.walletBalance)}). The tenant will need to top up their wallet. Continue?`,
+            [],
+            {
+              showCancelButton: true,
+              confirmButtonText: 'Yes, Continue',
+              cancelButtonText: 'Cancel',
+              onConfirm: () => resolve(true),
+              onCancel: () => resolve(false)
+            }
+          );
+        });
+        
+        if (!proceed) {
           return;
         }
       }
-      
+
       if (parseFloat(this.form.amount) > this.selectedInvoiceRemaining) {
         const excess = parseFloat(this.form.amount) - this.selectedInvoiceRemaining;
-        if (excess > 0 && !confirm(`Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`)) {
-          return;
+        if (excess > 0) {
+          const proceed = await new Promise((resolve) => {
+            window.alertModal.show(
+              'info',
+              '⚠️ Excess Payment',
+              `Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`,
+              [],
+              {
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Continue',
+                cancelButtonText: 'Cancel',
+                onConfirm: () => resolve(true),
+                onCancel: () => resolve(false)
+              }
+            );
+          });
+          
+          if (!proceed) {
+            return;
+          }
         }
       }
       
