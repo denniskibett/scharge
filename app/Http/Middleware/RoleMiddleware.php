@@ -20,7 +20,7 @@ class RoleMiddleware
         
         if (method_exists($user, 'role') && $user->role) {
             $userRole = $user->role->name ?? null;
-        } elseif (isset($user->role_id)) {
+        } elseif (isset($user->roles()->pluck('name') )) {
             // If role_id exists, you'd need to fetch the role from a Role model
             // For now, let's assume it's a string
             $userRole = $user->role ?? null;

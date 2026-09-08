@@ -5,7 +5,7 @@ namespace App\Modules\Users\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Models\Role;
+use Spatie\Permission\Traits\HasRoles;
 use App\Models\Tenant;
 use App\Models\Tenancy;
 use App\Models\Invoice;
@@ -16,7 +16,7 @@ use Bavix\Wallet\Interfaces\Wallet;
 
 class User extends Authenticatable implements Wallet
 {
-    use HasFactory, Notifiable, HasWallet;
+    use HasFactory, Notifiable, HasWallet, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -39,8 +39,10 @@ class User extends Authenticatable implements Wallet
         'social',
         'first_name',
         'last_name',
-        'role_id',  
         'company_id',
+        'status',
+        'email_verified_at',
+        'verified_by',
     ];
 
     /**
@@ -61,19 +63,18 @@ class User extends Authenticatable implements Wallet
     protected $casts = [
         'email_verified_at' => 'datetime',
         'social' => 'array',
+        'status' => 'boolean',
     ];
 
-        public function company()
+    public function company()
     {
         return $this->belongsTo(Company::class);
     }
-
 
     public function belongsToCompany(): bool
     {
         return !is_null($this->company_id);
     }
-
 
     public function getCompanyNameAttribute(): ?string
     {
@@ -88,7 +89,6 @@ class User extends Authenticatable implements Wallet
         return $this->name;
     }
 
-
     public function getInitialsAttribute(): string
     {
         $name = $this->full_name;
@@ -101,7 +101,6 @@ class User extends Authenticatable implements Wallet
         }
         return substr($initials, 0, 2);
     }
-
 
     public function getAvatarUrlAttribute(): string
     {
@@ -253,56 +252,15 @@ class User extends Authenticatable implements Wallet
         return ltrim(trim($username), '@');
     }
 
-    // ========== ROLE MANAGEMENT (Using role_id directly) ==========
+    // ========== SPATIE ROLE MANAGEMENT (CLEAN VERSION) ==========
 
     /**
-     * Get the role that owns the user.
+     * Get user's primary role name.
+     * Uses Spatie's native API - this is the single source of truth.
      */
-    public function role()
+    public function getPrimaryRoleAttribute(): ?string
     {
-        return $this->belongsTo(Role::class);
-    }
-
-    /**
-     * Check if user has a specific role
-     */
-    public function hasRole(string $roleName): bool
-    {
-        return $this->role && $this->role->name === $roleName;
-    }
-
-    /**
-     * Check if user has any of the given roles
-     */
-    public function hasAnyRole(...$roles): bool
-    {
-        if (!$this->role) return false;
-        
-        if (is_array($roles[0])) {
-            $roles = $roles[0];
-        }
-        return in_array($this->role->name, $roles);
-    }
-
-    /**
-     * Check if user has all of the given roles
-     */
-    public function hasAllRoles(...$roles): bool
-    {
-        if (!$this->role) return false;
-        
-        if (is_array($roles[0])) {
-            $roles = $roles[0];
-        }
-        return in_array($this->role->name, $roles);
-    }
-
-    /**
-     * Get user's role name
-     */
-    public function getRoleNameAttribute(): ?string
-    {
-        return $this->role ? $this->role->name : null;
+        return $this->getRoleNames()->first();
     }
 
     /**
@@ -310,10 +268,14 @@ class User extends Authenticatable implements Wallet
      */
     public function getRoleBadgeAttribute(): string
     {
-        if (!$this->role) return '<span class="badge bg-secondary">No Role</span>';
+        $roles = $this->getRoleNames();
+        
+        if ($roles->isEmpty()) {
+            return '<span class="badge bg-secondary">No Role</span>';
+        }
         
         $roleColors = [
-            'super_admin' => 'danger',
+            'sysadmin' => 'danger',
             'admin' => 'danger',
             'property_manager' => 'primary',
             'accountant' => 'success',
@@ -325,38 +287,45 @@ class User extends Authenticatable implements Wallet
             'guest' => 'light',
         ];
         
-        $color = $roleColors[$this->role->name] ?? 'secondary';
-        return "<span class='badge bg-{$color}'>{$this->role->name}</span>";
+        $badges = [];
+        foreach ($roles as $roleName) {
+            $color = $roleColors[$roleName] ?? 'secondary';
+            $badges[] = sprintf(
+                '<span class="badge bg-%s">%s</span>',
+                $color,
+                e($roleName)
+            );
+        }
+        
+        return implode(' ', $badges);
     }
 
     /**
      * Scope for users with specific role
+     * Uses Spatie's built-in scope
      */
     public function scopeWithRole($query, string $roleName)
     {
-        return $query->whereHas('role', function ($q) use ($roleName) {
-            $q->where('name', $roleName);
-        });
+        return $query->role($roleName);
     }
 
     /**
      * Scope for users with any of the given roles
+     * Uses Spatie's built-in scope
      */
     public function scopeWithAnyRole($query, array $roleNames)
     {
-        return $query->whereHas('role', function ($q) use ($roleNames) {
-            $q->whereIn('name', $roleNames);
-        });
+        return $query->role($roleNames);
     }
 
-    // ========== PERMISSION CHECKS (Role-based) ==========
+    // ========== APPLICATION ROLE CHECKS ==========
 
     /**
      * Check if user can access meter reading features
      */
     public function canReadMeters(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'property_manager', 'meter_reader']);
+        return $this->hasAnyRole(['sysadmin', 'admin', 'property_manager', 'meter_reader']);
     }
 
     /**
@@ -364,7 +333,7 @@ class User extends Authenticatable implements Wallet
      */
     public function canManageCleaning(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'property_manager', 'cleaning_staff']);
+        return $this->hasAnyRole(['sysadmin', 'admin', 'property_manager', 'cleaning_staff']);
     }
 
     /**
@@ -372,7 +341,7 @@ class User extends Authenticatable implements Wallet
      */
     public function canManageMaintenance(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'property_manager', 'maintenance']);
+        return $this->hasAnyRole(['sysadmin', 'admin', 'property_manager', 'maintenance']);
     }
 
     /**
@@ -380,7 +349,7 @@ class User extends Authenticatable implements Wallet
      */
     public function canManageFinances(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'accountant']);
+        return $this->hasAnyRole(['sysadmin', 'admin', 'accountant']);
     }
 
     /**
@@ -388,7 +357,7 @@ class User extends Authenticatable implements Wallet
      */
     public function canManageProperties(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'property_manager']);
+        return $this->hasAnyRole(['sysadmin', 'admin', 'property_manager']);
     }
 
     /**
@@ -396,7 +365,7 @@ class User extends Authenticatable implements Wallet
      */
     public function canManageUsers(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin']);
+        return $this->hasAnyRole(['sysadmin', 'admin']);
     }
 
     /**
@@ -404,7 +373,7 @@ class User extends Authenticatable implements Wallet
      */
     public function canViewReports(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'property_manager', 'accountant']);
+        return $this->hasAnyRole(['sysadmin', 'admin', 'property_manager', 'accountant']);
     }
 
     /**
@@ -420,15 +389,33 @@ class User extends Authenticatable implements Wallet
      */
     public function isStaff(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin', 'property_manager', 'accountant', 'meter_reader', 'cleaning_staff', 'maintenance', 'security']);
+        return $this->hasAnyRole([
+            'sysadmin',
+            'admin',
+            'property_manager',
+            'accountant',
+            'meter_reader',
+            'cleaning_staff',
+            'maintenance',
+            'security'
+        ]);
     }
 
     /**
-     * Check if user is admin level
+     * Check if user is a system administrator
+     */
+    public function isSysAdmin(): bool
+    {
+        return $this->hasRole('sysadmin');
+    }
+
+    /**
+     * Check if user is an administrator
+     * FIXED: Use hasRole() for single role
      */
     public function isAdmin(): bool
     {
-        return $this->hasAnyRole(['super_admin', 'admin']);
+        return $this->hasRole('admin');
     }
 
     // ========== RELATIONSHIPS ==========
@@ -439,8 +426,6 @@ class User extends Authenticatable implements Wallet
     public function tenant()
     {
         return $this->hasOne(Tenant::class);
-
-        
     }
 
     /**
@@ -505,7 +490,7 @@ class User extends Authenticatable implements Wallet
      */
     public function getDashboardRoute(): string
     {
-        if ($this->isAdmin()) {
+        if ($this->isSysAdmin() || $this->isAdmin()) {
             return route('dashboard.admin');
         }
         
@@ -545,7 +530,7 @@ class User extends Authenticatable implements Wallet
      */
     public function getDashboardTitleAttribute(): string
     {
-        if ($this->isAdmin()) {
+        if ($this->isSysAdmin() || $this->isAdmin()) {
             return 'Administrator Dashboard';
         }
         
@@ -580,10 +565,9 @@ class User extends Authenticatable implements Wallet
         return 'Dashboard';
     }
 
-
-    // app/Modules/Users/Models/User.php - Add these methods
-
-    // Get tenant's registered visitors (if user is tenant)
+    /**
+     * Get tenant's registered visitors (if user is tenant)
+     */
     public function registeredVisitors()
     {
         if (!$this->tenant) {
@@ -592,7 +576,9 @@ class User extends Authenticatable implements Wallet
         return $this->tenant->registeredVisitors();
     }
 
-    // Get security logs for tenant's unit
+    /**
+     * Get security logs for tenant's unit
+     */
     public function securityLogs()
     {
         if (!$this->tenant) {
@@ -601,7 +587,10 @@ class User extends Authenticatable implements Wallet
         return $this->tenant->securityLogs();
     }
 
-      public function getOrCreateWallet(?string $name = null, ?string $slug = null, ?string $description = null)
+    /**
+     * Get or create a wallet for the user
+     */
+    public function getOrCreateWallet(?string $name = null, ?string $slug = null, ?string $description = null)
     {
         // Try to get existing wallet
         $wallet = $this->wallet;

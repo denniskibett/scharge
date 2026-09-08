@@ -152,12 +152,14 @@ document.addEventListener('alpine:init', () => {
     selected: Alpine.$persist(''), // Start with no dropdowns open
     activePage: Alpine.$persist('dashboard'),
     activeItemLabel: Alpine.$persist('Dashboard'),
-    userRole: '{{ auth()->user()->role->name ?? "guest" }}',
+    
+    // FIXED: Use Spatie's native method directly
+    userRole: @js(auth()->user()->getRoleNames()->first() ?? 'guest'),
     
     // Role-based permissions mapping
     rolePermissions: {
       'sysadmin': [
-        'dashboard', 'calendar',
+        'dashboard', 'calendar', 'profile',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
@@ -172,7 +174,7 @@ document.addEventListener('alpine:init', () => {
         'ui_elements', 'alerts', 'avatars', 'badges', 'buttons', 'images', 'videos'
       ],
       'admin': [
-        'dashboard',
+        'dashboard', 'calendar', 'profile',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
@@ -182,41 +184,41 @@ document.addEventListener('alpine:init', () => {
         'users', 'staff',
       ],
       'property_manager': [
-        'dashboard',
+        'dashboard', 'calendar', 'profile',
         'property', 'estates', 'units', 'tenants', 'tenancies',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 
         'maintenance',
       ],
       'accountant': [
-        'dashboard', 
+        'dashboard', 'calendar', 'profile',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'users', 'staff',
       ],
       'meter_reader': [
-        'dashboard',
+        'dashboard', 'profile',
         'water', 'water_readings'
       ],
       'cleaning_staff': [
-        'dashboard',
+        'dashboard', 'profile',
         'maintenance'
       ],
       'maintenance': [
-        'dashboard',
+        'dashboard', 'profile',
         'maintenance'
       ],
       'security': [
-        'dashboard',
+        'dashboard', 'profile',
         'security', 'security_logs'
       ],
       'tenant': [
-        'dashboard',
+        'dashboard', 'profile',
         'finance', 'invoices', 'payments',
         'property', 'tenancies',
         'maintenance',
         'security', 'security_logs'
       ],
       'guest': [
-        'dashboard'
+        'dashboard', 'profile'
       ]
     },
 
@@ -588,7 +590,7 @@ document.addEventListener('alpine:init', () => {
 
     // Computed property for filtered menu data based on role permissions
     get filteredMenuData() {
-      const userPermissions = this.rolePermissions[this.userRole] || this.rolePermissions['guest'];
+      const userPermissions = this.getUserPermissions();
       
       return this.menuData
         .map(group => {
@@ -616,12 +618,27 @@ document.addEventListener('alpine:init', () => {
         .filter(group => group !== null);
     },
 
+    // Helper method to get user permissions with error handling
+    getUserPermissions() {
+      if (!this.rolePermissions[this.userRole]) {
+        console.error(
+          `[Sidebar] Unknown user role: "${this.userRole}". ` +
+          `Available roles: ${Object.keys(this.rolePermissions).join(', ')}. ` +
+          `Falling back to "guest" permissions.`
+        );
+        
+        return this.rolePermissions['guest'];
+      }
+      
+      return this.rolePermissions[this.userRole];
+    },
+
     init() {
       this.setInitialActivePage();
     },
 
     hasPermission(item) {
-      const userPermissions = this.rolePermissions[this.userRole] || this.rolePermissions['guest'];
+      const userPermissions = this.getUserPermissions();
       
       if (item.children) {
         return item.children.some(child => userPermissions.includes(child.permission));
@@ -654,21 +671,7 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
-    findParentItem(page) {
-      for (const group of this.menuData) {
-        for (const item of group.items) {
-          if (item.children) {
-            for (const child of item.children) {
-              if (child.page === page) {
-                return item;
-              }
-            }
-          }
-        }
-      }
-      return null;
-    },
-    
+    // FIXED: Removed duplicate findParentItem - only one version remains
     findParentItem(page) {
       if (!page) return null;
       

@@ -258,8 +258,6 @@ document.addEventListener('alpine:init', () => {
         
         init() {
             window.userAssignModal = this;
-            this.loadCompanies();
-            this.loadRoles();
         },
         
         openModal(userId, userName, userEmail, userRole) {
@@ -274,6 +272,10 @@ document.addEventListener('alpine:init', () => {
             this.searchQuery = '';
             this.showModal = true;
             document.body.style.overflow = 'hidden';
+
+            // Load data when modal opens
+            this.loadCompanies();
+            this.loadRoles();
             
             // Reset filter
             this.filterCompanies();
@@ -306,10 +308,18 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     console.error('Failed to load companies');
                     this.companies = [];
+                    window.alertModal.showError(
+                        'Error Loading Companies',
+                        'Failed to load companies. Please try again.'
+                    );
                 }
             } catch (error) {
                 console.error('Error loading companies:', error);
                 this.companies = [];
+                window.alertModal.showError(
+                    'Network Error',
+                    'Could not load companies. Please check your connection.'
+                );
             } finally {
                 this.loading = false;
             }
@@ -335,10 +345,18 @@ document.addEventListener('alpine:init', () => {
                 } else {
                     console.error('Failed to load roles');
                     this.availableRoles = [];
+                    window.alertModal.showError(
+                        'Error Loading Roles',
+                        'Failed to load roles. Please try again.'
+                    );
                 }
             } catch (error) {
                 console.error('Error loading roles:', error);
                 this.availableRoles = [];
+                window.alertModal.showError(
+                    'Network Error',
+                    'Could not load roles. Please check your connection.'
+                );
             }
         },
         
@@ -365,14 +383,28 @@ document.addEventListener('alpine:init', () => {
             this.selectedCompany = company;
         },
         
-        async assignUser() {
-            if (!this.selectedCompanyId || !this.userId) {
-                alert('Please select a company');
-                return;
+        validateSelection() {
+            if (!this.selectedCompanyId) {
+                window.alertModal.showWarning(
+                    'Company Required',
+                    'Please select a company to assign the user to.'
+                );
+                return false;
             }
             
             if (!this.selectedRoleId) {
-                alert('Please select a role');
+                window.alertModal.showWarning(
+                    'Role Required',
+                    'Please select a role for the user.'
+                );
+                return false;
+            }
+            
+            return true;
+        },
+        
+        async assignUser() {
+            if (!this.validateSelection()) {
                 return;
             }
             
@@ -395,16 +427,36 @@ document.addEventListener('alpine:init', () => {
                 const result = await response.json();
                 
                 if (result.success) {
-                    this.closeModal();
                     const roleName = this.availableRoles.find(r => r.id === this.selectedRoleId)?.name || 'selected role';
-                    alert(`User "${this.userName}" assigned to "${this.selectedCompany.name}" with role "${roleName}" successfully!`);
-                    location.reload();
+                    
+                    // Close modal and show success
+                    this.closeModal();
+                    
+                    window.alertModal.showSuccess(
+                        'User Assigned Successfully',
+                        `User "${this.userName}" has been assigned to "${this.selectedCompany.name}" with role "${roleName}".`
+                    );
+                    
+                    // Reload after user closes the success modal
+                    const checkModalClosed = setInterval(() => {
+                        if (!window.alertModal.isOpen) {
+                            clearInterval(checkModalClosed);
+                            location.reload();
+                        }
+                    }, 100);
+                    
                 } else {
-                    alert(result.message || 'Failed to assign user');
+                    window.alertModal.showError(
+                        'Assignment Failed',
+                        result.message || 'Failed to assign user. Please try again.'
+                    );
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while assigning the user');
+                window.alertModal.showError(
+                    'System Error',
+                    'An unexpected error occurred while assigning the user. Please try again.'
+                );
             } finally {
                 this.saving = false;
             }

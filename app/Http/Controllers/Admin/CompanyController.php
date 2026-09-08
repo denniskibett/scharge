@@ -831,7 +831,7 @@ public function getCompanyExpenses($id)
                     'user_id' => $user->id, 
                     'email' => $user->email,
                     'company_id' => $user->company_id,
-                    'role_id' => $user->role_id
+                    'role_id' => $user->roles()->pluck('name') 
                 ]);
                 
                 // Verify the user was created with the correct company_id

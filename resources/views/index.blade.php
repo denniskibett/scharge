@@ -23,7 +23,7 @@
             </div>
 
             <div class="col-span-12 xl:col-span-7">
-                @include('partials.table.table-01')
+                @include('partials.table.t$user->roles()->pluck('name') ')
             </div>
 
             <div class="col-span-12">

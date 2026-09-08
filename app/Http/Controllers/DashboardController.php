@@ -35,12 +35,12 @@ class DashboardController extends Controller
             return $this->pendingVerificationView($user);
         }
         
-        $roleName = $user->role ? $user->role->name : 'guest';
+        // FIXED: Use Spatie's getRoleNames() instead of $user->role
+        $roleName = $user->getRoleNames()->first() ?? 'guest';
         
         switch ($roleName) {
             case 'sysadmin':
                 return $this->sysAdminDashboard();
-            case 'super_admin':
             case 'admin':
                 return $this->adminDashboard();
             case 'property_manager':
@@ -61,7 +61,7 @@ class DashboardController extends Controller
                 return $this->guestDashboard();
         }
     }
-    
+        
     private function isUserReady($user)
     {
         if (is_null($user->email_verified_at)) {
@@ -72,6 +72,7 @@ class DashboardController extends Controller
             return false;
         }
         
+        // FIXED: Use Spatie's hasRole()
         if ($user->hasRole('sysadmin')) {
             return true;
         }
@@ -723,12 +724,11 @@ class DashboardController extends Controller
 
     private function getRoleSpecificData($user, $company = null)
     {
-        $roleName = $user->role ? $user->role->name : 'guest';
+        $roleName = $user->getRoleNames()->first() ?? 'guest';
         
         switch ($roleName) {
             case 'sysadmin':
                 return $this->getSysAdminData();
-            case 'super_admin':
             case 'admin':
                 return $this->getAdminData($company);
             case 'property_manager':

@@ -6,7 +6,6 @@
 <div x-data="dashboard()" x-init="init()">
     <div class="container-fluid px-4 py-4">
 
-
     <!-- Dashboard Cards - Only for non-sysadmin roles -->
     @if(!auth()->user()->hasRole('sysadmin'))
     <div class="mt-6 mb-6">
@@ -18,9 +17,11 @@
     </div>
     @endif
 
-    <!-- Role-Based Dashboard Content - Using Partials -->
+    <!-- ============================================================ -->
+    <!-- Role-Based Dashboard Content - Using Spatie hasRole()         -->
+    <!-- ============================================================ -->
     
-    <!-- SYSADMIN DASHBOARD -->
+    <!-- SYSADMIN / sysadmin DASHBOARD -->
     @auth
     @if(auth()->user()->hasRole('sysadmin'))
         @include('partials.dashboard.sys-admin', [
@@ -160,7 +161,7 @@ function dashboard() {
         roleData: @json($roleData ?? []),
         stats: @json($stats ?? []),
         userName: '{{ Auth::user()->first_name ?: Auth::user()->name }}',
-        userRole: '{{ ucfirst(str_replace("_", " ", Auth::user()->role->name ?? "User")) }}',
+        userRole: '{{ ucfirst(str_replace("_", " ", Auth::user()->roles->first()?->name ?? "User")) }}',
         dashboardTitle: '{{ Auth::user()->dashboard_title ?? 'Dashboard' }}',
         currentDate: new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
         welcomeMessage: '',
@@ -197,7 +198,10 @@ function dashboard() {
     };
 }
 
-// Sysadmin Functions
+// ============================================================
+// SYSADMIN FUNCTIONS
+// ============================================================
+
 function editCompany(companyId) {
     window.location.href = `/admin/companies/${companyId}/edit`;
 }
@@ -275,7 +279,10 @@ function saveSystemSettings() {
       });
 }
 
-// Global functions for other roles
+// ============================================================
+// GLOBAL FUNCTIONS FOR ALL ROLES
+// ============================================================
+
 function editReading(unitId) {
     if (window.waterReadingModal) {
         window.waterReadingModal.openModal(unitId);

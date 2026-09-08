@@ -195,7 +195,7 @@ class UserSeeder extends Seeder
                 $this->command->info("✓ Created user: {$userData['email']} ({$roleName})");
             } else {
                 // Update existing user's role if needed
-                if ($user->role_id !== $role->id) {
+                if ($user->roles()->pluck('name')  !== $role->id) {
                     $user->update(['role_id' => $role->id]);
                     $this->command->info("✓ Updated role for existing user: {$userData['email']} ({$roleName})");
                 }

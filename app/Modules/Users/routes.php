@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Modules\Users\Controllers\UserController;
+use App\Http\Controllers\Admin\UserController;
 
 Route::middleware(['auth'])->prefix('users')->name('users.')->group(function () {
     // CRUD - one liner for standard resource

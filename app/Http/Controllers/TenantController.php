@@ -185,7 +185,7 @@ public function store(Request $request)
         
         // Assign tenant role if not already assigned (using role_id directly)
         $tenantRole = Role::where('name', 'tenant')->first();
-        if ($tenantRole && $user->role_id !== $tenantRole->id) {
+        if ($tenantRole && $user->roles()->pluck('name')  !== $tenantRole->id) {
             $user->update(['role_id' => $tenantRole->id]);
         }
         

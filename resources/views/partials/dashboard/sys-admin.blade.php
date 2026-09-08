@@ -473,7 +473,9 @@
 </div>
 
 <!-- Include Modals -->
+@include('partials.modal.alert-modal')
 @include('partials.modal.user-assign-modal')
+
 
 <style>
     [x-cloak] { display: none !important; }

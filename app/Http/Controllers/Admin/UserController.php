@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Modules\Users\Models\User;
 use App\Models\Company;
-use App\Models\Role;
+use App\Modules\Users\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -18,11 +18,13 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $query = User::with(['role', 'company']);
+        $query = User::with(['roles', 'company']);
         
-        // Filter by role
+        // Filter by role (using Spatie's role relationship)
         if ($request->has('role_id') && $request->role_id) {
-            $query->where('role_id', $request->role_id);
+            $query->whereHas('roles', function($q) use ($request) {
+                $q->where('role_id', $request->role_id);
+            });
         }
         
         // Filter by company
@@ -110,16 +112,23 @@ class UserController extends Controller
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
                 'phone' => $request->phone,
-                'role_id' => $request->role_id,
                 'company_id' => $request->company_id,
                 'status' => $request->status ?? 0,
             ]);
+
+            // Assign role using Spatie
+            if ($request->role_id) {
+                $role = Role::find($request->role_id);
+                if ($role) {
+                    $user->assignRole($role->name);
+                }
+            }
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'User created successfully!',
-                    'user' => $user
+                    'user' => $user->load('roles')
                 ]);
             }
 
@@ -145,7 +154,7 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        $user->load(['role', 'company']);
+        $user->load(['roles', 'company']);
         
         if (request()->wantsJson()) {
             return response()->json([
@@ -196,7 +205,6 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'role_id' => $request->role_id,
                 'company_id' => $request->company_id,
                 'status' => $request->status ?? $user->status,
             ]);
@@ -207,11 +215,21 @@ class UserController extends Controller
                 $user->save();
             }
 
+            // Sync roles using Spatie
+            if ($request->role_id) {
+                $role = Role::find($request->role_id);
+                if ($role) {
+                    $user->syncRoles([$role->name]);
+                }
+            } else {
+                $user->syncRoles([]);
+            }
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'User updated successfully!',
-                    'user' => $user
+                    'user' => $user->load('roles')
                 ]);
             }
 
@@ -239,7 +257,7 @@ class UserController extends Controller
     {
         try {
             // Prevent deleting sysadmin users
-            if ($user->hasRole('sysadmin')) {
+            if ($user->hasRole('super_admin')) {
                 if ($request->wantsJson()) {
                     return response()->json([
                         'success' => false,
@@ -282,8 +300,8 @@ class UserController extends Controller
     public function verify(Request $request, User $user)
     {
         try {
-            // Only sysadmin can verify users
-            if (!auth()->user()->hasRole('sysadmin')) {
+            // Only super_admin can verify users
+            if (!auth()->user()->hasRole('super_admin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Only system administrators can verify users.'
@@ -323,8 +341,8 @@ class UserController extends Controller
     public function assignCompany(Request $request, User $user)
     {
         try {
-            // Only sysadmin can assign companies
-            if (!auth()->user()->hasRole('sysadmin')) {
+            // Only super_admin can assign companies
+            if (!auth()->user()->hasRole('super_admin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Only system administrators can assign users to companies.'
@@ -345,14 +363,15 @@ class UserController extends Controller
                 // Assign user to company
                 $user->company_id = $company->id;
                 
-                // If role_id is provided, assign the role
+                // Assign role using Spatie
                 if (isset($validated['role_id'])) {
                     $role = Role::find($validated['role_id']);
-                    $user->role_id = $role->id;
+                    if ($role) {
+                        $user->syncRoles([$role->name]);
+                    }
                 }
                 
-                // IMPORTANT: Set email_verified_at to now so user is considered verified
-                // This removes them from the pending users list
+                // Set email_verified_at to now so user is verified
                 if (is_null($user->email_verified_at)) {
                     $user->email_verified_at = now();
                 }
@@ -398,7 +417,7 @@ class UserController extends Controller
     public function getRoles(Request $request)
     {
         try {
-            $roles = Role::where('name', '!=', 'sysadmin') // Exclude sysadmin from selection
+            $roles = Role::where('name', '!=', 'super_admin')
                 ->orderBy('name')
                 ->get(['id', 'name', 'description']);
             
@@ -422,12 +441,14 @@ class UserController extends Controller
     public function getUsers(Request $request)
     {
         try {
-            $query = User::select('id', 'name', 'email', 'role_id', 'company_id')
-                ->with(['role', 'company']);
+            $query = User::select('id', 'name', 'email', 'company_id')
+                ->with(['roles', 'company']);
             
-            // Filter by role
+            // Filter by role (using Spatie)
             if ($request->has('role_id') && $request->role_id) {
-                $query->where('role_id', $request->role_id);
+                $query->whereHas('roles', function($q) use ($request) {
+                    $q->where('role_id', $request->role_id);
+                });
             }
             
             // Filter by company
@@ -466,15 +487,15 @@ class UserController extends Controller
     public function suspend(Request $request, User $user)
     {
         try {
-            if (!auth()->user()->hasRole('sysadmin')) {
+            if (!auth()->user()->hasRole('super_admin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized.'
                 ], 403);
             }
 
-            // Don't suspend sysadmin users
-            if ($user->hasRole('sysadmin')) {
+            // Don't suspend super_admin users
+            if ($user->hasRole('super_admin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot suspend a system administrator.'
@@ -504,7 +525,7 @@ class UserController extends Controller
     public function activate(Request $request, User $user)
     {
         try {
-            if (!auth()->user()->hasRole('sysadmin')) {
+            if (!auth()->user()->hasRole('super_admin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized.'

@@ -25,6 +25,7 @@ use App\Modules\Subscriptions\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\AccountManagerController;
 use App\Http\Controllers\PublicInvoiceController;
+use App\Http\Controllers\RoleController;
 
 require __DIR__ . '/mpesa.php';
 
@@ -175,6 +176,8 @@ Route::get('/campaign/{id}', function($id) {
 });
 
 
+
+
 // ============================================
 // PUBLIC ROUTES
 // ============================================
@@ -210,7 +213,21 @@ Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 // ============================================
 Route::middleware(['auth'])->group(function () {
 
-// ============================================
+    // ============================================
+    // ADMIN ROLES ROUTES
+    // ============================================
+    Route::prefix('roles')->name('roles.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
+        Route::get('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'show'])->name('show');
+        Route::post('/', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('store');
+        Route::put('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'update'])->name('update');
+        Route::delete('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'destroy'])->name('destroy');
+        Route::get('/{role}/data', [App\Http\Controllers\Admin\RoleController::class, 'getRole'])->name('data');
+    });
+
+    // Route::resource('roles', App\Http\Controllers\Admin\RoleController::class);
+
+    // ============================================
     // DASHBOARD
     // ============================================
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -638,14 +655,6 @@ Route::get('/test-sms-config', function () {
     ]);
 });
 
-Route::prefix('test-sms')->group(function () {
-    Route::get('/send', [App\Http\Controllers\TestSMSController::class, 'testSendSms']);
-    Route::get('/phone', [App\Http\Controllers\TestSMSController::class, 'testPhoneFormat']);
-    Route::get('/parts', [App\Http\Controllers\TestSMSController::class, 'testMessageParts']);
-    Route::get('/balance', [App\Http\Controllers\TestSMSController::class, 'testBalance']);
-    Route::get('/quiet-hours', [App\Http\Controllers\TestSMSController::class, 'testQuietHours']);
-    Route::get('/preview', [App\Http\Controllers\TestSMSController::class, 'testCampaignPreview']);
-});
 
 // ============================================
 // 🔍 DEBUG ROUTES (Temporary - Remove after testing)

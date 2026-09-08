@@ -17,7 +17,8 @@
         "league/iso3166": "^4.3",
         "moneyphp/money": "^4.8",
         "pragmarx/countries": "^1.0",
-        "spatie/laravel-backup": "^9.3"
+        "spatie/laravel-backup": "^9.3",
+        "spatie/laravel-permission": "^8.3"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
