@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Modules\Users\Models\User;
 use App\Models\Company;
-use App\Modules\Users\Models\Role;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -21,9 +21,16 @@ class UserController extends Controller
         $query = User::with(['roles', 'company']);
         
         // Filter by role (using Spatie's role relationship)
+        if ($request->has('role') && $request->role) {
+            $query->whereHas('roles', function($q) use ($request) {
+                $q->where('name', $request->role);
+            });
+        }
+        
+        // Filter by role ID (for backward compatibility)
         if ($request->has('role_id') && $request->role_id) {
             $query->whereHas('roles', function($q) use ($request) {
-                $q->where('role_id', $request->role_id);
+                $q->where('id', $request->role_id);
             });
         }
         
@@ -57,6 +64,13 @@ class UserController extends Controller
         }
         
         $users = $query->orderBy('created_at', 'desc')->paginate(20);
+        
+        // Add role names to each user for display
+        $users->getCollection()->transform(function ($user) {
+            $user->primary_role = $user->getRoleNames()->first();
+            $user->role_names = $user->getRoleNames()->toArray();
+            return $user;
+        });
         
         if ($request->wantsJson()) {
             return response()->json([
@@ -107,6 +121,8 @@ class UserController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -122,13 +138,25 @@ class UserController extends Controller
                 if ($role) {
                     $user->assignRole($role->name);
                 }
+            } else {
+                // Default to 'guest' role if no role specified
+                $guestRole = Role::where('name', 'guest')->first();
+                if ($guestRole) {
+                    $user->assignRole($guestRole->name);
+                }
             }
+
+            DB::commit();
+
+            // Reload with roles
+            $user->load('roles');
+            $user->primary_role = $user->getRoleNames()->first();
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'User created successfully!',
-                    'user' => $user->load('roles')
+                    'user' => $user
                 ]);
             }
 
@@ -136,6 +164,7 @@ class UserController extends Controller
                 ->with('success', 'User created successfully!');
 
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('User creation error: ' . $e->getMessage());
             
             if ($request->wantsJson()) {
@@ -155,6 +184,8 @@ class UserController extends Controller
     public function show(User $user)
     {
         $user->load(['roles', 'company']);
+        $user->primary_role = $user->getRoleNames()->first();
+        $user->role_names = $user->getRoleNames()->toArray();
         
         if (request()->wantsJson()) {
             return response()->json([
@@ -171,6 +202,9 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
+        $user->load('roles');
+        $user->primary_role = $user->getRoleNames()->first();
+        
         $roles = Role::orderBy('name')->get();
         $companies = Company::orderBy('name')->get();
         return view('admin.users.edit', compact('user', 'roles', 'companies'));
@@ -201,6 +235,19 @@ class UserController extends Controller
         }
 
         try {
+            DB::beginTransaction();
+
+            // Prevent updating sysadmin role
+            if ($user->hasRole('sysadmin') && $request->role_id) {
+                $newRole = Role::find($request->role_id);
+                if ($newRole && $newRole->name !== 'sysadmin') {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cannot change sysadmin role.'
+                    ], 422);
+                }
+            }
+
             $user->update([
                 'name' => $request->name,
                 'email' => $request->email,
@@ -222,14 +269,21 @@ class UserController extends Controller
                     $user->syncRoles([$role->name]);
                 }
             } else {
-                $user->syncRoles([]);
+                // If no role specified, keep existing roles
+                // Or uncomment to remove all roles:
+                // $user->syncRoles([]);
             }
+
+            DB::commit();
+
+            $user->load('roles');
+            $user->primary_role = $user->getRoleNames()->first();
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'User updated successfully!',
-                    'user' => $user->load('roles')
+                    'user' => $user
                 ]);
             }
 
@@ -237,6 +291,7 @@ class UserController extends Controller
                 ->with('success', 'User updated successfully!');
 
         } catch (\Exception $e) {
+            DB::rollBack();
             \Log::error('User update error: ' . $e->getMessage());
             
             if ($request->wantsJson()) {
@@ -257,7 +312,7 @@ class UserController extends Controller
     {
         try {
             // Prevent deleting sysadmin users
-            if ($user->hasRole('super_admin')) {
+            if ($user->hasRole('sysadmin')) {
                 if ($request->wantsJson()) {
                     return response()->json([
                         'success' => false,
@@ -300,8 +355,8 @@ class UserController extends Controller
     public function verify(Request $request, User $user)
     {
         try {
-            // Only super_admin can verify users
-            if (!auth()->user()->hasRole('super_admin')) {
+            // Only sysadmin can verify users
+            if (!auth()->user()->hasRole('sysadmin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Only system administrators can verify users.'
@@ -341,8 +396,8 @@ class UserController extends Controller
     public function assignCompany(Request $request, User $user)
     {
         try {
-            // Only super_admin can assign companies
-            if (!auth()->user()->hasRole('super_admin')) {
+            // Only sysadmin can assign companies
+            if (!auth()->user()->hasRole('sysadmin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized. Only system administrators can assign users to companies.'
@@ -412,14 +467,26 @@ class UserController extends Controller
     }
 
     /**
-     * Get list of available roles
+     * Get list of available roles (AJAX endpoint)
      */
     public function getRoles(Request $request)
     {
         try {
-            $roles = Role::where('name', '!=', 'super_admin')
-                ->orderBy('name')
-                ->get(['id', 'name', 'description']);
+            $roles = Role::orderBy('name')
+                ->when($request->has('exclude'), function ($query) use ($request) {
+                    $exclude = explode(',', $request->exclude);
+                    return $query->whereNotIn('name', $exclude);
+                })
+                ->get(['id', 'name', 'description'])
+                ->map(function ($role) {
+                    return [
+                        'id' => $role->id,
+                        'name' => $role->name,
+                        'label' => ucfirst(str_replace('_', ' ', $role->name)),
+                        'description' => $role->description ?? 'No description',
+                        'initial' => strtoupper(substr($role->name, 0, 1)),
+                    ];
+                });
             
             return response()->json([
                 'success' => true,
@@ -430,13 +497,13 @@ class UserController extends Controller
             \Log::error('Error fetching roles: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching roles'
+                'message' => 'Error fetching roles: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Get list of users for dropdown/selection
+     * Get list of users for dropdown/selection (AJAX endpoint)
      */
     public function getUsers(Request $request)
     {
@@ -444,16 +511,28 @@ class UserController extends Controller
             $query = User::select('id', 'name', 'email', 'company_id')
                 ->with(['roles', 'company']);
             
-            // Filter by role (using Spatie)
+            // Filter by role name (using Spatie)
+            if ($request->has('role') && $request->role) {
+                $query->whereHas('roles', function($q) use ($request) {
+                    $q->where('name', $request->role);
+                });
+            }
+            
+            // Filter by role ID (using Spatie)
             if ($request->has('role_id') && $request->role_id) {
                 $query->whereHas('roles', function($q) use ($request) {
-                    $q->where('role_id', $request->role_id);
+                    $q->where('id', $request->role_id);
                 });
             }
             
             // Filter by company
             if ($request->has('company_id') && $request->company_id) {
                 $query->where('company_id', $request->company_id);
+            }
+            
+            // Filter by status
+            if ($request->has('status') && $request->status !== '') {
+                $query->where('status', $request->status);
             }
             
             // Search
@@ -467,6 +546,13 @@ class UserController extends Controller
             
             $users = $query->orderBy('name')->limit(50)->get();
             
+            // Add role names for display
+            $users->transform(function ($user) {
+                $user->primary_role = $user->getRoleNames()->first();
+                $user->role_names = $user->getRoleNames()->toArray();
+                return $user;
+            });
+            
             return response()->json([
                 'success' => true,
                 'users' => $users
@@ -476,7 +562,7 @@ class UserController extends Controller
             \Log::error('Error fetching users: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error fetching users'
+                'message' => 'Error fetching users: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -487,15 +573,15 @@ class UserController extends Controller
     public function suspend(Request $request, User $user)
     {
         try {
-            if (!auth()->user()->hasRole('super_admin')) {
+            if (!auth()->user()->hasRole('sysadmin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized.'
                 ], 403);
             }
 
-            // Don't suspend super_admin users
-            if ($user->hasRole('super_admin')) {
+            // Don't suspend sysadmin users
+            if ($user->hasRole('sysadmin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot suspend a system administrator.'
@@ -525,7 +611,7 @@ class UserController extends Controller
     public function activate(Request $request, User $user)
     {
         try {
-            if (!auth()->user()->hasRole('super_admin')) {
+            if (!auth()->user()->hasRole('sysadmin')) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized.'
@@ -542,6 +628,53 @@ class UserController extends Controller
 
         } catch (\Exception $e) {
             \Log::error('User activation error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk delete users
+     */
+    public function bulkDelete(Request $request)
+    {
+        try {
+            if (!auth()->user()->hasRole('sysadmin')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized.'
+                ], 403);
+            }
+
+            $request->validate([
+                'user_ids' => 'required|array',
+                'user_ids.*' => 'exists:users,id'
+            ]);
+
+            $userIds = $request->user_ids;
+            
+            // Don't delete sysadmin users
+            $sysadminUsers = User::role('sysadmin')->whereIn('id', $userIds)->pluck('id')->toArray();
+            $validIds = array_diff($userIds, $sysadminUsers);
+            
+            if (empty($validIds)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid users to delete (sysadmin users are protected).'
+                ], 400);
+            }
+
+            $deleted = User::whereIn('id', $validIds)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$deleted} users deleted successfully."
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Bulk delete error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred: ' . $e->getMessage()

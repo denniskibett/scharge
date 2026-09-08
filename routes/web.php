@@ -8,7 +8,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PayeeController;
 use App\Http\Controllers\PaymentController; 
 use App\Http\Controllers\ExpenseCategoryController;
-use App\Http\Controllers\StaffController;
+use App\Http\Controllers\Admin\StaffController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenancyController; 
@@ -234,10 +234,6 @@ Route::middleware(['auth'])->group(function () {
         ->middleware(['verified'])
         ->name('dashboard');
 
-    Route::get('mtickets', function () {
-        return view('mtickets');
-    })->name('mtickets');
-
 
     // ============================================
     // PROFILE ROUTES
@@ -288,18 +284,34 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/debug', [SystemController::class, 'debug'])->name('debug');
     });
 
-    // ============================================
-    // ADMIN USER MANAGEMENT ROUTES
-    // ============================================
-    Route::prefix('admin/users')->name('admin.users.')->group(function () {
-        Route::resource('users', App\Http\Controllers\Admin\UserController::class)
-            ->parameters(['users' => 'user']);
-        
-        Route::post('/{user}/verify', [App\Http\Controllers\Admin\UserController::class, 'verify'])->name('verify');
-        Route::post('/{user}/assign-company', [App\Http\Controllers\Admin\UserController::class, 'assignCompany'])->name('assign-company');
-        Route::post('/{user}/suspend', [App\Http\Controllers\Admin\UserController::class, 'suspend'])->name('suspend');
-        Route::post('/{user}/activate', [App\Http\Controllers\Admin\UserController::class, 'activate'])->name('activate');
-    });
+// ============================================
+// ADMIN USER MANAGEMENT ROUTES
+// ============================================
+Route::prefix('users')->name('admin.users.')->group(function () {
+
+    Route::resource('/', App\Http\Controllers\Admin\UserController::class)
+        ->parameters(['' => 'user']);
+
+    Route::post('/{user}/verify', [
+        App\Http\Controllers\Admin\UserController::class,
+        'verify'
+    ])->name('verify');
+
+    Route::post('/{user}/assign-company', [
+        App\Http\Controllers\Admin\UserController::class,
+        'assignCompany'
+    ])->name('assign-company');
+
+    Route::post('/{user}/suspend', [
+        App\Http\Controllers\Admin\UserController::class,
+        'suspend'
+    ])->name('suspend');
+
+    Route::post('/{user}/activate', [
+        App\Http\Controllers\Admin\UserController::class,
+        'activate'
+    ])->name('activate');
+});
 
     // ============================================
     // ADMIN ROLES ROUTES
