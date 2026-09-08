@@ -8,7 +8,7 @@ use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PayeeController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ExpenseCategoryController;
-use App\Http\Controllers\StaffController;
+use App\Http\Controllers\StaffController; // Legacy base controller (not used for admin)
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\TenantController;
 use App\Http\Controllers\TenancyController;
@@ -18,7 +18,6 @@ use App\Http\Controllers\CleaningController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
-use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
@@ -27,86 +26,53 @@ use App\Http\Controllers\Admin\AccountManagerController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-// ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details
+// Campaign direct route
 Route::get('/campaign/{id}', function($id) {
     try {
-        DB::connection()->getQueryLog();
-        
         $campaign = DB::table('sms_campaigns')->where('id', $id)->first();
-        if (!$campaign) {
-            return response()->json(['error' => 'Campaign not found'], 404);
-        }
-        
-        $recipients = DB::table('campaign_recipients')
-            ->where('campaign_id', $id)
-            ->get()
-            ->map(function($recipient) {
-                $tenant = null;
-                $user = null;
-                $unit = null;
-                $estate = null;
-                $tenantName = 'Unknown';
-                $unitNumber = 'N/A';
-                $estateName = 'N/A';
-                
-                if ($recipient->tenant_id) {
-                    $tenant = DB::table('tenants')->where('id', $recipient->tenant_id)->first();
-                    if ($tenant) {
-                        if ($tenant->user_id) {
-                            $user = DB::table('users')->where('id', $tenant->user_id)->first();
-                            $tenantName = $user ? $user->name : 'Unknown';
-                        } else {
-                            $tenantName = $tenant->name ?? 'Unknown';
-                        }
-                        
-                        $tenancy = DB::table('tenancies')
-                            ->where('tenant_id', $tenant->id)
-                            ->where('status', 'active')
-                            ->first();
-                        if ($tenancy && $tenancy->unit_id) {
-                            $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
-                            if ($unit) {
-                                $unitNumber = $unit->unit_number ?? 'N/A';
-                                if ($unit->estate_id) {
-                                    $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
-                                    $estateName = $estate ? $estate->name : 'N/A';
-                                }
+        if (!$campaign) return response()->json(['error' => 'Campaign not found'], 404);
+
+        $recipients = DB::table('campaign_recipients')->where('campaign_id', $id)->get()->map(function($r) {
+            $tenant = null; $user = null; $unit = null; $estate = null;
+            $tenantName = 'Unknown'; $unitNumber = 'N/A'; $estateName = 'N/A';
+
+            if ($r->tenant_id) {
+                $tenant = DB::table('tenants')->where('id', $r->tenant_id)->first();
+                if ($tenant) {
+                    $user = $tenant->user_id ? DB::table('users')->where('id', $tenant->user_id)->first() : null;
+                    $tenantName = $user ? $user->name : ($tenant->name ?? 'Unknown');
+                    $tenancy = DB::table('tenancies')->where('tenant_id', $tenant->id)->where('status', 'active')->first();
+                    if ($tenancy && $tenancy->unit_id) {
+                        $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
+                        if ($unit) {
+                            $unitNumber = $unit->unit_number ?? 'N/A';
+                            if ($unit->estate_id) {
+                                $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
+                                $estateName = $estate ? $estate->name : 'N/A';
                             }
                         }
                     }
-                } else {
-                    $phone = $recipient->phone_number;
-                    if (!empty($phone)) {
-                        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
-                        if (strlen($cleanPhone) >= 9) {
-                            if (substr($cleanPhone, 0, 1) === '0') {
-                                $cleanPhone = substr($cleanPhone, 1);
-                            }
-                            if (substr($cleanPhone, 0, 3) !== '254') {
-                                $cleanPhone = '254' . $cleanPhone;
-                            }
-                            
-                            $user = DB::table('users')
-                                ->where('phone', 'like', '%' . substr($cleanPhone, -9))
-                                ->orWhere('phone', $cleanPhone)
-                                ->first();
-                            
-                            if ($user) {
-                                $tenantName = $user->name ?? 'Unknown';
-                                $tenant = DB::table('tenants')->where('user_id', $user->id)->first();
-                                if ($tenant) {
-                                    $tenancy = DB::table('tenancies')
-                                        ->where('tenant_id', $tenant->id)
-                                        ->where('status', 'active')
-                                        ->first();
-                                    if ($tenancy && $tenancy->unit_id) {
-                                        $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
-                                        if ($unit) {
-                                            $unitNumber = $unit->unit_number ?? 'N/A';
-                                            if ($unit->estate_id) {
-                                                $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
-                                                $estateName = $estate ? $estate->name : 'N/A';
-                                            }
+                }
+            } else {
+                $phone = $r->phone_number;
+                if (!empty($phone)) {
+                    $clean = preg_replace('/[^0-9]/', '', $phone);
+                    if (strlen($clean) >= 9) {
+                        if (substr($clean,0,1)==='0') $clean = substr($clean,1);
+                        if (substr($clean,0,3)!=='254') $clean = '254'.$clean;
+                        $user = DB::table('users')->where('phone', 'like', '%'.substr($clean,-9))->orWhere('phone', $clean)->first();
+                        if ($user) {
+                            $tenantName = $user->name ?? 'Unknown';
+                            $tenant = DB::table('tenants')->where('user_id', $user->id)->first();
+                            if ($tenant) {
+                                $tenancy = DB::table('tenancies')->where('tenant_id', $tenant->id)->where('status', 'active')->first();
+                                if ($tenancy && $tenancy->unit_id) {
+                                    $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
+                                    if ($unit) {
+                                        $unitNumber = $unit->unit_number ?? 'N/A';
+                                        if ($unit->estate_id) {
+                                            $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
+                                            $estateName = $estate ? $estate->name : 'N/A';
                                         }
                                     }
                                 }
@@ -114,94 +80,64 @@ Route::get('/campaign/{id}', function($id) {
                         }
                     }
                 }
-                
-                $network = '';
-                $parts = '';
-                $cost = '';
-                $deliveredTime = '';
-                $providerStatus = $recipient->provider_status ?? '';
-                
-                if ($recipient->provider_response) {
-                    try {
-                        $providerData = json_decode($recipient->provider_response, true);
-                        if (is_array($providerData)) {
-                            $network = $providerData['network'] ?? $providerData['provider'] ?? '';
-                            $parts = $providerData['parts'] ?? $providerData['message_parts'] ?? '';
-                            $cost = $providerData['cost'] ?? '';
-                            $deliveredTime = $providerData['delivered_at'] ?? $providerData['delivered_time'] ?? '';
-                        }
-                    } catch (\Exception $e) {
-                        // Not JSON, ignore
+            }
+
+            $network = $parts = $cost = $deliveredTime = '';
+            $providerStatus = $r->provider_status ?? '';
+            if ($r->provider_response) {
+                try {
+                    $data = json_decode($r->provider_response, true);
+                    if (is_array($data)) {
+                        $network = $data['network'] ?? $data['provider'] ?? '';
+                        $parts = $data['parts'] ?? $data['message_parts'] ?? '';
+                        $cost = $data['cost'] ?? '';
+                        $deliveredTime = $data['delivered_at'] ?? $data['delivered_time'] ?? '';
                     }
-                }
-                
-                return (object) [
-                    'id' => $recipient->id,
-                    'tenant_id' => $recipient->tenant_id,
-                    'phone_number' => $recipient->phone_number,
-                    'message' => $recipient->message,
-                    'status' => $recipient->status,
-                    'sent_at' => $recipient->sent_at,
-                    'error_message' => $recipient->error_message,
-                    'provider_status' => $providerStatus,
-                    'provider_response' => $recipient->provider_response,
-                    'tenant_name' => $tenantName,
-                    'unit_number' => $unitNumber,
-                    'estate_name' => $estateName,
-                    'network' => $network,
-                    'parts' => $parts,
-                    'cost' => $cost,
-                    'delivered_time' => $deliveredTime,
-                ];
-            });
-        
-        return response()->json([
-            'success' => true,
-            'campaign' => $campaign,
-            'recipients' => $recipients,
-            'recipient_count' => $recipients->count()
-        ]);
+                } catch (\Exception $e) {}
+            }
+
+            return (object) [
+                'id' => $r->id,
+                'tenant_id' => $r->tenant_id,
+                'phone_number' => $r->phone_number,
+                'message' => $r->message,
+                'status' => $r->status,
+                'sent_at' => $r->sent_at,
+                'error_message' => $r->error_message,
+                'provider_status' => $providerStatus,
+                'provider_response' => $r->provider_response,
+                'tenant_name' => $tenantName,
+                'unit_number' => $unitNumber,
+                'estate_name' => $estateName,
+                'network' => $network,
+                'parts' => $parts,
+                'cost' => $cost,
+                'delivered_time' => $deliveredTime,
+            ];
+        });
+
+        return response()->json(['success'=>true, 'campaign'=>$campaign, 'recipients'=>$recipients, 'recipient_count'=>$recipients->count()]);
     } catch (\Exception $e) {
-        Log::error('Campaign direct route error: ' . $e->getMessage());
-        return response()->json(['error' => $e->getMessage()], 500);
+        Log::error('Campaign direct route error: '.$e->getMessage());
+        return response()->json(['error'=>$e->getMessage()], 500);
     }
 });
 
-// ============================================
-// PUBLIC ROUTES
-// ============================================
-Route::get('/', function () {
-    return view('welcome');
-});
+// Public
+Route::get('/', function () { return view('welcome'); });
 
-// ============================================
-// AUTHENTICATION ROUTES
-// ============================================
+// Auth
 require __DIR__.'/auth.php';
-
-// Social Login
 Route::get('/auth/google', [GoogleController::class, 'redirect'])->name('login.google');
 Route::get('/auth/google/callback', [GoogleController::class, 'callback']);
 
-// ============================================
-// AUTHENTICATED ROUTES
-// ============================================
+// Authenticated
 Route::middleware(['auth'])->group(function () {
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['verified'])->name('dashboard');
+    Route::get('mtickets', function () { return view('mtickets'); })->name('mtickets');
 
-    // ============================================
-    // DASHBOARD
-    // ============================================
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->middleware(['verified'])
-        ->name('dashboard');
-
-    Route::get('mtickets', function () {
-        return view('mtickets');
-    })->name('mtickets');
-
-    // ============================================
-    // PROFILE ROUTES
-    // ============================================
+    // Profile
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'show'])->name('show');
         Route::get('/edit', [ProfileController::class, 'edit'])->name('edit');
@@ -212,9 +148,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/data', [ProfileController::class, 'getUserData'])->name('data');
     });
 
-    // ============================================
-    // STATIC / DEMO PAGES
-    // ============================================
+    // Static pages
     Route::get('/index', function () { return view('index'); })->name('index');
     Route::get('/invoice', function () { return view('invoice'); })->name('invoice');
     Route::get('/404', function () { return view('404'); })->name('404');
@@ -236,9 +170,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bar-chart', function () { return view('bar-chart'); })->name('bar-chart');
     Route::get('/dash', function () { return view('dash'); })->name('dash');
 
-    // ============================================
-    // SYSTEM ROUTES
-    // ============================================
+    // System
     Route::prefix('system')->name('system.')->group(function () {
         Route::get('/', [SystemController::class, 'index'])->name('index');
         Route::put('/update', [SystemController::class, 'update'])->name('update');
@@ -248,42 +180,51 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/debug', [SystemController::class, 'debug'])->name('debug');
     });
 
-    // ============================================
-    // ADMIN USER MANAGEMENT ROUTES
-    // ============================================
-    Route::prefix('admin/users')->name('admin.users.')->group(function () {
-        Route::resource('users', App\Http\Controllers\Admin\UserController::class)
-            ->parameters(['users' => 'user']);
-        
-        Route::post('/{user}/verify', [App\Http\Controllers\Admin\UserController::class, 'verify'])->name('verify');
-        Route::post('/{user}/assign-company', [App\Http\Controllers\Admin\UserController::class, 'assignCompany'])->name('assign-company');
-        Route::post('/{user}/suspend', [App\Http\Controllers\Admin\UserController::class, 'suspend'])->name('suspend');
-        Route::post('/{user}/activate', [App\Http\Controllers\Admin\UserController::class, 'activate'])->name('activate');
+    // Admin User Management
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', UserController::class)->parameters(['users' => 'user']);
+        Route::post('/users/filter', [UserController::class, 'filter'])->name('users.filter');
+        Route::post('/users/bulk-action', [UserController::class, 'bulkAction'])->name('users.bulk-action');
+        Route::get('/users/export', [UserController::class, 'export'])->name('users.export');
+        Route::post('/users/quick-update/{id}', [UserController::class, 'quickUpdate'])->name('users.quick-update');
+        Route::post('/users/{user}/verify', [UserController::class, 'verify'])->name('users.verify');
+        Route::post('/users/{user}/assign-company', [UserController::class, 'assignCompany'])->name('users.assign-company');
+        Route::post('/users/{user}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
+        Route::post('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
+        Route::get('/roles/list', [UserController::class, 'getRoles'])->name('roles.list');
     });
 
-    // ============================================
-    // ADMIN ROLES ROUTES
-    // ============================================
+    // Admin Staff Management (FIXED – using Admin controller)
+    Route::prefix('admin/staff')->name('admin.staff.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\StaffController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Admin\StaffController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Admin\StaffController::class, 'store'])->name('store');
+        Route::post('/filter', [App\Http\Controllers\Admin\StaffController::class, 'filter'])->name('filter');
+        Route::post('/bulk-action', [App\Http\Controllers\Admin\StaffController::class, 'bulkAction'])->name('bulk-action');
+        Route::get('/export', [App\Http\Controllers\Admin\StaffController::class, 'export'])->name('export');
+        Route::post('/quick-update/{id}', [App\Http\Controllers\Admin\StaffController::class, 'quickUpdate'])->name('quick-update');
+        Route::get('/{id}', [App\Http\Controllers\Admin\StaffController::class, 'show'])->name('show');
+        Route::delete('/{id}', [App\Http\Controllers\Admin\StaffController::class, 'destroy'])->name('destroy');
+    });
+
+    // Legacy staff redirect
+    Route::get('/staff', function () {
+        return redirect()->route('admin.staff.index');
+    })->name('staff.index');
+
+    // Roles (legacy)
     Route::prefix('admin/roles')->name('admin.roles.')->group(function () {
-        Route::get('/list', [App\Http\Controllers\Admin\UserController::class, 'getRoles'])->name('list');
+        Route::get('/list', [UserController::class, 'getRoles'])->name('list');
     });
 
-    // ============================================
-    // API USERS ROUTES
-    // ============================================
+    // API Users
     Route::prefix('api/users')->name('api.users.')->group(function () {
-        Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'getUsers'])->name('index');
-        Route::get('/staff', [App\Http\Controllers\Admin\UserController::class, 'getStaffUsers'])->name('staff');
+        Route::get('/', [UserController::class, 'getUsers'])->name('index');
+        Route::get('/staff', [UserController::class, 'getStaffUsers'])->name('staff');
     });
 
-    // ============================================
-    // ESTATE ROUTES
-    // ============================================
+    // Core resources
     Route::resource('estates', EstateController::class);
-
-    // ============================================
-    // UNIT ROUTES
-    // ============================================
     Route::resource('units', UnitController::class);
     Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
     Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
@@ -291,24 +232,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
     Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
 
-    // ============================================
-    // EXPENSE ROUTES
-    // ============================================
     Route::resource('expenses', ExpenseController::class);
     Route::resource('expense-categories', ExpenseCategoryController::class);
     Route::resource('payees', PayeeController::class);
 
-    // ============================================
-    // TENANT ROUTES
-    // ============================================
     Route::resource('tenants', TenantController::class);
     Route::post('/tenants/bulk-store', [TenantController::class, 'bulkStore'])->name('tenants.bulkStore');
     Route::post('/tenants/{tenant}/invoices', [TenantController::class, 'storeInvoice'])->name('tenants.store.invoice');
     Route::post('/tenants/{tenant}/payments', [TenantController::class, 'storePayment'])->name('tenants.store.payment');
 
-    // ============================================
-    // TENANCY ROUTES
-    // ============================================
     Route::resource('tenancies', TenancyController::class);
     Route::get('/tenancies/{tenancy}/invoice-data', [InvoiceController::class, 'getInvoiceData'])->name('tenancies.invoice-data');
     Route::get('/tenancies/{tenancy}/check-invoice-status', [InvoiceController::class, 'checkInvoiceGenerationStatus'])->name('tenancies.check-invoice-status');
@@ -318,54 +250,36 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/tenancies/{tenancy}/invoices/bulk-missing', [InvoiceController::class, 'generateMissingInvoicesBulk'])->name('tenancies.invoices.bulk-missing');
     Route::post('/tenancies/{tenancy}/payments', [PaymentController::class, 'store'])->name('tenancies.payments.store');
 
-    // ============================================
-    // INVOICE ROUTES
-    // ============================================
     Route::resource('invoices', InvoiceController::class);
-
-    // Invoice generation routes
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');
     Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllInvoices'])->name('invoices.generate.all');
-
-    // Invoice payment routes
     Route::post('/invoices/payments', [InvoiceController::class, 'processPayment'])->name('invoices.payments.store');
-
-    // Bulk invoice operations
     Route::post('/invoices/bulk-create', [InvoiceController::class, 'bulkCreate'])->name('invoices.bulk.create');
     Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing');
     Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates');
     Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
-
-    // Invoice data routes
     Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data');
     Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
 
-    // Invoice item routes - MAIN (using the prefix group)
     Route::prefix('invoices/{invoice}')->group(function () {
         Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
         Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
         Route::delete('/items/{item}', [InvoiceController::class, 'removeInvoiceItem'])->name('invoices.items.destroy');
     });
 
-    // Tenancy-specific invoice routes
     Route::prefix('tenancies/{tenancy}')->name('tenancies.')->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('invoices.store');
         Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('invoices.index');
         Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('invoices.check');
     });
 
-    // ============================================
-    // PAYMENT ROUTES
-    // ============================================
     Route::resource('payments', PaymentController::class);
     Route::post('/payments/bulk', [PaymentController::class, 'bulkStore'])->name('payments.bulk.store');
     Route::get('/payments/create-data', [PaymentController::class, 'getCreateData'])->name('payments.create-data');
     Route::get('/payments/tenant/{tenantId}/invoices', [PaymentController::class, 'getTenantInvoices'])->name('payments.tenant.invoices');
     Route::get('/api/invoices/{invoice}/details', [PaymentController::class, 'getInvoiceDetails'])->name('api.invoices.details');
 
-    // ============================================
-    // WATER READING ROUTES
-    // ============================================
+    // Water
     Route::prefix('water')->name('water.')->group(function () {
         Route::get('/', [WaterReadingController::class, 'index'])->name('index');
         Route::post('/readings', [WaterReadingController::class, 'store'])->name('readings.store');
@@ -383,55 +297,44 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/unit/{unit}/auto-fill', [WaterReadingController::class, 'autoFillMissingMonths'])->name('unit.auto-fill');
         Route::post('/estate/auto-fill', [WaterReadingController::class, 'autoFillEstate'])->name('estate.auto-fill');
     });
-
     Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
 
-    // Meter Reader specific routes
+    // Meter Reader
     Route::middleware(['role:super_admin,admin,property_manager,meter_reader'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
         Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
     });
 
-    // ============================================
-    // CLEANING ROUTES
-    // ============================================
+    // Cleaning
     Route::middleware(['role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
         Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
         Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
         Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
     });
 
-    // ============================================
-    // MAINTENANCE ROUTES
-    // ============================================
+    // Maintenance
     Route::resource('maintenance', MaintenanceController::class);
     Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])->name('maintenance.unit.history');
     Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
     Route::get('/tenant/maintenance', [MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
     Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data');
-
-    // Maintenance Staff routes
     Route::middleware(['role:super_admin,admin,property_manager,maintenance'])->group(function () {
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
 
-    // ============================================
-    // STAFF ROUTES
-    // ============================================
-    Route::resource('staff', StaffController::class);
+    // Staff legacy redirect (already above – we keep one)
+    Route::get('/staff', function () {
+        return redirect()->route('admin.staff.index');
+    })->name('staff.index');
 
-    // ============================================
-    // REPORT ROUTES
-    // ============================================
+    // Reports
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/financial', [ReportController::class, 'financial'])->name('financial');
         Route::get('/invoices', [ReportController::class, 'invoices'])->name('invoices');
         Route::get('/payments', [ReportController::class, 'payments'])->name('payments');
     });
 
-    // ============================================
-    // WALLET MODULE ROUTES
-    // ============================================
+    // Wallet
     Route::prefix('wallet')->name('wallet.')->group(function () {
         Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'getBalance'])->name('balance');
@@ -455,8 +358,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/cards/{card}/default', [App\Modules\Payments\Controllers\WalletController::class, 'setDefaultCard'])->name('cards.default');
         Route::post('/notifications/read', [App\Modules\Payments\Controllers\WalletController::class, 'markNotificationsRead'])->name('notifications.read');
     });
-    
-    // ===== API WALLET ROUTES (AJAX) =====
+
+    // API Wallet
     Route::prefix('api/wallet')->name('api.wallet.')->group(function () {
         Route::get('/balance', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetBalance'])->name('balance');
         Route::get('/tenant-details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTenantDetails'])->name('tenant-details');
@@ -473,8 +376,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/invoice/{invoice}/details', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetInvoiceDetails'])->name('invoice.details');
         Route::post('/verify-pin', [App\Modules\Payments\Controllers\WalletController::class, 'verifyPin'])->name('verify-pin');
     });
-    
-    // ===== ADMIN WALLET MANAGEMENT ROUTES =====
+
+    // Admin Wallet
     Route::prefix('admin/wallets')->name('admin.wallets.')->group(function () {
         Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         Route::get('/report', [App\Modules\Payments\Controllers\WalletController::class, 'report'])->name('report');
@@ -486,7 +389,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{user}/unfreeze', [App\Modules\Payments\Controllers\WalletController::class, 'unfreeze'])->name('unfreeze');
     });
 
-    // ===== TENANT WALLET WEB ROUTES =====
+    // Tenant Wallet
     Route::prefix('wallet')->name('tenant.wallet.')->group(function () {
         Route::post('/deposit', [App\Modules\Payments\Controllers\WalletController::class, 'deposit'])->name('deposit');
         Route::post('/withdraw', [App\Modules\Payments\Controllers\WalletController::class, 'withdraw'])->name('withdraw');
@@ -495,14 +398,9 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/transactions/export', [App\Modules\Payments\Controllers\WalletController::class, 'exportTransactions'])->name('transactions.export');
     });
 
-    // ============================================
-    // SUBSCRIPTION MODULE ROUTES
-    // ============================================
+    // Subscriptions
     Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->group(function () {
-        Route::resource('plans', SubscriptionController::class)
-            ->parameters(['plans' => 'plan'])
-            ->only(['index', 'show', 'store', 'update', 'destroy']);
-        
+        Route::resource('plans', SubscriptionController::class)->parameters(['plans' => 'plan'])->only(['index', 'show', 'store', 'update', 'destroy']);
         Route::get('/', [SubscriptionController::class, 'index'])->name('index');
         Route::get('/company/{company}/dashboard', [SubscriptionController::class, 'companyShow'])->name('company.dashboard');
         Route::put('/plans/{plan}/features', [SubscriptionController::class, 'updateFeatures'])->name('plans.features');
@@ -524,7 +422,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/invoices/{invoice}/mark-paid', [SubscriptionController::class, 'markInvoicePaid'])->name('invoices.mark-paid');
         Route::post('/subscription/{subscription}/cancel', [SubscriptionController::class, 'cancelSubscription'])->name('subscription.cancel');
         Route::post('/subscription/{subscription}/resume', [SubscriptionController::class, 'resumeSubscription'])->name('subscription.resume');
-        
+
         Route::prefix('api')->name('api.')->group(function () {
             Route::get('/plans/data', [SubscriptionController::class, 'getPlansData'])->name('plans.data');
             Route::get('/plans/{plan}', [SubscriptionController::class, 'getPlan'])->name('plans.show');
@@ -533,9 +431,7 @@ Route::middleware(['auth'])->group(function () {
         });
     });
 
-    // ============================================
-    // COMPANY MANAGEMENT ROUTES
-    // ============================================
+    // Companies
     Route::prefix('admin/companies')->name('admin.companies.')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
         Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
@@ -556,9 +452,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
     });
 
-    // ============================================
-    // ACCOUNT MANAGER MANAGEMENT ROUTES
-    // ============================================
+    // Account Managers
     Route::prefix('admin/account-managers')->name('admin.account-managers.')->group(function () {
         Route::get('/', [AccountManagerController::class, 'index'])->name('index');
         Route::get('/create', [AccountManagerController::class, 'create'])->name('create');
@@ -569,16 +463,12 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/{id}', [AccountManagerController::class, 'destroy'])->name('destroy');
     });
 
-    // ============================================
-    // TENANT SPECIFIC ROUTES
-    // ============================================
+    // Tenant specific
     Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
     Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
     Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
 
-    // ============================================
-    // M-PESA STK PUSH PAYMENT ROUTES
-    // ============================================
+    // M-PESA
     Route::prefix('payments/mpesa')->name('payments.mpesa.')->group(function () {
         Route::post('/stk-push', [PaymentController::class, 'initiateMpesaStkPush'])->name('stk-push');
         Route::get('/status', [PaymentController::class, 'checkMpesaStatus'])->name('status');
@@ -586,16 +476,12 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/pay', [MpesaController::class, 'stkPush'])->name('process');
     });
 
-    // ============================================
-    // SMS MODULE API ROUTES (AJAX) – UPDATED
-    // ============================================
+    // SMS API
     Route::prefix('api/sms')->group(function () {
-        // ====== KENYASMS ROUTES (must come BEFORE {id}) ======
         Route::get('/campaigns/kenyasms', [App\Modules\SMS\Controllers\CampaignController::class, 'listFromKenyaSMS']);
         Route::post('/campaigns/kenyasms/{campaignId}/import', [App\Modules\SMS\Controllers\CampaignController::class, 'importFromKenyaSMS']);
         Route::post('/campaigns/import-kenyasms', [App\Modules\SMS\Controllers\CampaignController::class, 'importKenyaSmsCampaigns']);
 
-        // ====== STANDARD CAMPAIGN ROUTES ======
         Route::get('/campaigns', [App\Modules\SMS\Controllers\CampaignController::class, 'apiIndex']);
         Route::post('/campaigns', [App\Modules\SMS\Controllers\CampaignController::class, 'store']);
         Route::get('/campaigns/{id}', [App\Modules\SMS\Controllers\CampaignController::class, 'getDetails']);
@@ -614,28 +500,16 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/tenants/{tenantId}/phone', [App\Modules\SMS\Controllers\CampaignController::class, 'updateTenantPhone']);
         Route::post('/preview-invoices', [App\Modules\SMS\Controllers\CampaignController::class, 'previewInvoices']);
     });
-
 });
 
-// ============================================
-// MODULE ROUTES
-// ============================================
-
-// SMS Module Routes
+// Module includes
 require base_path('app/Modules/SMS/routes.php');
-
-// Security Module Routes
 require base_path('app/Modules/Security/routes.php');
 
-// Users Module Routes
-Route::prefix('users')->group(function () {
-    require base_path('app/Modules/Users/routes.php');
-});
+// Users module temporarily disabled
+// Route::prefix('users')->group(function () { require base_path('app/Modules/Users/routes.php'); });
 
-// ============================================
-// TEST SMS ROUTES (Temporary)
-// ============================================
-
+// Test SMS routes
 Route::get('/test-sms-config', function () {
     return response()->json([
         'sms_config' => config('sms.kenyasms'),
@@ -655,36 +529,26 @@ Route::prefix('test-sms')->group(function () {
     Route::get('/preview', [App\Http\Controllers\TestSMSController::class, 'testCampaignPreview']);
 });
 
-// ============================================
-// DEBUG ROUTES (Temporary)
-// ============================================
-
+// Debug routes
 Route::get('/debug-mpesa', function () {
     try {
         $mpesa = new \App\Services\MpesaService();
         $result = $mpesa->getAccessTokenWithDebug();
-        
         return response()->json([
             'environment' => env('MPESA_ENVIRONMENT'),
-            'consumer_key' => env('MPESA_CONSUMER_KEY') ? substr(env('MPESA_CONSUMER_KEY'), 0, 20) . '...' : 'MISSING',
-            'consumer_secret' => env('MPESA_CONSUMER_SECRET') ? substr(env('MPESA_CONSUMER_SECRET'), 0, 20) . '...' : 'MISSING',
+            'consumer_key' => env('MPESA_CONSUMER_KEY') ? substr(env('MPESA_CONSUMER_KEY'), 0, 20).'...' : 'MISSING',
+            'consumer_secret' => env('MPESA_CONSUMER_SECRET') ? substr(env('MPESA_CONSUMER_SECRET'), 0, 20).'...' : 'MISSING',
             'base_url' => 'https://sandbox.safaricom.co.ke',
             'auth_result' => $result,
         ]);
     } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
+        return response()->json(['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()], 500);
     }
 });
 
-// ============================================
-// API FALLBACK ROUTES
-// ============================================
+// Fallback API endpoints
 Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
 
-// Accountant transaction endpoints
 Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
     Route::get('/accountant/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetTransactionsForAccountant'])->name('api.wallet.accountant.transactions');
     Route::get('/pending-deposits', [App\Modules\Payments\Controllers\WalletController::class, 'apiGetPendingDeposits'])->name('api.wallet.pending-deposits');

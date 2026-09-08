@@ -431,19 +431,19 @@ document.addEventListener('alpine:init', () => {
               },
               {
                 label: 'Users',
-                link: '/users',
+                link: '/admin/users',
                 page: 'users',
                 permission: 'users'
               },
               {
                 label: 'Staff',
-                link: '/staff',
+                link: '/admin/staff',
                 page: 'staff',
                 permission: 'staff'
               },
               {
                 label: 'Roles & Permissions',
-                link: '/roles',
+                link: '/admin/roles',
                 page: 'roles',
                 permission: 'roles'
               },
@@ -713,6 +713,7 @@ document.addEventListener('alpine:init', () => {
         '/payees': 'payees',
         '/expenses': 'expenses',
         '/water': 'water',
+        '/water/reports': 'waterReports',
         '/maintenance': 'maintenance',
         '/security/logs': 'securityLogs',
         '/sms/broadcast': 'smsSend',
@@ -721,9 +722,9 @@ document.addEventListener('alpine:init', () => {
         '/sms/settings': 'smsSettings',
         '/admin/companies': 'companies',
         '/admin/account-managers': 'accountManagers',
-        '/users': 'users',
-        '/staff': 'staff',
-        '/roles': 'roles',
+        '/admin/users': 'users',        // ✅ FIXED
+        '/admin/staff': 'staff',        // ✅ FIXED
+        '/admin/roles': 'roles',        // ✅ FIXED
         '/system': 'system',
         '/system/clear-cache': 'clearCache',
         '/form-elements': 'formElements',

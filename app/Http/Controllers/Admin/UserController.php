@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use League\Csv\Writer; // for CSV export
 
 class UserController extends Controller
 {
@@ -54,7 +55,12 @@ class UserController extends Controller
             });
         }
         
-        $users = $query->orderBy('created_at', 'desc')->paginate(20);
+        // Sorting
+        $sortField = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        $query->orderBy($sortField, $sortDirection);
+        
+        $users = $query->paginate($request->get('per_page', 20));
         
         if ($request->wantsJson()) {
             return response()->json([
@@ -68,6 +74,152 @@ class UserController extends Controller
         
         return view('admin.users.index', compact('users', 'roles', 'companies'));
     }
+
+    // ============================================
+    // 🆕 NEW METHODS (Enhanced User Management)
+    // ============================================
+
+    /**
+     * AJAX filter endpoint (reuses index logic).
+     */
+    public function filter(Request $request)
+    {
+        return $this->index($request);
+    }
+
+    /**
+     * Bulk action (activate, deactivate, change role, change company, delete).
+     */
+    public function bulkAction(Request $request)
+    {
+        $request->validate([
+            'user_ids'   => 'required|array|min:1',
+            'user_ids.*' => 'exists:users,id',
+            'action'     => 'required|in:activate,deactivate,change_role,change_company,delete',
+        ]);
+
+        $userIds = $request->user_ids;
+        $action = $request->action;
+
+        try {
+            switch ($action) {
+                case 'activate':
+                    User::whereIn('id', $userIds)->update(['status' => 0]);
+                    $message = 'Users activated successfully.';
+                    break;
+                case 'deactivate':
+                    User::whereIn('id', $userIds)->update(['status' => 1]);
+                    $message = 'Users deactivated successfully.';
+                    break;
+                case 'change_role':
+                    $request->validate(['role_id' => 'required|exists:roles,id']);
+                    User::whereIn('id', $userIds)->update(['role_id' => $request->role_id]);
+                    $message = 'Role updated successfully.';
+                    break;
+                case 'change_company':
+                    $request->validate(['company_id' => 'required|exists:companies,id']);
+                    User::whereIn('id', $userIds)->update(['company_id' => $request->company_id]);
+                    $message = 'Company updated successfully.';
+                    break;
+                case 'delete':
+                    User::whereIn('id', $userIds)->delete();
+                    $message = 'Users deleted successfully.';
+                    break;
+                default:
+                    return response()->json(['error' => 'Invalid action.'], 400);
+            }
+
+            return response()->json(['success' => true, 'message' => $message]);
+
+        } catch (\Exception $e) {
+            \Log::error('Bulk action error: ' . $e->getMessage());
+            return response()->json(['error' => 'Something went wrong.'], 500);
+        }
+    }
+
+    /**
+     * Quick edit – update a single user and return the updated row HTML.
+     */
+    public function quickUpdate(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $id,
+            'phone' => 'nullable|string|max:20',
+            'role_id' => 'required|exists:roles,id',
+            'company_id' => 'nullable|exists:companies,id',
+            'status' => 'required|in:0,1,2',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = User::findOrFail($id);
+        $user->update($request->only(['name', 'email', 'phone', 'role_id', 'company_id', 'status']));
+        $user->load(['role', 'company']);
+
+        // Render the updated row
+        $rowHtml = view('admin.users.partials._row', compact('user'))->render();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'User updated successfully.',
+            'row'     => $rowHtml,
+        ]);
+    }
+
+    /**
+     * Export users to CSV (with filters applied).
+     */
+    public function export(Request $request)
+    {
+        $query = User::with(['role', 'company']);
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%")
+                  ->orWhere('phone', 'LIKE', "%{$search}%");
+            });
+        }
+        if ($request->filled('role_id')) {
+            $query->where('role_id', $request->role_id);
+        }
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        $users = $query->get();
+
+        $csv = Writer::createFromString('');
+        $csv->insertOne(['ID', 'Name', 'Email', 'Phone', 'Role', 'Company', 'Status', 'Created At']);
+
+        foreach ($users as $user) {
+            $csv->insertOne([
+                $user->id,
+                $user->name,
+                $user->email,
+                $user->phone,
+                $user->role->name ?? 'N/A',
+                $user->company->name ?? 'N/A',
+                $user->status == 0 ? 'Active' : ($user->status == 1 ? 'Inactive' : 'Pending'),
+                $user->created_at->format('Y-m-d H:i'),
+            ]);
+        }
+
+        return response((string) $csv, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="users-' . date('Y-m-d') . '.csv"',
+        ]);
+    }
+
+    // ============================================
+    // END NEW METHODS
+    // ============================================
 
     /**
      * Show the form for creating a new user.
