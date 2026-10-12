@@ -62,7 +62,7 @@ class CheckMaintenanceMode
 
         // Alternative: Check for admin role or permission
         if (method_exists($user, 'hasRole')) {
-            return $user->hasRole('admin');
+            return $user->hasAnyRole(['sysadmin', 'admin']);
         }
 
         // Alternative: Check for admin permission

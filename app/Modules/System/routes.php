@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\SystemController;
 
-Route::middleware(['auth', 'role:super_admin,admin'])->prefix('system')->name('system.')->group(function () {
+Route::middleware(['auth', 'role:sysadmin|admin'])->prefix('system')->name('system.')->group(function () {
     Route::get('/', [SystemController::class, 'index'])->name('index');
     Route::put('/update', [SystemController::class, 'update'])->name('update');
     Route::get('/clear-cache', [SystemController::class, 'clearCache'])->name('clear-cache');

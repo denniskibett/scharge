@@ -123,14 +123,11 @@ class WalletController extends Controller
             }
             
             // Determine confirmation status
-            $autoConfirmedMethods = ['mpesa', 'bank', 'card'];
-            $isAutoConfirmed = in_array($request->payment_method, $autoConfirmedMethods);
-            
-            // Accountants can auto-confirm manual deposits
+            // Client-submitted deposits are never auto-confirmed: nothing here verifies the
+            // payment with a gateway, so tenants' deposits wait for accountant approval.
             $isAccountant = $user->hasRole('accountant') || $user->hasRole('admin');
-            if ($isAccountant && $request->payment_method === 'manual') {
-                $isAutoConfirmed = true; // Accountant's manual deposits are auto-confirmed
-            }
+            $isAutoConfirmed = $isAccountant
+                && in_array($request->payment_method, ['manual', 'mpesa', 'bank', 'card']);
             
             $confirmed = $isAutoConfirmed ? 1 : 0;
             

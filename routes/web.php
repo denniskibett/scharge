@@ -30,7 +30,7 @@ use App\Http\Controllers\RoleController;
 require __DIR__ . '/mpesa.php';
 
 // ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
-Route::get('/campaign/{id}', function($id) {
+Route::middleware('auth')->get('/campaign/{id}', function($id) {
     try {
         // ✅ Clear query cache to ensure fresh data on each request
         DB::connection()->getQueryLog();
@@ -440,7 +440,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
 
     // Meter Reader specific routes
-    Route::middleware(['role:super_admin,admin,property_manager,meter_reader'])->group(function () {
+    Route::middleware(['role:sysadmin|admin|property_manager|meter_reader'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
         Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
     });
@@ -448,7 +448,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     // CLEANING ROUTES
     // ============================================
-    Route::middleware(['role:super_admin,admin,property_manager,cleaning_staff'])->group(function () {
+    Route::middleware(['role:sysadmin|admin|property_manager|cleaning_staff'])->group(function () {
         Route::get('/cleaning/tasks', [CleaningController::class, 'index'])->name('cleaning.tasks');
         Route::put('/cleaning/tasks/{task}/complete', [CleaningController::class, 'markComplete'])->name('cleaning.tasks.complete');
         Route::get('/cleaning/schedule', [CleaningController::class, 'schedule'])->name('cleaning.schedule');
@@ -464,7 +464,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data');
 
     // Maintenance Staff routes
-    Route::middleware(['role:super_admin,admin,property_manager,maintenance'])->group(function () {
+    Route::middleware(['role:sysadmin|admin|property_manager|maintenance'])->group(function () {
         Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
     });
 
@@ -653,45 +653,6 @@ require base_path('app/Modules/SMS/routes.php');
 // Security Module Routes
 require base_path('app/Modules/Security/routes.php');
 
-// ============================================
-// 📱 TEST SMS ROUTES (Temporary - Remove after testing)
-// ============================================
-
-Route::get('/test-sms-config', function () {
-    return response()->json([
-        'sms_config' => config('sms.kenyasms'),
-        'api_key_exists' => !empty(config('sms.kenyasms.api_key')),
-        'sandbox_mode' => config('sms.kenyasms.sandbox'),
-        'sender_id' => config('sms.kenyasms.sender_id'),
-        'base_url' => config('sms.kenyasms.base_url'),
-    ]);
-});
-
-
-// ============================================
-// 🔍 DEBUG ROUTES (Temporary - Remove after testing)
-// ============================================
-
-Route::get('/debug-mpesa', function () {
-    try {
-        $mpesa = new \App\Services\MpesaService();
-        $result = $mpesa->getAccessTokenWithDebug();
-        
-        return response()->json([
-            'environment' => env('MPESA_ENVIRONMENT'),
-            'consumer_key' => env('MPESA_CONSUMER_KEY') ? substr(env('MPESA_CONSUMER_KEY'), 0, 20) . '...' : 'MISSING',
-            'consumer_secret' => env('MPESA_CONSUMER_SECRET') ? substr(env('MPESA_CONSUMER_SECRET'), 0, 20) . '...' : 'MISSING',
-            'base_url' => 'https://sandbox.safaricom.co.ke',
-            'auth_result' => $result,
-        ]);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-});
-
 // Users Module Routes
 Route::prefix('users')->group(function () {
     require base_path('app/Modules/Users/routes.php');
@@ -700,7 +661,7 @@ Route::prefix('users')->group(function () {
 // ============================================
 // API FALLBACK ROUTES (outside auth middleware)
 // ============================================
-Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
+Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings'])->middleware('auth');
 
 // Accountant transaction endpoints
 Route::prefix('api/wallet')->middleware(['auth'])->group(function () {

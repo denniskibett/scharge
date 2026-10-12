@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CompanyController;
 
-Route::middleware(['auth', 'role:super_admin,admin'])->prefix('admin/companies')->name('admin.companies.')->group(function () {
+Route::middleware(['auth', 'role:sysadmin|admin'])->prefix('admin/companies')->name('admin.companies.')->group(function () {
     Route::get('/', [CompanyController::class, 'index'])->name('index');
     Route::get('/data', [CompanyController::class, 'getCompaniesData'])->name('data');
     Route::get('/{company}', [CompanyController::class, 'show'])->name('show');
