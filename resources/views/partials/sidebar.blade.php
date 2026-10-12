@@ -7,21 +7,31 @@
     :class="sidebarToggle ? 'justify-center' : 'justify-between'"
     class="flex items-center gap-2 pt-8 sidebar-header pb-7"
   >
-    <a href="index">
+    <a href="{{ route('dashboard') }}">
       <span class="logo" :class="sidebarToggle ? 'hidden' : ''">
-        <img class="dark:hidden" src="{{ SystemHelper::logoUrl('light') ?? './images/logo/logo.svg' }}" alt="Logo" />
+        <img
+          class="dark:hidden"
+          src="{{ asset('assets/images/brand/scharge-logo.svg') }}"
+          alt="{{ SystemHelper::appName() }}"
+          width="150"
+          height="36"
+        />
         <img
           class="hidden dark:block"
-          src="{{ SystemHelper::logoUrl('dark') ?? './images/logo/logo-dark.svg' }}"
-          alt="Logo"
+          src="{{ asset('assets/images/brand/scharge-logo-white.svg') }}"
+          alt="{{ SystemHelper::appName() }}"
+          width="150"
+          height="36"
         />
       </span>
 
       <img
         class="logo-icon"
         :class="sidebarToggle ? 'lg:block' : 'hidden'"
-        src="{{ SystemHelper::logoUrl('icon') ?? './images/logo/logo-icon.svg' }}"
-        alt="{{ SystemHelper::appName() }} Logo"
+        src="{{ asset('assets/images/brand/scharge-icon.svg') }}"
+        alt="{{ SystemHelper::appName() }}"
+        width="32"
+        height="32"
       />
     </a>
   </div>

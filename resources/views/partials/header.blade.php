@@ -1,3 +1,112 @@
+<style>
+  ::highlight(page-search) { background-color: #fde68a; color: #111827; }
+  ::highlight(page-search-current) { background-color: #f59e0b; color: #111827; }
+  [x-cloak] { display: none !important; }
+</style>
+<script>
+  // Header search: finds text in the current page's <main>. Table rows (and any element
+  // marked data-search-item) that don't match are hidden; every match is highlighted and
+  // Enter / Shift+Enter jumps between them. Highlights use the CSS Custom Highlight API,
+  // so the page's HTML is never rewritten.
+  window.pageSearch = function () {
+    return {
+      query: '',
+      total: 0,
+      current: 0,
+      ranges: [],
+      applying: false,
+      isMac: /Mac|iPhone|iPad|iPod/.test(navigator.platform),
+
+      init() {
+        const root = this.root();
+        if (!root) return;
+        // Rows added later (AJAX tables, Alpine lists) are filtered too.
+        let timer;
+        new MutationObserver(() => {
+          if (this.applying || !this.query.trim()) return;
+          clearTimeout(timer);
+          timer = setTimeout(() => this.run(true), 200);
+        }).observe(root, { childList: true, subtree: true, characterData: true });
+      },
+
+      root() {
+        return document.querySelector('main');
+      },
+
+      shortcut(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          this.$refs.input.focus();
+          this.$refs.input.select();
+        }
+      },
+
+      clear() {
+        this.query = '';
+        this.run();
+        this.$refs.input.blur();
+      },
+
+      run(keepPosition = false) {
+        const root = this.root();
+        if (!root) return;
+        this.applying = true;
+        const q = this.query.trim().toLowerCase();
+
+        root.querySelectorAll('tbody tr, [data-search-item]').forEach((row) => {
+          const hide = q && !row.textContent.toLowerCase().includes(q);
+          if (hide && !row.hasAttribute('data-search-hidden')) {
+            row.dataset.searchHidden = row.style.display;
+            row.style.display = 'none';
+          } else if (!hide && row.hasAttribute('data-search-hidden')) {
+            row.style.display = row.dataset.searchHidden;
+            row.removeAttribute('data-search-hidden');
+          }
+        });
+
+        this.ranges = [];
+        if (q) {
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+              const parent = node.parentElement;
+              if (!parent || parent.closest('script, style, template')) return NodeFilter.FILTER_REJECT;
+              return parent.getClientRects().length ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+            },
+          });
+          for (let node; (node = walker.nextNode()) && this.ranges.length < 1000; ) {
+            const text = node.nodeValue.toLowerCase();
+            for (let i = text.indexOf(q); i !== -1 && this.ranges.length < 1000; i = text.indexOf(q, i + q.length)) {
+              const range = new Range();
+              range.setStart(node, i);
+              range.setEnd(node, i + q.length);
+              this.ranges.push(range);
+            }
+          }
+        }
+
+        this.total = this.ranges.length;
+        if (!keepPosition || this.current >= this.total) this.current = 0;
+        this.paint(!keepPosition);
+        this.applying = false;
+      },
+
+      next(step) {
+        if (!this.total) return;
+        this.current = (this.current + step + this.total) % this.total;
+        this.paint(true);
+      },
+
+      paint(scroll) {
+        const range = this.ranges[this.current];
+        if (window.CSS && CSS.highlights) {
+          CSS.highlights.set('page-search', new Highlight(...this.ranges));
+          range ? CSS.highlights.set('page-search-current', new Highlight(range)) : CSS.highlights.delete('page-search-current');
+        }
+        if (scroll && range) range.startContainer.parentElement?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      },
+    };
+  };
+</script>
 <header
   x-data="{menuToggle: false}"
   class="sticky top-0 z-99999 flex w-full border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 lg:border-b"
@@ -65,12 +174,20 @@
       </button>
       <!-- Hamburger Toggle BTN -->
 
-      <a href="index.html" class="lg:hidden">
-        <img class="dark:hidden" src="./images/logo/logo.svg" alt="Logo" />
+      <a href="{{ route('dashboard') }}" class="lg:hidden">
+        <img
+          class="dark:hidden"
+          src="{{ asset('assets/images/brand/scharge-logo.svg') }}"
+          alt="{{ SystemHelper::appName() }}"
+          width="130"
+          height="31"
+        />
         <img
           class="hidden dark:block"
-          src="./images/logo/logo-dark.svg"
-          alt="Logo"
+          src="{{ asset('assets/images/brand/scharge-logo-white.svg') }}"
+          alt="{{ SystemHelper::appName() }}"
+          width="130"
+          height="31"
         />
       </a>
 
@@ -98,10 +215,10 @@
       </button>
       <!-- Application nav menu button -->
 
-      <div class="hidden lg:block">
-        <form action="https://formbold.com/s/unique_form_id" method="POST">
+      <div class="hidden lg:block" x-data="pageSearch()" @keydown.window="shortcut($event)">
+        <form role="search" @submit.prevent="next(1)">
           <div class="relative">
-            <button class="absolute left-4 top-1/2 -translate-y-1/2">
+            <button type="submit" tabindex="-1" aria-label="Search this page" class="absolute left-4 top-1/2 -translate-y-1/2">
               <svg
                 class="fill-gray-500 dark:fill-gray-400"
                 width="20"
@@ -119,17 +236,33 @@
               </svg>
             </button>
             <input
-              type="text"
-              placeholder="Search or type command..."
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring focus:ring-primary-20 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-primary xl:w-[430px]"
+              type="search"
+              x-ref="input"
+              x-model="query"
+              @input.debounce.150ms="run()"
+              @keydown.escape.prevent="clear()"
+              @keydown.enter.prevent="next($event.shiftKey ? -1 : 1)"
+              aria-label="Search this page"
+              placeholder="Search this page..."
+              autocomplete="off"
+              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-24 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring focus:ring-primary-20 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-primary xl:w-[430px] [&::-webkit-search-cancel-button]:hidden"
             />
 
-            <button
-              class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400"
+            <!-- Match count while searching, keyboard shortcut otherwise -->
+            <span
+              x-show="query.trim()"
+              x-cloak
+              aria-live="polite"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs text-gray-500 dark:text-gray-400"
+              x-text="total ? (current + 1) + ' of ' + total : 'No matches'"
+            ></span>
+            <kbd
+              x-show="!query.trim()"
+              class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] font-sans text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400"
             >
-              <span> ⌘ </span>
+              <span x-text="isMac ? '⌘' : 'Ctrl'"></span>
               <span> K </span>
-            </button>
+            </kbd>
           </div>
         </form>
       </div>

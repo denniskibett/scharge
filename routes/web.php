@@ -181,9 +181,20 @@ Route::middleware('auth')->get('/campaign/{id}', function($id) {
 // ============================================
 // PUBLIC ROUTES
 // ============================================
-Route::get('/', function () {
-    return view('welcome');
+Route::controller(App\Http\Controllers\HomeController::class)->group(function () {
+    Route::get('/', 'index')->name('home');
+    Route::get('/developers', 'developers')->name('home.developers');
+    Route::get('/airbnb', 'airbnb')->name('home.airbnb');
+    Route::get('/listings', 'listings')->name('home.listings');
+    Route::get('/api', 'api')->name('home.api');
+    Route::get('/credits', 'credits')->name('home.credits');
 });
+
+// Old static-site addresses (index.html, developers.html, ...) keep working.
+Route::permanentRedirect('/index.html', '/');
+foreach (['developers', 'airbnb', 'listings', 'api', 'credits'] as $page) {
+    Route::permanentRedirect("/{$page}.html", "/{$page}");
+}
 
 // ============================================
 // PUBLIC INVOICE PAYMENT ROUTES (No Auth Required)

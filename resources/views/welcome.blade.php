@@ -1,592 +1,137 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Scharge | Modern Property Management & Rent Collection</title>
-    <meta name="description" content="All-in-one property management: automate rent, service charge, security deposits, tenant communication, and maintenance tracking.">
-    
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <style>
-        * { font-family: 'Outfit', sans-serif; }
-        
-        .hero-section {
-            background-image: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(220,38,38,0.8) 100%), url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1600');
-            background-size: cover;
-            background-position: center;
-        }
-        
-        .glass-card {
-            background: rgba(255, 255, 255, 0.98);
-            border-radius: 1.5rem;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(0,0,0,0.05);
-        }
-        .glass-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 25px 35px -12px rgba(0,0,0,0.15);
-        }
-        
-        .feature-icon {
-            background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
-            width: 4rem;
-            height: 4rem;
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.25rem;
-        }
-        
-        .btn-primary {
-            background: #DC2626;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(220,38,38,0.3);
-        }
-        .btn-primary:hover {
-            background: #B91C1C;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(220,38,38,0.4);
-        }
-        
-        .btn-outline {
-            border: 1.5px solid white;
-            transition: all 0.2s ease;
-        }
-        .btn-outline:hover {
-            background: white;
-            color: #DC2626;
-            transform: translateY(-2px);
-        }
-        
-        .pricing-card {
-            background: white;
-            border-radius: 1.5rem;
-            transition: all 0.3s ease;
-            border: 1px solid #f0f0f0;
-        }
-        .pricing-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 25px 35px -12px rgba(220,38,38,0.2);
-            border-color: #DC2626;
-        }
-        .popular-card {
-            border: 2px solid #DC2626;
-            box-shadow: 0 20px 30px -12px rgba(220,38,38,0.25);
-        }
-        
-        .stat-number { font-size: 3rem; font-weight: 800; line-height: 1.2; }
-        
-        .unit-slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: #FEE2E2;
-            border-radius: 3px;
-            outline: none;
-        }
-        .unit-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 20px;
-            height: 20px;
-            background: #DC2626;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(220,38,38,0.4);
-        }
-        
-        .scroll-top {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: #DC2626;
-            color: white;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            opacity: 0;
-            visibility: hidden;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-        .scroll-top.show { opacity: 1; visibility: visible; }
-        .scroll-top:hover { background: #B91C1C; transform: translateY(-3px); }
-        
-        .faq-question svg { transition: transform 0.2s ease; }
-        .rotate-180 { transform: rotate(180deg); }
-        
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-up { animation: fadeUp 0.6s ease forwards; }
-    </style>
-</head>
-<body class="bg-white">
+@extends('home.layout')
 
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 w-full z-50">
-        <div class="container mx-auto px-6 py-4">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md">
-                        <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <span class="text-2xl font-bold text-white tracking-tight">Scharge</span>
-                    <span class="text-xs text-white/80 bg-white/20 px-2 py-0.5 rounded-full">Property</span>
-                </div>
-                
-                <div class="hidden md:flex items-center gap-8">
-                    <a href="#home" class="text-white/90 hover:text-white font-medium transition">Home</a>
-                    <a href="#features" class="text-white/90 hover:text-white font-medium transition">Features</a>
-                    <a href="#pricing" class="text-white/90 hover:text-white font-medium transition">Pricing</a>
-                    <a href="#testimonials" class="text-white/90 hover:text-white font-medium transition">Success</a>
-                    <a href="#faq" class="text-white/90 hover:text-white font-medium transition">FAQ</a>
-                </div>
-                
-                <div class="hidden md:flex items-center gap-4">
-                    <a href="/login" class="border border-white/30 text-white px-6 py-2 rounded-full font-semibold shadow-md hover:bg-red-700 transition">Login</a>
-                    <a href="/signup" class="bg-white text-red-600 px-6 py-2 rounded-full font-semibold shadow-md hover:bg-gray-100 transition">Sign up</a>
-                </div>
-                
-                <button id="mobileMenuBtn" class="md:hidden text-white">
-                    <svg class="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
-            </div>
-            
-            <div id="mobileMenu" class="hidden md:hidden mt-5 pb-4 space-y-3 bg-red-600 rounded-lg shadow-lg px-5">
-                <a href="#home" class="block text-white/90 hover:text-white py-2">Home</a>
-                <a href="#features" class="block text-white/90 hover:text-white py-2">Features</a>
-                <a href="#pricing" class="block text-white/90 hover:text-white py-2">Pricing</a>
-                <a href="#testimonials" class="block text-white/90 hover:text-white py-2">Success</a>
-                <a href="#faq" class="block text-white/90 hover:text-white py-2">FAQ</a>
-                <div class="flex gap-3 pt-3">
-                    <a href="/login" class="flex-1 bg-white text-red-600 px-6 py-2 rounded-full font-semibold">Log in</a>
-                    <a href="/signup" class="flex-1 bg-red-600 text-white px-6 py-2 rounded-full font-semibold hover:bg-red-700 transition">Sign up</a>
-                </div>
-            </div>
-        </div>
-    </nav>
+@section('title', 'scharge | Property management for Africa, starting in Kenya')
+@section('description', 'Collect rent, service charge and water on M-Pesa. Repairs, payouts and reports in one app. Built in Kenya for property across Africa.')
 
-    <!-- Hero Section -->
-    <section id="home" class="hero-section min-h-screen flex items-center pt-20">
-        <div class="container mx-auto px-6 py-20">
-            <div class="max-w-3xl">
-                <div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-5 py-2 mb-6">
-                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    <span class="text-white text-sm font-medium">Trusted by 500+ property managers in Kenya</span>
-                </div>
-                <h1 class="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
-                    All-in-one property <br/>management platform
-                </h1>
-                <p class="text-xl text-white/80 mb-8 leading-relaxed max-w-xl">
-                    Collect rent, service charge, and security deposits. Manage tenants, track maintenance, and generate financial reports—all from one dashboard.
-                    <span class="text-white font-semibold">Your first payment unlocks 2 extra months free.</span>
-                </p>
-                <div class="flex flex-col sm:flex-row gap-4">
-                    <button class="btn-primary px-8 py-4 rounded-full text-white font-semibold text-lg">
-                        Start free trial
-                    </button>
-                    <button class="btn-outline px-8 py-4 rounded-full text-white font-semibold text-lg bg-transparent">
-                        Book a demo
-                    </button>
-                </div>
-                <p class="text-white/50 text-sm mt-6">No setup fee • No contract • Cancel anytime</p>
-            </div>
-        </div>
-    </section>
+@section('header_cta')
+<a class="btn btn--primary" href="#pricing">Get started</a>
+@endsection
 
-    <!-- Stats -->
-    <section class="py-16 bg-white border-b border-gray-100">
-        <div class="container mx-auto px-6">
-            <div class="grid md:grid-cols-4 gap-8 text-center">
-                <div><div class="stat-number text-red-600">500+</div><div class="text-gray-500 font-medium mt-1">Property Portfolios</div></div>
-                <div><div class="stat-number text-red-600">KES 2.5B+</div><div class="text-gray-500 font-medium mt-1">Collected Annually</div></div>
-                <div><div class="stat-number text-red-600">99.9%</div><div class="text-gray-500 font-medium mt-1">Collection Accuracy</div></div>
-                <div><div class="stat-number text-red-600">85%</div><div class="text-gray-500 font-medium mt-1">Less Admin Time</div></div>
-            </div>
-        </div>
-    </section>
+@section('content')
+<section class="hero" data-slider aria-roledescription="carousel" aria-label="Highlights">
+<div class="hero-slide is-active" role="group" aria-roledescription="slide" aria-label="1 of 4">
+<div class="hero-bg" style="background-image:url('{{ asset('assets/images/slides/home-1.jpg') }}')"></div><div class="hero-shade"></div><div class="hero-stripe s-red"></div>
+<div class="wrap hero-content">
+<span class="hero-kicker k-red">Property software for Africa, starting in Kenya</span>
+<h1 class="hero-title" style="font-size:clamp(2.1rem,5.2vw,4.2rem)">From bedsitters to warehouses. Collect from every unit.</h1>
+<p>Rent, service charge, water and bookings collected on M-Pesa and bank, with repairs, payouts and reports in one app. From KES 40 per unit a month.</p>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my property</a><a class="btn btn--glass" href="#who">See how it works</a></div>
+</div>
+</div><div class="hero-slide" role="group" aria-roledescription="slide" aria-label="2 of 4">
+<div class="hero-bg" data-bg="assets/images/slides/home-2.jpg"></div><div class="hero-shade"></div><div class="hero-stripe s-teal"></div>
+<div class="wrap hero-content">
+<span class="hero-kicker k-teal">For developers</span>
+<h2 class="hero-title" style="font-size:clamp(2.1rem,5.2vw,4.2rem)">Hand over buildings that already collect.</h2>
+<p>Service charge, utilities and caretaking set up before handover, so buyers move into a building that runs itself.</p>
+<div class="actions"><a class="btn btn--primary" href="{{ route('home.developers') }}">Plan my handover</a><a class="btn btn--glass" href="#who">See how it works</a></div>
+</div>
+</div><div class="hero-slide" role="group" aria-roledescription="slide" aria-label="3 of 4">
+<div class="hero-bg" data-bg="assets/images/slides/home-3.jpg"></div><div class="hero-shade"></div><div class="hero-stripe s-jac"></div>
+<div class="wrap hero-content">
+<span class="hero-kicker k-jac">For Airbnb owners</span>
+<h2 class="hero-title" style="font-size:clamp(2.1rem,5.2vw,4.2rem)">One calendar. No double bookings.</h2>
+<p>Airbnb, Booking.com and direct guests in one place, with lock codes, cleaners and payouts handled.</p>
+<div class="actions"><a class="btn btn--primary" href="{{ route('home.airbnb') }}">See hosting tools</a><a class="btn btn--glass" href="#who">See how it works</a></div>
+</div>
+</div><div class="hero-slide" role="group" aria-roledescription="slide" aria-label="4 of 4">
+<div class="hero-bg" data-bg="assets/images/slides/home-4.jpg"></div><div class="hero-shade"></div><div class="hero-stripe s-gold"></div>
+<div class="wrap hero-content">
+<span class="hero-kicker k-gold">For landlords &amp; landowners</span>
+<h2 class="hero-title" style="font-size:clamp(2.1rem,5.2vw,4.2rem)">Know who paid before lunch.</h2>
+<p>Every payment, expense and payout on your phone, with rental income tax set aside each month.</p>
+<div class="actions"><a class="btn btn--primary" href="#pricing">See my price</a><a class="btn btn--glass" href="#who">See how it works</a></div>
+</div>
+</div>
+<div class="hero-controls"><button class="hero-arrow hero-prev" aria-label="Previous slide">‹</button><button class="hero-dot" aria-label="Show slide 1" aria-current="true"></button><button class="hero-dot" aria-label="Show slide 2" aria-current="false"></button><button class="hero-dot" aria-label="Show slide 3" aria-current="false"></button><button class="hero-dot" aria-label="Show slide 4" aria-current="false"></button><button class="hero-arrow hero-next" aria-label="Next slide">›</button></div>
+</section>
+<section class="section" id="who" data-tabs><div class="wrap stack-l">
+<h2>Pick your property. See what you get.</h2>
+<div role="tablist" aria-label="Choose your property type" class="tabs"><button role="tab" class="tab" id="tab-0" aria-controls="aud-0">Developers</button><button role="tab" class="tab" id="tab-1" aria-controls="aud-1">Landlords &amp; owners</button><button role="tab" class="tab" id="tab-2" aria-controls="aud-2">Property managers</button><button role="tab" class="tab" id="tab-3" aria-controls="aud-3">Airbnb &amp; serviced apartments</button><button role="tab" class="tab" id="tab-4" aria-controls="aud-4">Hotels</button><button role="tab" class="tab" id="tab-5" aria-controls="aud-5">Offices</button><button role="tab" class="tab" id="tab-6" aria-controls="aud-6">Warehouses</button><button role="tab" class="tab" id="tab-7" aria-controls="aud-7">Tenants</button></div>
+<div role="tabpanel" id="aud-0" aria-labelledby="tab-0" class="panel" hidden>
+<div class="stack"><h3>Hand over buildings that already collect.</h3><p class="lead">Set up service charge, utilities and caretaking before handover, so buyers and tenants move into a building that runs itself.</p><div class="pitch"><span class="label">Why it pays</span><p>Sell units faster with a managed-building promise, and keep a recurring income stream after handover.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Plan my handover</a></div><p class="small muted">3 months free per new block, then location pricing</p></div>
+<div class="grid"><div class="card"><h3>Off-plan instalments</h3><p>Collect buyer deposits and instalments on M-Pesa with statements.</p></div><div class="card"><h3>Snag lists</h3><p>Buyers report defects with photos during the liability period.</p></div><div class="card"><h3>Service charge from day one</h3><p>Budgets, sinking fund and owner statements ready at handover.</p></div><div class="card"><h3>Hand over to a manager</h3><p>Transfer the whole building, history included, in one step.</p></div></div>
+</div><div role="tabpanel" id="aud-1" aria-labelledby="tab-1" class="panel" hidden>
+<div class="stack"><h3>Know who paid before lunch.</h3><p class="lead">Self-manage or watch your agent: every payment, expense and payout in one place.</p><div class="pitch"><span class="label">Why it pays</span><p>Stop chasing tenants on the phone. Reminders, receipts and payouts happen on their own.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my building</a></div><p class="small muted">From KES 40 per unit per month</p></div>
+<div class="grid"><div class="card"><h3>Payout to your bank</h3><p>With a statement of every shilling in and out.</p></div><div class="card"><h3>Rental income tax ready</h3><p>Calculated and set aside each month.</p></div><div class="card"><h3>Fill vacancies faster</h3><p>List units, book viewings, screen tenants.</p></div><div class="card"><h3>Deposits tracked</h3><p>Refunds against move-out photos.</p></div></div>
+</div><div role="tabpanel" id="aud-2" aria-labelledby="tab-2" class="panel" hidden>
+<div class="stack"><h3>Run 20 buildings like one.</h3><p class="lead">Collections, arrears, repairs and owner reports across your whole portfolio, live.</p><div class="pitch"><span class="label">Why it pays</span><p>Take on more buildings without hiring more staff, and send owners statements they trust.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my portfolio</a></div><p class="small muted">Volume pricing from 100 units</p></div>
+<div class="grid"><div class="card"><h3>Auto-collect on M-Pesa</h3><p>STK, Paybill and bank, matched to the right unit.</p></div><div class="card"><h3>Arrears that chase themselves</h3><p>SMS and WhatsApp reminders, payment plans.</p></div><div class="card"><h3>Repairs with approval limits</h3><p>Photo reports, quotes, approvals.</p></div><div class="card"><h3>Unit transfer</h3><p>Move tenants between units, history kept.</p></div></div>
+</div><div role="tabpanel" id="aud-3" aria-labelledby="tab-3" class="panel" hidden>
+<div class="stack"><h3>Hosting without the hustle.</h3><p class="lead">Calendars, smart-lock codes, cleaners and payouts, next to your long lets.</p><div class="pitch"><span class="label">Why it pays</span><p>One calendar for Airbnb, Booking.com and direct guests, with no double bookings.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my listings</a></div><p class="small muted">From KES 400 per listing per month</p></div>
+<div class="grid"><div class="card"><h3>Channel sync</h3><p>Airbnb, Booking.com and direct bookings in one calendar.</p></div><div class="card"><h3>Smart-lock codes</h3><p>Sent to guests for their stay only.</p></div><div class="card"><h3>Cleaner checklists</h3><p>Photo proof and damage claims.</p></div><div class="card"><h3>Earnings by channel</h3><p>Net of cleaning and fees.</p></div></div>
+</div><div role="tabpanel" id="aud-4" aria-labelledby="tab-4" class="panel" hidden>
+<div class="stack"><h3>Rooms, housekeeping and payments, joined up.</h3><p class="lead">For boutique hotels and lodges that need more than a spreadsheet and less than an enterprise system.</p><div class="pitch"><span class="label">Why it pays</span><p>Take M-Pesa deposits, run housekeeping from phones and see occupancy and revenue live.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my rooms</a></div><p class="small muted">From KES 250 per room per month</p></div>
+<div class="grid"><div class="card"><h3>Bookings &amp; deposits</h3><p>Direct bookings with M-Pesa deposits and receipts.</p></div><div class="card"><h3>Housekeeping board</h3><p>Room status and checklists on staff phones.</p></div><div class="card"><h3>Maintenance tickets</h3><p>From any room, tracked to done.</p></div><div class="card"><h3>Nightly reports</h3><p>Occupancy, revenue per room, outstanding balances.</p></div></div>
+</div><div role="tabpanel" id="aud-5" aria-labelledby="tab-5" class="panel" hidden>
+<div class="stack"><h3>Service charge and tenants for office blocks.</h3><p class="lead">Bill rent, service charge, parking and utilities per suite, and give tenants one place to raise issues.</p><div class="pitch"><span class="label">Why it pays</span><p>Corporate tenants get proper invoices and statements; you get paid on time.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my building</a></div><p class="small muted">From KES 600 per suite per month</p></div>
+<div class="grid"><div class="card"><h3>Invoices with VAT</h3><p>Tax invoices per suite, eTIMS-ready in Kenya.</p></div><div class="card"><h3>Parking &amp; access cards</h3><p>Allocate bays and cards, bill them automatically.</p></div><div class="card"><h3>Help desk</h3><p>Tenants log facilities issues with SLAs.</p></div><div class="card"><h3>Visitor management</h3><p>Pre-registered guests and reception log.</p></div></div>
+</div><div role="tabpanel" id="aud-6" aria-labelledby="tab-6" class="panel" hidden>
+<div class="stack"><h3>Bay leases, utilities and gate logs.</h3><p class="lead">For godowns and logistics parks: lease each bay, sub-meter power and water, and track every truck.</p><div class="pitch"><span class="label">Why it pays</span><p>Bill each bay exactly for what it uses, and keep a record of who came through the gate.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Price my park</a></div><p class="small muted">From KES 800 per bay per month</p></div>
+<div class="grid"><div class="card"><h3>Bay leases &amp; escalations</h3><p>Annual increases applied automatically.</p></div><div class="card"><h3>Sub-metered utilities</h3><p>Power and water billed per bay from readings.</p></div><div class="card"><h3>Gate &amp; truck log</h3><p>Plate, driver and time for every entry.</p></div><div class="card"><h3>Common area charges</h3><p>Split fairly by floor area.</p></div></div>
+</div><div role="tabpanel" id="aud-7" aria-labelledby="tab-7" class="panel" hidden>
+<div class="stack"><h3>Rent, water and repairs. Sorted.</h3><p class="lead">Pay in three taps, see what you are charged for and get repairs fixed faster.</p><div class="pitch"><span class="label">Why it pays</span><p>Always free for tenants. Ask your landlord or manager for an invite.</p></div>
+<div class="actions"><a class="btn btn--primary" href="#pricing">Get the app</a></div><p class="small muted">Free</p></div>
+<div class="grid"><div class="card"><h3>Pay on M-Pesa</h3><p>Instant receipts your landlord can see.</p></div><div class="card"><h3>Fair water bills</h3><p>Every bill comes with the meter photo.</p></div><div class="card"><h3>Report a repair</h3><p>Snap a photo and track the fundi.</p></div><div class="card"><h3>Gate passes</h3><p>Send visitors a QR pass on WhatsApp.</p></div></div>
+</div>
+</div></section>
+<section class="section section--dark" id="features"><div class="wrap stack-l"><h2>One platform for every kind of property.</h2><div class="grid"><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h18v10H3z M3 11h18"/></svg></span><h3>Auto collection</h3><p>Rent, service charge, water, bookings and bay leases. M-Pesa and other mobile money, card and bank.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg></span><h3>Metered utilities</h3><p>Water and power readings with photo proof become bills automatically.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h14 M15 4l4 4-4 4 M20 16H6 M9 12l-4 4 4 4"/></svg></span><h3>Unit transfer</h3><p>Tenants move units without a new account. History comes with them.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h12 M13 7l5 5-5 5"/></svg></span><h3>Pay expenses</h3><p>Pay utilities, staff and fundis straight from collections.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10 M10 20V4 M16 20v-7 M22 20H2"/></svg></span><h3>Live analytics</h3><p>Collection rate, occupancy and profit per property. Export to Excel.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 6l4 4-8 8H6v-4z"/></svg></span><h3>Repairs &amp; fundis</h3><p>Photo reports, quotes, approvals and ratings.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z M15 3v4h4"/></svg></span><h3>Statements, invoices &amp; tax</h3><p>Owner payouts, VAT invoices and rental income tax set aside.</p></div><div class="card card--dark"><span class="icon-tile"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z M9 4v16"/></svg></span><h3>Gate, visitors &amp; bookings</h3><p>QR passes, guard and truck logs, guest check-in codes.</p></div></div></div></section>
+<section class="section"><div class="wrap stack-l"><h2>Live in an afternoon.</h2><div class="steps">
+<div class="step"><span class="step-n">01</span><h3>Add your properties</h3><p class="muted">Upload units from Excel, set rent, service charge and water rates.</p></div>
+<div class="step"><span class="step-n">02</span><h3>Invite tenants by SMS</h3><p class="muted">They pay by M-Pesa from day one. Reminders go out automatically.</p></div>
+<div class="step"><span class="step-n">03</span><h3>Pay, track, report</h3><p class="muted">Pay expenses from collections and send owners a statement in one tap.</p></div>
+</div></div></section>
+<section class="section section--blush" id="africa"><div class="wrap stack-l">
+<div class="stack" style="max-width:48rem"><span class="label">Built in Kenya, made for Africa</span><h2>Starting in Kenya. Growing across Africa.</h2><p class="lead">We started where mobile money started. scharge is live in Kenya today and launches next in Uganda, Tanzania and Rwanda, with local mobile money, local currency and local tax rules in each country.</p></div>
+<div class="countries">
+<div class="card country country--live"><div class="country-top"><span class="cc-badge">KE</span><span class="badge badge--live">Live</span></div><h3>Kenya</h3><p>M-Pesa, Airtel Money, card and bank. KRA eTIMS invoices and rental income tax. Prices in KES.</p></div>
+<div class="card country"><div class="country-top"><span class="cc-badge">UG</span><span class="badge badge--soon">Next</span></div><h3>Uganda</h3><p>MTN MoMo, Airtel Money and bank. Prices in UGX.</p></div>
+<div class="card country"><div class="country-top"><span class="cc-badge">TZ</span><span class="badge badge--soon">Next</span></div><h3>Tanzania</h3><p>M-Pesa, Airtel Money, Mixx by Yas and bank. Prices in TZS.</p></div>
+<div class="card country"><div class="country-top"><span class="cc-badge">RW</span><span class="badge badge--soon">Next</span></div><h3>Rwanda</h3><p>MTN MoMo, Airtel Money and bank. Prices in RWF.</p></div>
+<div class="card country country--more"><div class="country-top"><span class="cc-badge">+</span></div><h3>The rest of Africa</h3><p>Tell us where your properties are and we will set you up first when we launch there.</p></div>
+</div>
+<form class="waitlist" data-demo novalidate><div class="fields"><div class="stack" style="gap:4px;flex:1 1 220px"><b>Property outside Kenya?</b><span class="small muted">Join the waitlist for your country.</span></div><label class="visually-hidden" for="w-country">Country</label><select id="w-country" required><option value="">Country</option><option>Uganda</option><option>Tanzania</option><option>Rwanda</option><option>Ethiopia</option><option>Ghana</option><option>Nigeria</option><option>South Africa</option><option>Zambia</option><option>Another country</option></select><label class="visually-hidden" for="w-contact">Phone or email</label><input id="w-contact" required placeholder="Phone or email" autocomplete="email"><button class="btn btn--primary" type="submit">Join the waitlist</button></div><div class="thanks" tabindex="-1"><b>You are on the list.</b><span class="muted">We will message you as soon as scharge opens in your country.</span><button type="button" class="link-btn" data-reset>Add another country</button></div></form>
+</div></section>
+<section class="section" id="pricing"><div class="wrap stack-l">
+<div class="stack"><h2>Priced by where your property is.</h2><p class="lead">A bedsitter in Kitengela and an office suite in Westlands shouldn't cost the same to manage. Pick your property type and area for one flat monthly price per unit.</p></div>
+<div class="row" style="align-items:flex-start">
+<div class="calc" id="calc" style="flex:1 1 420px">
+<b>1. Property type</b><div class="chip-row"><button type="button" class="chip" data-type="0" aria-pressed="false">Apartments</button><button type="button" class="chip" data-type="1" aria-pressed="false">Airbnb &amp; serviced</button><button type="button" class="chip" data-type="2" aria-pressed="false">Hotels</button><button type="button" class="chip" data-type="3" aria-pressed="false">Offices</button><button type="button" class="chip" data-type="4" aria-pressed="false">Warehouses</button></div>
+<b>2. Area</b><div class="band-grid"><button type="button" class="band" data-band="0" aria-pressed="false"><b>Prime · <span class="band-rate"></span></b><small>e.g. Westlands, Kilimani, Karen, Upper Hill</small></button><button type="button" class="band" data-band="1" aria-pressed="false"><b>Upmarket · <span class="band-rate"></span></b><small>e.g. Kileleshwa, Lang’ata, Syokimau, Nyali</small></button><button type="button" class="band" data-band="2" aria-pressed="false"><b>Mid-market · <span class="band-rate"></span></b><small>e.g. Ruaka, Kasarani, South B, Thindigua</small></button><button type="button" class="band" data-band="3" aria-pressed="false"><b>Affordable · <span class="band-rate"></span></b><small>e.g. Kitengela, Ruiru, Rongai, Umoja</small></button></div>
+<label class="range-label" for="units"><span>3. Number of <span id="unit-word">units</span></span><b id="units-out">60</b></label>
+<input id="units" type="range" min="1" max="600" step="1" value="60">
+<label class="range-label" for="vacant"><span>Vacant or unlisted (half price)</span><b id="vacant-out">4</b></label>
+<input id="vacant" type="range" min="0" max="36" step="1" value="4">
+<label class="check"><span>Pay yearly: 12 months for the price of 10</span><input id="yearly" type="checkbox" checked></label>
+<div class="result" aria-live="polite"><span class="small muted" id="summary"></span><span class="amount" id="monthly"></span><span class="small muted">per month</span><span class="small muted" id="bill"></span><a class="btn btn--light" href="{{ route('home.developers') }}#talk" style="align-self:flex-start;margin-top:6px">Send me this quote</a></div>
+</div>
+<div class="stack" style="flex:1 1 420px">
+<div class="table-wrap"><table id="price-table"><caption class="visually-hidden">Price list, KES per unit per month</caption><thead><tr><th>Type</th><th class="num">Prime</th><th class="num">Upmarket</th><th class="num">Mid-market</th><th class="num">Affordable</th></tr></thead><tbody><tr><th scope="row">Apartments<br><span class="small muted">per unit</span></th><td class="num" data-t="0" data-b="0">500</td><td class="num" data-t="0" data-b="1">300</td><td class="num" data-t="0" data-b="2">150</td><td class="num" data-t="0" data-b="3">40</td></tr><tr><th scope="row">Airbnb &amp; serviced<br><span class="small muted">per listing</span></th><td class="num" data-t="1" data-b="0">1,500</td><td class="num" data-t="1" data-b="1">1,000</td><td class="num" data-t="1" data-b="2">700</td><td class="num" data-t="1" data-b="3">400</td></tr><tr><th scope="row">Hotels<br><span class="small muted">per room</span></th><td class="num" data-t="2" data-b="0">800</td><td class="num" data-t="2" data-b="1">600</td><td class="num" data-t="2" data-b="2">400</td><td class="num" data-t="2" data-b="3">250</td></tr><tr><th scope="row">Offices<br><span class="small muted">per suite</span></th><td class="num" data-t="3" data-b="0">2,000</td><td class="num" data-t="3" data-b="1">1,500</td><td class="num" data-t="3" data-b="2">1,000</td><td class="num" data-t="3" data-b="3">600</td></tr><tr><th scope="row">Warehouses<br><span class="small muted">per bay</span></th><td class="num" data-t="4" data-b="0">2,000</td><td class="num" data-t="4" data-b="1">1,600</td><td class="num" data-t="4" data-b="2">1,200</td><td class="num" data-t="4" data-b="3">800</td></tr></tbody></table></div>
+<div class="card"><h3>Included on every plan</h3><p>M-Pesa and bank collection, automatic reminders, receipts, repairs, owner statements, Excel export. Tenants, guests and field staff never pay.</p></div>
+<div class="card"><h3>Volume and developers</h3><p>10% off from 100 units, 20% off from 300. Developers get 3 months free on each new block handed over through scharge. Minimum KES 1,500 per property.</p></div>
+</div></div>
+<p class="small muted">Prices are for Kenya, in KES; each new country gets local pricing in its own currency. Area bands are examples; our team confirms your band at sign-up. Launch offer: your first collection unlocks 2 extra months free.</p>
+</div></section>
+<section class="section section--sand t-section" data-testimonials aria-labelledby="t-h"><div class="wrap">
+<div class="t-head"><div class="stack"><span class="label">What owners say</span><h2 id="t-h">From developers to Airbnb hosts.</h2></div>
+<div class="t-nav"><button type="button" class="t-btn t-btn--solid t-pause" aria-pressed="false" aria-label="Pause moving testimonials"><span class="t-pause-icon" aria-hidden="true"></span></button></div></div></div>
+<div class="t-viewport"><div class="t-track"><div class="t-set"><figure class="t-card t-teal"><span class="t-mark" aria-hidden="true">“</span>
+<blockquote>Buyers always ask how the building will be run after handover. Now we show them on their phone, before they sign.</blockquote><figcaption><span class="t-logo">DK</span><span style="display:flex;flex-direction:column"><b>Danaff Kenya Co. Ltd</b><span class="small" style="opacity:.85">Property developer</span></span></figcaption></figure><figure class="t-card t-jac"><span class="t-mark" aria-hidden="true">“</span>
+<blockquote>Airbnb and Booking.com used to sell the same night twice. Now one calendar closes the other, and my cleaner sends photos of every turnover.</blockquote><figcaption><span class="t-logo">MM</span><span style="display:flex;flex-direction:column"><b>Arlene Chebet</b><span class="small" style="opacity:.85">Maji Mazuri Airbnbs</span></span></figcaption></figure><figure class="t-card t-white"><span class="t-mark" aria-hidden="true">“</span>
+<blockquote>Every owner can see what service charge came in and where it went. The AGM was the shortest we have ever had.</blockquote><figcaption><span class="t-logo">HC</span><span style="display:flex;flex-direction:column"><b>Harlequins Court HOA</b><span class="small" style="opacity:.85">Owners’ association</span></span></figcaption></figure></div></div></div>
+</section>
+<section class="section section--blush" id="faq"><div class="wrap stack-l" style="max-width:860px"><h2>Quick answers</h2><div class="faq stack"><details><summary>How is my price worked out?</summary><p>Property type, the area band your property is in, and the number of units. One flat price per unit per month, the same whatever rent you charge.</p></details><details><summary>Do I pay for empty units?</summary><p>Vacant or unlisted units are billed at half price, so listings, deposits and history stay live.</p></details><details><summary>I have apartments and an Airbnb. One account?</summary><p>Yes. Each property is priced by its own type and area, on one bill and one dashboard.</p></details><details><summary>Do you work outside Kenya?</summary><p>We are live in Kenya today, with Uganda, Tanzania and Rwanda next. If you manage property elsewhere in Africa, <a href="#africa">join the waitlist</a> and we will set you up first when we launch in your country. Properties in different countries can sit on one account.</p></details><details><summary>How do tenants and guests pay?</summary><p>M-Pesa (prompt or Paybill), card or bank transfer. Payments match to the unit automatically and receipts go to both sides.</p></details><details><summary>Can you move my existing tenant list?</summary><p>Yes, free. Send us your Excel sheet or export from your current system and we set it up.</p></details><details><summary>Is my money safe?</summary><p>Tenants and guests pay straight into your own M-Pesa Paybill, Till or bank account. scharge matches and receipts every payment but never holds your money, so payouts are as fast as your bank.</p></details><details><summary>Is tenant data protected?</summary><p>We handle tenant and guest data under Kenya’s Data Protection Act, 2019, and the data protection law of every country we launch in. IDs are encrypted, visible only to people you choose, and deleted when you ask.</p></details></div></div></section>
+<section class="section section--red"><div class="wrap row" style="align-items:center;justify-content:space-between"><div class="stack"><h2>Apartments, hotels, offices or warehouses. Live this week.</h2><p>We import your units and tenants for free. Tenants, ask your manager for an invite.</p></div><div class="actions"><a class="btn btn--light" href="#pricing">Start collecting</a><a class="btn btn--glass" href="{{ route('home.developers') }}#talk">Book a demo</a></div></div></section>
+@endsection
 
-    <!-- Features (expanded to match Nyumbani.ke) -->
-    <section id="features" class="py-20 bg-gray-50">
-        <div class="container mx-auto px-6">
-            <div class="text-center max-w-2xl mx-auto mb-16">
-                <span class="text-red-600 font-semibold text-sm uppercase tracking-wide">Everything you need</span>
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mt-2 mb-4">Full-service property management</h2>
-                <p class="text-gray-500 text-lg">From tenant onboarding to financial reporting—all in one place</p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-7">
-                <!-- Feature 1: Rent & Service Charge Collection -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M6 19h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14h.01M12 14h.01M16 14h.01" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Rent & Service Charge</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Automate recurring rent and service charge collection via M-Pesa, cards, and bank transfers. Send reminders and reduce arrears.</p>
-                </div>
-                
-                <!-- Feature 2: Security Deposits -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Security Deposits</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Collect and hold tenant security deposits securely. Track interest, manage refunds, and generate statements.</p>
-                </div>
-                
-                <!-- Feature 3: Tenant Management -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Tenant Portal</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Tenants can view balances, pay online, request maintenance, and communicate directly with you.</p>
-                </div>
-                
-                <!-- Feature 4: Maintenance Tracking -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Maintenance</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Log maintenance requests, assign to vendors, track costs, and approve payments—all in one system.</p>
-                </div>
-
-                <!-- Feature 5: Financial Reporting -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Financial Reports</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Get real-time P&L, collection rates, arrears reports, and expense tracking per property.</p>
-                </div>
-
-                <!-- Feature 6: Expense Management -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Pay Expenses</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Pay utilities, maintenance, and staff directly from collected funds. 24-hour settlements.</p>
-                </div>
-
-                <!-- Feature 7: Unit Transfer -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Unit Transfer</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Tenants move units without creating new accounts. All history and deposits follow them.</p>
-                </div>
-
-                <!-- Feature 8: Communications -->
-                <div class="glass-card p-7">
-                    <div class="feature-icon">
-                        <svg class="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Communications</h3>
-                    <p class="text-gray-500 text-sm leading-relaxed">Send broadcast messages, payment reminders, and notices via SMS and email.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- How It Works -->
-    <section class="py-20 bg-white">
-        <div class="container mx-auto px-6">
-            <div class="text-center max-w-2xl mx-auto mb-14">
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-3">Get started in minutes</h2>
-                <p class="text-gray-500 text-lg">No training required</p>
-            </div>
-            <div class="grid md:grid-cols-3 gap-10 max-w-4xl mx-auto">
-                <div class="text-center">
-                    <div class="w-20 h-20 bg-red-600 text-white rounded-2xl flex items-center justify-center text-3xl font-bold mx-auto mb-5 shadow-lg">1</div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Add properties & units</h3>
-                    <p class="text-gray-500">Upload your property portfolio, set charges, and invite tenants</p>
-                </div>
-                <div class="text-center">
-                    <div class="w-20 h-20 bg-red-600 text-white rounded-2xl flex items-center justify-center text-3xl font-bold mx-auto mb-5 shadow-lg">2</div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Collect & manage</h3>
-                    <p class="text-gray-500">Tenants pay via M-Pesa, card, or bank. Track everything live</p>
-                </div>
-                <div class="text-center">
-                    <div class="w-20 h-20 bg-red-600 text-white rounded-2xl flex items-center justify-center text-3xl font-bold mx-auto mb-5 shadow-lg">3</div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">Report & grow</h3>
-                    <p class="text-gray-500">Get insights, pay expenses, and scale your portfolio</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing with calculator -->
-    <section id="pricing" class="py-20 bg-gray-50">
-        <div class="container mx-auto px-6">
-            <div class="text-center max-w-2xl mx-auto mb-14">
-                <span class="text-red-600 font-semibold text-sm uppercase tracking-wide">Simple pricing</span>
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mt-2 mb-3">You pay only when you collect</h2>
-                <p class="text-gray-500 text-lg">No monthly fees. No setup costs.</p>
-            </div>
-            
-            <!-- Calculator -->
-            <div class="max-w-2xl mx-auto bg-white rounded-2xl p-8 shadow-md mb-16">
-                <h3 class="text-xl font-bold text-gray-900 mb-5 text-center">Estimate your savings</h3>
-                <div class="space-y-5">
-                    <div>
-                        <label class="text-gray-700 font-medium block mb-2">Number of units</label>
-                        <input type="range" id="unitSlider" class="unit-slider" min="1" max="500" value="50">
-                        <div class="flex justify-between mt-2">
-                            <span class="text-sm text-gray-400">1</span>
-                            <span class="text-base font-bold text-red-600" id="unitValue">50 units</span>
-                            <span class="text-sm text-gray-400">500+</span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="text-gray-700 font-medium block mb-2">Average monthly rent + service charge (KES)</label>
-                        <input type="number" id="serviceCharge" class="w-full px-4 py-3 border border-gray-200 rounded-xl" value="5000">
-                    </div>
-                    <div class="bg-red-50 rounded-xl p-5 space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Monthly collection volume</span>
-                            <span class="font-bold text-gray-900 text-lg" id="monthlyVolume">KES 250,000</span>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <span class="text-gray-600">Scharge fee (1.5%)</span>
-                            <span class="font-bold text-red-600 text-lg" id="schargeFee">KES 3,750</span>
-                        </div>
-                        <div class="flex justify-between items-center pt-3 border-t border-red-200">
-                            <span class="font-bold text-gray-900">You save vs manual collection</span>
-                            <span class="font-bold text-green-600 text-xl" id="savings">KES 96,250</span>
-                        </div>
-                    </div>
-                    <p class="text-xs text-gray-400 text-center">*Manual collection average loss: 40% due to late payments & errors</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing Cards -->
-    <section class="py-10 bg-gray-50">
-        <div class="container mx-auto px-6">
-            <div class="grid md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-                <div class="pricing-card p-6 text-center">
-                    <div class="text-sm font-semibold text-gray-400 mb-1">1-30 units</div>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">1.8%</div>
-                    <p class="text-xs text-gray-500 mb-5">per collection</p>
-                    <button class="w-full border border-red-600 text-red-600 py-2.5 rounded-full font-semibold hover:bg-red-600 hover:text-white transition">Select</button>
-                </div>
-                <div class="pricing-card popular-card p-6 text-center relative">
-                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-red-600 text-white text-xs px-3 py-1 rounded-full font-semibold">Most popular</div>
-                    <div class="text-sm font-semibold text-gray-400 mb-1">31-100 units</div>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">1.5%</div>
-                    <p class="text-xs text-gray-500 mb-5">per collection</p>
-                    <button class="w-full bg-red-600 text-white py-2.5 rounded-full font-semibold hover:bg-red-700 transition shadow-md">Select</button>
-                </div>
-                <div class="pricing-card p-6 text-center">
-                    <div class="text-sm font-semibold text-gray-400 mb-1">101-200 units</div>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">1.2%</div>
-                    <p class="text-xs text-gray-500 mb-5">per collection</p>
-                    <button class="w-full border border-red-600 text-red-600 py-2.5 rounded-full font-semibold hover:bg-red-600 hover:text-white transition">Select</button>
-                </div>
-                <div class="pricing-card p-6 text-center">
-                    <div class="text-sm font-semibold text-gray-400 mb-1">200+ units</div>
-                    <div class="text-4xl font-bold text-gray-900 mb-1">0.9%</div>
-                    <p class="text-xs text-gray-500 mb-5">per collection</p>
-                    <button class="w-full border border-red-600 text-red-600 py-2.5 rounded-full font-semibold hover:bg-red-600 hover:text-white transition">Contact sales</button>
-                </div>
-            </div>
-            <p class="text-center text-gray-400 text-sm mt-8">No setup fee • No monthly minimum • Cancel anytime</p>
-        </div>
-    </section>
-
-    <!-- Testimonials -->
-    <section id="testimonials" class="py-20 bg-white">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl font-bold text-gray-900 mb-12">What property managers say</h2>
-            <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                <div class="bg-gray-50 p-8 rounded-2xl text-left">
-                    <div class="text-red-600 text-2xl">“</div>
-                    <p class="text-gray-600 italic">Scharge has cut our admin time by 80%. We collect rent and service charges seamlessly, and tenants love the portal.</p>
-                    <p class="font-bold text-gray-900 mt-4">— Jane M., Nairobi</p>
-                </div>
-                <div class="bg-gray-50 p-8 rounded-2xl text-left">
-                    <div class="text-red-600 text-2xl">“</div>
-                    <p class="text-gray-600 italic">The security deposit feature is a game-changer. We track everything and refunds are now instant and accurate.</p>
-                    <p class="font-bold text-gray-900 mt-4">— David K., Mombasa</p>
-                </div>
-                <div class="bg-gray-50 p-8 rounded-2xl text-left">
-                    <div class="text-red-600 text-2xl">“</div>
-                    <p class="text-gray-600 italic">We manage 150+ units. Scharge gives us real-time P&L, and we pay expenses directly from collected funds.</p>
-                    <p class="font-bold text-gray-900 mt-4">— Grace W., Kisumu</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq" class="py-20 bg-gray-50">
-        <div class="container mx-auto px-6">
-            <div class="text-center max-w-2xl mx-auto mb-14">
-                <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-3">Frequently asked questions</h2>
-            </div>
-            <div class="max-w-3xl mx-auto space-y-4">
-                <div class="bg-white rounded-xl p-5 shadow-sm">
-                    <button class="faq-question w-full text-left flex justify-between items-center">
-                        <span class="font-semibold text-gray-900">What payment methods do tenants use?</span>
-                        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="faq-answer hidden pt-3"><p class="text-gray-500">M-Pesa, Airtel Money, credit/debit cards, bank transfers, and standing orders.</p></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm">
-                    <button class="faq-question w-full text-left flex justify-between items-center">
-                        <span class="font-semibold text-gray-900">How does the "2 extra months free" work?</span>
-                        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="faq-answer hidden pt-3"><p class="text-gray-500">Your first successful collection triggers 2 months of waived platform fees. You pay nothing for months 2 and 3.</p></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm">
-                    <button class="faq-question w-full text-left flex justify-between items-center">
-                        <span class="font-semibold text-gray-900">Can tenants transfer units without new accounts?</span>
-                        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="faq-answer hidden pt-3"><p class="text-gray-500">Yes. One-click unit transfer. All payment history and deposits follow the tenant.</p></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm">
-                    <button class="faq-question w-full text-left flex justify-between items-center">
-                        <span class="font-semibold text-gray-900">Is my money safe?</span>
-                        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="faq-answer hidden pt-3"><p class="text-gray-500">PCI-DSS Level 1 certified. Funds held in escrow with partner banks.</p></div>
-                </div>
-                <div class="bg-white rounded-xl p-5 shadow-sm">
-                    <button class="faq-question w-full text-left flex justify-between items-center">
-                        <span class="font-semibold text-gray-900">Do you offer maintenance tracking?</span>
-                        <svg class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="faq-answer hidden pt-3"><p class="text-gray-500">Yes. Tenants can request maintenance, you can assign vendors, track costs, and approve payments.</p></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Final CTA -->
-    <section class="py-20 bg-red-600">
-        <div class="container mx-auto px-6 text-center">
-            <h2 class="text-4xl md:text-5xl font-bold text-white mb-4">Ready to simplify property management?</h2>
-            <p class="text-xl text-red-100 mb-8 max-w-2xl mx-auto">Join 500+ property managers already using Scharge</p>
-            <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <button class="bg-white text-red-600 px-10 py-4 rounded-full font-bold text-lg shadow-lg hover:bg-gray-100 transition">Start free trial</button>
-                <button class="border-2 border-white text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-white hover:text-red-600 transition">Book a demo</button>
-            </div>
-            <p class="text-red-100 text-sm mt-8">The Atrium, 1st floor, Lenana Rd, Nairobi • hello@scharge.com • +254 700 123 456</p>
-        </div>
-    </section>
-
-    <footer class="bg-red-600 text-white py-8">
-        <div class="container mx-auto px-6 text-center">
-            <p class="text-white-400 text-sm">&copy; 2026 Scharge. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <div class="scroll-top" id="scrollTop">
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-        </svg>
-    </div>
-
-    <script>
-        // Mobile menu
-        const mobileBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
-        if(mobileBtn) mobileBtn.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        
-        // Smooth scroll
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if(target) { target.scrollIntoView({ behavior: 'smooth' }); if(mobileMenu) mobileMenu.classList.add('hidden'); }
-            });
-        });
-        
-        // Scroll top
-        const scrollTop = document.getElementById('scrollTop');
-        window.addEventListener('scroll', () => { window.scrollY > 300 ? scrollTop.classList.add('show') : scrollTop.classList.remove('show'); });
-        scrollTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-        
-        // FAQ
-        document.querySelectorAll('.faq-question').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const answer = btn.nextElementSibling;
-                const icon = btn.querySelector('svg');
-                answer.classList.toggle('hidden');
-                icon.classList.toggle('rotate-180');
-            });
-        });
-        
-        // Calculator
-        const slider = document.getElementById('unitSlider');
-        const unitVal = document.getElementById('unitValue');
-        const charge = document.getElementById('serviceCharge');
-        const monthly = document.getElementById('monthlyVolume');
-        const feeSpan = document.getElementById('schargeFee');
-        const savingsSpan = document.getElementById('savings');
-        
-        function updateCalc() {
-            let units = parseInt(slider.value);
-            let avg = parseFloat(charge.value) || 0;
-            let total = units * avg;
-            let percent = units <= 30 ? 0.018 : (units <= 100 ? 0.015 : (units <= 200 ? 0.012 : 0.009));
-            let fee = total * percent;
-            let manualLoss = total * 0.4;
-            let save = manualLoss - fee;
-            
-            unitVal.innerText = units + ' units';
-            monthly.innerText = 'KES ' + total.toLocaleString();
-            feeSpan.innerText = 'KES ' + Math.round(fee).toLocaleString();
-            savingsSpan.innerText = 'KES ' + Math.round(save).toLocaleString();
-        }
-        
-        if(slider) { slider.addEventListener('input', updateCalc); charge.addEventListener('input', updateCalc); updateCalc(); }
-        
-        // Animation on scroll
-        const cards = document.querySelectorAll('.glass-card, .pricing-card');
-        const obs = new IntersectionObserver((entries) => {
-            entries.forEach(entry => { if(entry.isIntersecting) entry.target.classList.add('animate-fade-up'); });
-        }, { threshold: 0.1 });
-        cards.forEach(c => obs.observe(c));
-    </script>
-</body>
-</html>
+@push('page_data')
+@verbatim
+<script type="application/json" id="pricing-data">{"types": [{"name": "Apartments", "unit": "unit", "rates": [500, 300, 150, 40]}, {"name": "Airbnb & serviced", "unit": "listing", "rates": [1500, 1000, 700, 400]}, {"name": "Hotels", "unit": "room", "rates": [800, 600, 400, 250]}, {"name": "Offices", "unit": "suite", "rates": [2000, 1500, 1000, 600]}, {"name": "Warehouses", "unit": "bay", "rates": [2000, 1600, 1200, 800]}], "bands": [{"name": "Prime", "eg": "e.g. Westlands, Kilimani, Karen, Upper Hill"}, {"name": "Upmarket", "eg": "e.g. Kileleshwa, Lang’ata, Syokimau, Nyali"}, {"name": "Mid-market", "eg": "e.g. Ruaka, Kasarani, South B, Thindigua"}, {"name": "Affordable", "eg": "e.g. Kitengela, Ruiru, Rongai, Umoja"}], "minimum": 1500, "audienceType": [0, 0, 0, 1, 2, 3, 4, 0]}</script>
+@endverbatim
+@endpush
