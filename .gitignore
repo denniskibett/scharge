@@ -28,3 +28,4 @@ Thumbs.db
 *.sql.gz
 # Editor swap files
 *.swp
+!database/schema/*.sql

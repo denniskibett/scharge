@@ -32,6 +32,8 @@ class User extends Authenticatable implements Wallet
         'bio',
         'avatar',
         'country',
+        'country_id',
+        'lead_source',
         'city',
         'state',
         'postal_code',
@@ -69,6 +71,26 @@ class User extends Authenticatable implements Wallet
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /** Country the person is in (website leads, CRM contacts). */
+    public function countryRecord()
+    {
+        return $this->belongsTo(\App\Modules\CRM\Models\Country::class, 'country_id');
+    }
+
+    /** Prospect companies this person represents (crm_company_user pivot). */
+    public function crmCompanies()
+    {
+        return $this->belongsToMany(\App\Modules\CRM\Models\CrmCompany::class, 'crm_company_user', 'user_id', 'crm_company_id')
+            ->withPivot(['job_title', 'is_primary'])
+            ->withTimestamps();
+    }
+
+    /** Countries this person is on the waitlist for (waitlist_entries pivot). */
+    public function waitlistEntries()
+    {
+        return $this->hasMany(\App\Modules\CRM\Models\WaitlistEntry::class);
     }
 
     public function belongsToCompany(): bool

@@ -10,6 +10,7 @@
 @yield('content')
 </main>
 @include('home.partials.footer')
+@include('home.partials.site-alert')
 @include('home.partials.scripts')
 </body>
 </html>

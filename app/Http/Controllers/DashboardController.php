@@ -124,7 +124,7 @@ class DashboardController extends Controller
             'pending_companies' => Company::where('subscription_status', 'pending')->count(),
             'total_users' => User::count(),
             'verified_users' => User::whereNotNull('email_verified_at')->count(),
-            'pending_verification_users' => User::whereNull('email_verified_at')->count(),
+            'pending_verification_users' => User::whereNull('email_verified_at')->whereDoesntHave('roles', fn ($q) => $q->where('name', 'guest'))->count(),
             'total_units' => Unit::count(),
             'total_tenants' => Tenant::count(),
             'total_revenue' => Payment::sum('amount'),
@@ -140,8 +140,10 @@ class DashboardController extends Controller
             $maxRevenue = 1;
         }
         
+        // Website leads (waitlist / demo requests, role "guest") are not registrations awaiting approval.
         $pendingUsers = User::whereNull('email_verified_at')
-            ->with('role', 'company')
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'guest'))
+            ->with('roles', 'company')
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function($user) {
@@ -149,7 +151,7 @@ class DashboardController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role_name' => $user->role->name ?? 'N/A',
+                    'role_name' => $user->roles->first()->name ?? 'N/A',
                     'company_name' => $user->company->name ?? null,
                     'created_at_formatted' => $user->created_at ? $user->created_at->format('M d, Y') : '-',
                 ];

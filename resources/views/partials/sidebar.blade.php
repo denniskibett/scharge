@@ -176,6 +176,7 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
+        'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
         'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
         'forms', 'form_elements',
         'tables', 'basic_tables',
@@ -415,6 +416,25 @@ document.addEventListener('alpine:init', () => {
                 page: 'smsSettings',
                 permission: 'sms_settings'
               }
+            ]
+          }
+        ]
+      },
+      {
+        title: 'SALES & CRM',
+        items: [
+          {
+            name: 'CRM',
+            label: 'Sales CRM',
+            link: '/#',
+            permission: 'crm',
+            icon: 'M7.5 3.25A4.25 4.25 0 1 0 7.5 11.75 4.25 4.25 0 0 0 7.5 3.25ZM4.75 7.5a2.75 2.75 0 1 1 5.5 0 2.75 2.75 0 0 1-5.5 0ZM16.5 5.25a3.25 3.25 0 1 0 0 6.5 3.25 3.25 0 0 0 0-6.5ZM14.75 8.5a1.75 1.75 0 1 1 3.5 0 1.75 1.75 0 0 1-3.5 0ZM2.25 18.5A5.25 5.25 0 0 1 7.5 13.25h0A5.25 5.25 0 0 1 12.75 18.5v1.75a.75.75 0 0 1-1.5 0V18.5A3.75 3.75 0 0 0 7.5 14.75h0A3.75 3.75 0 0 0 3.75 18.5v1.75a.75.75 0 0 1-1.5 0V18.5ZM16.5 13.25a4.25 4.25 0 0 1 4.25 4.25v2.75a.75.75 0 0 1-1.5 0V17.5a2.75 2.75 0 0 0-4.62-2.02.75.75 0 1 1-1.02-1.1 4.23 4.23 0 0 1 2.89-1.13Z',
+            children: [
+              { label: 'Pipeline', link: '/crm', page: 'crmPipeline', permission: 'crm_pipeline' },
+              { label: 'Follow-ups', link: '/crm/follow-ups', page: 'crmFollowUps', permission: 'crm_follow_ups' },
+              { label: 'Demo requests', link: '/crm/demos', page: 'crmDemos', permission: 'crm_demos' },
+              { label: 'Waitlist', link: '/crm/waitlist', page: 'crmWaitlist', permission: 'crm_waitlist' },
+              { label: 'Feedback', link: '/crm/feedback', page: 'crmFeedback', permission: 'crm_feedback' }
             ]
           }
         ]
@@ -732,6 +752,11 @@ document.addEventListener('alpine:init', () => {
         '/roles': 'roles',
         '/system': 'system',
         '/system/clear-cache': 'clearCache',
+        '/crm': 'crmPipeline',
+        '/crm/follow-ups': 'crmFollowUps',
+        '/crm/demos': 'crmDemos',
+        '/crm/waitlist': 'crmWaitlist',
+        '/crm/feedback': 'crmFeedback',
         '/form-elements': 'formElements',
         '/basic-tables': 'basicTables',
         '/blank': 'blank',
@@ -751,7 +776,9 @@ document.addEventListener('alpine:init', () => {
       
       // If not found, try to match by checking if path contains certain patterns
       if (!page) {
-        if (path.includes('/sms/')) {
+        if (path.startsWith('/crm/')) {
+          page = 'crmPipeline';
+        } else if (path.includes('/sms/')) {
           // Handle SMS sub-pages
           if (path.includes('/broadcast')) page = 'smsSend';
           else if (path.includes('/history')) page = 'smsHistory';
