@@ -106,7 +106,7 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
             'role_id' => 'nullable|exists:roles,id',
-            'company_id' => 'nullable|exists:companies,id',
+            'company_id' => ['nullable', new \App\Rules\CustomerCompany],
             'status' => 'boolean',
         ]);
 
@@ -220,7 +220,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'nullable|string|max:20',
             'role_id' => 'nullable|exists:roles,id',
-            'company_id' => 'nullable|exists:companies,id',
+            'company_id' => ['nullable', new \App\Rules\CustomerCompany],
             'status' => 'boolean',
         ]);
 
@@ -405,7 +405,7 @@ class UserController extends Controller
             }
 
             $validated = $request->validate([
-                'company_id' => 'required|exists:companies,id',
+                'company_id' => ['required', new \App\Rules\CustomerCompany],
                 'role_id' => 'nullable|exists:roles,id'
             ]);
 

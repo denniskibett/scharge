@@ -11,4 +11,4 @@
         'nurture' => 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300',
     ];
 @endphp
-<span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium {{ $stageColours[$stage] ?? $stageColours['new'] }}">{{ \App\Modules\CRM\Models\CrmCompany::STAGES[$stage] ?? ucfirst($stage) }}</span>
+<span class="inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium {{ $stageColours[$stage] ?? $stageColours['new'] }}">{{ \App\Models\Company::CRM_STAGES[$stage] ?? ucfirst((string) $stage) }}</span>

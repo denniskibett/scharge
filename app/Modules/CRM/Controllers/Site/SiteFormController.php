@@ -3,7 +3,7 @@
 namespace App\Modules\CRM\Controllers\Site;
 
 use App\Http\Controllers\Controller;
-use App\Modules\CRM\Models\Country;
+use App\Modules\CRM\Support\Countries;
 use App\Modules\CRM\Support\Normalizer;
 use App\Modules\CRM\Services\LeadService;
 use Illuminate\Http\JsonResponse;
@@ -38,17 +38,16 @@ class SiteFormController extends Controller
         $input = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'contact' => ['required', 'string', 'max:190'],
-            'country' => ['required', 'string', 'max:2'],
-            'country_other' => ['nullable', 'required_if:country,ZZ', 'string', 'max:100'],
+            'country' => ['required', 'string', 'size:2', Rule::in(array_keys(Countries::waitlist()))],
             'company' => ['nullable', 'string', 'max:190'],
         ], [
-            'country_other.required_if' => 'Tell us which country.',
+            'country.in' => 'Choose a country from the list.',
         ], [
             'contact' => 'phone or email',
         ]);
 
-        $country = $this->country($input['country']);
-        [$email, $phone] = $this->splitContact($input['contact'], $country);
+        $code = strtoupper($input['country']);
+        [$email, $phone] = $this->splitContact($input['contact'], $code);
 
         try {
             $result = $this->leads->joinWaitlist([
@@ -56,8 +55,7 @@ class SiteFormController extends Controller
                 'email' => $email,
                 'phone' => $phone,
                 'company' => $input['company'] ?? null,
-                'country' => $country,
-                'country_name' => $country ? null : trim($input['country_other'] ?? ''),
+                'country_code' => $code,
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
@@ -65,7 +63,7 @@ class SiteFormController extends Controller
             return $this->failed($request, $e, 'waitlist');
         }
 
-        $where = $result['entry']->country_label;
+        $where = Countries::name($code);
 
         return $result['already']
             ? $this->alert($request, "You're already on the {$where} list.", "We've updated your details and will message you as soon as scharge opens in {$where}.")
@@ -84,17 +82,17 @@ class SiteFormController extends Controller
             'company' => ['required', 'string', 'max:190'],
             'phone' => ['required', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:190'],
-            'country' => ['required', 'string', 'max:2'],
+            'country' => ['required', 'string', 'size:2', Rule::in(array_keys(Countries::africa()))],
             'project_type' => ['nullable', 'string', Rule::in(self::PROJECT_TYPES)],
             'units' => ['required', 'integer', 'min:1', 'max:1000000'],
             'message' => ['nullable', 'string', 'max:1000'],
-        ], [], [
+        ], ['country.in' => 'Choose a country from the list.'], [
             'units' => 'units or plots',
             'project_type' => 'project',
         ]);
 
-        $country = $this->country($input['country']);
-        if (! Normalizer::phone($input['phone'], $country?->dial_code ?? '254')) {
+        $code = strtoupper($input['country']);
+        if (! Normalizer::phone($input['phone'], Countries::dial($code))) {
             throw ValidationException::withMessages(['phone' => 'Enter a phone number we can call, e.g. 0712 345 678.']);
         }
 
@@ -104,7 +102,7 @@ class SiteFormController extends Controller
                 'company' => $input['company'],
                 'phone' => $input['phone'],
                 'email' => $input['email'] ?? null,
-                'country' => $country,
+                'country_code' => $code,
                 'project_type' => $input['project_type'] ?? null,
                 'units' => (int) $input['units'],
                 'message' => $input['message'] ?? null,
@@ -116,27 +114,19 @@ class SiteFormController extends Controller
             return $this->failed($request, $e, 'demo');
         }
 
+        if ($result['waitlisted']) {
+            $where = Countries::name($code);
+
+            return $this->alert($request, "Thanks, we have your request for {$where}.", "scharge isn't live in {$where} yet. You're on our list there with your project details, and we'll set up your demo as soon as we launch.");
+        }
+
         return $result['already']
             ? $this->alert($request, 'We already have your request.', "We've added the new details. Our projects team will call to confirm a time within one working day.")
             : $this->alert($request, 'Thank you, your meeting is booked.', "We'll call {$this->firstName(Normalizer::personName($input['name']))} to confirm a time within one working day.");
     }
 
-    /** "ZZ" = "Another country". */
-    private function country(string $iso2): ?Country
-    {
-        if (strtoupper($iso2) === 'ZZ') {
-            return null;
-        }
-        $country = Country::where('iso2', strtoupper($iso2))->where('is_active', true)->first();
-        if (! $country) {
-            throw ValidationException::withMessages(['country' => 'Choose a country from the list.']);
-        }
-
-        return $country;
-    }
-
     /** @return array{0: ?string, 1: ?string} [email, phone] */
-    private function splitContact(string $contact, ?Country $country): array
+    private function splitContact(string $contact, string $code): array
     {
         if (str_contains($contact, '@')) {
             if ($email = Normalizer::email($contact)) {
@@ -144,7 +134,7 @@ class SiteFormController extends Controller
             }
             throw ValidationException::withMessages(['contact' => 'That email address does not look right.']);
         }
-        if (Normalizer::phone($contact, $country?->dial_code ?? '254')) {
+        if (Normalizer::phone($contact, Countries::dial($code))) {
             // Pass it on as typed: ContactService needs to know whether it had a country code.
             return [null, $contact];
         }

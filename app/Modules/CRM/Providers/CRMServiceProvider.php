@@ -3,8 +3,7 @@
 namespace App\Modules\CRM\Providers;
 
 use App\Modules\CRM\Console\ImportProspects;
-use App\Modules\CRM\Models\Country;
-use Illuminate\Support\Collection;
+use App\Modules\CRM\Support\Countries;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -19,33 +18,12 @@ class CRMServiceProvider extends ServiceProvider
             $this->commands([ImportProspects::class]);
         }
 
-        // Country lists for the website forms (waitlist + book a demo).
+        // Country lists for the website forms: [code => name], live and next launches first.
         View::composer(['welcome', 'home.*'], function ($view) {
-            static $countries;
-            $countries ??= $this->countries();
-            $view->with('siteCountries', $countries);
+            $view->with([
+                'waitlistCountries' => array_map(fn ($c) => $c['name'], Countries::waitlist()),
+                'demoCountries' => array_map(fn ($c) => $c['name'], Countries::ordered()),
+            ]);
         });
-    }
-
-    /**
-     * Reads the countries table; falls back to a fixed list so the website keeps working
-     * before database/schema/2026_10_13_crm_waitlist.sql has been applied.
-     */
-    private function countries(): Collection
-    {
-        try {
-            $rows = Country::active()->get(['id', 'name', 'iso2', 'status']);
-            if ($rows->isNotEmpty()) {
-                return $rows;
-            }
-        } catch (\Throwable) {
-            // table not created yet
-        }
-
-        return collect([
-            ['Kenya', 'KE', 'live'], ['Uganda', 'UG', 'next'], ['Tanzania', 'TZ', 'next'], ['Rwanda', 'RW', 'next'],
-            ['Ethiopia', 'ET', 'waitlist'], ['Ghana', 'GH', 'waitlist'], ['Nigeria', 'NG', 'waitlist'],
-            ['South Africa', 'ZA', 'waitlist'], ['Zambia', 'ZM', 'waitlist'],
-        ])->map(fn ($c) => new Country(['name' => $c[0], 'iso2' => $c[1], 'status' => $c[2]]));
     }
 }

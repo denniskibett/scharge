@@ -5,7 +5,7 @@
     $crmTabs = [
         'crm.index' => ['Pipeline', null],
         'crm.follow-ups.index' => ['Follow-ups', \App\Modules\CRM\Models\CrmFollowUp::overdue()->count()],
-        'crm.demos.index' => ['Demo requests', \App\Modules\CRM\Models\CrmDemoRequest::where('status', 'new')->count()],
+        'crm.demos.index' => ['Demo requests', \App\Modules\CRM\Models\CrmFollowUp::where('type', 'demo')->where('status', 'open')->count()],
         'crm.waitlist.index' => ['Waitlist', null],
         'crm.feedback.index' => ['Feedback', null],
     ];

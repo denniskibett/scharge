@@ -2,39 +2,47 @@
 
 namespace App\Modules\CRM\Models;
 
+use App\Models\Company;
 use App\Models\User;
+use App\Modules\CRM\Support\Countries;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/** Pivot between a person (users) and a country they want scharge in. */
+/**
+ * Pivot between a person and a country scharge is not in yet. Holds demo details too, so when
+ * we launch in the country each entry becomes a CRM follow-up.
+ */
 class WaitlistEntry extends Model
 {
-    public const STATUSES = ['waiting', 'contacted', 'invited', 'converted', 'unsubscribed'];
-
-    protected $fillable = [
-        'user_id', 'country_id', 'country_name', 'crm_company_id', 'status', 'source',
-        'notified_at', 'ip_address', 'user_agent',
+    public const STATUSES = [
+        'waiting' => 'Waiting',
+        'demo_requested' => 'Wants a demo',
+        'invited' => 'Invited',
+        'converted' => 'Moved to CRM',
+        'unsubscribed' => 'Unsubscribed',
     ];
 
-    protected $casts = ['notified_at' => 'datetime'];
+    protected $fillable = ['user_id', 'country_code', 'company_id', 'status', 'details'];
+
+    protected $casts = ['details' => 'array'];
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function country(): BelongsTo
-    {
-        return $this->belongsTo(Country::class);
-    }
-
     public function company(): BelongsTo
     {
-        return $this->belongsTo(CrmCompany::class, 'crm_company_id');
+        return $this->belongsTo(Company::class)->withoutGlobalScope('customers');
     }
 
-    public function getCountryLabelAttribute(): string
+    public function getCountryNameAttribute(): string
     {
-        return $this->country?->name ?? $this->country_name ?? 'Another country';
+        return Countries::name($this->country_code) ?? $this->country_code;
+    }
+
+    public function detail(string $key, $default = null)
+    {
+        return data_get($this->details, $key, $default);
     }
 }

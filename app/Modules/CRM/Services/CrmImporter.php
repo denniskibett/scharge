@@ -2,20 +2,20 @@
 
 namespace App\Modules\CRM\Services;
 
+use App\Models\Company;
 use App\Models\User;
-use App\Modules\CRM\Models\Country;
 use App\Modules\CRM\Support\Normalizer;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Imports prospect sheets (CSV) into crm_companies. Columns are matched by header name, so both
+ * Imports prospect sheets (CSV) into companies (lifecycle = prospect). Columns are matched by header name, so both
  * sales sheets work, and re-running an import merges into existing companies instead of duplicating.
  */
 class CrmImporter
 {
-    /** CSV header (lowercased) => crm_companies field. */
+    /** CSV header (lowercased) => company column or crm_profile key. */
     private const COLUMNS = [
         'company' => 'name',
         'priority' => 'tier',
@@ -37,7 +37,7 @@ class CrmImporter
         'route' => 'route',
         'lead status' => 'stage',
         'next action' => 'next_action',
-        'last contact' => 'last_contacted_at',
+        'last contact' => 'last_contact',
         'owner' => 'owner',
         'notes' => 'notes',
         'source' => 'source',
@@ -62,7 +62,7 @@ class CrmImporter
             throw new RuntimeException("Cannot read {$path}");
         }
         $label = 'Import: '.basename($path);
-        $kenya = Country::where('iso2', 'KE')->first();
+        $this->backfillKeys();
         $stats = ['rows' => 0, 'created' => 0, 'merged' => 0, 'skipped' => 0, 'flagged' => 0];
 
         $handle = fopen($path, 'r');
@@ -85,7 +85,7 @@ class CrmImporter
             }
 
             $data = $this->mapRow($row, $label, $defaultOwnerId);
-            $data['country_id'] = $kenya?->id;
+            $data['country_code'] = 'KE';
             $stats['flagged'] += (int) $data['needs_verification'];
 
             $existing = $this->contacts->findCompany(
@@ -129,9 +129,9 @@ class CrmImporter
             'linkedin' => Normalizer::website($row['linkedin'] ?? null),
             'current_system' => $row['current_system'] ?? null,
             'estimated_units' => isset($row['estimated_units']) && preg_match('/[\d,]+/', $row['estimated_units'], $m) ? (int) str_replace(',', '', $m[0]) : null,
-            'stage' => self::STAGES[Str::lower($row['stage'] ?? '')] ?? 'new',
+            'crm_stage' => self::STAGES[Str::lower($row['stage'] ?? '')] ?? 'new',
             'next_action' => $row['next_action'] ?? null,
-            'last_contacted_at' => $this->date($row['last_contacted_at'] ?? null),
+            'last_contact' => $this->date($row['last_contact'] ?? null)?->toDateString(),
             'owner_id' => $this->owner($row['owner'] ?? null) ?? $defaultOwnerId,
             'notes' => $row['notes'] ?? null,
             'needs_verification' => $verify($row['phone'] ?? null) || $verify($row['email'] ?? null) || $verify($row['website'] ?? null),
@@ -141,6 +141,17 @@ class CrmImporter
         }
 
         return $data;
+    }
+
+    /** Existing customers get matching keys so a prospect with the same name or website merges into them. */
+    private function backfillKeys(): void
+    {
+        Company::withoutGlobalScope('customers')->whereNull('name_key')->each(function (Company $company) {
+            $company->forceFill([
+                'name_key' => Normalizer::companyKey($company->name),
+                'domain' => $company->domain ?? Normalizer::domain(null, $company->email),
+            ])->saveQuietly();
+        });
     }
 
     private function date(?string $value): ?Carbon

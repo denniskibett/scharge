@@ -2,35 +2,40 @@
 
 namespace App\Modules\CRM\Services;
 
+use App\Models\Company;
 use App\Models\User;
-use App\Modules\CRM\Models\Country;
-use App\Modules\CRM\Models\CrmActivity;
-use App\Modules\CRM\Models\CrmCompany;
+use App\Modules\CRM\Models\CrmFollowUp;
+use App\Modules\CRM\Support\Countries;
 use App\Modules\CRM\Support\Normalizer;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 /**
- * Finds or creates the people (users) and prospect companies (crm_companies) behind website
- * forms and CRM imports, merging duplicates by email / phone and by company domain / name.
+ * Finds or creates the people (users) and companies behind website forms and CRM imports,
+ * merging duplicates by email / phone and by company domain / name.
  */
 class ContactService
 {
     /** Role given to people who only exist as leads; it grants nothing beyond the dashboard shell. */
     public const LEAD_ROLE = 'guest';
 
+    /** Sales-sheet fields kept in companies.crm_profile. */
+    public const PROFILE_FIELDS = [
+        'website', 'phone_alt', 'business_type', 'portfolio', 'scale_signal', 'opportunity', 'target_role', 'route',
+        'linkedin', 'decision_maker', 'current_system', 'estimated_units', 'next_action', 'needs_verification', 'notes', 'lost_reason',
+    ];
+
     /**
-     * @param  array{name?: ?string, email?: ?string, phone?: ?string, country?: ?Country}  $data
+     * @param  array{name?: ?string, email?: ?string, phone?: ?string, country_code?: ?string, country_is_home?: bool}  $data
      * @return array{0: User, 1: bool} the person and whether they were created
      */
     public function upsertPerson(array $data, string $source): array
     {
-        $country = $data['country'] ?? null;
-        $dial = $country?->dial_code ?? '254';
+        $code = $data['country_code'] ?? null;
         $name = Normalizer::personName($data['name'] ?? null);
         $email = Normalizer::email($data['email'] ?? null);
-        $phone = Normalizer::phone($data['phone'] ?? null, $dial);
+        $phone = Normalizer::phone($data['phone'] ?? null, Countries::dial($code));
         $localPhone = Normalizer::isLocalPhone($data['phone'] ?? null);
 
         $user = $this->findPerson($email, $phone, $name, $localPhone);
@@ -43,8 +48,8 @@ class ContactService
                 'last_name' => $last,
                 'email' => $email,
                 'phone' => $phone,
-                'country' => $country?->name,
-                'country_id' => $country?->id,
+                'country' => Countries::name($code),
+                'country_code' => $code,
                 'lead_source' => $source,
                 // Leads can't log in until they register or reset their password.
                 'password' => Hash::make(Str::random(40)),
@@ -59,7 +64,7 @@ class ContactService
         if ($localPhone && $this->sameTail($phone, $user)) {
             $phone = null; // same number typed without a country code: keep the stored one
         }
-        $this->mergePerson($user, $name, $email, $phone, $country, $data['country_is_home'] ?? true);
+        $this->mergePerson($user, $name, $email, $phone, $code, $data['country_is_home'] ?? true);
 
         return [$user, false];
     }
@@ -90,21 +95,11 @@ class ContactService
         if ($candidates->count() === 1) {
             return $candidates->first();
         }
-        if ($name) {
-            $sameName = $candidates->first(fn (User $u) => Str::lower((string) $u->name) === Str::lower($name));
-            if ($sameName) {
-                return $sameName;
-            }
+        if ($name && ($sameName = $candidates->first(fn (User $u) => Str::lower((string) $u->name) === Str::lower($name)))) {
+            return $sameName;
         }
 
         return $candidates->first(fn (User $u) => $this->isLeadOnly($u));
-    }
-
-    private function sameTail(?string $phone, User $user): bool
-    {
-        $tail = Normalizer::phoneTail($phone);
-
-        return $tail && in_array($tail, [Normalizer::phoneTail($user->phone), Normalizer::phoneTail($user->phone2)], true);
     }
 
     /** True when the user is only a lead (no role, or just the lead role) — safe to update from public forms. */
@@ -114,11 +109,172 @@ class ContactService
     }
 
     /**
+     * @param  array<string, mixed>  $data  name (required), email, phone, country_code, tier, owner_id, crm_stage + PROFILE_FIELDS
+     * @return array{0: Company, 1: bool} the company and whether it was created
+     */
+    public function upsertCompany(array $data, string $source): array
+    {
+        $name = Normalizer::companyName($data['name'] ?? null);
+        $website = Normalizer::website($data['website'] ?? null);
+        $email = Normalizer::email($data['email'] ?? null);
+        $domain = Normalizer::domain($website, $email);
+        $key = Normalizer::companyKey($name);
+        $profile = array_filter(
+            ['website' => $website] + array_intersect_key($data, array_flip(self::PROFILE_FIELDS)),
+            fn ($v) => is_bool($v) || ! Normalizer::blank(is_scalar($v) ? (string) $v : null)
+        );
+
+        $company = $this->findCompany($domain, $key);
+
+        if (! $company) {
+            $company = Company::withoutGlobalScope('customers')->create(array_filter([
+                'name' => $name,
+                'email' => $email,
+                'phone' => $data['phone'] ?? null,
+                'is_active' => false,
+                'lifecycle' => 'prospect',
+                'crm_stage' => $data['crm_stage'] ?? 'new',
+                'tier' => $data['tier'] ?? 3,
+                'owner_id' => $data['owner_id'] ?? null,
+                'country_code' => $data['country_code'] ?? null,
+                'domain' => $domain,
+                'name_key' => $key,
+                'source' => $source,
+                'crm_profile' => $profile ?: null,
+            ], fn ($v) => $v !== null));
+
+            return [$company, true];
+        }
+
+        // Existing company (prospect or customer): fill blanks, keep the higher priority, collect sources.
+        $changes = [];
+        foreach (['email' => $email, 'phone' => $data['phone'] ?? null, 'country_code' => $data['country_code'] ?? null, 'domain' => $domain, 'owner_id' => $data['owner_id'] ?? null] as $field => $value) {
+            if ($value && blank($company->{$field})) {
+                $changes[$field] = $value;
+            }
+        }
+        if (! $company->name_key) {
+            $changes['name_key'] = $key;
+        }
+        if (! $company->crm_stage) {
+            // A customer we hadn't tracked: bring it into the CRM without touching its lifecycle.
+            $changes['crm_stage'] = $company->lifecycle === 'prospect' ? ($data['crm_stage'] ?? 'new') : 'won';
+        }
+        if (! empty($data['tier']) && (! $company->tier || $data['tier'] < $company->tier)) {
+            $changes['tier'] = $data['tier'];
+        }
+        $newSource = ! str_contains((string) $company->source, $source);
+        if ($newSource) {
+            $changes['source'] = trim($company->source ? $company->source.'; '.$source : $source);
+        }
+
+        $current = $company->crm_profile ?? [];
+        $merged = $current;
+        foreach ($profile as $field => $value) {
+            if ($field === 'notes') {
+                if (! str_contains((string) ($current['notes'] ?? ''), (string) $value)) {
+                    $merged['notes'] = trim(($current['notes'] ?? '')."\n".$value);
+                }
+            } elseif ($field === 'needs_verification') {
+                // A new source that says "verify" flags it; re-imports don't undo a check staff already did.
+                if ($value && $newSource) {
+                    $merged['needs_verification'] = true;
+                }
+            } elseif (blank($current[$field] ?? null)) {
+                $merged[$field] = $value;
+            }
+        }
+        if ($merged !== $current) {
+            $changes['crm_profile'] = $merged;
+        }
+
+        if ($changes) {
+            $company->fill($changes)->save();
+        }
+
+        return [$company, false];
+    }
+
+    /** Match on website / email domain first, then on the normalised name, across prospects and customers. */
+    public function findCompany(?string $domain, ?string $key): ?Company
+    {
+        $query = fn () => Company::withoutGlobalScope('customers');
+
+        if ($domain && ($company = $query()->where('domain', $domain)->first())) {
+            return $company;
+        }
+
+        return $key ? $query()->where('name_key', $key)->first() : null;
+    }
+
+    /** Link a person to a company: a `contact` row in the CRM pivot (once per person). */
+    public function attachContact(Company $company, User $user, ?string $jobTitle = null, ?int $authorId = null): void
+    {
+        $row = $company->followUps()->where('type', 'contact')->where('user_id', $user->id)->first();
+        if ($row) {
+            if ($jobTitle && ! $row->detail('job_title')) {
+                $row->update(['details' => array_merge($row->details ?? [], ['job_title' => $jobTitle])]);
+            }
+
+            return;
+        }
+
+        $company->followUps()->create([
+            'user_id' => $user->id,
+            'created_by' => $authorId,
+            'type' => 'contact',
+            'status' => 'done',
+            'title' => "{$user->name} linked".($jobTitle ? " ({$jobTitle})" : ''),
+            'done_at' => now(),
+            'details' => array_filter(['job_title' => $jobTitle, 'primary' => ! $company->followUps()->where('type', 'contact')->exists()]),
+        ]);
+    }
+
+    /** Write a history row (done). */
+    public function log(Company $company, string $type, string $title, ?string $notes = null, array $details = [], ?User $contact = null, ?int $authorId = null): CrmFollowUp
+    {
+        return $company->followUps()->create([
+            'user_id' => $contact?->id,
+            'created_by' => $authorId,
+            'type' => $type,
+            'status' => 'done',
+            'title' => Str::limit($title, 250),
+            'notes' => $notes,
+            'done_at' => now(),
+            'details' => $details ?: null,
+        ]);
+    }
+
+    /** Move a company to another stage and record it. */
+    public function setStage(Company $company, string $stage, ?int $authorId = null, ?string $reason = null): void
+    {
+        if ($company->crm_stage === $stage) {
+            return;
+        }
+        $from = $company->crm_stage;
+        $company->crm_stage = $stage;
+        if ($stage === 'lost' && $reason) {
+            $company->crm_profile = array_merge($company->crm_profile ?? [], ['lost_reason' => $reason]);
+        }
+        $company->save();
+
+        $label = fn ($s) => Company::CRM_STAGES[$s] ?? ucfirst((string) $s);
+        $this->log($company, 'stage', 'Stage: '.($from ? $label($from) : 'none').' → '.$label($stage), $reason, ['from' => $from, 'to' => $stage], null, $authorId);
+    }
+
+    private function sameTail(?string $phone, User $user): bool
+    {
+        $tail = Normalizer::phoneTail($phone);
+
+        return $tail && in_array($tail, [Normalizer::phoneTail($user->phone), Normalizer::phoneTail($user->phone2)], true);
+    }
+
+    /**
      * Update a matched person with newer details. Only lead-only records change: anyone can type an
      * email into a public form, so real accounts (tenants, staff, admins) are never modified here.
      * $countryIsHome: false when the country is only one they asked about (waitlist), so it just fills a blank.
      */
-    private function mergePerson(User $user, ?string $name, ?string $email, ?string $phone, ?Country $country, bool $countryIsHome = true): void
+    private function mergePerson(User $user, ?string $name, ?string $email, ?string $phone, ?string $code, bool $countryIsHome = true): void
     {
         if (! $this->isLeadOnly($user)) {
             return;
@@ -139,8 +295,8 @@ class ContactService
             $changes += ['phone' => $phone, 'phone2' => $user->phone ? ($user->phone2 ?: $user->phone) : $user->phone2];
         }
 
-        if ($country && ($countryIsHome || (! $user->country_id && blank($user->country)))) {
-            $changes += ['country_id' => $country->id, 'country' => $country->name];
+        if ($code && ($countryIsHome || (! $user->country_code && blank($user->country)))) {
+            $changes += ['country_code' => $code, 'country' => Countries::name($code)];
         }
 
         // Re-format a stored phone (e.g. "0712...") to the clean international format.
@@ -151,104 +307,6 @@ class ContactService
         if ($changes) {
             $user->forceFill($changes)->save();
         }
-    }
-
-    /**
-     * @param  array<string, mixed>  $data  crm_companies columns; name is required
-     * @return array{0: CrmCompany, 1: bool} the company and whether it was created
-     */
-    public function upsertCompany(array $data, string $source): array
-    {
-        $name = Normalizer::companyName($data['name'] ?? null);
-        $website = Normalizer::website($data['website'] ?? null);
-        $email = Normalizer::email($data['email'] ?? null);
-        $domain = Normalizer::domain($website, $email);
-        $key = Normalizer::companyKey($name);
-
-        $company = $this->findCompany($domain, $key);
-
-        $clean = array_filter([
-            'name' => $name,
-            'name_key' => $key,
-            'domain' => $domain,
-            'website' => $website,
-            'email' => $email,
-        ] + array_diff_key($data, array_flip(['name', 'website', 'email'])), fn ($v) => ! Normalizer::blank(is_scalar($v) ? (string) $v : null) || is_bool($v));
-
-        if (! $company) {
-            $company = CrmCompany::create($clean + ['source' => $source, 'stage' => $data['stage'] ?? 'new']);
-
-            return [$company, true];
-        }
-
-        // Existing company: fill blanks only, keep the higher priority, collect extra sources and notes.
-        $changes = [];
-        foreach ($clean as $field => $value) {
-            if (in_array($field, ['name', 'name_key', 'stage', 'source', 'notes', 'tier', 'needs_verification'], true)) {
-                continue;
-            }
-            if (blank($company->{$field})) {
-                $changes[$field] = $value;
-            }
-        }
-        if (isset($clean['tier']) && $clean['tier'] < $company->tier) {
-            $changes['tier'] = $clean['tier'];
-        }
-        $newSource = ! str_contains((string) $company->source, $source);
-        if ($newSource) {
-            $changes['source'] = trim($company->source ? $company->source.'; '.$source : $source);
-        }
-        if (! empty($clean['notes']) && ! str_contains((string) $company->notes, $clean['notes'])) {
-            $changes['notes'] = trim($company->notes."\n".$clean['notes']);
-        }
-        // A new source that says "verify" flags the company; re-imports don't undo a check staff already did.
-        if ($newSource && ! empty($clean['needs_verification'])) {
-            $changes['needs_verification'] = true;
-        }
-        if ($changes) {
-            $company->fill($changes)->save();
-        }
-
-        return [$company, false];
-    }
-
-    public function findCompany(?string $domain, ?string $key): ?CrmCompany
-    {
-        if ($domain && ($company = CrmCompany::where('domain', $domain)->first())) {
-            return $company;
-        }
-
-        return $key ? CrmCompany::where('name_key', $key)->first() : null;
-    }
-
-    public function attachContact(CrmCompany $company, User $user, ?string $jobTitle = null): void
-    {
-        $existing = $company->contacts()->where('users.id', $user->id)->first();
-        if ($existing) {
-            if ($jobTitle && ! $existing->pivot->job_title) {
-                $company->contacts()->updateExistingPivot($user->id, ['job_title' => $jobTitle]);
-            }
-
-            return;
-        }
-
-        $company->contacts()->attach($user->id, [
-            'job_title' => $jobTitle,
-            'is_primary' => ! $company->contacts()->wherePivot('is_primary', true)->exists(),
-        ]);
-    }
-
-    public function log(CrmCompany $company, string $type, string $summary, ?string $body = null, array $meta = [], ?User $contact = null, ?int $authorId = null): CrmActivity
-    {
-        return $company->activities()->create([
-            'user_id' => $contact?->id,
-            'created_by' => $authorId,
-            'type' => $type,
-            'summary' => Str::limit($summary, 250),
-            'body' => $body,
-            'meta' => $meta ?: null,
-            'occurred_at' => now(),
-        ]);
     }
 
     /** @return array{0: ?string, 1: ?string} */

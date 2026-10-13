@@ -96,7 +96,7 @@ class AccountManagerController extends Controller
     {
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => ['required', new \App\Rules\CustomerCompany],
             'title' => 'nullable|string|max:255',
             'is_primary' => 'sometimes|boolean',
             'is_active' => 'sometimes|boolean',
@@ -165,7 +165,7 @@ class AccountManagerController extends Controller
 
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => ['required', new \App\Rules\CustomerCompany],
             'title' => 'nullable|string|max:255',
             'is_primary' => 'sometimes|boolean',
             'is_active' => 'sometimes|boolean',

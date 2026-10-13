@@ -31,7 +31,7 @@
     {{-- Pipeline by stage --}}
     <div class="{{ $card }} mb-6 overflow-x-auto p-2">
         <div class="flex min-w-max gap-1">
-            @foreach (\App\Modules\CRM\Models\CrmCompany::STAGES as $key => $name)
+            @foreach (\App\Models\Company::CRM_STAGES as $key => $name)
                 <a href="{{ route('crm.index', array_merge($filters, ['stage' => ($filters['stage'] ?? null) === $key ? null : $key])) }}" @class([
                     'flex min-w-[110px] flex-1 flex-col rounded-xl px-3 py-2 transition',
                     'bg-gray-900 text-white dark:bg-white dark:text-gray-900' => ($filters['stage'] ?? null) === $key,
@@ -50,7 +50,7 @@
         <select name="stage" class="{{ $field }}" aria-label="Stage">
             <option value="">All stages</option>
             <option value="open" @selected(($filters['stage'] ?? '') === 'open')>Open (not won/lost/nurture)</option>
-            @foreach (\App\Modules\CRM\Models\CrmCompany::STAGES as $key => $name)
+            @foreach (\App\Models\Company::CRM_STAGES as $key => $name)
                 <option value="{{ $key }}" @selected(($filters['stage'] ?? '') === $key)>{{ $name }}</option>
             @endforeach
         </select>
@@ -96,28 +96,27 @@
                                 <div class="flex items-center gap-2">
                                     @include('crm.partials.tier-badge', ['tier' => $company->tier])
                                     <a href="{{ route('crm.companies.show', $company) }}" class="font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $company->name }}</a>
-                                    @if ($company->needs_verification)<span class="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
+                                    @if ($company->profile('needs_verification'))<span class="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                 </div>
                                 <div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                                    {{ collect([$company->business_type, $company->contacts->pluck('name')->join(', ')])->filter()->join(' · ') }}
+                                    {{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') }}
                                 </div>
                             </td>
-                            <td class="px-4 py-3">@include('crm.partials.stage-badge', ['stage' => $company->stage])</td>
+                            <td class="px-4 py-3">@include('crm.partials.stage-badge', ['stage' => $company->crm_stage])@if ($company->lifecycle === 'customer') <span class="ml-1 text-[11px] font-medium text-green-700">customer</span>@endif</td>
                             <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $company->owner?->name ?? '—' }}</td>
                             <td class="px-4 py-3">
                                 @if ($company->next_due_at)
                                     <span @class(['font-medium', 'text-red-600' => $overdue, 'text-gray-700 dark:text-gray-300' => ! $overdue])>
                                         {{ \Illuminate\Support\Carbon::parse($company->next_due_at)->format('D j M, H:i') }}@if ($overdue) · overdue @endif
                                     </span>
-                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ \Illuminate\Support\Str::limit($company->next_action, 60) }}</div>
-                                @elseif (in_array($company->stage, \App\Modules\CRM\Models\CrmCompany::OPEN_STAGES, true))
+                                @elseif (in_array($company->crm_stage, \App\Models\Company::OPEN_CRM_STAGES, true))
                                     <span class="text-xs font-medium text-amber-600">No follow-up booked</span>
-                                    @if ($company->next_action)<div class="text-xs text-gray-500 dark:text-gray-400">{{ \Illuminate\Support\Str::limit($company->next_action, 60) }}</div>@endif
+                                    @if ($company->profile('next_action'))<div class="text-xs text-gray-500 dark:text-gray-400">Sheet: {{ \Illuminate\Support\Str::limit($company->profile('next_action'), 60) }}</div>@endif
                                 @else
                                     <span class="text-gray-400">—</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $company->last_contacted_at?->diffForHumans() ?? 'Never' }}</td>
+                            <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $company->last_contact_at ? \Illuminate\Support\Carbon::parse($company->last_contact_at)->diffForHumans() : 'Never' }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No prospects match. Import the sales sheets with <code>php artisan crm:import</code> or add one.</td></tr>
@@ -134,7 +133,7 @@
             @csrf
             <input type="hidden" name="_form" value="add">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Add a prospect</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">If the company is already in the CRM (same website or name), we open it instead of creating a copy.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">If the company is already in the system (same website or name, prospect or customer), we open it instead of creating a copy.</p>
             <div><label class="{{ $label }}" for="p-name">Company name</label><input id="p-name" name="name" required value="{{ old('name') }}" class="{{ $field }}"></div>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="{{ $label }}" for="p-tier">Tier</label><select id="p-tier" name="tier" class="{{ $field }}">@foreach ([1, 2, 3] as $t)<option value="{{ $t }}" @selected(old('tier', 2) == $t)>Tier {{ $t }}</option>@endforeach</select></div>
@@ -147,7 +146,7 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="{{ $label }}" for="p-type">Business type</label><input id="p-type" name="business_type" value="{{ old('business_type') }}" placeholder="Developer, property manager…" class="{{ $field }}"></div>
-                <div><label class="{{ $label }}" for="p-country">Country</label><select id="p-country" name="country_id" class="{{ $field }}">@foreach ($countries as $c)<option value="{{ $c->id }}" @selected(old('country_id', $countries->firstWhere('iso2', 'KE')?->id) == $c->id)>{{ $c->name }}</option>@endforeach</select></div>
+                <div><label class="{{ $label }}" for="p-country">Country</label><select id="p-country" name="country_code" class="{{ $field }}">@foreach (\App\Modules\CRM\Support\Countries::ordered() as $code => $c)<option value="{{ $code }}" @selected(old('country_code', 'KE') === $code)>{{ $c['name'] }}</option>@endforeach</select></div>
             </div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" @click="adding = false" class="h-11 rounded-lg border border-gray-300 px-4 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300">Cancel</button>

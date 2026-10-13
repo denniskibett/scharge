@@ -153,7 +153,7 @@ class StaffController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'phone'    => 'nullable|string|max:20',
             'role_id'  => 'required|exists:roles,id',
-            'company_id' => 'nullable|exists:companies,id',
+            'company_id' => ['nullable', new \App\Rules\CustomerCompany],
             'status'   => 'boolean',
         ]);
 
@@ -242,7 +242,7 @@ class StaffController extends Controller
                     $message = 'Role updated successfully.';
                     break;
                 case 'change_company':
-                    $request->validate(['company_id' => 'required|exists:companies,id']);
+                    $request->validate(['company_id' => ['required', new \App\Rules\CustomerCompany]]);
                     User::whereIn('id', $userIds)->update(['company_id' => $request->company_id]);
                     $message = 'Company updated successfully.';
                     break;
@@ -279,7 +279,7 @@ class StaffController extends Controller
             'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
-            'company_id' => 'nullable|exists:companies,id',
+            'company_id' => ['nullable', new \App\Rules\CustomerCompany],
             'status' => 'required|in:0,1,2',
         ]);
 

@@ -272,7 +272,7 @@ public function listFromKenyaSMS(Request $request)
                 'template_id' => 'required|exists:sms_templates,id',
                 'campaign_type' => 'nullable|string',
                 'filters' => 'nullable|array',
-                'filters.company_id' => 'nullable|exists:companies,id',
+                'filters.company_id' => ['nullable', new \App\Rules\CustomerCompany],
                 'filters.estate_id' => 'nullable|exists:estates,id',
                 'filters.invoice_status' => 'nullable|in:all,paid,unpaid,partial',
                 'scheduled_at' => 'nullable|date',

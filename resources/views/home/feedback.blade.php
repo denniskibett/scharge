@@ -22,14 +22,14 @@
 <section class="section section--blush">
 <div class="wrap">
 <div class="fb-card">
-@if ($feedback->submitted_at)
-    <h1 style="font-size:1.6rem">Thank you{{ $feedback->user ? ', '.strtok($feedback->user->name, ' ') : '' }}.</h1>
+@if ($feedback->status === 'done')
+    <h1 style="font-size:1.6rem">Thank you{{ $feedback->contact ? ', '.strtok($feedback->contact->name, ' ') : '' }}.</h1>
     <p class="lead">We have your answer ({{ $feedback->score }}/10). It goes straight to the team looking after {{ $feedback->company?->name ?? 'your account' }}.</p>
     <a class="btn btn--primary" href="{{ route('home') }}" style="align-self:flex-start">Back to scharge</a>
 @else
     <span class="label">Feedback{{ $feedback->company ? ' · '.$feedback->company->name : '' }}</span>
     <h1 style="font-size:1.6rem">How likely are you to recommend scharge to a colleague?</h1>
-    <p class="muted">{{ \App\Modules\CRM\Models\CrmFeedback::CONTEXTS[$feedback->context] ?? '' }}. One question, and a box if you want to say more.</p>
+    <p class="muted">{{ \App\Modules\CRM\Models\CrmFollowUp::FEEDBACK_CONTEXTS[$feedback->detail('context')] ?? 'Feedback' }}. One question, and a box if you want to say more.</p>
     <form method="POST" action="{{ route('site.feedback.store', $feedback->token) }}" class="stack" style="gap:18px">
         @csrf
         <fieldset style="border:0;padding:0;margin:0" class="stack">

@@ -596,7 +596,7 @@ class SubscriptionController extends Controller
         try {
             $request->validate([
                 'companies' => 'required|array',
-                'companies.*.company_id' => 'required|exists:companies,id',
+                'companies.*.company_id' => ['required', new \App\Rules\CustomerCompany],
                 'companies.*.unit_count' => 'nullable|integer|min:0',
                 'billing_cycle' => 'in:monthly,yearly',
                 'auto_renew' => 'boolean',
@@ -770,7 +770,7 @@ class SubscriptionController extends Controller
     {
         try {
             $request->validate([
-                'company_id' => 'required|exists:companies,id',
+                'company_id' => ['required', new \App\Rules\CustomerCompany],
                 'amount' => 'required|numeric|min:0.01',
                 'billing_start' => 'required|date',
                 'billing_end' => 'required|date|after_or_equal:billing_start',

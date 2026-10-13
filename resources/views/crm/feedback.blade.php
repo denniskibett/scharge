@@ -2,6 +2,7 @@
 
 @section('content')
 @php
+    use App\Modules\CRM\Models\CrmFollowUp;
     $card = 'rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]';
     $bands = ['' => 'All', 'pending' => 'Waiting for an answer', 'detractor' => 'Unhappy (0–6)', 'passive' => 'Neutral (7–8)', 'promoter' => 'Happy (9–10)'];
 @endphp
@@ -23,13 +24,13 @@
     <div class="{{ $card }} overflow-x-auto">
         <table class="min-w-full text-sm">
             <thead class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
-                <tr><th class="px-4 py-3 font-medium">Customer</th><th class="px-4 py-3 font-medium">About</th><th class="px-4 py-3 font-medium">Score</th><th class="px-4 py-3 font-medium">Comment</th><th class="px-4 py-3 font-medium">Recovery</th></tr>
+                <tr><th class="px-4 py-3 font-medium">Customer</th><th class="px-4 py-3 font-medium">About</th><th class="px-4 py-3 font-medium">Score</th><th class="px-4 py-3 font-medium">Comment</th><th class="px-4 py-3 font-medium">Recovery call</th></tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse ($feedback as $fb)
                     <tr class="align-top">
-                        <td class="px-4 py-3">@if ($fb->company)<a href="{{ route('crm.companies.show', $fb->company) }}" class="font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $fb->company->name }}</a>@endif<div class="text-xs text-gray-500">{{ $fb->user?->name }}</div></td>
-                        <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ \App\Modules\CRM\Models\CrmFeedback::CONTEXTS[$fb->context] ?? $fb->context }}<div class="text-xs text-gray-500">{{ $fb->submitted_at ? 'Answered '.$fb->submitted_at->format('j M Y') : 'Sent '.$fb->requested_at->format('j M Y') }}</div></td>
+                        <td class="px-4 py-3">@if ($fb->company)<a href="{{ route('crm.companies.show', $fb->company) }}" class="font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $fb->company->name }}</a>@endif<div class="text-xs text-gray-500">{{ $fb->contact?->name }}</div></td>
+                        <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ CrmFollowUp::FEEDBACK_CONTEXTS[$fb->detail('context')] ?? 'General' }}<div class="text-xs text-gray-500">{{ $fb->status === 'done' ? 'Answered '.$fb->done_at->format('j M Y') : 'Sent '.$fb->created_at->format('j M Y') }}</div></td>
                         <td class="px-4 py-3">
                             @if ($fb->score !== null)
                                 <span @class(['rounded-lg px-2 py-1 font-semibold', 'bg-green-50 text-green-700' => $fb->score >= 9, 'bg-amber-50 text-amber-700' => $fb->score >= 7 && $fb->score <= 8, 'bg-red-50 text-red-700' => $fb->score <= 6])>{{ $fb->score }}/10</span>
@@ -37,8 +38,8 @@
                                 <button type="button" class="text-xs font-medium text-brand-500" onclick="navigator.clipboard.writeText('{{ route('site.feedback.show', $fb->token) }}'); this.textContent='Link copied'">Copy link</button>
                             @endif
                         </td>
-                        <td class="max-w-md px-4 py-3 text-gray-600 dark:text-gray-300">{{ $fb->comment ?? '—' }}</td>
-                        <td class="px-4 py-3 text-xs">@if ($fb->followUp){{ $fb->followUp->completed_at ? '✅ Done' : '⏳ Open' }}@else <span class="text-gray-400">—</span> @endif</td>
+                        <td class="max-w-md px-4 py-3 text-gray-600 dark:text-gray-300">{{ $fb->status === 'done' ? ($fb->notes ?? '—') : '—' }}</td>
+                        <td class="px-4 py-3 text-xs">{{ $fb->detail('recovery_id') ? 'Opened' : '—' }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">No feedback yet. Ask from a company page, or mark a demo completed.</td></tr>

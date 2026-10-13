@@ -41,18 +41,6 @@
   window.siteAlert = { show: showAlert, close: closeAlert };
   if (window.__siteAlert) showAlert(window.__siteAlert);
 
-  /* ---------- "Another country" reveals a text box ---------- */
-  $$('select[data-other]').forEach(function (select) {
-    var other = $(select.getAttribute('data-other'));
-    if (!other) return;
-    var sync = function () {
-      var on = select.value === 'ZZ';
-      other.hidden = !on; other.required = on;
-      if (on) other.focus();
-    };
-    select.addEventListener('change', sync);
-  });
-
   /* ---------- Field errors ---------- */
   function clearErrors(form) {
     $$('[aria-invalid="true"]', form).forEach(function (el) { el.removeAttribute('aria-invalid'); });
