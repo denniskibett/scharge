@@ -19,6 +19,8 @@
 <style>.nav-auth a.nav-login,.nav-auth form{display:inline-flex;align-items:center;justify-content:center;margin:0}
 .footer-brand{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:22rem}.footer-brand p{margin:0;color:var(--on-dark);font-size:.95rem;line-height:1.5}.site-footer .footer-brand .btn{color:var(--white);min-height:44px}
 .hp{position:absolute!important;left:-10000px;width:1px;height:1px;overflow:hidden}
+/* Long option text (e.g. full country names) must not widen the page on phones */
+.waitlist select,.waitlist input,.form select,.form input,.form textarea{min-width:0;max-width:100%}
 [aria-invalid="true"]{border-color:var(--red)!important;box-shadow:0 0 0 4px rgba(220,38,38,.12)}
 .field-error{display:block;color:var(--alert);font-size:.82rem;font-weight:600;margin-top:-4px;flex:1 1 100%}
 .waitlist [hidden]{display:none}
