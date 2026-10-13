@@ -125,6 +125,112 @@ class SiteFormController extends Controller
             : $this->alert($request, 'Thank you, your meeting is booked.', "We'll call {$this->firstName(Normalizer::personName($input['name']))} to confirm a time within one working day.");
     }
 
+    public const API_USES = [
+        'Vacancies on my website',
+        'Booking calendar for my short stays',
+        'Branded tenant or buyer app',
+        'Connect to my accounting or CRM',
+    ];
+
+    /** "Get sandbox keys" on the API page. */
+    public function apiKeys(Request $request): JsonResponse|RedirectResponse
+    {
+        if ($this->isBot($request)) {
+            return $this->alert($request, 'Check your inbox.', 'Your sandbox keys and a link to the docs are on their way.');
+        }
+
+        $input = $request->validate([
+            'company' => ['required', 'string', 'max:190'],
+            'email' => ['required', 'email', 'max:190'],
+            'use' => ['nullable', 'string', Rule::in(self::API_USES)],
+        ], [], ['company' => 'company or property name', 'email' => 'work email']);
+
+        try {
+            $result = $this->leads->requestApiKeys($input + ['source_page' => $request->headers->get('referer')]);
+        } catch (\Throwable $e) {
+            return $this->failed($request, $e, 'API keys');
+        }
+
+        return $result['already']
+            ? $this->alert($request, 'We already have your request.', 'Our team will email your sandbox keys within one working day.')
+            : $this->alert($request, 'Request received.', 'Our team will email your sandbox keys and a link to the docs within one working day.');
+    }
+
+    /** Viewing / booking / site-visit request from the Open listings detail panel. */
+    public function listingRequest(Request $request): JsonResponse|RedirectResponse
+    {
+        if ($this->isBot($request)) {
+            return $this->alert($request, 'Request sent.', 'The owner or caretaker will reply on WhatsApp.');
+        }
+
+        $input = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'phone' => ['required', 'string', 'max:40'],
+            'when' => ['nullable', 'string', 'max:120'],
+            'listing_title' => ['required', 'string', 'max:190'],
+            'listing_area' => ['nullable', 'string', 'max:120'],
+            'listing_owner' => ['nullable', 'string', 'max:190'],
+            'listing_kind' => ['nullable', 'string', 'max:60'],
+            'listing_action' => ['nullable', 'string', 'max:60'],
+        ], ['listing_title.required' => 'Choose a listing first.'], ['phone' => 'phone (WhatsApp)']);
+        $this->assertPhone($input['phone'], 'phone');
+
+        try {
+            $result = $this->leads->requestListing([
+                'name' => $input['name'],
+                'phone' => $input['phone'],
+                'when' => $input['when'] ?? null,
+                'listing' => [
+                    'title' => $input['listing_title'],
+                    'area' => $input['listing_area'] ?? null,
+                    'owner' => $input['listing_owner'] ?? null,
+                    'kind' => $input['listing_kind'] ?? null,
+                    'action' => $input['listing_action'] ?? null,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failed($request, $e, 'listing request');
+        }
+
+        return $result['already']
+            ? $this->alert($request, 'We already have your request.', "We've updated it. The owner or caretaker will reply on WhatsApp.")
+            : $this->alert($request, 'Request sent.', 'The owner or caretaker will reply on WhatsApp, usually the same day.');
+    }
+
+    /** "SMS me new matches" on Open listings. */
+    public function listingAlert(Request $request): JsonResponse|RedirectResponse
+    {
+        if ($this->isBot($request)) {
+            return $this->alert($request, 'Alert set.', "We'll SMS you when a new match is listed.");
+        }
+
+        $input = $request->validate([
+            'phone' => ['required', 'string', 'max:40'],
+            'search_kind' => ['nullable', 'string', 'max:60'],
+            'search_area' => ['nullable', 'string', 'max:120'],
+            'search_max' => ['nullable', 'integer', 'min:0'],
+        ]);
+        $this->assertPhone($input['phone'], 'phone');
+
+        try {
+            $this->leads->listingAlert([
+                'phone' => $input['phone'],
+                'search' => ['kind' => $input['search_kind'] ?? null, 'area' => $input['search_area'] ?? null, 'max' => $input['search_max'] ?? null],
+            ]);
+        } catch (\Throwable $e) {
+            return $this->failed($request, $e, 'listing alert');
+        }
+
+        return $this->alert($request, 'Alert set.', "We'll SMS you when a new match is listed. Reply STOP to any message to cancel.");
+    }
+
+    private function assertPhone(string $phone, string $field): void
+    {
+        if (! Normalizer::phone($phone)) {
+            throw ValidationException::withMessages([$field => 'Enter a phone number we can reach, e.g. 0712 345 678.']);
+        }
+    }
+
     /** @return array{0: ?string, 1: ?string} [email, phone] */
     private function splitContact(string $contact, string $code): array
     {

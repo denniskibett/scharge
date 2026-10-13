@@ -8,7 +8,8 @@
 --                     + CRM columns; sales-sheet details live in the crm_profile JSON
 --   users             email may be empty (phone-only leads), + country_code, lead_source
 --   crm_follow_ups    NEW: the one pivot (person <-> company). Every contact link, call,
---                     note, demo and feedback request is a row with a type and a status.
+--                     note, demo, API-key request and feedback request is a row with a
+--                     type and a status. Renter requests from Open listings have no company.
 --   waitlist_entries  NEW: pivot (person <-> country we are not in yet), incl. demo details,
 --                     converted into follow-ups when we launch in that country.
 --
@@ -45,11 +46,11 @@ ALTER TABLE users
 -- 3. The CRM pivot: person <-> company, one row per thing that happens -----
 CREATE TABLE crm_follow_ups (
   id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  company_id  BIGINT UNSIGNED NOT NULL,
+  company_id  BIGINT UNSIGNED NULL COMMENT 'NULL for renter requests (listing viewings, listing alerts)',
   user_id     BIGINT UNSIGNED NULL COMMENT 'the contact person',
   assigned_to BIGINT UNSIGNED NULL COMMENT 'scharge staff member doing it',
   created_by  BIGINT UNSIGNED NULL,
-  type        VARCHAR(20)  NOT NULL COMMENT 'contact, note, call, email, whatsapp, meeting, demo, feedback, stage, import',
+  type        VARCHAR(20)  NOT NULL COMMENT 'contact, note, call, email, whatsapp, meeting, demo, api_keys, viewing, listing_alert, feedback, stage, import',
   status      VARCHAR(20)  NOT NULL DEFAULT 'open' COMMENT 'open, scheduled, done, missed, cancelled',
   title       VARCHAR(255) NOT NULL,
   notes       TEXT         NULL,

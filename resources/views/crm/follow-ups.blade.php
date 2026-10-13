@@ -25,7 +25,7 @@
         @forelse ($followUps as $followUp)
             @if (! $followUp->is_open)
                 <div class="flex flex-wrap justify-between gap-2 border-b border-gray-100 py-2 text-sm last:border-0 dark:border-gray-800">
-                    <span class="text-gray-800 dark:text-white/90">{{ $followUp->status === 'done' ? '✅' : '✖️' }} {{ $followUp->title }} · <a href="{{ route('crm.companies.show', $followUp->company) }}" class="text-brand-500">{{ $followUp->company?->name }}</a></span>
+                    <span class="text-gray-800 dark:text-white/90">{{ $followUp->status === 'done' ? '✅' : '✖️' }} {{ $followUp->title }} · @if ($followUp->company)<a href="{{ route('crm.companies.show', $followUp->company) }}" class="text-brand-500">{{ $followUp->company->name }}</a>@else Open listings @endif</span>
                     <span class="text-gray-500 dark:text-gray-400">{{ $followUp->outcome }} · {{ $followUp->done_at?->format('D j M, H:i') }}</span>
                 </div>
             @else

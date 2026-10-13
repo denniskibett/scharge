@@ -24,7 +24,7 @@ class CrmCompanyController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention']);
-        $todo = fn ($q) => $q->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', ['contact', 'feedback']);
+        $todo = fn ($q) => $q->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', CrmFollowUp::NOT_TODO);
 
         $companies = Company::crm()
             ->with(['owner:id,name'])
@@ -55,7 +55,7 @@ class CrmCompanyController extends Controller
             'overdue' => CrmFollowUp::overdue()->count(),
             'due_today' => CrmFollowUp::dueToday()->count(),
             'unattended' => Company::crm()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo)->count(),
-            'new_demos' => CrmFollowUp::where('type', 'demo')->where('status', 'open')->count(),
+            'new_demos' => CrmFollowUp::whereIn('type', ['demo', 'api_keys', 'viewing'])->where('status', 'open')->count(),
             'waitlist' => WaitlistEntry::whereIn('status', ['waiting', 'demo_requested'])->count(),
             'nps' => self::nps(CrmFollowUp::where('type', 'feedback')->whereNotNull('score')->pluck('score')),
         ];
@@ -103,7 +103,7 @@ class CrmCompanyController extends Controller
         return view('crm.show', [
             'company' => $company,
             'contacts' => $rows->where('type', 'contact')->sortByDesc(fn ($r) => (bool) $r->detail('primary')),
-            'todo' => $rows->filter(fn ($r) => $r->is_open && ! in_array($r->type, ['contact', 'feedback'], true))->sortBy('due_at'),
+            'todo' => $rows->filter(fn ($r) => $r->is_open && ! in_array($r->type, CrmFollowUp::NOT_TODO, true))->sortBy('due_at'),
             'feedback' => $rows->where('type', 'feedback'),
             'history' => $rows->filter(fn ($r) => ! $r->is_open)->sortByDesc(fn ($r) => $r->done_at ?? $r->created_at),
             'owners' => self::staff(),

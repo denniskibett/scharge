@@ -64,6 +64,27 @@
     if (first) first.focus();
   }
 
+  /* ---------- Context sent with Open listings forms (read from the page as it is now) ---------- */
+  var text = function (sel) { var el = $(sel); return el ? el.textContent.trim() : ''; };
+  var setField = function (form, name, value) { if (form.elements[name]) form.elements[name].value = value || ''; };
+
+  function fillContext(form) {
+    var kind = text('#browse [data-kind][aria-selected="true"]').replace(/\s*\(\d+\)$/, ''); // drop the tab's counter
+    if (form.dataset.context === 'listing') {
+      var sub = text('#d-sub'), comma = sub.indexOf(', ');
+      setField(form, 'listing_title', text('#d-title'));
+      setField(form, 'listing_area', comma > -1 ? sub.slice(0, comma) : sub);
+      setField(form, 'listing_owner', comma > -1 ? sub.slice(comma + 2) : '');
+      setField(form, 'listing_kind', kind);
+      setField(form, 'listing_action', text('#d-form-title'));
+    } else if (form.dataset.context === 'listing-search') {
+      var max = $('#lmax');
+      setField(form, 'search_kind', kind);
+      setField(form, 'search_area', text('#area-chips [aria-pressed="true"]'));
+      setField(form, 'search_max', max ? max.value : '');
+    }
+  }
+
   /* ---------- Submit ---------- */
   var token = $('meta[name="csrf-token"]');
 
@@ -78,6 +99,7 @@
       e.preventDefault();
       clearErrors(form);
       if (!form.reportValidity()) return;
+      fillContext(form);
       if (button) { button.disabled = true; button.textContent = 'Sending…'; }
 
       fetch(form.action, {

@@ -13,6 +13,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *   contact  – links a person to the company (details.job_title)
  *   note / call / email / whatsapp / meeting – logged (done) or to do (open)
  *   demo     – a demo request: open → scheduled → done / missed / cancelled
+ *   api_keys – "Get sandbox keys" request from the API page (details.use)
+ *   viewing  – renter's viewing / booking / site-visit request for a listing (no company yet)
+ *   listing_alert – renter asked for an SMS when new matches appear (open = active, no company)
  *   feedback – open until the customer answers via the private link (score, notes)
  *   stage / import – history written by the system
  */
@@ -20,8 +23,15 @@ class CrmFollowUp extends Model
 {
     public const TYPES = [
         'call' => 'Call', 'email' => 'Email', 'whatsapp' => 'WhatsApp', 'meeting' => 'Meeting', 'note' => 'Note',
-        'demo' => 'Demo', 'feedback' => 'Feedback', 'contact' => 'Contact', 'stage' => 'Stage', 'import' => 'Import',
+        'demo' => 'Demo', 'api_keys' => 'API keys', 'viewing' => 'Listing request', 'listing_alert' => 'Listing alert',
+        'feedback' => 'Feedback', 'contact' => 'Contact', 'stage' => 'Stage', 'import' => 'Import',
     ];
+
+    /** Inbound website requests, each with its own tab on the CRM Requests page. */
+    public const REQUEST_TYPES = ['demo' => 'Demos', 'api_keys' => 'API keys', 'viewing' => 'Listing requests', 'listing_alert' => 'Listing alerts'];
+
+    /** Rows that never appear in to-do lists: links, feedback waiting on the customer, passive alerts. */
+    public const NOT_TODO = ['contact', 'feedback', 'listing_alert'];
 
     /** Types staff schedule or log by hand. */
     public const ACTION_TYPES = ['call', 'email', 'whatsapp', 'meeting', 'note'];
@@ -65,7 +75,7 @@ class CrmFollowUp extends Model
     /** Things still to do (not contact links or feedback waiting on the customer). */
     public function scopeTodo(Builder $query): Builder
     {
-        return $query->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', ['contact', 'feedback']);
+        return $query->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', self::NOT_TODO);
     }
 
     public function scopeOverdue(Builder $query): Builder

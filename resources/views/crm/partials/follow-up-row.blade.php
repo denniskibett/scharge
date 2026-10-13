@@ -15,12 +15,18 @@
             </div>
             <div class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                 @if ($followUp->due_at)<span @class(['font-semibold text-red-600' => $overdue])>{{ $followUp->due_at->format('D j M, H:i') }}@if ($overdue) · overdue {{ $followUp->due_at->diffForHumans(null, true) }}@endif</span>@endif
-                @if ($showCompany && $followUp->company) · <a href="{{ route('crm.companies.show', $followUp->company) }}" class="text-brand-500">{{ $followUp->company->name }}</a>@endif
+                @if ($showCompany && $followUp->company) · <a href="{{ route('crm.companies.show', $followUp->company) }}" class="text-brand-500">{{ $followUp->company->name }}</a>@elseif ($showCompany) · Open listings @endif
                 · {{ $followUp->assignee?->name ?? 'Unassigned' }}
             </div>
-            @if ($isDemo && ($followUp->detail('project_type') || $followUp->detail('units')))
-                <div class="mt-1 text-xs text-gray-600 dark:text-gray-300">{{ collect([$followUp->detail('project_type'), $followUp->detail('units') ? number_format($followUp->detail('units')).' units' : null])->filter()->join(' · ') }}</div>
-            @endif
+            @php
+                $facts = match ($followUp->type) {
+                    'demo' => [$followUp->detail('project_type'), $followUp->detail('units') ? number_format($followUp->detail('units')).' units' : null],
+                    'api_keys' => [$followUp->detail('use') ? 'Wants: '.$followUp->detail('use') : null],
+                    'viewing' => [$followUp->detail('kind'), $followUp->detail('owner') ? 'Owner: '.$followUp->detail('owner') : null, $followUp->detail('when') ? 'When: '.$followUp->detail('when') : null],
+                    default => [],
+                };
+            @endphp
+            @if (array_filter($facts))<div class="mt-1 text-xs text-gray-600 dark:text-gray-300">{{ collect($facts)->filter()->join(' · ') }}</div>@endif
             @if ($contact)
                 <div class="mt-1 text-xs text-gray-600 dark:text-gray-300">
                     {{ $contact->name }}

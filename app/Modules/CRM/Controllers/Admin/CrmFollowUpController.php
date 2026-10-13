@@ -109,39 +109,45 @@ class CrmFollowUpController extends Controller
 
         $message = $closed ? 'Marked '.strtolower(CrmFollowUp::STATUSES[$input['status']]).'.' : 'Scheduled for '.$followUp->due_at->format('D j M, H:i').'.';
 
-        if ($followUp->type === 'demo' && $input['status'] === 'done' && ! $company->followUps()->where('type', 'feedback')->where('details->demo_id', $followUp->id)->exists()) {
+        if ($company && $followUp->type === 'demo' && $input['status'] === 'done' && ! $company->followUps()->where('type', 'feedback')->where('details->demo_id', $followUp->id)->exists()) {
             $feedback = $this->leads->requestFeedback($company, 'demo', $followUp->contact, $author, $followUp->id);
             $message .= ' Feedback link for the customer: '.route('site.feedback.show', $feedback->token);
         }
 
         if (! empty($input['next_title'])) {
-            $company->followUps()->create([
+            CrmFollowUp::create([
+                'company_id' => $followUp->company_id,
                 'user_id' => $followUp->user_id,
                 'assigned_to' => $followUp->assigned_to ?? $author,
                 'created_by' => $author,
-                'type' => $followUp->type === 'demo' ? 'call' : $followUp->type,
+                'type' => in_array($followUp->type, CrmFollowUp::ACTION_TYPES, true) ? $followUp->type : 'call',
                 'status' => 'open',
                 'title' => $input['next_title'],
                 'due_at' => $input['next_due_at'],
             ]);
-        } elseif ($closed && in_array($company->crm_stage, Company::OPEN_CRM_STAGES, true) && ! $company->openFollowUps()->exists()) {
+        } elseif ($closed && $company && in_array($company->crm_stage, Company::OPEN_CRM_STAGES, true) && ! $company->openFollowUps()->exists()) {
             $message .= " {$company->name} has no next step booked. Schedule one so they don't go cold.";
         }
 
         return back()->with('success', $message);
     }
 
-    public function demos(Request $request): View
+    /** Inbound website requests: demos, API keys, listing requests and listing alerts, one tab each. */
+    public function requests(Request $request): View
     {
+        $type = array_key_exists($request->input('type'), CrmFollowUp::REQUEST_TYPES) ? $request->input('type') : 'demo';
         $status = $request->input('status');
 
         return view('crm.demos', [
-            'demos' => CrmFollowUp::where('type', 'demo')
-                ->with(['contact:id,name,phone,email', 'company:id,name,crm_stage,country_code'])
+            'type' => $type,
+            'demos' => CrmFollowUp::where('type', $type)
+                ->with(['contact:id,name,phone,email', 'company:id,name,crm_stage,country_code', 'assignee:id,name'])
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->latest()->paginate(30)->withQueryString(),
             'status' => $status,
-            'counts' => CrmFollowUp::where('type', 'demo')->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status'),
+            'counts' => CrmFollowUp::where('type', $type)->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status'),
+            'openByType' => CrmFollowUp::whereIn('type', array_keys(CrmFollowUp::REQUEST_TYPES))->where('status', 'open')
+                ->selectRaw('type, COUNT(*) as total')->groupBy('type')->pluck('total', 'type'),
         ]);
     }
 

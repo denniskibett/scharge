@@ -84,22 +84,24 @@ class ContactService
             return null;
         }
 
+        $sameName = fn (User $u) => $name && Str::lower((string) $u->name) === Str::lower($name);
+
+        // A phone alone only identifies website leads. A real account (tenant, staff, admin) also
+        // needs the same name, so typing someone's number can't attach a request to their account.
         $candidates = User::where('phone', 'like', '%'.$tail)
             ->orWhere('phone2', 'like', '%'.$tail)
             ->get()
             ->filter(fn (User $u) => $localPhone
                 ? $this->sameTail($phone, $u)
                 : Normalizer::phone($u->phone) === $phone || Normalizer::phone($u->phone2) === $phone)
+            ->filter(fn (User $u) => $this->isLeadOnly($u) || $sameName($u))
             ->values();
 
         if ($candidates->count() === 1) {
             return $candidates->first();
         }
-        if ($name && ($sameName = $candidates->first(fn (User $u) => Str::lower((string) $u->name) === Str::lower($name)))) {
-            return $sameName;
-        }
 
-        return $candidates->first(fn (User $u) => $this->isLeadOnly($u));
+        return $candidates->first($sameName) ?? $candidates->first();
     }
 
     /** True when the user is only a lead (no role, or just the lead role) — safe to update from public forms. */

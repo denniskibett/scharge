@@ -10,7 +10,7 @@
         ['Overdue follow-ups', $stats['overdue'], route('crm.follow-ups.index', ['view' => 'overdue']), $stats['overdue'] ? 'text-red-600' : 'text-gray-800 dark:text-white/90'],
         ['Due today', $stats['due_today'], route('crm.follow-ups.index', ['view' => 'today']), 'text-gray-800 dark:text-white/90'],
         ['No next step', $stats['unattended'], route('crm.index', ['attention' => 'unattended']), $stats['unattended'] ? 'text-amber-600' : 'text-gray-800 dark:text-white/90'],
-        ['New demo requests', $stats['new_demos'], route('crm.demos.index', ['status' => 'new']), 'text-gray-800 dark:text-white/90'],
+        ['New requests', $stats['new_demos'], route('crm.requests.index'), 'text-gray-800 dark:text-white/90'],
         ['On the waitlist', $stats['waitlist'], route('crm.waitlist.index'), 'text-gray-800 dark:text-white/90'],
         ['NPS', $stats['nps'] ?? '–', route('crm.feedback.index'), 'text-gray-800 dark:text-white/90'],
     ];

@@ -432,7 +432,7 @@ document.addEventListener('alpine:init', () => {
             children: [
               { label: 'Pipeline', link: '/crm', page: 'crmPipeline', permission: 'crm_pipeline' },
               { label: 'Follow-ups', link: '/crm/follow-ups', page: 'crmFollowUps', permission: 'crm_follow_ups' },
-              { label: 'Demo requests', link: '/crm/demos', page: 'crmDemos', permission: 'crm_demos' },
+              { label: 'Requests', link: '/crm/requests', page: 'crmDemos', permission: 'crm_demos' },
               { label: 'Waitlist', link: '/crm/waitlist', page: 'crmWaitlist', permission: 'crm_waitlist' },
               { label: 'Feedback', link: '/crm/feedback', page: 'crmFeedback', permission: 'crm_feedback' }
             ]
@@ -754,7 +754,7 @@ document.addEventListener('alpine:init', () => {
         '/system/clear-cache': 'clearCache',
         '/crm': 'crmPipeline',
         '/crm/follow-ups': 'crmFollowUps',
-        '/crm/demos': 'crmDemos',
+        '/crm/requests': 'crmDemos',
         '/crm/waitlist': 'crmWaitlist',
         '/crm/feedback': 'crmFeedback',
         '/form-elements': 'formElements',

@@ -102,6 +102,96 @@ class LeadService
         });
     }
 
+    /**
+     * "Get sandbox keys" (API page): the company goes into the CRM and someone sends the keys.
+     *
+     * @param  array{company: string, email: string, use: ?string, source_page: ?string}  $data
+     * @return array{already: bool}
+     */
+    public function requestApiKeys(array $data): array
+    {
+        return DB::transaction(function () use ($data) {
+            [$user] = $this->contacts->upsertPerson(['email' => $data['email'], 'country_code' => 'KE', 'country_is_home' => false], 'website_api');
+            $company = $this->companyFor(['company' => $data['company'], 'email' => $data['email'], 'country_code' => 'KE'], $user, 'Website API keys', 'new');
+
+            $open = $company->followUps()->where('type', 'api_keys')->where('user_id', $user->id)->whereIn('status', ['open', 'scheduled'])->first();
+            if ($open) {
+                $open->update(['details' => array_merge($open->details ?? [], array_filter(['use' => $data['use'] ?? null]))]);
+
+                return ['already' => true];
+            }
+
+            $company->followUps()->create([
+                'user_id' => $user->id,
+                'assigned_to' => $company->owner_id,
+                'type' => 'api_keys',
+                'status' => 'open',
+                'title' => "Send sandbox API keys to {$user->email}",
+                'due_at' => $this->nextWorkingDay(now()),
+                'details' => array_filter(['use' => $data['use'] ?? null, 'source_page' => $data['source_page'] ?? null]),
+            ]);
+
+            return ['already' => false];
+        });
+    }
+
+    /**
+     * Renter asks to view / book / visit a listing. Stored on the pivot without a company until
+     * listings belong to real owner companies; the listing's details travel with the row.
+     *
+     * @param  array{name: string, phone: string, when: ?string, listing: array<string, mixed>}  $data
+     * @return array{already: bool}
+     */
+    public function requestListing(array $data): array
+    {
+        return DB::transaction(function () use ($data) {
+            [$user] = $this->contacts->upsertPerson(['name' => $data['name'], 'phone' => $data['phone'], 'country_code' => 'KE'], 'website_listings');
+            $listing = array_filter($data['listing']);
+            $action = $listing['action'] ?? 'Viewing request';
+
+            $open = CrmFollowUp::where('type', 'viewing')->where('user_id', $user->id)->whereIn('status', ['open', 'scheduled'])
+                ->where('details->title', $listing['title'] ?? '')->first();
+            if ($open) {
+                $open->update(['details' => array_merge($open->details ?? [], $listing, array_filter(['when' => $data['when'] ?? null]))]);
+
+                return ['already' => true];
+            }
+
+            CrmFollowUp::create([
+                'user_id' => $user->id,
+                'type' => 'viewing',
+                'status' => 'open',
+                'title' => "{$action}: ".($listing['title'] ?? 'listing').(isset($listing['area']) ? " ({$listing['area']})" : ''),
+                'notes' => isset($data['when']) ? 'Preferred: '.$data['when'] : null,
+                'due_at' => now()->addHours(4),
+                'details' => $listing + array_filter(['when' => $data['when'] ?? null]),
+            ]);
+
+            return ['already' => false];
+        });
+    }
+
+    /**
+     * "SMS me new matches" on Open listings: one active alert per person, updated with the latest search.
+     *
+     * @param  array{phone: string, search: array<string, mixed>}  $data
+     */
+    public function listingAlert(array $data): void
+    {
+        DB::transaction(function () use ($data) {
+            [$user] = $this->contacts->upsertPerson(['phone' => $data['phone'], 'country_code' => 'KE'], 'website_listings');
+            $search = array_filter($data['search'], fn ($v) => $v !== null && $v !== '');
+            $title = 'SMS new '.strtolower($search['kind'] ?? 'listings')
+                .(! empty($search['area']) && $search['area'] !== 'All' ? " in {$search['area']}" : '')
+                .(! empty($search['max']) ? ' up to KES '.number_format((int) $search['max']) : '');
+
+            CrmFollowUp::updateOrCreate(
+                ['type' => 'listing_alert', 'user_id' => $user->id, 'status' => 'open'],
+                ['title' => $title, 'details' => $search]
+            );
+        });
+    }
+
     /** We launched in a country: turn its waitlist into CRM follow-ups. Returns how many moved. */
     public function launchCountry(string $code, ?int $authorId): int
     {

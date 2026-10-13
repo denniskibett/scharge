@@ -72,7 +72,7 @@ class Company extends Model
 
     public function openFollowUps()
     {
-        return $this->followUps()->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', ['contact', 'feedback'])->orderBy('due_at');
+        return $this->followUps()->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', \App\Modules\CRM\Models\CrmFollowUp::NOT_TODO)->orderBy('due_at');
     }
 
     /** People who represent this company: anyone linked through a CRM row. */
