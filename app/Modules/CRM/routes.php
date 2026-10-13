@@ -8,7 +8,7 @@ use App\Modules\CRM\Controllers\Site\SiteFeedbackController;
 use App\Modules\CRM\Controllers\Site\SiteFormController;
 use Illuminate\Support\Facades\Route;
 
-// Loaded by CRMServiceProvider inside the "web" middleware group.
+// Loaded from routes/web.php (inside the "web" middleware group).
 
 // CRM pages work with prospects too, which the Company model hides by default.
 Route::bind('crmCompany', fn ($id) => Company::withoutGlobalScope('customers')->findOrFail($id));

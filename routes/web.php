@@ -661,6 +661,9 @@ Route::prefix('users')->name('admin.users.')->group(function () {
 // SMS Module Routes
 require base_path('app/Modules/SMS/routes.php');
 
+// CRM Module Routes
+require base_path('app/Modules/CRM/routes.php');
+
 // Security Module Routes
 require base_path('app/Modules/Security/routes.php');
 

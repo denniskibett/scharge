@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\View\View;
+use App\Modules\CRM\Support\Countries;
 
 /**
  * Public marketing website (the frontend). Views live in resources/views/welcome.blade.php
@@ -12,12 +13,23 @@ class HomeController extends Controller
 {
     public function index(): View
     {
-        return view('welcome');
+        // Waitlist: every African country scharge is not live in yet, next launches first.
+        $waitlistCountries = array_map(
+            fn ($country) => $country['name'],
+            Countries::waitlist()
+        );
+
+        return view('welcome', compact('waitlistCountries'));
     }
 
     public function developers(): View
     {
-        return view('home.developers');
+        $demoCountries = array_map(
+            fn ($country) => $country['name'],
+            Countries::ordered()
+        );
+
+        return view('home.developers', compact('demoCountries'));
     }
 
     public function airbnb(): View
