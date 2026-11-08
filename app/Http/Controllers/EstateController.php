@@ -137,13 +137,13 @@ class EstateController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Estate created successfully!',
+                    'message' => 'Property created successfully!',
                     'estate' => $estate->loadCount('units'),
                     'redirect' => route('estates.index')
                 ]);
             }
 
-            return redirect()->route('estates.index')->with('success', 'Estate created successfully!');
+            return redirect()->route('estates.index')->with('success', 'Property created successfully!');
 
         } catch (ValidationException $e) {
             if ($request->wantsJson()) {
@@ -155,16 +155,16 @@ class EstateController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Failed to create estate: ' . $e->getMessage());
+            \Log::error('Failed to create property: ' . $e->getMessage());
             
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create estate: ' . $e->getMessage()
+                    'message' => 'Failed to create property: ' . $e->getMessage()
                 ], 500);
             }
             
-            return back()->with('error', 'Failed to create estate: ' . $e->getMessage());
+            return back()->with('error', 'Failed to create property: ' . $e->getMessage());
         }
     }
 
@@ -194,13 +194,13 @@ class EstateController extends Controller
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Estate updated successfully!',
+                    'message' => 'Property updated successfully!',
                     'estate' => $estate->loadCount('units'),
                     'redirect' => route('estates.index')
                 ]);
             }
 
-            return redirect()->route('estates.index')->with('success', 'Estate updated successfully!');
+            return redirect()->route('estates.index')->with('success', 'Property updated successfully!');
 
         } catch (ValidationException $e) {
             if ($request->wantsJson()) {
@@ -212,16 +212,16 @@ class EstateController extends Controller
             }
             throw $e;
         } catch (\Exception $e) {
-            \Log::error('Failed to update estate: ' . $e->getMessage());
+            \Log::error('Failed to update property: ' . $e->getMessage());
             
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to update estate: ' . $e->getMessage()
+                    'message' => 'Failed to update property: ' . $e->getMessage()
                 ], 500);
             }
             
-            return back()->with('error', 'Failed to update estate: ' . $e->getMessage());
+            return back()->with('error', 'Failed to update property: ' . $e->getMessage());
         }
     }
 
@@ -236,10 +236,10 @@ class EstateController extends Controller
                 if (request()->wantsJson()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Cannot delete estate with existing units. Please delete all units first.'
+                        'message' => 'Cannot delete property with existing units. Please delete all units first.'
                     ], 422);
                 }
-                return back()->with('error', 'Cannot delete estate with existing units. Please delete all units first.');
+                return back()->with('error', 'Cannot delete property with existing units. Please delete all units first.');
             }
 
             $estateName = $estate->name;
@@ -256,16 +256,16 @@ class EstateController extends Controller
             return redirect()->route('estates.index')->with('success', "Estate '{$estateName}' deleted successfully!");
 
         } catch (\Exception $e) {
-            \Log::error('Failed to delete estate: ' . $e->getMessage());
+            \Log::error('Failed to delete property: ' . $e->getMessage());
             
             if (request()->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to delete estate: ' . $e->getMessage()
+                    'message' => 'Failed to delete property: ' . $e->getMessage()
                 ], 500);
             }
             
-            return back()->with('error', 'Failed to delete estate: ' . $e->getMessage());
+            return back()->with('error', 'Failed to delete property: ' . $e->getMessage());
         }
     }
 

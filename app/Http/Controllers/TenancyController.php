@@ -187,7 +187,7 @@ class TenancyController extends Controller
                                             ($unit->security_charge ?? 0),
                     'status' => $unit->status,
                     'maintenance_count' => $maintenanceCount,
-                    'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Estate') . ', (' . $unit->unit_type . ')',
+                    'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Property') . ', (' . $unit->unit_type . ')',
                 ];
             });
 
@@ -1013,7 +1013,7 @@ public function show(Tenancy $tenancy)
                                                    ($unit->service_charge ?? 0) + 
                                                    ($unit->garbage_charge ?? 0) + 
                                                    ($unit->security_charge ?? 0),
-                        'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Estate') . ', (' . $unit->unit_type . ')',
+                        'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Property') . ', (' . $unit->unit_type . ')',
                     ];
                 });
             

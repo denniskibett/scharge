@@ -101,7 +101,7 @@
             'roleData' => $roleData ?? [],
             'company' => $company ?? null,
             'units' => $roleData['units'] ?? [],
-            'estates' => $roleData['estates'] ?? []
+            'estates' => $roleData['properties'] ?? []
         ])
     @endif
     @endauth

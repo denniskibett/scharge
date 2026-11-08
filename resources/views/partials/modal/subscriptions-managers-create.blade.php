@@ -81,7 +81,7 @@
                             </select>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 <span x-show="form.subcounty_id">
-                                    <span x-text="estatesInSubcounty.length"></span> estates in this subcounty
+                                    <span x-text="estatesInSubcounty.length"></span> properties in this subcounty
                                 </span>
                             </p>
                         </div>
@@ -89,7 +89,7 @@
                         <!-- Estates in Subcounty (Auto-displayed) -->
                         <div x-show="form.subcounty_id && estatesInSubcounty.length > 0" 
                              class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800/30">
-                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estates in this Subcounty</h4>
+                            <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Properties in this Subcounty</h4>
                             <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
                                 <template x-for="estate in estatesInSubcounty" :key="estate.id">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
@@ -101,7 +101,7 @@
                                 </template>
                             </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                This manager will be responsible for all <strong x-text="estatesInSubcounty.length"></strong> estates in this subcounty
+                                This manager will be responsible for all <strong x-text="estatesInSubcounty.length"></strong> properties in this subcounty
                             </p>
                         </div>
 
@@ -238,7 +238,7 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
                 this.allEstates = data.estates || [];
             } catch (error) {
-                console.error('Error loading estates:', error);
+                console.error('Error loading properties:', error);
             }
         },
         
@@ -286,7 +286,7 @@ document.addEventListener('alpine:init', () => {
         
         onSubcountyChange() {
             // Update estates list when subcounty changes
-            console.log('Subcounty changed, estates:', this.estatesInSubcounty.length);
+            console.log('Subcounty changed, properties:', this.estatesInSubcounty.length);
         },
         
         async loadManager(managerId) {

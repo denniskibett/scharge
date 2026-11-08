@@ -57,7 +57,7 @@
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between">
                 <div>
-                    <span class="text-sm text-gray-500 dark:text-gray-400">Estates</span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Properties</span>
                     <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="stats.totalEstates">{{ $stats['totalEstates'] ?? 0 }}</h3>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
@@ -167,7 +167,7 @@
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
-                    Estates <span class="ml-1 text-xs" x-text="stats.totalEstates">0</span>
+                    Properties <span class="ml-1 text-xs" x-text="stats.totalEstates">0</span>
                 </button>
                 
                 <!-- Tenancies Tab (Active only) -->
@@ -658,7 +658,7 @@ function staffTable() {
                 'super_admin': 'Super Admin',
                 'company_admin': 'Company Admin',
                 'property_manager': 'Property Manager',
-                'estate_manager': 'Estate Manager',
+                'estate_manager': 'Property Manager',
                 'accountant': 'Accountant',
                 'meter_reader': 'Meter Reader',
                 'cleaning_staff': 'Cleaning Staff',
@@ -704,7 +704,7 @@ function estatesTable() {
                 }
                 this.filterEstates();
             } catch (error) {
-                console.error('Error loading estates:', error);
+                console.error('Error loading properties:', error);
                 this.estates = [];
             } finally {
                 this.loading = false;

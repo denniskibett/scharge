@@ -20,7 +20,7 @@
                             Visitor & Security Logs
                         </h3>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Select estate, unit, and tenant to view visitor records and security logs
+                            Select property, unit, and tenant to view visitor records and security logs
                         </p>
                     </div>
                     <button onclick="closeSecurityVisitorModal()" class="text-gray-400 hover:text-gray-500">
@@ -35,7 +35,7 @@
                     <div class="flex items-center justify-between">
                         <div class="flex-1 text-center" id="step1Indicator">
                             <div class="w-8 h-8 mx-auto rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-sm font-medium text-gray-600 dark:text-gray-300" id="step1Icon">1</div>
-                            <p class="text-xs mt-1 text-gray-500">Select Estate</p>
+                            <p class="text-xs mt-1 text-gray-500">Select Property</p>
                         </div>
                         <div class="w-12 h-px bg-gray-300 dark:bg-gray-600"></div>
                         <div class="flex-1 text-center opacity-50" id="step2Indicator">
@@ -59,15 +59,15 @@
                                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
-                                Select Estate
+                                Select Property
                             </label>
                             <select id="securityEstateSelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
-                                <option value="">-- Select an estate --</option>
+                                <option value="">-- Select a property --</option>
                             </select>
                         </div>
                         <div class="text-center text-gray-500 dark:text-gray-400 py-8" id="estateLoadingIndicator" style="display: none;">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto mb-2"></div>
-                            <p class="text-sm">Loading estates...</p>
+                            <p class="text-sm">Loading properties...</p>
                         </div>
                     </div>
                     
@@ -508,7 +508,7 @@ function resetSecurityModal() {
     const estateSelect = document.getElementById('securityEstateSelect');
     const unitSelect = document.getElementById('securityUnitSelect');
     const tenantSelect = document.getElementById('securityTenantSelect');
-    if (estateSelect) estateSelect.innerHTML = '<option value="">-- Select an estate --</option>';
+    if (estateSelect) estateSelect.innerHTML = '<option value="">-- Select a property --</option>';
     if (unitSelect) unitSelect.innerHTML = '<option value="">-- Select a unit --</option>';
     if (tenantSelect) tenantSelect.innerHTML = '<option value="">-- Select a tenant --</option>';
 }
@@ -558,11 +558,11 @@ async function loadEstates() {
         const response = await fetch('/security/estates');
         const data = await response.json();
         if (data.success && data.estates) {
-            estateSelect.innerHTML = '<option value="">-- Select an estate --</option>';
+            estateSelect.innerHTML = '<option value="">-- Select a property --</option>';
             data.estates.forEach(estate => { estateSelect.innerHTML += `<option value="${estate.id}">${estate.name}</option>`; });
             estateSelect.onchange = () => onEstateSelected();
         }
-    } catch (error) { console.error('Error loading estates:', error); }
+    } catch (error) { console.error('Error loading properties:', error); }
     finally { if (loadingIndicator) loadingIndicator.style.display = 'none'; }
 }
 

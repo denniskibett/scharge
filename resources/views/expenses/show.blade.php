@@ -73,7 +73,7 @@
             </h4>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Estate</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Property</p>
                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $expense->estate->name }}</p>
               </div>
               <div>

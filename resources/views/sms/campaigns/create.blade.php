@@ -88,9 +88,9 @@
 
                     <!-- Estate -->
                     <div class="mb-4">
-                        <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Estate <span class="text-danger">*</span></label>
+                        <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Property <span class="text-danger">*</span></label>
                         <select name="estate_id" id="estate_id" required class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark" onchange="updatePreview()">
-                            <option value="">Select Estate</option>
+                            <option value="">Select Property</option>
                             @foreach($estates as $estate)
                                 <option value="{{ $estate->id }}" {{ old('estate_id') == $estate->id ? 'selected' : '' }}>
                                     {{ $estate->name }}
@@ -179,7 +179,7 @@
                 </div>
                 <div id="previewContent" class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
                     <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                        <span class="text-gray-400">Select an estate and enter a message to see preview...</span>
+                        <span class="text-gray-400">Select a property and enter a message to see preview...</span>
                     </div>
                 </div>
                 <div class="mt-2 flex flex-wrap gap-4 text-xs">
@@ -275,7 +275,7 @@
         const message = document.getElementById('message').value;
         const estateSelect = document.getElementById('estate_id');
         const billingMonth = document.getElementById('billing_month').value;
-        const selectedEstate = estateSelect.options[estateSelect.selectedIndex]?.text || 'Unknown Estate';
+        const selectedEstate = estateSelect.options[estateSelect.selectedIndex]?.text || 'Unknown Property';
         
         const previewSection = document.getElementById('previewSection');
         const previewContent = document.getElementById('previewContent');

@@ -69,7 +69,7 @@
               <p class="text-gray-700 dark:text-gray-300">{{ optional($invoice->tenancy->unit)->unit_number ?? 'N/A' }}</p>
             </div>
             <div>
-              <span class="text-gray-500 dark:text-gray-400">Estate:</span>
+              <span class="text-gray-500 dark:text-gray-400">Property:</span>
               <p class="text-gray-700 dark:text-gray-300">{{ optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A' }}</p>
             </div>
           </div>

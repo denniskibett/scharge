@@ -155,7 +155,7 @@
                             'showActions' => true,
                             'showConsumption' => false,
                             'units' => $roleData['units'] ?? [],
-                            'estates' => $roleData['estates'] ?? []
+                            'estates' => $roleData['properties'] ?? []
                         ])
                     </div>
                     
@@ -166,7 +166,7 @@
                             'showActions' => true,
                             'showConsumption' => true,
                             'units' => $roleData['units'] ?? [],
-                            'estates' => $roleData['estates'] ?? []
+                            'estates' => $roleData['properties'] ?? []
                         ])
                     </div>
                     
@@ -177,7 +177,7 @@
                             'showActions' => false,
                             'showConsumption' => true,
                             'units' => $roleData['units'] ?? [],
-                            'estates' => $roleData['estates'] ?? []
+                            'estates' => $roleData['properties'] ?? []
                         ])
                     </div>
                 </div>

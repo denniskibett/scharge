@@ -842,8 +842,8 @@ class SecurityController extends Controller
                 })
             ]);
         } catch (\Exception $e) {
-            Log::error('Get Estates Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Error loading estates'], 500);
+            Log::error('Get Properties Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error loading properties'], 500);
         }
     }
 

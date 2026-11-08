@@ -141,7 +141,7 @@
 {{unpaid_list}}</textarea>
                     @endverbatim
                     <div class="flex flex-wrap gap-2 mt-2">
-                        <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, estate, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, total_due</span>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Available variables: name, unit, property, due_date, unpaid_count, unpaid_total, unpaid_list, unpaid_message, total_due</span>
                     </div>
                     <div id="charCounter" class="mt-2 text-sm"></div>
                     <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
@@ -159,9 +159,9 @@
                 <div class="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate Filter</label>
+                            <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Property Filter</label>
                             <select id="estateFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
-                                <option value="">All Estates</option>
+                                <option value="">All Properties</option>
                                 @foreach($estates as $estate)
                                     <option value="{{ $estate->id }}">{{ $estate->name }}</option>
                                 @endforeach
@@ -241,7 +241,7 @@
                                         Unit <span class="sort-icon inline-block ml-1">↕️</span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('estate')">
-                                        Estate <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Property <span class="sort-icon inline-block ml-1">↕️</span>
                                     </th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('water_bill')">
                                         Water Bill <span class="sort-icon inline-block ml-1">↕️</span>
@@ -675,9 +675,9 @@
                                 </div>
                                 
                                 <div>
-                                    <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Estate</label>
+                                    <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Property</label>
                                     <select id="campaignFilterEstate" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
-                                        <option value="">All Estates</option>
+                                        <option value="">All Properties</option>
                                         @foreach($estates as $estate)
                                             <option value="{{ $estate->id }}" data-company="{{ $estate->company_id }}">{{ $estate->name }}</option>
                                         @endforeach
@@ -911,7 +911,7 @@
                                         <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estate</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Property</th>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
                                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parts</th>
@@ -3030,7 +3030,7 @@ function renderCampaigns() {
         // UPDATE CAMPAIGN PREVIEW ON ESTATE CHANGE
         // ============================================
         function updateCampaignPreviewOnEstateChange() {
-            console.log('🔄 Estate changed in campaign modal');
+            console.log('🔄 Property changed in campaign modal');
             const select = document.getElementById('campaignTemplate');
             const selected = select ? select.options[select.selectedIndex] : null;
             const content = selected ? selected.getAttribute('data-content') : null;
@@ -4247,7 +4247,7 @@ function updateRecipientPhone(recipientId) {
                 return;
             }
             
-            let csv = 'Tenant,Unit,Estate,Phone,Status,Message,Provider Status,Error Message,Updated At\n';
+            let csv = 'Tenant,Unit,Property,Phone,Status,Message,Provider Status,Error Message,Updated At\n';
             currentRecipientsFull.forEach(r => {
                 const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
                 const unitNumber = r.unit_number || r.unit || 'N/A';
@@ -4275,7 +4275,7 @@ function updateRecipientPhone(recipientId) {
                 return;
             }
             
-            let csv = 'Tenant,Unit,Estate,Phone,Status,Error Message,Updated At\n';
+            let csv = 'Tenant,Unit,Property,Phone,Status,Error Message,Updated At\n';
             invalidRecipients.forEach(r => {
                 const tenantName = r.name || 'Unknown';
                 const unitNumber = r.unit_number || 'N/A';
@@ -4309,7 +4309,7 @@ function updateRecipientPhone(recipientId) {
                 return;
             }
             
-            let csv = 'Tenant,Unit,Estate,Phone,Status,Network,Updated At\n';
+            let csv = 'Tenant,Unit,Property,Phone,Status,Network,Updated At\n';
             otherRecipients.forEach(r => {
                 const tenantName = r.name || 'Unknown';
                 const unitNumber = r.unit_number || 'N/A';
@@ -4344,7 +4344,7 @@ function updateRecipientPhone(recipientId) {
                 return;
             }
             
-            let csv = 'Tenant,Unit,Estate,Phone,Status,Sent At,Message\n';
+            let csv = 'Tenant,Unit,Property,Phone,Status,Sent At,Message\n';
             delivered.forEach(r => {
                 const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
                 const unitNumber = r.unit_number || r.unit || 'N/A';

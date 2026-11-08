@@ -20,7 +20,7 @@
                     Company Admin (<span x-text="roleCounts.company_admin"></span>)
                 </button>
                 <button @click="filterRole = 'estate_manager'; currentPage = 1" :class="filterRole === 'estate_manager' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
-                    Estate Manager (<span x-text="roleCounts.estate_manager"></span>)
+                    Property Manager (<span x-text="roleCounts.estate_manager"></span>)
                 </button>
                 <button @click="filterRole = 'tenant'; currentPage = 1" :class="filterRole === 'tenant' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
                     Tenant (<span x-text="roleCounts.tenant"></span>)
@@ -383,7 +383,7 @@ document.addEventListener('alpine:init', () => {
             const roleMap = {
                 'admin': 'Admin',
                 'company_admin': 'Company Admin',
-                'estate_manager': 'Estate Manager',
+                'estate_manager': 'Property Manager',
                 'tenant': 'Tenant'
             };
             return roleMap[role] || role;

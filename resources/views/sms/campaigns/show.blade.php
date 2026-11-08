@@ -154,7 +154,7 @@
                 <p class="mt-0.5 font-medium text-black dark:text-white">{{ ucfirst($campaign->status) }}</p>
             </div>
             <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Estate</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">Property</span>
                 <p class="mt-0.5 font-medium text-black dark:text-white">{{ $campaign->estate->name ?? 'N/A' }}</p>
             </div>
             <div>
@@ -242,7 +242,7 @@
                         <dd class="text-sm font-medium text-black dark:text-white">Water Bill Campaign</dd>
                     </div>
                     <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Estate</dt>
+                        <dt class="text-sm text-gray-500 dark:text-gray-400">Property</dt>
                         <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->estate->name ?? 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">

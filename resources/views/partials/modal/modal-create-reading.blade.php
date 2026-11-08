@@ -121,7 +121,7 @@ async function fetchData() {
                 name: estateMap[id],
                 water_rate: estateRates[id] || 50
             }));
-            console.log('Estates extracted from units:', allEstates.length);
+            console.log('Properties extracted from units:', allEstates.length);
             
             populateEstateDropdown();
             return;
@@ -155,7 +155,7 @@ async function fetchData() {
             name: estateMap[id],
             water_rate: estateRates[id] || 50
         }));
-        console.log('Estates extracted from units:', allEstates.length);
+        console.log('Properties extracted from units:', allEstates.length);
         
         populateEstateDropdown();
         
@@ -174,7 +174,7 @@ function populateEstateDropdown() {
     const select = document.getElementById('bulkEstateSelect');
     if (!select) return;
     
-    let html = '<option value="">All Estates</option>';
+    let html = '<option value="">All Properties</option>';
     allEstates.forEach(estate => {
         const id = typeof estate === 'object' ? estate.id : estate;
         const name = typeof estate === 'object' ? estate.name : estate;
@@ -360,7 +360,7 @@ async function loadBulkUnits() {
     const estateId = document.getElementById('bulkEstateSelect').value;
     const readingMonth = document.getElementById('bulkReadingMonth').value;
     
-    console.log('Loading units for estate:', estateId);
+    console.log('Loading units for property:', estateId);
     console.log('Reading month:', readingMonth);
     console.log('Total units available:', allUnits.length);
     
@@ -686,7 +686,7 @@ function updateBulkStats() {
 // ==================== AUTO-FILL ====================
 function autoFillBulk() {
     if (bulkReadingsData.length === 0) {
-        alert('No units loaded. Please select an estate first.');
+        alert('No units loaded. Please select a property first.');
         return;
     }
     

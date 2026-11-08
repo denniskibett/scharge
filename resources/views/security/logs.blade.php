@@ -43,9 +43,9 @@
                        class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Estate</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Property</label>
                 <select name="estate_id" class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    <option value="">All Estates</option>
+                    <option value="">All Properties</option>
                     @foreach($estates as $estate)
                         <option value="{{ $estate->id }}" {{ request('estate_id') == $estate->id ? 'selected' : '' }}>
                             {{ $estate->name }}

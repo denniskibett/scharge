@@ -36,7 +36,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                 </svg>
-                Edit Estate
+                Edit Property
             </button>
         </div>
         
@@ -109,7 +109,7 @@
         
         <!-- Utility Charges Info Card -->
         <div class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
-            <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Default Utility Charges for this Estate</h3>
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Default Utility Charges for this Property</h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center gap-2">
@@ -209,7 +209,7 @@
 
             <form @submit.prevent="submitForm()">
                 <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">
-                    Edit Estate
+                    Edit Property
                 </h4>
 
                 <!-- Form Errors -->
@@ -226,12 +226,12 @@
                 <div class="grid grid-cols-1 gap-x-6 gap-y-5">
                     <div class="col-span-1">
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                            Estate Name *
+                            Property Name *
                         </label>
                         <input
                             type="text"
                             x-model="form.name"
-                            placeholder="Enter estate name"
+                            placeholder="Enter property name"
                             required
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
@@ -244,7 +244,7 @@
                         <input
                             type="text"
                             x-model="form.location"
-                            placeholder="Enter estate location"
+                            placeholder="Enter property location"
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
                     </div>
@@ -252,7 +252,7 @@
                     <!-- Utility Charges Section -->
                     <div class="col-span-1 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
                         <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Default Utility Charges</h5>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">These charges will be applied to all new units in this estate by default</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">These charges will be applied to all new units in this property by default</p>
                     </div>
 
                     <div class="col-span-1">
@@ -346,7 +346,7 @@
                         :disabled="loading"
                         class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
                     >
-                        <span x-show="!loading">Update Estate</span>
+                        <span x-show="!loading">Update Property</span>
                         <span x-show="loading">Updating...</span>
                     </button>
                 </div>
@@ -361,7 +361,7 @@ function estateShow() {
         estateId: {{ $estate->id }},
         
         init() {
-            console.log('Estate show page loaded');
+            console.log('Property show page loaded');
         },
         
         openEditModal() {
@@ -444,7 +444,7 @@ function editEstateModal() {
                 if (response.ok) {
                     this.closeModal();
                     if (window.successModal) {
-                        window.successModal.simple('Estate Updated', `Estate "${this.form.name}" has been updated successfully!`);
+                        window.successModal.simple('Property Updated', `Estate "${this.form.name}" has been updated successfully!`);
                     }
                     setTimeout(() => {
                         window.location.reload();
@@ -459,9 +459,9 @@ function editEstateModal() {
                         }
                     } else {
                         if (window.errorModal) {
-                            window.errorModal.show('Update Failed', data.message || 'Failed to update estate');
+                            window.errorModal.show('Update Failed', data.message || 'Failed to update property');
                         } else {
-                            this.formErrors = [data.message || 'Failed to update estate'];
+                            this.formErrors = [data.message || 'Failed to update property'];
                         }
                     }
                 }

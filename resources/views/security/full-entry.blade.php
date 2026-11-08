@@ -52,11 +52,11 @@
                     <!-- Estate -->
                     <div>
                         <label for="estate_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Estate <span class="text-error-500">*</span>
+                            Property <span class="text-error-500">*</span>
                         </label>
                         <select id="estate_id" name="estate_id" required
                                 class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800">
-                            <option value="">Select Estate</option>
+                            <option value="">Select Property</option>
                         </select>
                     </div>
 
@@ -70,7 +70,7 @@
                             <option value="">Select Unit</option>
                         </select>
                         <div id="noUnitsMsg" class="hidden mt-1 text-sm text-yellow-600 dark:text-yellow-400">
-                            No units found for this estate
+                            No units found for this property
                         </div>
                     </div>
 
@@ -308,7 +308,7 @@ function loadEstates() {
     .then(data => {
         if (data.success && data.estates) {
             const select = document.getElementById('estate_id');
-            select.innerHTML = '<option value="">Select Estate</option>';
+            select.innerHTML = '<option value="">Select Property</option>';
             data.estates.forEach(estate => {
                 const option = document.createElement('option');
                 option.value = estate.id;
@@ -318,8 +318,8 @@ function loadEstates() {
         }
     })
     .catch(error => {
-        console.error('Error loading estates:', error);
-        showMessage('Failed to load estates', 'error');
+        console.error('Error loading properties:', error);
+        showMessage('Failed to load properties', 'error');
     });
 }
 

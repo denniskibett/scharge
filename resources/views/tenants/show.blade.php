@@ -161,7 +161,7 @@
         <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Estates Lived</p>
+              <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Properties Lived</p>
               <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ $estates->count() }}</p>
             </div>
             <div class="h-12 w-12 rounded-full bg-purple-200 dark:bg-purple-700 flex items-center justify-center">
@@ -171,7 +171,7 @@
             </div>
           </div>
           <div class="mt-2 text-xs text-purple-600 dark:text-purple-400">
-            Different estates
+            Different properties
           </div>
         </div>
       </div>

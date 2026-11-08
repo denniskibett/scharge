@@ -61,7 +61,7 @@
         <form method="GET" action="{{ route('sms.campaigns.history') }}" class="flex flex-wrap items-center gap-4">
             <div>
                 <select name="estate_id" class="rounded-md border border-stroke px-3 py-1.5 text-sm dark:border-strokedark dark:bg-boxdark">
-                    <option value="">All Estates</option>
+                    <option value="">All Properties</option>
                     @foreach($estates as $estate)
                         <option value="{{ $estate->id }}" {{ request('estate_id') == $estate->id ? 'selected' : '' }}>
                             {{ $estate->name }}
@@ -106,7 +106,7 @@
                     <tr class="bg-gray-50 dark:bg-gray-800">
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campaign</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estate</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>

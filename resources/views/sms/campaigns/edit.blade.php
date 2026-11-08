@@ -51,9 +51,9 @@
 
             <!-- Estate -->
             <div class="mb-4">
-                <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Estate <span class="text-danger">*</span></label>
+                <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Property <span class="text-danger">*</span></label>
                 <select name="estate_id" required class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark">
-                    <option value="">Select Estate</option>
+                    <option value="">Select Property</option>
                     @foreach($estates as $estate)
                         <option value="{{ $estate->id }}" {{ old('estate_id', $campaign->estate_id) == $estate->id ? 'selected' : '' }}>
                             {{ $estate->name }}

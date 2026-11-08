@@ -86,12 +86,12 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <!-- Estate -->
             <div x-show="!preSelectedEstateId">
-              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Estate *</label>
+              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
               <select 
                 x-model="formData.estate_id"
                 class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
               >
-                <option value="">Select Estate</option>
+                <option value="">Select Property</option>
                 @foreach($estates ?? [] as $estate)
                   <option value="{{ $estate->id }}">{{ $estate->name }}</option>
                 @endforeach
@@ -351,9 +351,9 @@
           <!-- Common Fields for Mass Add -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <div x-show="!preSelectedEstateId">
-              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Estate *</label>
+              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
               <select x-model="commonFields.estate_id" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                <option value="">Select Estate</option>
+                <option value="">Select Property</option>
                 @foreach($estates ?? [] as $estate)
                   <option value="{{ $estate->id }}">{{ $estate->name }}</option>
                 @endforeach
@@ -392,16 +392,16 @@
         <div x-show="mode === 'batch'" x-cloak>
           <div class="mb-6 p-4 bg-green-50 rounded-lg dark:bg-green-900/20">
             <p class="text-sm text-green-700 dark:text-green-300">
-              <strong>Batch Generator:</strong> Automatically generate units with sequential numbering. Great for apartment blocks, floors, or multi-building estates.
+              <strong>Batch Generator:</strong> Automatically generate units with sequential numbering. Great for apartment blocks, floors, or multi-building properties.
             </p>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
             <!-- Estate -->
             <div x-show="!preSelectedEstateId" class="col-span-1">
-              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Estate *</label>
+              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
               <select x-model="batchConfig.estate_id" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                <option value="">Select Estate</option>
+                <option value="">Select Property</option>
                 @foreach($estates ?? [] as $estate)
                   <option value="{{ $estate->id }}">{{ $estate->name }}</option>
                 @endforeach
@@ -1001,7 +1001,7 @@ document.addEventListener('alpine:init', () => {
     
     validateSingleForm() {
       const errors = [];
-      if (!this.preSelectedEstateId && !this.formData.estate_id) errors.push('Please select an estate');
+      if (!this.preSelectedEstateId && !this.formData.estate_id) errors.push('Please select a property');
       if (!this.formData.unit_number?.trim()) errors.push('Please enter a unit number');
       if (!this.formData.unit_type) errors.push('Please select a unit type');
       if (!this.formData.rent_amount || parseFloat(this.formData.rent_amount) <= 0) errors.push('Please enter a valid rent amount greater than 0');
@@ -1010,7 +1010,7 @@ document.addEventListener('alpine:init', () => {
     
     validateMassForm() {
       const errors = [];
-      if (!this.preSelectedEstateId && !this.commonFields.estate_id) errors.push('Please select an estate');
+      if (!this.preSelectedEstateId && !this.commonFields.estate_id) errors.push('Please select a property');
       if (this.units.some(u => !u.unit_number?.trim())) errors.push('Please fill in all unit numbers');
       if (!this.commonFields.unit_type) errors.push('Please select a unit type');
       if (!this.commonFields.rent_amount || parseFloat(this.commonFields.rent_amount) <= 0) errors.push('Please enter a valid rent amount greater than 0');
@@ -1019,7 +1019,7 @@ document.addEventListener('alpine:init', () => {
     
     validateBatchForm() {
       const errors = [];
-      if (!this.preSelectedEstateId && !this.batchConfig.estate_id) errors.push('Please select an estate');
+      if (!this.preSelectedEstateId && !this.batchConfig.estate_id) errors.push('Please select a property');
       if (!this.batchConfig.unit_type) errors.push('Please select a unit type');
       if (!this.batchConfig.rent_amount || parseFloat(this.batchConfig.rent_amount) <= 0) errors.push('Please enter a valid rent amount');
       if (this.batchConfig.numberOfFloors < 1) errors.push('Number of floors must be at least 1');

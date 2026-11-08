@@ -72,7 +72,7 @@
                         @change="filterUnits()"
                         class="dark:bg-dark-900 h-9 w-[130px] appearance-none rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 pr-7 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                     >
-                        <option value="">All Estates</option>
+                        <option value="">All Properties</option>
                         @foreach($estates as $estate)
                             <option value="{{ $estate->id }}">{{ $estate->name }}</option>
                         @endforeach
@@ -211,7 +211,7 @@
                         </th>
                         
                         @if($showEstateColumn)
-                        <th class="p-3 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Estate</th>
+                        <th class="p-3 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Property</th>
                         @endif
                         
                         <th class="p-3 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Type</th>

@@ -135,7 +135,7 @@
                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenancy->unit->unit_type ?? 'N/A' }}</p>
               </div>
               <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Estate</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Property</p>
                 <a href="{{ route('estates.show', $tenancy->unit->estate) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                   {{ $tenancy->unit->estate->name ?? 'N/A' }}
                 </a>

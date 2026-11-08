@@ -1222,7 +1222,7 @@ class SubscriptionController extends Controller
             Log::error('Error in getEstates: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
-                'message' => 'Error loading estates: ' . $e->getMessage()
+                'message' => 'Error loading properties: ' . $e->getMessage()
             ], 500);
         }
     }

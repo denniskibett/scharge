@@ -86,7 +86,7 @@
             <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenancyDetails.unit_number || '-'"></p>
           </div>
           <div>
-            <span class="text-gray-500 dark:text-gray-400">Estate:</span>
+            <span class="text-gray-500 dark:text-gray-400">Property:</span>
             <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenancyDetails.estate_name || '-'"></p>
           </div>
           <div>

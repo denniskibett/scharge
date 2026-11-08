@@ -45,7 +45,7 @@
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z" fill=""/>
                     </svg>
                 </span>
-                <input type="text" placeholder="Search by unit or estate..." x-model="searchQuery" @input="currentPage = 1" class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"/>
+                <input type="text" placeholder="Search by unit or property..." x-model="searchQuery" @input="currentPage = 1" class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"/>
             </div>
             
             <!-- Action Buttons -->
@@ -83,7 +83,7 @@
                         <span x-show="sortBy === 'unit_number'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
                     </th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('estate_name')">
-                        Estate
+                        Property
                         <span x-show="sortBy === 'estate_name'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
                     </th>
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Previous (m³)</th>
@@ -383,7 +383,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         exportData() {
-            const headers = ['Unit', 'Estate', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Last Reading Date', 'Status', 'Total Readings'];
+            const headers = ['Unit', 'Property', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Last Reading Date', 'Status', 'Total Readings'];
             const rows = this.filteredReadings.map(r => [
                 r.unit_number,
                 r.estate_name,

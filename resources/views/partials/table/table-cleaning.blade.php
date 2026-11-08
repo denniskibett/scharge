@@ -54,7 +54,7 @@
                     type="text" 
                     x-model="searchQuery"
                     @input.debounce.300ms="currentPage = 1"
-                    placeholder="Search by unit, estate, or assigned staff..." 
+                    placeholder="Search by unit, property, or assigned staff..." 
                     class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full min-w-[250px] rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                 >
             </div>
@@ -85,7 +85,7 @@
                             </span>
                         </div>
                     </th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Estate</th>
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Property</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Task Type</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Description</th>
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900 dark:hover:text-gray-200" @click="sortBy('priority')">

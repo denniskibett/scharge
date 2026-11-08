@@ -64,7 +64,7 @@
             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $stats->total_companies ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.03]">
-            <p class="text-[10px] text-gray-500 dark:text-gray-400">Estates</p>
+            <p class="text-[10px] text-gray-500 dark:text-gray-400">Properties</p>
             <p class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $stats->total_estates ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -100,7 +100,7 @@
                     <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Manager</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Company</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Estates</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Properties</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Units</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Occupied</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Vacant</th>

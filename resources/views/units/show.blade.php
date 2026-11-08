@@ -240,7 +240,7 @@
                 @if($hasUnitAny)
                 <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Unit Override</span>
                 @elseif($hasEstateAny)
-                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Estate Default</span>
+                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Property Default</span>
                 @endif
               </h4>
               <div class="space-y-3">
@@ -249,7 +249,7 @@
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Water Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveWater, 2) }} / unit</p>
                   @if($hasEstateWater && !$hasUnitWater)
-                  <p class="text-xs text-gray-400 mt-0.5">Inherited from estate</p>
+                  <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
                 @endif
@@ -258,7 +258,7 @@
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Service Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveService, 2) }}</p>
                   @if($hasEstateService && !$hasUnitService)
-                  <p class="text-xs text-gray-400 mt-0.5">Inherited from estate</p>
+                  <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
                 @endif
@@ -267,7 +267,7 @@
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Garbage Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveGarbage, 2) }}</p>
                   @if($hasEstateGarbage && !$hasUnitGarbage)
-                  <p class="text-xs text-gray-400 mt-0.5">Inherited from estate</p>
+                  <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
                 @endif
@@ -276,7 +276,7 @@
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Security Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveSecurity, 2) }}</p>
                   @if($hasEstateSecurity && !$hasUnitSecurity)
-                  <p class="text-xs text-gray-400 mt-0.5">Inherited from estate</p>
+                  <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
                 @endif
@@ -290,11 +290,11 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                Estate Information
+                Property Information
               </h4>
               <div class="space-y-3">
                 <div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Estate Name</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Property Name</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->estate->name }}</p>
                 </div>
                 <div>
@@ -302,7 +302,7 @@
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->estate->location ?? 'N/A' }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Units in Estate</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Units in Property</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->estate->units_count ?? $unit->estate->units->count() }}</p>
                 </div>
               </div>

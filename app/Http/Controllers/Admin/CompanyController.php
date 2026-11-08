@@ -955,7 +955,7 @@ public function getCompanyExpenses($id)
             if ($company->estates()->count() > 0) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete company with existing estates. Delete estates first.',
+                    'message' => 'Cannot delete company with existing properties. Delete properties first.',
                 ], 422);
             }
             

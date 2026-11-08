@@ -67,7 +67,7 @@
               <span class="font-medium text-gray-800 dark:text-white/90 ml-2" x-text="tenancyData?.unit_number"></span>
             </div>
             <div>
-              <span class="text-gray-500 dark:text-gray-400">Estate:</span>
+              <span class="text-gray-500 dark:text-gray-400">Property:</span>
               <span class="font-medium text-gray-800 dark:text-white/90 ml-2" x-text="tenancyData?.estate_name"></span>
             </div>
             <div>
