@@ -15,8 +15,8 @@ class WaterReadingController extends Controller
     {
         $user = auth()->user();
         
-        // Get readings with unit and estate relationships
-        $query = WaterReading::with(['unit.estate'])
+        // Get readings with unit and property relationships
+        $query = WaterReading::with(['unit.property'])
             ->orderBy('reading_date', 'desc');
         
         // Filter based on user role
@@ -55,7 +55,7 @@ class WaterReadingController extends Controller
             }
             
             $billingType = $unit->water_billing_type ?? 'consumption';
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             
             // Calculate consumption for the latest reading
             $consumption = $latestReading->consumption;
@@ -76,7 +76,7 @@ class WaterReadingController extends Controller
                 'id' => $latestReading->id,
                 'unit_id' => $unit->id,
                 'unit_number' => $unit->unit_number ?? 'N/A',
-                'estate_name' => $unit->estate->name ?? 'N/A',
+                'property_name' => $unit->property->name ?? 'N/A',
                 'previous_reading' => (float) ($previousReading ? $previousReading->current_reading : $unit->previous_water_reading ?? 0),
                 'current_reading' => (float) $latestReading->current_reading,
                 'consumption' => (float) max(0, $consumption),
@@ -89,7 +89,7 @@ class WaterReadingController extends Controller
                 'has_gaps' => count($gaps) > 0,
                 'gaps' => $gaps,
                 'needs_reading' => $unit->needsWaterReading(),
-                'estate_id' => $unit->estate_id,
+                'property_id' => $unit->property_id,
                 'unit_type' => $unit->unit_type,
             ];
         })->values();
@@ -98,7 +98,7 @@ class WaterReadingController extends Controller
         $groupedReadings = $groupedReadings->sortBy('unit_number')->values();
         
         // Get units list for the modal
-        $units = Unit::with('estate')
+        $units = Unit::with('property')
             ->where('is_active', true)
             ->orderBy('unit_number')
             ->get()
@@ -106,8 +106,8 @@ class WaterReadingController extends Controller
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name ?? 'N/A',
+                    'property_id' => $unit->property_id,
                     'unit_type' => $unit->unit_type,
                     'water_billing_type' => $unit->water_billing_type ?? 'consumption',
                     'water_charge' => (float) ($unit->water_charge ?? 0),
@@ -118,10 +118,10 @@ class WaterReadingController extends Controller
                 ];
             });
         
-        // Get estates for the bulk mode dropdown
-        $estates = \App\Models\Estate::orderBy('name')->get();
+        // Get properties for the bulk mode dropdown
+        $properties = \App\Models\Property::orderBy('name')->get();
         
-        return view('water.index', compact('groupedReadings', 'units', 'estates'));
+        return view('water.index', compact('groupedReadings', 'units', 'properties'));
     }
 
     public function getBulkReadings(Request $request)
@@ -259,7 +259,7 @@ class WaterReadingController extends Controller
                 }
                 
                 $consumption = $currentReading - $previousReading;
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 
                 if ($unit->water_billing_type === 'flat') {
                     $charge = $unit->water_charge ?? 0;
@@ -376,7 +376,7 @@ public function storeBulkMatrix(Request $request)
             }
             
             $consumption = $newReading - $previousReading;
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             
             if ($unit->water_billing_type === 'flat') {
                 $charge = $unit->water_charge ?? 0;
@@ -541,7 +541,7 @@ public function storeBulkMatrix(Request $request)
                 }
                 
                 $consumption = $newReading - $previousReading;
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 
                 if ($unit->water_billing_type === 'flat') {
                     $charge = $unit->water_charge ?? 0;
@@ -731,7 +731,7 @@ public function storeBulkMatrix(Request $request)
             }
             
             $consumption = $currentReading - $previousReading;
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             
             if ($unit->water_billing_type === 'flat') {
                 $charge = $unit->water_charge ?? 0;
@@ -810,7 +810,7 @@ public function storeBulkMatrix(Request $request)
             }
             
             $consumption = $newReading - $previousReading;
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             
             if ($unit->water_billing_type === 'flat') {
                 $charge = $unit->water_charge ?? 0;
@@ -879,7 +879,7 @@ public function storeBulkMatrix(Request $request)
             'success' => true,
             'previous_reading' => (float) ($latestReading ? $latestReading->current_reading : ($unit->current_water_reading ?? 0)),
             'last_reading_date' => $latestReading ? $latestReading->reading_date->format('Y-m-d') : ($unit->last_reading_date ? $unit->last_reading_date->format('Y-m-d') : null),
-            'current_rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+            'current_rate' => (float) ($unit->custom_water_rate ?? $unit->property->water_rate ?? 50),
             'billing_type' => $unit->water_billing_type ?? 'consumption',
             'flat_rate' => (float) ($unit->water_charge ?? 0)
         ]);
@@ -887,7 +887,7 @@ public function storeBulkMatrix(Request $request)
 
     public function getUnitWaterHistory($unitId)
     {
-        $unit = Unit::with('estate')->findOrFail($unitId);
+        $unit = Unit::with('property')->findOrFail($unitId);
         
         $allReadings = WaterReading::where('unit_id', $unitId)
             ->orderBy('reading_date', 'asc')
@@ -899,7 +899,7 @@ public function storeBulkMatrix(Request $request)
                 'unit' => [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'property_name' => $unit->property->name ?? 'N/A',
                     'water_billing_type' => $unit->water_billing_type ?? 'consumption',
                     'water_charge' => (float) ($unit->water_charge ?? 0),
                     'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0)
@@ -914,7 +914,7 @@ public function storeBulkMatrix(Request $request)
                     'lowest_consumption' => 0,
                     'last_reading_date' => 'No readings',
                     'billing_type' => $unit->water_billing_type ?? 'consumption',
-                    'current_rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+                    'current_rate' => (float) ($unit->custom_water_rate ?? $unit->property->water_rate ?? 50),
                     'has_initial_reading' => false,
                     'initial_reading' => null
                 ],
@@ -958,7 +958,7 @@ public function storeBulkMatrix(Request $request)
             'lowest_consumption' => $subsequentReadings->count() > 0 ? (float) $subsequentReadings->min('consumption') : 0,
             'last_reading_date' => $unit->last_reading_date ? $unit->last_reading_date->format('M d, Y') : 'No readings',
             'billing_type' => $unit->water_billing_type ?? 'consumption',
-            'current_rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+            'current_rate' => (float) ($unit->custom_water_rate ?? $unit->property->water_rate ?? 50),
             'has_initial_reading' => true,
             'initial_reading' => [
                 'id' => $initialReading->id,
@@ -976,7 +976,7 @@ public function storeBulkMatrix(Request $request)
             'unit' => [
                 'id' => $unit->id,
                 'unit_number' => $unit->unit_number,
-                'estate_name' => $unit->estate->name ?? 'N/A',
+                'property_name' => $unit->property->name ?? 'N/A',
                 'water_billing_type' => $unit->water_billing_type ?? 'consumption',
                 'water_charge' => (float) ($unit->water_charge ?? 0),
                 'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0)
@@ -1001,15 +1001,15 @@ public function storeBulkMatrix(Request $request)
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
-            'estate_id' => 'nullable|exists:estates,id',
+            'property_id' => 'nullable|exists:properties,id',
             'unit_id' => 'nullable|exists:units,id'
         ]);
         
-        $query = WaterReading::with(['unit.estate'])
+        $query = WaterReading::with(['unit.property'])
             ->whereBetween('reading_date', [$validated['start_date'], $validated['end_date']]);
         
-        if ($validated['estate_id'] ?? false) {
-            $query->whereHas('unit', fn($q) => $q->where('estate_id', $validated['estate_id']));
+        if ($validated['property_id'] ?? false) {
+            $query->whereHas('unit', fn($q) => $q->where('property_id', $validated['property_id']));
         }
         
         if ($validated['unit_id'] ?? false) {
@@ -1034,7 +1034,7 @@ public function storeBulkMatrix(Request $request)
                 return [
                     'id' => $reading->id,
                     'unit_number' => $reading->unit->unit_number,
-                    'estate_name' => $reading->unit->estate->name,
+                    'property_name' => $reading->unit->property->name,
                     'previous_reading' => (float) $reading->previous_reading,
                     'current_reading' => (float) $reading->current_reading,
                     'consumption' => (float) $reading->consumption,
@@ -1047,7 +1047,7 @@ public function storeBulkMatrix(Request $request)
 
     public function statement(Unit $unit)
     {
-        $unit->load('estate');
+        $unit->load('property');
         
         $allReadings = WaterReading::where('unit_id', $unit->id)
             ->orderBy('reading_date', 'asc')
@@ -1114,21 +1114,21 @@ public function storeBulkMatrix(Request $request)
 
     public function getUnitsWithWaterReadings(Request $request)
     {
-        $estateId = $request->get('estate_id');
+        $propertyId = $request->get('property_id');
         
-        $query = Unit::with('estate')
+        $query = Unit::with('property')
             ->where('is_active', true);
         
-        if ($estateId) {
-            $query->where('estate_id', $estateId);
+        if ($propertyId) {
+            $query->where('property_id', $propertyId);
         }
         
         $units = $query->get()->map(function($unit) {
             return [
                 'id' => $unit->id,
                 'unit_number' => $unit->unit_number,
-                'estate_name' => $unit->estate->name ?? 'N/A',
-                'estate_id' => $unit->estate_id,
+                'property_name' => $unit->property->name ?? 'N/A',
+                'property_id' => $unit->property_id,
                 'unit_type' => $unit->unit_type,
                 'water_billing_type' => $unit->water_billing_type ?? 'consumption',
                 'water_charge' => (float) ($unit->water_charge ?? 0),
@@ -1136,7 +1136,7 @@ public function storeBulkMatrix(Request $request)
                 'current_water_reading' => (float) ($unit->current_water_reading ?? 0),
                 'previous_water_reading' => (float) ($unit->previous_water_reading ?? 0),
                 'last_reading_date' => $unit->last_reading_date,
-                'water_rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+                'water_rate' => (float) ($unit->custom_water_rate ?? $unit->property->water_rate ?? 50),
             ];
         });
         
@@ -1213,7 +1213,7 @@ public function storeBulkMatrix(Request $request)
                     // previous_reading = last month's current reading
                     // current_reading = same as previous (no consumption)
                     $consumption = 0;
-                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                    $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                     $charge = $unit->water_billing_type === 'flat' 
                         ? ($unit->water_charge ?? 0) 
                         : 0;
@@ -1315,7 +1315,7 @@ public function storeBulkMatrix(Request $request)
             $reading->consumption = $consumption;
             
             if ($unit->water_billing_type !== 'flat') {
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 $reading->charge = $consumption * $rate;
             } else {
                 $reading->charge = $unit->water_charge ?? 0;
@@ -1329,19 +1329,19 @@ public function storeBulkMatrix(Request $request)
     }
 
     /**
-     * Auto-fill missing months for all units in an estate
+     * Auto-fill missing months for all units in an property
      */
-    public function autoFillEstate(Request $request)
+    public function autoFillProperty(Request $request)
     {
         $validated = $request->validate([
-            'estate_id' => 'required|exists:estates,id',
+            'property_id' => 'required|exists:properties,id',
             'month' => 'required|date_format:Y-m',
         ]);
         
-        $estate = Estate::findOrFail($validated['estate_id']);
+        $property = Property::findOrFail($validated['property_id']);
         $month = Carbon::parse($validated['month'] . '-01');
         
-        $units = Unit::where('estate_id', $estate->id)
+        $units = Unit::where('property_id', $property->id)
             ->where('is_active', true)
             ->get();
         
@@ -1369,12 +1369,12 @@ public function storeBulkMatrix(Request $request)
                     'previous_reading' => $previousReading,
                     'current_reading' => $currentReading,
                     'consumption' => 0,
-                    'rate_applied' => $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50,
+                    'rate_applied' => $unit->custom_water_rate ?? $unit->property->water_rate ?? 50,
                     'charge' => $unit->water_billing_type === 'flat' ? ($unit->water_charge ?? 0) : 0,
                     'billing_type' => $unit->water_billing_type ?? 'consumption',
                     'reading_date' => $month->format('Y-m-d'),
                     'recorded_by' => auth()->id(),
-                    'notes' => 'Auto-filled missing month for estate-wide fill',
+                    'notes' => 'Auto-filled missing month for property-wide fill',
                 ]);
                 
                 $this->updateUnitWithLatestReadings($unit);

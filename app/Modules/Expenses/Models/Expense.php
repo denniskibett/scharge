@@ -2,7 +2,7 @@
 
 namespace App\Modules\Expenses\Models;
 
-use App\Models\Estate;
+use App\Models\Property;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
@@ -11,7 +11,7 @@ class Expense extends Model
     use HasFactory;
 
     protected $fillable = [
-        'estate_id',
+        'property_id',
         'payee_id',
         'expense_category_id',
         'amount',
@@ -20,9 +20,9 @@ class Expense extends Model
         'status'
     ];
 
-    public function estate()
+    public function property()
     {
-        return $this->belongsTo(Estate::class);
+        return $this->belongsTo(Property::class);
     }
 
     public function payee()

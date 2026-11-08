@@ -56,11 +56,11 @@ class Invoice extends Model
      */
     /**
      * The landlord company this invoice belongs to. Many invoices have a NULL company_id
-     * (all unpaid ones in live data), so fall back to the tenancy, then the estate.
+     * (all unpaid ones in live data), so fall back to the tenancy, then the property.
      */
     public function owningCompanyId(): ?int
     {
-        $id = $this->company_id ?? $this->tenancy?->company_id ?? $this->tenancy?->estate?->company_id;
+        $id = $this->company_id ?? $this->tenancy?->company_id ?? $this->tenancy?->property?->company_id;
 
         return $id ? (int) $id : null;
     }

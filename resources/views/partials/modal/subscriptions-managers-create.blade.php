@@ -81,27 +81,27 @@
                             </select>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 <span x-show="form.subcounty_id">
-                                    <span x-text="estatesInSubcounty.length"></span> properties in this subcounty
+                                    <span x-text="propertiesInSubcounty.length"></span> properties in this subcounty
                                 </span>
                             </p>
                         </div>
 
-                        <!-- Estates in Subcounty (Auto-displayed) -->
-                        <div x-show="form.subcounty_id && estatesInSubcounty.length > 0" 
+                        <!-- Properties in Subcounty (Auto-displayed) -->
+                        <div x-show="form.subcounty_id && propertiesInSubcounty.length > 0" 
                              class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800/30">
                             <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Properties in this Subcounty</h4>
                             <div class="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                                <template x-for="estate in estatesInSubcounty" :key="estate.id">
+                                <template x-for="property in propertiesInSubcounty" :key="property.id">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                                         </svg>
-                                        <span x-text="estate.name"></span>
+                                        <span x-text="property.name"></span>
                                     </span>
                                 </template>
                             </div>
                             <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                This manager will be responsible for all <strong x-text="estatesInSubcounty.length"></strong> properties in this subcounty
+                                This manager will be responsible for all <strong x-text="propertiesInSubcounty.length"></strong> properties in this subcounty
                             </p>
                         </div>
 
@@ -167,7 +167,7 @@ document.addEventListener('alpine:init', () => {
         availableUsers: [],
         counties: [],
         allSubcounties: [],
-        allEstates: [],
+        allProperties: [],
         form: {
             user_id: '',
             title: '',
@@ -188,10 +188,10 @@ document.addEventListener('alpine:init', () => {
             return this.allSubcounties.filter(s => s.county_id === this.form.county_id);
         },
         
-        // Computed: Get estates in selected subcounty
-        get estatesInSubcounty() {
+        // Computed: Get properties in selected subcounty
+        get propertiesInSubcounty() {
             if (!this.form.subcounty_id) return [];
-            return this.allEstates.filter(e => e.subcounty_id === this.form.subcounty_id);
+            return this.allProperties.filter(e => e.subcounty_id === this.form.subcounty_id);
         },
         
         init() {
@@ -199,7 +199,7 @@ document.addEventListener('alpine:init', () => {
             this.loadUsers();
             this.loadCounties();
             this.loadSubcounties();
-            this.loadEstates();
+            this.loadProperties();
         },
         
         async loadUsers() {
@@ -232,11 +232,11 @@ document.addEventListener('alpine:init', () => {
             }
         },
         
-        async loadEstates() {
+        async loadProperties() {
             try {
-                const response = await fetch('/admin/subscriptions/api/estates');
+                const response = await fetch('/admin/subscriptions/api/properties');
                 const data = await response.json();
-                this.allEstates = data.estates || [];
+                this.allProperties = data.properties || [];
             } catch (error) {
                 console.error('Error loading properties:', error);
             }
@@ -285,8 +285,8 @@ document.addEventListener('alpine:init', () => {
         },
         
         onSubcountyChange() {
-            // Update estates list when subcounty changes
-            console.log('Subcounty changed, properties:', this.estatesInSubcounty.length);
+            // Update properties list when subcounty changes
+            console.log('Subcounty changed, properties:', this.propertiesInSubcounty.length);
         },
         
         async loadManager(managerId) {

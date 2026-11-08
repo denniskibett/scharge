@@ -47,10 +47,10 @@ Route::middleware(['auth'])->prefix('security')->name('security.')->group(functi
     Route::get('/logs/{id}', [SecurityController::class, 'show'])->name('logs.show');
     
     // ============================================
-    // 🏢 API Routes - Estates, Units, Tenants
+    // 🏢 API Routes - Properties, Units, Tenants
     // ============================================
-    Route::get('/estates', [SecurityController::class, 'getEstates'])->name('estates');
-    Route::get('/units', [SecurityController::class, 'getUnitsByEstate'])->name('units');
+    Route::get('/properties', [SecurityController::class, 'getProperties'])->name('properties');
+    Route::get('/units', [SecurityController::class, 'getUnitsByProperty'])->name('units');
     Route::get('/tenants', [SecurityController::class, 'getTenantsByUnit'])->name('tenants');
     Route::get('/visitors', [SecurityController::class, 'getVisitorsByTenant'])->name('visitors');
 });

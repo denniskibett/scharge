@@ -3,69 +3,69 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Models\Unit;
 use App\Models\Tenancy;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Auth;
 
-class EstateController extends Controller
+class PropertyController extends Controller
 {
     public function index()
     {
         // Get the current authenticated user's company ID
         $companyId = Auth::user()->company_id;
         
-        // Scope estates by company_id
-        $estates = Estate::where('company_id', $companyId)
+        // Scope properties by company_id
+        $properties = Property::where('company_id', $companyId)
                         ->withCount('units')
                         ->get();
         
-        // Prepare estates data for Alpine.js including utility fields
-        $estatesData = $estates->map(function($estate) {
+        // Prepare properties data for Alpine.js including utility fields
+        $propertiesData = $properties->map(function($property) {
             return [
-                'id' => $estate->id,
-                'name' => $estate->name,
-                'location' => $estate->location,
-                'units_count' => $estate->units_count,
-                'water_rate' => (float) ($estate->water_rate ?? 0),
-                'service_charge' => (float) ($estate->service_charge ?? 0),
-                'garbage_charge' => (float) ($estate->garbage_charge ?? 0),
-                'security_charge' => (float) ($estate->security_charge ?? 0)
+                'id' => $property->id,
+                'name' => $property->name,
+                'location' => $property->location,
+                'units_count' => $property->units_count,
+                'water_rate' => (float) ($property->water_rate ?? 0),
+                'service_charge' => (float) ($property->service_charge ?? 0),
+                'garbage_charge' => (float) ($property->garbage_charge ?? 0),
+                'security_charge' => (float) ($property->security_charge ?? 0)
             ];
         });
         
-        return view('estates.index', [
-            'estates' => $estates,
-            'estatesData' => $estatesData
+        return view('properties.index', [
+            'properties' => $properties,
+            'propertiesData' => $propertiesData
         ]);
     }
 
-    public function show(Estate $estate)
+    public function show(Property $property)
     {
-        // Ensure the estate belongs to the current user's company
-        $this->authorizeCompanyAccess($estate);
+        // Ensure the property belongs to the current user's company
+        $this->authorizeCompanyAccess($property);
         
-        $estate->load(['units' => function($query) {
+        $property->load(['units' => function($query) {
             $query->with(['tenancies' => function($q) {
                 $q->with('tenant')->where('status', 'active')->latest();
             }]);
         }]);
         
         // Calculate stats
-        $occupiedCount = $estate->units->where('status', 'occupied')->count();
-        $vacantCount = $estate->units->where('status', 'vacant')->count();
-        $monthlyRentPotential = $estate->units->sum('rent_amount');
+        $occupiedCount = $property->units->where('status', 'occupied')->count();
+        $vacantCount = $property->units->where('status', 'vacant')->count();
+        $monthlyRentPotential = $property->units->sum('rent_amount');
         
         // Prepare units data for Alpine.js
-        $unitsData = $estate->units->map(function($unit) {
+        $unitsData = $property->units->map(function($unit) {
             // Get the active tenancy (where status is active)
             $activeTenancy = $unit->tenancies->where('status', 'active')->first();
             
             return [
                 'id' => $unit->id,
-                'estate_id' => $unit->estate_id,
-                'estate_name' => $unit->estate->name ?? '',
+                'property_id' => $unit->property_id,
+                'property_name' => $unit->property->name ?? '',
                 'unit_number' => $unit->unit_number,
                 'unit_type' => $unit->unit_type,
                 'rent_amount' => (float) $unit->rent_amount,
@@ -92,7 +92,7 @@ class EstateController extends Controller
         });
         
         // Calculate total monthly charges potential including utilities
-        $monthlyTotalChargesPotential = $estate->units->sum(function($unit) {
+        $monthlyTotalChargesPotential = $property->units->sum(function($unit) {
             return ($unit->rent_amount ?? 0) + 
                    ($unit->water_charge ?? 0) + 
                    ($unit->service_charge ?? 0) + 
@@ -100,14 +100,14 @@ class EstateController extends Controller
                    ($unit->security_charge ?? 0);
         });
         
-        return view('estates.show', [
-            'estate' => $estate,
+        return view('properties.show', [
+            'property' => $property,
             'unitsData' => $unitsData,
             'occupiedCount' => $occupiedCount,
             'vacantCount' => $vacantCount,
             'monthlyRentPotential' => $monthlyRentPotential,
             'monthlyTotalChargesPotential' => $monthlyTotalChargesPotential,
-            'totalUnits' => $estate->units->count()
+            'totalUnits' => $property->units->count()
         ]);
     }
 
@@ -132,18 +132,18 @@ class EstateController extends Controller
             // Add company_id from authenticated user
             $validated['company_id'] = Auth::user()->company_id;
 
-            $estate = Estate::create($validated);
+            $property = Property::create($validated);
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Property created successfully!',
-                    'estate' => $estate->loadCount('units'),
-                    'redirect' => route('estates.index')
+                    'property' => $property->loadCount('units'),
+                    'redirect' => route('properties.index')
                 ]);
             }
 
-            return redirect()->route('estates.index')->with('success', 'Property created successfully!');
+            return redirect()->route('properties.index')->with('success', 'Property created successfully!');
 
         } catch (ValidationException $e) {
             if ($request->wantsJson()) {
@@ -168,11 +168,11 @@ class EstateController extends Controller
         }
     }
 
-    public function update(Request $request, Estate $estate)
+    public function update(Request $request, Property $property)
     {
         try {
-            // Ensure the estate belongs to the current user's company
-            $this->authorizeCompanyAccess($estate);
+            // Ensure the property belongs to the current user's company
+            $this->authorizeCompanyAccess($property);
             
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
@@ -189,18 +189,18 @@ class EstateController extends Controller
             $validated['garbage_charge'] = $validated['garbage_charge'] ?? 0;
             $validated['security_charge'] = $validated['security_charge'] ?? 0;
 
-            $estate->update($validated);
+            $property->update($validated);
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Property updated successfully!',
-                    'estate' => $estate->loadCount('units'),
-                    'redirect' => route('estates.index')
+                    'property' => $property->loadCount('units'),
+                    'redirect' => route('properties.index')
                 ]);
             }
 
-            return redirect()->route('estates.index')->with('success', 'Property updated successfully!');
+            return redirect()->route('properties.index')->with('success', 'Property updated successfully!');
 
         } catch (ValidationException $e) {
             if ($request->wantsJson()) {
@@ -225,14 +225,14 @@ class EstateController extends Controller
         }
     }
 
-    public function destroy(Estate $estate)
+    public function destroy(Property $property)
     {
         try {
-            // Ensure the estate belongs to the current user's company
-            $this->authorizeCompanyAccess($estate);
+            // Ensure the property belongs to the current user's company
+            $this->authorizeCompanyAccess($property);
             
-            // Check if estate has units
-            if ($estate->units()->count() > 0) {
+            // Check if property has units
+            if ($property->units()->count() > 0) {
                 if (request()->wantsJson()) {
                     return response()->json([
                         'success' => false,
@@ -242,18 +242,18 @@ class EstateController extends Controller
                 return back()->with('error', 'Cannot delete property with existing units. Please delete all units first.');
             }
 
-            $estateName = $estate->name;
-            $estate->delete();
+            $propertyName = $property->name;
+            $property->delete();
 
             if (request()->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => "Estate '{$estateName}' deleted successfully!",
-                    'redirect' => route('estates.index')
+                    'message' => "Property '{$propertyName}' deleted successfully!",
+                    'redirect' => route('properties.index')
                 ]);
             }
 
-            return redirect()->route('estates.index')->with('success', "Estate '{$estateName}' deleted successfully!");
+            return redirect()->route('properties.index')->with('success', "Property '{$propertyName}' deleted successfully!");
 
         } catch (\Exception $e) {
             \Log::error('Failed to delete property: ' . $e->getMessage());
@@ -269,12 +269,12 @@ class EstateController extends Controller
         }
     }
 
-    // Bulk update utility charges for all units in an estate
-    public function bulkUpdateUtilities(Request $request, Estate $estate)
+    // Bulk update utility charges for all units in an property
+    public function bulkUpdateUtilities(Request $request, Property $property)
     {
         try {
-            // Ensure the estate belongs to the current user's company
-            $this->authorizeCompanyAccess($estate);
+            // Ensure the property belongs to the current user's company
+            $this->authorizeCompanyAccess($property);
             
             $validated = $request->validate([
                 'water_rate' => 'nullable|numeric|min:0',
@@ -284,18 +284,18 @@ class EstateController extends Controller
                 'apply_to_units' => 'boolean'
             ]);
 
-            // Update estate rates
+            // Update property rates
             $updateData = [];
             if (isset($validated['water_rate'])) $updateData['water_rate'] = $validated['water_rate'];
             if (isset($validated['service_charge'])) $updateData['service_charge'] = $validated['service_charge'];
             if (isset($validated['garbage_charge'])) $updateData['garbage_charge'] = $validated['garbage_charge'];
             if (isset($validated['security_charge'])) $updateData['security_charge'] = $validated['security_charge'];
             
-            $estate->update($updateData);
+            $property->update($updateData);
             
             $updatedUnits = 0;
             
-            // Optionally apply to all units in the estate
+            // Optionally apply to all units in the property
             if (isset($validated['apply_to_units']) && $validated['apply_to_units']) {
                 $unitUpdateData = [];
                 if (isset($validated['water_rate'])) $unitUpdateData['water_charge'] = $validated['water_rate'];
@@ -303,7 +303,7 @@ class EstateController extends Controller
                 if (isset($validated['garbage_charge'])) $unitUpdateData['garbage_charge'] = $validated['garbage_charge'];
                 if (isset($validated['security_charge'])) $unitUpdateData['security_charge'] = $validated['security_charge'];
                 
-                $updatedUnits = $estate->units()->update($unitUpdateData);
+                $updatedUnits = $property->units()->update($unitUpdateData);
             }
 
             if ($request->wantsJson()) {
@@ -315,12 +315,12 @@ class EstateController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => $message,
-                    'estate' => $estate->fresh(),
+                    'property' => $property->fresh(),
                     'updated_units' => $updatedUnits
                 ]);
             }
 
-            return redirect()->route('estates.show', $estate)->with('success', 'Utility rates updated successfully!');
+            return redirect()->route('properties.show', $property)->with('success', 'Utility rates updated successfully!');
 
         } catch (ValidationException $e) {
             if ($request->wantsJson()) {
@@ -345,23 +345,23 @@ class EstateController extends Controller
         }
     }
 
-    // Get estate financial summary
-    public function getFinancialSummary(Estate $estate)
+    // Get property financial summary
+    public function getFinancialSummary(Property $property)
     {
         try {
-            // Ensure the estate belongs to the current user's company
-            $this->authorizeCompanyAccess($estate);
+            // Ensure the property belongs to the current user's company
+            $this->authorizeCompanyAccess($property);
             
             $summary = [
-                'total_units' => $estate->units()->count(),
-                'occupied_units' => $estate->units()->where('status', 'occupied')->count(),
-                'vacant_units' => $estate->units()->where('status', 'vacant')->count(),
-                'total_rent' => (float) $estate->units()->sum('rent_amount'),
-                'total_water' => (float) $estate->units()->sum('water_charge'),
-                'total_service' => (float) $estate->units()->sum('service_charge'),
-                'total_garbage' => (float) $estate->units()->sum('garbage_charge'),
-                'total_security' => (float) $estate->units()->sum('security_charge'),
-                'total_monthly' => (float) $estate->units()->get()->sum(function($unit) {
+                'total_units' => $property->units()->count(),
+                'occupied_units' => $property->units()->where('status', 'occupied')->count(),
+                'vacant_units' => $property->units()->where('status', 'vacant')->count(),
+                'total_rent' => (float) $property->units()->sum('rent_amount'),
+                'total_water' => (float) $property->units()->sum('water_charge'),
+                'total_service' => (float) $property->units()->sum('service_charge'),
+                'total_garbage' => (float) $property->units()->sum('garbage_charge'),
+                'total_security' => (float) $property->units()->sum('security_charge'),
+                'total_monthly' => (float) $property->units()->get()->sum(function($unit) {
                     return ($unit->rent_amount ?? 0) + 
                            ($unit->water_charge ?? 0) + 
                            ($unit->service_charge ?? 0) + 
@@ -386,20 +386,20 @@ class EstateController extends Controller
     }
 
     /**
-     * Helper method to check if an estate belongs to the current user's company
+     * Helper method to check if an property belongs to the current user's company
      * 
-     * @param Estate $estate
+     * @param Property $property
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
-    private function authorizeCompanyAccess(Estate $estate)
+    private function authorizeCompanyAccess(Property $property)
     {
-        // Allow sysadmin to access any estate
+        // Allow sysadmin to access any property
         if (Auth::user()->hasRole('sysadmin')) {
             return;
         }
         
-        if ($estate->company_id !== Auth::user()->company_id) {
-            abort(403, 'You do not have permission to access this estate.');
+        if ($property->company_id !== Auth::user()->company_id) {
+            abort(403, 'You do not have permission to access this property.');
         }
     }
 }

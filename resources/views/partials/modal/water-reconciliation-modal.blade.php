@@ -37,11 +37,11 @@
 
                     <div>
                         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property (Optional)</label>
-                        <select x-model="estateId" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <select x-model="propertyId" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                             <option value="">All Properties</option>
-                            @foreach($estates ?? [] as $estate)
-                                <option value="{{ is_array($estate) ? $estate['id'] : $estate->id }}">
-                                    {{ is_array($estate) ? $estate['name'] : $estate->name }}
+                            @foreach($properties ?? [] as $property)
+                                <option value="{{ is_array($property) ? $property['id'] : $property->id }}">
+                                    {{ is_array($property) ? $property['name'] : $property->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -102,7 +102,7 @@ document.addEventListener('alpine:init', () => {
         isOpen: false,
         loading: false,
         billingMonth: '',
-        estateId: '',
+        propertyId: '',
         results: [],
         
         init() {
@@ -163,7 +163,7 @@ async reconcileWater() {
             },
             body: JSON.stringify({
                 billing_month: month,
-                estate_id: this.estateId || null
+                property_id: this.propertyId || null
             })
         });
         

@@ -10,7 +10,7 @@ use App\Modules\SMS\Services\KenyaSMS;
 use App\Modules\SMS\Models\SmsLog;
 use App\Modules\SMS\Models\SmsTemplate;
 use App\Modules\SMS\Models\SmsCampaign;
-use App\Modules\Properties\Models\Estate;
+use App\Modules\Properties\Models\Property;
 use App\Models\Company;
 use App\Modules\SMS\Helpers\PhoneHelper;
 use Carbon\Carbon;
@@ -26,7 +26,7 @@ class SmsController extends Controller
         // ============================================
         // Get tenants with active tenancies and phone numbers
         // ============================================
-        $tenants = Tenant::with(['user', 'activeTenancy.unit.estate'])
+        $tenants = Tenant::with(['user', 'activeTenancy.unit.property'])
             ->whereHas('activeTenancy', function($q) {
                 $q->where('status', 'active');
             })
@@ -42,7 +42,7 @@ class SmsController extends Controller
             $user = $tenant->user;
             $tenancy = $tenant->activeTenancy;
             $unit = $tenancy ? $tenancy->unit : null;
-            $estate = $unit ? $unit->estate : null;
+            $property = $unit ? $unit->property : null;
 
             // Clean phone: remove all non-digits, then ensure it starts with 254
             $rawPhone = $user ? $user->phone : '';
@@ -92,8 +92,8 @@ class SmsController extends Controller
                 'is_kenyan' => $isKenyan,
                 'unit_number' => $unit ? $unit->unit_number : 'N/A',
                 'unit' => $unit ? $unit->unit_number : 'N/A',
-                'estate_id' => $estate ? $estate->id : null,
-                'estate_name' => $estate ? $estate->name : 'N/A',
+                'property_id' => $property ? $property->id : null,
+                'property_name' => $property ? $property->name : 'N/A',
                 'water_bill' => $waterBill,
                 'water_consumption' => $waterConsumption,
                 'prev_read' => $prevRead,
@@ -133,8 +133,8 @@ class SmsController extends Controller
                     'is_kenyan' => true,
                     'unit_number' => 'N/A',
                     'unit' => 'N/A',
-                    'estate_id' => null,
-                    'estate_name' => 'N/A',
+                    'property_id' => null,
+                    'property_name' => 'N/A',
                     'water_bill' => 0,
                     'water_consumption' => 0,
                     'prev_read' => 0,
@@ -155,7 +155,7 @@ class SmsController extends Controller
         // ============================================
         // Other data for the view
         // ============================================
-        $estates = Estate::orderBy('name')->get();
+        $properties = Property::orderBy('name')->get();
         $companies = Company::orderBy('name')->get();
         $templates = SmsTemplate::orderBy('name')->get();
         $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);
@@ -172,7 +172,7 @@ class SmsController extends Controller
 
         return view('sms.broadcast', [
             'tenants' => $tenantData,
-            'estates' => $estates,
+            'properties' => $properties,
             'companies' => $companies,
             'templates' => $templates,
             'logs' => $logs,
@@ -225,14 +225,14 @@ class SmsController extends Controller
 
         $template = $request->input('template');
         if (empty($template)) {
-            $template = "{{estate_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))\n\nPaybill: 7263733\nAcc: {{unit}}\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nStatus: {{status}}\n\nFor queries: 0701262902";
+            $template = "{{property_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))\n\nPaybill: 7263733\nAcc: {{unit}}\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nStatus: {{status}}\n\nFor queries: 0701262902";
         }
 
         $tenantIds = collect($recipients)->pluck('id')->filter()->unique()->values()->toArray();
         $tenantData = collect();
         if (!empty($tenantIds)) {
             $tenantData = Tenant::whereIn('id', $tenantIds)
-                ->with(['activeTenancy.unit.estate'])
+                ->with(['activeTenancy.unit.property'])
                 ->get()
                 ->keyBy('id');
         }
@@ -292,7 +292,7 @@ class SmsController extends Controller
                 $activeTenancy = $tenant->activeTenancy;
                 $unit = $activeTenancy ? $activeTenancy->unit : null;
                 $unitNumber = $unit ? $unit->unit_number : '';
-                $estateName = $unit && $unit->estate ? $unit->estate->name : '';
+                $propertyName = $unit && $unit->property ? $unit->property->name : '';
                 $reading = $unit ? WaterReading::where('unit_id', $unit->id)
                     ->latest('reading_date')
                     ->first() : null;
@@ -306,7 +306,7 @@ class SmsController extends Controller
                 $waterBill = $reading ? (float) $reading->charge : 0;
                 $variables['unit'] = $unitNumber;
                 $variables['unit_number'] = $unitNumber;
-                $variables['estate_name'] = $estateName;
+                $variables['property_name'] = $propertyName;
                 $variables['name'] = $variables['name'] ?? $tenant->user->name ?? 'Tenant';
                 $variables['water_bill'] = (int) ($variables['water_bill'] ?? $waterBill);
                 $variables['water_consumption'] = (int) ($variables['water_consumption'] ?? $consumption);
@@ -363,9 +363,11 @@ class SmsController extends Controller
             if (!isset($variables['unit']) || empty($variables['unit'])) {
                 $variables['unit'] = $recipient['unit'] ?? 'N/A';
             }
-            if (!isset($variables['estate_name']) || empty($variables['estate_name'])) {
-                $variables['estate_name'] = $recipient['estate'] ?? 'N/A';
+            if (!isset($variables['property_name']) || empty($variables['property_name'])) {
+                $variables['property_name'] = $recipient['property'] ?? 'N/A';
             }
+            // Templates saved before the Estate -> Property rename use {{estate_name}}.
+            $variables['estate_name'] = $variables['property_name'];
             if (!isset($variables['payment_status']) || empty($variables['payment_status'])) {
                 $variables['payment_status'] = 'pending';
             }

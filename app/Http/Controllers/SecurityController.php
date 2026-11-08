@@ -7,7 +7,7 @@ use App\Modules\Security\Models\SecurityLog;
 use App\Modules\Security\Models\Visitor;
 use App\Models\Unit;
 use App\Models\Tenant;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +26,10 @@ class SecurityController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $units = Unit::with('estate')->get();
+        $units = Unit::with('property')->get();
         
         // Build the query with filters
-        $query = SecurityLog::with(['unit', 'visitor', 'verifiedByUser', 'estate'])
+        $query = SecurityLog::with(['unit', 'visitor', 'verifiedByUser', 'property'])
             ->latest('access_time');
         
         // Filter by date range
@@ -79,7 +79,7 @@ class SecurityController extends Controller
     public function viewLogs(Request $request)
     {
         try {
-            $query = SecurityLog::with(['visitor', 'unit', 'tenant', 'verifiedByUser', 'estate'])
+            $query = SecurityLog::with(['visitor', 'unit', 'tenant', 'verifiedByUser', 'property'])
                 ->latest('access_time');
             
             // Filter by date
@@ -87,9 +87,9 @@ class SecurityController extends Controller
                 $query->whereDate('access_time', $request->date);
             }
             
-            // Filter by estate
-            if ($request->estate_id) {
-                $query->where('estate_id', $request->estate_id);
+            // Filter by property
+            if ($request->property_id) {
+                $query->where('property_id', $request->property_id);
             }
             
             // Filter by status
@@ -98,15 +98,15 @@ class SecurityController extends Controller
             }
             
             $logs = $query->paginate(20);
-            $estates = Estate::all();
+            $properties = Property::all();
             
-            return view('security.logs', compact('logs', 'estates'));
+            return view('security.logs', compact('logs', 'properties'));
         } catch (\Exception $e) {
             Log::error('View Logs Error: ' . $e->getMessage());
             
             return view('security.logs', [
                 'logs' => collect(),
-                'estates' => Estate::all(),
+                'properties' => Property::all(),
                 'error' => 'Error loading logs: ' . $e->getMessage()
             ]);
         }
@@ -258,9 +258,9 @@ class SecurityController extends Controller
     public function quickEntryView()
     {
         try {
-            $estates = Estate::all();
-            $units = Unit::with('estate')->get();
-            return view('security.quick-entry', compact('estates', 'units'));
+            $properties = Property::all();
+            $units = Unit::with('property')->get();
+            return view('security.quick-entry', compact('properties', 'units'));
         } catch (\Exception $e) {
             Log::error('Quick Entry View Error: ' . $e->getMessage());
             return redirect()->route('security.index')->with('error', 'Error loading form');
@@ -316,7 +316,7 @@ class SecurityController extends Controller
                         'is_registered' => 0,
                         'is_active' => 1,
                         'company_id' => auth()->user()->company_id ?? null,
-                        'estate_id' => Unit::find($validated['unit_id'])->estate_id ?? null,
+                        'property_id' => Unit::find($validated['unit_id'])->property_id ?? null,
                     ]);
                 } else {
                     if ($visitor->name !== $validated['name']) {
@@ -332,7 +332,7 @@ class SecurityController extends Controller
             // Create security log
             $log = SecurityLog::create([
                 'company_id' => auth()->user()->company_id ?? null,
-                'estate_id' => $unit->estate_id ?? null,
+                'property_id' => $unit->property_id ?? null,
                 'unit_id' => $validated['unit_id'],
                 'tenant_id' => $tenant->id ?? null,
                 'visitor_id' => $visitor->id,
@@ -387,9 +387,9 @@ class SecurityController extends Controller
     public function fullEntryView()
     {
         try {
-            $estates = Estate::all();
-            $units = Unit::with('estate')->get();
-            return view('security.full-entry', compact('estates', 'units'));
+            $properties = Property::all();
+            $units = Unit::with('property')->get();
+            return view('security.full-entry', compact('properties', 'units'));
         } catch (\Exception $e) {
             Log::error('Full Entry View Error: ' . $e->getMessage());
             return redirect()->route('security.index')->with('error', 'Error loading form');
@@ -442,7 +442,7 @@ class SecurityController extends Controller
                     'is_registered' => 1,
                     'is_active' => 1,
                     'company_id' => auth()->user()->company_id ?? null,
-                    'estate_id' => Unit::find($validated['unit_id'])->estate_id ?? null,
+                    'property_id' => Unit::find($validated['unit_id'])->property_id ?? null,
                 ]);
             } else {
                 $visitor->update([
@@ -463,7 +463,7 @@ class SecurityController extends Controller
             // Create security log
             $log = SecurityLog::create([
                 'company_id' => auth()->user()->company_id ?? null,
-                'estate_id' => $unit->estate_id ?? null,
+                'property_id' => $unit->property_id ?? null,
                 'unit_id' => $validated['unit_id'],
                 'tenant_id' => $tenant->id ?? null,
                 'visitor_id' => $visitor->id,
@@ -604,7 +604,7 @@ class SecurityController extends Controller
     public function show($id)
     {
         try {
-            $log = SecurityLog::with(['unit', 'visitor', 'estate'])->findOrFail($id);
+            $log = SecurityLog::with(['unit', 'visitor', 'property'])->findOrFail($id);
             
             // Check authorization
             $user = auth()->user();
@@ -812,32 +812,32 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 🏢 ESTATE / UNIT / TENANT API ENDPOINTS
+    // 🏢 PROPERTY / UNIT / TENANT API ENDPOINTS
     // ============================================
 
     /**
-     * Get estates for the current user's company
+     * Get properties for the current user's company
      */
-    public function getEstates()
+    public function getProperties()
     {
         try {
             $user = auth()->user();
             $companyId = $user->company_id;
             
             if ($user->hasRole('sysadmin')) {
-                $estates = Estate::orderBy('name')->get();
+                $properties = Property::orderBy('name')->get();
             } else {
-                $estates = Estate::where('company_id', $companyId)
+                $properties = Property::where('company_id', $companyId)
                     ->orderBy('name')
                     ->get();
             }
             
             return response()->json([
                 'success' => true, 
-                'estates' => $estates->map(function($estate) {
+                'properties' => $properties->map(function($property) {
                     return [
-                        'id' => $estate->id,
-                        'name' => $estate->name,
+                        'id' => $property->id,
+                        'name' => $property->name,
                     ];
                 })
             ]);
@@ -848,16 +848,16 @@ class SecurityController extends Controller
     }
 
     /**
-     * Get units for a specific estate with active tenancies
+     * Get units for a specific property with active tenancies
      */
-    public function getUnitsByEstate(Request $request)
+    public function getUnitsByProperty(Request $request)
     {
         try {
             $request->validate([
-                'estate_id' => 'required|exists:estates,id',
+                'property_id' => 'required|exists:properties,id',
             ]);
             
-            $units = Unit::where('estate_id', $request->estate_id)
+            $units = Unit::where('property_id', $request->property_id)
                 ->with(['activeTenancy.tenant.user'])
                 ->get()
                 ->map(function($unit) {
@@ -1202,7 +1202,7 @@ class SecurityController extends Controller
                 'unit' => [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'property_name' => $unit->property->name ?? 'N/A',
                 ],
             ]);
         } catch (\Exception $e) {
@@ -1220,17 +1220,17 @@ class SecurityController extends Controller
             $user = auth()->user();
             $companyId = $user->company_id;
             
-            $estates = Estate::where('company_id', $companyId)
+            $properties = Property::where('company_id', $companyId)
                 ->orderBy('name')
                 ->get()
-                ->map(function($estate) {
+                ->map(function($property) {
                     return [
-                        'id' => $estate->id,
-                        'name' => $estate->name,
+                        'id' => $property->id,
+                        'name' => $property->name,
                     ];
                 });
             
-            $units = Unit::with('estate')
+            $units = Unit::with('property')
                 ->where('company_id', $companyId)
                 ->where('is_active', true)
                 ->get()
@@ -1238,15 +1238,15 @@ class SecurityController extends Controller
                     return [
                         'id' => $unit->id,
                         'unit_number' => $unit->unit_number,
-                        'estate_name' => $unit->estate->name ?? 'N/A',
-                        'estate_id' => $unit->estate_id,
+                        'property_name' => $unit->property->name ?? 'N/A',
+                        'property_id' => $unit->property_id,
                         'status' => $unit->status,
                     ];
                 });
             
             return response()->json([
                 'success' => true,
-                'estates' => $estates,
+                'properties' => $properties,
                 'units' => $units
             ]);
         } catch (\Exception $e) {

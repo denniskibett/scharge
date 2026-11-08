@@ -155,7 +155,7 @@
                             </div>
                         </td>
                         <td class="p-4 whitespace-nowrap">
-                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="task.estate_name"></span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="task.property_name"></span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
@@ -338,7 +338,7 @@ document.addEventListener('alpine:init', () => {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(task => 
                     (task.unit_number && task.unit_number.toLowerCase().includes(query)) ||
-                    (task.estate_name && task.estate_name.toLowerCase().includes(query)) ||
+                    (task.property_name && task.property_name.toLowerCase().includes(query)) ||
                     (task.assigned_to && task.assigned_to.toLowerCase().includes(query)) ||
                     (task.description && task.description.toLowerCase().includes(query))
                 );

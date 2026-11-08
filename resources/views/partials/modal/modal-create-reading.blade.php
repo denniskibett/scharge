@@ -74,7 +74,7 @@
 
 <script>
 // ============================================================
-// COMPLETE FIXED VERSION - WITH ESTATE RATE SUPPORT & DUPLICATE PREVENTION
+// COMPLETE FIXED VERSION - WITH PROPERTY RATE SUPPORT & DUPLICATE PREVENTION
 // ============================================================
 
 // Prevent duplicate declaration errors
@@ -84,8 +84,8 @@ if (typeof currentMode === 'undefined') {
 if (typeof allUnits === 'undefined') {
     var allUnits = [];
 }
-if (typeof allEstates === 'undefined') {
-    var allEstates = [];
+if (typeof allProperties === 'undefined') {
+    var allProperties = [];
 }
 if (typeof bulkReadingsData === 'undefined') {
     var bulkReadingsData = [];
@@ -97,33 +97,33 @@ async function fetchData() {
         console.log('Fetching units...');
         const unitsFromPage = @json($units ?? []);
         
-        // Define estate rates manually (since they're not in the data)
-        const estateRates = {
+        // Define property rates manually (since they're not in the data)
+        const propertyRates = {
             1: 150,  // Danaff Towers
             2: 200,  // Bloomfield Apartments
-            // Add more estates as needed
+            // Add more properties as needed
         };
         
         if (unitsFromPage.length > 0) {
             allUnits = unitsFromPage;
             console.log('Units loaded from page data:', allUnits.length);
             
-            const estateMap = {};
+            const propertyMap = {};
             allUnits.forEach(u => {
-                if (u.estate_id && u.estate_name) {
-                    if (!estateMap[u.estate_id]) {
-                        estateMap[u.estate_id] = u.estate_name;
+                if (u.property_id && u.property_name) {
+                    if (!propertyMap[u.property_id]) {
+                        propertyMap[u.property_id] = u.property_name;
                     }
                 }
             });
-            allEstates = Object.keys(estateMap).map(id => ({
+            allProperties = Object.keys(propertyMap).map(id => ({
                 id: id,
-                name: estateMap[id],
-                water_rate: estateRates[id] || 50
+                name: propertyMap[id],
+                water_rate: propertyRates[id] || 50
             }));
-            console.log('Properties extracted from units:', allEstates.length);
+            console.log('Properties extracted from units:', allProperties.length);
             
-            populateEstateDropdown();
+            populatePropertyDropdown();
             return;
         }
         
@@ -142,22 +142,22 @@ async function fetchData() {
             console.log('Units loaded (array):', allUnits.length);
         }
         
-        const estateMap = {};
+        const propertyMap = {};
         allUnits.forEach(u => {
-            if (u.estate_id && u.estate_name) {
-                if (!estateMap[u.estate_id]) {
-                    estateMap[u.estate_id] = u.estate_name;
+            if (u.property_id && u.property_name) {
+                if (!propertyMap[u.property_id]) {
+                    propertyMap[u.property_id] = u.property_name;
                 }
             }
         });
-        allEstates = Object.keys(estateMap).map(id => ({
+        allProperties = Object.keys(propertyMap).map(id => ({
             id: id,
-            name: estateMap[id],
-            water_rate: estateRates[id] || 50
+            name: propertyMap[id],
+            water_rate: propertyRates[id] || 50
         }));
-        console.log('Properties extracted from units:', allEstates.length);
+        console.log('Properties extracted from units:', allProperties.length);
         
-        populateEstateDropdown();
+        populatePropertyDropdown();
         
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -169,15 +169,15 @@ async function fetchData() {
     }
 }
 
-// ==================== POPULATE ESTATE DROPDOWN ====================
-function populateEstateDropdown() {
-    const select = document.getElementById('bulkEstateSelect');
+// ==================== POPULATE PROPERTY DROPDOWN ====================
+function populatePropertyDropdown() {
+    const select = document.getElementById('bulkPropertySelect');
     if (!select) return;
     
     let html = '<option value="">All Properties</option>';
-    allEstates.forEach(estate => {
-        const id = typeof estate === 'object' ? estate.id : estate;
-        const name = typeof estate === 'object' ? estate.name : estate;
+    allProperties.forEach(property => {
+        const id = typeof property === 'object' ? property.id : property;
+        const name = typeof property === 'object' ? property.name : property;
         html += `<option value="${id}">${name}</option>`;
     });
     select.innerHTML = html;
@@ -211,11 +211,11 @@ function renderForm() {
     } else if (currentMode === 'bulk') {
         container.innerHTML = renderBulkMode();
         setTimeout(() => {
-            populateEstateDropdown();
-            if (allEstates.length > 0) {
-                const select = document.getElementById('bulkEstateSelect');
+            populatePropertyDropdown();
+            if (allProperties.length > 0) {
+                const select = document.getElementById('bulkPropertySelect');
                 if (select && !select.value) {
-                    select.value = allEstates[0].id;
+                    select.value = allProperties[0].id;
                 }
                 loadBulkUnits();
             }
@@ -249,13 +249,13 @@ function renderBulkMode() {
             </div>
         </div>
         
-        <!-- Estate Selection -->
+        <!-- Property Selection -->
         <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Select Estate
+                Select Property
             </label>
-            <select id="bulkEstateSelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" onchange="loadBulkUnits()">
-                <option value="">Loading estates...</option>
+            <select id="bulkPropertySelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800" onchange="loadBulkUnits()">
+                <option value="">Loading properties...</option>
             </select>
         </div>
         
@@ -357,10 +357,10 @@ function unitHasReadingForMonth(unit, month) {
 
 // ==================== LOAD BULK UNITS ====================
 async function loadBulkUnits() {
-    const estateId = document.getElementById('bulkEstateSelect').value;
+    const propertyId = document.getElementById('bulkPropertySelect').value;
     const readingMonth = document.getElementById('bulkReadingMonth').value;
     
-    console.log('Loading units for property:', estateId);
+    console.log('Loading units for property:', propertyId);
     console.log('Reading month:', readingMonth);
     console.log('Total units available:', allUnits.length);
     
@@ -379,16 +379,16 @@ async function loadBulkUnits() {
     }
     
     let filteredUnits = allUnits;
-    if (estateId) {
-        filteredUnits = allUnits.filter(u => String(u.estate_id) === String(estateId));
+    if (propertyId) {
+        filteredUnits = allUnits.filter(u => String(u.property_id) === String(propertyId));
         console.log('Filtered units:', filteredUnits.length);
     }
     
     if (filteredUnits.length === 0) {
         document.getElementById('bulkTableContainer').innerHTML = `
             <div class="text-center text-gray-500 py-8">
-                <p>No units found for this estate.</p>
-                <p class="text-xs text-gray-400 mt-2">Total units: ${allUnits.length} | Estate ID: ${estateId || 'All'}</p>
+                <p>No units found for this property.</p>
+                <p class="text-xs text-gray-400 mt-2">Total units: ${allUnits.length} | Property ID: ${propertyId || 'All'}</p>
             </div>
         `;
         updateBulkStats();
@@ -461,15 +461,15 @@ async function loadBulkUnits() {
         
         const prevReading = parseFloat(unit.current_water_reading) || parseFloat(unit.previous_water_reading) || 0;
         
-        // Get the estate rate from allEstates
-        let estateRate = 50;
-        if (unit.estate_id) {
-            const estate = allEstates.find(e => String(e.id) === String(unit.estate_id));
-            if (estate && estate.water_rate) {
-                estateRate = parseFloat(estate.water_rate);
+        // Get the property rate from allProperties
+        let propertyRate = 50;
+        if (unit.property_id) {
+            const property = allProperties.find(e => String(e.id) === String(unit.property_id));
+            if (property && property.water_rate) {
+                propertyRate = parseFloat(property.water_rate);
             }
         }
-        const rate = parseFloat(unit.custom_water_rate) || estateRate;
+        const rate = parseFloat(unit.custom_water_rate) || propertyRate;
         
         const billingType = unit.water_billing_type || 'consumption';
         const flatRate = parseFloat(unit.water_charge) || 0;
@@ -483,7 +483,7 @@ async function loadBulkUnits() {
         const readingObj = {
             unitId: unit.id,
             unitNumber: unit.unit_number,
-            estateName: unit.estate_name,
+            propertyName: unit.property_name,
             prevReading: prevReading,
             rate: rate,
             billingType: billingType,
@@ -519,7 +519,7 @@ async function loadBulkUnits() {
             <tr class="border-t border-gray-200 dark:border-gray-700 ${rowClass}" data-index="${index}">
                 <td class="px-3 py-2">
                     <span class="font-medium">${unit.unit_number}</span>
-                    <span class="text-xs text-gray-400 block">${unit.estate_name}</span>
+                    <span class="text-xs text-gray-400 block">${unit.property_name}</span>
                     ${hasExistingReading ? '<span class="text-xs text-green-500 block">✓ Already recorded</span>' : ''}
                 </td>
                 <td class="px-3 py-2 text-center">
@@ -754,7 +754,7 @@ function clearBulk() {
 function renderSingleMode() {
     let unitOptions = '<option value="">Select Unit</option>';
     allUnits.forEach(unit => {
-        unitOptions += `<option value="${unit.id}">${unit.unit_number} - ${unit.estate_name}</option>`;
+        unitOptions += `<option value="${unit.id}">${unit.unit_number} - ${unit.property_name}</option>`;
     });
     
     return `
@@ -783,7 +783,7 @@ function renderSingleMode() {
 function renderMultiMonthMode() {
     let unitOptions = '<option value="">Select Unit</option>';
     allUnits.forEach(unit => {
-        unitOptions += `<option value="${unit.id}">${unit.unit_number} - ${unit.estate_name}</option>`;
+        unitOptions += `<option value="${unit.id}">${unit.unit_number} - ${unit.property_name}</option>`;
     });
     
     return `

@@ -303,7 +303,7 @@ class RoleController extends Controller
                 'description' => 'Manage properties, units, tenants, and tenancies',
                 'color' => 'primary',
                 'icon' => 'building',
-                'permissions' => ['property', 'estates', 'units', 'tenants', 'tenancies'],
+                'permissions' => ['property', 'properties', 'units', 'tenants', 'tenancies'],
             ],
             'accountant' => [
                 'name' => 'Accountant',

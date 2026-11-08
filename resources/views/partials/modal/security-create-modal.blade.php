@@ -1,6 +1,6 @@
 <!-- resources/views/partials/modal/security-create-modal.blade.php -->
 
-<!-- MAIN SECURITY VISITOR LOG MODAL (Full Modal with Estate→Unit→Tenant Selection) -->
+<!-- MAIN SECURITY VISITOR LOG MODAL (Full Modal with Property→Unit→Tenant Selection) -->
 <div id="securityVisitorModal" class="fixed inset-0 z-999999 hidden" style="isolation: isolate;" aria-labelledby="slideover-title" role="dialog" aria-modal="true">
     <!-- Backdrop with fade -->
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
@@ -52,8 +52,8 @@
                 
                 <!-- Dynamic Content Area -->
                 <div id="securityModalContent" class="flex-1 overflow-y-auto p-4 space-y-4">
-                    <!-- Step 1: Estate Selection -->
-                    <div id="stepEstate" class="space-y-4">
+                    <!-- Step 1: Property Selection -->
+                    <div id="stepProperty" class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 <svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,11 +61,11 @@
                                 </svg>
                                 Select Property
                             </label>
-                            <select id="securityEstateSelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                            <select id="securityPropertySelect" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
                                 <option value="">-- Select a property --</option>
                             </select>
                         </div>
-                        <div class="text-center text-gray-500 dark:text-gray-400 py-8" id="estateLoadingIndicator" style="display: none;">
+                        <div class="text-center text-gray-500 dark:text-gray-400 py-8" id="propertyLoadingIndicator" style="display: none;">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto mb-2"></div>
                             <p class="text-sm">Loading properties...</p>
                         </div>
@@ -306,7 +306,7 @@
                     <select x-model="unitId" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm">
                         <option value="">Select Unit</option>
                         @foreach($units ?? [] as $unit)
-                        <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} ({{ $unit['estate_name'] ?? 'No Estate' }})</option>
+                        <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} ({{ $unit['property_name'] ?? 'No Property' }})</option>
                         @endforeach
                     </select>
                 </div>
@@ -455,7 +455,7 @@
 // ==================== MAIN SECURITY VISITOR MODAL ====================
 let securityState = {
     step: 1,
-    estateId: null,
+    propertyId: null,
     unitId: null,
     tenantId: null,
     currentTab: 'visitors'
@@ -477,7 +477,7 @@ function openSecurityVisitorModal() {
             panel.classList.add('translate-x-0');
         }, 10);
         document.body.style.overflow = 'hidden';
-        loadEstates();
+        loadProperties();
     }
 }
 
@@ -497,18 +497,18 @@ function closeSecurityVisitorModal() {
 }
 
 function resetSecurityModal() {
-    securityState = { step: 1, estateId: null, unitId: null, tenantId: null, currentTab: 'visitors' };
-    document.getElementById('stepEstate').style.display = 'block';
+    securityState = { step: 1, propertyId: null, unitId: null, tenantId: null, currentTab: 'visitors' };
+    document.getElementById('stepProperty').style.display = 'block';
     document.getElementById('stepUnit').style.display = 'none';
     document.getElementById('stepTenant').style.display = 'none';
     document.getElementById('resultsSection').style.display = 'none';
     document.getElementById('backButton').style.display = 'none';
     updateStepIndicators(1);
     
-    const estateSelect = document.getElementById('securityEstateSelect');
+    const propertySelect = document.getElementById('securityPropertySelect');
     const unitSelect = document.getElementById('securityUnitSelect');
     const tenantSelect = document.getElementById('securityTenantSelect');
-    if (estateSelect) estateSelect.innerHTML = '<option value="">-- Select a property --</option>';
+    if (propertySelect) propertySelect.innerHTML = '<option value="">-- Select a property --</option>';
     if (unitSelect) unitSelect.innerHTML = '<option value="">-- Select a unit --</option>';
     if (tenantSelect) tenantSelect.innerHTML = '<option value="">-- Select a tenant --</option>';
 }
@@ -537,7 +537,7 @@ function goBack() {
         securityState.step--;
         if (securityState.step === 1) {
             document.getElementById('stepUnit').style.display = 'none';
-            document.getElementById('stepEstate').style.display = 'block';
+            document.getElementById('stepProperty').style.display = 'block';
             document.getElementById('backButton').style.display = 'none';
         } else if (securityState.step === 2) {
             document.getElementById('stepTenant').style.display = 'none';
@@ -549,45 +549,45 @@ function goBack() {
     }
 }
 
-async function loadEstates() {
-    const loadingIndicator = document.getElementById('estateLoadingIndicator');
-    const estateSelect = document.getElementById('securityEstateSelect');
+async function loadProperties() {
+    const loadingIndicator = document.getElementById('propertyLoadingIndicator');
+    const propertySelect = document.getElementById('securityPropertySelect');
     if (loadingIndicator) loadingIndicator.style.display = 'block';
     
     try {
-        const response = await fetch('/security/estates');
+        const response = await fetch('/security/properties');
         const data = await response.json();
-        if (data.success && data.estates) {
-            estateSelect.innerHTML = '<option value="">-- Select a property --</option>';
-            data.estates.forEach(estate => { estateSelect.innerHTML += `<option value="${estate.id}">${estate.name}</option>`; });
-            estateSelect.onchange = () => onEstateSelected();
+        if (data.success && data.properties) {
+            propertySelect.innerHTML = '<option value="">-- Select a property --</option>';
+            data.properties.forEach(property => { propertySelect.innerHTML += `<option value="${property.id}">${property.name}</option>`; });
+            propertySelect.onchange = () => onPropertySelected();
         }
     } catch (error) { console.error('Error loading properties:', error); }
     finally { if (loadingIndicator) loadingIndicator.style.display = 'none'; }
 }
 
-async function onEstateSelected() {
-    const estateSelect = document.getElementById('securityEstateSelect');
-    const estateId = estateSelect.value;
-    if (!estateId) return;
+async function onPropertySelected() {
+    const propertySelect = document.getElementById('securityPropertySelect');
+    const propertyId = propertySelect.value;
+    if (!propertyId) return;
     
-    securityState.estateId = parseInt(estateId);
+    securityState.propertyId = parseInt(propertyId);
     securityState.step = 2;
-    document.getElementById('stepEstate').style.display = 'none';
+    document.getElementById('stepProperty').style.display = 'none';
     document.getElementById('stepUnit').style.display = 'block';
     document.getElementById('backButton').style.display = 'inline-flex';
     updateStepIndicators(2);
-    await loadUnits(estateId);
+    await loadUnits(propertyId);
 }
 
-async function loadUnits(estateId) {
+async function loadUnits(propertyId) {
     const loadingIndicator = document.getElementById('unitLoadingIndicator');
     const unitSelect = document.getElementById('securityUnitSelect');
     if (loadingIndicator) loadingIndicator.style.display = 'block';
     unitSelect.innerHTML = '<option value="">-- Loading units --</option>';
     
     try {
-        const response = await fetch(`/security/units?estate_id=${estateId}`);
+        const response = await fetch(`/security/units?property_id=${propertyId}`);
         const data = await response.json();
         if (data.success && data.units) {
             unitSelect.innerHTML = '<option value="">-- Select a unit --</option>';

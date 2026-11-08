@@ -14,7 +14,7 @@ use App\Modules\Properties\Models\TenancyCharge;
 use App\Modules\Payments\Models\Invoice;
 use App\Modules\Payments\Models\InvoiceItem;  
 use App\Models\Maintenance;
-use App\Models\Estate;
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -26,7 +26,7 @@ class TenancyController extends Controller
 {
     public function index()
     {
-        $tenancies = Tenancy::with(['tenant.user', 'unit.estate', 'charges'])->get();
+        $tenancies = Tenancy::with(['tenant.user', 'unit.property', 'charges'])->get();
         
         // Format data for Alpine.js
         $tenanciesData = $tenancies->map(function ($tenancy) {
@@ -50,7 +50,7 @@ class TenancyController extends Controller
                 'tenant_id' => $tenancy->tenant_id,
                 'unit_number' => $tenancy->unit->unit_number ?? null,
                 'unit_id' => $tenancy->unit_id,
-                'estate_name' => $tenancy->unit->estate->name ?? null,
+                'property_name' => $tenancy->unit->property->name ?? null,
                 'rent_amount' => $tenancy->unit->rent_amount ?? 0,
                 'water_charge' => $tenancy->unit->water_charge ?? 0,
                 'service_charge' => $tenancy->unit->service_charge ?? 0,
@@ -160,8 +160,8 @@ class TenancyController extends Controller
             ];
         });
 
-        $allUnits = Unit::with('estate')
-            ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount', 
+        $allUnits = Unit::with('property')
+            ->select('id', 'unit_number', 'property_id', 'unit_type', 'rent_amount', 
                     'water_charge', 'service_charge', 'garbage_charge', 'security_charge', 'status')
             ->get()
             ->map(function ($unit) {
@@ -173,7 +173,7 @@ class TenancyController extends Controller
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? null,
+                    'property_name' => $unit->property->name ?? null,
                     'unit_type' => $unit->unit_type,
                     'rent_amount' => $unit->rent_amount,
                     'water_charge' => $unit->water_charge ?? 0,
@@ -187,7 +187,7 @@ class TenancyController extends Controller
                                             ($unit->security_charge ?? 0),
                     'status' => $unit->status,
                     'maintenance_count' => $maintenanceCount,
-                    'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Property') . ', (' . $unit->unit_type . ')',
+                    'label' => $unit->unit_number . ' - ' . ($unit->property->name ?? 'No Property') . ', (' . $unit->unit_type . ')',
                 ];
             });
 
@@ -195,7 +195,7 @@ class TenancyController extends Controller
             return $unit['status'] === 'vacant';
         })->values();
         
-        $estates = Estate::orderBy('name')->get();
+        $properties = Property::orderBy('name')->get();
 
         return view('tenancies.index', [
             'tenanciesData' => $tenanciesData,
@@ -204,7 +204,7 @@ class TenancyController extends Controller
             'allUnits' => $allUnits,
             'units' => $vacantUnits,
             'vacantUnits' => $vacantUnits,
-            'estates' => $estates,
+            'properties' => $properties,
         ]);
     }
     
@@ -220,9 +220,9 @@ public function show(Tenancy $tenancy)
                 }]);
         },
         'unit' => function ($query) {
-            $query->select('id', 'estate_id', 'unit_number', 'unit_type', 'rent_amount', 'status',
+            $query->select('id', 'property_id', 'unit_number', 'unit_type', 'rent_amount', 'status',
                         'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
-                ->with(['estate' => function ($q) {
+                ->with(['property' => function ($q) {
                     $q->select('id', 'name', 'location');
                 }]);
         },
@@ -330,7 +330,7 @@ public function show(Tenancy $tenancy)
             'payer_name' => $tenantName,
             'tenant_name' => $tenantName,
             'unit_number' => $invoice->tenancy->unit->unit_number ?? 'N/A',
-            'estate_name' => $invoice->tenancy->unit->estate->name ?? 'N/A',
+            'property_name' => $invoice->tenancy->unit->property->name ?? 'N/A',
             'label' => $tenantName . ' - Invoice #' . ($invoice->invoice_number ?? $invoice->id) . ': ' . $itemsLabel,
             'items' => $invoice->items->map(function($item) {
                 return [
@@ -359,7 +359,7 @@ public function show(Tenancy $tenancy)
                 'total_amount' => (float) $inv->total_amount,
                 'tenant_name' => $payerName,
                 'unit_number' => $inv->tenancy->unit->unit_number ?? 'N/A',
-                'estate_name' => $inv->tenancy->unit->estate->name ?? 'N/A',
+                'property_name' => $inv->tenancy->unit->property->name ?? 'N/A',
                 'billing_month' => $inv->billing_month ? \Carbon\Carbon::parse($inv->billing_month)->format('F Y') : '-',
                 'outstanding_balance' => (float) ($inv->total_amount - $inv->payments->sum('amount')),
             ];
@@ -385,7 +385,7 @@ public function show(Tenancy $tenancy)
 
     public function edit(Tenancy $tenancy)
     {
-        $tenancy->load(['tenant.user', 'unit.estate', 'charges', 'leaseAgreement']);
+        $tenancy->load(['tenant.user', 'unit.property', 'charges', 'leaseAgreement']);
         
         // Get deposit from charges
         $depositCharge = $tenancy->charges()
@@ -419,7 +419,7 @@ public function show(Tenancy $tenancy)
                     'tenant_email' => $tenancy->tenant->user->email ?? null,
                     'unit_id' => $tenancy->unit_id,
                     'unit_number' => $tenancy->unit->unit_number ?? null,
-                    'estate_name' => $tenancy->unit->estate->name ?? null,
+                    'property_name' => $tenancy->unit->property->name ?? null,
                     'rent_amount' => $tenancy->unit->rent_amount ?? 0,
                     'water_charge' => $tenancy->unit->water_charge ?? 0,
                     'service_charge' => $tenancy->unit->service_charge ?? 0,
@@ -444,7 +444,7 @@ public function show(Tenancy $tenancy)
             ]);
         }
         
-        $units = Unit::with('estate')->select('id', 'unit_number', 'estate_id', 'unit_type', 
+        $units = Unit::with('property')->select('id', 'unit_number', 'property_id', 'unit_type', 
                                               'rent_amount', 'water_charge', 'service_charge', 
                                               'garbage_charge', 'security_charge', 'status')->get();
         return view('tenancies.edit', compact('tenancy', 'units'));
@@ -456,7 +456,7 @@ public function show(Tenancy $tenancy)
         $unit = null;
 
         if ($unitId) {
-            $unit = Unit::with('estate')->findOrFail($unitId);
+            $unit = Unit::with('property')->findOrFail($unitId);
         }
 
         $tenants = Tenant::with('user')->get();
@@ -893,7 +893,7 @@ public function show(Tenancy $tenancy)
     // Generate lease agreement PDF
     public function generateLeaseAgreement(Tenancy $tenancy)
     {
-        $tenancy->load(['tenant.user', 'unit.estate', 'leaseAgreement']);
+        $tenancy->load(['tenant.user', 'unit.property', 'leaseAgreement']);
         
         // If no lease agreement exists, create one
         if (!$tenancy->leaseAgreement) {
@@ -992,16 +992,16 @@ public function show(Tenancy $tenancy)
     public function getUnits(Request $request)
     {
         if ($request->ajax()) {
-            $units = Unit::with('estate')
+            $units = Unit::with('property')
                 ->where('status', 'vacant')
-                ->select('id', 'unit_number', 'estate_id', 'unit_type', 'rent_amount',
+                ->select('id', 'unit_number', 'property_id', 'unit_type', 'rent_amount',
                         'water_charge', 'service_charge', 'garbage_charge', 'security_charge')
                 ->get()
                 ->map(function ($unit) {
                     return [
                         'id' => $unit->id,
                         'unit_number' => $unit->unit_number,
-                        'estate_name' => $unit->estate->name ?? null,
+                        'property_name' => $unit->property->name ?? null,
                         'unit_type' => $unit->unit_type,
                         'rent_amount' => $unit->rent_amount,
                         'water_charge' => $unit->water_charge ?? 0,
@@ -1013,7 +1013,7 @@ public function show(Tenancy $tenancy)
                                                    ($unit->service_charge ?? 0) + 
                                                    ($unit->garbage_charge ?? 0) + 
                                                    ($unit->security_charge ?? 0),
-                        'label' => $unit->unit_number . ' - ' . ($unit->estate->name ?? 'No Property') . ', (' . $unit->unit_type . ')',
+                        'label' => $unit->unit_number . ' - ' . ($unit->property->name ?? 'No Property') . ', (' . $unit->unit_type . ')',
                     ];
                 });
             

@@ -228,6 +228,6 @@ function tenantDashboard() {
 <!-- Include Maintenance Create Modal for Tenants -->
 @include('partials.modal.maintenance-create-modal', [
     'units' => $units ?? [],
-    'estates' => $estates ?? [],
+    'properties' => $properties ?? [],
     'currentUnit' => $currentUnit ?? null
 ])

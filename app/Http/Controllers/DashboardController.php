@@ -16,7 +16,7 @@ use App\Models\Maintenance;
 use App\Models\SecurityLog;
 use App\Models\WaterReading;
 use App\Models\Company;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Helpers\SystemHelper;
 use App\Models\Transaction;
 use App\Modules\Subscriptions\Models\CompanySubscription;
@@ -579,8 +579,8 @@ class DashboardController extends Controller
             ];
         });
         
-        $estates = Estate::where('company_id', $company->id)->orderBy('name')->get();
-        $units = Unit::where('company_id', $company->id)->with('estate')->get();
+        $properties = Property::where('company_id', $company->id)->orderBy('name')->get();
+        $units = Unit::where('company_id', $company->id)->with('property')->get();
         
         $stats = [
             'total_units' => Unit::where('company_id', $company->id)->count(),
@@ -653,7 +653,7 @@ class DashboardController extends Controller
         
         $waterReadings = Unit::where('company_id', $company->id)
             ->where('status', 'occupied')
-            ->with('estate')
+            ->with('property')
             ->orderBy('last_reading_date', 'desc')
             ->take(10)
             ->get()
@@ -662,15 +662,15 @@ class DashboardController extends Controller
                 $currentReading = (float) ($unit->current_water_reading ?? 0);
                 $consumption = max(0, $currentReading - $previousReading);
                 $billingType = $unit->water_billing_type ?? 'consumption';
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 $charge = $billingType === 'flat' ? ((float) ($unit->water_charge ?? 0)) : ($consumption * $rate);
                 
                 return [
                     'id' => null,
                     'unit_id' => $unit->id,
                     'unit_number' => $unit->unit_number ?? 'N/A',
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name ?? 'N/A',
+                    'property_id' => $unit->property_id,
                     'previous_reading' => $previousReading,
                     'current_reading' => $currentReading,
                     'consumption' => $consumption,
@@ -688,7 +688,7 @@ class DashboardController extends Controller
             });
         
         $unitsWithWaterReadings = Unit::where('company_id', $company->id)
-            ->with('estate')
+            ->with('property')
             ->where('status', 'occupied')
             ->get()
             ->map(function($unit) {
@@ -696,7 +696,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'property_name' => $unit->property->name ?? 'N/A',
                     'last_reading' => $lastReading ? (float) $lastReading->current_reading : (float) ($unit->current_water_reading ?? 0),
                     'last_reading_date' => $lastReading ? $lastReading->reading_date->format('Y-m-d') : ($unit->last_reading_date ? $unit->last_reading_date->format('Y-m-d') : null),
                 ];
@@ -712,7 +712,7 @@ class DashboardController extends Controller
         
         $currentUnit = null;
         if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
-            $currentUnit = $user->tenant->activeTenancy->unit->load('estate');
+            $currentUnit = $user->tenant->activeTenancy->unit->load('property');
         }
         
         // FIXED: Return admin dashboard view
@@ -723,7 +723,7 @@ class DashboardController extends Controller
             'recentInvoices', 'recentPayments', 'waterReadings', 'unitsWithWaterReadings',
             'totalUnits', 'occupiedUnits', 'availableUnits', 'monthlyRevenue', 
             'paymentMethods', 'roleData', 'outstandingBalance', 'totalPaid', 
-            'units', 'currentUnit', 'estates'
+            'units', 'currentUnit', 'properties'
         ));
     }
 
@@ -1140,7 +1140,7 @@ class DashboardController extends Controller
         $outstandingBalance = $roleData['outstandingBalance'] ?? 0;
         $totalPaid = $roleData['totalPaid'] ?? 0;
         $units = $roleData['units'] ?? [];
-        $estates = $roleData['estates'] ?? [];
+        $properties = $roleData['properties'] ?? [];
         $currentUnit = $roleData['currentUnit'] ?? null;
         $mappedActiveTenancies = collect();
         
@@ -1148,7 +1148,7 @@ class DashboardController extends Controller
         return view('partials.dashboard.tenant', compact(
             'user', 'company', 'stats', 'roleData', 
             'outstandingBalance', 'totalPaid', 'mappedActiveTenancies',
-            'units', 'estates', 'currentUnit', 'walletData'
+            'units', 'properties', 'currentUnit', 'walletData'
         ));
     }
     
@@ -1271,30 +1271,30 @@ class DashboardController extends Controller
         
         if (!$tenant || !$tenant->activeTenancy) {
             $units = [];
-            $estates = [];
+            $properties = [];
             $currentUnit = null;
             
             if ($company) {
                 $units = Unit::where('company_id', $company->id)
-                    ->with('estate')
+                    ->with('property')
                     ->get()
                     ->map(function($unit) {
                         return [
                             'id' => $unit->id,
                             'unit_number' => $unit->unit_number,
                             'unit_type' => $unit->unit_type,
-                            'estate_id' => $unit->estate_id,
-                            'estate' => $unit->estate ? ['name' => $unit->estate->name] : null,
+                            'property_id' => $unit->property_id,
+                            'property' => $unit->property ? ['name' => $unit->property->name] : null,
                         ];
                     });
                 
-                $estates = Estate::where('company_id', $company->id)
+                $properties = Property::where('company_id', $company->id)
                     ->orderBy('name')
                     ->get()
-                    ->map(function($estate) {
+                    ->map(function($property) {
                         return [
-                            'id' => $estate->id,
-                            'name' => $estate->name,
+                            'id' => $property->id,
+                            'name' => $property->name,
                         ];
                     });
             }
@@ -1318,7 +1318,7 @@ class DashboardController extends Controller
                 'accessLogs' => [],
                 'maintenanceRequests' => [],
                 'units' => $units,
-                'estates' => $estates,
+                'properties' => $properties,
                 'currentUnit' => $currentUnit
             ];
         }
@@ -1385,7 +1385,7 @@ class DashboardController extends Controller
             'previous_reading' => (float) ($unit->previous_water_reading ?? 0),
             'current_reading' => (float) ($unit->current_water_reading ?? 0),
             'consumption' => max(0, ($unit->current_water_reading ?? 0) - ($unit->previous_water_reading ?? 0)),
-            'rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+            'rate' => (float) ($unit->custom_water_rate ?? $unit->property->water_rate ?? 50),
             'billing_type' => $unit->water_billing_type ?? 'consumption',
             'last_reading_date' => $unit->last_reading_date,
         ];
@@ -1435,29 +1435,29 @@ class DashboardController extends Controller
             });
         
         $units = Unit::where('company_id', $company->id)
-            ->with('estate')
+            ->with('property')
             ->get()
             ->map(function($unit) {
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
                     'unit_type' => $unit->unit_type,
-                    'estate_id' => $unit->estate_id,
-                    'estate' => $unit->estate ? ['name' => $unit->estate->name] : null,
+                    'property_id' => $unit->property_id,
+                    'property' => $unit->property ? ['name' => $unit->property->name] : null,
                 ];
             });
         
-        $estates = Estate::where('company_id', $company->id)
+        $properties = Property::where('company_id', $company->id)
             ->orderBy('name')
             ->get()
-            ->map(function($estate) {
+            ->map(function($property) {
                 return [
-                    'id' => $estate->id,
-                    'name' => $estate->name,
+                    'id' => $property->id,
+                    'name' => $property->name,
                 ];
             });
         
-        $currentUnit = $unit->load('estate');
+        $currentUnit = $unit->load('property');
         
         return [
             'type' => 'tenant',
@@ -1469,7 +1469,7 @@ class DashboardController extends Controller
             'activeTenancy' => [
                 'id' => $activeTenancy->id,
                 'unit_number' => $activeTenancy->unit->unit_number ?? 'N/A',
-                'estate_name' => $activeTenancy->unit->estate->name ?? 'N/A',
+                'property_name' => $activeTenancy->unit->property->name ?? 'N/A',
             ],
             'invoices' => $invoices,
             'payments' => $payments,
@@ -1480,7 +1480,7 @@ class DashboardController extends Controller
             'accessLogs' => $accessLogs,
             'maintenanceRequests' => $maintenanceRequests,
             'units' => $units,
-            'estates' => $estates,
+            'properties' => $properties,
             'currentUnit' => $currentUnit,
         ];
     }
@@ -1552,19 +1552,19 @@ class DashboardController extends Controller
         $recentReadings = Unit::where('company_id', $company->id)
             ->whereNotNull('current_water_reading')
             ->where('current_water_reading', '>', 0)
-            ->with('estate')
+            ->with('property')
             ->orderBy('last_reading_date', 'desc')
             ->get()
             ->map(function ($unit) {
                 $consumption = max(0, ($unit->current_water_reading ?? 0) - ($unit->previous_water_reading ?? 0));
                 $billingType = $unit->water_billing_type ?? 'consumption';
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 $charge = $billingType === 'flat' ? ($unit->water_charge ?? 0) : ($consumption * $rate);
                 
                 return [
                     'unit_id' => $unit->id,
                     'unit_number' => $unit->unit_number ?? 'N/A',
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'property_name' => $unit->property->name ?? 'N/A',
                     'current_reading' => (float) $unit->current_water_reading,
                     'previous_reading' => (float) ($unit->previous_water_reading ?? 0),
                     'consumption' => $consumption,
@@ -2134,15 +2134,15 @@ class DashboardController extends Controller
         $longTermVacant = Unit::where('company_id', $company->id)
             ->where('status', 'vacant')
             ->where('updated_at', '<=', Carbon::now()->subDays(30))
-            ->with('estate')
+            ->with('property')
             ->take(10)
             ->get()
             ->map(function ($unit) {
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name ?? 'N/A',
+                    'property_id' => $unit->property_id,
                     'rent_amount' => $unit->rent_amount,
                     'vacant_days' => Carbon::parse($unit->updated_at)->diffInDays(now()),
                     'status' => $unit->status,
@@ -2153,21 +2153,21 @@ class DashboardController extends Controller
         $recentReadings = Unit::where('company_id', $company->id)
             ->whereNotNull('current_water_reading')
             ->where('current_water_reading', '>', 0)
-            ->with('estate')
+            ->with('property')
             ->orderBy('last_reading_date', 'desc')
             ->get()
             ->map(function ($unit) {
                 $consumption = max(0, ($unit->current_water_reading ?? 0) - ($unit->previous_water_reading ?? 0));
                 $billingType = $unit->water_billing_type ?? 'consumption';
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 $charge = $billingType === 'flat' ? ($unit->water_charge ?? 0) : ($consumption * $rate);
                 
                 return [
                     'id' => $unit->id,
                     'unit_id' => $unit->id,
                     'unit_number' => $unit->unit_number ?? 'N/A',
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name ?? 'N/A',
+                    'property_id' => $unit->property_id,
                     'current_reading' => (float) $unit->current_water_reading,
                     'previous_reading' => (float) ($unit->previous_water_reading ?? 0),
                     'consumption' => $consumption,
@@ -2235,12 +2235,12 @@ class DashboardController extends Controller
                 'todayReadings' => 0,
                 'thisMonthReadings' => 0,
                 'units' => collect(),
-                'estates' => collect(),
+                'properties' => collect(),
             ];
         }
         
         $allUnits = Unit::where('company_id', $company->id)
-            ->with('estate')
+            ->with('property')
             ->where('is_active', true)
             ->get();
         
@@ -2248,7 +2248,7 @@ class DashboardController extends Controller
         $currentMonthEnd = Carbon::now()->endOfMonth();
         
         $allReadings = WaterReading::whereHas('unit', fn($q) => $q->where('company_id', $company->id))
-            ->with(['unit.estate', 'recordedBy'])
+            ->with(['unit.property', 'recordedBy'])
             ->orderBy('reading_date', 'asc')
             ->get();
         
@@ -2278,7 +2278,7 @@ class DashboardController extends Controller
             }
             
             $billingType = $unit->water_billing_type ?? 'consumption';
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             
             $consumption = $latestReading->consumption;
             if ($consumption == 0 && $billingType === 'consumption') {
@@ -2300,8 +2300,8 @@ class DashboardController extends Controller
                 'id' => $latestReading->id,
                 'unit_id' => $unit->id,
                 'unit_number' => $unit->unit_number ?? 'N/A',
-                'estate_name' => $unit->estate->name ?? 'N/A',
-                'estate_id' => $unit->estate_id,
+                'property_name' => $unit->property->name ?? 'N/A',
+                'property_id' => $unit->property_id,
                 'previous_reading' => (float) ($previousReading ? $previousReading->current_reading : $unit->previous_water_reading ?? 0),
                 'current_reading' => (float) $latestReading->current_reading,
                 'consumption' => (float) max(0, $consumption),
@@ -2339,14 +2339,14 @@ class DashboardController extends Controller
                 $existingUnitData = $groupedReadings->firstWhere('unit_id', $unit->id);
                 
                 $billingType = $unit->water_billing_type ?? 'consumption';
-                $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                 
                 return [
                     'id' => null,
                     'unit_id' => $unit->id,
                     'unit_number' => $unit->unit_number ?? 'N/A',
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name ?? 'N/A',
+                    'property_id' => $unit->property_id,
                     'previous_reading' => (float) ($existingUnitData['previous_reading'] ?? $unit->previous_water_reading ?? 0),
                     'current_reading' => null,
                     'consumption' => null,
@@ -2380,32 +2380,32 @@ class DashboardController extends Controller
         $totalConsumption = $allReadings->sum('consumption');
         
         $units = Unit::where('company_id', $company->id)
-            ->with('estate')
+            ->with('property')
             ->where('is_active', true)
             ->get()
             ->map(function($unit) {
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name ?? 'N/A',
+                    'property_id' => $unit->property_id,
                     'water_billing_type' => $unit->water_billing_type ?? 'consumption',
                     'water_charge' => (float) ($unit->water_charge ?? 0),
                     'custom_water_rate' => (float) ($unit->custom_water_rate ?? 0),
                     'current_water_reading' => (float) ($unit->current_water_reading ?? 0),
                     'previous_water_reading' => (float) ($unit->previous_water_reading ?? 0),
                     'last_reading_date' => $unit->last_reading_date,
-                    'rate' => (float) ($unit->custom_water_rate ?? $unit->estate->water_rate ?? 50),
+                    'rate' => (float) ($unit->custom_water_rate ?? $unit->property->water_rate ?? 50),
                 ];
             });
         
-        $estates = Estate::where('company_id', $company->id)
+        $properties = Property::where('company_id', $company->id)
             ->orderBy('name')
             ->get()
-            ->map(function($estate) {
+            ->map(function($property) {
                 return [
-                    'id' => $estate->id,
-                    'name' => $estate->name,
+                    'id' => $property->id,
+                    'name' => $property->name,
                 ];
             });
         
@@ -2422,7 +2422,7 @@ class DashboardController extends Controller
             'todayReadings' => $allReadings->filter(fn($r) => $r->reading_date->isToday())->count(),
             'thisMonthReadings' => $currentMonthReadings->count(),
             'units' => $units,
-            'estates' => $estates,
+            'properties' => $properties,
             'historyReadings' => $groupedReadings,
         ];
     }
@@ -2441,7 +2441,7 @@ class DashboardController extends Controller
             [
                 'id' => 1,
                 'unit_number' => 'A101',
-                'estate_name' => 'Sunset Estate',
+                'property_name' => 'Sunset Estate',
                 'type' => 'regular',
                 'description' => 'Weekly cleaning of common areas',
                 'priority' => 'medium',
@@ -2452,7 +2452,7 @@ class DashboardController extends Controller
             [
                 'id' => 2,
                 'unit_number' => 'B205',
-                'estate_name' => 'Sunset Estate',
+                'property_name' => 'Sunset Estate',
                 'type' => 'deep',
                 'description' => 'Deep cleaning for vacated unit',
                 'priority' => 'high',
@@ -2470,28 +2470,28 @@ class DashboardController extends Controller
     
     private function getMaintenanceData($company)
     {
-        $estates = Estate::where('company_id', $company->id)
+        $properties = Property::where('company_id', $company->id)
             ->orderBy('name')
             ->get()
-            ->map(function($estate) {
+            ->map(function($property) {
                 return [
-                    'id' => $estate->id,
-                    'name' => $estate->name,
+                    'id' => $property->id,
+                    'name' => $property->name,
                 ];
             });
         
         $units = Unit::where('company_id', $company->id)
-            ->with('estate')
+            ->with('property')
             ->get()
             ->map(function($unit) {
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
                     'unit_type' => $unit->unit_type,
-                    'estate_id' => $unit->estate_id,
-                    'estate' => $unit->estate ? [
-                        'id' => $unit->estate->id,
-                        'name' => $unit->estate->name,
+                    'property_id' => $unit->property_id,
+                    'property' => $unit->property ? [
+                        'id' => $unit->property->id,
+                        'name' => $unit->property->name,
                     ] : null,
                 ];
             });
@@ -2552,7 +2552,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         $currentUnit = null;
         if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
-            $currentUnit = $user->tenant->activeTenancy->unit->load('estate');
+            $currentUnit = $user->tenant->activeTenancy->unit->load('property');
         }
 
         return [
@@ -2561,7 +2561,7 @@ class DashboardController extends Controller
             'inProgressRequests' => $inProgressRequests,
             'completedRequests' => $completedRequests,
             'allRequests' => $allRequests,
-            'estates' => $estates,
+            'properties' => $properties,
             'units' => $units,
             'currentUnit' => $currentUnit,
         ];
@@ -2600,13 +2600,13 @@ class DashboardController extends Controller
         })->values();
         
         $units = Unit::where('company_id', $company->id)
-            ->with('estate')
+            ->with('property')
             ->get()
             ->map(function($unit) {
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'property_name' => $unit->property->name ?? 'N/A',
                 ];
             });
         

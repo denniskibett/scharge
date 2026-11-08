@@ -15,7 +15,7 @@ class PayeeController extends Controller
 
     public function show(Payee $payee)
     {
-        $payee->load('expenses.estate', 'expenses.category');
+        $payee->load('expenses.property', 'expenses.category');
         return view('payees.show', compact('payee'));
     }
 

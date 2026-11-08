@@ -121,7 +121,7 @@
                 <p class="text-gray-500 text-sm mb-4">Use these placeholders in your SMS templates. They will be replaced automatically when sending to tenants.</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @php
-                        $placeholders = ['{{name}}', '{{phone}}', '{{unit_number}}', '{{estate_name}}', '{{water_bill}}', '{{water_consumption}}', '{{month}}', '{{due_date}}', '{{total}}'];
+                        $placeholders = ['{{name}}', '{{phone}}', '{{unit_number}}', '{{property_name}}', '{{water_bill}}', '{{water_consumption}}', '{{month}}', '{{due_date}}', '{{total}}'];
                     @endphp
                     @foreach($placeholders as $placeholder)
                     <div class="bg-gray-50 rounded-lg p-3 flex justify-between items-center">

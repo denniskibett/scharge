@@ -87,7 +87,7 @@
           </div>
           <div>
             <span class="text-gray-500 dark:text-gray-400">Property:</span>
-            <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenancyDetails.estate_name || '-'"></p>
+            <p class="font-medium text-gray-800 dark:text-white/90" x-text="tenancyDetails.property_name || '-'"></p>
           </div>
           <div>
             <span class="text-gray-500 dark:text-gray-400">Invoice Total:</span>
@@ -306,7 +306,7 @@ document.addEventListener('alpine:init', () => {
     tenancyDetails: {
       tenant_name: '',
       unit_number: '',
-      estate_name: '',
+      property_name: '',
       total_amount: 0,
       outstanding_balance: 0,
       billing_month: ''
@@ -366,7 +366,7 @@ document.addEventListener('alpine:init', () => {
         this.tenancyDetails = {
           tenant_name: data.tenant_name || '',
           unit_number: data.unit_number || '',
-          estate_name: data.estate_name || '',
+          property_name: data.property_name || '',
           total_amount: data.total_amount || 0,
           outstanding_balance: data.outstanding_balance || data.total_amount || 0,
           billing_month: data.billing_month || ''
@@ -404,7 +404,7 @@ document.addEventListener('alpine:init', () => {
       this.tenancyDetails = {
         tenant_name: '',
         unit_number: '',
-        estate_name: '',
+        property_name: '',
         total_amount: 0,
         outstanding_balance: 0,
         billing_month: ''
@@ -446,7 +446,7 @@ document.addEventListener('alpine:init', () => {
             this.tenancyDetails = {
               tenant_name: data.tenant_name || '',
               unit_number: data.unit_number || '',
-              estate_name: data.estate_name || '',
+              property_name: data.property_name || '',
               total_amount: data.total_amount || 0,
               outstanding_balance: data.outstanding_balance || data.total_amount || 0,
               billing_month: data.billing_month_formatted || ''
@@ -469,7 +469,7 @@ document.addEventListener('alpine:init', () => {
       this.tenancyDetails = {
         tenant_name: '',
         unit_number: '',
-        estate_name: '',
+        property_name: '',
         total_amount: 0,
         outstanding_balance: 0,
         billing_month: ''

@@ -1,5 +1,5 @@
 @extends('layouts.app')
 
 @section('content')
-    @include('partials.table.table-estates')
+    @include('partials.table.table-properties')
 @endsection

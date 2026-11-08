@@ -44,11 +44,11 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Property</label>
-                <select name="estate_id" class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                <select name="property_id" class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     <option value="">All Properties</option>
-                    @foreach($estates as $estate)
-                        <option value="{{ $estate->id }}" {{ request('estate_id') == $estate->id ? 'selected' : '' }}>
-                            {{ $estate->name }}
+                    @foreach($properties as $property)
+                        <option value="{{ $property->id }}" {{ request('property_id') == $property->id ? 'selected' : '' }}>
+                            {{ $property->name }}
                         </option>
                     @endforeach
                 </select>
@@ -105,7 +105,7 @@
                             <td class="px-3 py-3 text-sm text-gray-600">{{ $log->visitor_phone_snapshot ?? 'N/A' }}</td>
                             <td class="px-3 py-3 text-sm text-gray-600">
                                 <div>{{ $log->unit->unit_number ?? 'N/A' }}</div>
-                                <div class="text-xs text-gray-500">{{ $log->estate->name ?? 'N/A' }}</div>
+                                <div class="text-xs text-gray-500">{{ $log->property->name ?? 'N/A' }}</div>
                             </td>
                             <td class="px-3 py-3 text-sm text-gray-600">
                                 @if($log->vehicle_type || $log->vehicle_model)

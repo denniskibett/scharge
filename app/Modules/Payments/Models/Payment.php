@@ -157,7 +157,7 @@ class Payment extends Model
 
     public function scopeForCompany($query, $companyId)
     {
-        return $query->whereHas('invoice.tenancy.unit.estate', function($q) use ($companyId) {
+        return $query->whereHas('invoice.tenancy.unit.property', function($q) use ($companyId) {
             $q->where('company_id', $companyId);
         });
     }
@@ -219,8 +219,8 @@ class Payment extends Model
 
     public function getPaidToAttribute(): string
     {
-        // Get the company name from the invoice's tenancy's unit's estate's company
-        $company = $this->invoice?->tenancy?->unit?->estate?->company;
+        // Get the company name from the invoice's tenancy's unit's property's company
+        $company = $this->invoice?->tenancy?->unit?->property?->company;
         return $company?->name ?? 'Property Management';
     }
 

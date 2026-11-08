@@ -155,7 +155,7 @@
             </div>
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Property</span>
-                <p class="mt-0.5 font-medium text-black dark:text-white">{{ $campaign->estate->name ?? 'N/A' }}</p>
+                <p class="mt-0.5 font-medium text-black dark:text-white">{{ $campaign->property->name ?? 'N/A' }}</p>
             </div>
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Billing Month</span>
@@ -243,7 +243,7 @@
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500 dark:text-gray-400">Property</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->estate->name ?? 'N/A' }}</dd>
+                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->property->name ?? 'N/A' }}</dd>
                     </div>
                     <div class="flex justify-between">
                         <dt class="text-sm text-gray-500 dark:text-gray-400">Billing Month</dt>

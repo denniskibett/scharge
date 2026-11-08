@@ -45,10 +45,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
-            <select x-model="formData.estate_id" name="estate_id" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+            <select x-model="formData.property_id" name="property_id" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
               <option value="">Select Property</option>
-              @foreach($estates ?? [] as $estate)
-                <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+              @foreach($properties ?? [] as $property)
+                <option value="{{ $property->id }}">{{ $property->name }}</option>
               @endforeach
             </select>
           </div>
@@ -121,7 +121,7 @@ document.addEventListener('alpine:init', () => {
     isOpen: false,
     loading: false,
     formData: {
-      estate_id: '',
+      property_id: '',
       payee_id: '',
       expense_category_id: '',
       amount: '',
@@ -155,7 +155,7 @@ document.addEventListener('alpine:init', () => {
     resetForm() {
       const today = new Date().toISOString().split('T')[0];
       this.formData = {
-        estate_id: '',
+        property_id: '',
         payee_id: '',
         expense_category_id: '',
         amount: '',
@@ -169,7 +169,7 @@ document.addEventListener('alpine:init', () => {
     validateForm() {
       this.formErrors = [];
       
-      if (!this.formData.estate_id) this.formErrors.push('Please select a property');
+      if (!this.formData.property_id) this.formErrors.push('Please select a property');
       if (!this.formData.payee_id) this.formErrors.push('Please select a payee');
       if (!this.formData.expense_category_id) this.formErrors.push('Please select a category');
       if (!this.formData.amount || parseFloat(this.formData.amount) <= 0) this.formErrors.push('Please enter a valid amount greater than 0');
@@ -197,7 +197,7 @@ document.addEventListener('alpine:init', () => {
         }
 
         const formData = new FormData();
-        formData.append('estate_id', this.formData.estate_id);
+        formData.append('property_id', this.formData.property_id);
         formData.append('payee_id', this.formData.payee_id);
         formData.append('expense_category_id', this.formData.expense_category_id);
         formData.append('amount', this.formData.amount);

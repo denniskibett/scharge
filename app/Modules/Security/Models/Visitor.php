@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Tenant;
 use App\Models\Company;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Models\Unit;
 
 class Visitor extends Model
@@ -35,7 +35,7 @@ class Visitor extends Model
         'visit_count',
         'last_visit_at',
         'company_id',
-        'estate_id',
+        'property_id',
         'unit_id',
         'tenant_id',
         'registered_by_tenant_id',
@@ -64,9 +64,9 @@ class Visitor extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function estate()
+    public function property()
     {
-        return $this->belongsTo(Estate::class);
+        return $this->belongsTo(Property::class);
     }
 
     public function unit()

@@ -53,7 +53,7 @@
         
         <!-- Water Meter Reading Button - Only show if water is configured -->
         @php
-          $hasWaterConfig = ($unit->water_charge > 0) || ($unit->estate->water_rate > 0);
+          $hasWaterConfig = ($unit->water_charge > 0) || ($unit->property->water_rate > 0);
         @endphp
         @if($hasWaterConfig)
         <button 
@@ -151,12 +151,12 @@
           <!-- Header Section -->
           <div class="flex items-start gap-5 mb-8">
             <div class="flex-shrink-0 h-24 w-24 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
-              <span class="text-white font-bold text-3xl">{{ substr($unit->estate->name ?? 'UN', 0, 2) }}</span>
+              <span class="text-white font-bold text-3xl">{{ substr($unit->property->name ?? 'UN', 0, 2) }}</span>
             </div>
             <div class="flex-1">
               <h2 class="text-3xl font-bold text-gray-800 dark:text-white/90">{{ $unit->unit_number }}</h2>
-              <p class="text-base text-gray-500 dark:text-gray-400 mt-1">{{ $unit->estate->name }}</p>
-              <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">{{ $unit->estate->location ?? 'No location specified' }}</p>
+              <p class="text-base text-gray-500 dark:text-gray-400 mt-1">{{ $unit->property->name }}</p>
+              <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">{{ $unit->property->location ?? 'No location specified' }}</p>
               <div class="flex flex-wrap gap-4 mt-3">
                 <div class="flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -185,22 +185,22 @@
             $hasUnitSecurity = ($unit->security_charge ?? 0) > 0;
             $hasUnitAny = $hasUnitWater || $hasUnitService || $hasUnitGarbage || $hasUnitSecurity;
             
-            // Check if estate has default charges
-            $hasEstateWater = ($unit->estate->water_rate ?? 0) > 0;
-            $hasEstateService = ($unit->estate->service_charge ?? 0) > 0;
-            $hasEstateGarbage = ($unit->estate->garbage_charge ?? 0) > 0;
-            $hasEstateSecurity = ($unit->estate->security_charge ?? 0) > 0;
-            $hasEstateAny = $hasEstateWater || $hasEstateService || $hasEstateGarbage || $hasEstateSecurity;
+            // Check if property has default charges
+            $hasPropertyWater = ($unit->property->water_rate ?? 0) > 0;
+            $hasPropertyService = ($unit->property->service_charge ?? 0) > 0;
+            $hasPropertyGarbage = ($unit->property->garbage_charge ?? 0) > 0;
+            $hasPropertySecurity = ($unit->property->security_charge ?? 0) > 0;
+            $hasPropertyAny = $hasPropertyWater || $hasPropertyService || $hasPropertyGarbage || $hasPropertySecurity;
             
             // Determine source label
-            $utilitySource = $hasUnitAny ? 'Unit-Specific Charges' : ($hasEstateAny ? 'Estate Default Charges' : 'No Utilities Configured');
-            $showWaterMeter = ($hasUnitWater || $hasEstateWater);
+            $utilitySource = $hasUnitAny ? 'Unit-Specific Charges' : ($hasPropertyAny ? 'Property Default Charges' : 'No Utilities Configured');
+            $showWaterMeter = ($hasUnitWater || $hasPropertyWater);
             
-            // Get effective values (unit overrides estate)
-            $effectiveWater = $hasUnitWater ? $unit->water_charge : ($hasEstateWater ? $unit->estate->water_rate : 0);
-            $effectiveService = $hasUnitService ? $unit->service_charge : ($hasEstateService ? $unit->estate->service_charge : 0);
-            $effectiveGarbage = $hasUnitGarbage ? $unit->garbage_charge : ($hasEstateGarbage ? $unit->estate->garbage_charge : 0);
-            $effectiveSecurity = $hasUnitSecurity ? $unit->security_charge : ($hasEstateSecurity ? $unit->estate->security_charge : 0);
+            // Get effective values (unit overrides property)
+            $effectiveWater = $hasUnitWater ? $unit->water_charge : ($hasPropertyWater ? $unit->property->water_rate : 0);
+            $effectiveService = $hasUnitService ? $unit->service_charge : ($hasPropertyService ? $unit->property->service_charge : 0);
+            $effectiveGarbage = $hasUnitGarbage ? $unit->garbage_charge : ($hasPropertyGarbage ? $unit->property->garbage_charge : 0);
+            $effectiveSecurity = $hasUnitSecurity ? $unit->security_charge : ($hasPropertySecurity ? $unit->property->security_charge : 0);
           @endphp
 
           <!-- Three Column Layout -->
@@ -230,7 +230,7 @@
             </div>
             
             <!-- Utility Charges - Show with source indication -->
-            @if($hasUnitAny || $hasEstateAny)
+            @if($hasUnitAny || $hasPropertyAny)
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
               <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -239,7 +239,7 @@
                 Utility Charges
                 @if($hasUnitAny)
                 <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full">Unit Override</span>
-                @elseif($hasEstateAny)
+                @elseif($hasPropertyAny)
                 <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">Property Default</span>
                 @endif
               </h4>
@@ -248,7 +248,7 @@
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Water Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveWater, 2) }} / unit</p>
-                  @if($hasEstateWater && !$hasUnitWater)
+                  @if($hasPropertyWater && !$hasUnitWater)
                   <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
@@ -257,7 +257,7 @@
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Service Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveService, 2) }}</p>
-                  @if($hasEstateService && !$hasUnitService)
+                  @if($hasPropertyService && !$hasUnitService)
                   <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
@@ -266,7 +266,7 @@
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Garbage Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveGarbage, 2) }}</p>
-                  @if($hasEstateGarbage && !$hasUnitGarbage)
+                  @if($hasPropertyGarbage && !$hasUnitGarbage)
                   <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
@@ -275,7 +275,7 @@
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Security Charge</p>
                   <p class="text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($effectiveSecurity, 2) }}</p>
-                  @if($hasEstateSecurity && !$hasUnitSecurity)
+                  @if($hasPropertySecurity && !$hasUnitSecurity)
                   <p class="text-xs text-gray-400 mt-0.5">Inherited from property</p>
                   @endif
                 </div>
@@ -284,7 +284,7 @@
             </div>
             @endif
             
-            <!-- Estate Information -->
+            <!-- Property Information -->
             <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
               <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -295,15 +295,15 @@
               <div class="space-y-3">
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Property Name</p>
-                  <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->estate->name }}</p>
+                  <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->property->name }}</p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</p>
-                  <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->estate->location ?? 'N/A' }}</p>
+                  <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->property->location ?? 'N/A' }}</p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Units in Property</p>
-                  <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->estate->units_count ?? $unit->estate->units->count() }}</p>
+                  <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $unit->property->units_count ?? $unit->property->units->count() }}</p>
                 </div>
               </div>
             </div>
@@ -335,7 +335,7 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                 </svg>
                 Water Meter Information
-                @if($hasEstateWater && !$hasUnitWater)
+                @if($hasPropertyWater && !$hasUnitWater)
                 <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-2">Rate: KES {{ number_format($effectiveWater, 2) }}/unit</span>
                 @elseif($hasUnitWater)
                 <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full ml-2">Custom Rate: KES {{ number_format($effectiveWater, 2) }}/unit</span>
@@ -469,8 +469,8 @@
               'tenant_phone' => optional($tenancy->tenant->user)->phone ?? optional($tenancy->tenant)->phone ?? '',
               'unit_number' => $tenancy->unit->unit_number ?? '',
               'unit_type' => $tenancy->unit->unit_type ?? '',
-              'estate_name' => $tenancy->unit->estate->name ?? '',
-              'estate_id' => $tenancy->unit->estate_id ?? null,
+              'property_name' => $tenancy->unit->property->name ?? '',
+              'property_id' => $tenancy->unit->property_id ?? null,
               'move_in_date' => $tenancy->move_in_date,
               'move_out_date' => $tenancy->move_out_date,
               'status' => $tenancy->status,
@@ -522,8 +522,8 @@ document.addEventListener('alpine:init', () => {
         garbage_charge: {{ $unit->garbage_charge ?? 0 }},
         security_charge: {{ $unit->security_charge ?? 0 }},
         status: @json($unit->status),
-        estate_name: @json($unit->estate->name),
-        estate_id: {{ $unit->estate_id }},
+        property_name: @json($unit->property->name),
+        property_id: {{ $unit->property_id }},
         current_water_reading: {{ $unit->current_water_reading ?? 0 }},
         previous_water_reading: {{ $unit->previous_water_reading ?? 0 }},
         last_reading_date: @json($unit->last_reading_date),
@@ -546,7 +546,7 @@ document.addEventListener('alpine:init', () => {
     openWaterReadingModal() {
       if (window.unitWaterReadingModal) {
         const unitData = this.getUnitData();
-        const waterRate = {{ $hasUnitWater ? $unit->water_charge : ($unit->estate->water_rate ?? 0) }};
+        const waterRate = {{ $hasUnitWater ? $unit->water_charge : ($unit->property->water_rate ?? 0) }};
         window.unitWaterReadingModal.openModal(unitData, waterRate);
       }
     },

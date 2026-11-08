@@ -200,7 +200,7 @@
                             </div>
                         </div>
                         
-                        {{-- Payment To - Estate & Company Section --}}
+                        {{-- Payment To - Property & Company Section --}}
                         <div class="mb-4 pb-4 border-b border-blue-200 dark:border-blue-800">
                             <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400 flex items-center gap-2">
                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -209,7 +209,7 @@
                                 Payment To (Property)
                             </h5>
                             <div>
-                                <div class="text-base font-bold text-gray-800 dark:text-white/90" x-text="companyDetails.estate_name || 'Loading...'"></div>
+                                <div class="text-base font-bold text-gray-800 dark:text-white/90" x-text="companyDetails.property_name || 'Loading...'"></div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400" x-text="companyDetails.name"></div>
                             </div>
                         </div>
@@ -503,7 +503,7 @@ document.addEventListener('alpine:init', () => {
         tenantDetails: {
             name: '',
             company: '',
-            estate: '',
+            property: '',
             unit: '',
             wallet_id: '',
             wallet_number: '',
@@ -511,7 +511,7 @@ document.addEventListener('alpine:init', () => {
         },
         companyDetails: {
             name: '',
-            estate_name: '',
+            property_name: '',
             payment_methods: [],
             default_payment_method: null
         },
@@ -599,7 +599,7 @@ document.addEventListener('alpine:init', () => {
                     this.tenantDetails = {
                         name: data.tenant.name,
                         company: data.tenant.company,
-                        estate: data.tenant.estate,
+                        property: data.tenant.property,
                         unit: data.tenant.unit,
                         wallet_id: data.tenant.wallet_id,
                         wallet_number: data.tenant.wallet_number,
@@ -607,7 +607,7 @@ document.addEventListener('alpine:init', () => {
                     };
                     this.companyDetails = {
                         name: data.company.name,
-                        estate_name: data.company.estate_name,
+                        property_name: data.company.property_name,
                         payment_methods: data.company.payment_methods,
                         default_payment_method: data.company.default_payment_method
                     };

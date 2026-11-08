@@ -489,12 +489,12 @@ class User extends Authenticatable implements Wallet
     }
 
     /**
-     * Get current estate for tenant
+     * Get current property for tenant
      */
-    public function getCurrentEstateAttribute()
+    public function getCurrentPropertyAttribute()
     {
         $unit = $this->current_unit;
-        return $unit ? $unit->estate : null;
+        return $unit ? $unit->property : null;
     }
 
     // ========== UTILITY METHODS ==========

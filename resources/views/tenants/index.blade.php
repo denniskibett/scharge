@@ -170,7 +170,7 @@
                     <a :href="`/units/${tenant.current_unit.id}`" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                       <span x-text="tenant.current_unit.unit_number"></span>
                     </a>
-                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="tenant.current_unit.estate_name"></p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400" x-text="tenant.current_unit.property_name"></p>
                   </div>
                 </template>
                 <template x-if="!tenant.current_unit">

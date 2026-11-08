@@ -28,8 +28,8 @@ class AccountManagerController extends Controller
             return $manager->company_id !== null;
         })->count();
         
-        // Get revenue, estate stats, and occupancy from companies
-        $totalEstates = 0;
+        // Get revenue, property stats, and occupancy from companies
+        $totalProperties = 0;
         $totalTenants = 0;
         $totalRevenue = 0;
         $totalUnits = 0;
@@ -41,7 +41,7 @@ class AccountManagerController extends Controller
             if ($manager->company_id) {
                 $summary = $manager->getCompanySummary($manager->company_id);
                 if ($summary) {
-                    $totalEstates += $summary->total_estates ?? 0;
+                    $totalProperties += $summary->total_properties ?? 0;
                     $totalUnits += $summary->total_units ?? 0;
                     $totalTenants += $summary->total_tenants ?? 0;
                     $totalRevenue += $summary->total_revenue ?? 0;
@@ -50,9 +50,9 @@ class AccountManagerController extends Controller
                 
                 // Get occupancy stats
                 $occupancy = $manager->getUnitOccupancyStats($manager->company_id);
-                foreach ($occupancy as $estate) {
-                    $totalOccupiedUnits += $estate->occupied_units ?? 0;
-                    $totalUnoccupiedUnits += $estate->unoccupied_units ?? 0;
+                foreach ($occupancy as $property) {
+                    $totalOccupiedUnits += $property->occupied_units ?? 0;
+                    $totalUnoccupiedUnits += $property->unoccupied_units ?? 0;
                 }
             }
         }
@@ -65,7 +65,7 @@ class AccountManagerController extends Controller
             'active_managers' => $activeManagers,
             'primary_managers' => $primaryManagers,
             'total_companies' => $totalCompanies,
-            'total_estates' => $totalEstates,
+            'total_properties' => $totalProperties,
             'total_units' => $totalUnits,
             'total_tenants' => $totalTenants,
             'total_revenue' => $totalRevenue,

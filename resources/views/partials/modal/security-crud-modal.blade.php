@@ -36,8 +36,8 @@
                                     <select x-model="form.unit_id" required class="w-full px-3 py-2 border rounded-lg dark:bg-gray-700">
                                         <option value="">Select Unit</option>
                                         @foreach($units ?? [] as $unit)
-                                            {{-- <option value="{{ $unit['id'] ?? '' }}">{{ $unit['unit_number'] ?? 'N/A' }} - {{ $unit['estate'] ?? 'No Estate' }}</option> --}}
-                                            <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} - {{ $unit['estate_name'] ?? '' }}</option>
+                                            {{-- <option value="{{ $unit['id'] ?? '' }}">{{ $unit['unit_number'] ?? 'N/A' }} - {{ $unit['property'] ?? 'No Property' }}</option> --}}
+                                            <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} - {{ $unit['property_name'] ?? '' }}</option>
 
                                         @endforeach
                                     </select>

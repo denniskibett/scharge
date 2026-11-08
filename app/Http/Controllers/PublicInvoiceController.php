@@ -20,7 +20,7 @@ class PublicInvoiceController extends Controller
      */
     public function show($invoiceId)
     {
-        $invoice = Invoice::with(['tenancy.tenant.user', 'tenancy.unit.estate', 'items'])
+        $invoice = Invoice::with(['tenancy.tenant.user', 'tenancy.unit.property', 'items'])
             ->findOrFail($invoiceId);
         
         // Calculate paid amount

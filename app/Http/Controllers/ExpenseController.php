@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Modules\Expenses\Models\Expense;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Modules\Expenses\Models\Payee; 
 use App\Modules\Expenses\Models\ExpenseCategory;
 use Illuminate\Http\Request;
@@ -12,12 +12,12 @@ class ExpenseController extends Controller
 {
     public function index()
     {
-        $expenses = Expense::with(['estate', 'payee', 'category'])->get();
-        $estates = Estate::all();
+        $expenses = Expense::with(['property', 'payee', 'category'])->get();
+        $properties = Property::all();
         $payees = Payee::all();
         $categories = ExpenseCategory::all();
         
-        return view('expenses.index', compact('expenses', 'estates', 'payees', 'categories'));
+        return view('expenses.index', compact('expenses', 'properties', 'payees', 'categories'));
     }
 
     public function store(Request $request)
@@ -25,7 +25,7 @@ class ExpenseController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             try {
                 $validated = $request->validate([
-                    'estate_id' => 'required|exists:estates,id',
+                    'property_id' => 'required|exists:properties,id',
                     'payee_id' => 'required|exists:payees,id',
                     'expense_category_id' => 'required|exists:expense_categories,id',
                     'amount' => 'required|numeric|min:0.01',
@@ -55,7 +55,7 @@ class ExpenseController extends Controller
         }
 
         $validated = $request->validate([
-            'estate_id' => 'required|exists:estates,id',
+            'property_id' => 'required|exists:properties,id',
             'payee_id' => 'required|exists:payees,id',
             'expense_category_id' => 'required|exists:expense_categories,id',
             'amount' => 'required|numeric|min:0.01',
@@ -73,7 +73,7 @@ class ExpenseController extends Controller
         if ($request->ajax() || $request->wantsJson()) {
             try {
                 $validated = $request->validate([
-                    'estate_id' => 'required|exists:estates,id',
+                    'property_id' => 'required|exists:properties,id',
                     'payee_id' => 'required|exists:payees,id',
                     'expense_category_id' => 'required|exists:expense_categories,id',
                     'amount' => 'required|numeric|min:0.01',
@@ -103,7 +103,7 @@ class ExpenseController extends Controller
         }
 
         $validated = $request->validate([
-            'estate_id' => 'required|exists:estates,id',
+            'property_id' => 'required|exists:properties,id',
             'payee_id' => 'required|exists:payees,id',
             'expense_category_id' => 'required|exists:expense_categories,id',
             'amount' => 'required|numeric|min:0.01',

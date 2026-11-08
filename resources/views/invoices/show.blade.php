@@ -70,7 +70,7 @@
             </div>
             <div>
               <span class="text-gray-500 dark:text-gray-400">Property:</span>
-              <p class="text-gray-700 dark:text-gray-300">{{ optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A' }}</p>
+              <p class="text-gray-700 dark:text-gray-300">{{ optional(optional($invoice->tenancy->unit)->property)->name ?? 'N/A' }}</p>
             </div>
           </div>
         </div>
@@ -207,10 +207,10 @@
             <div>
               <span class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-400">From</span>
               <h5 class="mb-2 text-base font-semibold text-gray-800 dark:text-white/90">
-                {{ optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A' }}
+                {{ optional(optional($invoice->tenancy->unit)->property)->name ?? 'N/A' }}
               </h5>
               <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
-                {{ optional(optional($invoice->tenancy->unit)->estate)->address ?? 'Address not available' }}
+                {{ optional(optional($invoice->tenancy->unit)->property)->address ?? 'Address not available' }}
               </p>
               <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Issued On:</span>
               <span class="block text-sm text-gray-500 dark:text-gray-400">
@@ -227,8 +227,8 @@
               </h5>
               <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
                 {{-- {{ optional($invoice->tenancy->unit)->unit_number ?? 'N/A' }} <br/> 
-                {{ optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A' }}<br/>  --}}
-                {{ optional(optional($invoice->tenancy->unit)->estate)->address ?? 'Address not available' }}
+                {{ optional(optional($invoice->tenancy->unit)->property)->name ?? 'N/A' }}<br/>  --}}
+                {{ optional(optional($invoice->tenancy->unit)->property)->address ?? 'Address not available' }}
               </p>
               <span class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Due On:</span>
               <span class="block text-sm text-gray-500 dark:text-gray-400">
@@ -731,7 +731,7 @@ document.addEventListener('alpine:init', () => {
           tenancy_id: {{ $invoice->tenancy_id }},
           tenant_name: '{{ addslashes(optional($invoice->tenancy->tenant->user)->name ?? 'N/A') }}',
           unit_number: '{{ addslashes(optional($invoice->tenancy->unit)->unit_number ?? 'N/A') }}',
-          estate_name: '{{ addslashes(optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A') }}',
+          property_name: '{{ addslashes(optional(optional($invoice->tenancy->unit)->property)->name ?? 'N/A') }}',
           total_amount: {{ $invoice->total_amount }},
           outstanding_balance: {{ max(0, $invoice->total_amount - ($paidAmount ?? 0)) }},
           billing_month: '{{ $invoice->billing_month ? \Carbon\Carbon::parse($invoice->billing_month)->format('F Y') : '-' }}'
@@ -743,7 +743,7 @@ document.addEventListener('alpine:init', () => {
             tenancy_id: {{ $invoice->tenancy_id }},
             tenant_name: '{{ addslashes(optional($invoice->tenancy->tenant->user)->name ?? 'N/A') }}',
             unit_number: '{{ addslashes(optional($invoice->tenancy->unit)->unit_number ?? 'N/A') }}',
-            estate_name: '{{ addslashes(optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A') }}',
+            property_name: '{{ addslashes(optional(optional($invoice->tenancy->unit)->property)->name ?? 'N/A') }}',
             total_amount: {{ $invoice->total_amount }},
             outstanding_balance: {{ max(0, $invoice->total_amount - ($paidAmount ?? 0)) }},
             billing_month: '{{ $invoice->billing_month ? \Carbon\Carbon::parse($invoice->billing_month)->format('F Y') : '-' }}'
@@ -835,8 +835,8 @@ document.addEventListener('alpine:init', () => {
             <div class="print-from-to">
               <div class="print-section">
                 <div class="print-section-title">FROM</div>
-                <div class="print-entity-name">{{ optional(optional($invoice->tenancy->unit)->estate)->name ?? 'N/A' }}</div>
-                <div class="print-address">{{ optional(optional($invoice->tenancy->unit)->estate)->address ?? 'Address not available' }}</div>
+                <div class="print-entity-name">{{ optional(optional($invoice->tenancy->unit)->property)->name ?? 'N/A' }}</div>
+                <div class="print-address">{{ optional(optional($invoice->tenancy->unit)->property)->address ?? 'Address not available' }}</div>
                 <div class="print-label">ISSUED ON</div>
                 <div class="print-value">{{ $invoice->created_at ? $invoice->created_at->format('d M, Y') : '-' }}</div>
               </div>

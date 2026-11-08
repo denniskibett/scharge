@@ -170,7 +170,7 @@ document.addEventListener('alpine:init', () => {
     rolePermissions: {
       'sysadmin': [
         'dashboard', 'calendar', 'profile',
-        'property', 'estates', 'units', 'tenants', 'tenancies',
+        'property', 'properties', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
         'maintenance',
@@ -193,7 +193,7 @@ document.addEventListener('alpine:init', () => {
       ],
       'admin': [
         'dashboard', 'calendar', 'profile',
-        'property', 'estates', 'units', 'tenants', 'tenancies',
+        'property', 'properties', 'units', 'tenants', 'tenancies',
         'finance', 'invoices', 'payments', 'payees', 'expenses',
         'water', 'water_readings', 'water_reports',
         'maintenance',
@@ -204,7 +204,7 @@ document.addEventListener('alpine:init', () => {
       ],
       'property_manager': [
         'dashboard', 'calendar', 'profile',
-        'property', 'estates', 'units', 'tenants', 'tenancies',
+        'property', 'properties', 'units', 'tenants', 'tenancies',
         'sms', 'sms_send', 'sms_history', 'sms_templates', 
         'maintenance',
       ],
@@ -284,9 +284,9 @@ document.addEventListener('alpine:init', () => {
             children: [
               {
                 label: 'Properties',
-                link: '/estates',
-                page: 'estates',
-                permission: 'estates'
+                link: '/properties',
+                page: 'properties',
+                permission: 'properties'
               },
               {
                 label: 'Units',
@@ -755,7 +755,7 @@ document.addEventListener('alpine:init', () => {
         '/dashboard': 'dashboard',
         '/calendar': 'calendar',
         '/profile': 'profile',
-        '/estates': 'estates',
+        '/properties': 'properties',
         '/units': 'units',
         '/tenants': 'tenants',
         '/tenancies': 'tenancies',

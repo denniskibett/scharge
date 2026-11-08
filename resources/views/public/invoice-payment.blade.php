@@ -69,7 +69,7 @@
                         </div>
                         <div>
                             <p class="text-gray-500">Property</p>
-                            <p class="font-medium text-gray-800">{{ $invoice->tenancy?->unit?->estate?->name ?? 'N/A' }}</p>
+                            <p class="font-medium text-gray-800">{{ $invoice->tenancy?->unit?->property?->name ?? 'N/A' }}</p>
                         </div>
                     </div>
                 </div>

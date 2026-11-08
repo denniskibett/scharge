@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Company;
 
-class Estate extends Model
+class Property extends Model
 {
     use HasFactory;
 

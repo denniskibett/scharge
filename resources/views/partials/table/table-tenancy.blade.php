@@ -54,16 +54,16 @@
 
       <!-- Filters, Search and Buttons -->
       <div class="flex flex-wrap items-center gap-3">
-        <!-- Estate Filter with TailAdmin dropdown styling -->
+        <!-- Property Filter with TailAdmin dropdown styling -->
         <div class="relative">
           <select 
-            x-model="filters.estate_id"
+            x-model="filters.property_id"
             @change="filterTenancies()"
             class="dark:bg-dark-900 h-11 w-full min-w-[140px] appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-8 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
           >
             <option value="">All Properties</option>
-            @foreach($estates ?? [] as $estate)
-              <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+            @foreach($properties ?? [] as $property)
+              <option value="{{ $property->id }}">{{ $property->name }}</option>
             @endforeach
           </select>
           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
@@ -252,7 +252,7 @@
                 </a>
               </td>
               <td class="p-4 whitespace-nowrap">
-                <span class="text-sm font-medium" :class="getEstateTextColor(tenancy.estate_name)" x-text="tenancy.estate_name || '-'"></span>
+                <span class="text-sm font-medium" :class="getPropertyTextColor(tenancy.property_name)" x-text="tenancy.property_name || '-'"></span>
               </td>
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(tenancy.move_in_date)"></td>
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(tenancy.move_out_date) || '-'"></td>
@@ -419,7 +419,7 @@ function tenanciesTable() {
         entriesPerPage: 10,
         searchTerm: '',
         filters: {
-            estate_id: '',
+            property_id: '',
             unit_type: '',
             date_range: ''
         },
@@ -455,7 +455,7 @@ function tenanciesTable() {
         },
         
         get hasActiveFilters() {
-            return this.filters.estate_id || this.filters.unit_type || this.filters.date_range;
+            return this.filters.property_id || this.filters.unit_type || this.filters.date_range;
         },
         
         filterTenancies() {
@@ -468,9 +468,9 @@ function tenanciesTable() {
                 filtered = filtered.filter(tenancy => tenancy.status === 'ended');
             }
             
-            // Apply estate filter
-            if (this.filters.estate_id) {
-                filtered = filtered.filter(tenancy => tenancy.estate_id == this.filters.estate_id);
+            // Apply property filter
+            if (this.filters.property_id) {
+                filtered = filtered.filter(tenancy => tenancy.property_id == this.filters.property_id);
             }
             
             // Apply unit type filter
@@ -515,7 +515,7 @@ function tenanciesTable() {
                         (tenancy.tenant_name && tenancy.tenant_name.toLowerCase().includes(term)) ||
                         (tenancy.tenant_phone && tenancy.tenant_phone.toLowerCase().includes(term)) ||
                         (tenancy.unit_number && tenancy.unit_number.toLowerCase().includes(term)) ||
-                        (tenancy.estate_name && tenancy.estate_name.toLowerCase().includes(term))
+                        (tenancy.property_name && tenancy.property_name.toLowerCase().includes(term))
                     );
                 });
             }
@@ -528,7 +528,7 @@ function tenanciesTable() {
         
         clearFilters() {
             this.filters = {
-                estate_id: '',
+                property_id: '',
                 unit_type: '',
                 date_range: ''
             };
@@ -661,9 +661,9 @@ function tenanciesTable() {
             return name.charAt(0).toUpperCase();
         },
         
-        getEstateTextColor(estateName) {
-            // Generate a consistent color based on estate name
-            if (!estateName) return 'text-gray-600 dark:text-gray-400';
+        getPropertyTextColor(propertyName) {
+            // Generate a consistent color based on property name
+            if (!propertyName) return 'text-gray-600 dark:text-gray-400';
             
             const colors = [
                 'text-blue-600 dark:text-blue-400',
@@ -679,7 +679,7 @@ function tenanciesTable() {
             ];
             
             // Simple hash to get consistent index
-            const hash = estateName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const hash = propertyName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
             const index = hash % colors.length;
             return colors[index];
         }

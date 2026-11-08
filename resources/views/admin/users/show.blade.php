@@ -235,8 +235,8 @@
                             <p class="text-xs text-gray-500 dark:text-gray-400">Current Unit</p>
                             <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {{ $user->tenant->activeTenancy->unit->unit_number ?? 'N/A' }}
-                                @if($user->tenant->activeTenancy->unit && $user->tenant->activeTenancy->unit->estate)
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">({{ $user->tenant->activeTenancy->unit->estate->name }})</span>
+                                @if($user->tenant->activeTenancy->unit && $user->tenant->activeTenancy->unit->property)
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">({{ $user->tenant->activeTenancy->unit->property->name }})</span>
                                 @endif
                             </p>
                         </div>

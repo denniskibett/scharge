@@ -81,7 +81,7 @@
                         <select x-model="formData.unit_id" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                             <option value="">Select Unit</option>
                             <template x-for="unit in units" :key="unit.id">
-                                <option :value="unit.id" x-text="unit.unit_number + ' - ' + (unit.estate?.name || 'No Estate')"></option>
+                                <option :value="unit.id" x-text="unit.unit_number + ' - ' + (unit.property?.name || 'No Property')"></option>
                             </template>
                         </select>
                     </div>
@@ -361,7 +361,7 @@ document.addEventListener('alpine:init', () => {
         
         get currentUnitLabel() {
             if (this.currentUnit) {
-                return `${this.currentUnit.unit_number} - ${this.currentUnit.estate?.name || 'No Estate'}`;
+                return `${this.currentUnit.unit_number} - ${this.currentUnit.property?.name || 'No Property'}`;
             }
             return 'No unit assigned';
         },
@@ -577,10 +577,10 @@ document.addEventListener('alpine:init', () => {
         
         getUnitLabel() {
             if (this.userRole === 'tenant' && this.currentUnit) {
-                return `${this.currentUnit.unit_number} - ${this.currentUnit.estate?.name || 'No Estate'}`;
+                return `${this.currentUnit.unit_number} - ${this.currentUnit.property?.name || 'No Property'}`;
             }
             const unit = this.units.find(u => u.id == this.formData.unit_id);
-            return unit ? `${unit.unit_number} - ${unit.estate?.name || 'No Estate'}` : 'Not selected';
+            return unit ? `${unit.unit_number} - ${unit.property?.name || 'No Property'}` : 'Not selected';
         },
         
         formatDate(dateString) {

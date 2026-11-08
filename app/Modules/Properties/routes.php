@@ -1,14 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\EstateController;
+use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\TenancyController;
 use App\Http\Controllers\WaterReadingController;
 
 Route::middleware(['auth'])->prefix('properties')->name('properties.')->group(function () {
-    // Estates CRUD
-    Route::resource('estates', EstateController::class);
+    // Properties CRUD
+    Route::resource('properties', PropertyController::class);
     
     // Units CRUD
     Route::resource('units', UnitController::class);

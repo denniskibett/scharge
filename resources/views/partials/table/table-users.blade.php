@@ -19,8 +19,8 @@
                 <button @click="filterRole = 'company_admin'; currentPage = 1" :class="filterRole === 'company_admin' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
                     Company Admin (<span x-text="roleCounts.company_admin"></span>)
                 </button>
-                <button @click="filterRole = 'estate_manager'; currentPage = 1" :class="filterRole === 'estate_manager' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
-                    Property Manager (<span x-text="roleCounts.estate_manager"></span>)
+                <button @click="filterRole = 'property_manager'; currentPage = 1" :class="filterRole === 'property_manager' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
+                    Property Manager (<span x-text="roleCounts.property_manager"></span>)
                 </button>
                 <button @click="filterRole = 'tenant'; currentPage = 1" :class="filterRole === 'tenant' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium">
                     Tenant (<span x-text="roleCounts.tenant"></span>)
@@ -264,7 +264,7 @@ document.addEventListener('alpine:init', () => {
                 all: this.users.length,
                 admin: this.users.filter(u => u.role === 'admin').length,
                 company_admin: this.users.filter(u => u.role === 'company_admin').length,
-                estate_manager: this.users.filter(u => u.role === 'estate_manager').length,
+                property_manager: this.users.filter(u => u.role === 'property_manager').length,
                 tenant: this.users.filter(u => u.role === 'tenant').length
             };
         },
@@ -383,7 +383,7 @@ document.addEventListener('alpine:init', () => {
             const roleMap = {
                 'admin': 'Admin',
                 'company_admin': 'Company Admin',
-                'estate_manager': 'Property Manager',
+                'property_manager': 'Property Manager',
                 'tenant': 'Tenant'
             };
             return roleMap[role] || role;
@@ -398,7 +398,7 @@ document.addEventListener('alpine:init', () => {
             const classes = {
                 'admin': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
                 'company_admin': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-                'estate_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                'property_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
                 'tenant': 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
             };
             return classes[role] || 'bg-gray-100 text-gray-800';

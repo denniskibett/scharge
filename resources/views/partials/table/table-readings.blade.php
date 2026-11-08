@@ -82,9 +82,9 @@
                         Unit 
                         <span x-show="sortBy === 'unit_number'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
                     </th>
-                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('estate_name')">
+                    <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('property_name')">
                         Property
-                        <span x-show="sortBy === 'estate_name'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
+                        <span x-show="sortBy === 'property_name'" x-text="sortDirection === 'asc' ? '↑' : '↓'"></span>
                     </th>
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Previous (m³)</th>
                     <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Current (m³)</th>
@@ -114,7 +114,7 @@
                             </span>
                         </td>
                         <td class="p-4 whitespace-nowrap">
-                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.estate_name"></span>
+                            <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.property_name"></span>
                         </td>
                         <td class="p-4 whitespace-nowrap text-right">
                             <span class="text-sm text-gray-600 dark:text-gray-400" x-text="formatNumber(reading.previous_reading)"></span>
@@ -266,7 +266,7 @@ document.addEventListener('alpine:init', () => {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(reading => 
                     (reading.unit_number && reading.unit_number.toLowerCase().includes(query)) ||
-                    (reading.estate_name && reading.estate_name.toLowerCase().includes(query))
+                    (reading.property_name && reading.property_name.toLowerCase().includes(query))
                 );
             }
             
@@ -386,7 +386,7 @@ document.addEventListener('alpine:init', () => {
             const headers = ['Unit', 'Property', 'Previous (m³)', 'Current (m³)', 'Consumption (m³)', 'Charge (KES)', 'Last Reading Date', 'Status', 'Total Readings'];
             const rows = this.filteredReadings.map(r => [
                 r.unit_number,
-                r.estate_name,
+                r.property_name,
                 this.formatNumber(r.previous_reading),
                 this.formatNumber(r.current_reading),
                 this.formatNumber(r.consumption),

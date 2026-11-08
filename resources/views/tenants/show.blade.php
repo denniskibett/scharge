@@ -157,12 +157,12 @@
           </div>
         </div>
 
-        <!-- Estates Lived Card -->
+        <!-- Properties Lived Card -->
         <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Properties Lived</p>
-              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ $estates->count() }}</p>
+              <p class="text-2xl font-bold text-gray-900 dark:text-white mt-1">{{ $properties->count() }}</p>
             </div>
             <div class="h-12 w-12 rounded-full bg-purple-200 dark:bg-purple-700 flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-purple-600 dark:text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -192,7 +192,7 @@
               <a href="{{ route('units.show', $activeTenancy->unit_id) }}" class="text-base font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 truncate block">
                 {{ $activeTenancy->unit->unit_number ?? 'N/A' }}
               </a>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $activeTenancy->unit->estate->name ?? '' }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $activeTenancy->unit->property->name ?? '' }}</p>
             </div>
           </div>
         </div>

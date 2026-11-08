@@ -177,7 +177,7 @@
             <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
               @foreach($payee->expenses as $expense)
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ $expense->estate->name }}</td>
+                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ $expense->property->name }}</td>
                 <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ $expense->category->name }}</td>
                 <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">{{ \App\Helpers\SystemHelper::currencySymbol() }}{{ number_format($expense->amount, 2) }}</td>
                 <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y') }}</td>

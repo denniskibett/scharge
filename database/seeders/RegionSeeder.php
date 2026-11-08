@@ -91,7 +91,7 @@ class RegionSeeder extends Seeder
             [
                 'name' => 'Karen',
                 'slug' => 'karen',
-                'description' => 'Affluent residential area with large estates, luxury homes, and international schools',
+                'description' => 'Affluent residential area with large properties, luxury homes, and international schools',
                 'county_id' => $nairobi?->id,
                 'longitude' => 36.7300,
                 'latitude' => -1.3300,
@@ -205,7 +205,7 @@ class RegionSeeder extends Seeder
             [
                 'name' => 'Syokimau',
                 'slug' => 'syokimau',
-                'description' => 'Growing residential area near JKIA with mix of apartments, standalone homes, and estates',
+                'description' => 'Growing residential area near JKIA with mix of apartments, standalone homes, and properties',
                 'county_id' => $nairobi?->id,
                 'longitude' => 36.8600,
                 'latitude' => -1.3600,
@@ -271,7 +271,7 @@ class RegionSeeder extends Seeder
             [
                 'name' => 'Kiserian',
                 'slug' => 'kiserian',
-                'description' => 'Residential area with growing real estate development, affordable housing, and agricultural land',
+                'description' => 'Residential area with growing real property development, affordable housing, and agricultural land',
                 'county_id' => $kajiado?->id,
                 'longitude' => 36.6800,
                 'latitude' => -1.4200,
@@ -281,7 +281,7 @@ class RegionSeeder extends Seeder
             [
                 'name' => 'Kitengela',
                 'slug' => 'kitengela',
-                'description' => 'Fast-growing residential and industrial area with affordable housing, factories, and estates',
+                'description' => 'Fast-growing residential and industrial area with affordable housing, factories, and properties',
                 'county_id' => $kajiado?->id,
                 'longitude' => 36.9500,
                 'latitude' => -1.4300,
@@ -463,7 +463,7 @@ class RegionSeeder extends Seeder
             [
                 'name' => 'Changamwe',
                 'slug' => 'changamwe',
-                'description' => 'Industrial and residential area with factories, warehouses, and developing housing estates',
+                'description' => 'Industrial and residential area with factories, warehouses, and developing housing properties',
                 'county_id' => $mombasa?->id,
                 'longitude' => 39.6400,
                 'latitude' => -4.0600,

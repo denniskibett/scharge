@@ -65,7 +65,7 @@
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.03]">
             <p class="text-[10px] text-gray-500 dark:text-gray-400">Properties</p>
-            <p class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $stats->total_estates ?? 0 }}</p>
+            <p class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $stats->total_properties ?? 0 }}</p>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-800 dark:bg-white/[0.03]">
             <p class="text-[10px] text-gray-500 dark:text-gray-400">Units</p>
@@ -118,10 +118,10 @@
                             $occupiedUnits = 0;
                             $unoccupiedUnits = 0;
                             $totalUnits = 0;
-                            foreach ($occupancy as $estate) {
-                                $totalUnits += $estate->total_units ?? 0;
-                                $occupiedUnits += $estate->occupied_units ?? 0;
-                                $unoccupiedUnits += $estate->unoccupied_units ?? 0;
+                            foreach ($occupancy as $property) {
+                                $totalUnits += $property->total_units ?? 0;
+                                $occupiedUnits += $property->occupied_units ?? 0;
+                                $unoccupiedUnits += $property->unoccupied_units ?? 0;
                             }
                         @endphp
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
@@ -151,9 +151,9 @@
                                 </span>
                             </td>
 
-                            <!-- Estates -->
+                            <!-- Properties -->
                             <td class="px-4 py-3 text-center text-sm text-gray-700 dark:text-gray-300">
-                                {{ $summary->total_estates ?? 0 }}
+                                {{ $summary->total_properties ?? 0 }}
                             </td>
 
                             <!-- Units -->

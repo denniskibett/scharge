@@ -1,14 +1,14 @@
 @include('partials.modal.success-modal')
 @include('partials.modal.error-modal')
 
-<div class="container mx-auto px-4 py-6" x-data="estateTable()" x-init="init()">
+<div class="container mx-auto px-4 py-6" x-data="propertyTable()" x-init="init()">
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
         <div class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Properties Overview</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
                     Showing <span x-text="showingStart"></span> to <span x-text="showingEnd"></span> of 
-                    <span x-text="filteredEstates.length"></span> properties
+                    <span x-text="filteredProperties.length"></span> properties
                 </p>
             </div>
             
@@ -39,8 +39,8 @@
                     <input 
                         type="text" 
                         x-model="searchTerm"
-                        @input.debounce.300ms="filterEstates()"
-                        id="estateSearch" 
+                        @input.debounce.300ms="filterProperties()"
+                        id="propertySearch" 
                         placeholder="Search properties..." 
                         class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 pl-10"
                     >
@@ -64,7 +64,7 @@
         </div>
 
         <div class="w-full overflow-x-auto">
-            <table class="min-w-full" id="estatesTable">
+            <table class="min-w-full" id="propertiesTable">
                 <!-- Desktop table header -->
                 <thead class="hidden sm:table-header-group">
                     <tr class="border-gray-100 border-y dark:border-gray-800">
@@ -122,40 +122,40 @@
                     </tr>
                 </thead>
 
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800" id="estatesTableBody">
-                    <template x-for="estate in paginatedEstates" :key="estate.id">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800" id="propertiesTableBody">
+                    <template x-for="property in paginatedProperties" :key="property.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
                             <!-- Desktop cells -->
                             <td class="py-3 hidden sm:table-cell">
                                 <div class="flex items-center gap-3">
                                     <div class="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                        <a :href="`/estates/${estate.id}`">
-                                            <span class="text-blue-600 font-medium" x-text="estate.name.charAt(0).toUpperCase()"></span>
+                                        <a :href="`/properties/${property.id}`">
+                                            <span class="text-blue-600 font-medium" x-text="property.name.charAt(0).toUpperCase()"></span>
                                         </a>    
                                     </div>
                                     <div>
-                                        <a :href="`/estates/${estate.id}`" class="estate-name">
-                                            <p class="font-medium text-gray-800 text-sm dark:text-white/90" x-text="estate.name"></p>
+                                        <a :href="`/properties/${property.id}`" class="property-name">
+                                            <p class="font-medium text-gray-800 text-sm dark:text-white/90" x-text="property.name"></p>
                                         </a>
-                                        <span class="text-gray-500 text-xs dark:text-gray-400 estate-units">
-                                            <span x-text="estate.units_count"></span> units
+                                        <span class="text-gray-500 text-xs dark:text-gray-400 property-units">
+                                            <span x-text="property.units_count"></span> units
                                         </span>
                                     </div>
                                 </div>
                             </td>
                             
                             <td class="py-3 hidden sm:table-cell">
-                                <div class="text-sm text-gray-500 estate-location" x-text="estate.location"></div>
+                                <div class="text-sm text-gray-500 property-location" x-text="property.location"></div>
                             </td>
                             
                             <td class="py-3 hidden sm:table-cell">
-                                <div class="text-sm text-gray-500" x-text="estate.units_count"></div>
+                                <div class="text-sm text-gray-500" x-text="property.units_count"></div>
                             </td>
                             
                             <td class="py-3 text-right">
                                 <div class="flex justify-end space-x-3">
                                     <!-- View -->
-                                    <a :href="`/estates/${estate.id}`" class="text-blue-600 hover:text-blue-900" title="View">
+                                    <a :href="`/properties/${property.id}`" class="text-blue-600 hover:text-blue-900" title="View">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -163,14 +163,14 @@
                                     </a>
 
                                     <!-- Edit -->
-                                    <button @click="openEditModal(estate)" class="text-green-600 hover:text-green-900" title="Edit">
+                                    <button @click="openEditModal(property)" class="text-green-600 hover:text-green-900" title="Edit">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                         </svg>
                                     </button>
 
                                     <!-- Delete -->
-                                    <button @click="confirmDelete(estate)" class="text-red-600 hover:text-red-900" title="Delete">
+                                    <button @click="confirmDelete(property)" class="text-red-600 hover:text-red-900" title="Delete">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                         </svg>
@@ -182,14 +182,14 @@
                             <td class="py-3 sm:hidden">
                                 <div class="flex items-center gap-3">
                                     <div class="h-[40px] w-[40px] overflow-hidden rounded-md bg-blue-100 flex items-center justify-center">
-                                        <span class="text-blue-600 font-medium" x-text="estate.name.charAt(0).toUpperCase()"></span>
+                                        <span class="text-blue-600 font-medium" x-text="property.name.charAt(0).toUpperCase()"></span>
                                     </div>
                                     <div>
-                                        <a :href="`/estates/${estate.id}`" class="estate-name">
-                                            <p class="font-medium text-gray-800 text-sm dark:text-white/90" x-text="estate.name"></p>
+                                        <a :href="`/properties/${property.id}`" class="property-name">
+                                            <p class="font-medium text-gray-800 text-sm dark:text-white/90" x-text="property.name"></p>
                                         </a>
-                                        <span class="text-gray-500 text-xs dark:text-gray-400 estate-units">
-                                            <span x-text="estate.units_count"></span> units • <span x-text="estate.location"></span>
+                                        <span class="text-gray-500 text-xs dark:text-gray-400 property-units">
+                                            <span x-text="property.units_count"></span> units • <span x-text="property.location"></span>
                                         </span>
                                     </div>
                                 </div>
@@ -197,20 +197,20 @@
                             
                             <td class="py-3 sm:hidden text-right">
                                 <div class="flex justify-end space-x-2">
-                                    <a :href="`/estates/${estate.id}`" class="text-blue-600 hover:text-blue-900 inline-block" title="View">
+                                    <a :href="`/properties/${property.id}`" class="text-blue-600 hover:text-blue-900 inline-block" title="View">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
                                         </svg>
                                     </a>
                                     
-                                    <button @click="openEditModal(estate)" class="text-green-600 hover:text-green-900 inline-block" title="Edit">
+                                    <button @click="openEditModal(property)" class="text-green-600 hover:text-green-900 inline-block" title="Edit">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                         </svg>
                                     </button>
                                     
-                                    <button @click="confirmDelete(estate)" class="text-red-600 hover:text-red-900 inline-block" title="Delete">
+                                    <button @click="confirmDelete(property)" class="text-red-600 hover:text-red-900 inline-block" title="Delete">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                         </svg>
@@ -220,7 +220,7 @@
                         </tr>
                     </template>
                     
-                    <tr x-show="filteredEstates.length === 0">
+                    <tr x-show="filteredProperties.length === 0">
                         <td colspan="4" class="py-8 text-center">
                             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -239,7 +239,7 @@
                 <div class="hidden sm:flex">
                     <p class="text-sm text-gray-700 dark:text-gray-400">
                         Showing <span x-text="showingStart"></span> to <span x-text="showingEnd"></span> of 
-                        <span x-text="filteredEstates.length"></span> results
+                        <span x-text="filteredProperties.length"></span> results
                     </p>
                 </div>
                 <div class="flex-1 flex justify-between sm:justify-end">
@@ -277,8 +277,8 @@
     </div>
 </div>
 
-<!-- CREATE ESTATE SLIDEOVER MODAL -->
-<div x-data="createEstateModal()" x-init="init()">
+<!-- CREATE PROPERTY SLIDEOVER MODAL -->
+<div x-data="createPropertyModal()" x-init="init()">
     <!-- Backdrop -->
     <template x-if="isOpen">
         <div 
@@ -463,8 +463,8 @@
     </div>
 </div>
 
-<!-- EDIT ESTATE SLIDEOVER MODAL -->
-<div x-data="editEstateModal()" x-init="init()">
+<!-- EDIT PROPERTY SLIDEOVER MODAL -->
+<div x-data="editPropertyModal()" x-init="init()">
     <!-- Backdrop -->
     <template x-if="isOpen">
         <div 
@@ -649,8 +649,8 @@
     </div>
 </div>
 
-<!-- DELETE ESTATE MODAL (Centered) -->
-<div x-data="deleteEstateModal()" x-show="isModalOpen" x-cloak>
+<!-- DELETE PROPERTY MODAL (Centered) -->
+<div x-data="deletePropertyModal()" x-show="isModalOpen" x-cloak>
     <div class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
         <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]" @click="closeModal()"></div>
         <div 
@@ -678,7 +678,7 @@
                 </h4>
                 
                 <p class="mb-6 text-sm text-gray-600 dark:text-gray-400">
-                    Are you sure you want to delete "<span x-text="estate?.name" class="font-medium"></span>"? 
+                    Are you sure you want to delete "<span x-text="property?.name" class="font-medium"></span>"? 
                     This action cannot be undone and will also delete all associated units.
                 </p>
 
@@ -691,7 +691,7 @@
                         Cancel
                     </button>
                     <button
-                        @click="deleteEstate()"
+                        @click="deleteProperty()"
                         :disabled="loading"
                         type="button"
                         class="flex justify-center w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-red-600 shadow-theme-xs hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
@@ -706,11 +706,11 @@
 </div>
 
 <script>
-function estateTable() {
+function propertyTable() {
     return {
-        estates: [],
-        filteredEstates: [],
-        paginatedEstates: [],
+        properties: [],
+        filteredProperties: [],
+        paginatedProperties: [],
         currentPage: 1,
         entriesPerPage: 10,
         searchTerm: '',
@@ -725,36 +725,36 @@ function estateTable() {
         deleteModal: null,
         
         init() {
-            const estatesElement = document.getElementById('estates-data');
-            if (estatesElement) {
-                this.estates = JSON.parse(estatesElement.textContent);
+            const propertiesElement = document.getElementById('properties-data');
+            if (propertiesElement) {
+                this.properties = JSON.parse(propertiesElement.textContent);
             }
             
-            this.filteredEstates = [...this.estates];
+            this.filteredProperties = [...this.properties];
             this.updateTable();
             
             this.$nextTick(() => {
-                this.createModal = Alpine.$data(document.querySelector('[x-data="createEstateModal()"]'));
-                this.editModal = Alpine.$data(document.querySelector('[x-data="editEstateModal()"]'));
-                this.deleteModal = Alpine.$data(document.querySelector('[x-data="deleteEstateModal()"]'));
+                this.createModal = Alpine.$data(document.querySelector('[x-data="createPropertyModal()"]'));
+                this.editModal = Alpine.$data(document.querySelector('[x-data="editPropertyModal()"]'));
+                this.deleteModal = Alpine.$data(document.querySelector('[x-data="deletePropertyModal()"]'));
             });
         },
         
-        filterEstates() {
+        filterProperties() {
             if (!this.searchTerm.trim()) {
-                this.filteredEstates = [...this.estates];
+                this.filteredProperties = [...this.properties];
             } else {
                 const term = this.searchTerm.toLowerCase();
-                this.filteredEstates = this.estates.filter(estate => {
+                this.filteredProperties = this.properties.filter(property => {
                     return (
-                        estate.name.toLowerCase().includes(term) ||
-                        (estate.location && estate.location.toLowerCase().includes(term)) ||
-                        estate.units_count.toString().includes(term)
+                        property.name.toLowerCase().includes(term) ||
+                        (property.location && property.location.toLowerCase().includes(term)) ||
+                        property.units_count.toString().includes(term)
                     );
                 });
             }
             
-            this.sortEstates();
+            this.sortProperties();
             this.updateTable();
         },
         
@@ -765,12 +765,12 @@ function estateTable() {
                 this.sortColumn = column;
                 this.sortDirection = 'asc';
             }
-            this.sortEstates();
+            this.sortProperties();
             this.updateTable();
         },
         
-        sortEstates() {
-            this.filteredEstates.sort((a, b) => {
+        sortProperties() {
+            this.filteredProperties.sort((a, b) => {
                 let aValue, bValue;
                 if (this.sortColumn === 'units_count') {
                     aValue = a.units_count;
@@ -786,12 +786,12 @@ function estateTable() {
         },
         
         updateTable() {
-            this.totalPages = Math.ceil(this.filteredEstates.length / this.entriesPerPage);
+            this.totalPages = Math.ceil(this.filteredProperties.length / this.entriesPerPage);
             const startIndex = (this.currentPage - 1) * this.entriesPerPage;
             const endIndex = startIndex + this.entriesPerPage;
-            this.paginatedEstates = this.filteredEstates.slice(startIndex, endIndex);
-            this.showingStart = this.filteredEstates.length ? startIndex + 1 : 0;
-            this.showingEnd = Math.min(endIndex, this.filteredEstates.length);
+            this.paginatedProperties = this.filteredProperties.slice(startIndex, endIndex);
+            this.showingStart = this.filteredProperties.length ? startIndex + 1 : 0;
+            this.showingEnd = Math.min(endIndex, this.filteredProperties.length);
         },
         
         get visiblePages() {
@@ -838,21 +838,21 @@ function estateTable() {
             }
         },
         
-        openEditModal(estate) {
+        openEditModal(property) {
             if (this.editModal) {
-                this.editModal.openModal(estate);
+                this.editModal.openModal(property);
             }
         },
         
-        confirmDelete(estate) {
+        confirmDelete(property) {
             if (this.deleteModal) {
-                this.deleteModal.openModal(estate);
+                this.deleteModal.openModal(property);
             }
         }
     };
 }
 
-function createEstateModal() {
+function createPropertyModal() {
     return {
         isOpen: false,
         form: {
@@ -867,7 +867,7 @@ function createEstateModal() {
         loading: false,
         
         init() {
-            window.createEstateModal = this;
+            window.createPropertyModal = this;
         },
         
         openModal() {
@@ -901,7 +901,7 @@ function createEstateModal() {
             this.formErrors = [];
             
             try {
-                const response = await fetch('{{ route("estates.store") }}', {
+                const response = await fetch('{{ route("properties.store") }}', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -916,7 +916,7 @@ function createEstateModal() {
                 if (response.ok) {
                     this.closeModal();
                     if (window.successModal) {
-                        window.successModal.simple('Property Created', `Estate "${this.form.name}" has been created successfully!`);
+                        window.successModal.simple('Property Created', `Property "${this.form.name}" has been created successfully!`);
                     }
                     setTimeout(() => {
                         window.location.reload();
@@ -951,10 +951,10 @@ function createEstateModal() {
     };
 }
 
-function editEstateModal() {
+function editPropertyModal() {
     return {
         isOpen: false,
-        estate: null,
+        property: null,
         form: {
             name: '',
             location: '',
@@ -967,18 +967,18 @@ function editEstateModal() {
         loading: false,
         
         init() {
-            window.editEstateModal = this;
+            window.editPropertyModal = this;
         },
         
-        openModal(estate) {
-            this.estate = estate;
+        openModal(property) {
+            this.property = property;
             this.form = {
-                name: estate.name,
-                location: estate.location || '',
-                water_rate: estate.water_rate || '',
-                service_charge: estate.service_charge || '',
-                garbage_charge: estate.garbage_charge || '',
-                security_charge: estate.security_charge || ''
+                name: property.name,
+                location: property.location || '',
+                water_rate: property.water_rate || '',
+                service_charge: property.service_charge || '',
+                garbage_charge: property.garbage_charge || '',
+                security_charge: property.security_charge || ''
             };
             this.formErrors = [];
             this.loading = false;
@@ -988,7 +988,7 @@ function editEstateModal() {
         
         closeModal() {
             this.isOpen = false;
-            this.estate = null;
+            this.property = null;
             this.formErrors = [];
             this.loading = false;
             document.body.style.overflow = '';
@@ -999,7 +999,7 @@ function editEstateModal() {
             this.formErrors = [];
             
             try {
-                const response = await fetch(`/estates/${this.estate.id}`, {
+                const response = await fetch(`/properties/${this.property.id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1014,7 +1014,7 @@ function editEstateModal() {
                 if (response.ok) {
                     this.closeModal();
                     if (window.successModal) {
-                        window.successModal.simple('Property Updated', `Estate "${this.form.name}" has been updated successfully!`);
+                        window.successModal.simple('Property Updated', `Property "${this.form.name}" has been updated successfully!`);
                     }
                     setTimeout(() => {
                         window.location.reload();
@@ -1049,14 +1049,14 @@ function editEstateModal() {
     };
 }
 
-function deleteEstateModal() {
+function deletePropertyModal() {
     return {
         isModalOpen: false,
-        estate: null,
+        property: null,
         loading: false,
         
-        openModal(estate) {
-            this.estate = estate;
+        openModal(property) {
+            this.property = property;
             this.loading = false;
             this.isModalOpen = true;
             document.body.style.overflow = 'hidden';
@@ -1064,16 +1064,16 @@ function deleteEstateModal() {
         
         closeModal() {
             this.isModalOpen = false;
-            this.estate = null;
+            this.property = null;
             this.loading = false;
             document.body.style.overflow = '';
         },
         
-        async deleteEstate() {
+        async deleteProperty() {
             this.loading = true;
             
             try {
-                const response = await fetch(`/estates/${this.estate.id}`, {
+                const response = await fetch(`/properties/${this.property.id}`, {
                     method: 'DELETE',
                     headers: {
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -1093,9 +1093,9 @@ function deleteEstateModal() {
                     }, 1500);
                 } else {
                     if (window.errorModal) {
-                        window.errorModal.show('Deletion Failed', data.message || 'Failed to delete estate.');
+                        window.errorModal.show('Deletion Failed', data.message || 'Failed to delete property.');
                     } else {
-                        alert(data.message || 'Failed to delete estate.');
+                        alert(data.message || 'Failed to delete property.');
                     }
                 }
             } catch (error) {
@@ -1127,6 +1127,6 @@ function deleteEstateModal() {
 </style>
 
 <!-- Hidden data element for Alpine.js -->
-<script type="application/json" id="estates-data">
-@json($estatesData)
+<script type="application/json" id="properties-data">
+@json($propertiesData)
 </script>

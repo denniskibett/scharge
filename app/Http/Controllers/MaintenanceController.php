@@ -7,7 +7,7 @@ use App\Models\Maintenance;
 use App\Models\Unit;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Estate;
+use App\Models\Property;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -43,19 +43,19 @@ class MaintenanceController extends Controller
         
         $requests = $query->latest()->paginate(20);
         
-        // Get units and estates for the modals
+        // Get units and properties for the modals
         $units = Unit::where('company_id', $user->company_id)
-            ->with('estate')
+            ->with('property')
             ->where('is_active', true)
             ->get();
         
-        $estates = Estate::where('company_id', $user->company_id)
+        $properties = Property::where('company_id', $user->company_id)
             ->orderBy('name')
             ->get();
         
         $currentUnit = null;
         if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
-            $currentUnit = $user->tenant->activeTenancy->unit->load('estate');
+            $currentUnit = $user->tenant->activeTenancy->unit->load('property');
         }
         
         if ($request->wantsJson()) {
@@ -85,7 +85,7 @@ class MaintenanceController extends Controller
             ]);
         }
         
-        return view('maintenance.index', compact('requests', 'units', 'estates', 'currentUnit'));
+        return view('maintenance.index', compact('requests', 'units', 'properties', 'currentUnit'));
     }
 
     public function store(Request $request)
@@ -127,7 +127,7 @@ class MaintenanceController extends Controller
         // Create record
         $maintenance = Maintenance::create([
             'company_id' => $companyId,
-            'estate_id' => $unit?->estate_id,
+            'property_id' => $unit?->property_id,
             'unit_id' => $validated['unit_id'],
             'tenant_id' => $tenantId,
             'assigned_to' => null,

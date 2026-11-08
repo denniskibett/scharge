@@ -35,13 +35,13 @@
     'totalUnits' => $totalUnits,
     'occupiedCount' => $occupiedCount,
     'vacantCount' => $vacantCount,
-    'estates' => $estates ?? [],
-    'currentEstate' => $estate ?? null,
-    'showEstateFilter' => true,
-    'showEstateColumn' => true,
+    'properties' => $properties ?? [],
+    'currentProperty' => $property ?? null,
+    'showPropertyFilter' => true,
+    'showPropertyColumn' => true,
     'showUtilityColumns' => true,
     'showTotalColumn' => true,
-    'hideEstateFilter' => false
+    'hidePropertyFilter' => false
 ])
 
 <!-- Hidden data for Alpine.js (kept for backward compatibility) -->

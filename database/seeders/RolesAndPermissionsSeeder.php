@@ -41,7 +41,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'edit permissions',
             'delete permissions',
 
-            // Properties / Estates
+            // Properties / Properties
             'view properties',
             'create properties',
             'edit properties',

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\User;
 use App\Models\County;
 use App\Models\Subcounty;
-use App\Models\Estate;
+use App\Models\Property;
 
 class AccountManager extends Model
 {
@@ -49,9 +49,9 @@ class AccountManager extends Model
         return $this->belongsTo(Subcounty::class);
     }
 
-    public function estates()
+    public function properties()
     {
-        return $this->hasMany(Estate::class, 'account_manager_id');
+        return $this->hasMany(Property::class, 'account_manager_id');
     }
 
     // =============================================
@@ -102,8 +102,8 @@ class AccountManager extends Model
         return $this->subcounty?->name ?? 'No Subcounty';
     }
 
-    public function getEstatesCountAttribute()
+    public function getPropertiesCountAttribute()
     {
-        return $this->estates()->count();
+        return $this->properties()->count();
     }
 }

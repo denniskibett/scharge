@@ -173,9 +173,9 @@ class SubscriptionPlanSeeder extends Seeder
             ],
             [
                 'price' => 800,
-                'name' => 'Luxury Estates',
+                'name' => 'Luxury Properties',
                 'slug' => 'residential-800',
-                'description' => 'Luxury estates service charge band. For luxury apartments in prime locations.',
+                'description' => 'Luxury properties service charge band. For luxury apartments in prime locations.',
                 'features' => [
                     'Water supply (metered)',
                     'Garbage collection (twice daily)',
@@ -201,9 +201,9 @@ class SubscriptionPlanSeeder extends Seeder
             ],
             [
                 'price' => 1000,
-                'name' => 'Royal Estates',
+                'name' => 'Royal Properties',
                 'slug' => 'residential-1000',
-                'description' => 'Royal estates service charge band. Ultra-luxury living with exclusive amenities.',
+                'description' => 'Royal properties service charge band. Ultra-luxury living with exclusive amenities.',
                 'features' => [
                     'Water supply (metered)',
                     'Garbage collection (twice daily)',
@@ -226,7 +226,7 @@ class SubscriptionPlanSeeder extends Seeder
                     'Private chef service',
                     'Personal assistant service',
                 ],
-                'unit_types' => ['penthouse', 'villa', 'mansion', 'estate'],
+                'unit_types' => ['penthouse', 'villa', 'mansion', 'property'],
                 'property_types' => ['residential'],
             ],
         ];

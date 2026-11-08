@@ -44,7 +44,7 @@
         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
           @if($tenant['current_unit'] ?? false)
             <span class="font-medium text-blue-600">{{ $tenant['current_unit']['unit_number'] }}</span>
-            <div class="text-xs text-gray-400">{{ $tenant['current_unit']['estate_name'] }}</div>
+            <div class="text-xs text-gray-400">{{ $tenant['current_unit']['property_name'] }}</div>
           @else
             <span class="text-gray-400">No active tenancy</span>
           @endif

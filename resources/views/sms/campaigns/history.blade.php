@@ -60,11 +60,11 @@
     <div class="mb-6 rounded-sm border border-stroke bg-white p-4 shadow-default dark:border-strokedark dark:bg-boxdark">
         <form method="GET" action="{{ route('sms.campaigns.history') }}" class="flex flex-wrap items-center gap-4">
             <div>
-                <select name="estate_id" class="rounded-md border border-stroke px-3 py-1.5 text-sm dark:border-strokedark dark:bg-boxdark">
+                <select name="property_id" class="rounded-md border border-stroke px-3 py-1.5 text-sm dark:border-strokedark dark:bg-boxdark">
                     <option value="">All Properties</option>
-                    @foreach($estates as $estate)
-                        <option value="{{ $estate->id }}" {{ request('estate_id') == $estate->id ? 'selected' : '' }}>
-                            {{ $estate->name }}
+                    @foreach($properties as $property)
+                        <option value="{{ $property->id }}" {{ request('property_id') == $property->id ? 'selected' : '' }}>
+                            {{ $property->name }}
                         </option>
                     @endforeach
                 </select>
@@ -122,7 +122,7 @@
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $campaign->id }}</td>
                         <td class="px-4 py-3 text-sm font-medium text-black dark:text-white">{{ $campaign->name }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $campaign->estate_name ?? 'N/A' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $campaign->property_name ?? 'N/A' }}</td>
                         <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
                             {{ $campaign->month ? \Carbon\Carbon::createFromFormat('Y-m', $campaign->month)->format('M Y') : 'N/A' }}
                         </td>

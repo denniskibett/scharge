@@ -70,10 +70,10 @@
             </div>
           </div>
 
-          <!-- Estate -->
+          <!-- Property -->
           <div>
             <p class="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-400">Property</p>
-            <p class="text-sm text-gray-800 dark:text-white/90" x-text="currentTenancy?.estate_name || '-'"></p>
+            <p class="text-sm text-gray-800 dark:text-white/90" x-text="currentTenancy?.property_name || '-'"></p>
           </div>
 
           <!-- Move-in Date -->

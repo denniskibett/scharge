@@ -5,7 +5,7 @@ namespace App\Modules\SMS\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\SMS\Models\SmsCampaign;
 use App\Models\SmsTemplate;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Models\Company;
 use App\Models\Tenant;
 use App\Models\CampaignRecipient;
@@ -273,7 +273,7 @@ public function listFromKenyaSMS(Request $request)
                 'campaign_type' => 'nullable|string',
                 'filters' => 'nullable|array',
                 'filters.company_id' => ['nullable', new \App\Rules\CustomerCompany],
-                'filters.estate_id' => 'nullable|exists:estates,id',
+                'filters.property_id' => 'nullable|exists:properties,id',
                 'filters.invoice_status' => 'nullable|in:all,paid,unpaid,partial',
                 'scheduled_at' => 'nullable|date',
             ]);
@@ -312,7 +312,7 @@ public function listFromKenyaSMS(Request $request)
             
             // Get recipients with tenant and status info
             $recipients = CampaignRecipient::where('campaign_id', $campaign->id)
-                ->with(['tenant.user', 'tenant.activeTenancy.unit.estate'])
+                ->with(['tenant.user', 'tenant.activeTenancy.unit.property'])
                 ->get();
             
             // Compute status counts
@@ -350,7 +350,7 @@ public function listFromKenyaSMS(Request $request)
                 $user = $tenant ? $tenant->user : null;
                 $tenancy = $tenant ? $tenant->activeTenancy : null;
                 $unit = $tenancy ? $tenancy->unit : null;
-                $estate = $unit ? $unit->estate : null;
+                $property = $unit ? $unit->property : null;
                 
                 return [
                     'id' => $recipient->id,
@@ -365,7 +365,7 @@ public function listFromKenyaSMS(Request $request)
                     'provider_response' => $recipient->provider_response,
                     'tenant_name' => $user ? $user->name : 'Unknown',
                     'unit_number' => $unit ? $unit->unit_number : 'N/A',
-                    'estate_name' => $estate ? $estate->name : 'N/A',
+                    'property_name' => $property ? $property->name : 'N/A',
                     'network' => $recipient->provider_status ?? '',
                     'parts' => '',
                     'cost' => '',
@@ -491,14 +491,14 @@ public function listFromKenyaSMS(Request $request)
 
         $template = $request->input('template');
         if (empty($template)) {
-            $template = "{{estate_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))\n\nPaybill: 7263733\nAcc: {{unit}}\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nStatus: {{status}}\n\nFor queries: 0701262902";
+            $template = "{{property_name}} {{month}} Water Bill - ({{water_consumption}} units (Last: {{prev_read}}-New: {{curr_read}}))\n\nPaybill: 7263733\nAcc: {{unit}}\nAmount: KES {{water_bill}}\nDue: {{due_date}}\nStatus: {{status}}\n\nFor queries: 0701262902";
         }
 
         $tenantIds = collect($recipients)->pluck('id')->filter()->unique()->values()->toArray();
         $tenantData = collect();
         if (!empty($tenantIds)) {
             $tenantData = Tenant::whereIn('id', $tenantIds)
-                ->with(['activeTenancy.unit.estate'])
+                ->with(['activeTenancy.unit.property'])
                 ->get()
                 ->keyBy('id');
         }
@@ -561,7 +561,7 @@ public function listFromKenyaSMS(Request $request)
                 $activeTenancy = $tenant->activeTenancy;
                 $unit = $activeTenancy ? $activeTenancy->unit : null;
                 $unitNumber = $unit ? $unit->unit_number : '';
-                $estateName = $unit && $unit->estate ? $unit->estate->name : '';
+                $propertyName = $unit && $unit->property ? $unit->property->name : '';
                 
                 $reading = $unit ? WaterReading::where('unit_id', $unit->id)
                     ->latest('reading_date')
@@ -577,7 +577,7 @@ public function listFromKenyaSMS(Request $request)
                 
                 $variables['unit'] = $unitNumber;
                 $variables['unit_number'] = $unitNumber;
-                $variables['estate_name'] = $estateName;
+                $variables['property_name'] = $propertyName;
                 $variables['name'] = $variables['name'] ?? $tenant->user->name ?? 'Tenant';
                 $variables['water_bill'] = (int) ($variables['water_bill'] ?? $waterBill);
                 $variables['water_consumption'] = (int) ($variables['water_consumption'] ?? $consumption);
@@ -655,9 +655,11 @@ public function listFromKenyaSMS(Request $request)
             if (!isset($variables['unit']) || empty($variables['unit'])) {
                 $variables['unit'] = $recipient['unit'] ?? 'N/A';
             }
-            if (!isset($variables['estate_name']) || empty($variables['estate_name'])) {
-                $variables['estate_name'] = $recipient['estate'] ?? 'N/A';
+            if (!isset($variables['property_name']) || empty($variables['property_name'])) {
+                $variables['property_name'] = $recipient['property'] ?? 'N/A';
             }
+            // Templates saved before the Estate -> Property rename use {{estate_name}}.
+            $variables['estate_name'] = $variables['property_name'];
             if (!isset($variables['payment_status']) || empty($variables['payment_status'])) {
                 $variables['payment_status'] = 'pending';
             }
@@ -1600,7 +1602,7 @@ public function importFromKenyaSMS($campaignId)
             // Try to find tenant by phone
             $tenant = Tenant::whereHas('user', function($q) use ($phone) {
                 $q->where('phone', 'like', '%' . substr($phone, -9));
-            })->with(['user', 'activeTenancy.unit.estate'])->first();
+            })->with(['user', 'activeTenancy.unit.property'])->first();
             
             $tenantId = $tenant ? $tenant->id : null;
             

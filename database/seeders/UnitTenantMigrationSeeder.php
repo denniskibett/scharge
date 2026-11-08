@@ -17,7 +17,7 @@ class UnitTenantMigrationSeeder extends Seeder
     {
         $this->command->info('Starting Unit Tenant Migration Seeder...');
         
-        $units = Unit::with(['estate', 'tenancies'])->get();
+        $units = Unit::with(['property', 'tenancies'])->get();
         
         foreach ($units as $unit) {
             $activeTenancy = $unit->tenancies->where('status', 'active')->first();

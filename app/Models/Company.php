@@ -98,16 +98,16 @@ class Company extends Model
         return $this->hasMany(\App\Modules\Users\Models\User::class);
     }
     
-    // Estates belonging to this company
-    public function estates()
+    // Properties belonging to this company
+    public function properties()
     {
-        return $this->hasMany(\App\Models\Estate::class);
+        return $this->hasMany(\App\Models\Property::class);
     }
     
-    // Units belonging to this company (through estates)
+    // Units belonging to this company (through properties)
     public function units()
     {
-        return $this->hasManyThrough(\App\Models\Unit::class, \App\Models\Estate::class);
+        return $this->hasManyThrough(\App\Models\Unit::class, \App\Models\Property::class);
     }
     
     // Current active subscription

@@ -87,7 +87,7 @@
             'outstandingBalance' => $outstandingBalance ?? 0,
             'totalPaid' => $totalPaid ?? 0,
             'units' => $units ?? [],
-            'estates' => $estates ?? [],
+            'properties' => $properties ?? [],
             'currentUnit' => $currentUnit ?? null
         ])
     @endif
@@ -101,7 +101,7 @@
             'roleData' => $roleData ?? [],
             'company' => $company ?? null,
             'units' => $roleData['units'] ?? [],
-            'estates' => $roleData['properties'] ?? []
+            'properties' => $roleData['properties'] ?? []
         ])
     @endif
     @endauth

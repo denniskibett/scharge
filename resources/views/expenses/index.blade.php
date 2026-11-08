@@ -64,7 +64,7 @@
           
           <template x-for="expense in filteredExpenses" :key="expense.id">
             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-800">
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.estate?.name || 'N/A'"></td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.property?.name || 'N/A'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.payee?.name || 'N/A'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-white/90" x-text="expense.category?.name || 'N/A'"></td>
               <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90" x-text="formatCurrency(expense.amount)"></td>
@@ -122,7 +122,7 @@ document.addEventListener('alpine:init', () => {
       
       const term = this.searchTerm.toLowerCase();
       this.filteredExpenses = this.expenses.filter(expense => {
-        return (expense.estate?.name?.toLowerCase().includes(term) ||
+        return (expense.property?.name?.toLowerCase().includes(term) ||
                 expense.payee?.name?.toLowerCase().includes(term) ||
                 expense.category?.name?.toLowerCase().includes(term) ||
                 expense.status?.toLowerCase().includes(term) ||

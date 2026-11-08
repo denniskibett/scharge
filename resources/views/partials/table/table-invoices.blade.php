@@ -288,7 +288,7 @@
 @include('partials.modal.invoice-bulk-modal', ['mappedActiveTenancies' => $mappedActiveTenancies ?? collect()])
 @include('partials.modal.payments-create-modal', ['invoices' => $paymentInvoices ?? []])
 @include('partials.modal.invoice-delete-modal')
-@include('partials.modal.water-reconciliation-modal', ['estates' => $estates ?? []])
+@include('partials.modal.water-reconciliation-modal', ['properties' => $properties ?? []])
 
 <script>
 // Global data for preloaded invoices - MUST be defined BEFORE Alpine components

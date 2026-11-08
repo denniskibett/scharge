@@ -5,19 +5,19 @@
 @include('partials.modal.success-modal')
 @include('partials.modal.error-modal')
 
-<div class="container mx-auto px-4 py-6" x-data="estateShow()" x-init="init()">
-    <!-- Estate Info Card -->
+<div class="container mx-auto px-4 py-6" x-data="propertyShow()" x-init="init()">
+    <!-- Property Info Card -->
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-6 pb-6 pt-6 dark:border-gray-800 dark:bg-white/[0.03] mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90 mb-2">{{ $estate->name }}</h1>
+                <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90 mb-2">{{ $property->name }}</h1>
                 <div class="flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
-                        <span class="text-gray-600 dark:text-gray-400">{{ $estate->location ?: 'No location specified' }}</span>
+                        <span class="text-gray-600 dark:text-gray-400">{{ $property->location ?: 'No location specified' }}</span>
                     </div>
                     <div class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -28,7 +28,7 @@
                 </div>
             </div>
             
-            <!-- Edit Estate Button -->
+            <!-- Edit Property Button -->
             <button 
                 @click="openEditModal()"
                 class="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]"
@@ -118,7 +118,7 @@
                         </svg>
                         <span class="text-sm text-gray-600 dark:text-gray-400">Water Rate:</span>
                     </div>
-                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($estate->water_rate ?? 0, 2) }} / unit</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($property->water_rate ?? 0, 2) }} / unit</span>
                 </div>
                 <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center gap-2">
@@ -127,7 +127,7 @@
                         </svg>
                         <span class="text-sm text-gray-600 dark:text-gray-400">Service Charge:</span>
                     </div>
-                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($estate->service_charge ?? 0, 2) }}</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($property->service_charge ?? 0, 2) }}</span>
                 </div>
                 <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center gap-2">
@@ -136,7 +136,7 @@
                         </svg>
                         <span class="text-sm text-gray-600 dark:text-gray-400">Garbage Charge:</span>
                     </div>
-                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($estate->garbage_charge ?? 0, 2) }}</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($property->garbage_charge ?? 0, 2) }}</span>
                 </div>
                 <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div class="flex items-center gap-2">
@@ -145,11 +145,11 @@
                         </svg>
                         <span class="text-sm text-gray-600 dark:text-gray-400">Security Charge:</span>
                     </div>
-                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($estate->security_charge ?? 0, 2) }}</span>
+                    <span class="text-sm font-semibold text-gray-800 dark:text-white">KES {{ number_format($property->security_charge ?? 0, 2) }}</span>
                 </div>
             </div>
             @php
-                $totalMonthlyPotential = ($estate->water_rate ?? 0) + ($estate->service_charge ?? 0) + ($estate->garbage_charge ?? 0) + ($estate->security_charge ?? 0);
+                $totalMonthlyPotential = ($property->water_rate ?? 0) + ($property->service_charge ?? 0) + ($property->garbage_charge ?? 0) + ($property->security_charge ?? 0);
             @endphp
             <div class="mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
                 <div class="flex justify-between items-center">
@@ -163,15 +163,15 @@
     <!-- Units Table Component -->
     @include('partials.table.table-units', [
         'unitsData' => $unitsData,
-        'estate' => $estate,
+        'property' => $property,
         'totalUnits' => $totalUnits,
         'occupiedCount' => $occupiedCount,
         'vacantCount' => $vacantCount
     ])
 </div>
 
-<!-- Edit Estate Slideover Modal -->
-<div x-data="editEstateModal()" x-init="init()">
+<!-- Edit Property Slideover Modal -->
+<div x-data="editPropertyModal()" x-init="init()">
     <!-- Backdrop -->
     <template x-if="isOpen">
         <div 
@@ -356,35 +356,35 @@
 </div>
 
 <script>
-function estateShow() {
+function propertyShow() {
     return {
-        estateId: {{ $estate->id }},
+        propertyId: {{ $property->id }},
         
         init() {
             console.log('Property show page loaded');
         },
         
         openEditModal() {
-            if (window.editEstateModal) {
-                const estateData = {
-                    id: {{ $estate->id }},
-                    name: '{{ addslashes($estate->name) }}',
-                    location: '{{ addslashes($estate->location) }}',
-                    water_rate: {{ $estate->water_rate ?? 0 }},
-                    service_charge: {{ $estate->service_charge ?? 0 }},
-                    garbage_charge: {{ $estate->garbage_charge ?? 0 }},
-                    security_charge: {{ $estate->security_charge ?? 0 }}
+            if (window.editPropertyModal) {
+                const propertyData = {
+                    id: {{ $property->id }},
+                    name: '{{ addslashes($property->name) }}',
+                    location: '{{ addslashes($property->location) }}',
+                    water_rate: {{ $property->water_rate ?? 0 }},
+                    service_charge: {{ $property->service_charge ?? 0 }},
+                    garbage_charge: {{ $property->garbage_charge ?? 0 }},
+                    security_charge: {{ $property->security_charge ?? 0 }}
                 };
-                window.editEstateModal.openModal(estateData);
+                window.editPropertyModal.openModal(propertyData);
             }
         }
     };
 }
 
-function editEstateModal() {
+function editPropertyModal() {
     return {
         isOpen: false,
-        estate: null,
+        property: null,
         form: {
             name: '',
             location: '',
@@ -397,18 +397,18 @@ function editEstateModal() {
         loading: false,
         
         init() {
-            window.editEstateModal = this;
+            window.editPropertyModal = this;
         },
         
-        openModal(estate) {
-            this.estate = estate;
+        openModal(property) {
+            this.property = property;
             this.form = {
-                name: estate.name,
-                location: estate.location || '',
-                water_rate: estate.water_rate || '',
-                service_charge: estate.service_charge || '',
-                garbage_charge: estate.garbage_charge || '',
-                security_charge: estate.security_charge || ''
+                name: property.name,
+                location: property.location || '',
+                water_rate: property.water_rate || '',
+                service_charge: property.service_charge || '',
+                garbage_charge: property.garbage_charge || '',
+                security_charge: property.security_charge || ''
             };
             this.formErrors = [];
             this.loading = false;
@@ -418,7 +418,7 @@ function editEstateModal() {
         
         closeModal() {
             this.isOpen = false;
-            this.estate = null;
+            this.property = null;
             this.formErrors = [];
             this.loading = false;
             document.body.style.overflow = '';
@@ -429,7 +429,7 @@ function editEstateModal() {
             this.formErrors = [];
             
             try {
-                const response = await fetch(`/estates/${this.estate.id}`, {
+                const response = await fetch(`/properties/${this.property.id}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -444,7 +444,7 @@ function editEstateModal() {
                 if (response.ok) {
                     this.closeModal();
                     if (window.successModal) {
-                        window.successModal.simple('Property Updated', `Estate "${this.form.name}" has been updated successfully!`);
+                        window.successModal.simple('Property Updated', `Property "${this.form.name}" has been updated successfully!`);
                     }
                     setTimeout(() => {
                         window.location.reload();

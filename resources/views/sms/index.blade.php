@@ -45,7 +45,7 @@
     <div id="tenants-tab" class="tab-content" style="display: block;">
         @include('partials.form.form-sms-broadcast', [
             'templates' => $templates ?? [],
-            'estates' => $estates ?? [],
+            'properties' => $properties ?? [],
             'tenants' => $tenants ?? []
         ])
     </div>
@@ -100,14 +100,14 @@ let toggleAllCheckbox = document.getElementById('toggleAllCheckbox');
 let templateTextarea = document.getElementById('template');
 let previewSection = document.getElementById('previewSection');
 let previewContainer = document.getElementById('previewContainer');
-let estateFilter = document.getElementById('estateFilter');
+let propertyFilter = document.getElementById('propertyFilter');
 
-function filterByEstate() {
-    let selectedEstateId = estateFilter?.value;
+function filterByProperty() {
+    let selectedPropertyId = propertyFilter?.value;
     let rows = document.querySelectorAll('#tenantsTableBody tr');
     rows.forEach(row => {
-        let estateId = row.getAttribute('data-estate-id');
-        if (selectedEstateId === '' || estateId == selectedEstateId) {
+        let propertyId = row.getAttribute('data-property-id');
+        if (selectedPropertyId === '' || propertyId == selectedPropertyId) {
             row.style.display = '';
         } else {
             row.style.display = 'none';
@@ -141,7 +141,7 @@ function updatePreview() {
             let consumption = cb.getAttribute('data-consumption');
             let prev_read = cb.getAttribute('data-prev_read');
             let curr_read = cb.getAttribute('data-curr_read');
-            let estate_name = cb.getAttribute('data-estate');
+            let property_name = cb.getAttribute('data-property');
             
             let message = template;
             message = message.replace(/\{\{name\}\}/g, name);
@@ -153,7 +153,7 @@ function updatePreview() {
             message = message.replace(/\{\{month\}\}/g, month);
             message = message.replace(/\{\{prev_read\}\}/g, prev_read);
             message = message.replace(/\{\{curr_read\}\}/g, curr_read);
-            message = message.replace(/\{\{estate_name\}\}/g, estate_name);
+            message = message.replace(/\{\{property_name\}\}/g, property_name);
             
             previews.push({ phone: phone, message: message });
         }
@@ -245,7 +245,7 @@ if (toggleAllCheckbox) {
 
 checkboxes.forEach(cb => cb.addEventListener('change', updateSelectedCount));
 templateTextarea?.addEventListener('input', updatePreview);
-estateFilter?.addEventListener('change', filterByEstate);
+propertyFilter?.addEventListener('change', filterByProperty);
 
 document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
     let selected = [];
@@ -282,7 +282,7 @@ document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
         let consumption = cb.getAttribute('data-consumption');
         let prev_read = cb.getAttribute('data-prev_read');
         let curr_read = cb.getAttribute('data-curr_read');
-        let estate_name = cb.getAttribute('data-estate');
+        let property_name = cb.getAttribute('data-property');
         
         selected.push({
             phone: phone,
@@ -296,7 +296,7 @@ document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
                 month: month,
                 prev_read: prev_read,
                 curr_read: curr_read,
-                estate_name: estate_name
+                property_name: property_name
             }
         });
     });
@@ -311,7 +311,7 @@ document.getElementById('bulkForm')?.addEventListener('submit', function(e) {
     return true;
 });
 
-filterByEstate();
+filterByProperty();
 </script>
 @endpush
 @endsection

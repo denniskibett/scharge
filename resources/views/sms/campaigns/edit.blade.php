@@ -49,14 +49,14 @@
                        class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark">
             </div>
 
-            <!-- Estate -->
+            <!-- Property -->
             <div class="mb-4">
                 <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Property <span class="text-danger">*</span></label>
-                <select name="estate_id" required class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark">
+                <select name="property_id" required class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark">
                     <option value="">Select Property</option>
-                    @foreach($estates as $estate)
-                        <option value="{{ $estate->id }}" {{ old('estate_id', $campaign->estate_id) == $estate->id ? 'selected' : '' }}>
-                            {{ $estate->name }}
+                    @foreach($properties as $property)
+                        <option value="{{ $property->id }}" {{ old('property_id', $campaign->property_id) == $property->id ? 'selected' : '' }}>
+                            {{ $property->name }}
                         </option>
                     @endforeach
                 </select>
@@ -102,7 +102,7 @@
                           class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark">{{ old('message', $campaign->message) }}</textarea>
                 <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                     <span>Available placeholders:</span>
-                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">@{{ estate_name }}</span>
+                    <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">@{{ property_name }}</span>
                     <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">@{{ month }}</span>
                     <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">@{{ unit }}</span>
                     <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800">@{{ water_bill }}</span>

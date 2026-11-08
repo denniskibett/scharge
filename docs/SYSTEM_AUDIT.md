@@ -492,3 +492,22 @@ The live server was checked read-only. Nothing on the server was changed.
 - **Import:** the live dump (`../scharge-db-backups/live-scha_main-20261108-225503.sql.gz`) was imported as the new local `scha_main`.
 - **MariaDB → MySQL 9:** the generated column `units.total_monthly_charges` can't be inserted into on MySQL. It was imported as a plain column, then converted back to the same `STORED` generated expression.
 
+
+---
+
+## 14. Estate → Property rename (2026-11-09)
+
+- **Code:** models, controllers, views, routes, relations, variables and JS now say Property everywhere: `App\Models\Property`, `PropertyController`, `/properties`, `property_id`.
+- **Old links:** old `/estates/...` URLs 301-redirect to `/properties/...`.
+- **SMS:** saved templates that use `{{estate_name}}` keep working, because the code fills it in alongside `{{property_name}}`.
+- **Schema:** `database/schema/2026_11_09_rename_estates_to_properties.sql` (hand-applied, run once):
+  - renames `estates` to `properties`;
+  - renames `estate_id` to `property_id` in 10 tables;
+  - recreates the 7 foreign keys and their indexes;
+  - uses MariaDB 10.3-compatible syntax.
+
+  **The code needs this SQL.** Apply it to each database when the code is deployed, after a backup.
+- **Verified** on a copy of live data with both SQL files applied:
+  - the page sweep as sysadmin, company admin, property manager and tenant matches the pre-rename baseline exactly;
+  - the remaining 500s already existed: `/tenants` and `/tenancies` (missing `App\Models\Role`, `User::role()` called without a role), `/sms/campaigns` (missing `getStatusBadge()`), `/reports/financial` (missing method);
+  - the Sharet payment checks pass, 31 of 31.

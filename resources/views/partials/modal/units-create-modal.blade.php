@@ -84,22 +84,22 @@
         <!-- ==================== SINGLE UNIT MODE ==================== -->
         <div x-show="mode === 'single'" x-cloak>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <!-- Estate -->
-            <div x-show="!preSelectedEstateId">
+            <!-- Property -->
+            <div x-show="!preSelectedPropertyId">
               <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
               <select 
-                x-model="formData.estate_id"
+                x-model="formData.property_id"
                 class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
               >
                 <option value="">Select Property</option>
-                @foreach($estates ?? [] as $estate)
-                  <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+                @foreach($properties ?? [] as $property)
+                  <option value="{{ $property->id }}">{{ $property->name }}</option>
                 @endforeach
               </select>
             </div>
 
             <!-- Unit Number -->
-            <div :class="preSelectedEstateId ? 'md:col-span-2' : ''">
+            <div :class="preSelectedPropertyId ? 'md:col-span-2' : ''">
               <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Unit Number *</label>
               <input 
                 x-model="formData.unit_number"
@@ -350,12 +350,12 @@
 
           <!-- Common Fields for Mass Add -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <div x-show="!preSelectedEstateId">
+            <div x-show="!preSelectedPropertyId">
               <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
-              <select x-model="commonFields.estate_id" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+              <select x-model="commonFields.property_id" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                 <option value="">Select Property</option>
-                @foreach($estates ?? [] as $estate)
-                  <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+                @foreach($properties ?? [] as $property)
+                  <option value="{{ $property->id }}">{{ $property->name }}</option>
                 @endforeach
               </select>
             </div>
@@ -397,13 +397,13 @@
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-            <!-- Estate -->
-            <div x-show="!preSelectedEstateId" class="col-span-1">
+            <!-- Property -->
+            <div x-show="!preSelectedPropertyId" class="col-span-1">
               <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property *</label>
-              <select x-model="batchConfig.estate_id" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+              <select x-model="batchConfig.property_id" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                 <option value="">Select Property</option>
-                @foreach($estates ?? [] as $estate)
-                  <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+                @foreach($properties ?? [] as $property)
+                  <option value="{{ $property->id }}">{{ $property->name }}</option>
                 @endforeach
               </select>
             </div>
@@ -657,7 +657,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('unitCreateModal', () => ({
     isOpen: false,
     mode: 'single',
-    preSelectedEstateId: null,
+    preSelectedPropertyId: null,
     
     formData: { /* ... same as before ... */ },
     units: [{ unit_number: '' }],
@@ -665,7 +665,7 @@ document.addEventListener('alpine:init', () => {
     
     // Batch generation config
     batchConfig: {
-      estate_id: '',
+      property_id: '',
       namingPattern: 'simple',
       prefix: '',
       prefixPadding: 'auto',
@@ -893,16 +893,16 @@ document.addEventListener('alpine:init', () => {
       return units;
     },
     
-    openModal(estateId = null) {
-      this.preSelectedEstateId = estateId;
+    openModal(propertyId = null) {
+      this.preSelectedPropertyId = propertyId;
       this.resetForm();
       this.isOpen = true;
       document.body.style.overflow = 'hidden';
       
-      if (estateId) {
-        this.formData.estate_id = estateId;
-        this.commonFields.estate_id = estateId;
-        this.batchConfig.estate_id = estateId;
+      if (propertyId) {
+        this.formData.property_id = propertyId;
+        this.commonFields.property_id = propertyId;
+        this.batchConfig.property_id = propertyId;
       }
       
       this.generateBatchPreview();
@@ -918,7 +918,7 @@ document.addEventListener('alpine:init', () => {
     resetForm() { 
       this.mode = 'single';
       this.formData = {
-        estate_id: this.preSelectedEstateId || '',
+        property_id: this.preSelectedPropertyId || '',
         unit_number: '',
         unit_type: '',
         rent_amount: '',
@@ -946,7 +946,7 @@ document.addEventListener('alpine:init', () => {
       };
       this.units = [{ unit_number: '' }];
       this.commonFields = {
-        estate_id: this.preSelectedEstateId || '',
+        property_id: this.preSelectedPropertyId || '',
         unit_type: '',
         rent_amount: '',
         water_charge: '',
@@ -961,7 +961,7 @@ document.addEventListener('alpine:init', () => {
         security_deposit_amount: ''
       };
       this.batchConfig = {
-        estate_id: this.preSelectedEstateId || '',
+        property_id: this.preSelectedPropertyId || '',
         namingPattern: 'simple',
         prefix: '',
         prefixPadding: 'auto',
@@ -1001,7 +1001,7 @@ document.addEventListener('alpine:init', () => {
     
     validateSingleForm() {
       const errors = [];
-      if (!this.preSelectedEstateId && !this.formData.estate_id) errors.push('Please select a property');
+      if (!this.preSelectedPropertyId && !this.formData.property_id) errors.push('Please select a property');
       if (!this.formData.unit_number?.trim()) errors.push('Please enter a unit number');
       if (!this.formData.unit_type) errors.push('Please select a unit type');
       if (!this.formData.rent_amount || parseFloat(this.formData.rent_amount) <= 0) errors.push('Please enter a valid rent amount greater than 0');
@@ -1010,7 +1010,7 @@ document.addEventListener('alpine:init', () => {
     
     validateMassForm() {
       const errors = [];
-      if (!this.preSelectedEstateId && !this.commonFields.estate_id) errors.push('Please select a property');
+      if (!this.preSelectedPropertyId && !this.commonFields.property_id) errors.push('Please select a property');
       if (this.units.some(u => !u.unit_number?.trim())) errors.push('Please fill in all unit numbers');
       if (!this.commonFields.unit_type) errors.push('Please select a unit type');
       if (!this.commonFields.rent_amount || parseFloat(this.commonFields.rent_amount) <= 0) errors.push('Please enter a valid rent amount greater than 0');
@@ -1019,7 +1019,7 @@ document.addEventListener('alpine:init', () => {
     
     validateBatchForm() {
       const errors = [];
-      if (!this.preSelectedEstateId && !this.batchConfig.estate_id) errors.push('Please select a property');
+      if (!this.preSelectedPropertyId && !this.batchConfig.property_id) errors.push('Please select a property');
       if (!this.batchConfig.unit_type) errors.push('Please select a unit type');
       if (!this.batchConfig.rent_amount || parseFloat(this.batchConfig.rent_amount) <= 0) errors.push('Please enter a valid rent amount');
       if (this.batchConfig.numberOfFloors < 1) errors.push('Number of floors must be at least 1');
@@ -1102,7 +1102,7 @@ document.addEventListener('alpine:init', () => {
           
           unitsToSubmit = this.getBatchUnits();
           commonData = {
-            estate_id: this.batchConfig.estate_id,
+            property_id: this.batchConfig.property_id,
             unit_type: this.batchConfig.unit_type,
             rent_amount: this.batchConfig.rent_amount,
             water_charge: this.batchConfig.water_charge,
@@ -1133,7 +1133,7 @@ document.addEventListener('alpine:init', () => {
                 'Accept': 'application/json'
               },
               body: JSON.stringify({
-                estate_id: commonData.estate_id,
+                property_id: commonData.property_id,
                 unit_number: unit.unit_number.trim(),
                 unit_type: commonData.unit_type,
                 rent_amount: commonData.rent_amount,

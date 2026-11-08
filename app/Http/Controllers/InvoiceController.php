@@ -555,10 +555,10 @@ class InvoiceController extends Controller
     public function getInvoiceData(Tenancy $tenancy)
     {
         $unit = $tenancy->unit;
-        $estate = $unit->estate;
+        $property = $unit->property;
         
         $hasUnitWater = ($unit->water_charge ?? 0) > 0;
-        $hasEstateWater = ($estate->water_rate ?? 0) > 0;
+        $hasPropertyWater = ($property->water_rate ?? 0) > 0;
         
         $waterSource = 'none';
         $waterRate = 0;
@@ -566,14 +566,14 @@ class InvoiceController extends Controller
         if ($hasUnitWater) {
             $waterSource = 'unit';
             $waterRate = $unit->water_charge;
-        } elseif ($hasEstateWater) {
-            $waterSource = 'estate';
-            $waterRate = $estate->water_rate;
+        } elseif ($hasPropertyWater) {
+            $waterSource = 'property';
+            $waterRate = $property->water_rate;
         }
         
-        $effectiveService = ($unit->service_charge ?? 0) > 0 ? $unit->service_charge : ($estate->service_charge ?? 0);
-        $effectiveGarbage = ($unit->garbage_charge ?? 0) > 0 ? $unit->garbage_charge : ($estate->garbage_charge ?? 0);
-        $effectiveSecurity = ($unit->security_charge ?? 0) > 0 ? $unit->security_charge : ($estate->security_charge ?? 0);
+        $effectiveService = ($unit->service_charge ?? 0) > 0 ? $unit->service_charge : ($property->service_charge ?? 0);
+        $effectiveGarbage = ($unit->garbage_charge ?? 0) > 0 ? $unit->garbage_charge : ($property->garbage_charge ?? 0);
+        $effectiveSecurity = ($unit->security_charge ?? 0) > 0 ? $unit->security_charge : ($property->security_charge ?? 0);
         
         $nextBillingMonth = $this->getNextBillingMonth($tenancy);
         $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
@@ -587,7 +587,7 @@ class InvoiceController extends Controller
                 'id' => $tenancy->id,
                 'tenant_name' => $tenancy->tenant->user->name ?? 'Unknown',
                 'unit_number' => $unit->unit_number,
-                'estate_name' => $estate->name,
+                'property_name' => $property->name,
                 'move_in_date' => $tenancy->move_in_date ? Carbon::parse($tenancy->move_in_date)->format('M d, Y') : 'N/A',
             ],
             'rent_amount' => $unit->rent_amount ?? 0,
@@ -631,7 +631,7 @@ class InvoiceController extends Controller
         }
         
         if ($reading) {
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             $previousReading = (float) $reading->previous_reading;
             $currentReading = (float) $reading->current_reading;
             $consumption = $reading->consumption ?: max(0, $currentReading - $previousReading);
@@ -891,7 +891,7 @@ class InvoiceController extends Controller
     {
         $invoice->load([
             'tenancy.tenant.user', 
-            'tenancy.unit.estate', 
+            'tenancy.unit.property', 
             'items', 
             'payments'
         ]);
@@ -1541,7 +1541,7 @@ class InvoiceController extends Controller
         try {
             $invoice->load([
                 'tenancy.tenant.user', 
-                'tenancy.unit.estate', 
+                'tenancy.unit.property', 
                 'items', 
                 'payments'
             ]);
@@ -1567,7 +1567,7 @@ class InvoiceController extends Controller
                     'tenant_name' => $invoice->tenancy->tenant->user->name ?? 'Unknown',
                     'unit_number' => $invoice->tenancy->unit->unit_number ?? 'N/A',
                     'unit_id' => $invoice->tenancy->unit_id,
-                    'estate_name' => $invoice->tenancy->unit->estate->name ?? 'N/A',
+                    'property_name' => $invoice->tenancy->unit->property->name ?? 'N/A',
                     'billing_month' => $invoice->billing_month,
                     'billing_month_formatted' => $invoice->billing_month ? Carbon::parse($invoice->billing_month)->format('F Y') : '-',
                     'total_amount' => (float) $invoice->total_amount,
@@ -1834,7 +1834,7 @@ class InvoiceController extends Controller
                 ], 404);
             }
             
-            $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+            $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
             $previousReading = (float) $reading->previous_reading;
             $currentReading = (float) $reading->current_reading;
             $consumption = $reading->consumption ?: max(0, $currentReading - $previousReading);
@@ -1922,7 +1922,7 @@ class InvoiceController extends Controller
         try {
             $validated = $request->validate([
                 'billing_month' => 'required|date_format:Y-m',
-                'estate_id' => 'nullable|exists:estates,id',
+                'property_id' => 'nullable|exists:properties,id',
                 'invoice_ids' => 'nullable|array',
                 'invoice_ids.*' => 'exists:invoices,id',
                 'include_paid' => 'nullable|boolean',
@@ -1947,9 +1947,9 @@ class InvoiceController extends Controller
                 $query->where('status', '!=', 'paid');
             }
             
-            if (isset($validated['estate_id']) && !empty($validated['estate_id'])) {
+            if (isset($validated['property_id']) && !empty($validated['property_id'])) {
                 $query->whereHas('tenancy.unit', function($q) use ($validated) {
-                    $q->where('estate_id', $validated['estate_id']);
+                    $q->where('property_id', $validated['property_id']);
                 });
             }
             
@@ -1987,7 +1987,7 @@ class InvoiceController extends Controller
                 }
                 
                 if ($reading) {
-                    $rate = $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50;
+                    $rate = $unit->custom_water_rate ?? $unit->property->water_rate ?? 50;
                     $previousReading = (float) $reading->previous_reading;
                     $currentReading = (float) $reading->current_reading;
                     $consumption = $reading->consumption ?: max(0, $currentReading - $previousReading);
@@ -2175,7 +2175,7 @@ class InvoiceController extends Controller
             'previous_reading' => $lastReading ? $lastReading->current_reading : ($unit->current_water_reading ?? 0),
             'current_reading' => $unit->current_water_reading ?? 0,
             'consumption' => $unit->calculateWaterConsumption(),
-            'rate_applied' => $unit->custom_water_rate ?? $unit->estate->water_rate ?? 50,
+            'rate_applied' => $unit->custom_water_rate ?? $unit->property->water_rate ?? 50,
             'charge' => $unit->calculateWaterCharge(),
             'billing_type' => $unit->water_billing_type ?? 'consumption',
             'reading_date' => $tenancy->move_out_date,

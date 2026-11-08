@@ -32,7 +32,7 @@ class Unit extends Model
     const CATEGORY_INDUSTRIAL = 'industrial';
 
     protected $fillable = [
-        'estate_id',
+        'property_id',
         'unit_number',
         'unit_type',
         'rent_amount',
@@ -125,7 +125,7 @@ class Unit extends Model
         }
         
         $consumption = $this->calculateWaterConsumption();
-        $rate = $this->custom_water_rate ?? $this->estate->water_rate ?? 0;
+        $rate = $this->custom_water_rate ?? $this->property->water_rate ?? 0;
         
         return $consumption * $rate;
     }
@@ -222,9 +222,9 @@ class Unit extends Model
 
     // ========== RELATIONSHIPS ==========
 
-    public function estate()
+    public function property()
     {
-        return $this->belongsTo(Estate::class);
+        return $this->belongsTo(Property::class);
     }
 
     public function tenancies()
@@ -332,7 +332,7 @@ class Unit extends Model
         }
         
         $consumption = $this->calculateWaterConsumption();
-        $rate = $this->custom_water_rate ?? $this->estate->water_rate ?? 0;
+        $rate = $this->custom_water_rate ?? $this->property->water_rate ?? 0;
         
         return $consumption * $rate;
     }
@@ -377,8 +377,8 @@ class Unit extends Model
             $parts[] = "Unit {$this->unit_number}";
         }
         
-        if ($this->estate) {
-            $parts[] = $this->estate->name;
+        if ($this->property) {
+            $parts[] = $this->property->name;
         }
         
         return implode(', ', $parts);

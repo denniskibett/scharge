@@ -136,13 +136,13 @@
               </div>
               <div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Property</p>
-                <a href="{{ route('estates.show', $tenancy->unit->estate) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
-                  {{ $tenancy->unit->estate->name ?? 'N/A' }}
+                <a href="{{ route('properties.show', $tenancy->unit->property) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                  {{ $tenancy->unit->property->name ?? 'N/A' }}
                 </a>
               </div>
               <div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</p>
-                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenancy->unit->estate->location ?? 'N/A' }}</p>
+                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenancy->unit->property->location ?? 'N/A' }}</p>
               </div>
             </div>
           </div>
@@ -653,7 +653,7 @@ document.addEventListener('alpine:init', () => {
         tenant_id: {{ $tenancy->tenant_id }},
         unit_id: {{ $tenancy->unit_id }},
         unit_number: '{{ addslashes($tenancy->unit->unit_number ?? '') }}',
-        estate_name: '{{ addslashes($tenancy->unit->estate->name ?? '') }}',
+        property_name: '{{ addslashes($tenancy->unit->property->name ?? '') }}',
         move_in_date: '{{ $tenancy->move_in_date }}',
         move_out_date: '{{ $tenancy->move_out_date }}',
         status: '{{ $tenancy->status }}'

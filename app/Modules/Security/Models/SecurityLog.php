@@ -17,7 +17,7 @@ class SecurityLog extends Model
 
     protected $fillable = [
         'company_id', 
-        'estate_id', 
+        'property_id', 
         'unit_id', 
         'tenant_id', 
         'visitor_id', 
@@ -77,9 +77,9 @@ class SecurityLog extends Model
         return $this->belongsTo(\App\Models\Company::class);
     }
 
-    public function estate()
+    public function property()
     {
-        return $this->belongsTo(\App\Models\Estate::class);
+        return $this->belongsTo(\App\Models\Property::class);
     }
 
     // Accessors

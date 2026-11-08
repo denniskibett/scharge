@@ -86,14 +86,14 @@
                                placeholder="e.g., July 2026 Water Bill Campaign">
                     </div>
 
-                    <!-- Estate -->
+                    <!-- Property -->
                     <div class="mb-4">
                         <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Property <span class="text-danger">*</span></label>
-                        <select name="estate_id" id="estate_id" required class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark" onchange="updatePreview()">
+                        <select name="property_id" id="property_id" required class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark" onchange="updatePreview()">
                             <option value="">Select Property</option>
-                            @foreach($estates as $estate)
-                                <option value="{{ $estate->id }}" {{ old('estate_id') == $estate->id ? 'selected' : '' }}>
-                                    {{ $estate->name }}
+                            @foreach($properties as $property)
+                                <option value="{{ $property->id }}" {{ old('property_id') == $property->id ? 'selected' : '' }}>
+                                    {{ $property->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -153,10 +153,10 @@
                         <label class="mb-2.5 block text-sm font-medium text-black dark:text-white">Message <span class="text-danger">*</span></label>
                         <textarea name="message" id="message" rows="6" required
                                   class="w-full rounded-md border border-stroke px-4 py-2 text-sm focus:border-primary focus:outline-none dark:border-strokedark dark:bg-boxdark"
-                                  placeholder="Enter your message. Use placeholders like estate_name, unit, water_bill etc." oninput="updatePreview()">{{ old('message') }}</textarea>
+                                  placeholder="Enter your message. Use placeholders like property_name, unit, water_bill etc." oninput="updatePreview()">{{ old('message') }}</textarea>
                         <div class="mt-1 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                             <span>Available placeholders:</span>
-                            <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800 cursor-pointer hover:bg-primary/20" onclick="insertPlaceholder('estate_name')">@{{ estate_name }}</span>
+                            <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800 cursor-pointer hover:bg-primary/20" onclick="insertPlaceholder('property_name')">@{{ property_name }}</span>
                             <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800 cursor-pointer hover:bg-primary/20" onclick="insertPlaceholder('month')">@{{ month }}</span>
                             <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800 cursor-pointer hover:bg-primary/20" onclick="insertPlaceholder('unit')">@{{ unit }}</span>
                             <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono dark:bg-gray-800 cursor-pointer hover:bg-primary/20" onclick="insertPlaceholder('water_bill')">@{{ water_bill }}</span>
@@ -233,7 +233,7 @@
     let sampleTenant = {
         name: 'John Doe',
         unit: 'A-101',
-        estate_name: 'Bloomfield Apartments',
+        property_name: 'Bloomfield Apartments',
         water_bill: '1500.00',
         water_consumption: '25',
         due_date: '2026-08-05',
@@ -273,14 +273,14 @@
     // Update preview with sample data
     function updatePreview() {
         const message = document.getElementById('message').value;
-        const estateSelect = document.getElementById('estate_id');
+        const propertySelect = document.getElementById('property_id');
         const billingMonth = document.getElementById('billing_month').value;
-        const selectedEstate = estateSelect.options[estateSelect.selectedIndex]?.text || 'Unknown Property';
+        const selectedProperty = propertySelect.options[propertySelect.selectedIndex]?.text || 'Unknown Property';
         
         const previewSection = document.getElementById('previewSection');
         const previewContent = document.getElementById('previewContent');
         
-        if (!message.trim() || !estateSelect.value) {
+        if (!message.trim() || !propertySelect.value) {
             previewSection.style.display = 'none';
             return;
         }
@@ -290,14 +290,14 @@
         // Update sample tenant data with form values
         const data = {
             ...sampleTenant,
-            estate_name: selectedEstate,
+            property_name: selectedProperty,
             month: billingMonth || sampleTenant.month,
             tenant_name: sampleTenant.name
         };
 
         // Replace placeholders
         let preview = message;
-        preview = preview.replace(/\{\{estate_name\}\}/g, data.estate_name);
+        preview = preview.replace(/\{\{property_name\}\}/g, data.property_name);
         preview = preview.replace(/\{\{month\}\}/g, data.month);
         preview = preview.replace(/\{\{unit\}\}/g, data.unit);
         preview = preview.replace(/\{\{water_bill\}\}/g, data.water_bill);

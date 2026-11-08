@@ -68,7 +68,7 @@
             </div>
             <div>
               <span class="text-gray-500 dark:text-gray-400">Property:</span>
-              <span class="font-medium text-gray-800 dark:text-white/90 ml-2" x-text="tenancyData?.estate_name"></span>
+              <span class="font-medium text-gray-800 dark:text-white/90 ml-2" x-text="tenancyData?.property_name"></span>
             </div>
             <div>
               <span class="text-gray-500 dark:text-gray-400">Move-in Date:</span>
@@ -357,8 +357,8 @@
           <div class="flex items-center justify-between mb-3">
             <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90">Water Meter Reading</h5>
             <span class="text-xs px-2 py-1 rounded-full" 
-                  :class="waterSource === 'estate' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'"
-                  x-text="waterSource === 'estate' ? 'Estate Rate' : 'Unit Rate'"></span>
+                  :class="waterSource === 'property' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'"
+                  x-text="waterSource === 'property' ? 'Property Rate' : 'Unit Rate'"></span>
           </div>
           
           <!-- Water Reading Inputs -->
@@ -681,7 +681,7 @@ document.addEventListener('alpine:init', () => {
     
     // Water data
     showWaterSection: false,
-    waterSource: 'estate',
+    waterSource: 'property',
     previousReading: 0,
     currentReadingInput: 0,
     waterRate: 0,

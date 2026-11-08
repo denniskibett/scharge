@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Unit;
-use App\Models\Estate;
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -15,12 +15,12 @@ class UnitController extends Controller
         $companyId = Auth::user()->company_id;
         
         // Scope units by company_id
-        $units = Unit::with(['estate', 'tenancies.tenant.user'])
+        $units = Unit::with(['property', 'tenancies.tenant.user'])
                     ->where('company_id', $companyId)
                     ->get();
         
-        // Also scope estates by company_id
-        $estates = Estate::where('company_id', $companyId)->get();
+        // Also scope properties by company_id
+        $properties = Property::where('company_id', $companyId)->get();
         
         // Calculate stats with total charges
         $occupiedCount = $units->where('status', 'occupied')->count();
@@ -50,8 +50,8 @@ class UnitController extends Controller
                 'security_charge' => (float) ($unit->security_charge ?? 0),
                 'total_monthly_charges' => (float) ($unit->total_monthly_charges ?? 0),
                 'status' => $unit->status,
-                'estate_id' => $unit->estate_id,
-                'estate_name' => $unit->estate->name ?? null,
+                'property_id' => $unit->property_id,
+                'property_name' => $unit->property->name ?? null,
                 // New classification fields
                 'ownership_type' => $unit->ownership_type ?? 'tenant',
                 'furnishing_status' => $unit->furnishing_status ?? 'unfurnished',
@@ -82,7 +82,7 @@ class UnitController extends Controller
         return view('units.index', [
             'units' => $units,
             'unitsData' => $unitsData,
-            'estates' => $estates,
+            'properties' => $properties,
             'occupiedCount' => $occupiedCount,
             'vacantCount' => $vacantCount,
             'totalUnits' => $totalUnits,
@@ -100,7 +100,7 @@ class UnitController extends Controller
         // Ensure the unit belongs to the current user's company
         $this->authorizeCompanyAccess($unit);
         
-        $unit->load(['estate', 'tenancies.tenant.user']);
+        $unit->load(['property', 'tenancies.tenant.user']);
         
         // Calculate total charges
         $unit->total_charges = $unit->rent_amount + 
@@ -116,7 +116,7 @@ class UnitController extends Controller
     {
         $validated = $request->validate([
             // Existing fields
-            'estate_id' => 'required|exists:estates,id',
+            'property_id' => 'required|exists:properties,id',
             'unit_number' => 'required|string|max:255',
             'unit_type' => 'required|string|max:255',
             'rent_amount' => 'required|numeric|min:0',
@@ -166,7 +166,7 @@ class UnitController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Unit created successfully',
-                'unit' => $unit->load('estate')
+                'unit' => $unit->load('property')
             ]);
         }
 
@@ -192,8 +192,8 @@ class UnitController extends Controller
                     'security_charge' => (float) ($unit->security_charge ?? 0),
                     'total_monthly_charges' => (float) ($unit->total_monthly_charges ?? 0),
                     'status' => $unit->status,
-                    'estate_name' => $unit->estate->name,
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name,
+                    'property_id' => $unit->property_id,
                     // New classification fields
                     'ownership_type' => $unit->ownership_type ?? 'tenant',
                     'furnishing_status' => $unit->furnishing_status ?? 'unfurnished',
@@ -210,8 +210,8 @@ class UnitController extends Controller
             ]);
         }
         
-        $estates = Estate::where('company_id', Auth::user()->company_id)->get();
-        return view('units.edit', compact('unit', 'estates'));
+        $properties = Property::where('company_id', Auth::user()->company_id)->get();
+        return view('units.edit', compact('unit', 'properties'));
     }
 
     public function update(Request $request, Unit $unit)
@@ -258,8 +258,8 @@ class UnitController extends Controller
         $unit->update($validated);
 
         if ($request->wantsJson()) {
-            // Reload the unit with estate to return complete data
-            $unit->load('estate');
+            // Reload the unit with property to return complete data
+            $unit->load('property');
             
             return response()->json([
                 'success' => true,
@@ -275,8 +275,8 @@ class UnitController extends Controller
                     'security_charge' => (float) $unit->security_charge,
                     'total_monthly_charges' => (float) $unit->total_monthly_charges,
                     'status' => $unit->status,
-                    'estate_name' => $unit->estate->name,
-                    'estate_id' => $unit->estate_id,
+                    'property_name' => $unit->property->name,
+                    'property_id' => $unit->property_id,
                     // New classification fields
                     'ownership_type' => $unit->ownership_type,
                     'furnishing_status' => $unit->furnishing_status,
@@ -325,23 +325,23 @@ class UnitController extends Controller
         return redirect()->route('units.index')->with('success', 'Unit deleted successfully');
     }
     
-    // Optional: Bulk update utility charges for all units in an estate
+    // Optional: Bulk update utility charges for all units in an property
     public function bulkUpdateUtilities(Request $request)
     {
         $validated = $request->validate([
-            'estate_id' => 'required|exists:estates,id',
+            'property_id' => 'required|exists:properties,id',
             'water_charge' => 'nullable|numeric|min:0',
             'service_charge' => 'nullable|numeric|min:0',
             'garbage_charge' => 'nullable|numeric|min:0',
             'security_charge' => 'nullable|numeric|min:0',
         ]);
         
-        // Ensure the estate belongs to the current company
-        $estate = Estate::where('id', $validated['estate_id'])
+        // Ensure the property belongs to the current company
+        $property = Property::where('id', $validated['property_id'])
                        ->where('company_id', Auth::user()->company_id)
                        ->firstOrFail();
         
-        $query = Unit::where('estate_id', $validated['estate_id'])
+        $query = Unit::where('property_id', $validated['property_id'])
                     ->where('company_id', Auth::user()->company_id);
         
         $updateData = [];
@@ -363,22 +363,22 @@ class UnitController extends Controller
         return redirect()->route('units.index')->with('success', "Updated $updated units successfully");
     }
     
-    // Optional: Get unit charges summary for an estate
-    public function getEstateChargesSummary(Estate $estate)
+    // Optional: Get unit charges summary for an property
+    public function getPropertyChargesSummary(Property $property)
     {
-        // Ensure the estate belongs to the current company
-        if ($estate->company_id !== Auth::user()->company_id) {
+        // Ensure the property belongs to the current company
+        if ($property->company_id !== Auth::user()->company_id) {
             return response()->json(['error' => 'Unauthorized'], 403);
         }
         
         $summary = [
-            'total_units' => $estate->units()->count(),
-            'total_rent' => $estate->units()->sum('rent_amount'),
-            'total_water' => $estate->units()->sum('water_charge'),
-            'total_service' => $estate->units()->sum('service_charge'),
-            'total_garbage' => $estate->units()->sum('garbage_charge'),
-            'total_security' => $estate->units()->sum('security_charge'),
-            'total_monthly' => $estate->units()->sum('total_monthly_charges'),
+            'total_units' => $property->units()->count(),
+            'total_rent' => $property->units()->sum('rent_amount'),
+            'total_water' => $property->units()->sum('water_charge'),
+            'total_service' => $property->units()->sum('service_charge'),
+            'total_garbage' => $property->units()->sum('garbage_charge'),
+            'total_security' => $property->units()->sum('security_charge'),
+            'total_monthly' => $property->units()->sum('total_monthly_charges'),
         ];
         
         return response()->json($summary);
@@ -387,7 +387,7 @@ class UnitController extends Controller
     // New: Get units filtered by property category
     public function getByCategory($category)
     {
-        $units = Unit::with(['estate', 'tenancies.tenant.user'])
+        $units = Unit::with(['property', 'tenancies.tenant.user'])
                     ->where('property_category', $category)
                     ->where('company_id', Auth::user()->company_id)
                     ->get();
@@ -403,7 +403,7 @@ class UnitController extends Controller
     // New: Get units filtered by stay type
     public function getByStayType($stayType)
     {
-        $units = Unit::with(['estate', 'tenancies.tenant.user'])
+        $units = Unit::with(['property', 'tenancies.tenant.user'])
                     ->where('stay_type', $stayType)
                     ->where('company_id', Auth::user()->company_id)
                     ->get();
@@ -419,7 +419,7 @@ class UnitController extends Controller
     // New: Get BNB units with availability (for frontend calendar)
     public function getBnbUnits()
     {
-        $units = Unit::with(['estate', 'tenancies.tenant.user'])
+        $units = Unit::with(['property', 'tenancies.tenant.user'])
                     ->where('stay_type', 'bnb')
                     ->where('is_active', true)
                     ->where('company_id', Auth::user()->company_id)
@@ -435,8 +435,8 @@ class UnitController extends Controller
                             'min_stay_days' => $unit->min_stay_days ?? 1,
                             'max_stay_days' => $unit->max_stay_days,
                             'furnishing_status' => $unit->furnishing_status,
-                            'estate_name' => $unit->estate->name,
-                            'estate_location' => $unit->estate->location ?? null,
+                            'property_name' => $unit->property->name,
+                            'property_location' => $unit->property->location ?? null,
                         ];
                     });
         
@@ -471,12 +471,12 @@ class UnitController extends Controller
         // Ensure the unit belongs to the current user's company
         $this->authorizeCompanyAccess($unit);
         
-        $unit->load('estate');
+        $unit->load('property');
         
         return response()->json([
             'success' => true,
             'unit' => $unit,
-            'water_rate' => $unit->estate->water_rate ?? 50,
+            'water_rate' => $unit->property->water_rate ?? 50,
         ]);
     }
 

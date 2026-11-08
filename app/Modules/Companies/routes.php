@@ -15,7 +15,7 @@ Route::middleware(['auth', 'role:sysadmin|admin'])->prefix('admin/companies')->n
     Route::post('/{company}/users', [CompanyController::class, 'addUser'])->name('add-user');
     Route::delete('/{company}/users/{user}', [CompanyController::class, 'removeUser'])->name('remove-user');
     Route::put('/{company}/users/{user}/role', [CompanyController::class, 'updateUserRole'])->name('update-user-role');
-    Route::get('/{company}/estates', [CompanyController::class, 'getCompanyEstates'])->name('estates');
+    Route::get('/{company}/properties', [CompanyController::class, 'getCompanyProperties'])->name('properties');
     Route::get('/{company}/subscriptions', [CompanyController::class, 'getCompanySubscriptions'])->name('subscriptions');
     Route::get('/{company}/invoices', [CompanyController::class, 'getCompanyInvoices'])->name('invoices');
     Route::get('/{company}/payments', [CompanyController::class, 'getCompanyPayments'])->name('payments');

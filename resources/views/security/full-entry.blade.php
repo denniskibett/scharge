@@ -49,12 +49,12 @@
                 @csrf
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     
-                    <!-- Estate -->
+                    <!-- Property -->
                     <div>
-                        <label for="estate_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <label for="property_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Property <span class="text-error-500">*</span>
                         </label>
-                        <select id="estate_id" name="estate_id" required
+                        <select id="property_id" name="property_id" required
                                 class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800">
                             <option value="">Select Property</option>
                         </select>
@@ -265,11 +265,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Load estates on page load
-    loadEstates();
+    // Load properties on page load
+    loadProperties();
     
-    // Add event listener for estate change
-    document.getElementById('estate_id').addEventListener('change', function() {
+    // Add event listener for property change
+    document.getElementById('property_id').addEventListener('change', function() {
         loadUnits(this.value);
     });
     
@@ -297,8 +297,8 @@ function showMessage(message, type) {
     }
 }
 
-function loadEstates() {
-    fetch('/security/estates', {
+function loadProperties() {
+    fetch('/security/properties', {
         headers: {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
@@ -306,13 +306,13 @@ function loadEstates() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success && data.estates) {
-            const select = document.getElementById('estate_id');
+        if (data.success && data.properties) {
+            const select = document.getElementById('property_id');
             select.innerHTML = '<option value="">Select Property</option>';
-            data.estates.forEach(estate => {
+            data.properties.forEach(property => {
                 const option = document.createElement('option');
-                option.value = estate.id;
-                option.textContent = estate.name;
+                option.value = property.id;
+                option.textContent = property.name;
                 select.appendChild(option);
             });
         }
@@ -323,11 +323,11 @@ function loadEstates() {
     });
 }
 
-function loadUnits(estateId) {
+function loadUnits(propertyId) {
     const unitSelect = document.getElementById('unit_id');
     const noUnitsMsg = document.getElementById('noUnitsMsg');
     
-    if (!estateId) {
+    if (!propertyId) {
         unitSelect.innerHTML = '<option value="">Select Unit</option>';
         noUnitsMsg.classList.add('hidden');
         return;
@@ -336,7 +336,7 @@ function loadUnits(estateId) {
     unitSelect.innerHTML = '<option value="">Loading units...</option>';
     noUnitsMsg.classList.add('hidden');
     
-    fetch(`/security/units?estate_id=${estateId}`, {
+    fetch(`/security/units?property_id=${propertyId}`, {
         headers: {
             'Accept': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''

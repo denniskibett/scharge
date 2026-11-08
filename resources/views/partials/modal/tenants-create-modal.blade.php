@@ -229,7 +229,7 @@
             <option value="">Select Unit (Optional)</option>
             @foreach($vacantUnits ?? [] as $unit)
               <option value="{{ $unit['id'] }}">
-                {{ $unit['unit_number'] }} - {{ $unit['estate_name'] }} (KES {{ number_format($unit['rent_amount'] ?? 0, 2) }})
+                {{ $unit['unit_number'] }} - {{ $unit['property_name'] }} (KES {{ number_format($unit['rent_amount'] ?? 0, 2) }})
               </option>
             @endforeach
           </select>

@@ -74,7 +74,7 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Property</p>
-                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $expense->estate->name }}</p>
+                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $expense->property->name }}</p>
               </div>
               <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Payee</p>
@@ -294,7 +294,7 @@ document.addEventListener('alpine:init', () => {
     getExpenseData() {
       return {
         id: {{ $expense->id }},
-        estate_id: {{ $expense->estate_id }},
+        property_id: {{ $expense->property_id }},
         payee_id: {{ $expense->payee_id }},
         expense_category_id: {{ $expense->expense_category_id }},
         amount: {{ $expense->amount }},

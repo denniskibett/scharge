@@ -19,18 +19,18 @@ class TenantController extends Controller
     public function index()
     {
         $tenants = Tenant::with(['user', 'tenancies' => function($query) {
-                $query->with('unit.estate')->orderBy('created_at', 'desc');
+                $query->with('unit.property')->orderBy('created_at', 'desc');
             }])->get();
         
         // Get vacant units for dropdown
         $vacantUnits = Unit::where('status', 'vacant')
-            ->with('estate')
+            ->with('property')
             ->get()
             ->map(function ($unit) {
                 return [
                     'id' => $unit->id,
                     'unit_number' => $unit->unit_number,
-                    'estate_name' => $unit->estate->name ?? 'N/A',
+                    'property_name' => $unit->property->name ?? 'N/A',
                     'rent_amount' => $unit->rent_amount,
                 ];
             });
@@ -61,7 +61,7 @@ class TenantController extends Controller
                 'current_unit' => $activeTenancy ? [
                     'id' => $activeTenancy->unit_id,
                     'unit_number' => $activeTenancy->unit->unit_number ?? null,
-                    'estate_name' => $activeTenancy->unit->estate->name ?? null,
+                    'property_name' => $activeTenancy->unit->property->name ?? null,
                     'move_in_date' => $activeTenancy->move_in_date,
                     'move_in_date_formatted' => $activeTenancy->move_in_date 
                         ? \Carbon\Carbon::parse($activeTenancy->move_in_date)->format('M d, Y') 
@@ -93,7 +93,7 @@ class TenantController extends Controller
     {
         $tenant->load([
             'user', 
-            'tenancies.unit.estate',
+            'tenancies.unit.property',
             'tenancies' => function($query) {
                 $query->orderBy('move_in_date', 'desc');
             }
@@ -134,9 +134,9 @@ class TenantController extends Controller
         $activeTenancies = $tenant->tenancies->where('status', 'active')->count();
         $pastTenancies = $tenant->tenancies->where('status', 'ended')->count();
         
-        // Get all estates this tenant has lived in
-        $estates = $tenant->tenancies->map(function($tenancy) {
-            return $tenancy->unit->estate ?? null;
+        // Get all properties this tenant has lived in
+        $properties = $tenant->tenancies->map(function($tenancy) {
+            return $tenancy->unit->property ?? null;
         })->filter()->unique('id')->values();
         
         return view('tenants.show', compact(
@@ -150,7 +150,7 @@ class TenantController extends Controller
             'totalTenancies',
             'activeTenancies',
             'pastTenancies',
-            'estates'
+            'properties'
         ));
     }
 
@@ -609,14 +609,14 @@ public function store(Request $request)
     public function getTenancyHistory(Tenant $tenant)
     {
         $tenancies = $tenant->tenancies()
-            ->with(['unit.estate'])
+            ->with(['unit.property'])
             ->orderBy('move_in_date', 'desc')
             ->get()
             ->map(function ($tenancy) {
                 return [
                     'id' => $tenancy->id,
                     'unit_number' => $tenancy->unit->unit_number,
-                    'estate_name' => $tenancy->unit->estate->name,
+                    'property_name' => $tenancy->unit->property->name,
                     'move_in_date' => $tenancy->move_in_date,
                     'move_in_date_formatted' => \Carbon\Carbon::parse($tenancy->move_in_date)->format('M d, Y'),
                     'move_out_date' => $tenancy->move_out_date,

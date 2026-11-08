@@ -1,21 +1,21 @@
 <!-- Units Table with Tabs in Header -->
 @php
     // Set default values if not provided
-    $showEstateColumn = $showEstateColumn ?? true;
+    $showPropertyColumn = $showPropertyColumn ?? true;
     $showUtilityColumns = $showUtilityColumns ?? true;
     $showTotalColumn = $showTotalColumn ?? true;
-    $showEstateFilter = $showEstateFilter ?? true;
+    $showPropertyFilter = $showPropertyFilter ?? true;
     $totalUnits = $totalUnits ?? 0;
     $occupiedCount = $occupiedCount ?? 0;
     $vacantCount = $vacantCount ?? 0;
 @endphp
 
 <div x-data="unitsTable({
-    showEstateColumn: {{ $showEstateColumn ? 'true' : 'false' }},
+    showPropertyColumn: {{ $showPropertyColumn ? 'true' : 'false' }},
     showUtilityColumns: {{ $showUtilityColumns ? 'true' : 'false' }},
     showTotalColumn: {{ $showTotalColumn ? 'true' : 'false' }},
-    showEstateFilter: {{ $showEstateFilter ? 'true' : 'false' }},
-    currentEstateId: {{ $currentEstate->id ?? 'null' }}
+    showPropertyFilter: {{ $showPropertyFilter ? 'true' : 'false' }},
+    currentPropertyId: {{ $currentProperty->id ?? 'null' }}
 })" x-init="init()" x-cloak>
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <!-- Table Header with Tabs - All in single line -->
@@ -64,17 +64,17 @@
 
             <!-- Filters and Controls - All in one line with flex-nowrap -->
             <div class="flex flex-nowrap items-center gap-2">
-                <!-- Estate Filter (conditionally shown) -->
-                @if($showEstateFilter && isset($estates) && count($estates) > 0)
+                <!-- Property Filter (conditionally shown) -->
+                @if($showPropertyFilter && isset($properties) && count($properties) > 0)
                 <div class="relative flex-shrink-0">
                     <select 
-                        x-model="filters.estate_id"
+                        x-model="filters.property_id"
                         @change="filterUnits()"
                         class="dark:bg-dark-900 h-9 w-[130px] appearance-none rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 pr-7 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                     >
                         <option value="">All Properties</option>
-                        @foreach($estates as $estate)
-                            <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+                        @foreach($properties as $property)
+                            <option value="{{ $property->id }}">{{ $property->name }}</option>
                         @endforeach
                     </select>
                     <span class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
@@ -180,7 +180,7 @@
 
                 <!-- Add Unit Button -->
                 <button 
-                    @click="window.unitCreateModal?.openModal({{ $currentEstate->id ?? 'null' }})"
+                    @click="window.unitCreateModal?.openModal({{ $currentProperty->id ?? 'null' }})"
                     class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 flex-shrink-0 inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white transition"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,7 +210,7 @@
                             </div>
                         </th>
                         
-                        @if($showEstateColumn)
+                        @if($showPropertyColumn)
                         <th class="p-3 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Property</th>
                         @endif
                         
@@ -264,8 +264,8 @@
                             <td class="p-3 whitespace-nowrap">
                                 <div class="flex items-center gap-2">
                                     <div class="flex-shrink-0 h-7 w-7 rounded-full flex items-center justify-center" 
-                                         :class="getEstateColor(unit.estate_id)">
-                                        <span class="text-white font-medium text-xs" x-text="getEstateInitials(unit.estate_name)"></span>
+                                         :class="getPropertyColor(unit.property_id)">
+                                        <span class="text-white font-medium text-xs" x-text="getPropertyInitials(unit.property_name)"></span>
                                     </div>
                                     <a :href="`/units/${unit.id}`" class="font-medium text-gray-800 text-sm dark:text-white/90 hover:text-blue-600">
                                         <span x-text="unit.unit_number"></span>
@@ -273,9 +273,9 @@
                                 </div>
                             </td>
                             
-                            @if($showEstateColumn)
+                            @if($showPropertyColumn)
                             <td class="p-3 whitespace-nowrap">
-                                <span class="text-xs font-medium" :class="getEstateTextColor(unit.estate_id)" x-text="unit.estate_name"></span>
+                                <span class="text-xs font-medium" :class="getPropertyTextColor(unit.property_id)" x-text="unit.property_name"></span>
                             </td>
                             @endif
                             
@@ -384,7 +384,7 @@
                     
                     <template x-if="filteredUnits.length === 0">
                         <tr>
-                            <td colspan="{{ ($showEstateColumn ? 1 : 0) + ($showUtilityColumns ? 4 : 0) + ($showTotalColumn ? 1 : 0) + 7 }}" class="p-8 text-center">
+                            <td colspan="{{ ($showPropertyColumn ? 1 : 0) + ($showUtilityColumns ? 4 : 0) + ($showTotalColumn ? 1 : 0) + 7 }}" class="p-8 text-center">
                                 <svg class="mx-auto h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                                 </svg>
@@ -453,7 +453,7 @@
 </div>
 
 <!-- Hidden data for Alpine.js -->
-<script type="application/json" id="estate-units-data">
+<script type="application/json" id="property-units-data">
 @json($unitsData ?? [])
 </script>
 
@@ -461,11 +461,11 @@
 function unitsTable(config = {}) {
     return {
         // Configuration
-        showEstateColumn: config.showEstateColumn !== false,
+        showPropertyColumn: config.showPropertyColumn !== false,
         showUtilityColumns: config.showUtilityColumns !== false,
         showTotalColumn: config.showTotalColumn !== false,
-        showEstateFilter: config.showEstateFilter !== false,
-        currentEstateId: config.currentEstateId || null,
+        showPropertyFilter: config.showPropertyFilter !== false,
+        currentPropertyId: config.currentPropertyId || null,
         
         // Data from controller
         units: [],
@@ -475,7 +475,7 @@ function unitsTable(config = {}) {
         entriesPerPage: 10,
         searchTerm: '',
         filters: {
-            estate_id: '',
+            property_id: '',
             unit_type: '',
             rent_range: ''
         },
@@ -488,7 +488,7 @@ function unitsTable(config = {}) {
         
         init() {
             // Get units data from hidden element
-            const unitsElement = document.getElementById('estate-units-data');
+            const unitsElement = document.getElementById('property-units-data');
             if (unitsElement) {
                 this.units = JSON.parse(unitsElement.textContent);
                 console.log('Units loaded:', this.units.length);
@@ -532,7 +532,7 @@ function unitsTable(config = {}) {
         },
         
         get hasActiveFilters() {
-            return this.filters.estate_id || this.filters.unit_type || this.filters.rent_range;
+            return this.filters.property_id || this.filters.unit_type || this.filters.rent_range;
         },
         
         filterUnits() {
@@ -545,9 +545,9 @@ function unitsTable(config = {}) {
                 filtered = filtered.filter(unit => unit.status === 'vacant');
             }
             
-            // Apply estate filter (if shown)
-            if (this.showEstateFilter && this.filters.estate_id) {
-                filtered = filtered.filter(unit => unit.estate_id == this.filters.estate_id);
+            // Apply property filter (if shown)
+            if (this.showPropertyFilter && this.filters.property_id) {
+                filtered = filtered.filter(unit => unit.property_id == this.filters.property_id);
             }
             
             // Apply unit type filter
@@ -574,7 +574,7 @@ function unitsTable(config = {}) {
                     return (
                         unit.unit_number?.toLowerCase().includes(term) ||
                         unit.unit_type?.toLowerCase().includes(term) ||
-                        unit.estate_name?.toLowerCase().includes(term) ||
+                        unit.property_name?.toLowerCase().includes(term) ||
                         (unit.active_tenancy?.tenant?.name?.toLowerCase() || '').includes(term) ||
                         (unit.active_tenancy?.tenant?.phone?.toLowerCase() || '').includes(term)
                     );
@@ -589,7 +589,7 @@ function unitsTable(config = {}) {
         
         clearFilters() {
             this.filters = {
-                estate_id: '',
+                property_id: '',
                 unit_type: '',
                 rent_range: ''
             };
@@ -704,14 +704,14 @@ function unitsTable(config = {}) {
             }).format(amount || 0);
         },
         
-        // Get first two letters of estate name for initials
-        getEstateInitials(estateName) {
-            if (!estateName) return 'UN';
-            return estateName.substring(0, 2).toUpperCase();
+        // Get first two letters of property name for initials
+        getPropertyInitials(propertyName) {
+            if (!propertyName) return 'UN';
+            return propertyName.substring(0, 2).toUpperCase();
         },
         
-        // Get color class based on estate_id
-        getEstateColor(estateId) {
+        // Get color class based on property_id
+        getPropertyColor(propertyId) {
             const colors = [
                 'bg-blue-500',
                 'bg-green-500',
@@ -724,12 +724,12 @@ function unitsTable(config = {}) {
                 'bg-orange-500',
                 'bg-cyan-500'
             ];
-            const index = (parseInt(estateId) - 1) % colors.length;
+            const index = (parseInt(propertyId) - 1) % colors.length;
             return colors[index] || 'bg-gray-500';
         },
         
-        // Get text color class based on estate_id
-        getEstateTextColor(estateId) {
+        // Get text color class based on property_id
+        getPropertyTextColor(propertyId) {
             const colors = [
                 'text-blue-600 dark:text-blue-400',
                 'text-green-600 dark:text-green-400',
@@ -742,7 +742,7 @@ function unitsTable(config = {}) {
                 'text-orange-600 dark:text-orange-400',
                 'text-cyan-600 dark:text-cyan-400'
             ];
-            const index = (parseInt(estateId) - 1) % colors.length;
+            const index = (parseInt(propertyId) - 1) % colors.length;
             return colors[index] || 'text-gray-600 dark:text-gray-400';
         }
     };

@@ -41,7 +41,7 @@
                     <select x-model="unitId" required class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm">
                         <option value="">Select Unit</option>
                         @foreach($units ?? [] as $unit)
-                        <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} ({{ $unit['estate_name'] ?? 'No Estate' }})</option>
+                        <option value="{{ $unit['id'] }}">{{ $unit['unit_number'] }} ({{ $unit['property_name'] ?? 'No Property' }})</option>
                         @endforeach
                     </select>
                 </div>

@@ -13,7 +13,7 @@ use App\Models\User;
 use App\Models\Unit;
 use App\Models\County;
 use App\Models\Subcounty;
-use App\Models\Estate;
+use App\Models\Property;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -1197,13 +1197,13 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Get estates
-     * Route: GET /admin/subscriptions/api/estates
+     * Get properties
+     * Route: GET /admin/subscriptions/api/properties
      */
-    public function getEstates(Request $request)
+    public function getProperties(Request $request)
     {
         try {
-            $query = Estate::with(['subcounty.county'])
+            $query = Property::with(['subcounty.county'])
                 ->orderBy('name');
             
             // Filter by subcounty if provided
@@ -1211,15 +1211,15 @@ class SubscriptionController extends Controller
                 $query->where('subcounty_id', $request->subcounty_id);
             }
             
-            $estates = $query->get(['id', 'name', 'subcounty_id']);
+            $properties = $query->get(['id', 'name', 'subcounty_id']);
             
             return response()->json([
                 'success' => true,
-                'estates' => $estates
+                'properties' => $properties
             ]);
             
         } catch (\Exception $e) {
-            Log::error('Error in getEstates: ' . $e->getMessage());
+            Log::error('Error in getProperties: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error loading properties: ' . $e->getMessage()

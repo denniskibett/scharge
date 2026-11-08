@@ -55,12 +55,12 @@
                             </span>
                         </div>
                     </th>
-                    <th class="text-left py-2.5 px-3 text-gray-600 dark:text-gray-400 font-medium cursor-pointer" @click="sortBy('estate_name')">
+                    <th class="text-left py-2.5 px-3 text-gray-600 dark:text-gray-400 font-medium cursor-pointer" @click="sortBy('property_name')">
                         <div class="flex items-center gap-1">
                             <span>Property</span>
                             <span class="flex flex-col gap-0.5">
-                                <svg :class="sortColumn === 'estate_name' && sortDirection === 'asc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
-                                <svg :class="sortColumn === 'estate_name' && sortDirection === 'desc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'property_name' && sortDirection === 'asc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 0.585167C4.21057 0.300808 3.78943 0.300807 3.59038 0.585166L1.05071 4.21327C0.81874 4.54466 1.05582 5 1.46033 5H6.53967C6.94418 5 7.18126 4.54466 6.94929 4.21327L4.40962 0.585167Z" fill="currentColor"/></svg>
+                                <svg :class="sortColumn === 'property_name' && sortDirection === 'desc' ? 'text-blue-500' : 'text-gray-300'" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M4.40962 4.41483C4.21057 4.69919 3.78943 4.69919 3.59038 4.41483L1.05071 0.786732C0.81874 0.455343 1.05582 0 1.46033 0H6.53967C6.94418 0 7.18126 0.455342 6.94929 0.786731L4.40962 4.41483Z" fill="currentColor"/></svg>
                             </span>
                         </div>
                     </th>
@@ -83,7 +83,7 @@
                 <template x-for="expense in paginatedExpenses" :key="expense.id">
                     <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
                         <td class="py-2.5 px-3 text-gray-600 dark:text-gray-400" x-text="formatDate(expense.expense_date)"></td>
-                        <td class="py-2.5 px-3 text-gray-800 dark:text-white font-medium" x-text="expense.estate_name"></td>
+                        <td class="py-2.5 px-3 text-gray-800 dark:text-white font-medium" x-text="expense.property_name"></td>
                         <td class="py-2.5 px-3 text-gray-700 dark:text-gray-300" x-text="expense.payee_name"></td>
                         <td class="py-2.5 px-3">
                             <span class="inline-flex px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" x-text="expense.category_name"></span>
@@ -204,7 +204,7 @@ function companyExpensesTable() {
             if (this.searchTerm.trim()) {
                 const term = this.searchTerm.toLowerCase();
                 filtered = filtered.filter(e => 
-                    e.estate_name?.toLowerCase().includes(term) ||
+                    e.property_name?.toLowerCase().includes(term) ||
                     e.payee_name?.toLowerCase().includes(term) ||
                     e.description?.toLowerCase().includes(term) ||
                     e.category_name?.toLowerCase().includes(term)

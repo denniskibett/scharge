@@ -4,7 +4,7 @@
 
 ## How a tenant payment is routed
 
-For each invoice, the landlord company is resolved from `invoice.company_id`, falling back to `tenancy.company_id`, then the estate's `company_id`. All unpaid invoices in live data have a NULL `company_id`.
+For each invoice, the landlord company is resolved from `invoice.company_id`, falling back to `tenancy.company_id`, then the property's `company_id`. All unpaid invoices in live data have a NULL `company_id`.
 
 1. **The company has its own M-Pesa Daraja app switched on** (Integrations › M-Pesa Daraja). The tenant gets an STK prompt using the company's credentials, and the money goes to the company's own paybill or till. scharge only records it.
 2. **Otherwise, if scharge's Sharet account is connected** (Integrations › Sharet Africa, sysadmin only), the tenant is sent to a Sharet pay page. There are two modes:

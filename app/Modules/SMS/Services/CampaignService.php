@@ -37,7 +37,7 @@ class CampaignService
         $paymentStatus = $this->getPaymentStatus($tenant);
 
         return [
-            'estate_name' => $unit && $unit->estate ? $unit->estate->name : 'N/A',
+            'property_name' => $unit && $unit->property ? $unit->property->name : 'N/A',
             'month' => $readingMonth,
             'water_consumption' => $reading ? (float) $reading->consumption : 0,
             'prev_read' => $reading ? (float) $reading->previous_reading : 0,
@@ -58,7 +58,7 @@ class CampaignService
     public function getRecipientsWithValidation(array $filters = []): array
     {
         $tenants = $this->getWaterBillRecipients(
-            $filters['estate_id'] ?? null,
+            $filters['property_id'] ?? null,
             $filters
         );
 
@@ -93,7 +93,7 @@ public function createCampaign(array $data): SmsCampaign
     
     try {
         $recipients = $this->getWaterBillRecipients(
-            $data['filters']['estate_id'] ?? null,
+            $data['filters']['property_id'] ?? null,
             $data['filters'] ?? []
         );
         
@@ -247,19 +247,19 @@ public function createCampaign(array $data): SmsCampaign
     /**
      * Get water bill recipients
      */
-    protected function getWaterBillRecipients($estateId, $filters = []): array
+    protected function getWaterBillRecipients($propertyId, $filters = []): array
     {
-        if (!$estateId) {
+        if (!$propertyId) {
             return [];
         }
 
-        $tenants = Tenant::with(['user', 'activeTenancy.unit.estate'])
+        $tenants = Tenant::with(['user', 'activeTenancy.unit.property'])
             ->get()
-            ->map(function ($tenant) use ($estateId, $filters) {
+            ->map(function ($tenant) use ($propertyId, $filters) {
                 $tenancy = $tenant->activeTenancy;
                 $unit = $tenancy ? $tenancy->unit : null;
 
-                if (!$unit || $unit->estate_id != $estateId) {
+                if (!$unit || $unit->property_id != $propertyId) {
                     return null;
                 }
 
@@ -447,7 +447,7 @@ public function createCampaign(array $data): SmsCampaign
     public function getInvalidRecipients(array $filters = []): array
     {
         $tenants = $this->getWaterBillRecipients(
-            $filters['estate_id'] ?? null,
+            $filters['property_id'] ?? null,
             $filters
         );
 
@@ -460,7 +460,7 @@ public function createCampaign(array $data): SmsCampaign
                     'name' => $tenant['tenant_name'] ?? 'Unknown',
                     'phone' => $phone,
                     'unit_number' => $tenant['unit_number'] ?? 'N/A',
-                    'estate_name' => $tenant['placeholders']['estate_name'] ?? 'N/A',
+                    'property_name' => $tenant['placeholders']['property_name'] ?? 'N/A',
                     'error' => empty($phone) ? 'Missing phone number' : 'Invalid Safaricom number',
                 ];
             }
@@ -474,7 +474,7 @@ public function createCampaign(array $data): SmsCampaign
     public function getOtherNetworkRecipients(array $filters = []): array
     {
         $tenants = $this->getWaterBillRecipients(
-            $filters['estate_id'] ?? null,
+            $filters['property_id'] ?? null,
             $filters
         );
 
@@ -487,7 +487,7 @@ public function createCampaign(array $data): SmsCampaign
                     'name' => $tenant['tenant_name'] ?? 'Unknown',
                     'phone' => $phone,
                     'unit_number' => $tenant['unit_number'] ?? 'N/A',
-                    'estate_name' => $tenant['placeholders']['estate_name'] ?? 'N/A',
+                    'property_name' => $tenant['placeholders']['property_name'] ?? 'N/A',
                     'error' => 'Other network (Airtel/Telkom)',
                 ];
             }

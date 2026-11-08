@@ -53,12 +53,12 @@
             </div>
         </div>
         
-        <!-- Estates -->
+        <!-- Properties -->
         <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm text-gray-500 dark:text-gray-400">Properties</span>
-                    <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="stats.totalEstates">{{ $stats['totalEstates'] ?? 0 }}</h3>
+                    <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="stats.totalProperties">{{ $stats['totalProperties'] ?? 0 }}</h3>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                     <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,12 +162,12 @@
                     Staff <span class="ml-1 text-xs" x-text="stats.totalStaff">0</span>
                 </button>
                 
-                <!-- Estates Tab -->
-                <button @click="activeTab = 'estates'; loadEstates()" :class="activeTab === 'estates' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
+                <!-- Properties Tab -->
+                <button @click="activeTab = 'properties'; loadProperties()" :class="activeTab === 'properties' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
-                    Properties <span class="ml-1 text-xs" x-text="stats.totalEstates">0</span>
+                    Properties <span class="ml-1 text-xs" x-text="stats.totalProperties">0</span>
                 </button>
                 
                 <!-- Tenancies Tab (Active only) -->
@@ -278,10 +278,10 @@
                 </div>
             </div>
             
-            <!-- Estates Tab -->
-            <div x-show="activeTab === 'estates'" x-cloak>
-                <div x-data="estatesTable()" x-init="loadEstates()">
-                    @include('partials.table.table-estates')
+            <!-- Properties Tab -->
+            <div x-show="activeTab === 'properties'" x-cloak>
+                <div x-data="propertiesTable()" x-init="loadProperties()">
+                    @include('partials.table.table-properties')
                 </div>
             </div>
             
@@ -494,7 +494,7 @@ const csrfToken = "{{ csrf_token() }}";
 const companyId = {{ $company->id }};
 const currencySymbol = "KES";
 const initialStats = @json($stats);
-const initialEstatesData = @json($estatesData);
+const initialPropertiesData = @json($propertiesData);
 const initialTenanciesData = @json($tenanciesData);
 
 // Staff Table Component
@@ -641,7 +641,7 @@ function staffTable() {
                 'super_admin': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
                 'company_admin': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
                 'property_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-                'estate_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                'property_manager': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
                 'accountant': 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400',
                 'meter_reader': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
                 'cleaning_staff': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
@@ -658,7 +658,7 @@ function staffTable() {
                 'super_admin': 'Super Admin',
                 'company_admin': 'Company Admin',
                 'property_manager': 'Property Manager',
-                'estate_manager': 'Property Manager',
+                'property_manager': 'Property Manager',
                 'accountant': 'Accountant',
                 'meter_reader': 'Meter Reader',
                 'cleaning_staff': 'Cleaning Staff',
@@ -671,12 +671,12 @@ function staffTable() {
     };
 }
 
-// Estates Table Component
-function estatesTable() {
+// Properties Table Component
+function propertiesTable() {
     return {
-        estates: [],
-        filteredEstates: [],
-        paginatedEstates: [],
+        properties: [],
+        filteredProperties: [],
+        paginatedProperties: [],
         currentPage: 1,
         entriesPerPage: 10,
         searchTerm: '',
@@ -687,32 +687,32 @@ function estatesTable() {
         totalPages: 1,
         loading: false,
         
-        async loadEstates() {
+        async loadProperties() {
             this.loading = true;
             try {
-                const response = await fetch(`/admin/companies/${companyId}/estates`, {
+                const response = await fetch(`/admin/companies/${companyId}/properties`, {
                     headers: { 
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json'
                     }
                 });
                 const data = await response.json();
-                this.estates = data.estates || [];
+                this.properties = data.properties || [];
                 // Update stats
                 if (window.companyShowPage) {
-                    window.companyShowPage.stats.totalEstates = this.estates.length;
+                    window.companyShowPage.stats.totalProperties = this.properties.length;
                 }
-                this.filterEstates();
+                this.filterProperties();
             } catch (error) {
                 console.error('Error loading properties:', error);
-                this.estates = [];
+                this.properties = [];
             } finally {
                 this.loading = false;
             }
         },
         
-        filterEstates() {
-            let filtered = [...this.estates];
+        filterProperties() {
+            let filtered = [...this.properties];
             if (this.searchTerm.trim()) {
                 const term = this.searchTerm.toLowerCase();
                 filtered = filtered.filter(e => 
@@ -720,8 +720,8 @@ function estatesTable() {
                     e.location?.toLowerCase().includes(term)
                 );
             }
-            this.filteredEstates = filtered;
-            this.sortEstates();
+            this.filteredProperties = filtered;
+            this.sortProperties();
             this.updateTable();
             this.currentPage = 1;
         },
@@ -733,12 +733,12 @@ function estatesTable() {
                 this.sortColumn = column;
                 this.sortDirection = 'asc';
             }
-            this.sortEstates();
+            this.sortProperties();
             this.updateTable();
         },
         
-        sortEstates() {
-            this.filteredEstates.sort((a, b) => {
+        sortProperties() {
+            this.filteredProperties.sort((a, b) => {
                 let aVal = a[this.sortColumn] || '';
                 let bVal = b[this.sortColumn] || '';
                 if (typeof aVal === 'string') {
@@ -752,12 +752,12 @@ function estatesTable() {
         },
         
         updateTable() {
-            this.totalPages = Math.ceil(this.filteredEstates.length / this.entriesPerPage);
+            this.totalPages = Math.ceil(this.filteredProperties.length / this.entriesPerPage);
             const startIndex = (this.currentPage - 1) * this.entriesPerPage;
             const endIndex = startIndex + this.entriesPerPage;
-            this.paginatedEstates = this.filteredEstates.slice(startIndex, endIndex);
-            this.showingStart = this.filteredEstates.length ? startIndex + 1 : 0;
-            this.showingEnd = Math.min(endIndex, this.filteredEstates.length);
+            this.paginatedProperties = this.filteredProperties.slice(startIndex, endIndex);
+            this.showingStart = this.filteredProperties.length ? startIndex + 1 : 0;
+            this.showingEnd = Math.min(endIndex, this.filteredProperties.length);
         },
         
         get visiblePages() {
@@ -1008,7 +1008,7 @@ function expensesTable() {
             if (this.searchTerm.trim()) {
                 const term = this.searchTerm.toLowerCase();
                 filtered = filtered.filter(e => 
-                    e.estate_name?.toLowerCase().includes(term) ||
+                    e.property_name?.toLowerCase().includes(term) ||
                     e.payee_name?.toLowerCase().includes(term) ||
                     e.description?.toLowerCase().includes(term) ||
                     e.category_name?.toLowerCase().includes(term)
@@ -1129,7 +1129,7 @@ document.addEventListener('alpine:init', () => {
         
         stats: {
             totalStaff: {{ $stats['totalStaff'] ?? 0 }},
-            totalEstates: {{ $stats['totalEstates'] ?? 0 }},
+            totalProperties: {{ $stats['totalProperties'] ?? 0 }},
             totalUnits: {{ $stats['totalUnits'] ?? 0 }},
             totalTenants: {{ $stats['totalTenants'] ?? 0 }},
             totalInvoices: {{ $stats['totalInvoices'] ?? 0 }},
@@ -1334,8 +1334,8 @@ document.addEventListener('alpine:init', () => {
             // Handled by staffTable component
         },
         
-        loadEstates() {
-            // Handled by estatesTable component
+        loadProperties() {
+            // Handled by propertiesTable component
         },
         
         loadTenancies() {

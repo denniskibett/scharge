@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\Role;
-use App\Models\Estate;
+use App\Models\Property;
 use App\Models\Unit;
 use App\Models\Tenant;
 use App\Models\Invoice;
@@ -84,7 +84,7 @@ class CompanyController extends Controller
     private function getTenantCountForCompany($company)
     {
         return Tenancy::whereHas('unit', function($q) use ($company) {
-            $q->whereHas('estate', function($qe) use ($company) {
+            $q->whereHas('property', function($qe) use ($company) {
                 $qe->where('company_id', $company->id);
             });
         })->where('status', 'active')->distinct('tenant_id')->count('tenant_id');
@@ -95,7 +95,7 @@ class CompanyController extends Controller
      */
     public function show($id)
     {
-        $company = Company::with(['users.role', 'estates'])->findOrFail($id);
+        $company = Company::with(['users.role', 'properties'])->findOrFail($id);
         
         // If this is an AJAX request expecting JSON, return the company data
         if (request()->wantsJson() || request()->ajax()) {
@@ -132,8 +132,8 @@ class CompanyController extends Controller
         // Get stats for the company
         $stats = $this->getCompanyStats($company);
         
-        // Get estates data for the view
-        $estatesData = $this->getEstatesForView($company);
+        // Get properties data for the view
+        $propertiesData = $this->getPropertiesForView($company);
         
         // Get tenancies data for the view (active only)
         $tenanciesData = $this->getTenanciesForView($company);
@@ -155,7 +155,7 @@ class CompanyController extends Controller
             'subscription', 
             'availableRoles', 
             'stats',
-            'estatesData',
+            'propertiesData',
             'tenanciesData',
             'subscriptionInvoices',
             'totalInvoiceAmount',
@@ -239,37 +239,37 @@ class CompanyController extends Controller
             })
             ->count();
         
-        // Estates count
-        $totalEstates = Estate::where('company_id', $company->id)->count();
+        // Properties count
+        $totalProperties = Property::where('company_id', $company->id)->count();
         
         // Units count
-        $totalUnits = Unit::whereHas('estate', function($q) use ($company) {
+        $totalUnits = Unit::whereHas('property', function($q) use ($company) {
             $q->where('company_id', $company->id);
         })->count();
         
         // Active tenancies count (status = active)
-        $totalTenants = Tenancy::whereHas('unit.estate', function($q) use ($company) {
+        $totalTenants = Tenancy::whereHas('unit.property', function($q) use ($company) {
             $q->where('company_id', $company->id);
         })->where('status', 'active')->count();
         
         // Invoices count
-        $totalInvoices = Invoice::whereHas('tenancy.unit.estate', function($q) use ($company) {
+        $totalInvoices = Invoice::whereHas('tenancy.unit.property', function($q) use ($company) {
             $q->where('company_id', $company->id);
         })->count();
         
         // Expenses count
-        $totalExpenses = Expense::whereHas('estate', function ($q) use ($company) {
+        $totalExpenses = Expense::whereHas('property', function ($q) use ($company) {
             $q->where('company_id', $company->id);
         })->count();
         
         // Total revenue
-        $totalRevenue = Payment::whereHas('invoice.tenancy.unit.estate', function($q) use ($company) {
+        $totalRevenue = Payment::whereHas('invoice.tenancy.unit.property', function($q) use ($company) {
             $q->where('company_id', $company->id);
         })->sum('amount');
         
         return [
             'totalStaff' => $totalStaff,
-            'totalEstates' => $totalEstates,
+            'totalProperties' => $totalProperties,
             'totalUnits' => $totalUnits,
             'totalTenants' => $totalTenants,
             'totalInvoices' => $totalInvoices,
@@ -279,21 +279,21 @@ class CompanyController extends Controller
     }
     
     /**
-     * Get estates for view
+     * Get properties for view
      */
-    private function getEstatesForView($company)
+    private function getPropertiesForView($company)
     {
-        return Estate::where('company_id', $company->id)
+        return Property::where('company_id', $company->id)
             ->withCount('units')
             ->get()
-            ->map(function($estate) {
+            ->map(function($property) {
                 return [
-                    'id' => $estate->id,
-                    'name' => $estate->name,
-                    'location' => $estate->location ?? '-',
-                    'units_count' => $estate->units_count,
-                    'occupied_units' => $estate->units()->where('status', 'occupied')->count(),
-                    'created_at' => $estate->created_at ? $estate->created_at->toISOString() : null,
+                    'id' => $property->id,
+                    'name' => $property->name,
+                    'location' => $property->location ?? '-',
+                    'units_count' => $property->units_count,
+                    'occupied_units' => $property->units()->where('status', 'occupied')->count(),
+                    'created_at' => $property->created_at ? $property->created_at->toISOString() : null,
                 ];
             });
     }
@@ -303,10 +303,10 @@ class CompanyController extends Controller
      */
     private function getTenanciesForView($company)
     {
-        return Tenancy::whereHas('unit.estate', function($q) use ($company) {
+        return Tenancy::whereHas('unit.property', function($q) use ($company) {
             $q->where('company_id', $company->id);
         })
-        ->with(['tenant.user', 'unit.estate'])
+        ->with(['tenant.user', 'unit.property'])
         ->where('status', 'active')  // ONLY ACTIVE TENANCIES
         ->orderBy('created_at', 'desc')
         ->get()
@@ -317,8 +317,8 @@ class CompanyController extends Controller
                 'tenant_phone' => $tenancy->tenant->user->phone ?? '-',
                 'unit_number' => $tenancy->unit->unit_number ?? 'N/A',
                 'unit_type' => $tenancy->unit->unit_type ?? '-',
-                'estate_name' => $tenancy->unit->estate->name ?? 'N/A',
-                'estate_id' => $tenancy->unit->estate_id ?? null,
+                'property_name' => $tenancy->unit->property->name ?? 'N/A',
+                'property_id' => $tenancy->unit->property_id ?? null,
                 'move_in_date' => $tenancy->move_in_date ? $tenancy->move_in_date->toISOString() : null,
                 'move_out_date' => $tenancy->move_out_date ? $tenancy->move_out_date->toISOString() : null,
                 'duration' => $tenancy->move_in_date ? $tenancy->move_in_date->diffInMonths(now()) . ' months' : '-',
@@ -328,29 +328,29 @@ class CompanyController extends Controller
     }
     
     /**
-     * Get estates data (AJAX)
+     * Get properties data (AJAX)
      */
-    public function getEstates($id)
+    public function getProperties($id)
     {
         $company = Company::findOrFail($id);
         
-        $estates = Estate::where('company_id', $company->id)
+        $properties = Property::where('company_id', $company->id)
             ->withCount('units')
             ->get()
-            ->map(function($estate) {
+            ->map(function($property) {
                 return [
-                    'id' => $estate->id,
-                    'name' => $estate->name,
-                    'location' => $estate->location ?? '-',
-                    'units_count' => $estate->units_count,
-                    'occupied_units' => $estate->units()->where('status', 'occupied')->count(),
-                    'created_at' => $estate->created_at ? $estate->created_at->toISOString() : null,
+                    'id' => $property->id,
+                    'name' => $property->name,
+                    'location' => $property->location ?? '-',
+                    'units_count' => $property->units_count,
+                    'occupied_units' => $property->units()->where('status', 'occupied')->count(),
+                    'created_at' => $property->created_at ? $property->created_at->toISOString() : null,
                 ];
             });
         
         return response()->json([
             'success' => true,
-            'estates' => $estates
+            'properties' => $properties
         ]);
     }
     
@@ -361,10 +361,10 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         
-        $tenancies = Tenancy::whereHas('unit.estate', function($q) use ($company) {
+        $tenancies = Tenancy::whereHas('unit.property', function($q) use ($company) {
             $q->where('company_id', $company->id);
         })
-        ->with(['tenant.user', 'unit.estate'])
+        ->with(['tenant.user', 'unit.property'])
         ->where('status', 'active')  // ONLY ACTIVE TENANCIES
         ->orderBy('created_at', 'desc')
         ->get()
@@ -375,8 +375,8 @@ class CompanyController extends Controller
                 'tenant_phone' => $tenancy->tenant->user->phone ?? '-',
                 'unit_number' => $tenancy->unit->unit_number ?? 'N/A',
                 'unit_type' => $tenancy->unit->unit_type ?? '-',
-                'estate_name' => $tenancy->unit->estate->name ?? 'N/A',
-                'estate_id' => $tenancy->unit->estate_id ?? null,
+                'property_name' => $tenancy->unit->property->name ?? 'N/A',
+                'property_id' => $tenancy->unit->property_id ?? null,
                 'move_in_date' => $tenancy->move_in_date ? $tenancy->move_in_date->toISOString() : null,
                 'move_out_date' => $tenancy->move_out_date ? $tenancy->move_out_date->toISOString() : null,
                 'duration' => $tenancy->move_in_date ? $tenancy->move_in_date->diffInMonths(now()) . ' months' : '-',
@@ -473,16 +473,16 @@ public function getCompanyExpenses($id)
 {
     $company = Company::findOrFail($id);
     
-    $expenses = Expense::whereHas('estate', function($q) use ($company) {
+    $expenses = Expense::whereHas('property', function($q) use ($company) {
         $q->where('company_id', $company->id);
     })
-    ->with(['estate', 'payee', 'category'])
+    ->with(['property', 'payee', 'category'])
     ->orderBy('expense_date', 'desc')
     ->get()
     ->map(function($expense) {
         return [
             'id' => $expense->id,
-            'estate_name' => $expense->estate->name ?? 'N/A',
+            'property_name' => $expense->property->name ?? 'N/A',
             'payee_name' => $expense->payee->name ?? 'N/A',
             'category_name' => $expense->category->name ?? 'Uncategorized',
             'amount' => (float) $expense->amount,
@@ -548,7 +548,7 @@ public function getCompanyExpenses($id)
     {
         $company = Company::findOrFail($id);
         
-        $invoices = Invoice::whereHas('tenancy.unit.estate', function($q) use ($company) {
+        $invoices = Invoice::whereHas('tenancy.unit.property', function($q) use ($company) {
                 $q->where('company_id', $company->id);
             })
             ->with(['tenancy.tenant.user', 'tenancy.unit'])
@@ -952,7 +952,7 @@ public function getCompanyExpenses($id)
                 ], 422);
             }
             
-            if ($company->estates()->count() > 0) {
+            if ($company->properties()->count() > 0) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot delete company with existing properties. Delete properties first.',

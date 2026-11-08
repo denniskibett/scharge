@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Admin\SystemController;
-use App\Http\Controllers\EstateController;
+use App\Http\Controllers\PropertyController;
 use App\Http\Controllers\UnitController; 
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\PayeeController;
@@ -48,10 +48,10 @@ Route::middleware('auth')->get('/campaign/{id}', function($id) {
                 $tenant = null;
                 $user = null;
                 $unit = null;
-                $estate = null;
+                $property = null;
                 $tenantName = 'Unknown';
                 $unitNumber = 'N/A';
-                $estateName = 'N/A';
+                $propertyName = 'N/A';
                 
                 // Try to find tenant by tenant_id first
                 if ($recipient->tenant_id) {
@@ -72,9 +72,9 @@ Route::middleware('auth')->get('/campaign/{id}', function($id) {
                             $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
                             if ($unit) {
                                 $unitNumber = $unit->unit_number ?? 'N/A';
-                                if ($unit->estate_id) {
-                                    $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
-                                    $estateName = $estate ? $estate->name : 'N/A';
+                                if ($unit->property_id) {
+                                    $property = DB::table('properties')->where('id', $unit->property_id)->first();
+                                    $propertyName = $property ? $property->name : 'N/A';
                                 }
                             }
                         }
@@ -110,9 +110,9 @@ Route::middleware('auth')->get('/campaign/{id}', function($id) {
                                         $unit = DB::table('units')->where('id', $tenancy->unit_id)->first();
                                         if ($unit) {
                                             $unitNumber = $unit->unit_number ?? 'N/A';
-                                            if ($unit->estate_id) {
-                                                $estate = DB::table('estates')->where('id', $unit->estate_id)->first();
-                                                $estateName = $estate ? $estate->name : 'N/A';
+                                            if ($unit->property_id) {
+                                                $property = DB::table('properties')->where('id', $unit->property_id)->first();
+                                                $propertyName = $property ? $property->name : 'N/A';
                                             }
                                         }
                                     }
@@ -155,7 +155,7 @@ Route::middleware('auth')->get('/campaign/{id}', function($id) {
                     'provider_response' => $recipient->provider_response,
                     'tenant_name' => $tenantName,
                     'unit_number' => $unitNumber,
-                    'estate_name' => $estateName,
+                    'property_name' => $propertyName,
                     'network' => $network,
                     'parts' => $parts,
                     'cost' => $cost,
@@ -344,9 +344,11 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     });
 
     // ============================================
-    // ESTATE ROUTES
+    // PROPERTY ROUTES
     // ============================================
-    Route::resource('estates', EstateController::class);
+    Route::resource('properties', PropertyController::class);
+    // Old links and bookmarks from before the Estate -> Property rename.
+    Route::get('/estates/{rest?}', fn (?string $rest = null) => redirect('/properties'.($rest ? '/'.$rest : ''), 301))->where('rest', '.*');
 
     // ============================================
     // UNIT ROUTES
@@ -471,7 +473,7 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
         Route::get('/api/readings/bulk', [WaterReadingController::class, 'getBulkReadings']);
         Route::get('/api/unit-readings/{unitId}', [WaterReadingController::class, 'getUnitReadingsForMonthRange']);
         Route::post('/unit/{unit}/auto-fill', [WaterReadingController::class, 'autoFillMissingMonths'])->name('unit.auto-fill');
-        Route::post('/estate/auto-fill', [WaterReadingController::class, 'autoFillEstate'])->name('estate.auto-fill');
+        Route::post('/property/auto-fill', [WaterReadingController::class, 'autoFillProperty'])->name('property.auto-fill');
     });
 
     Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
@@ -604,7 +606,7 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
         Route::get('/api/counties', [SubscriptionController::class, 'getCounties'])->name('api.counties');
         Route::get('/api/subcounties', [SubscriptionController::class, 'getSubcounties'])->name('api.subcounties');
         Route::get('/api/subcounties/{countyId}', [SubscriptionController::class, 'getSubcountiesByCounty'])->name('api.subcounties.by-county');
-        Route::get('/api/estates', [SubscriptionController::class, 'getEstates'])->name('api.estates');
+        Route::get('/api/properties', [SubscriptionController::class, 'getProperties'])->name('api.properties');
         Route::get('/api/managers/{manager}', [SubscriptionController::class, 'getManager'])->name('api.manager');
         Route::post('/plans/{plan}/managers', [SubscriptionController::class, 'assignManager'])->name('plans.managers.assign');
         Route::put('/managers/{manager}', [SubscriptionController::class, 'updateManager'])->name('managers.update');
@@ -632,7 +634,7 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
         Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
         Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
         Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
-        Route::get('/{company}/estates', [App\Http\Controllers\Admin\CompanyController::class, 'getEstates'])->name('estates');
+        Route::get('/{company}/properties', [App\Http\Controllers\Admin\CompanyController::class, 'getProperties'])->name('properties');
         Route::get('/{company}/tenancies', [App\Http\Controllers\Admin\CompanyController::class, 'getTenancies'])->name('tenancies');
         Route::get('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyUsers'])->name('get-users');
         Route::get('/{company}/staff', [App\Http\Controllers\Admin\CompanyController::class, 'getCompanyStaff'])->name('staff');

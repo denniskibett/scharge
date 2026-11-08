@@ -172,7 +172,7 @@
               <option value="">Select Unit</option>
               @foreach($vacantUnits ?? [] as $unit)
                 <option value="{{ $unit['id'] }}" data-rent="{{ $unit['rent_amount'] ?? 0 }}" data-water="{{ $unit['water_charge'] ?? 0 }}" data-service="{{ $unit['service_charge'] ?? 0 }}" data-garbage="{{ $unit['garbage_charge'] ?? 0 }}" data-security="{{ $unit['security_charge'] ?? 0 }}" data-maintenance="{{ $unit['maintenance_count'] ?? 0 }}">
-                  {{ $unit['unit_number'] }} - {{ $unit['estate_name'] ?? 'No Estate' }} ({{ $unit['unit_type'] }})
+                  {{ $unit['unit_number'] }} - {{ $unit['property_name'] ?? 'No Property' }} ({{ $unit['unit_type'] }})
                 </option>
               @endforeach
             </select>

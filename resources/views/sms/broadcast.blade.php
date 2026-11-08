@@ -5,7 +5,7 @@
 @php
     // Ensure all variables exist
     $companies = $companies ?? collect([]);
-    $estates = $estates ?? collect([]);
+    $properties = $properties ?? collect([]);
     $templates = $templates ?? collect([]);
     $tenants = $tenants ?? collect([]);
     $logs = $logs ?? collect([]);
@@ -160,10 +160,10 @@
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Property Filter</label>
-                            <select id="estateFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
+                            <select id="propertyFilter" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="applyFiltersAndRender()">
                                 <option value="">All Properties</option>
-                                @foreach($estates as $estate)
-                                    <option value="{{ $estate->id }}">{{ $estate->name }}</option>
+                                @foreach($properties as $property)
+                                    <option value="{{ $property->id }}">{{ $property->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -240,7 +240,7 @@
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('unit')">
                                         Unit <span class="sort-icon inline-block ml-1">↕️</span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('estate')">
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('property')">
                                         Property <span class="sort-icon inline-block ml-1">↕️</span>
                                     </th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('water_bill')">
@@ -263,14 +263,14 @@
                             <tbody id="tenantsTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
                                 @forelse($tenants as $tenant)
                                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 tenant-row" 
-                                    data-estate-id="{{ $tenant['estate_id'] ?? '' }}" 
+                                    data-property-id="{{ $tenant['property_id'] ?? '' }}" 
                                     data-name="{{ $tenant['name'] ?? '' }}" 
                                     data-name-lower="{{ strtolower($tenant['name'] ?? '') }}" 
                                     data-phone="{{ $tenant['phone'] ?? '' }}" 
                                     data-unit="{{ $tenant['unit_number'] ?? '' }}"
                                     data-unit-lower="{{ strtolower($tenant['unit_number'] ?? '') }}"
-                                    data-estate="{{ $tenant['estate_name'] ?? '' }}"
-                                    data-estate-lower="{{ strtolower($tenant['estate_name'] ?? '') }}"
+                                    data-property="{{ $tenant['property_name'] ?? '' }}"
+                                    data-property-lower="{{ strtolower($tenant['property_name'] ?? '') }}"
                                     data-water-bill="{{ $tenant['water_bill'] ?? 0 }}"
                                     data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
                                     data-curr-read="{{ $tenant['curr_read'] ?? 0 }}"
@@ -283,8 +283,8 @@
                                             data-phone="{{ $tenant['phone'] ?? '' }}"
                                             data-name="{{ $tenant['name'] ?? '' }}"
                                             data-unit="{{ $tenant['unit_number'] ?? '' }}"
-                                            data-estate="{{ $tenant['estate_name'] ?? '' }}"
-                                            data-estate-id="{{ $tenant['estate_id'] ?? '' }}"
+                                            data-property="{{ $tenant['property_name'] ?? '' }}"
+                                            data-property-id="{{ $tenant['property_id'] ?? '' }}"
                                             data-waterbill="{{ $tenant['water_bill'] ?? 0 }}"
                                             data-consumption="{{ $tenant['water_consumption'] ?? 0 }}"
                                             data-prev-read="{{ $tenant['prev_read'] ?? 0 }}"
@@ -303,7 +303,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['phone'] ?? '' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['unit_number'] ?? '' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['estate_name'] ?? '' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['property_name'] ?? '' }}</td>
                                     <td class="px-4 py-3 text-right text-sm font-medium text-gray-800">KES {{ number_format($tenant['water_bill'] ?? 0, 2) }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['prev_read'] ?? 0 }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['curr_read'] ?? 0 }}</td>
@@ -666,7 +666,7 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Company</label>
-                                    <select id="campaignFilterCompany" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="filterEstatesByCompany()">
+                                    <select id="campaignFilterCompany" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="filterPropertiesByCompany()">
                                         <option value="">All Companies</option>
                                         @foreach($companies as $company)
                                             <option value="{{ $company->id }}">{{ $company->name }}</option>
@@ -676,17 +676,17 @@
                                 
                                 <div>
                                     <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Property</label>
-                                    <select id="campaignFilterEstate" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
+                                    <select id="campaignFilterProperty" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnPropertyChange()">
                                         <option value="">All Properties</option>
-                                        @foreach($estates as $estate)
-                                            <option value="{{ $estate->id }}" data-company="{{ $estate->company_id }}">{{ $estate->name }}</option>
+                                        @foreach($properties as $property)
+                                            <option value="{{ $property->id }}" data-company="{{ $property->company_id }}">{{ $property->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 
                                 <div class="md:col-span-2">
                                     <label class="mb-1.5 block text-xs font-medium text-gray-700 dark:text-gray-400">Invoice Status</label>
-                                    <select id="campaignFilterStatus" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnEstateChange()">
+                                    <select id="campaignFilterStatus" class="dark:bg-dark-900 h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 py-1.5 text-sm text-gray-800 shadow-theme-xs focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="updateCampaignPreviewOnPropertyChange()">
                                         <option value="">All Statuses</option>
                                         <option value="paid">Paid</option>
                                         <option value="unpaid">Unpaid</option>
@@ -1377,8 +1377,8 @@ function formatMonthYear(dateStr) {
                         phone: checkbox.dataset.phone || '',
                         name: checkbox.dataset.name || 'Tenant',
                         unit: checkbox.dataset.unit || 'N/A',
-                        estate: checkbox.dataset.estate || 'N/A',
-                        estateId: checkbox.dataset.estateId || '',
+                        property: checkbox.dataset.property || 'N/A',
+                        propertyId: checkbox.dataset.propertyId || '',
                         waterbill: checkbox.dataset.waterbill || 0,
                         consumption: checkbox.dataset.consumption || 0,
                         prevRead: checkbox.dataset.prevRead || 0,
@@ -1447,35 +1447,35 @@ function formatMonthYear(dateStr) {
         }
 
         function applyFiltersAndRender() {
-            const estateFilter = document.getElementById('estateFilter');
+            const propertyFilter = document.getElementById('propertyFilter');
             const tenantSearch = document.getElementById('tenantSearch');
             const paymentStatusFilter = document.getElementById('paymentStatusFilter');
             const minBillFilter = document.getElementById('minBillFilter');
             
-            if (!estateFilter || !tenantSearch || !paymentStatusFilter || !minBillFilter) {
+            if (!propertyFilter || !tenantSearch || !paymentStatusFilter || !minBillFilter) {
                 return;
             }
             
-            let selectedEstateId = estateFilter.value;
+            let selectedPropertyId = propertyFilter.value;
             let searchTerm = tenantSearch.value.toLowerCase();
             let paymentStatus = paymentStatusFilter.value;
             let minBill = parseFloat(minBillFilter.value) || 0;
             
             let visibleRows = allRows.filter(row => {
-                let estateId = row.getAttribute('data-estate-id');
+                let propertyId = row.getAttribute('data-property-id');
                 let name = row.getAttribute('data-name-lower') || '';
                 let phone = row.getAttribute('data-phone') || '';
                 let unit = row.getAttribute('data-unit-lower') || '';
-                let estate = row.getAttribute('data-estate-lower') || '';
+                let property = row.getAttribute('data-property-lower') || '';
                 let waterBill = parseFloat(row.getAttribute('data-water-bill')) || 0;
                 let payment = row.getAttribute('data-payment-status') || 'pending';
                 
-                let matchesEstate = selectedEstateId === '' || estateId == selectedEstateId;
+                let matchesProperty = selectedPropertyId === '' || propertyId == selectedPropertyId;
                 let matchesSearch = searchTerm === '' || 
                     name.includes(searchTerm) || 
                     phone.includes(searchTerm) || 
                     unit.includes(searchTerm) ||
-                    estate.includes(searchTerm);
+                    property.includes(searchTerm);
                 let matchesPayment = paymentStatus === '' || payment === paymentStatus;
                 let matchesBill = waterBill >= minBill;
                 
@@ -1483,7 +1483,7 @@ function formatMonthYear(dateStr) {
                     return false;
                 }
                 
-                return matchesEstate && matchesSearch && matchesPayment && matchesBill;
+                return matchesProperty && matchesSearch && matchesPayment && matchesBill;
             });
             
             if (sortColumn) {
@@ -1493,7 +1493,7 @@ function formatMonthYear(dateStr) {
                         case 'name': aVal = a.getAttribute('data-name') || ''; bVal = b.getAttribute('data-name') || ''; break;
                         case 'phone': aVal = a.getAttribute('data-phone') || ''; bVal = b.getAttribute('data-phone') || ''; break;
                         case 'unit': aVal = a.getAttribute('data-unit') || ''; bVal = b.getAttribute('data-unit') || ''; break;
-                        case 'estate': aVal = a.getAttribute('data-estate') || ''; bVal = b.getAttribute('data-estate') || ''; break;
+                        case 'property': aVal = a.getAttribute('data-property') || ''; bVal = b.getAttribute('data-property') || ''; break;
                         case 'water_bill': aVal = parseFloat(a.getAttribute('data-water-bill')) || 0; bVal = parseFloat(b.getAttribute('data-water-bill')) || 0; break;
                         default: aVal = a.getAttribute('data-name') || ''; bVal = b.getAttribute('data-name') || '';
                     }
@@ -1774,7 +1774,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let name = cb.getAttribute('data-name') || 'Tenant';
         let unit = cb.getAttribute('data-unit') || 'N/A';
         let consumption = cb.getAttribute('data-consumption') || '0';
-        let estate_name = cb.getAttribute('data-estate') || 'N/A';
+        let property_name = cb.getAttribute('data-property') || 'N/A';
         let prev_read = cb.getAttribute('data-prev-read') || '0';
         let curr_read = cb.getAttribute('data-curr-read') || '0';
         let paymentStatus = cb.getAttribute('data-payment-status') || 'pending';
@@ -1799,8 +1799,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         message = message.replace(/\{\{water_bill\}\}/g, currentBill.toFixed(2));
         message = message.replace(/\{\{water_consumption\}\}/g, consumption);
         message = message.replace(/\{\{month\}\}/g, currentMonthLabel);
-        message = message.replace(/\{\{estate_name\}\}/g, estate_name);
-        message = message.replace(/\{\{estate\}\}/g, estate_name);
+        message = message.replace(/\{\{property_name\}\}/g, property_name);
+        message = message.replace(/\{\{property\}\}/g, property_name);
         message = message.replace(/\{\{prev_read\}\}/g, prev_read);
         message = message.replace(/\{\{curr_read\}\}/g, curr_read);
         message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
@@ -1823,7 +1823,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
 
         previews.push({
-            phone, name, unit, estate: estate_name,
+            phone, name, unit, property: property_name,
             water_bill: currentBill.toFixed(2),
             water_consumption: consumption,
             prev_read, curr_read, month: currentMonthLabel,
@@ -1863,7 +1863,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                 let unit = cb.getAttribute('data-unit') || 'N/A';
                 let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0);
                 let consumption = cb.getAttribute('data-consumption') || '0';
-                let estate_name = cb.getAttribute('data-estate') || 'N/A';
+                let property_name = cb.getAttribute('data-property') || 'N/A';
                 let prev_read = cb.getAttribute('data-prev-read') || '0';
                 let curr_read = cb.getAttribute('data-curr-read') || '0';
                 let month = cb.getAttribute('data-month') || new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -1916,8 +1916,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                 message = message.replace(/\{\{water_consumption\}\}/g, consumption);
                 message = message.replace(/\{\{due_date\}\}/g, formattedDueDate);
                 message = message.replace(/\{\{month\}\}/g, month);
-                message = message.replace(/\{\{estate_name\}\}/g, estate_name);
-                message = message.replace(/\{\{estate\}\}/g, estate_name);
+                message = message.replace(/\{\{property_name\}\}/g, property_name);
+                message = message.replace(/\{\{property\}\}/g, property_name);
                 message = message.replace(/\{\{prev_read\}\}/g, prev_read);
                 message = message.replace(/\{\{curr_read\}\}/g, curr_read);
                 message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
@@ -1939,7 +1939,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                 else if (paymentStatus === 'unpaid' || paymentStatus === 'overdue') statusColor = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400';
 
                 previews.push({
-                    phone, name, unit, estate: estate_name,
+                    phone, name, unit, property: property_name,
                     water_bill: formattedWaterBill,
                     water_consumption: consumption,
                     prev_read, curr_read, month,
@@ -1978,7 +1978,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                                 <span class="font-medium text-sm text-gray-800 dark:text-white">${escapeHtml(p.name)}</span>
                                 <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.unit)}</span>
                                 <span class="text-xs text-gray-400 dark:text-gray-500">•</span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.estate)}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(p.property)}</span>
                                 ${unpaidInfo}
                             </div>
                             <div class="flex items-center gap-2">
@@ -2138,7 +2138,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                     let unit = cb.getAttribute('data-unit') || 'N/A';
                     let water_bill = parseFloat(cb.getAttribute('data-waterbill') || 0).toFixed(2);
                     let consumption = cb.getAttribute('data-consumption') || '0';
-                    let estate_name = cb.getAttribute('data-estate') || '';
+                    let property_name = cb.getAttribute('data-property') || '';
                     let prev_read = cb.getAttribute('data-prev-read') || '0';
                     let curr_read = cb.getAttribute('data-curr-read') || '0';
                     let month = cb.getAttribute('data-month');
@@ -2163,8 +2163,8 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                     message = message.replace(/\{\{water_consumption\}\}/g, consumption);
                     message = message.replace(/\{\{due_date\}\}/g, dueDate);
                     message = message.replace(/\{\{month\}\}/g, month);
-                    message = message.replace(/\{\{estate_name\}\}/g, estate_name);
-                    message = message.replace(/\{\{estate\}\}/g, estate_name);
+                    message = message.replace(/\{\{property_name\}\}/g, property_name);
+                    message = message.replace(/\{\{property\}\}/g, property_name);
                     message = message.replace(/\{\{prev_read\}\}/g, prev_read);
                     message = message.replace(/\{\{curr_read\}\}/g, curr_read);
                     message = message.replace(/\{\{payment_status\}\}/g, paymentStatus);
@@ -3003,14 +3003,14 @@ function renderCampaigns() {
 }
 
         // ============================================
-        // FILTER ESTATES BY COMPANY
+        // FILTER PROPERTIES BY COMPANY
         // ============================================
-        function filterEstatesByCompany() {
+        function filterPropertiesByCompany() {
             const companyId = document.getElementById('campaignFilterCompany').value;
-            const estateSelect = document.getElementById('campaignFilterEstate');
-            if (!estateSelect) return;
+            const propertySelect = document.getElementById('campaignFilterProperty');
+            if (!propertySelect) return;
             
-            const options = estateSelect.querySelectorAll('option');
+            const options = propertySelect.querySelectorAll('option');
             options.forEach(option => {
                 if (option.value === '') {
                     option.style.display = 'block';
@@ -3023,13 +3023,13 @@ function renderCampaigns() {
                     option.style.display = 'none';
                 }
             });
-            estateSelect.value = '';
+            propertySelect.value = '';
         }
 
         // ============================================
-        // UPDATE CAMPAIGN PREVIEW ON ESTATE CHANGE
+        // UPDATE CAMPAIGN PREVIEW ON PROPERTY CHANGE
         // ============================================
-        function updateCampaignPreviewOnEstateChange() {
+        function updateCampaignPreviewOnPropertyChange() {
             console.log('🔄 Property changed in campaign modal');
             const select = document.getElementById('campaignTemplate');
             const selected = select ? select.options[select.selectedIndex] : null;
@@ -3049,13 +3049,13 @@ function renderCampaigns() {
         // GENERATE TENANT PREVIEW (CAMPAIGN MODAL)
         // ============================================
         function generateTenantPreview(templateContent) {
-            const estateId = document.getElementById('campaignFilterEstate').value;
+            const propertyId = document.getElementById('campaignFilterProperty').value;
             const previewContainer = document.getElementById('campaignTenantPreview');
             const previewContainerDiv = document.getElementById('campaignTenantPreviewContainer');
             
             if (!previewContainer || !previewContainerDiv) return;
             
-            if (!estateId || !templateContent) {
+            if (!propertyId || !templateContent) {
                 previewContainerDiv.style.display = 'none';
                 return;
             }
@@ -3068,12 +3068,12 @@ function renderCampaigns() {
             let tenantIds = [];
             
             tenantRows.forEach(row => {
-                const rowEstateId = row.getAttribute('data-estate-id') || '';
+                const rowPropertyId = row.getAttribute('data-property-id') || '';
                 const paymentStatus = row.getAttribute('data-payment-status') || 'pending';
                 const name = row.getAttribute('data-name') || 'Tenant';
                 const phone = row.getAttribute('data-phone') || '';
                 const unit = row.getAttribute('data-unit') || 'N/A';
-                const estate = row.getAttribute('data-estate') || 'N/A';
+                const property = row.getAttribute('data-property') || 'N/A';
                 const waterBill = parseFloat(row.getAttribute('data-water-bill') || 0);
                 const prevRead = row.getAttribute('data-prev-read') || '0';
                 const currRead = row.getAttribute('data-curr-read') || '0';
@@ -3082,7 +3082,7 @@ function renderCampaigns() {
                 const consumption = row.getAttribute('data-consumption') || '0';
                 const tenantId = row.querySelector('.tenant-checkbox')?.getAttribute('data-id') || '';
                 
-                if (estateId && rowEstateId != estateId) return;
+                if (propertyId && rowPropertyId != propertyId) return;
                 
                 const invoiceStatus = document.getElementById('campaignFilterStatus').value;
                 if (invoiceStatus && paymentStatus !== invoiceStatus) return;
@@ -3099,8 +3099,8 @@ function renderCampaigns() {
                     name: name,
                     phone: phone,
                     unit: unit,
-                    estate: estate,
-                    estateId: rowEstateId,
+                    property: property,
+                    propertyId: rowPropertyId,
                     waterbill: waterBill,
                     waterConsumption: waterConsumption,
                     prevRead: prevRead,
@@ -3121,7 +3121,7 @@ function renderCampaigns() {
                 previewContainerDiv.style.display = 'block';
                 previewContainer.innerHTML = `
                     <div class="text-center py-4 text-gray-500">
-                        <i class="fas fa-info-circle mr-2"></i> No tenants found in this estate.
+                        <i class="fas fa-info-circle mr-2"></i> No tenants found in this property.
                     </div>
                 `;
                 return;
@@ -3332,8 +3332,8 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             '{{name}}': tenant.name || 'Tenant',
             '{{unit}}': tenant.unit || 'N/A',
             '{{unit_number}}': tenant.unit || 'N/A',
-            '{{estate_name}}': tenant.estate || 'N/A',
-            '{{estate}}': tenant.estate || 'N/A',
+            '{{property_name}}': tenant.property || 'N/A',
+            '{{property}}': tenant.property || 'N/A',
             '{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
             '{{water_bill}}': currentBill.toFixed(2),
             '{{water_consumption}}': String(waterConsumption),
@@ -3478,8 +3478,8 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                     '{{name}}': tenant.name || 'Tenant',
                     '{{unit}}': tenant.unit || 'N/A',
                     '{{unit_number}}': tenant.unit || 'N/A',
-                    '{{estate_name}}': tenant.estate || 'N/A',
-                    '{{estate}}': tenant.estate || 'N/A',
+                    '{{property_name}}': tenant.property || 'N/A',
+                    '{{property}}': tenant.property || 'N/A',
                     '{{month}}': tenant.month || new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
                     '{{water_bill}}': currentBill.toFixed(2),
                     '{{water_consumption}}': waterConsumption,
@@ -3536,7 +3536,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             const totalCount = tenants.length;
             html += `
                 <div class="text-xs text-gray-500 mt-2 text-center">
-                    Showing ${Math.min(3, totalCount)} of ${totalCount} tenant(s) in this estate (dummy data)
+                    Showing ${Math.min(3, totalCount)} of ${totalCount} tenant(s) in this property (dummy data)
                 </div>
             `;
             
@@ -3667,7 +3667,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 const phone = recipient.phone_number || recipient.phone || '';
                 const name = recipient.tenant_name || recipient.name || 'Unknown';
                 const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
-                const estateName = recipient.estate_name || recipient.estate || 'N/A';
+                const propertyName = recipient.property_name || recipient.property || 'N/A';
                 const status = recipient.status || 'pending';
                 const message = recipient.message || '';
                 const errorMsg = recipient.error_message || recipient.failure_reason || '';
@@ -3696,8 +3696,8 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                     tenant_name: name,
                     unit_number: unitNumber,
                     unit: unitNumber,
-                    estate_name: estateName,
-                    estate: estateName,
+                    property_name: propertyName,
+                    property: propertyName,
                     status: status,
                     message: message,
                     error_message: errorMsg,
@@ -3807,7 +3807,7 @@ function renderRecipients(recipients) {
         const message = recipient.message || '';
         const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
         const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
-        const estateName = recipient.estate_name || recipient.estate || 'N/A';
+        const propertyName = recipient.property_name || recipient.property || 'N/A';
         const network = recipient.network || '';
         const parts = recipient.parts || '';
         const cost = recipient.cost || '';
@@ -3831,7 +3831,7 @@ function renderRecipients(recipients) {
                     </div>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
+                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
                 <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                     ${escapeHtml(phone)}
                     <button onclick="copyToClipboard('${escapeHtml(phone)}')" 
@@ -3988,12 +3988,12 @@ function viewRecipientMessage(recipientId) {
     const error = recipient.error_message || recipient.failure_reason || '';
     const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
     const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
-    const estateName = recipient.estate_name || recipient.estate || 'N/A';
+    const propertyName = recipient.property_name || recipient.property || 'N/A';
     
     alert(`📨 Message Details\n\n` +
           `Tenant: ${tenantName}\n` +
           `Unit: ${unitNumber}\n` +
-          `Estate: ${estateName}\n` +
+          `Property: ${propertyName}\n` +
           `Phone: ${phone}\n` +
           `Status: ${status}\n\n` +
           `Message:\n${message}\n\n` +
@@ -4251,7 +4251,7 @@ function updateRecipientPhone(recipientId) {
             currentRecipientsFull.forEach(r => {
                 const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
                 const unitNumber = r.unit_number || r.unit || 'N/A';
-                const estateName = r.estate_name || r.estate || 'N/A';
+                const propertyName = r.property_name || r.property || 'N/A';
                 const phoneNumber = r.phone_number || r.phone || '';
                 const status = r.status || 'pending';
                 const message = (r.message || '').replace(/,/g, ';');
@@ -4259,7 +4259,7 @@ function updateRecipientPhone(recipientId) {
                 const errorMessage = (r.error_message || '').replace(/,/g, ';');
                 const updatedAt = r.updated_at || '';
                 
-                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${message}","${providerStatus}","${errorMessage}","${updatedAt}"\n`;
+                csv += `"${tenantName}","${unitNumber}","${propertyName}","${phoneNumber}","${status}","${message}","${providerStatus}","${errorMessage}","${updatedAt}"\n`;
             });
             
             downloadCSV(csv, `recipients_all_${currentCampaignId || 'campaign'}.csv`);
@@ -4279,7 +4279,7 @@ function updateRecipientPhone(recipientId) {
             invalidRecipients.forEach(r => {
                 const tenantName = r.name || 'Unknown';
                 const unitNumber = r.unit_number || 'N/A';
-                const estateName = r.estate_name || r.estate || 'N/A';
+                const propertyName = r.property_name || r.property || 'N/A';
                 let phoneNumber = r.phone || '';
                 phoneNumber = phoneNumber.replace(/^\+/, '').replace(/^254/, '0');
                 if (phoneNumber.match(/^[7-9][0-9]{8}$/)) {
@@ -4293,7 +4293,7 @@ function updateRecipientPhone(recipientId) {
                 }
                 const updatedAt = r.updated_at || '';
                 
-                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${errorMsg}","${updatedAt}"\n`;
+                csv += `"${tenantName}","${unitNumber}","${propertyName}","${phoneNumber}","${status}","${errorMsg}","${updatedAt}"\n`;
             });
             
             downloadCSV(csv, `recipients_invalid_${currentCampaignId || 'campaign'}.csv`);
@@ -4313,7 +4313,7 @@ function updateRecipientPhone(recipientId) {
             otherRecipients.forEach(r => {
                 const tenantName = r.name || 'Unknown';
                 const unitNumber = r.unit_number || 'N/A';
-                const estateName = r.estate_name || r.estate || 'N/A';
+                const propertyName = r.property_name || r.property || 'N/A';
                 let phoneNumber = r.phone || '';
                 phoneNumber = phoneNumber.replace(/^\+/, '').replace(/^254/, '0');
                 if (phoneNumber.match(/^[7-9][0-9]{8}$/)) {
@@ -4323,7 +4323,7 @@ function updateRecipientPhone(recipientId) {
                 const network = r.error || 'Other Network (Airtel/Telkom)';
                 const updatedAt = r.updated_at || '';
                 
-                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${network}","${updatedAt}"\n`;
+                csv += `"${tenantName}","${unitNumber}","${propertyName}","${phoneNumber}","${status}","${network}","${updatedAt}"\n`;
             });
             
             downloadCSV(csv, `recipients_other_network_${currentCampaignId || 'campaign'}.csv`);
@@ -4348,14 +4348,14 @@ function updateRecipientPhone(recipientId) {
             delivered.forEach(r => {
                 const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
                 const unitNumber = r.unit_number || r.unit || 'N/A';
-                const estateName = r.estate_name || r.estate || 'N/A';
+                const propertyName = r.property_name || r.property || 'N/A';
                 let phoneNumber = r.phone_number || r.phone || '';
                 phoneNumber = phoneNumber.replace(/^254/, '0');
                 const status = r.status || 'pending';
                 const sentAt = r.sent_at || '';
                 const message = (r.message || '').replace(/,/g, ';');
                 
-                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${sentAt}","${message}"\n`;
+                csv += `"${tenantName}","${unitNumber}","${propertyName}","${phoneNumber}","${status}","${sentAt}","${message}"\n`;
             });
             
             downloadCSV(csv, `recipients_delivered_${currentCampaignId || 'campaign'}.csv`);
@@ -4376,17 +4376,17 @@ function updateRecipientPhone(recipientId) {
                 return;
             }
             
-            let csv = 'Tenant,Unit,Estate,Phone,Status,Message\n';
+            let csv = 'Tenant,Unit,Property,Phone,Status,Message\n';
             pending.forEach(r => {
                 const tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
                 const unitNumber = r.unit_number || r.unit || 'N/A';
-                const estateName = r.estate_name || r.estate || 'N/A';
+                const propertyName = r.property_name || r.property || 'N/A';
                 let phoneNumber = r.phone_number || r.phone || '';
                 phoneNumber = phoneNumber.replace(/^254/, '0');
                 const status = r.status || 'pending';
                 const message = (r.message || '').replace(/,/g, ';');
                 
-                csv += `"${tenantName}","${unitNumber}","${estateName}","${phoneNumber}","${status}","${message}"\n`;
+                csv += `"${tenantName}","${unitNumber}","${propertyName}","${phoneNumber}","${status}","${message}"\n`;
             });
             
             downloadCSV(csv, `recipients_pending_${currentCampaignId || 'campaign'}.csv`);
@@ -4667,14 +4667,14 @@ function updateRecipientPhone(recipientId) {
                 displayPhone = displayPhone.replace(/^254/, '0');
                 let tenantName = r.tenant_name || r.tenant?.name || r.name || 'Unknown';
                 let unitNumber = r.unit_number || r.unit || 'N/A';
-                let estateName = r.estate_name || r.estate || 'N/A';
+                let propertyName = r.property_name || r.property || 'N/A';
                 let errorMsg = r.error_message || 'No error message';
                 
                 html += `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
                         <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(tenantName)}</td>
                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
                         <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
                         <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
                         <td class="px-4 py-3 text-center">
@@ -4846,13 +4846,13 @@ function resendSingleRecipient(recipientId) {
                     errorMsg = 'Other network (Airtel/Telkom) - Not Safaricom';
                 }
                 
-                const estateName = recipient.estate_name || recipient.estate || 'N/A';
+                const propertyName = recipient.property_name || recipient.property || 'N/A';
                 
                 html += `
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
                         <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(estateName)}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
                         <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
                         <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
                         <td class="px-4 py-3 text-center">
@@ -5148,7 +5148,7 @@ function resendSingleRecipient(recipientId) {
             document.getElementById('campaignTemplate').value = '';
             document.getElementById('campaignType').value = 'general';
             document.getElementById('campaignFilterCompany').value = '';
-            document.getElementById('campaignFilterEstate').value = '';
+            document.getElementById('campaignFilterProperty').value = '';
             document.getElementById('campaignFilterStatus').value = '';
             document.getElementById('campaignSchedule').value = '';
             document.getElementById('campaignTemplatePreview').style.display = 'none';
@@ -5159,13 +5159,13 @@ function resendSingleRecipient(recipientId) {
             const previewEl = document.getElementById('campaignTenantPreview');
             if (previewEl) previewEl.innerHTML = '';
             
-            const estateSelect = document.getElementById('campaignFilterEstate');
-            if (estateSelect) {
-                const options = estateSelect.querySelectorAll('option');
+            const propertySelect = document.getElementById('campaignFilterProperty');
+            if (propertySelect) {
+                const options = propertySelect.querySelectorAll('option');
                 options.forEach(option => {
                     option.style.display = 'block';
                 });
-                estateSelect.value = '';
+                propertySelect.value = '';
             }
         }
 
@@ -5204,7 +5204,7 @@ function resendSingleRecipient(recipientId) {
             const templateId = document.getElementById('campaignTemplate').value;
             const campaignType = document.getElementById('campaignType').value;
             const companyId = document.getElementById('campaignFilterCompany').value;
-            const estateId = document.getElementById('campaignFilterEstate').value;
+            const propertyId = document.getElementById('campaignFilterProperty').value;
             const invoiceStatus = document.getElementById('campaignFilterStatus').value;
             const scheduledAt = document.getElementById('campaignSchedule').value;
             
@@ -5229,7 +5229,7 @@ function resendSingleRecipient(recipientId) {
                 campaign_type: campaignType,
                 filters: {
                     company_id: companyId || '',
-                    estate_id: estateId || '',
+                    property_id: propertyId || '',
                     invoice_status: invoiceStatus || ''
                 },
                 scheduled_at: scheduledAt || null

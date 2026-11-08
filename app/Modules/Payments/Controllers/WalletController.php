@@ -771,7 +771,7 @@ class WalletController extends Controller
             
             $companyId = $user->company_id;
             
-            $tenantIds = \App\Modules\Tenants\Models\Tenant::whereHas('activeTenancy.unit.estate', function($q) use ($companyId) {
+            $tenantIds = \App\Modules\Tenants\Models\Tenant::whereHas('activeTenancy.unit.property', function($q) use ($companyId) {
                 $q->where('company_id', $companyId);
             })->pluck('id')->toArray();
             
@@ -1523,7 +1523,7 @@ class WalletController extends Controller
             $tenantDetails = [
                 'name' => $user->name ?? 'N/A',
                 'company' => null,
-                'estate' => null,
+                'property' => null,
                 'unit' => null,
                 'wallet_id' => $wallet?->uuid ?? null,
                 'wallet_number' => $fullWalletNumber,
@@ -1532,7 +1532,7 @@ class WalletController extends Controller
             
             $companyDetails = [
                 'name' => null,
-                'estate_name' => null,
+                'property_name' => null,
                 'payment_methods' => [],
                 'default_payment_method' => null,
             ];
@@ -1542,12 +1542,12 @@ class WalletController extends Controller
                 if ($unit) {
                     $tenantDetails['unit'] = $unit->unit_number;
                     
-                    $estate = $unit->estate;
-                    if ($estate) {
-                        $tenantDetails['estate'] = $estate->name;
-                        $companyDetails['estate_name'] = $estate->name;
+                    $property = $unit->property;
+                    if ($property) {
+                        $tenantDetails['property'] = $property->name;
+                        $companyDetails['property_name'] = $property->name;
                         
-                        $company = $estate->company;
+                        $company = $property->company;
                         if ($company) {
                             $tenantDetails['company'] = $company->name;
                             $companyDetails['name'] = $company->name;

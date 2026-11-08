@@ -3,7 +3,7 @@
 
 namespace App\Modules\SMS\Models;
 
-use App\Models\Estate; // ← FIXED: Correct path
+use App\Models\Property; // ← FIXED: Correct path
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,7 +21,7 @@ class Campaign extends Model
         'message',
         'billing_month',
         'reading_date',
-        'estate_id',
+        'property_id',
         'created_by',
         'sender_id',
         'message_type',
@@ -57,9 +57,9 @@ class Campaign extends Model
         return $this->hasMany(CampaignRecipient::class);
     }
     
-    public function estate(): BelongsTo
+    public function property(): BelongsTo
     {
-        return $this->belongsTo(Estate::class);
+        return $this->belongsTo(Property::class);
     }
     
     public function createdBy(): BelongsTo
@@ -98,9 +98,9 @@ class Campaign extends Model
         return $query->where('billing_month', $month);
     }
     
-    public function scopeByEstate($query, $estateId)
+    public function scopeByProperty($query, $propertyId)
     {
-        return $query->where('estate_id', $estateId);
+        return $query->where('property_id', $propertyId);
     }
     
     // Accessors

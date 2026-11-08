@@ -54,7 +54,7 @@
         </div>
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm text-gray-600 dark:text-gray-400">Property:</span>
-          <span class="text-sm font-semibold text-gray-800 dark:text-white" x-text="unit?.estate_name"></span>
+          <span class="text-sm font-semibold text-gray-800 dark:text-white" x-text="unit?.property_name"></span>
         </div>
         <div class="flex items-center justify-between mb-2">
           <span class="text-sm text-gray-600 dark:text-gray-400">Current Tenant:</span>

@@ -193,7 +193,7 @@
                                             <a :href="`/units/${tenant.current_unit.id}`" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                                                 <span x-text="tenant.current_unit.unit_number"></span>
                                             </a>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="tenant.current_unit.estate_name"></p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400" x-text="tenant.current_unit.property_name"></p>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                                 Since <span x-text="tenant.current_unit.move_in_date_formatted"></span>
                                             </p>
@@ -455,7 +455,7 @@
                             >
                                 <option value="">Select a unit (optional)</option>
                                 <template x-for="unit in units" :key="unit.id">
-                                    <option :value="unit.id" x-text="`${unit.unit_number} - ${unit.estate_name}`"></option>
+                                    <option :value="unit.id" x-text="`${unit.unit_number} - ${unit.property_name}`"></option>
                                 </template>
                             </select>
                         </div>
@@ -583,7 +583,7 @@
                                     >
                                         <option value="">Select unit (optional)</option>
                                         <template x-for="unit in units" :key="unit.id">
-                                            <option :value="unit.id" x-text="`${unit.unit_number} - ${unit.estate_name}`"></option>
+                                            <option :value="unit.id" x-text="`${unit.unit_number} - ${unit.property_name}`"></option>
                                         </template>
                                     </select>
                                 </div>
@@ -669,7 +669,7 @@
                         >
                             <option value="">Select a unit for all tenants</option>
                             <template x-for="unit in units" :key="unit.id">
-                                <option :value="unit.id" x-text="`${unit.unit_number} - ${unit.estate_name}`"></option>
+                                <option :value="unit.id" x-text="`${unit.unit_number} - ${unit.property_name}`"></option>
                             </template>
                         </select>
                         <p class="mt-1 text-xs text-green-600 dark:text-green-400">
@@ -930,8 +930,8 @@ function tenantTable() {
                         (tenant.phone2 && tenant.phone2.includes(term)) ||
                         (tenant.current_unit && tenant.current_unit.unit_number && 
                          tenant.current_unit.unit_number.toLowerCase().includes(term)) ||
-                        (tenant.current_unit && tenant.current_unit.estate_name && 
-                         tenant.current_unit.estate_name.toLowerCase().includes(term))
+                        (tenant.current_unit && tenant.current_unit.property_name && 
+                         tenant.current_unit.property_name.toLowerCase().includes(term))
                     );
                 });
             }

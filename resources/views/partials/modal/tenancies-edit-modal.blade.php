@@ -89,7 +89,7 @@
                         disabled class="text-gray-400"
                         @endif
                 >
-                  {{ $unit['unit_number'] }} - {{ $unit['estate_name'] ?? 'No Estate' }} ({{ $unit['unit_type'] }})
+                  {{ $unit['unit_number'] }} - {{ $unit['property_name'] ?? 'No Property' }} ({{ $unit['unit_type'] }})
                   @if($unit['status'] === 'occupied' && $unit['id'] != ($currentTenancy?->unit_id ?? ''))
                     - Already Occupied
                   @endif

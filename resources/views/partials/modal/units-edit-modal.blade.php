@@ -196,12 +196,12 @@
             </select>
           </div>
 
-          <!-- Estate (Read-only) -->
+          <!-- Property (Read-only) -->
           <div class="md:col-span-2">
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Property</label>
             <input 
               type="text"
-              :value="currentUnit?.estate_name"
+              :value="currentUnit?.property_name"
               readonly
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 text-sm text-gray-600 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
             />

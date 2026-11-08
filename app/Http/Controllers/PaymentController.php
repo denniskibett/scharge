@@ -121,12 +121,12 @@ class PaymentController extends Controller
             $user = Auth::user();
             $company = $user->company;
             
-            $payment = Payment::with(['tenant.user', 'invoice.items', 'invoice.tenancy.unit.estate', 'user'])
+            $payment = Payment::with(['tenant.user', 'invoice.items', 'invoice.tenancy.unit.property', 'user'])
                 ->findOrFail($id);
             
             // Check authorization
             if (!$user->hasRole('sysadmin') && $company) {
-                $paymentCompany = $payment->invoice?->tenancy?->unit?->estate?->company_id;
+                $paymentCompany = $payment->invoice?->tenancy?->unit?->property?->company_id;
                 if ($paymentCompany != $company->id) {
                     return response()->json([
                         'success' => false,
@@ -168,8 +168,8 @@ class PaymentController extends Controller
                         ];
                     }) ?? [],
                     'unit_number' => $payment->invoice?->tenancy?->unit?->unit_number ?? 'N/A',
-                    'estate_name' => $payment->invoice?->tenancy?->unit?->estate?->name ?? 'N/A',
-                    'company_name' => $payment->invoice?->tenancy?->unit?->estate?->company?->name ?? 'N/A',
+                    'property_name' => $payment->invoice?->tenancy?->unit?->property?->name ?? 'N/A',
+                    'company_name' => $payment->invoice?->tenancy?->unit?->property?->company?->name ?? 'N/A',
                     'created_at' => $payment->created_at->toISOString(),
                     'updated_at' => $payment->updated_at->toISOString(),
                     'meta' => $payment->meta,
