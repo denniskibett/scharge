@@ -38,6 +38,12 @@ Schedule::command('payments:sweep')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Smart water meters: post last month's final reading to water billing on the 1st.
+Schedule::command('meters:post-water')
+    ->monthlyOn(1, '06:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Subscription billing is deliberately NOT scheduled yet:
 // SubscriptionService::processMonthlyBilling() charges through a stub gateway
 // that always reports success, so running it would extend subscriptions for

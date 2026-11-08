@@ -15,8 +15,8 @@ class ApiKey extends Model
 
     protected $fillable = ['company_id', 'user_id', 'name', 'environment', 'scopes', 'allowed_ips', 'prefix', 'last_four', 'hash', 'enabled', 'last_used_at'];
 
-    /** read: look up properties, tenants, invoices. collect: create pay links. */
-    public const SCOPES = ['read', 'collect'];
+    /** read: look up invoices and meters. collect: create pay links. meters: register meters, record readings. */
+    public const SCOPES = ['read', 'collect', 'meters'];
 
     protected $casts = ['enabled' => 'boolean', 'last_used_at' => 'datetime', 'scopes' => 'array', 'allowed_ips' => 'array'];
 
