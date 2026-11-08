@@ -123,12 +123,21 @@ class RolesAndPermissionsSeeder extends Seeder
         |--------------------------------------------------------------------------
         */
 
+        // Single source of truth for role names; matches the live `roles` table.
+        // scharge staff:  sysadmin, account_manager
+        // customer side:  everything else (company admin = landlord/owner side)
         $roles = [
+            'sysadmin',
+            'account_manager',
             'admin',
             'property_manager',
             'accountant',
-            'tenant',
             'meter_reader',
+            'cleaning_staff',
+            'maintenance',
+            'security',
+            'tenant',
+            'guest',
         ];
 
         foreach ($roles as $role) {

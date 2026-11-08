@@ -29,7 +29,7 @@ Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->midd
 // ---------------------------------------------------------------------------
 // CRM (scharge staff only)
 // ---------------------------------------------------------------------------
-Route::middleware(['auth', 'role:sysadmin'])->prefix('crm')->name('crm.')->group(function () {
+Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('crm')->name('crm.')->group(function () {
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
     Route::post('/companies', [CrmCompanyController::class, 'store'])->name('companies.store');
     Route::get('/companies/{crmCompany}', [CrmCompanyController::class, 'show'])->name('companies.show');

@@ -227,7 +227,7 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // ADMIN ROLES ROUTES
     // ============================================
-    Route::prefix('roles')->name('roles.')->group(function () {
+    Route::prefix('roles')->name('roles.')->middleware('role:sysadmin')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
         Route::get('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'show'])->name('show');
         Route::post('/', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('store');
@@ -260,33 +260,34 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ============================================
-    // STATIC / DEMO PAGES
+    // STATIC / DEMO PAGES (TailAdmin samples) - scharge staff only
     // ============================================
-    Route::get('/index', function () { return view('index'); })->name('index');
-    Route::get('/invoice', function () { return view('invoice'); })->name('invoice');
-    Route::get('/404', function () { return view('404'); })->name('404');
-    Route::get('/messages', function () { return view('messages'); })->name('messages');
-    Route::get('/alerts', function () { return view('alerts'); })->name('alerts');
-    Route::get('/blank', function () { return view('blank'); })->name('blank');
+    Route::middleware('role:sysadmin')->group(function () {
+        Route::get('/index', fn () => view('index'))->name('index');
+        Route::get('/invoice', fn () => view('invoice'))->name('invoice');
+        Route::get('/404', fn () => view('404'))->name('404');
+        Route::get('/messages', fn () => view('messages'))->name('messages');
+        Route::get('/alerts', fn () => view('alerts'))->name('alerts');
+        Route::get('/blank', fn () => view('blank'))->name('blank');
+        Route::get('/form-elements', fn () => view('form-elements'))->name('form-elements');
+        Route::get('/basic-tables', fn () => view('basic-tables'))->name('basic-tables');
+        Route::get('/avatars', fn () => view('avatars'))->name('avatars');
+        Route::get('/badge', fn () => view('badge'))->name('badge');
+        Route::get('/buttons', fn () => view('buttons'))->name('buttons');
+        Route::get('/images', fn () => view('images'))->name('images');
+        Route::get('/videos', fn () => view('videos'))->name('videos');
+        Route::get('/signin', fn () => view('signin'))->name('signin');
+        Route::get('/signup', fn () => view('signup'))->name('signup');
+        Route::get('/line-chart', fn () => view('line-chart'))->name('line-chart');
+        Route::get('/bar-chart', fn () => view('bar-chart'))->name('bar-chart');
+        Route::get('/dash', fn () => view('dash'))->name('dash');
+    });
     Route::get('/calendar', function () { return view('calendar'); })->name('calendar');
-    Route::get('/form-elements', function () { return view('form-elements'); })->name('form-elements');
-    Route::get('/basic-tables', function () { return view('basic-tables'); })->name('basic-tables');
-    Route::get('/avatars', function () { return view('avatars'); })->name('avatars');
-    Route::get('/badge', function () { return view('badge'); })->name('badge');
-    Route::get('/buttons', function () { return view('buttons'); })->name('buttons');
-    Route::get('/images', function () { return view('images'); })->name('images');
-    Route::get('/videos', function () { return view('videos'); })->name('videos');
-    Route::get('/signin', function () { return view('signin'); })->name('signin');
-    Route::get('/signup', function () { return view('signup'); })->name('signup');
-    Route::get('/image', function () { return view('image'); });
-    Route::get('/line-chart', function () { return view('line-chart'); })->name('line-chart');
-    Route::get('/bar-chart', function () { return view('bar-chart'); })->name('bar-chart');
-    Route::get('/dash', function () { return view('dash'); })->name('dash');
 
     // ============================================
     // SYSTEM ROUTES
     // ============================================
-    Route::prefix('system')->name('system.')->group(function () {
+    Route::prefix('system')->name('system.')->middleware('role:sysadmin')->group(function () {
         Route::get('/', [SystemController::class, 'index'])->name('index');
         Route::put('/update', [SystemController::class, 'update'])->name('update');
         Route::get('/clear-cache', [SystemController::class, 'clearCache'])->name('clear-cache');
@@ -298,7 +299,7 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 // ADMIN USER MANAGEMENT ROUTES
 // ============================================
-Route::prefix('users')->name('admin.users.')->group(function () {
+Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|accountant')->group(function () {
 
     Route::resource('/', App\Http\Controllers\Admin\UserController::class)
         ->parameters(['' => 'user']);
@@ -327,14 +328,14 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     // ADMIN ROLES ROUTES
     // ============================================
-    Route::prefix('admin/roles')->name('admin.roles.')->group(function () {
+    Route::prefix('admin/roles')->name('admin.roles.')->middleware('role:sysadmin|admin|accountant')->group(function () {
         Route::get('/list', [App\Http\Controllers\Admin\UserController::class, 'getRoles'])->name('list');
     });
 
     // ============================================
     // API USERS ROUTES
     // ============================================
-    Route::prefix('api/users')->name('api.users.')->group(function () {
+    Route::prefix('api/users')->name('api.users.')->middleware('role:sysadmin|admin|accountant|property_manager')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\UserController::class, 'getUsers'])->name('index');
         Route::get('/staff', [App\Http\Controllers\Admin\UserController::class, 'getStaffUsers'])->name('staff');
     });
@@ -482,12 +483,12 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     // STAFF ROUTES
     // ============================================
-    Route::resource('staff', StaffController::class);
+    Route::resource('staff', StaffController::class)->middleware('role:sysadmin|admin|accountant');
 
     // ============================================
     // REPORT ROUTES
     // ============================================
-    Route::prefix('reports')->name('reports.')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('role:sysadmin|admin|accountant|property_manager|account_manager')->group(function () {
         Route::get('/financial', [ReportController::class, 'financial'])->name('financial');
         Route::get('/invoices', [ReportController::class, 'invoices'])->name('invoices');
         Route::get('/payments', [ReportController::class, 'payments'])->name('payments');
@@ -541,7 +542,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     });
     
     // ===== ADMIN WALLET MANAGEMENT ROUTES =====
-    Route::prefix('admin/wallets')->name('admin.wallets.')->group(function () {
+    Route::prefix('admin/wallets')->name('admin.wallets.')->middleware('role:sysadmin|admin|accountant')->group(function () {
         Route::get('/', [App\Modules\Payments\Controllers\WalletController::class, 'index'])->name('index');
         Route::get('/report', [App\Modules\Payments\Controllers\WalletController::class, 'report'])->name('report');
         Route::get('/transactions', [App\Modules\Payments\Controllers\WalletController::class, 'allTransactions'])->name('transactions');
@@ -564,7 +565,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     // SUBSCRIPTION MODULE ROUTES - Admin Section
     // ============================================
-    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->group(function () {
+    Route::prefix('admin/subscriptions')->name('admin.subscriptions.')->middleware('role:sysadmin|account_manager')->group(function () {
         Route::resource('plans', SubscriptionController::class)
             ->parameters(['plans' => 'plan'])
             ->only(['index', 'show', 'store', 'update', 'destroy']);
@@ -602,7 +603,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     // COMPANY MANAGEMENT ROUTES - Admin Section
     // ============================================
-    Route::prefix('admin/companies')->name('admin.companies.')->group(function () {
+    Route::prefix('admin/companies')->name('admin.companies.')->middleware('role:sysadmin|account_manager')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
         Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
         Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');
@@ -625,7 +626,7 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     // ACCOUNT MANAGER MANAGEMENT ROUTES - Admin Section
     // ============================================
-    Route::prefix('admin/account-managers')->name('admin.account-managers.')->group(function () {
+    Route::prefix('admin/account-managers')->name('admin.account-managers.')->middleware('role:sysadmin')->group(function () {
         Route::get('/', [AccountManagerController::class, 'index'])->name('index');
         Route::get('/create', [AccountManagerController::class, 'create'])->name('create');
         Route::post('/', [AccountManagerController::class, 'store'])->name('store');
@@ -640,16 +641,12 @@ Route::prefix('users')->name('admin.users.')->group(function () {
     // ============================================
     Route::get('/my-invoices', [TenantController::class, 'myInvoices'])->name('tenant.invoices');
     Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
-    Route::post('/make-payment', [PaymentController::class, 'tenantPayment'])->name('tenant.payment');
 
     // ============================================
     // 📱 M-PESA STK PUSH PAYMENT ROUTES
     // ============================================
     Route::prefix('payments/mpesa')->name('payments.mpesa.')->group(function () {
-        Route::post('/stk-push', [PaymentController::class, 'initiateMpesaStkPush'])->name('stk-push');
         Route::get('/status', [PaymentController::class, 'checkMpesaStatus'])->name('status');
-        Route::get('/pay', [MpesaController::class, 'showPaymentForm'])->name('form');
-        Route::post('/pay', [MpesaController::class, 'stkPush'])->name('process');
     });
 
 });

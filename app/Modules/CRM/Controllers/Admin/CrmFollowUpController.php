@@ -10,6 +10,8 @@ use App\Modules\CRM\Services\ContactService;
 use App\Modules\CRM\Services\LeadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use App\Modules\CRM\Support\CrmAccess;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -25,7 +27,7 @@ class CrmFollowUpController extends Controller
         $view = $request->input('view', 'open');
         $mine = $request->boolean('mine');
 
-        $followUps = CrmFollowUp::query()
+        $followUps = $this->visible($request)
             ->with(['company:id,name,tier,crm_stage', 'contact:id,name,phone,email', 'assignee:id,name'])
             ->when($mine, fn ($q) => $q->where('assigned_to', $request->user()->id))
             ->when($view === 'overdue', fn ($q) => $q->overdue())
@@ -40,7 +42,7 @@ class CrmFollowUpController extends Controller
             'followUps' => $followUps,
             'view' => $view,
             'mine' => $mine,
-            'counts' => ['overdue' => CrmFollowUp::overdue()->count(), 'today' => CrmFollowUp::dueToday()->count(), 'open' => CrmFollowUp::todo()->count()],
+            'counts' => ['overdue' => $this->visible($request)->overdue()->count(), 'today' => $this->visible($request)->dueToday()->count(), 'open' => $this->visible($request)->todo()->count()],
         ]);
     }
 
@@ -48,6 +50,7 @@ class CrmFollowUpController extends Controller
     public function store(Request $request, Company $crmCompany): RedirectResponse
     {
         $company = $crmCompany;
+        CrmAccess::authorizeCompany($company, $request->user());
         $schedule = $request->input('mode') === 'schedule';
         $input = $request->validate([
             'mode' => ['required', Rule::in(['log', 'schedule'])],
@@ -86,6 +89,7 @@ class CrmFollowUpController extends Controller
      */
     public function update(Request $request, CrmFollowUp $followUp): RedirectResponse
     {
+        abort_unless($this->visible($request)->whereKey($followUp->id)->exists(), 403, 'This follow-up belongs to another account manager.');
         $input = $request->validate([
             'status' => ['required', Rule::in(array_keys(CrmFollowUp::STATUSES))],
             'outcome' => ['nullable', 'required_if:status,done,missed,cancelled', 'string', 'max:255'],
@@ -140,13 +144,13 @@ class CrmFollowUpController extends Controller
 
         return view('crm.demos', [
             'type' => $type,
-            'demos' => CrmFollowUp::where('type', $type)
+            'demos' => $this->visible($request)->where('type', $type)
                 ->with(['contact:id,name,phone,email', 'company:id,name,crm_stage,country_code', 'assignee:id,name'])
                 ->when($status, fn ($q) => $q->where('status', $status))
                 ->latest()->paginate(30)->withQueryString(),
             'status' => $status,
-            'counts' => CrmFollowUp::where('type', $type)->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status'),
-            'openByType' => CrmFollowUp::whereIn('type', array_keys(CrmFollowUp::REQUEST_TYPES))->where('status', 'open')
+            'counts' => $this->visible($request)->where('type', $type)->selectRaw('status, COUNT(*) as total')->groupBy('status')->pluck('total', 'status'),
+            'openByType' => $this->visible($request)->whereIn('type', array_keys(CrmFollowUp::REQUEST_TYPES))->where('status', 'open')
                 ->selectRaw('type, COUNT(*) as total')->groupBy('type')->pluck('total', 'type'),
         ]);
     }
@@ -154,10 +158,10 @@ class CrmFollowUpController extends Controller
     public function feedback(Request $request): View
     {
         $band = $request->input('band');
-        $scores = CrmFollowUp::where('type', 'feedback')->whereNotNull('score')->pluck('score');
+        $scores = $this->visible($request)->where('type', 'feedback')->whereNotNull('score')->pluck('score');
 
         return view('crm.feedback', [
-            'feedback' => CrmFollowUp::where('type', 'feedback')
+            'feedback' => $this->visible($request)->where('type', 'feedback')
                 ->with(['company:id,name', 'contact:id,name'])
                 ->when($band === 'pending', fn ($q) => $q->where('status', 'open'))
                 ->when($band === 'detractor', fn ($q) => $q->whereNotNull('score')->where('score', '<=', CrmFollowUp::LOW_SCORE))
@@ -170,13 +174,14 @@ class CrmFollowUpController extends Controller
                 'promoters' => $scores->filter(fn ($s) => $s >= 9)->count(),
                 'passives' => $scores->filter(fn ($s) => $s >= 7 && $s <= 8)->count(),
                 'detractors' => $scores->filter(fn ($s) => $s <= CrmFollowUp::LOW_SCORE)->count(),
-                'pending' => CrmFollowUp::where('type', 'feedback')->where('status', 'open')->count(),
+                'pending' => $this->visible($request)->where('type', 'feedback')->where('status', 'open')->count(),
             ],
         ]);
     }
 
     public function requestFeedback(Request $request, Company $crmCompany): RedirectResponse
     {
+        CrmAccess::authorizeCompany($crmCompany, $request->user());
         $input = $request->validate([
             'context' => ['required', Rule::in(array_keys(CrmFollowUp::FEEDBACK_CONTEXTS))],
             'user_id' => ['nullable', Rule::in($crmCompany->contacts()->pluck('users.id'))],
@@ -186,5 +191,11 @@ class CrmFollowUpController extends Controller
         $link = route('site.feedback.show', $feedback->token);
 
         return back()->with('success', 'Feedback link created: '.$link)->with('feedback_link', $link);
+    }
+
+    /** Follow-ups the current user may see (all for sysadmins; own book for account managers). */
+    private function visible(Request $request): Builder
+    {
+        return CrmAccess::followUps(CrmFollowUp::query(), $request->user());
     }
 }

@@ -1,92 +1,39 @@
 <?php
-// app/Console/Commands/CreateTenantWallets.php
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Modules\Tenants\Models\Tenant;
-use App\Modules\Payments\Models\Wallet;
-use Illuminate\Support\Str;
+use Illuminate\Console\Command;
 
+/**
+ * Makes sure every tenant has a bavix "default" wallet.
+ *
+ * Goes through bavix itself ($tenant->wallet) so holder_type always matches the
+ * morph map in AppServiceProvider. The old version wrote rows by hand with the
+ * module class name (creating duplicate wallets) and had a --force flag that
+ * deleted wallets with their balances; both are gone.
+ */
 class CreateTenantWallets extends Command
 {
-    protected $signature = 'tenants:create-wallets {--force : Force create wallets even if they exist}';
-    protected $description = 'Create wallets for all existing tenants';
+    protected $signature = 'tenants:create-wallets {--dry-run}';
 
-    public function handle()
+    protected $description = 'Create the default wallet for any tenant that does not have one';
+
+    public function handle(): int
     {
-        $this->info('Creating wallets for tenants...');
-        
-        $tenants = Tenant::all();
         $created = 0;
-        $skipped = 0;
-        $failed = 0;
-        
-        $progressBar = $this->output->createProgressBar($tenants->count());
-        $progressBar->start();
-        
-        foreach ($tenants as $tenant) {
-            // Check if wallet already exists
-            $existingWallet = Wallet::where('holder_type', Tenant::class)
-                ->where('holder_id', $tenant->id)
-                ->first();
-            
-            if ($existingWallet && !$this->option('force')) {
-                $skipped++;
-                $progressBar->advance();
-                continue;
-            }
-            
-            // Create wallet manually
-            try {
-                // If force is enabled and wallet exists, delete it first
-                if ($existingWallet && $this->option('force')) {
-                    $existingWallet->forceDelete();
+
+        Tenant::query()->whereDoesntHave('wallet')->chunkById(200, function ($tenants) use (&$created) {
+            foreach ($tenants as $tenant) {
+                if (! $this->option('dry-run')) {
+                    $tenant->wallet->save();
                 }
-                
-                $user = $tenant->user;
-                $userName = $user ? $user->name : 'Unknown';
-                $walletName = $user ? "Wallet for {$user->name}" : "Tenant Wallet #{$tenant->id}";
-                $walletDescription = "Main wallet for tenant " . ($user ? $user->name : $tenant->id);
-                
-                $wallet = Wallet::create([
-                    'holder_type' => Tenant::class,
-                    'holder_id' => $tenant->id,
-                    'name' => $walletName,
-                    'slug' => 'default',
-                    'uuid' => (string) Str::uuid(),
-                    'description' => $walletDescription,
-                    'meta' => [
-                        'tenant_id' => $tenant->id,
-                        'user_id' => $user ? $user->id : null,
-                        'created_by_command' => 'tenants:create-wallets',
-                    ],
-                    'balance' => 0,
-                    'decimal_places' => 2,
-                ]);
-                
-                $this->line("  ✓ Wallet created for tenant: {$userName} (ID: {$tenant->id}) - UUID: {$wallet->uuid}");
                 $created++;
-            } catch (\Exception $e) {
-                $this->error("  ✗ Failed to create wallet for tenant ID: {$tenant->id} - " . $e->getMessage());
-                $failed++;
             }
-            
-            $progressBar->advance();
-        }
-        
-        $progressBar->finish();
-        $this->newLine(2);
-        
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("📊 SUMMARY");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        $this->info("  Total tenants processed: " . $tenants->count());
-        $this->info("  ✅ Wallets created: {$created}");
-        $this->info("  ⏭️  Wallets skipped (already exist): {$skipped}");
-        $this->info("  ❌ Failed: {$failed}");
-        $this->info("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        
-        return Command::SUCCESS;
+        });
+
+        $this->info(($this->option('dry-run') ? 'Would create' : 'Created')." {$created} wallet(s).");
+
+        return self::SUCCESS;
     }
 }

@@ -30,6 +30,16 @@ class AppServiceProvider extends ServiceProvider
             });
         }
 
+        // One morph name per entity, whichever of the twin classes is used.
+        // App\Models\Tenant/User are empty subclasses of the module models; the
+        // live data (wallets.holder_type, model_has_roles.model_type) stores the
+        // App\Models\* names, so those strings are kept as the aliases and both
+        // classes now resolve to them. Not enforced, so other models are unaffected.
+        \Illuminate\Database\Eloquent\Relations\Relation::morphMap([
+            'App\Models\Tenant' => \App\Modules\Tenants\Models\Tenant::class,
+            'App\Models\User' => \App\Modules\Users\Models\User::class,
+        ]);
+
         // Register role-based Blade directives
         $this->registerBladeDirectives();
     }

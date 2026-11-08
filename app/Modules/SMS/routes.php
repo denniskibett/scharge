@@ -10,9 +10,13 @@ use App\Http\Controllers\MpesaController;
 // =========================================================
 // 📨 M-PESA CALLBACK - PUBLIC ROUTE (No Auth, No CSRF)
 // =========================================================
-Route::post('/sms/mpesa/callback', [MpesaController::class, 'stkCallback'])
-    ->name('sms.mpesa.callback')
-    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+// CSRF exemption lives in bootstrap/app.php (validateCsrfTokens except).
+Route::post('/sms/mpesa/callback', [MpesaController::class, 'handleCallback'])
+    ->name('sms.mpesa.callback');
+
+// KenyaSMS delivery reports come from the gateway, so no auth.
+// CSRF is exempted for sms/webhook/* in bootstrap/app.php.
+Route::post('/sms/webhook/dlr', [WebhookController::class, 'handleDLR'])->name('sms.webhook.dlr');
 
 // =========================================================
 // 📱 SMS ROUTES - Authenticated
@@ -74,21 +78,13 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
     Route::get('/campaigns/{campaign}/failed', [CampaignController::class, 'failed'])->name('sms.campaigns.failed');
     Route::get('/campaigns/{campaign}/timeline', [CampaignController::class, 'timeline'])->name('sms.campaigns.timeline');
 
-    // =========================================================
-    // 📨 WEBHOOK - KenyaSMS
-    // =========================================================
-    Route::post('/webhook/dlr', [WebhookController::class, 'handleDLR'])
-        ->name('sms.webhook.dlr')
-        ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+    // (KenyaSMS delivery-report webhook moved above, outside the auth group.)
 
     // =========================================================
     // 📱 M-PESA ROUTES (Authenticated)
     // =========================================================
-    Route::prefix('mpesa')->name('mpesa.')->group(function () {
-        Route::post('/stk-push', [MpesaController::class, 'stkPush'])->name('stk-push');
-        Route::post('/query-status', [MpesaController::class, 'queryStatus'])->name('query-status');
-        Route::post('/b2b-payment', [MpesaController::class, 'b2bPayment'])->name('b2b-payment');
-    });
+    // (Removed sms/mpesa/stk-push, query-status, b2b-payment: they pointed at
+    // MpesaController methods that never existed.)
 
     // =========================================================
     // 🏷️ LEGACY
@@ -99,13 +95,8 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
 // =========================================================
 // 📨 B2B CALLBACKS - PUBLIC ROUTES (No Auth, No CSRF)
 // =========================================================
-Route::post('/mpesa/b2b/result', [MpesaController::class, 'b2bResult'])
-    ->name('mpesa.b2b.result')
-    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
-
-Route::post('/mpesa/b2b/queue', [MpesaController::class, 'b2bQueueTimeout'])
-    ->name('mpesa.b2b.queue')
-    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+// (Removed /mpesa/b2b/result and /mpesa/b2b/queue: MpesaController::b2bResult
+// and b2bQueueTimeout never existed. Re-add with the B2B payout work.)
 
 // =========================================================
 // 📊 SMS API ROUTES (For AJAX calls from frontend)

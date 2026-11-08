@@ -33,13 +33,14 @@ return [
         |The Lipa na Mpesa Online Passkey
         |------------------------------------------
         */
-    'passkey' => env('SAFARICOM_PASSKEY', 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'),
+    // .env uses MPESA_PASSKEY; SAFARICOM_PASSKEY kept as a legacy fallback.
+    'passkey' => env('MPESA_PASSKEY', env('SAFARICOM_PASSKEY')),
 
     /*--------------------------------------------------------------
         |The Lipa na Mpesa Online ShortCode (Paybill Number)
         |-----------------------------------------------------------
     */
-    'shortcode' => env('MPESA_BUSINESS_SHORTCODE', '174379'),
+    'shortcode' => env('MPESA_SHORTCODE', env('MPESA_BUSINESS_SHORTCODE', '174379')),
 
     /*--------------------------------------------------------------
         |The Lipa na Mpesa Online ShortCode  (Till Number)
@@ -51,7 +52,9 @@ return [
         |The Mpesa Initator Name
         |------------------------------------------
         */
-    'initiator_name' => env('MPESA_INITIATOR_NAME', 'testapi'),
+    'initiator_name' => env('MPESA_INITIATOR', env('MPESA_INITIATOR_NAME')),
+
+    'security_credential' => env('MPESA_SECURITY_CREDENTIAL'),
 
     /*-----------------------------------------
         |The Mpesa Initator Password
@@ -83,7 +86,15 @@ return [
         'reversal_result_url' => env('MPESA_REVERSAL_RESULT_URL'),
         'reversal_timeout_url' => env('MPESA_REVERSAL_TIMEOUT_URL'),
         'b2b_result_url' => env('MPESA_B2B_RESULT_URL'),
-        'b2b_timeout_url' => env('MPESA_B2B_TIMEOUT_URL'),
+        'b2b_timeout_url' => env('MPESA_B2B_TIMEOUT_URL', env('MPESA_QUEUE_URL')),
     ],
+
+    /*-----------------------------------------
+        | Optional allow-list of Safaricom callback IPs (comma separated).
+        | Empty = accept from any IP. Only enable once request()->ip() resolves
+        | the real client IP behind your proxy/load balancer (TrustProxies).
+        |------------------------------------------
+    */
+    'callback_ips' => array_values(array_filter(array_map('trim', explode(',', (string) env('MPESA_CALLBACK_IPS', ''))))),
 
 ];

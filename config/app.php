@@ -70,6 +70,10 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
+    // Scheduled tasks (routes/console.php) run on Nairobi time. The app
+    // timezone above stays UTC so existing stored timestamps keep their meaning.
+    'schedule_timezone' => env('SCHEDULE_TIMEZONE', 'Africa/Nairobi'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

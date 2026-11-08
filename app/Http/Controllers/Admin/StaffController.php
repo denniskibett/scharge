@@ -127,7 +127,7 @@ class StaffController extends Controller
         $debugSql = $query->toSql();
         $debugBindings = $query->getBindings();
 
-        return view('staff.index', compact('staff', 'roles', 'companies', 'debugSql', 'debugBindings'));
+        return view('admin.staff.index', compact('staff', 'roles', 'companies', 'debugSql', 'debugBindings'));
     }
 
     /**
@@ -139,7 +139,7 @@ class StaffController extends Controller
             ->orderBy('name')
             ->get();
         $companies = Company::orderBy('name')->get();
-        return view('staff.create', compact('roles', 'companies'));
+        return view('admin.staff.create', compact('roles', 'companies'));
     }
 
     /**
@@ -408,7 +408,7 @@ class StaffController extends Controller
         $user->role_names = $user->getRoleNames()->toArray();
         $user->all_roles = $user->roles;
         
-        return view('staff.show', compact('user'));
+        return view('admin.staff.show', compact('user'));
     }
 
     /**

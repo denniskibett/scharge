@@ -19,13 +19,13 @@ class MpesaService
 
     public function __construct()
     {
-        $this->consumerKey = env('MPESA_CONSUMER_KEY');
-        $this->consumerSecret = env('MPESA_CONSUMER_SECRET');
-        $this->environment = env('MPESA_ENVIRONMENT', 'sandbox');
-        $this->shortcode = env('MPESA_SHORTCODE', '174379');
-        $this->initiator = env('MPESA_INITIATOR', 'sharet_api');
-        $this->securityCredential = env('MPESA_SECURITY_CREDENTIAL', '');
-        $this->passkey = env('MPESA_PASSKEY', '');
+        $this->consumerKey = config('mpesa.mpesa_consumer_key');
+        $this->consumerSecret = config('mpesa.mpesa_consumer_secret');
+        $this->environment = config('mpesa.environment', 'sandbox');
+        $this->shortcode = config('mpesa.shortcode');
+        $this->initiator = config('mpesa.initiator_name');
+        $this->securityCredential = (string) config('mpesa.security_credential');
+        $this->passkey = (string) config('mpesa.passkey');
         
         // Set base URL based on environment
         $this->baseUrl = $this->environment === 'production'
@@ -52,7 +52,6 @@ class MpesaService
         Log::info('M-Pesa: Requesting access token', [
             'url' => $url,
             'environment' => $this->environment,
-            'consumer_key' => substr($this->consumerKey, 0, 10) . '...'
         ]);
         
         try {
@@ -143,7 +142,7 @@ class MpesaService
             'PartyA' => $phone,
             'PartyB' => $this->shortcode,
             'PhoneNumber' => $phone,
-            'CallBackURL' => env('MPESA_CALLBACK_URL'),
+            'CallBackURL' => config('mpesa.callbacks.callback_url'),
             'AccountReference' => $accountReference,
             'TransactionDesc' => $transactionDesc,
         ];
@@ -319,8 +318,8 @@ class MpesaService
             'AccountReference' => $data['account_reference'],
             'Requester' => $data['requester'] ?? null,
             'Remarks' => $data['remarks'] ?? 'OK',
-            'QueueTimeOutURL' => $data['queue_timeout_url'] ?? env('MPESA_QUEUE_URL'),
-            'ResultURL' => $data['result_url'] ?? env('MPESA_B2B_RESULT_URL'),
+            'QueueTimeOutURL' => $data['queue_timeout_url'] ?? config('mpesa.callbacks.b2b_timeout_url'),
+            'ResultURL' => $data['result_url'] ?? config('mpesa.callbacks.b2b_result_url'),
         ];
 
         // Remove null values
@@ -330,7 +329,7 @@ class MpesaService
 
         Log::info('M-Pesa B2B Request', [
             'url' => $url,
-            'payload' => $payload
+            'payload' => array_diff_key($payload, ['SecurityCredential' => true]),
         ]);
 
         try {

@@ -184,6 +184,12 @@ document.addEventListener('alpine:init', () => {
         'charts', 'line_chart', 'bar_chart',
         'ui_elements', 'alerts', 'avatars', 'badges', 'buttons', 'images', 'videos'
       ],
+      // scharge staff: manages a book of companies, their leads and revenue.
+      'account_manager': [
+        'dashboard', 'calendar', 'profile',
+        'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
+        'administration', 'companies',
+      ],
       'admin': [
         'dashboard', 'calendar', 'profile',
         'property', 'estates', 'units', 'tenants', 'tenancies',

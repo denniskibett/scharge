@@ -9,6 +9,7 @@ use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Models\WaitlistEntry;
 use App\Modules\CRM\Services\ContactService;
 use App\Modules\CRM\Support\Countries;
+use App\Modules\CRM\Support\CrmAccess;
 use App\Modules\CRM\Support\Normalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,9 +25,12 @@ class CrmCompanyController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention']);
+        $user = $request->user();
+        $mine = fn () => CrmAccess::companies(Company::crm(), $user);
+        $myFollowUps = fn () => CrmAccess::followUps(CrmFollowUp::query(), $user);
         $todo = fn ($q) => $q->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', CrmFollowUp::NOT_TODO);
 
-        $companies = Company::crm()
+        $companies = $mine()
             ->with(['owner:id,name'])
             ->withMin(['followUps as next_due_at' => $todo], 'due_at')
             ->withMax(['followUps as last_contact_at' => fn ($q) => $q->whereIn('type', CrmFollowUp::ACTION_TYPES)->where('type', '!=', 'note')->where('status', 'done')], 'done_at')
@@ -51,11 +55,11 @@ class CrmCompanyController extends Controller
             ->map(fn ($rows) => $rows->pluck('contact.name')->filter()->unique()->join(', '));
 
         $stats = [
-            'open' => Company::crm()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->count(),
-            'overdue' => CrmFollowUp::overdue()->count(),
-            'due_today' => CrmFollowUp::dueToday()->count(),
-            'unattended' => Company::crm()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo)->count(),
-            'new_demos' => CrmFollowUp::whereIn('type', ['demo', 'api_keys', 'viewing'])->where('status', 'open')->count(),
+            'open' => $mine()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->count(),
+            'overdue' => $myFollowUps()->overdue()->count(),
+            'due_today' => $myFollowUps()->dueToday()->count(),
+            'unattended' => $mine()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo)->count(),
+            'new_demos' => $myFollowUps()->whereIn('type', ['demo', 'api_keys', 'viewing'])->where('status', 'open')->count(),
             'waitlist' => WaitlistEntry::whereIn('status', ['waiting', 'demo_requested'])->count(),
             'nps' => self::nps(CrmFollowUp::where('type', 'feedback')->whereNotNull('score')->pluck('score')),
         ];
@@ -65,7 +69,7 @@ class CrmCompanyController extends Controller
             'contactNames' => $contactNames,
             'filters' => $filters,
             'stats' => $stats,
-            'stageCounts' => Company::crm()->selectRaw('crm_stage, COUNT(*) as total')->groupBy('crm_stage')->pluck('total', 'crm_stage'),
+            'stageCounts' => $mine()->selectRaw('crm_stage, COUNT(*) as total')->groupBy('crm_stage')->pluck('total', 'crm_stage'),
             'owners' => self::staff(),
         ]);
     }
@@ -94,8 +98,9 @@ class CrmCompanyController extends Controller
             ->with('success', $created ? 'Prospect added.' : 'That company is already in the system, so we opened it and filled in any missing details.');
     }
 
-    public function show(Company $crmCompany): View
+    public function show(Request $request, Company $crmCompany): View
     {
+        CrmAccess::authorizeCompany($crmCompany, $request->user());
         $company = $crmCompany->load('owner:id,name');
         $rows = $company->followUps()->with(['contact:id,name,phone,email,lead_source', 'assignee:id,name', 'author:id,name'])
             ->orderByDesc('created_at')->orderByDesc('id')->get();
@@ -113,6 +118,7 @@ class CrmCompanyController extends Controller
     public function update(Request $request, Company $crmCompany): RedirectResponse
     {
         $company = $crmCompany;
+        CrmAccess::authorizeCompany($company, $request->user());
         $input = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'crm_stage' => ['sometimes', 'required', Rule::in(array_keys(Company::CRM_STAGES))],
@@ -171,6 +177,7 @@ class CrmCompanyController extends Controller
 
     public function addContact(Request $request, Company $crmCompany): RedirectResponse
     {
+        CrmAccess::authorizeCompany($crmCompany, $request->user());
         $input = $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'email' => ['nullable', 'email', 'max:190', 'required_without:phone'],
@@ -194,9 +201,12 @@ class CrmCompanyController extends Controller
         return (int) round(($scores->filter(fn ($s) => $s >= 9)->count() - $scores->filter(fn ($s) => $s <= CrmFollowUp::LOW_SCORE)->count()) / $scores->count() * 100);
     }
 
-    /** People who can own CRM accounts: scharge sysadmins. */
+    /** People who can own CRM accounts: scharge sysadmins and account managers. */
     public static function staff()
     {
-        return User::role('sysadmin')->orderBy('name')->get(['users.id', 'users.name']);
+        // whereHas instead of User::role(): Spatie throws if a role row is missing,
+        // and account_manager may not exist yet in every database.
+        return User::whereHas('roles', fn ($q) => $q->whereIn('name', ['sysadmin', 'account_manager']))
+            ->orderBy('name')->get(['users.id', 'users.name']);
     }
 }

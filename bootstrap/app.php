@@ -11,6 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Inbound webhooks from Safaricom / SMS gateway carry no CSRF token.
+        $middleware->validateCsrfTokens(except: [
+            'pay',
+            'sms/mpesa/callback',
+            'sms/webhook/*',
+        ]);
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

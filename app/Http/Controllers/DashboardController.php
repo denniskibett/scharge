@@ -41,6 +41,9 @@ class DashboardController extends Controller
         switch ($roleName) {
             case 'sysadmin':
                 return $this->sysAdminDashboard();
+            case 'account_manager':
+                // Until a dedicated staff dashboard exists, account managers land on their CRM book.
+                return redirect()->route('crm.index');
             case 'admin':
                 return $this->adminDashboard();
             case 'property_manager':
@@ -72,8 +75,8 @@ class DashboardController extends Controller
             return false;
         }
         
-        // FIXED: Use Spatie's hasRole()
-        if ($user->hasRole('sysadmin')) {
+        // scharge staff (sysadmin, account managers) don't belong to a customer company.
+        if ($user->hasAnyRole(['sysadmin', 'account_manager'])) {
             return true;
         }
         
