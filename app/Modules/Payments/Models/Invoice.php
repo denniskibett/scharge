@@ -54,6 +54,24 @@ class Invoice extends Model
     /**
      * Get remaining amount to be paid
      */
+    /**
+     * The landlord company this invoice belongs to. Many invoices have a NULL company_id
+     * (all unpaid ones in live data), so fall back to the tenancy, then the estate.
+     */
+    public function owningCompanyId(): ?int
+    {
+        $id = $this->company_id ?? $this->tenancy?->company_id ?? $this->tenancy?->estate?->company_id;
+
+        return $id ? (int) $id : null;
+    }
+
+    /** Invoices belonging to a company, directly or through their tenancy. */
+    public function scopeForCompany($query, int $companyId)
+    {
+        return $query->where(fn ($q) => $q->where('company_id', $companyId)
+            ->orWhere(fn ($w) => $w->whereNull('company_id')->whereHas('tenancy', fn ($t) => $t->where('company_id', $companyId))));
+    }
+
     public function getRemainingAmountAttribute(): float
     {
         $paidAmount = $this->total_paid ?? 0;

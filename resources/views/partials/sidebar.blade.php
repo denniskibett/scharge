@@ -178,6 +178,7 @@ document.addEventListener('alpine:init', () => {
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
         'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
+        'settings', 'integrations', 'api_keys',
         'forms', 'form_elements',
         'tables', 'basic_tables',
         'pages', 'blank_page', '404_page',
@@ -199,6 +200,7 @@ document.addEventListener('alpine:init', () => {
         'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
         'users', 'staff',
+        'settings', 'integrations', 'api_keys',
       ],
       'property_manager': [
         'dashboard', 'calendar', 'profile',
@@ -441,6 +443,22 @@ document.addEventListener('alpine:init', () => {
               { label: 'Requests', link: '/crm/requests', page: 'crmDemos', permission: 'crm_demos' },
               { label: 'Waitlist', link: '/crm/waitlist', page: 'crmWaitlist', permission: 'crm_waitlist' },
               { label: 'Feedback', link: '/crm/feedback', page: 'crmFeedback', permission: 'crm_feedback' }
+            ]
+          }
+        ]
+      },
+      {
+        title: 'SETTINGS',
+        items: [
+          {
+            name: 'Settings',
+            label: 'Payments & API',
+            link: '/#',
+            permission: 'settings',
+            icon: 'M11.25 3.5a.75.75 0 0 1 1.5 0v1.06a7.5 7.5 0 0 1 3.9 1.62l.75-.75a.75.75 0 1 1 1.06 1.06l-.75.75a7.5 7.5 0 0 1 1.62 3.9h1.06a.75.75 0 0 1 0 1.5h-1.06a7.5 7.5 0 0 1-1.62 3.9l.75.75a.75.75 0 1 1-1.06 1.06l-.75-.75a7.5 7.5 0 0 1-3.9 1.62v1.06a.75.75 0 0 1-1.5 0v-1.06a7.5 7.5 0 0 1-3.9-1.62l-.75.75a.75.75 0 1 1-1.06-1.06l.75-.75a7.5 7.5 0 0 1-1.62-3.9H3.5a.75.75 0 0 1 0-1.5h1.06a7.5 7.5 0 0 1 1.62-3.9l-.75-.75a.75.75 0 0 1 1.06-1.06l.75.75a7.5 7.5 0 0 1 3.9-1.62V3.5ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z',
+            children: [
+              { label: 'Integrations', link: '/integrations', page: 'integrations', permission: 'integrations' },
+              { label: 'API keys', link: '/api-keys', page: 'apiKeys', permission: 'api_keys' }
             ]
           }
         ]

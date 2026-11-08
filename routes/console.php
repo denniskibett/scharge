@@ -25,12 +25,18 @@ Schedule::command('tenants:create-wallets')
     ->withoutOverlapping()
     ->onOneServer();
 
-// Collection sweeps, 08:00 / 12:00 / 16:00 Nairobi.
-// Enable when the payments:sweep command lands (rail mode, P1):
-// Schedule::command('payments:sweep')
-//     ->cron('0 8,12,16 * * *')
-//     ->withoutOverlapping()
-//     ->onOneServer();
+// Sharet pay links: pick up payments/expiries that a webhook missed (and connected-mode
+// requests, whose webhooks go to the landlord's own Sharet account).
+Schedule::command('sharet:sync')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Rail-mode sweeps to landlords, 08:00 / 12:00 / 16:00 Nairobi (does nothing until Sharet is set up).
+Schedule::command('payments:sweep')
+    ->cron('0 8,12,16 * * *')
+    ->withoutOverlapping()
+    ->onOneServer();
 
 // Subscription billing is deliberately NOT scheduled yet:
 // SubscriptionService::processMonthlyBilling() charges through a stub gateway

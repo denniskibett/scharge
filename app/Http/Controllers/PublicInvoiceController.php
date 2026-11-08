@@ -6,7 +6,9 @@ use App\Models\MpesaStk;
 use App\Models\Payment;
 use App\Modules\Payments\Models\Invoice;
 use App\Modules\Tenants\Models\Tenant;
+use App\Services\Integrations;
 use App\Services\MpesaService;
+use App\Services\Sharet\SharetCollections;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -64,8 +66,30 @@ class PublicInvoiceController extends Controller
             ], 400);
         }
 
+        // Where does this payment go?
+        //  1. the landlord's own Daraja app (Integrations) -> STK prompt, money to their paybill;
+        //  2. otherwise, once scharge's Sharet account is set up -> a Sharet pay link
+        //     (rail: scharge wallet, swept to the landlord; or the landlord's connected account);
+        //  3. otherwise scharge's platform Daraja app (the original behaviour).
+        if (! Integrations::daraja($invoice->owningCompanyId()) && SharetCollections::available()) {
+            try {
+                $link = app(SharetCollections::class)->payLink($invoice, $amount, $phone);
+
+                return response()->json([
+                    'success' => true,
+                    'provider' => 'sharet',
+                    'redirect' => $link->pay_url,
+                    'message' => 'Opening the secure Sharet payment page…',
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Sharet pay link failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
+
+                return response()->json(['success' => false, 'message' => 'We could not start the payment. Please try again shortly.'], 400);
+            }
+        }
+
         // Get the callback URL being used
-        $callbackUrl = env('MPESA_CALLBACK_URL');
+        $callbackUrl = config('mpesa.callbacks.callback_url');
         
         // Debug: Log the callback URL
         Log::info('📱 STK Push Initiated with Callback URL', [
@@ -88,7 +112,7 @@ class PublicInvoiceController extends Controller
         );
 
         try {
-            $mpesa = new MpesaService();
+            $mpesa = MpesaService::forCompany($invoice->owningCompanyId());
             $reference = 'INV-' . $invoice->id . '-' . time();
             
             $result = $mpesa->stkPush(
@@ -175,7 +199,7 @@ class PublicInvoiceController extends Controller
     public function checkStatus(Request $request, $invoiceId, $checkoutId)
     {
         try {
-            $mpesa = new MpesaService();
+            $mpesa = MpesaService::forCheckout($checkoutId);
             $result = $mpesa->queryStatus($checkoutId);
 
             Log::info('Status check', [

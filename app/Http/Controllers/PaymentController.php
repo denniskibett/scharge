@@ -461,7 +461,8 @@ class PaymentController extends Controller
         ]);
         
         // Send STK Push - this creates the MpesaStk record internally
-        $mpesa = new \App\Services\MpesaService();
+        // The company's own Daraja app if it has one switched on, else scharge's.
+        $mpesa = \App\Services\MpesaService::forCompany($invoice->owningCompanyId());
         $result = $mpesa->stkPush(
             $phone,
             $request->amount,
@@ -581,7 +582,7 @@ class PaymentController extends Controller
         ]);
 
         try {
-            $mpesa = new \App\Services\MpesaService();
+            $mpesa = \App\Services\MpesaService::forCheckout($request->checkout_request_id);
             $result = $mpesa->queryStatus($request->checkout_request_id);
             
             if ($result['success']) {

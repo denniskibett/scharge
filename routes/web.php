@@ -205,6 +205,9 @@ Route::prefix('public')->name('public.')->group(function () {
     Route::get('/invoice/{invoice}/status/{checkoutId}', [PublicInvoiceController::class, 'checkStatus'])->name('invoice.status');
 });
 
+// Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
+Route::post('/webhooks/sharet', App\Http\Controllers\SharetWebhookController::class)->name('webhooks.sharet');
+
 // Email Verification Routes
 // Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
 // Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
@@ -386,6 +389,28 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     // INVOICE ROUTES
     // ============================================
     Route::resource('invoices', InvoiceController::class);
+    Route::post('/invoices/{invoice}/pay-link', App\Http\Controllers\InvoicePayLinkController::class)
+        ->middleware('role:sysadmin|admin|accountant|property_manager')->name('invoices.pay-link');
+
+    // ============================================
+    // SETTINGS: INTEGRATIONS & API KEYS (Sharet-style pages)
+    // ============================================
+    Route::middleware('role:sysadmin|admin')->group(function () {
+        Route::get('/integrations', [App\Http\Controllers\IntegrationController::class, 'index'])->name('integrations.index');
+        Route::get('/integrations/sharet/connected', [App\Http\Controllers\IntegrationController::class, 'connected'])->name('integrations.connected');
+        Route::post('/integrations/sharet_payouts/connect', [App\Http\Controllers\IntegrationController::class, 'connect'])->name('integrations.connect');
+        Route::put('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'update'])->name('integrations.update');
+        Route::patch('/integrations/{provider}/toggle', [App\Http\Controllers\IntegrationController::class, 'toggle'])->name('integrations.toggle');
+        Route::post('/integrations/{provider}/test', [App\Http\Controllers\IntegrationController::class, 'test'])->name('integrations.test');
+        Route::delete('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'destroy'])->name('integrations.destroy');
+
+        Route::get('/api-keys', [App\Http\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
+        Route::post('/api-keys', [App\Http\Controllers\ApiKeyController::class, 'store'])->name('api-keys.store');
+        Route::patch('/api-keys/{id}/settings', [App\Http\Controllers\ApiKeyController::class, 'settings'])->whereNumber('id');
+        Route::patch('/api-keys/{id}/toggle', [App\Http\Controllers\ApiKeyController::class, 'toggle'])->whereNumber('id');
+        Route::post('/api-keys/{id}/rotate', [App\Http\Controllers\ApiKeyController::class, 'rotate'])->whereNumber('id');
+        Route::delete('/api-keys/{id}', [App\Http\Controllers\ApiKeyController::class, 'destroy'])->whereNumber('id');
+    });
 
     // Invoice generation routes
     Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');

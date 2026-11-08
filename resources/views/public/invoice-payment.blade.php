@@ -288,6 +288,13 @@
 
                     const data = await response.json();
 
+                    if (data.success && data.redirect) {
+                        // Paid through Sharet: continue on its secure payment page.
+                        this.showStatus('pending', 'Redirecting…', data.message || 'Opening the payment page…', 'bg-blue-50 text-blue-800 border-blue-200');
+                        window.location.href = data.redirect;
+                        return;
+                    }
+
                     if (data.success) {
                         this.checkoutId = data.checkout_request_id;
                         // Update URL with checkout ID for refresh persistence

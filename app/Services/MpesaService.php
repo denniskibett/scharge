@@ -16,6 +16,10 @@ class MpesaService
     protected $initiator;
     protected $securityCredential;
     protected $passkey;
+    protected $transactionType = 'CustomerPayBillOnline';
+    protected $partyB = null;
+    protected $tokenCacheKey = 'mpesa_access_token';
+    protected $companyId = null;
 
     public function __construct()
     {
@@ -34,13 +38,56 @@ class MpesaService
     }
 
     /**
+     * The M-Pesa app to use for a company: its own Daraja app when it has switched one on in
+     * Integrations (money goes straight to its paybill/till), otherwise scharge's platform app.
+     */
+    public static function forCompany(?int $companyId): self
+    {
+        $service = new self();
+        $row = \App\Services\Integrations::daraja($companyId);
+        if ($row) {
+            $service->companyId = $companyId;
+            $service->consumerKey = $row->get('consumer_key');
+            $service->consumerSecret = $row->get('consumer_secret');
+            $service->environment = $row->get('environment', 'sandbox');
+            $service->shortcode = $row->get('shortcode');
+            $service->passkey = (string) $row->get('passkey');
+            if ($row->get('kind') === 'till') {
+                $service->transactionType = 'CustomerBuyGoodsOnline';
+                $service->partyB = $row->get('party_b') ?: $row->get('shortcode');
+            }
+            $service->tokenCacheKey = 'mpesa_access_token_company_'.$companyId;
+            $service->baseUrl = $service->environment === 'production'
+                ? 'https://api.safaricom.co.ke'
+                : 'https://sandbox.safaricom.co.ke';
+        }
+
+        return $service;
+    }
+
+    /** The app that started a given STK push (needed to query its status with the same credentials). */
+    public static function forCheckout(?string $checkoutRequestId): self
+    {
+        $stk = $checkoutRequestId ? \App\Models\MpesaStk::where('checkout_request_id', $checkoutRequestId)->first() : null;
+        $companyId = $stk?->invoice_id ? \App\Models\Invoice::find($stk->invoice_id)?->owningCompanyId() : null;
+
+        return self::forCompany($companyId);
+    }
+
+    /** True when this instance uses a company's own Daraja app rather than scharge's. */
+    public function usesCompanyApp(): bool
+    {
+        return $this->companyId !== null;
+    }
+
+    /**
      * Get OAuth Access Token
      */
 
     public function getAccessToken()
     {
         // Try to get from cache first
-        $cacheKey = 'mpesa_access_token';
+        $cacheKey = $this->tokenCacheKey;
         if (\Illuminate\Support\Facades\Cache::has($cacheKey)) {
             $cachedToken = \Illuminate\Support\Facades\Cache::get($cacheKey);
             Log::info('M-Pesa: Using cached access token');
@@ -137,10 +184,10 @@ class MpesaService
             'BusinessShortCode' => $this->shortcode,
             'Password' => $password,
             'Timestamp' => $timestamp,
-            'TransactionType' => 'CustomerPayBillOnline',
+            'TransactionType' => $this->transactionType,
             'Amount' => (int) $amount,
             'PartyA' => $phone,
-            'PartyB' => $this->shortcode,
+            'PartyB' => $this->partyB ?? $this->shortcode,
             'PhoneNumber' => $phone,
             'CallBackURL' => config('mpesa.callbacks.callback_url'),
             'AccountReference' => $accountReference,

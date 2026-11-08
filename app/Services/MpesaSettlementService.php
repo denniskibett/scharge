@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Invoice;
+use App\Modules\Payments\Models\Invoice;
 use App\Models\MpesaStk;
 use App\Models\Payment;
+use App\Services\InvoicePaymentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -51,74 +52,26 @@ class MpesaSettlementService
                     return ['success' => false, 'message' => 'Invoice or tenant not found'];
                 }
 
-                $amount = (float) $stk->amount;
-                $outstanding = max(0, (float) $invoice->total_amount - (float) $invoice->total_paid);
-                $toInvoice = min($amount, $outstanding);
-                $toCredit = $amount - $toInvoice;
-
-                $balanceBefore = (float) $tenant->balance;
-
-                $tenant->deposit($amount, [
-                    'description' => "M-Pesa {$stk->mpesa_receipt_number} received",
-                    'source' => 'mpesa_stk',
-                    'invoice_id' => $invoice->id,
-                    'mpesa_receipt' => $stk->mpesa_receipt_number,
-                    'checkout_request_id' => $stk->checkout_request_id,
-                ]);
-
-                if ($toInvoice > 0) {
-                    $tenant->withdraw($toInvoice, [
-                        'description' => "Applied to invoice #{$invoice->invoice_number}",
-                        'source' => 'mpesa_stk',
-                        'invoice_id' => $invoice->id,
-                        'mpesa_receipt' => $stk->mpesa_receipt_number,
-                    ]);
-                }
-
-                $tenant->refresh();
-
-                $payment = Payment::create([
-                    'tenant_id' => $tenant->id,
-                    'invoice_id' => $invoice->id,
-                    'payment_method' => 'mpesa_stk',
+                $payment = app(InvoicePaymentService::class)->apply($invoice, (float) $stk->amount, [
+                    'method' => 'mpesa_stk',
                     'source' => 'public_link',
-                    'amount' => $amount,
-                    'wallet_balance_before' => $balanceBefore,
-                    'wallet_balance_after' => (float) $tenant->balance,
                     'transaction_reference' => $stk->checkout_request_id,
                     'external_reference' => $stk->mpesa_receipt_number,
-                    'status' => 'completed',
-                    'is_reconciled' => true,
-                    'reconciled_at' => now(),
+                    'label' => "M-Pesa {$stk->mpesa_receipt_number}",
                     'meta' => [
                         'mpesa_stk_id' => $stk->id,
                         'mpesa_receipt' => $stk->mpesa_receipt_number,
-                        'amount_received' => $amount,
-                        'amount_to_invoice' => $toInvoice,
-                        'amount_to_wallet' => $toCredit,
                         'transaction_date' => $stk->transaction_date,
                         'phone_number' => $stk->phone_number,
                         'merchant_request_id' => $stk->merchant_request_id,
-                        'paid_at' => now()->toISOString(),
                     ],
                 ]);
-
-                // Overpayments sit in the wallet as credit, so cap what the invoice shows as paid.
-                $invoice->total_paid = min(
-                    (float) $invoice->total_amount,
-                    (float) $invoice->payments()->where('status', 'completed')->sum('amount')
-                );
-                $invoice->status = $invoice->total_paid >= $invoice->total_amount
-                    ? 'paid'
-                    : ($invoice->total_paid > 0 ? 'partial' : $invoice->status);
-                $invoice->save();
 
                 Log::info('M-Pesa payment settled', [
                     'stk_id' => $stk->id,
                     'payment_id' => $payment->id,
                     'invoice_id' => $invoice->id,
-                    'to_invoice' => $toInvoice,
-                    'to_wallet' => $toCredit,
+                    'to_wallet' => $payment->meta['amount_to_wallet'] ?? 0,
                 ]);
 
                 return ['success' => true, 'payment' => $payment, 'invoice' => $invoice];
