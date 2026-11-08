@@ -478,6 +478,15 @@ The live server was checked read-only. Nothing on the server was changed.
 - **M-Pesa on live** is still `MPESA_ENVIRONMENT=sandbox`, and `MAIL_MAILER=log`.
 - **Database:** MariaDB `scha_main`, 54 tables, about 9.5 MB, 427 users.
 
+### Live settings fixed (2026-11-08 21:06 UTC)
+- `.env`: `APP_ENV=production`, `APP_DEBUG=false`. The backup is `.env.before-prod-settings-20261108-210606`, and both files are now mode 600.
+- Cron added for `schar5452`:
+  ```
+  * * * * * cd /home/scharge.sharet.africa/laravel && /usr/local/lsws/lsphp83/bin/php artisan schedule:run
+  ```
+  Live's `routes/console.php` has no tasks yet, so the jobs only start once the `claude/crm` code is deployed.
+- **Still open on live:** the 419 on `/pay` stays until the `claude/crm` code is deployed. The stray files in the app root are also still there.
+
 ### Local database refreshed from live
 - **Backup:** local `scha_main` was first backed up to `../scharge-db-backups/local-scha_main-before-live-sync-20261108-225503.sql.gz`. The local-only table `enquiries` is in that backup.
 - **Import:** the live dump (`../scharge-db-backups/live-scha_main-20261108-225503.sql.gz`) was imported as the new local `scha_main`.
