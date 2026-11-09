@@ -146,6 +146,7 @@
                         <td class="p-4 whitespace-nowrap">
                             <div class="flex items-center gap-2">
                                 <button @click="viewPayment(payment.id)" class="text-brand-500 hover:text-brand-600 text-sm font-medium">View</button>
+                                <a :href="'/payments/' + payment.id + '/receipt'" target="_blank" rel="noopener" data-no-spa class="ml-3 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-300">Receipt</a>
                                 <button @click="editPayment(payment.id)" class="text-blue-500 hover:text-blue-600 text-sm font-medium">Edit</button>
                                 <button @click="deletePayment(payment.id)" class="text-red-500 hover:text-red-600 text-sm font-medium">Delete</button>
                             </div>

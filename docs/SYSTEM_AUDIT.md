@@ -596,3 +596,28 @@ Schema: `database/schema/2026_11_09_bnb_hosts.sql` (hand-applied, run once), the
 - Saves in modals call `schargeRefresh()` (79 former `location.reload()` calls), which refreshes the content in the background.
 - A page whose scripts can't run twice in one window falls back to one normal load.
 - Verified in the browser: Properties, Payments, Water, Calendar and Team load with no reloads and every component started. Invoices falls back to a normal load once and then works fully.
+
+---
+
+## 18. Tables, PDFs and calendar meetings (2026-11-09)
+
+**Tables**
+- One TailAdmin look across the staff dashboard, as the dashboard's companies table: a shared `.data-table` style on 84 tables in 63 views.
+- Table toolbars wrap instead of overflowing.
+
+**PDFs**
+- Invoices and receipts use Brevemaster's sheet format, ported to `resources/views/pdf/sheet.blade.php` and rendered with dompdf (`barryvdh/laravel-dompdf`).
+- The letterhead is the landlord company.
+- "Bill To" is the tenant with their unit and property.
+- The notes give the pay-online link and the company's M-Pesa paybill, till or bank details.
+- Footer: "Powered by scharge".
+
+**Where to get them**
+- `/invoices/{id}/pdf`: **Download PDF** on the invoice page.
+- `/payments/{id}/receipt`: **Receipt** on each payment row.
+
+**Who can download:** the company's staff and the invoice's own tenant. Other tenants and other companies get 403.
+
+**Fixed along the way:** `owningCompanyId()` now also falls back to the unit's property, so invoices whose tenancy has no company still find the landlord. This affects Sharet routing too.
+
+**Requirement:** dompdf needs a writable `storage/fonts` folder (created, and tracked with a `.gitignore`).

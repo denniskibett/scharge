@@ -60,7 +60,8 @@ class Invoice extends Model
      */
     public function owningCompanyId(): ?int
     {
-        $id = $this->company_id ?? $this->tenancy?->company_id ?? $this->tenancy?->property?->company_id;
+        $id = $this->company_id ?? $this->tenancy?->company_id ?? $this->tenancy?->property?->company_id
+            ?? $this->tenancy?->unit?->property?->company_id ?? $this->tenancy?->unit?->company_id;
 
         return $id ? (int) $id : null;
     }

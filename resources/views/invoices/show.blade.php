@@ -196,6 +196,11 @@
             </svg>
             Print
           </button>
+          <a href="{{ route('invoices.pdf', $invoice->id) }}" target="_blank" rel="noopener" data-no-spa
+             class="flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+            Download PDF
+          </a>
         </div>
       </div>
 

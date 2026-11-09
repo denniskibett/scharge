@@ -447,6 +447,9 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // INVOICE ROUTES
     // ============================================
     Route::resource('invoices', InvoiceController::class)->middleware('access:invoices');
+    // PDFs (Brevemaster sheet format): the company's staff, or the tenant the invoice belongs to
+    Route::get('/invoices/{id}/pdf', [App\Http\Controllers\DocumentController::class, 'invoice'])->whereNumber('id')->name('invoices.pdf');
+    Route::get('/payments/{id}/receipt', [App\Http\Controllers\DocumentController::class, 'receipt'])->whereNumber('id')->name('payments.receipt');
     Route::post('/invoices/{invoice}/pay-link', App\Http\Controllers\InvoicePayLinkController::class)
         ->middleware('role:sysadmin|admin|accountant|property_manager')->name('invoices.pay-link');
 
