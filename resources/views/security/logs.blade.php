@@ -4,172 +4,124 @@
 
 @section('content')
 @include('partials.card.security')
-<div class="flex flex-col gap-5">
-    <!-- Header -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                    Security Logs
-                </h3>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    View all visitor check-ins and check-outs
-                </p>
-            </div>
-            <div class="flex gap-2">
-                <a href="{{ route('security.index') }}" 
-                   class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Dashboard
-                </a>
-                <a href="{{ route('security.quick-entry') }}" 
-                   class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    New Entry
-                </a>
-            </div>
-        </div>
-    </div>
+@php
+  $tz = 'Africa/Nairobi';
+  $tabUrl = fn ($key) => request()->fullUrlWithQuery(['status' => $key === 'all' ? null : $key, 'page' => null]);
+  $tabs = [
+    ['label' => 'All', 'url' => $tabUrl('all'), 'active' => $status === 'all', 'count' => $counts['all']],
+    ['label' => 'Inside', 'url' => $tabUrl('inside'), 'active' => $status === 'inside', 'count' => $counts['inside'], 'tone' => 'green'],
+    ['label' => 'Checked out', 'url' => $tabUrl('out'), 'active' => $status === 'out', 'count' => $counts['out']],
+    ['label' => 'Pending', 'url' => $tabUrl('pending'), 'active' => $status === 'pending', 'count' => $counts['pending'], 'tone' => 'amber'],
+  ];
+  $initials = fn ($n) => collect(preg_split('/\s+/', trim((string) $n)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') ?: '?';
+  $menuItem = 'text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300';
+@endphp
 
-    <!-- Filters -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <form method="GET" action="{{ route('security.logs.index') }}" class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
-                <input type="date" name="date" value="{{ request('date') }}"
-                       class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Property</label>
-                <select name="property_id" class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    <option value="">All Properties</option>
-                    @foreach($properties as $property)
-                        <option value="{{ $property->id }}" {{ request('property_id') == $property->id ? 'selected' : '' }}>
-                            {{ $property->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                <select name="status" class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    <option value="all">All Status</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Checked In</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Checked Out</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                </select>
-            </div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
-                    Filter
+<div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+  <form method="GET" action="{{ route('security.logs.index') }}" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+    @if ($status !== 'all')<input type="hidden" name="status" value="{{ $status }}">@endif
+    @include('partials.table.tabs', ['tabs' => $tabs])
+
+    <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+      @include('partials.table.select', ['name' => 'property_id', 'aria' => 'Property', 'selected' => request('property_id'),
+        'options' => ['' => 'All Properties'] + $properties->pluck('name', 'id')->all()])
+      <input type="date" name="date" value="{{ request('date') }}" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" aria-label="Date"
+        class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+      @if (request()->hasAny(['date', 'property_id', 'q']) && (request('date') || request('property_id') || request('q')))
+        <a href="{{ route('security.logs.index', $status !== 'all' ? ['status' => $status] : []) }}" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          Clear
+        </a>
+      @endif
+      @include('partials.table.search', ['value' => request('q'), 'placeholder' => 'Search name, phone or plate…'])
+    </div>
+  </form>
+
+  @if (isset($error))
+    <div class="mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-700">{{ $error }}</div>
+  @endif
+
+  <div class="w-full overflow-x-auto">
+    <table class="data-table w-full table-auto">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-800">
+          @foreach (['Visitor', 'Unit', 'Vehicle', 'Check in', 'Check out', 'Status'] as $h)
+            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">{{ $h }}</th>
+          @endforeach
+          <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+        @forelse ($logs as $log)
+          @php
+            $isIn = $log->status === 'approved' && ! $log->exit_time;
+            $isOut = $log->status === 'completed' || $log->exit_time;
+          @endphp
+          <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+            <td class="p-4 whitespace-nowrap">
+              <div class="flex items-center gap-3">
+                <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                  <span class="text-sm font-medium text-purple-600">{{ $initials($log->visitor_name_snapshot ?? $log->visitor?->name) }}</span>
+                </div>
+                <div>
+                  <span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $log->visitor_name_snapshot ?? $log->visitor?->name ?? 'Unknown' }}</span>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ $log->visitor_phone_snapshot ?? '-' }}</p>
+                </div>
+              </div>
+            </td>
+            <td class="p-4 whitespace-nowrap">
+              @if ($log->unit)
+                <a href="{{ url('/units/'.$log->unit_id) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">{{ $log->unit->unit_number }}</a>
+              @else
+                <span class="text-sm text-gray-500">-</span>
+              @endif
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ $log->property->name ?? '' }}</p>
+            </td>
+            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+              @if ($log->vehicle_registration_snapshot)
+                <span class="font-medium text-gray-800 dark:text-white/90">{{ $log->vehicle_registration_snapshot }}</span>
+                @if ($log->vehicle_type || $log->vehicle_model || $log->vehicle_color)<p class="text-xs">{{ trim($log->vehicle_color.' '.$log->vehicle_type.' '.$log->vehicle_model) }}</p>@endif
+              @else
+                -
+              @endif
+            </td>
+            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $log->access_time?->timezone($tz)->format('M d, Y H:i') ?? '-' }}</td>
+            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $log->exit_time?->timezone($tz)->format('M d, Y H:i') ?? '-' }}</td>
+            <td class="p-4 whitespace-nowrap">
+              <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $isIn ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ($log->status === 'pending' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300') }}">
+                {{ $isIn ? 'Inside' : ($isOut ? 'Checked out' : ucfirst($log->status)) }}
+              </span>
+            </td>
+            <td class="p-4 whitespace-nowrap text-right">
+              <div x-data="{ open: false, x: 0, y: 0 }" class="relative" @click.outside="open = false" @scroll.window="open = false">
+                <button type="button" @click="const r = $el.getBoundingClientRect(); x = r.right; y = r.bottom + 4; open = !open" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" aria-label="Actions">
+                  <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill=""/></svg>
                 </button>
-                <a href="{{ route('security.logs.index') }}" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    Clear
-                </a>
-            </div>
-        </form>
-    </div>
-
-    <!-- Logs Table -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        @if(isset($error))
-            <div class="mb-4 rounded-lg bg-red-50 p-4 text-red-700">
-                {{ $error }}
-            </div>
-        @endif
-
-        <div class="overflow-x-auto">
-            <table class="data-table w-full">
-                <thead>
-                    <tr class="border-b border-gray-200 dark:border-gray-800">
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitor</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-                    @forelse($logs as $log)
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            <td class="px-3 py-3 text-sm text-gray-800">
-                                <div class="font-medium">{{ $log->visitor_name_snapshot ?? 'N/A' }}</div>
-                                <div class="text-xs text-gray-500">{{ $log->purpose ?? 'N/A' }}</div>
-                            </td>
-                            <td class="px-3 py-3 text-sm text-gray-600">{{ $log->visitor_phone_snapshot ?? 'N/A' }}</td>
-                            <td class="px-3 py-3 text-sm text-gray-600">
-                                <div>{{ $log->unit->unit_number ?? 'N/A' }}</div>
-                                <div class="text-xs text-gray-500">{{ $log->property->name ?? 'N/A' }}</div>
-                            </td>
-                            <td class="px-3 py-3 text-sm text-gray-600">
-                                @if($log->vehicle_type || $log->vehicle_model)
-                                    <div>{{ $log->vehicle_type ?? '' }} {{ $log->vehicle_model ?? '' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $log->vehicle_color ?? '' }} {{ $log->vehicle_registration_snapshot ?? '' }}</div>
-                                @else
-                                    <span class="text-gray-400">N/A</span>
-                                @endif
-                            </td>
-                            <td class="px-3 py-3 text-sm text-gray-600">
-                                {{ $log->access_time ? $log->access_time->format('M d, Y H:i') : 'N/A' }}
-                            </td>
-                            <td class="px-3 py-3 text-sm text-gray-600">
-                                {{ $log->exit_time ? $log->exit_time->format('M d, Y H:i') : '—' }}
-                            </td>
-                            <td class="px-3 py-3 text-sm">
-                                @if($log->status === 'approved' && !$log->exit_time)
-                                    <span class="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                                        Checked In
-                                    </span>
-                                @elseif($log->status === 'completed' || $log->exit_time)
-                                    <span class="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-400">
-                                        Checked Out
-                                    </span>
-                                @elseif($log->status === 'pending')
-                                    <span class="inline-flex rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                        Pending
-                                    </span>
-                                @else
-                                    <span class="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
-                                        {{ ucfirst($log->status) }}
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-3 py-3 text-sm">
-                                @if($log->status === 'approved' && !$log->exit_time)
-                                    <button onclick="checkOut({{ $log->id }})" 
-                                            class="inline-flex items-center rounded-lg bg-red-500 px-3 py-1 text-xs font-medium text-white hover:bg-red-600">
-                                        Check Out
-                                    </button>
-                                @endif
-                                <button onclick="viewLog({{ $log->id }})" 
-                                        class="inline-flex items-center rounded-lg bg-blue-500 px-3 py-1 text-xs font-medium text-white hover:bg-blue-600">
-                                    View
-                                </button>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="8" class="px-3 py-8 text-center text-gray-500">
-                                No security logs found
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Pagination -->
-        <div class="mt-4">
-            {{ $logs->links() }}
-        </div>
-    </div>
+                <div x-show="open" x-cloak :style="`position:fixed;top:${y}px;left:${x - 160}px`" class="shadow-theme-lg dark:bg-gray-dark z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800">
+                  @if ($log->gate_pass_id)
+                    <a href="{{ route('gate.passes.show', $log->gate_pass_id) }}" class="{{ $menuItem }}">Open pass</a>
+                  @endif
+                  <button type="button" onclick="viewLog({{ $log->id }})" @click="open = false" class="{{ $menuItem }}">View details</button>
+                  @if ($isIn)
+                    <button type="button" onclick="checkOut({{ $log->id }})" @click="open = false" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">Check out</button>
+                  @endif
+                </div>
+              </div>
+            </td>
+          </tr>
+        @empty
+          <tr>
+            <td colspan="7" class="p-4 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No gate entries found</h3>
+              @if (request('date') || request('property_id') || request('q'))<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your filters or search.</p>@endif
+            </td>
+          </tr>
+        @endforelse
+      </tbody>
+    </table>
+  </div>
+  @include('partials.table.pager', ['paginator' => $logs])
 </div>
 
 <!-- View Log Modal -->

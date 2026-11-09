@@ -78,38 +78,40 @@ class SecurityController extends Controller
      */
     public function viewLogs(Request $request)
     {
+        // Date, property and search narrow everything; the status tabs then split it (with counts).
+        $base = fn () => SecurityLog::query()
+            ->when($request->date, fn ($q, $d) => $q->whereDate('access_time', $d))
+            ->when($request->property_id, fn ($q, $id) => $q->where('property_id', $id))
+            ->when(trim((string) $request->q), function ($q, $s) {
+                $plate = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $s));
+                $q->where(fn ($w) => $w->where('visitor_name_snapshot', 'like', "%$s%")->orWhere('visitor_phone_snapshot', 'like', "%$s%")
+                    ->when($plate !== '', fn ($x) => $x->orWhereRaw("REPLACE(UPPER(vehicle_registration_snapshot), ' ', '') LIKE ?", ["%$plate%"])));
+            });
+        $inside = fn ($q) => $q->where('status', 'approved')->whereNull('exit_time');
+        $out = fn ($q) => $q->where(fn ($w) => $w->where('status', 'completed')->orWhereNotNull('exit_time'));
+        $status = in_array($request->status, ['inside', 'out', 'pending'], true) ? $request->status : 'all';
+
         try {
-            $query = SecurityLog::with(['visitor', 'unit', 'tenant', 'verifiedByUser', 'property'])
-                ->latest('access_time');
-            
-            // Filter by date
-            if ($request->date) {
-                $query->whereDate('access_time', $request->date);
-            }
-            
-            // Filter by property
-            if ($request->property_id) {
-                $query->where('property_id', $request->property_id);
-            }
-            
-            // Filter by status
-            if ($request->status && $request->status !== 'all') {
-                $query->where('status', $request->status);
-            }
-            
-            $logs = $query->paginate(20);
-            $properties = Property::all();
-            
-            return view('security.logs', compact('logs', 'properties'));
+            $counts = [
+                'all' => $base()->count(),
+                'inside' => $inside($base())->count(),
+                'out' => $out($base())->count(),
+                'pending' => $base()->where('status', 'pending')->count(),
+            ];
+            $logs = $base()->with(['visitor', 'unit', 'tenant', 'verifiedByUser', 'property'])
+                ->when($status === 'inside', $inside)->when($status === 'out', $out)
+                ->when($status === 'pending', fn ($q) => $q->where('status', 'pending'))
+                ->latest('access_time')->paginate((int) $request->input('per_page', 25) ?: 25)->withQueryString();
+            $error = null;
         } catch (\Exception $e) {
             Log::error('View Logs Error: ' . $e->getMessage());
-            
-            return view('security.logs', [
-                'logs' => collect(),
-                'properties' => Property::all(),
-                'error' => 'Error loading logs: ' . $e->getMessage()
-            ]);
+            $logs = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 25);
+            $counts = ['all' => 0, 'inside' => 0, 'out' => 0, 'pending' => 0];
+            $error = 'Error loading logs: ' . $e->getMessage();
         }
+        $properties = Property::orderBy('name')->get(['id', 'name']);
+
+        return view('security.logs', compact('logs', 'properties', 'counts', 'status') + ($error ? ['error' => $error] : []));
     }
     
     // ============================================

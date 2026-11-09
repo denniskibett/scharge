@@ -27,50 +27,53 @@
     @endforeach
   </div>
 
-  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-    <form method="GET" class="flex flex-col gap-3 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-800">
+  @php
+    $tabUrl = fn ($key) => request()->fullUrlWithQuery(['tab' => $key, 'page' => null]);
+    $tabs = [
+      ['label' => 'Inside', 'url' => $tabUrl('inside'), 'active' => $tab === 'inside', 'count' => $stats['staying'], 'tone' => 'green'],
+      ['label' => 'Expected', 'url' => $tabUrl('expected'), 'active' => $tab === 'expected', 'count' => $stats['expected'], 'tone' => 'blue'],
+      ['label' => 'History', 'url' => $tabUrl('history'), 'active' => $tab === 'history'],
+      ['label' => 'All', 'url' => $tabUrl('all'), 'active' => $tab === 'all'],
+    ];
+    $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
+  @endphp
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <form method="GET" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
       <input type="hidden" name="tab" value="{{ $tab }}">
-      <div class="inline-flex w-fit items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 dark:bg-gray-800">
-        @foreach (['inside' => 'Inside', 'expected' => 'Expected', 'history' => 'History', 'all' => 'All'] as $key => $label)
-          <a href="{{ request()->fullUrlWithQuery(['tab' => $key, 'page' => null]) }}" class="whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium {{ $tab === $key ? 'bg-white text-gray-900 shadow-theme-xs dark:bg-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white' }}">{{ $label }}</a>
-        @endforeach
-      </div>
-      <div class="flex flex-col gap-2 sm:flex-row">
+      @include('partials.table.tabs', ['tabs' => $tabs])
+      <div class="flex flex-wrap items-center gap-3">
         @if ($properties->count() > 1)
-          <select name="property_id" onchange="this.form.submit()" class="h-11 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
-            <option value="">All properties</option>
-            @foreach ($properties as $p)<option value="{{ $p->id }}" @selected(request('property_id') == $p->id)>{{ $p->name }}</option>@endforeach
-          </select>
+          @include('partials.table.select', ['name' => 'property_id', 'aria' => 'Property', 'selected' => request('property_id'), 'options' => ['' => 'All Properties'] + $properties->pluck('name', 'id')->all()])
         @endif
-        <input name="q" value="{{ request('q') }}" placeholder="Name, phone, code or plate" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-none sm:w-64 dark:border-gray-700 dark:text-white/90">
+        @include('partials.table.search', ['value' => request('q'), 'placeholder' => 'Name, phone, code or plate…'])
       </div>
     </form>
 
     @if ($passes->isEmpty())
-      <div class="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+      <div class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
         {{ ['inside' => 'Nobody is checked in right now.', 'expected' => 'No guests expected.', 'history' => 'No past visits yet.'][$tab] ?? 'No passes yet.' }}
         @if ($canManage) <a href="{{ route('gate.passes.create') }}" class="font-medium text-brand-500 hover:text-brand-600">Send a code to a guest</a>@endif
       </div>
     @else
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
+      <div class="w-full overflow-x-auto">
+        <table class="data-table w-full table-auto">
           <thead>
-            <tr class="border-b border-gray-200 text-left text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
-              <th class="px-5 py-3">Guest</th><th class="px-5 py-3">Unit</th><th class="px-5 py-3">When</th><th class="px-5 py-3">Car</th><th class="px-5 py-3">Status</th><th class="px-5 py-3"></th>
+            <tr class="border-b border-gray-200 dark:border-gray-800">
+              <th class="{{ $th }}">Guest</th><th class="{{ $th }}">Unit</th><th class="{{ $th }}">When</th><th class="{{ $th }}">Car</th><th class="{{ $th }}">Status</th><th class="{{ $th }} text-right">Actions</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
             @foreach ($passes as $p)
-              <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02]">
-                <td class="px-5 py-3">
-                  <div class="font-medium text-gray-800 dark:text-white/90">{{ $p->guest_name }}@if ($p->guests_count > 1)<span class="text-gray-400"> +{{ $p->guests_count - 1 }}</span>@endif</div>
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                <td class="p-4 whitespace-nowrap">
+                  <div class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $p->guest_name }}@if ($p->guests_count > 1)<span class="text-gray-400"> +{{ $p->guests_count - 1 }}</span>@endif</div>
                   <div class="text-xs text-gray-500 dark:text-gray-400">{{ $p->guest_phone }} · {{ $p->kindLabel() }}@if (($p->visitor->visit_count ?? 0) > 1) · <span class="text-brand-500">returning</span>@endif</div>
                 </td>
-                <td class="px-5 py-3 text-gray-700 dark:text-gray-300">
+                <td class="p-4 text-sm text-gray-700 dark:text-gray-300">
                   <div class="whitespace-nowrap">{{ $p->unit?->unit_number }}</div>
                   <div class="text-xs text-gray-500 dark:text-gray-400">{{ $p->property?->name }}</div>
                 </td>
-                <td class="whitespace-nowrap px-5 py-3 text-gray-700 dark:text-gray-300">
+                <td class="whitespace-nowrap p-4 text-sm text-gray-500 dark:text-gray-400">
                   @if ($p->checked_in_at)
                     <div>In {{ $p->checked_in_at->timezone('Africa/Nairobi')->format('j M H:i') }}</div>
                     @if ($p->checked_out_at)<div class="text-xs text-gray-500 dark:text-gray-400">Out {{ $p->checked_out_at->timezone('Africa/Nairobi')->format('j M H:i') }}</div>
@@ -79,15 +82,15 @@
                     <div>{{ $p->windowLabel() }}</div>
                   @endif
                 </td>
-                <td class="whitespace-nowrap px-5 py-3 font-mono text-gray-700 dark:text-gray-300">{{ $p->vehicle_plate ?? '–' }}</td>
-                <td class="px-5 py-3">@include('gate._pill', ['pass' => $p])</td>
-                <td class="px-5 py-3 text-right"><a href="{{ route('gate.passes.show', $p) }}" class="font-medium text-brand-500 hover:text-brand-600">Open</a></td>
+                <td class="whitespace-nowrap p-4 text-sm font-medium text-gray-800 dark:text-white/90">{{ $p->vehicle_plate ?? '–' }}</td>
+                <td class="p-4">@include('gate._pill', ['pass' => $p])</td>
+                <td class="p-4 text-right"><a href="{{ route('gate.passes.show', $p) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">Open</a></td>
               </tr>
             @endforeach
           </tbody>
         </table>
       </div>
-      @if ($passes->hasPages())<div class="border-t border-gray-200 px-5 py-3 dark:border-gray-800">{{ $passes->links() }}</div>@endif
+      @include('partials.table.pager', ['paginator' => $passes])
     @endif
   </div>
 </div>
