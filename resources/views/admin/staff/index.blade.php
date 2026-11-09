@@ -49,53 +49,13 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Staff</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white" id="statsTotal">{{ $totalStaff }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <i class="fas fa-users text-blue-600 dark:text-blue-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active</p>
-                    <p class="text-2xl font-bold text-green-600" id="statsActive">{{ $activeCount }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <i class="fas fa-check-circle text-green-600 dark:text-green-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</p>
-                    <p class="text-2xl font-bold text-yellow-600" id="statsPending">{{ $pendingCount }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                    <i class="fas fa-clock text-yellow-600 dark:text-yellow-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Inactive</p>
-                    <p class="text-2xl font-bold text-red-600" id="statsInactive">{{ $inactiveCount }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
-                    <i class="fas fa-user-slash text-red-600 dark:text-red-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{-- Stat cards in the shared look (ids kept: the page script updates them) --}}
+    @include('partials.card.row', ['cards' => [
+        ['label' => 'Total staff', 'value' => $totalStaff, 'icon' => 'user-group', 'tone' => 'brand', 'hint' => 'Company people', 'id' => 'statsTotal'],
+        ['label' => 'Active', 'value' => $activeCount, 'icon' => 'check-circle', 'tone' => 'green', 'hint' => 'Can sign in', 'id' => 'statsActive'],
+        ['label' => 'Pending', 'value' => $pendingCount, 'icon' => 'clock', 'tone' => 'amber', 'hint' => 'Invited, not active', 'id' => 'statsPending'],
+        ['label' => 'Inactive', 'value' => $inactiveCount, 'icon' => 'no-symbol', 'tone' => 'red', 'hint' => 'No access', 'id' => 'statsInactive'],
+    ]])
 
     <!-- Active Filter Bar -->
     @if($currentRole || $currentCompany || $currentStatus !== '' || $currentSearch || $currentDateFrom || $currentDateTo)

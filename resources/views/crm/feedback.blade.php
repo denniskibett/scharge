@@ -10,11 +10,13 @@
 <div>
     @include('crm.partials.nav', ['title' => 'Customer feedback', 'subtitle' => 'Ask after demos, onboarding and support. Low scores automatically open a recovery call for the account owner.'])
 
-    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
-        @foreach ([['NPS', $summary['nps'] ?? '–'], ['Happy (9–10)', $summary['promoters']], ['Neutral (7–8)', $summary['passives']], ['Unhappy (0–6)', $summary['detractors']], ['Waiting', $summary['pending']]] as [$name, $value])
-            <div class="{{ $card }} p-4"><span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ $name }}</span><span class="mt-1 block text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $value }}</span></div>
-        @endforeach
-    </div>
+    @include('partials.card.pills', ['pills' => [
+        ['label' => 'NPS', 'value' => $summary['nps'] ?? '–'],
+        ['label' => 'Happy (9–10)', 'value' => $summary['promoters'], 'tone' => 'green'],
+        ['label' => 'Neutral (7–8)', 'value' => $summary['passives']],
+        ['label' => 'Unhappy (0–6)', 'value' => $summary['detractors'], 'tone' => 'red'],
+        ['label' => 'Waiting', 'value' => $summary['pending'], 'tone' => 'amber'],
+    ]])
 
     @php
         $bandTabs = [];

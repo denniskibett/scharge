@@ -6,27 +6,29 @@
 @include('partials.card.sms-settings')
 <div>
     <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-white"><x-icon name="cog-6-tooth" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SMS Settings</h1>
-        <p class="text-gray-500 mt-1">Configure and test your KenyaSMS integration.</p>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">SMS settings</h1>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure and test your KenyaSMS integration.</p>
     </div>
 
     @if(session('info'))
-        <div class="mb-6 rounded-xl bg-blue-50 border-l-4 border-blue-500 p-4 text-blue-800 shadow-sm">
+        <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
             {{ session('info') }}
         </div>
     @endif
 
-    <!-- Tabs -->
-    <div class="flex border-b border-gray-200 mb-6">
-        <button onclick="showTab('general')" id="tab-general-btn" class="py-2 px-4 text-sm font-medium border-b-2 border-brand-500 text-brand-600 transition">
-            <x-icon name="signal" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> General
-        </button>
-        <button onclick="showTab('placeholders')" id="tab-placeholders-btn" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            <x-icon name="language" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Placeholders Guide
-        </button>
-        <button onclick="showTab('help')" id="tab-help-btn" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            <x-icon name="lifebuoy" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Help & Troubleshooting
-        </button>
+    {{-- Tabs: underline style, like the Tenancies table header --}}
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white px-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="-mb-px flex space-x-6 overflow-x-auto">
+            <button type="button" onclick="showTab('general')" id="tab-general-btn" class="inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors border-brand-500 text-brand-500 dark:border-brand-400 dark:text-brand-400">
+                <x-icon name="signal" class="h-4 w-4 shrink-0" /> General
+            </button>
+            <button type="button" onclick="showTab('placeholders')" id="tab-placeholders-btn" class="inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <x-icon name="language" class="h-4 w-4 shrink-0" /> Placeholders guide
+            </button>
+            <button type="button" onclick="showTab('help')" id="tab-help-btn" class="inline-flex items-center gap-2 whitespace-nowrap border-b-2 py-3 text-sm font-medium transition-colors border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">
+                <x-icon name="lifebuoy" class="h-4 w-4 shrink-0" /> Help &amp; troubleshooting
+            </button>
+        </div>
     </div>
 
     <!-- Tab 1: General Settings -->
@@ -174,40 +176,20 @@
 </div>
 
 <script>
+    // Underline tabs (Tenancies look): the active tab gets the brand border and text.
+    var SMS_TAB_ON = 'border-brand-500 text-brand-500 dark:border-brand-400 dark:text-brand-400'.split(' ');
+    var SMS_TAB_OFF = 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'.split(' ');
     function showTab(tabName) {
-        var general = document.getElementById('tab-general');
-        var placeholders = document.getElementById('tab-placeholders');
-        var help = document.getElementById('tab-help');
-        if (general) general.classList.add('hidden');
-        if (placeholders) placeholders.classList.add('hidden');
-        if (help) help.classList.add('hidden');
-        
-        var btnGeneral = document.getElementById('tab-general-btn');
-        var btnPlaceholders = document.getElementById('tab-placeholders-btn');
-        var btnHelp = document.getElementById('tab-help-btn');
-        if (btnGeneral) {
-            btnGeneral.classList.remove('border-brand-500', 'text-brand-600');
-            btnGeneral.classList.add('border-transparent');
-        }
-        if (btnPlaceholders) {
-            btnPlaceholders.classList.remove('border-brand-500', 'text-brand-600');
-            btnPlaceholders.classList.add('border-transparent');
-        }
-        if (btnHelp) {
-            btnHelp.classList.remove('border-brand-500', 'text-brand-600');
-            btnHelp.classList.add('border-transparent');
-        }
-        
-        if (tabName === 'general') {
-            if (general) general.classList.remove('hidden');
-            if (btnGeneral) btnGeneral.classList.add('border-brand-500', 'text-brand-600');
-        } else if (tabName === 'placeholders') {
-            if (placeholders) placeholders.classList.remove('hidden');
-            if (btnPlaceholders) btnPlaceholders.classList.add('border-brand-500', 'text-brand-600');
-        } else if (tabName === 'help') {
-            if (help) help.classList.remove('hidden');
-            if (btnHelp) btnHelp.classList.add('border-brand-500', 'text-brand-600');
-        }
+        ['general', 'placeholders', 'help'].forEach(function (name) {
+            var panel = document.getElementById('tab-' + name);
+            var btn = document.getElementById('tab-' + name + '-btn');
+            var on = name === tabName;
+            if (panel) panel.classList.toggle('hidden', !on);
+            if (btn) {
+                btn.classList.remove.apply(btn.classList, on ? SMS_TAB_OFF : SMS_TAB_ON);
+                btn.classList.add.apply(btn.classList, on ? SMS_TAB_ON : SMS_TAB_OFF);
+            }
+        });
     }
 
     function sendTestSms() {

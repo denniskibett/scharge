@@ -11,16 +11,6 @@
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Choose what each role can open, change and delete. Changes apply on the person's next page. Invite people and give them a role on <a href="{{ route('team.index') }}" class="underline">Team &amp; access</a>.</p>
   </div>
 
-  <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-    <template x-for="s in [['Roles', stats.roles, stats.roles_hint], ['Custom roles', stats.custom, stats.custom_hint], ['Permissions', stats.permissions, stats.permissions_hint], ['People with a role', stats.people, stats.people_hint]]">
-      <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-        <p class="text-sm text-gray-500 dark:text-gray-400" x-text="s[0]"></p>
-        <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white" x-text="s[1] ?? '—'"></p>
-        <p class="mt-1 text-xs text-gray-500" x-text="s[2]"></p>
-      </div>
-    </template>
-  </div>
-
   <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
       <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Roles</h3>

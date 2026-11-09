@@ -38,6 +38,14 @@
     <style>    
         /* Date pickers must open above right-side slide-over forms (z-999999). */
         .flatpickr-calendar.open { z-index: 9999999 !important; }
+        /* Content-only loading for background page changes (spa.js toggles html.spa-loading). */
+        #spa-progress { position: sticky; top: 0; height: 3px; margin-bottom: -3px; z-index: 99998; pointer-events: none; overflow: hidden; }
+        #spa-progress i { display: block; height: 100%; width: 0; opacity: 0; background: #465FFF; box-shadow: 0 0 8px rgba(70,95,255,.45); }
+        html.spa-loading #spa-progress i { opacity: 1; width: 80%; transition: width 8s cubic-bezier(.08,.7,.2,1), opacity .15s; }
+        html.spa-done #spa-progress i { opacity: 0; width: 100%; transition: width .2s ease-out, opacity .25s .2s; }
+        #app-content { transition: opacity .15s ease; }
+        html.spa-loading #app-content { opacity: .55; pointer-events: none; }
+        @media (prefers-reduced-motion: reduce) { #spa-progress i, #app-content { transition: none !important; } }
         :root {
             --primary-color: {{ SystemHelper::primaryColor() }};
             --secondary-color: {{ SystemHelper::secondaryColor() }};
@@ -326,12 +334,13 @@
       x-init="$watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
       :class="{'dark bg-gray-900': darkMode}">
 
-@include('partials.preloader')
-
+{{-- No full-screen preloader (like Breve): sidebar and header show at once. Page changes load in the
+     background (resources/js/spa.js) with a thin bar over the content column and the content dimmed. --}}
 <div class="flex h-screen overflow-hidden">
     @include('partials.sidebar')
 
     <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+        <div id="spa-progress" aria-hidden="true"><i></i></div>
 
         {{-- Header --}}
         @include('partials.header')

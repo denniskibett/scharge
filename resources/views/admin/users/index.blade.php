@@ -64,102 +64,19 @@
         </div>
     </div>
 
-    <!-- ============================================================ -->
-    <!-- STATS CARDS – Unique Layout with Role Breakdown -->
-    <!-- ============================================================ -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-20 h-20 bg-indigo-100 dark:bg-indigo-900/20 rounded-full -mr-8 -mt-8 opacity-50"></div>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Users</p>
-                    <p class="text-2xl font-bold text-gray-800 dark:text-white" id="statsTotal">{{ $totalUsers }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
-                    <i class="fas fa-users text-indigo-600 dark:text-indigo-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-20 h-20 bg-emerald-100 dark:bg-emerald-900/20 rounded-full -mr-8 -mt-8 opacity-50"></div>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active</p>
-                    <p class="text-2xl font-bold text-emerald-600" id="statsActive">{{ $activeCount }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                    <i class="fas fa-check-circle text-emerald-600 dark:text-emerald-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-20 h-20 bg-amber-100 dark:bg-amber-900/20 rounded-full -mr-8 -mt-8 opacity-50"></div>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Pending</p>
-                    <p class="text-2xl font-bold text-amber-600" id="statsPending">{{ $pendingCount }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                    <i class="fas fa-clock text-amber-600 dark:text-amber-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-
-        <div class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm hover:shadow-md transition relative overflow-hidden">
-            <div class="absolute top-0 right-0 w-20 h-20 bg-rose-100 dark:bg-rose-900/20 rounded-full -mr-8 -mt-8 opacity-50"></div>
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Inactive</p>
-                    <p class="text-2xl font-bold text-rose-600" id="statsInactive">{{ $inactiveCount }}</p>
-                </div>
-                <div class="h-12 w-12 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
-                    <i class="fas fa-user-slash text-rose-600 dark:text-rose-400 text-xl"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Secondary Stats Row – Unique to Users Module -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3 flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-user-tie text-indigo-600 dark:text-indigo-400 text-sm"></i>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Staff</p>
-                <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ $staffCount }}</p>
-            </div>
-        </div>
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3 flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-user text-emerald-600 dark:text-emerald-400 text-sm"></i>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Tenants</p>
-                <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ $tenantCount }}</p>
-            </div>
-        </div>
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3 flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-check-double text-blue-600 dark:text-blue-400 text-sm"></i>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Verified</p>
-                <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ $verifiedCount }}</p>
-            </div>
-        </div>
-        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 p-3 flex items-center gap-3">
-            <div class="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
-                <i class="fas fa-building text-purple-600 dark:text-purple-400 text-sm"></i>
-            </div>
-            <div>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Companies</p>
-                <p class="text-lg font-semibold text-gray-800 dark:text-white">{{ $companies->count() }}</p>
-            </div>
-        </div>
-    </div>
+    {{-- Stat cards in the shared look (ids kept: the page script updates them), secondary figures as pills --}}
+    @include('partials.card.row', ['cards' => [
+        ['label' => 'Total users', 'value' => $totalUsers, 'icon' => 'users', 'tone' => 'brand', 'hint' => 'All accounts', 'id' => 'statsTotal'],
+        ['label' => 'Active', 'value' => $activeCount, 'icon' => 'check-circle', 'tone' => 'green', 'hint' => 'Can sign in', 'id' => 'statsActive'],
+        ['label' => 'Pending', 'value' => $pendingCount, 'icon' => 'clock', 'tone' => 'amber', 'hint' => 'Awaiting verification', 'id' => 'statsPending'],
+        ['label' => 'Inactive', 'value' => $inactiveCount, 'icon' => 'no-symbol', 'tone' => 'red', 'hint' => 'Switched off', 'id' => 'statsInactive'],
+    ]])
+    @include('partials.card.pills', ['pills' => [
+        ['label' => 'Staff', 'value' => $staffCount],
+        ['label' => 'Tenants', 'value' => $tenantCount],
+        ['label' => 'Verified', 'value' => $verifiedCount, 'tone' => 'green'],
+        ['label' => 'Companies', 'value' => $companies->count()],
+    ]])
 
     <!-- ============================================================ -->
     <!-- ACTIVE FILTER BAR -->

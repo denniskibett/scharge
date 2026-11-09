@@ -46,22 +46,43 @@ function prefetch(a) {
   load(url.href);
 }
 
-/** Runs the swapped page's scripts. Returns an error message if one could not run (e.g. it
- *  re-declares a top-level const/let from an earlier visit); the caller then loads the page normally. */
+/** Runs the swapped page's scripts. Returns an error message if one could not run; the caller then loads
+ *  the page normally. A script that only fails because it re-declares a top-level const/let/class from an
+ *  earlier visit ("already been declared") is run once more with those declarations as var, which may be
+ *  re-declared, so the page still changes in the background instead of reloading the whole screen. */
 function runScripts(container) {
   let failed = null;
   const onloadBefore = window.onload;
-  const onError = (e) => { if (e.error instanceof SyntaxError || /already been declared/.test(e.message || "")) failed = e.message; };
+  let lastError = null;
+  const onError = (e) => { lastError = e.message || String(e.error || ""); };
   window.addEventListener("error", onError);
-  container.querySelectorAll("script").forEach((old) => {
-    if (old.type && !/javascript|module/.test(old.type)) return; // JSON data blocks stay as they are
+  const prepare = (text) => text
+    .replace(/document\.addEventListener\(\s*(['"])DOMContentLoaded\1\s*,/g, "window.__spaReady(")
+    .replace(/window\.addEventListener\(\s*(['"])load\1\s*,/g, "window.__spaReady(");
+  const asVar = (text) => text
+    .replace(/^([ \t]{0,8})(?:const|let)\s+(?=[A-Za-z_$])/gm, "$1var ")
+    .replace(/^([ \t]{0,8})class\s+([A-Za-z_$][\w$]*)/gm, "$1var $2 = class $2");
+  const make = (old, text) => {
     const s = document.createElement("script");
     [...old.attributes].forEach((attr) => s.setAttribute(attr.name, attr.value));
-    // The page is already loaded, so "wait for DOMContentLoaded / load" means "run now".
-    s.textContent = old.textContent
-      .replace(/document\.addEventListener\(\s*(['"])DOMContentLoaded\1\s*,/g, "window.__spaReady(")
-      .replace(/window\.addEventListener\(\s*(['"])load\1\s*,/g, "window.__spaReady(");
-    try { old.replaceWith(s); } catch (e) { failed = e.message; }
+    s.textContent = text;
+    return s;
+  };
+  container.querySelectorAll("script").forEach((old) => {
+    if (old.type && !/javascript|module/.test(old.type)) return; // JSON data blocks stay as they are
+    if (old.src) { try { old.replaceWith(make(old, "")); } catch (e) { failed = e.message; } return; }
+    const text = prepare(old.textContent);
+    lastError = null;
+    let s = make(old, text);
+    try { old.replaceWith(s); } catch (e) { lastError = e.message; }
+    if (lastError && /already been declared/.test(lastError)) {
+      lastError = null;
+      const retry = make(old, asVar(text));
+      try { s.replaceWith(retry); } catch (e) { lastError = e.message; }
+      if (lastError && /already been declared|SyntaxError|Unexpected/.test(lastError)) failed = lastError;
+    } else if (lastError && /SyntaxError|Unexpected token/.test(lastError)) {
+      failed = lastError;
+    }
   });
   window.removeEventListener("error", onError);
   if (typeof window.onload === "function" && window.onload !== onloadBefore) setTimeout(() => window.onload(new Event("load")), 0);
@@ -72,6 +93,23 @@ function runScripts(container) {
 window.__spaReady = (fn, ...rest) => { if (typeof fn === "function") setTimeout(() => fn(new Event("DOMContentLoaded")), 0); };
 
 let current = 0;
+
+/** Content-only loading state: a thin bar over the content column and the content dimmed (layout CSS).
+ *  Shown only if the page takes longer than ~120 ms, so prefetched pages swap without a flicker. */
+const root = document.documentElement;
+let showTimer;
+function loadingStart() {
+  clearTimeout(showTimer);
+  root.classList.remove("spa-done");
+  showTimer = setTimeout(() => root.classList.add("spa-loading"), 120);
+}
+function loadingEnd() {
+  clearTimeout(showTimer);
+  if (!root.classList.contains("spa-loading")) return;
+  root.classList.remove("spa-loading");
+  root.classList.add("spa-done");
+  setTimeout(() => root.classList.remove("spa-done"), 450);
+}
 
 function fullLoad(url, reason) {
   console.info("[spa] full load:", reason, url);
@@ -84,6 +122,7 @@ async function visit(url, { push = true, keepScroll = false, fresh = false } = {
   if (!target) return (location.href = url);
   const ticket = ++current;
   if (fresh) cache.delete(url);
+  if (!keepScroll) loadingStart(); // background refreshes after a save stay quiet
   const res = await load(url);
   if (ticket !== current) return; // a newer click won
   cache.delete(url); // a page is shown once from the prefetch, then fetched fresh next time
@@ -115,6 +154,7 @@ async function visit(url, { push = true, keepScroll = false, fresh = false } = {
   document.title = doc.title || document.title;
   if (push) history.pushState({ spa: true }, "", res.url || url);
   if (scrollBox) scrollBox.scrollTop = y;
+  loadingEnd();
   window.dispatchEvent(new CustomEvent("spa:navigated", { detail: { url: res.url || url } }));
   document.dispatchEvent(new Event("spa:load"));
 }

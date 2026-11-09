@@ -19,31 +19,18 @@
 <div x-data="{ adding: {{ $errors->any() && old('_form') === 'add' ? 'true' : 'false' }} }">
     @include('crm.partials.nav', ['title' => 'Sales CRM', 'subtitle' => 'Every prospect, who owns it, and the next step. Nothing open should be without a follow-up.'])
 
-    {{-- KPIs --}}
-    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
-        @foreach ($kpis as [$name, $value, $link, $colour])
-            <a href="{{ $link }}" class="{{ $card }} block p-4 transition hover:border-gray-300 dark:hover:border-gray-700">
-                <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ $name }}</span>
-                <span class="mt-1 block text-2xl font-semibold {{ $colour }}">{{ $value }}</span>
-            </a>
-        @endforeach
-    </div>
+    {{-- Secondary figures as pills (the stat-card row above already shows the headline numbers) --}}
+    @include('partials.card.pills', ['pills' => collect($kpis)->map(fn ($k) => [
+        'label' => $k[0], 'value' => $k[1], 'url' => $k[2],
+        'tone' => str_contains($k[3], 'red') ? 'red' : (str_contains($k[3], 'amber') ? 'amber' : 'gray'),
+    ])->all()])
 
-    {{-- Pipeline by stage --}}
-    <div class="{{ $card }} mb-6 overflow-x-auto p-2">
-        <div class="flex min-w-max gap-1">
-            @foreach (\App\Models\Company::CRM_STAGES as $key => $name)
-                <a href="{{ route('crm.index', array_merge($filters, ['stage' => ($filters['stage'] ?? null) === $key ? null : $key])) }}" @class([
-                    'flex min-w-[110px] flex-1 flex-col rounded-xl px-3 py-2 transition',
-                    'bg-gray-900 text-white dark:bg-white dark:text-gray-900' => ($filters['stage'] ?? null) === $key,
-                    'hover:bg-gray-50 dark:hover:bg-white/5' => ($filters['stage'] ?? null) !== $key,
-                ])>
-                    <span class="text-xs opacity-70">{{ $name }}</span>
-                    <span class="text-lg font-semibold">{{ $stageCounts[$key] ?? 0 }}</span>
-                </a>
-            @endforeach
-        </div>
-    </div>
+    {{-- Pipeline by stage: clickable pills that filter the table (click again to clear) --}}
+    @include('partials.card.pills', ['pills' => collect(\App\Models\Company::CRM_STAGES)->map(fn ($name, $key) => [
+        'label' => $name, 'value' => $stageCounts[$key] ?? 0,
+        'url' => route('crm.index', array_merge($filters, ['stage' => ($filters['stage'] ?? null) === $key ? null : $key])),
+        'tone' => ($filters['stage'] ?? null) === $key ? 'blue' : 'gray',
+    ])->values()->all()])
 
     {{-- Table (TailAdmin, like Tenancies): tabs + filters + search + add on one header row --}}
     @php
