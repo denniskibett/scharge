@@ -20,6 +20,8 @@ class PayeesAndExpenseCategoriesSeeder extends Seeder
         'Kenya Power (KPLC)' => 'utility',
         'Nairobi City Water and Sewerage Company' => 'utility',
         'Nairobi City County (rates & garbage)' => 'utility',
+        'Private water supplier (bowser / borehole)' => 'vendor',
+        'Private garbage collector' => 'vendor',
         'Safaricom (internet & airtime)' => 'utility',
         'Zuku (internet)' => 'utility',
         'Kenya Revenue Authority (KRA)' => 'vendor',
@@ -29,9 +31,9 @@ class PayeesAndExpenseCategoriesSeeder extends Seeder
 
     /** name => description */
     public const CATEGORIES = [
-        'Water' => 'Water bills and bulk water',
+        'Water' => 'Water bills, private bowsers and borehole water',
         'Electricity' => 'Power for common areas, pumps, lifts and lighting',
-        'Garbage collection' => 'Waste collection and disposal',
+        'Garbage collection' => 'County or private waste collection and disposal',
         'Security' => 'Guards, CCTV and alarm services',
         'Cleaning' => 'Cleaning services and supplies',
         'Repairs & maintenance' => 'Repairs, plumbing, electrical and general upkeep',
