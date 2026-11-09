@@ -23,6 +23,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Bill emails: the tenant gets a receipt the moment an invoice turns fully paid (any payment route).
+        foreach ([\App\Modules\Payments\Models\Invoice::class, \App\Models\Invoice::class] as $invoiceModel) {
+            $invoiceModel::updated(function ($invoice) {
+                if ($invoice->wasChanged('status') && $invoice->status === 'paid') {
+                    \App\Services\InvoiceMail::paid($invoice);
+                }
+            });
+        }
+
         // System model event listener - Check if System model exists
         if (class_exists('App\Modules\System\Models\System')) {
             System::updated(function ($system) {

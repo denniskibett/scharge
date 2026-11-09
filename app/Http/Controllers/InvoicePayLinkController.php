@@ -34,6 +34,8 @@ class InvoicePayLinkController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
+        \App\Services\InvoiceMail::shared($invoice, $url);
+
         $sent = false;
         if (($data['send_sms'] ?? true) && $phone) {
             $balance = number_format(max(0, (float) $invoice->total_amount - (float) $invoice->total_paid));

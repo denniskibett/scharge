@@ -470,6 +470,8 @@ class PaymentController extends Controller
 
                 return response()->json(['success' => false, 'message' => 'Could not start the payment: '.$e->getMessage()], 400);
             }
+            \App\Services\InvoiceMail::shared($invoice, $link->pay_url, (float) $request->amount);
+
             $sent = false;
             try {
                 app(\App\Services\SmsService::class)->forCompany($invoice->owningCompanyId())
