@@ -174,7 +174,7 @@
 
   {{-- Details modal --}}
   <div x-show="details" x-cloak class="fixed inset-0 z-[99999] flex items-center justify-center p-4" @keydown.escape.window="details = null">
-    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="details = null"></div>
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]" @click="details = null"></div>
     <div x-show="details" x-transition class="relative w-full max-w-[560px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-8">
       <template x-if="details">
         <div>
@@ -201,7 +201,7 @@
 
   {{-- Remove confirm --}}
   <div x-show="removing" x-cloak class="fixed inset-0 z-[99999] flex items-center justify-center p-4" @keydown.escape.window="removing = null">
-    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="removing = null"></div>
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]" @click="removing = null"></div>
     <div x-show="removing" x-transition class="relative w-full max-w-[460px] rounded-3xl bg-white p-6 text-center dark:bg-gray-900 lg:p-8">
       <h4 class="mb-2 text-xl font-semibold text-gray-800 dark:text-white/90" x-text="'Remove ' + (removing?.name || '') + '?'"></h4>
       <p class="text-sm text-gray-500 dark:text-gray-400">The saved keys are deleted. Payments fall back to scharge's default route.</p>

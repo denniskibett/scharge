@@ -96,7 +96,7 @@
     <!-- View Modal -->
     <div x-show="showViewModal" x-transition class="fixed inset-0 z-[99999] overflow-y-auto">
         <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="closeViewModal()"></div>
+            <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]" @click="closeViewModal()"></div>
             <div class="relative bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full p-6">
                 <h3 class="text-lg font-medium mb-4">Access Log Details</h3>
                 <div class="space-y-3">

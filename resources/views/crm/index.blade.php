@@ -124,7 +124,7 @@
     </div>
 
     {{-- Add prospect --}}
-    <div x-show="adding" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center bg-gray-900/50 p-4" @keydown.escape.window="adding = false">
+    <div x-show="adding" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-gray-400/50 backdrop-blur-[32px]" @keydown.escape.window="adding = false">
         <form method="POST" action="{{ route('crm.companies.store') }}" @click.outside="adding = false" class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 dark:bg-gray-900">
             @csrf
             <input type="hidden" name="_form" value="add">

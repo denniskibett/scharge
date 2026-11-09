@@ -216,7 +216,7 @@
 <!-- View Log Modal -->
 <div id="logModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex min-h-screen items-center justify-center p-4">
-        <div class="fixed inset-0 bg-black/50" onclick="closeModal()"></div>
+        <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]" onclick="closeModal()"></div>
         <div class="relative w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
             <div class="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-gray-800">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Log Details</h3>

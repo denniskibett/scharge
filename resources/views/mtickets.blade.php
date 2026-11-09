@@ -53,7 +53,7 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(0,0,0,0.6);
+      background: rgba(156,163,175,0.5); backdrop-filter: blur(32px);
       backdrop-filter: blur(10px);
       padding: 16px 24px;
       display: flex;

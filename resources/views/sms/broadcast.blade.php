@@ -26,7 +26,7 @@
             position: fixed;
             inset: 0;
             z-index: 99999;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(156, 163, 175, 0.5); backdrop-filter: blur(32px);
             display: none;
             justify-content: flex-end;
             align-items: flex-start;
@@ -1025,7 +1025,7 @@
 <!-- KENYASMS CAMPAIGNS MODAL -->
 <!-- ============================================ -->
 <div id="kenyaSmsModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeKenyaSmsModal()"></div>
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px]" onclick="closeKenyaSmsModal()"></div>
     <div class="relative min-h-screen flex items-center justify-center p-4">
         <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
             <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
