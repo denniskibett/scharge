@@ -16,7 +16,7 @@
     <div class="grid grid-cols-1 gap-5 xl:grid-cols-12">
         {{-- Wallet Column --}}
         <div class="xl:col-span-6 2xl:col-span-6">
-            <div class="rounded-[18px] border border-gray-200 bg-gray-100 p-1.5 dark:border-gray-800 dark:bg-white/3">
+            <div class="rounded-[18px] border border-gray-200 bg-gray-100 p-1.5 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="rounded-xl bg-white p-6 pb-8 dark:bg-gray-900">
                     {{-- Header with Currency and Date Selectors --}}
                     <div class="mb-6 flex flex-col justify-between gap-4 sm:flex-row">
@@ -28,7 +28,7 @@
                             {{-- Currency Dropdown --}}
                             <div x-data="{ openCurrency: false }" @click.outside="openCurrency = false" class="relative">
                                 <button @click="openCurrency = !openCurrency"
-                                    class="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-2.5 text-sm font-medium text-gray-700 shadow-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                                    class="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-2.5 text-sm font-medium text-gray-700 shadow-theme-xs dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                                     <span class="size-4 rounded-full inline-flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-[10px] font-bold" x-text="selectedCurrency.charAt(0)"></span>
                                     <span x-text="selectedCurrency"></span>
                                     <svg :class="openCurrency ? 'rotate-180' : ''" width="18" height="18"
@@ -101,7 +101,7 @@
                                 from last month
                             </p>
                         </div>
-                        <div class="ml-auto w-25 sm:w-[150px]">
+                        <div class="ml-auto w-24 sm:w-[150px]">
                             <canvas id="wallet-spark-chart" width="150" height="40" class="w-full"></canvas>
                         </div>
                     </div>
@@ -211,11 +211,11 @@
 
         {{-- Credit Cards Column --}}
         <div class="xl:col-span-6 2xl:col-span-6">
-            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/3">
+            <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="mb-6 flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">My Cards</h3>
                     <button @click="openAddCardModal"
-                        class="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-2.5 text-sm font-medium text-gray-700 shadow-xs hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-900">
+                        class="flex h-9 items-center justify-center gap-1.5 rounded-lg border border-gray-300 px-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-900">
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M5 10.0002H15.0006M10.0002 5V15.0006" stroke="currentColor" stroke-width="1.5"
                                 stroke-linecap="round" stroke-linejoin="round" />
@@ -309,12 +309,10 @@
     </div>
 
     {{-- Recent Transactions Table - Full Width --}}
-    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white pt-4 dark:border-gray-800 dark:bg-white/3">
-        <div class="mb-4 flex flex-col gap-5 px-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Recent Transactions</h3>
-            </div>
-            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Recent Transactions</h3>
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
                 <div class="relative">
                     <span class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
                         <svg class="fill-gray-500 dark:fill-gray-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -322,10 +320,10 @@
                         </svg>
                     </span>
                     <input type="text" x-model="searchQuery" @input="filterTransactions" placeholder="Search transactions..."
-                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-10 w-full rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-[42px] text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden xl:w-[300px] dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full min-w-[200px] rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
                 </div>
                 <button @click="openStatementModal"
-                    class="text-theme-sm shadow-theme-xs inline-flex h-10 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
+                    class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
                     <svg class="fill-white stroke-current dark:fill-gray-800" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M2.5 5.83333L10 10L17.5 5.83333M2.5 14.1667L10 18.3333L17.5 14.1667M2.5 10L10 14.1667L17.5 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
@@ -334,27 +332,27 @@
             </div>
         </div>
 
-        <div class="custom-scrollbar max-w-full overflow-x-auto">
-            <table class="data-table min-w-full">
-                <thead class="border-y border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
-                    <tr>
-                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs block font-medium text-gray-500 dark:text-gray-400">Transaction ID</span></th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Description</span></th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Type</span></th>
-                        <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Date</span></th>
-                        <th class="px-6 py-3 text-right whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Amount</span></th>
-                        <th class="px-6 py-3 text-center whitespace-nowrap"><span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">Status</span></th>
+        <div class="w-full overflow-x-auto">
+            <table class="data-table w-full table-auto">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-800">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Transaction ID</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Description</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Type</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                        <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
+                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                     <template x-for="transaction in paginatedTransactions" :key="transaction.id">
-                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-theme-sm font-medium text-gray-700 dark:text-gray-400" x-text="'TXN-' + transaction.id"></span>
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="'TXN-' + transaction.id"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="p-4 whitespace-nowrap">
                                 <div class="flex items-center gap-3">
-                                    <div class="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-gray-200 shadow-xs dark:border-gray-800"
+                                    <div class="inline-flex size-10 shrink-0 items-center justify-center rounded-full border border-gray-200 shadow-theme-xs dark:border-gray-800"
                                         :class="transaction.type === 'deposit' ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20'">
                                         <svg x-show="transaction.type === 'deposit'" class="size-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -374,15 +372,15 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="transaction.type === 'deposit' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'"
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                                    :class="transaction.type === 'deposit' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'"
                                     x-text="transaction.type === 'deposit' ? 'Deposit' : 'Withdrawal'"></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="text-theme-sm text-gray-700 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span>
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(transaction.created_at)"></span>
                             </td>
-                            <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <td class="p-4 text-right whitespace-nowrap">
                                 <p class="text-theme-sm font-medium" :class="transaction.type === 'deposit' ? 'text-success-600' : 'text-error-600'">
                                     <span x-text="transaction.type === 'deposit' ? '+' : '-'"></span>
                                     <span x-text="selectedCurrency"></span> 
@@ -392,9 +390,9 @@
                                     Awaiting approval
                                 </p>
                             </td>
-                            <td class="px-6 py-4 text-center whitespace-nowrap">
-                                <span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                                    :class="transaction.is_pending ? 'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/15 dark:text-yellow-500' : 'bg-success-50 text-success-600 dark:bg-success-500/15 dark:text-success-500'"
+                            <td class="p-4 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+                                    :class="transaction.is_pending ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'"
                                     x-text="transaction.is_pending ? 'Pending' : 'Completed'">
                                 </span>
                             </td>
@@ -404,11 +402,12 @@
             </table>
         </div>
 
-        <div x-show="filteredTransactions.length === 0 && !loading" class="py-12 text-center">
+        <div x-show="filteredTransactions.length === 0 && !loading" class="px-4 py-12 text-center">
             <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No transactions found.</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No transactions found</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400" x-show="searchQuery">Try adjusting your search.</p>
         </div>
 
         <div x-show="loading" class="py-12 text-center">
@@ -416,12 +415,12 @@
             <p class="mt-2 text-sm text-gray-500">Loading transactions...</p>
         </div>
 
-        <div x-show="filteredTransactions.length > 0 && !loading" class="flex items-center justify-between border-t border-gray-100 px-6 py-4 dark:border-gray-800">
+        <div x-show="filteredTransactions.length > 0 && !loading" class="flex flex-col items-center justify-between gap-3 border-t border-gray-200 px-5 py-4 sm:flex-row dark:border-gray-800">
             <p class="text-sm text-gray-500 dark:text-gray-400">Showing <span x-text="((currentPage - 1) * itemsPerPage) + 1"></span> to <span x-text="Math.min(currentPage * itemsPerPage, filteredTransactions.length)"></span> of <span x-text="filteredTransactions.length"></span> entries</p>
             <div class="flex gap-2">
-                <button @click="prevPage" :disabled="currentPage === 1" class="rounded-lg border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700">Previous</button>
+                <button @click="prevPage" :disabled="currentPage === 1" class="shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">Previous</button>
                 <span class="px-3 py-1 text-sm" x-text="`Page ${currentPage} of ${totalPages}`"></span>
-                <button @click="nextPage" :disabled="currentPage === totalPages" class="rounded-lg border border-gray-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-gray-700">Next</button>
+                <button @click="nextPage" :disabled="currentPage === totalPages" class="shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">Next</button>
             </div>
         </div>
     </div>

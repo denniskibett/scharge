@@ -76,62 +76,60 @@
             </div>
             
             {{-- Transaction History --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
-                <div class="p-6 border-b border-gray-200 dark:border-gray-800">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Transaction History</h3>
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Transaction History</h3>
                         
                         {{-- Filters --}}
-                        <div class="flex flex-wrap gap-3">
+                        <div class="flex flex-wrap items-center gap-3 lg:justify-end">
                             <select x-model="filterType" @change="loadTransactions()"
-                                class="rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 text-sm">
+                                class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                                 <option value="all">All Types</option>
                                 <option value="deposit">Deposits</option>
                                 <option value="withdraw">Withdrawals</option>
                             </select>
                             
                             <input type="date" x-model="filterFrom" @change="loadTransactions()"
-                                class="rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 text-sm">
+                                class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                             
                             <input type="date" x-model="filterTo" @change="loadTransactions()"
-                                class="rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800 text-sm">
+                                class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                             
                             <button @click="exportTransactions()" 
-                                class="inline-flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg text-sm">
+                                class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
                                 <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                                 </svg>
                                 Export
                             </button>
                         </div>
-                    </div>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Type</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Description</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
+                <div class="w-full overflow-x-auto">
+                    <table class="data-table w-full table-auto">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-800">
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Type</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Description</th>
+                                <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                             <template x-for="tx in transactions" :key="tx.id">
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400" x-text="formatDate(tx.created_at)"></td>
-                                    <td class="px-6 py-4">
-                                        <span x-show="tx.type === 'deposit'" class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Deposit</span>
-                                        <span x-show="tx.type === 'withdraw'" class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">Withdrawal</span>
-                                        <span x-show="tx.is_pending" class="ml-1 inline-flex px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">Pending</span>
+                                <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(tx.created_at)"></td>
+                                    <td class="p-4 whitespace-nowrap">
+                                        <span x-show="tx.type === 'deposit'" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Deposit</span>
+                                        <span x-show="tx.type === 'withdraw'" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Withdrawal</span>
+                                        <span x-show="tx.is_pending" class="ml-1 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Pending</span>
                                     </td>
-                                    <td class="px-6 py-4 text-sm text-gray-600 dark:text-gray-400">
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                         <span x-text="tx.meta?.description || tx.description || '—'"></span>
                                         <span x-show="tx.is_pending" class="block text-xs text-yellow-600 dark:text-yellow-400">Awaiting approval</span>
                                         <span x-show="tx.notes" class="block text-xs text-gray-500 dark:text-gray-400" x-text="tx.notes"></span>
                                     </td>
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="p-4 whitespace-nowrap text-right">
                                         <span x-show="tx.type === 'deposit'" class="text-green-600 dark:text-green-400 font-medium">
                                             + KES <span x-text="formatNumber(tx.amount)"></span>
                                         </span>
@@ -144,8 +142,9 @@
                             </template>
                             
                             <tr x-show="transactions.length === 0">
-                                <td colspan="4" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                    No transactions found
+                                <td colspan="4" class="p-4 text-center">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No transactions found</h3>
                                 </td>
                             </tr>
                         </tbody>
@@ -153,7 +152,7 @@
                 </div>
                 
                 {{-- Pagination --}}
-                <div x-show="transactions.length > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-800">
+                <div x-show="transactions.length > 0" class="px-5 py-4 border-t border-gray-200 dark:border-gray-800">
                     <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                         <p class="text-sm text-gray-500 dark:text-gray-400">
                             Showing <span x-text="((currentPage - 1) * perPage) + 1"></span> to 
@@ -162,130 +161,157 @@
                         </p>
                         <div class="flex gap-2">
                             <button @click="prevPage()" :disabled="currentPage === 1"
-                                class="px-3 py-1 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700">
+                                class="shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                                 Previous
                             </button>
                             <span class="px-3 py-1 text-sm" x-text="'Page ' + currentPage + ' of ' + totalPages"></span>
                             <button @click="nextPage()" :disabled="currentPage === totalPages"
-                                class="px-3 py-1 text-sm border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700">
+                                class="shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                                 Next
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
     </div>
     
     {{-- Deposit Modal --}}
-    <div x-show="showDepositModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showDepositModal = false"></div>
-            <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Deposit Funds</h3>
+    <div x-show="showDepositModal" x-cloak
+         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click="showDepositModal = false"
+         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+    <div x-show="showDepositModal" x-cloak
+         x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+         class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+         style="display: none; width: 32rem; max-width: calc(100% - 2rem);">
+      <div class="p-6 lg:p-10">
+        <button type="button" @click="showDepositModal = false" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+          <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/></svg>
+        </button>
+        <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Deposit Funds</h4>
                 <form @submit.prevent="submitDeposit">
                     @csrf
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (KES)</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount (KES)</label>
                         <input type="number" x-model="depositAmount" step="1" min="1" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Payment Method</label>
                         <select x-model="depositMethod" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                             <option value="mpesa">M-Pesa</option>
                             <option value="bank">Bank Transfer</option>
                             <option value="card">Card Payment</option>
                         </select>
                     </div>
                     <div x-show="depositMethod === 'mpesa'" class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">M-Pesa Phone Number</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">M-Pesa Phone Number</label>
                         <input type="tel" x-model="depositPhone" placeholder="0712345678" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     </div>
-                    <div class="flex gap-3">
+                    <div class="mt-6 flex items-center justify-end gap-3">
                         <button type="button" @click="showDepositModal = false"
-                            class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
+                            class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">Cancel</button>
                         <button type="submit" :disabled="depositLoading"
-                            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
+                            class="rounded-lg bg-green-600 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-green-700 disabled:opacity-50">
                             <span x-show="!depositLoading">Deposit</span>
                             <span x-show="depositLoading">Processing...</span>
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+      </div>
     </div>
     
     {{-- Withdraw Modal --}}
-    <div x-show="showWithdrawModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showWithdrawModal = false"></div>
-            <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Withdraw Funds</h3>
+    <div x-show="showWithdrawModal" x-cloak
+         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click="showWithdrawModal = false"
+         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+    <div x-show="showWithdrawModal" x-cloak
+         x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+         class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+         style="display: none; width: 32rem; max-width: calc(100% - 2rem);">
+      <div class="p-6 lg:p-10">
+        <button type="button" @click="showWithdrawModal = false" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+          <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/></svg>
+        </button>
+        <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Withdraw Funds</h4>
                 <form @submit.prevent="submitWithdraw">
                     @csrf
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (KES)</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount (KES)</label>
                         <input type="number" x-model="withdrawAmount" step="1" min="1" :max="balance" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Destination</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Destination</label>
                         <input type="text" x-model="withdrawDestination" placeholder="Bank account / M-Pesa number" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     </div>
-                    <div class="flex gap-3">
+                    <div class="mt-6 flex items-center justify-end gap-3">
                         <button type="button" @click="showWithdrawModal = false"
-                            class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
+                            class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">Cancel</button>
                         <button type="submit" :disabled="withdrawLoading"
-                            class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                            class="rounded-lg bg-red-600 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-red-700 disabled:opacity-50">
                             <span x-show="!withdrawLoading">Withdraw</span>
                             <span x-show="withdrawLoading">Processing...</span>
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+      </div>
     </div>
     
     {{-- Transfer Modal --}}
-    <div x-show="showTransferModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen px-4">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showTransferModal = false"></div>
-            <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Transfer Money</h3>
+    <div x-show="showTransferModal" x-cloak
+         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click="showTransferModal = false"
+         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+    <div x-show="showTransferModal" x-cloak
+         x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+         class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+         style="display: none; width: 32rem; max-width: calc(100% - 2rem);">
+      <div class="p-6 lg:p-10">
+        <button type="button" @click="showTransferModal = false" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+          <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/></svg>
+        </button>
+        <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Transfer Money</h4>
                 <form @submit.prevent="submitTransfer">
                     @csrf
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recipient Email</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Recipient Email</label>
                         <input type="email" x-model="transferEmail" placeholder="user@example.com" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Amount (KES)</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Amount (KES)</label>
                         <input type="number" x-model="transferAmount" step="1" min="1" :max="balance" required
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800">
+                            class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                     </div>
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description (Optional)</label>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Description (Optional)</label>
                         <textarea x-model="transferDescription" rows="2"
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-800"></textarea>
+                            class="dark:bg-dark-900 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"></textarea>
                     </div>
-                    <div class="flex gap-3">
+                    <div class="mt-6 flex items-center justify-end gap-3">
                         <button type="button" @click="showTransferModal = false"
-                            class="flex-1 px-4 py-2 border rounded-lg">Cancel</button>
+                            class="rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">Cancel</button>
                         <button type="submit" :disabled="transferLoading"
-                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                            class="rounded-lg bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-blue-700 disabled:opacity-50">
                             <span x-show="!transferLoading">Transfer</span>
                             <span x-show="transferLoading">Processing...</span>
                         </button>
                     </div>
                 </form>
-            </div>
-        </div>
+      </div>
     </div>
+        </div>{{-- /tenantWalletComponent: the deposit, withdraw and transfer forms sit inside it so their buttons can open them --}}
 </div>
 
 <script>

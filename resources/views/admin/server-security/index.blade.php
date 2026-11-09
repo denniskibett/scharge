@@ -5,8 +5,8 @@
 @section('content')
 @php
     $card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
-    $th = 'px-3 py-2 font-medium';
-    $td = 'px-3 py-2';
+    $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
+    $td = 'p-4 text-sm';
     $pill = [
         'critical' => 'bg-red-600 text-white', 'high' => 'bg-orange-500 text-white', 'medium' => 'bg-amber-400 text-gray-900',
         'low' => 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200', 'ok' => 'bg-emerald-600 text-white',
@@ -94,29 +94,31 @@
   @endif
 
   {{-- Domains --}}
-  <div class="{{ $card }} mb-6">
-    <h2 class="mb-3 font-semibold text-gray-900 dark:text-white">Domains and sites</h2>
-    <div class="overflow-x-auto">
-      <table class="w-full text-left text-sm">
-        <thead class="border-b border-gray-200 text-gray-500 dark:border-gray-800"><tr>
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
+    <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">Domains and sites</h2>
+    </div>
+    <div class="w-full overflow-x-auto">
+      <table class="data-table w-full table-auto">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800">
           <th class="{{ $th }}">Name</th><th class="{{ $th }}">Status</th><th class="{{ $th }}">Problems</th>
           <th class="{{ $th }}">Certificate</th><th class="{{ $th }}">HTTP</th><th class="{{ $th }}">SPF</th><th class="{{ $th }}">DKIM</th><th class="{{ $th }}">DMARC</th>
         </tr></thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
         @foreach ($rows as $r)
-          <tr @class(['opacity-60' => $r['resolves'] === false])>
-            <td class="{{ $td }} font-medium text-gray-900 dark:text-white"><a href="?scope={{ urlencode($r['name']) }}#findings" class="hover:underline">{{ $r['name'] }}</a>
+          <tr @class(['transition hover:bg-gray-50 dark:hover:bg-gray-900', 'opacity-60' => $r['resolves'] === false])>
+            <td class="{{ $td }} whitespace-nowrap"><a href="?scope={{ urlencode($r['name']) }}#findings" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">{{ $r['name'] }}</a>
               @if ($r['resolves'] === false)<span class="ml-1 text-xs text-gray-500">does not resolve</span>@endif
               @if ($r['mail_host'])<span class="ml-1 text-xs text-gray-500">mail host</span>@endif</td>
             <td class="{{ $td }}"><span class="rounded-full px-2 py-0.5 text-xs font-semibold uppercase {{ $pill[$r['worst']] }}">{{ $r['worst'] }}</span></td>
-            <td class="{{ $td }} text-xs text-gray-600 dark:text-gray-400">@foreach (['critical', 'high', 'medium', 'low'] as $k)@if ($r['counts'][$k] ?? 0)<span class="mr-2">{{ $r['counts'][$k] }} {{ $k }}</span>@endif @endforeach</td>
-            <td class="{{ $td }} text-xs">
+            <td class="{{ $td }} whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">@foreach (['critical', 'high', 'medium', 'low'] as $k)@if ($r['counts'][$k] ?? 0)<span class="mr-2">{{ $r['counts'][$k] }} {{ $k }}</span>@endif @endforeach</td>
+            <td class="{{ $td }} whitespace-nowrap text-xs">
               @if ($r['tls_days'] !== null)
                 <span @class(['font-semibold text-red-600' => $r['tls_days'] < 7 || ! $r['tls_ok'], 'text-amber-600' => $r['tls_days'] >= 7 && $r['tls_days'] < 21, 'text-gray-700 dark:text-gray-300' => $r['tls_days'] >= 21 && $r['tls_ok']])>{{ $r['tls_ok'] ? $r['tls_days'].' days' : ($r['tls_days'] < 0 ? 'expired' : 'not trusted') }}</span>
                 <span class="text-gray-400">{{ $r['issuer'] }}</span>
               @else <span class="text-gray-400">—</span> @endif
             </td>
-            <td class="{{ $td }} text-xs">{{ $r['http'] ?? '—' }}</td>
+            <td class="{{ $td }} text-xs text-gray-500 dark:text-gray-400">{{ $r['http'] ?? '—' }}</td>
             <td class="{{ $td }}">{!! $yes($r['spf']) !!}</td>
             <td class="{{ $td }} text-xs">{!! $r['dkim'] === null ? '<span class="text-gray-400">—</span>' : ($r['dkim'] === 'ok' ? '<span class="text-emerald-600">✓</span>' : '<span class="font-semibold text-red-600">'.e($r['dkim']).'</span>') !!}</td>
             <td class="{{ $td }}">{!! $yes($r['dmarc']) !!}</td>
@@ -128,19 +130,20 @@
   </div>
 
   {{-- Findings, most severe first --}}
-  <div id="findings" class="{{ $card }}">
-    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-      <h2 class="font-semibold text-gray-900 dark:text-white">What to fix @if ($scope) · {{ $scope }} @endif @if ($severity) · {{ $severity }} @endif</h2>
+  <div id="findings" class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+      <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">What to fix @if ($scope) · {{ $scope }} @endif @if ($severity) · {{ $severity }} @endif</h2>
       @if ($scope || $severity)<a href="{{ url()->current() }}#findings" class="text-sm text-gray-500 hover:underline">Show all</a>@endif
     </div>
-    <table class="w-full text-left text-sm">
-      <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+    <div class="w-full overflow-x-auto">
+    <table class="data-table w-full table-auto">
+      <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
       @forelse ($findings as $f)
-        <tr>
+        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
           <td class="{{ $td }} w-24 align-top"><span class="rounded-full px-2 py-0.5 text-xs font-semibold uppercase {{ $pill[$f['severity']] }}">{{ $f['severity'] }}</span></td>
           <td class="{{ $td }} align-top">
-            <p class="text-gray-900 dark:text-white"><span class="font-medium">{{ $f['scope'] }}</span> · <span class="text-xs uppercase text-gray-400">{{ $f['check'] }}</span></p>
-            <p class="text-gray-700 dark:text-gray-300">{{ $f['title'] }}</p>
+            <p class="text-gray-800 dark:text-white/90"><span class="font-medium">{{ $f['scope'] }}</span> · <span class="text-xs uppercase text-gray-400">{{ $f['check'] }}</span></p>
+            <p class="text-gray-500 dark:text-gray-400">{{ $f['title'] }}</p>
             @if ($f['fix'])<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Fix: {{ $f['fix'] }}</p>@endif
             @if (is_array($f['detail'] ?? null) && $f['detail'])
               <details class="mt-1 text-xs text-gray-500"><summary class="cursor-pointer">{{ count($f['detail']) }} files</summary><pre class="mt-1 whitespace-pre-wrap">{{ implode("\n", $f['detail']) }}</pre></details>
@@ -148,10 +151,16 @@
           </td>
         </tr>
       @empty
-        <tr><td class="{{ $td }} text-gray-500">Nothing to fix here.</td></tr>
+        <tr>
+          <td colspan="2" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nothing to fix here</h3>
+  </td>
+        </tr>
       @endforelse
       </tbody>
     </table>
+    </div>
   </div>
   @endif
 </div>

@@ -38,31 +38,31 @@
     </div>
   </div>
   <div class="mt-4 grid grid-cols-1 gap-4 2xl:grid-cols-2">
-    <div class="{{ $card }}">
-      <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Water by property</h3>
-      <div class="overflow-x-auto">
-        <table class="data-table w-full">
-          <thead><tr><th>Property</th><th class="!text-right">Units read</th><th class="!text-right">Units used</th><th class="!text-right">Per unit</th><th class="!text-right">Charged (KES)</th></tr></thead>
-          <tbody>
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <h3 class="border-b border-gray-200 px-5 py-4 dark:border-gray-700 text-lg font-semibold text-gray-800 dark:text-white/90">Water by property</h3>
+      <div class="w-full overflow-x-auto">
+        <table class="data-table w-full table-auto">
+          <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Property</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Units read</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Units used</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Per unit</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Charged (KES)</th></tr></thead>
+          <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
             @forelse ($w['properties'] as $p)
-              <tr><td class="font-medium text-gray-800 dark:text-white/90">{{ $p['name'] }}</td><td class="text-right">{{ number_format($p['units_read']) }}</td><td class="text-right">{{ number_format($p['consumption']) }}</td><td class="text-right">{{ number_format($p['per_unit'], 1) }}</td><td class="text-right">{{ number_format($p['charge']) }}</td></tr>
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ $p['name'] }}</td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['units_read']) }}</td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['consumption']) }}</td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['per_unit'], 1) }}</td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['charge']) }}</td></tr>
             @empty
-              <tr><td colspan="5" class="py-6 text-center text-gray-500">No readings in this period.</td></tr>
+              <tr><td colspan="5" class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No readings in this period.</td></tr>
             @endforelse
           </tbody>
         </table>
       </div>
     </div>
-    <div class="{{ $card }}">
-      <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Highest usage</h3>
-      <div class="overflow-x-auto">
-        <table class="data-table w-full">
-          <thead><tr><th>Unit</th><th class="!text-right">Readings</th><th class="!text-right">Units used</th><th class="!text-right">Charged (KES)</th></tr></thead>
-          <tbody>
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <h3 class="border-b border-gray-200 px-5 py-4 dark:border-gray-700 text-lg font-semibold text-gray-800 dark:text-white/90">Highest usage</h3>
+      <div class="w-full overflow-x-auto">
+        <table class="data-table w-full table-auto">
+          <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Readings</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Units used</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Charged (KES)</th></tr></thead>
+          <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
             @forelse ($w['top_units'] as $u)
-              <tr><td><span class="font-medium text-gray-800 dark:text-white/90">{{ $u['unit'] }}</span><span class="block text-xs text-gray-500">{{ $u['property'] }}</span></td><td class="text-right">{{ $u['readings'] }}</td><td class="text-right">{{ number_format($u['consumption']) }}</td><td class="text-right">{{ number_format($u['charge']) }}</td></tr>
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $u['unit'] }}</span><span class="block text-xs text-gray-500 dark:text-gray-400">{{ $u['property'] }}</span></td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $u['readings'] }}</td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($u['consumption']) }}</td><td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($u['charge']) }}</td></tr>
             @empty
-              <tr><td colspan="4" class="py-6 text-center text-gray-500">No readings in this period.</td></tr>
+              <tr><td colspan="4" class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No readings in this period.</td></tr>
             @endforelse
           </tbody>
         </table>

@@ -50,30 +50,13 @@
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
         }
 
-        /* Update Phone Modal */
+        /* Update Phone Modal: right-side slide-over (backdrop + panel are fixed children) */
         #updatePhoneModal {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-            background: rgba(0, 0, 0, 0.5);
             display: none;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
         }
 
         #updatePhoneModal.active {
-            display: flex;
-        }
-
-        #updatePhoneModal .modal-content {
-            background: #fff;
-            width: 100%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow-y: auto;
-            border-radius: 0.75rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            display: block;
         }
 
         /* Prevent body scroll when modal is open – NO PADDING-RIGHT */
@@ -224,46 +207,46 @@
                 </div>
 
                 <!-- Tenants Table Section -->
-                <div class="p-6">
+                <div>
                     <div class="w-full overflow-x-auto">
-                        <table class="data-table min-w-full">
-                            <thead class="bg-gray-50 dark:bg-gray-800">
-                                <tr class="border-gray-100 border-y dark:border-gray-800">
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <table class="data-table w-full table-auto">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-800">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 w-10 cursor-pointer">
                                         <input type="checkbox" id="toggleAllCheckbox" onchange="toggleAllCheckboxes()">
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('name')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('name')">
                                         Name <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('phone')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('phone')">
                                         Phone <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('unit')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('unit')">
                                         Unit <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('property')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('property')">
                                         Property <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('water_bill')">
+                                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('water_bill')">
                                         Water Bill <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('prev_read')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('prev_read')">
                                         Previous Reading <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('curr_read')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('curr_read')">
                                         Current Reading <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('due_date')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('due_date')">
                                         Due Date <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('payment_status')">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" onclick="sortTable('payment_status')">
                                         Payment Status <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody id="tenantsTableBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                            <tbody id="tenantsTableBody" class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                                 @forelse($tenants as $tenant)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150 tenant-row" 
+                                <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900 tenant-row" 
                                     data-property-id="{{ $tenant['property_id'] ?? '' }}" 
                                     data-name="{{ $tenant['name'] ?? '' }}" 
                                     data-name-lower="{{ strtolower($tenant['name'] ?? '') }}" 
@@ -278,7 +261,7 @@
                                     data-month="{{ $tenant['reading_month'] ?? '' }}"
                                     data-due-date="{{ $tenant['due_date'] ?? '' }}"
                                     data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
-                                    <td class="px-4 py-3">
+                                    <td class="p-4 whitespace-nowrap">
                                         <input type="checkbox" class="tenant-checkbox" 
                                             data-id="{{ $tenant['id'] ?? '' }}"
                                             data-phone="{{ $tenant['phone'] ?? '' }}"
@@ -294,23 +277,23 @@
                                             data-due-date="{{ $tenant['due_date'] ?? '' }}"
                                             data-payment-status="{{ $tenant['payment_status'] ?? 'pending' }}">
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td class="p-4 whitespace-nowrap">
                                         <div class="flex items-center gap-3">
-                                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                                                <span class="text-blue-600 font-medium text-sm">{{ substr($tenant['name'] ?? 'T', 0, 1) }}</span>
+                                            <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                                                <span class="text-sm font-medium text-purple-600">{{ substr($tenant['name'] ?? 'T', 0, 1) }}</span>
                                             </div>
                                             <span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenant['name'] ?? 'Unknown' }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['phone'] ?? '' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['unit_number'] ?? '' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['property_name'] ?? '' }}</td>
-                                    <td class="px-4 py-3 text-right text-sm font-medium text-gray-800">KES {{ number_format($tenant['water_bill'] ?? 0, 2) }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['prev_read'] ?? 0 }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['curr_read'] ?? 0 }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $tenant['due_date'] ?? '' }}</td>
-                                    <td class="px-4 py-3">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tenant['phone'] ?? '' }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tenant['unit_number'] ?? '' }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tenant['property_name'] ?? '' }}</td>
+                                    <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($tenant['water_bill'] ?? 0, 2) }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tenant['prev_read'] ?? 0 }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tenant['curr_read'] ?? 0 }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $tenant['due_date'] ?? '' }}</td>
+                                    <td class="p-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium 
                                             @if(($tenant['payment_status'] ?? 'pending') === 'paid') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                                             @elseif(($tenant['payment_status'] ?? 'pending') === 'unpaid') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
                                             @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
@@ -321,17 +304,20 @@
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="10" class="px-4 py-8 text-center text-gray-500">No tenants found.</td>
+                                    <td colspan="10" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No tenants found</h3>
+  </td>
                                 </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
                     
-                    <div class="flex items-center justify-between mt-4">
+                    <div class="flex flex-wrap items-center justify-between gap-4 border-t border-gray-200 px-5 py-4 dark:border-gray-800">
                         <div class="flex items-center gap-2">
-                            <span class="text-sm text-gray-600">Show:</span>
-                            <select id="entriesPerPage" class="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm" onchange="entriesPerPageChange()">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">Show:</span>
+                            <select id="entriesPerPage" class="h-9 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="entriesPerPageChange()">
                                 <option value="10">10</option>
                                 <option value="25">25</option>
                                 <option value="50">50</option>
@@ -340,9 +326,9 @@
                             </select>
                         </div>
                         <div class="flex gap-2" id="paginationControls">
-                            <button onclick="prevPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Previous</button>
-                            <span id="pageInfo" class="text-sm text-gray-600 px-3 py-1">Page 1 of 1</span>
-                            <button onclick="nextPage()" class="px-3 py-1 rounded border border-gray-300 text-sm hover:bg-gray-50">Next</button>
+                            <button type="button" onclick="prevPage()" class="shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">Previous</button>
+                            <span id="pageInfo" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-400">Page 1 of 1</span>
+                            <button type="button" onclick="nextPage()" class="shadow-theme-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">Next</button>
                         </div>
                     </div>
                 </div>
@@ -388,29 +374,32 @@
         <!-- TAB 3: SMS HISTORY -->
         <!-- ============================================ -->
         <div id="history-tab" style="display: none;">
-            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="p-6">
+            <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">SMS history</h3>
+                </div>
+                <div>
                     <div class="w-full overflow-x-auto">
-                        <table class="data-table min-w-full">
-                            <thead class="bg-gray-50 dark:bg-gray-800">
-                                <tr class="border-gray-100 border-y dark:border-gray-800">
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent At</th>
+                        <table class="data-table w-full table-auto">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-800">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">ID</th>
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Phone</th>
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Message</th>
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Type</th>
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Sent At</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                            <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                                 @forelse($logs as $log)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $log->id ?? '' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $log->recipient_phone ?? '' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ Str::limit($log->message ?? '', 60) }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ $log->message_type ?? 'transactional' }}</td>
-                                    <td class="px-4 py-3">
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $log->id ?? '' }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $log->recipient_phone ?? '' }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ Str::limit($log->message ?? '', 60) }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $log->message_type ?? 'transactional' }}</td>
+                                    <td class="p-4 whitespace-nowrap">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium 
                                             @if(($log->status ?? '') === 'sent') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                                             @elseif(($log->status ?? '') === 'failed') bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
                                             @else bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200
@@ -418,20 +407,23 @@
                                             {{ $log->status ?? 'pending' }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-gray-500">{{ isset($log->created_at) ? $log->created_at->format('d/m/Y H:i') : '' }}</td>
+                                    <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ isset($log->created_at) ? $log->created_at->format('d/m/Y H:i') : '' }}</td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">No logs found.</td>
+                                    <td colspan="6" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No logs found</h3>
+  </td>
                                 </tr>
                                 @endforelse
                             </tbody>
                         </table>
                     </div>
-                    @if(method_exists($logs, 'links'))
-                    <div class="mt-4">
-                        {{ $logs->links() }}
-                    </div>
+                    @if(method_exists($logs, 'lastPage'))
+                        @include('partials.table.pager', ['paginator' => $logs])
+                    @elseif(method_exists($logs, 'links'))
+                        <div class="border-t border-gray-200 px-5 py-4 dark:border-gray-800">{{ $logs->links() }}</div>
                     @endif
                 </div>
             </div>
@@ -552,18 +544,18 @@
                     <p class="mt-2 text-gray-500">Loading campaigns...</p>
                 </div>
                 <div id="campaignsTable" style="display: none;">
-                    <table class="data-table min-w-full">
-                        <thead class="bg-gray-50 dark:bg-gray-800">
-                            <tr class="border-gray-100 border-y dark:border-gray-800">
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recipients</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failed</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <table class="data-table w-full table-auto">
+                        <thead>
+                            <tr class="border-b border-gray-200 dark:border-gray-800">
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">ID</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Name</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Source</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Recipients</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Sent</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Failed</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="campaignsTableBody">
@@ -579,23 +571,12 @@
     <!-- ============================================ -->
     <!-- CREATE CAMPAIGN MODAL -->
     <!-- ============================================ -->
-    <div id="createCampaignModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-        <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/70" onclick="closeCreateCampaignModal()"></div>
-        <div class="relative min-h-screen flex items-start justify-end">
-            <div class="relative bg-white dark:bg-gray-800 shadow-2xl w-full max-w-3xl overflow-y-auto" style="max-height: 100vh;">
-                
-                <div class="sticky top-0 z-10 bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                            <i class="fas fa-plus-circle text-blue-600 mr-2"></i> Create New Campaign
-                        </h3>
-                        <button onclick="closeCreateCampaignModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="px-6 py-6" style="max-height: calc(100vh - 100px); overflow-y: auto;">
+    <div id="createCampaignModal" style="display: none;">
+        <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" onclick="closeCreateCampaignModal()"></div>
+        <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 42rem; max-width: calc(100% - 2rem);">
+            <div class="p-6 lg:p-10">
+                <button type="button" onclick="closeCreateCampaignModal()" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+                <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Create New Campaign</h4>
                     <form id="createCampaignForm" onsubmit="submitCampaign(event)" class="space-y-5">
                         @csrf
                         
@@ -708,18 +689,17 @@
 
                         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                             <button type="button" 
-                                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]" 
+                                    class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white" 
                                     onclick="closeCreateCampaignModal()">
-                                <i class="fas fa-times mr-1"></i> Cancel
+                                Cancel
                             </button>
                             <button type="submit" 
                                     id="submitCampaignBtn"
-                                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed">
                                 <span id="submitCampaignText">Create Campaign</span>
                             </button>
                         </div>
                     </form>
-                </div>
             </div>
         </div>
     </div>
@@ -761,7 +741,7 @@
                         </div>
                         <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</p>
-                            <span id="viewCampaignStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1">-</span>
+                            <span id="viewCampaignStatus" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium mt-1">-</span>
                         </div>
                         <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
                             <p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Created</p>
@@ -907,24 +887,24 @@
                         <!-- Recipients Table -->
                         <div class="mt-4">
                             <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                                <table class="data-table min-w-full">
+                                <table class="data-table w-full table-auto">
                                     <thead>
-                                        <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Property</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Parts</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cost</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sent Time</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failure Reason</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                        <tr class="border-b border-gray-200 dark:border-gray-800">
+                                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Tenant</th>
+                                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th>
+                                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Property</th>
+                                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Phone</th>
+                                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Network</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Parts</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Cost</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Sent Time</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Delivered</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Failure Reason</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="viewRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    <tbody id="viewRecipientsBody" class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                                         <tr>
                                             <td colspan="12" class="px-4 py-8 text-center text-gray-500">
                                                 <i class="fas fa-inbox mr-2"></i> No recipients found
@@ -969,17 +949,17 @@
                             </button>
                         </div>
                         <div class="w-full overflow-x-auto rounded-xl border border-yellow-200 dark:border-yellow-800">
-                            <table class="data-table min-w-full">
+                            <table class="data-table w-full table-auto">
                                 <thead>
                                     <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Unit</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Phone</th>
-                                        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Network</th>
-                                        <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Action</th>
+                                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Tenant</th>
+                                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th>
+                                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Phone</th>
+                                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Network</th>
+                                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Action</th>
                                     </tr>
                                 </thead>
-                                <tbody id="otherNetworkRecipientsBody" class="divide-y divide-gray-100 dark:divide-gray-800">
+                                <tbody id="otherNetworkRecipientsBody" class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                                     <tr>
                                         <td colspan="5" class="px-4 py-4 text-center text-gray-500 text-sm">
                                             <i class="fas fa-info-circle mr-1"></i> Click "Load Other Networks" to view
@@ -1008,42 +988,33 @@
     <!-- UPDATE PHONE MODAL -->
     <!-- ============================================ -->
     <div id="updatePhoneModal" style="display: none;">
-        <div class="modal-content">
-            <div class="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">
-                        <i class="fas fa-phone mr-2 text-blue-600"></i> Update Phone Number
-                    </h3>
-                    <button onclick="closeUpdatePhoneModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="px-6 py-4">
+        <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" onclick="closeUpdatePhoneModal()"></div>
+        <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 32rem; max-width: calc(100% - 2rem);">
+            <div class="p-6 lg:p-10">
+                <button type="button" onclick="closeUpdatePhoneModal()" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+                <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Update Phone Number</h4>
                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                     Update phone number for <span id="updateTenantName" class="font-semibold">-</span>
                 </p>
-                
+
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Phone Number</label>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">New Phone Number</label>
                     <input type="text" id="updatePhoneInput" 
-                           class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                            placeholder="e.g., 0712345678">
                     <p class="text-xs text-gray-500 mt-1">Enter Safaricom number starting with 07 or 2547</p>
                 </div>
-                
+
                 <input type="hidden" id="updateTenantId">
-                
-                <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <button onclick="closeUpdatePhoneModal()" 
-                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+
+                <div class="mt-8 flex justify-end gap-3">
+                    <button type="button" onclick="closeUpdatePhoneModal()" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
                         Cancel
                     </button>
-                    <button onclick="saveUpdatedPhone()" 
+                    <button type="button" onclick="saveUpdatedPhone()" 
                             id="savePhoneBtn"
-                            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50">
-                        <i class="fas fa-save mr-1"></i> Save
+                            class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition disabled:opacity-50">
+                        Save
                     </button>
                 </div>
             </div>
@@ -2436,20 +2407,20 @@ function renderKenyaSmsCampaigns(campaigns, total) {
             </div>
         </div>
         <div class="w-full overflow-x-auto">
-            <table class="data-table min-w-full">
-                <thead class="bg-gray-50 dark:bg-gray-800">
+            <table class="data-table w-full table-auto">
+                <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-700">
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Campaign</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Recipients</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Delivered</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Failed</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rate</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Campaign</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Recipients</th>
+                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Delivered</th>
+                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Failed</th>
+                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Rate</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                        <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
     `;
 
     campaigns.forEach(campaign => {
@@ -2466,34 +2437,34 @@ function renderKenyaSmsCampaigns(campaigns, total) {
         
         html += `
             <tr class="${rowClass}">
-                <td class="px-4 py-3">
+                <td class="p-4 whitespace-nowrap">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</span>
                         ${isImported ? '<span class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Imported</span>' : ''}
                     </div>
                     <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">${escapeHtml(campaign.sender_id || 'No Sender')} • ${escapeHtml(campaign.message_type || '')}</div>
                 </td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     ${campaign.formatted_date || 'N/A'}
                 </td>
-                <td class="px-4 py-3 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                <td class="p-4 whitespace-nowrap text-center text-sm font-medium text-gray-700 dark:text-gray-300">
                     ${campaign.recipients}
                 </td>
-                <td class="px-4 py-3 text-center text-sm text-green-600 font-medium">
+                <td class="p-4 whitespace-nowrap text-center text-sm text-green-600 font-medium">
                     ${campaign.delivered}
                 </td>
-                <td class="px-4 py-3 text-center text-sm text-red-600 font-medium">
+                <td class="p-4 whitespace-nowrap text-center text-sm text-red-600 font-medium">
                     ${campaign.failed}
                 </td>
-                <td class="px-4 py-3 text-center text-sm font-medium ${rateColor}">
+                <td class="p-4 whitespace-nowrap text-center text-sm font-medium ${rateColor}">
                     ${campaign.success_rate}%
                 </td>
-                <td class="px-4 py-3">
+                <td class="p-4 whitespace-nowrap">
                     <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">
                         ${statusText}
                     </span>
                 </td>
-                <td class="px-4 py-3 text-center">
+                <td class="p-4 whitespace-nowrap text-center">
                     ${isImported ? `
                         <span class="text-xs text-gray-400">Already imported</span>
                     ` : `
@@ -2746,20 +2717,20 @@ document.addEventListener('click', function(event) {
                         const campaignId = campaign.id || 'temp-' + index;
                         
                         html += `
-                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                                <td class="px-4 py-3 text-sm text-gray-500">${campaignId}</td>
-                                <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">
+                            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaignId}</td>
+                                <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">
                                     ${escapeHtml(campaign.name || 'Unnamed Campaign')}
                                     <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
                                         KenyaSMS
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
-                                <td class="px-4 py-3 text-sm text-gray-500">${campaign.recipients || 0}</td>
-                                <td class="px-4 py-3 text-sm text-green-600">${campaign.delivered || campaign.sent || 0}</td>
-                                <td class="px-4 py-3 text-sm text-red-600">${campaign.failed || 0}</td>
-                                <td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
-                                <td class="px-4 py-3">
+                                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${date}</td>
+                                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign.recipients || 0}</td>
+                                <td class="p-4 whitespace-nowrap text-sm text-green-600">${campaign.delivered || campaign.sent || 0}</td>
+                                <td class="p-4 whitespace-nowrap text-sm text-red-600">${campaign.failed || 0}</td>
+                                <td class="p-4 whitespace-nowrap"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
+                                <td class="p-4 whitespace-nowrap">
                                     <button onclick="viewKenyaSmsCampaign('${campaignId}')" class="text-blue-600 hover:underline text-sm">View</button>
                                     <button onclick="importKenyaSmsCampaign('${campaignId}')" class="text-green-600 hover:underline text-sm ml-2">Import</button>
                                 </td>
@@ -2971,15 +2942,15 @@ function renderCampaigns() {
         
         html += `
             <tr>
-                <td class="px-4 py-3 text-sm text-gray-500">${campaign.id}</td>
-                <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</td>
-                <td class="px-4 py-3">${sourceBadge}</td>
-                <td class="px-4 py-3 text-sm text-gray-500">${date}</td>
-                <td class="px-4 py-3 text-sm text-gray-500">${campaign.total_recipients || 0}</td>
-                <td class="px-4 py-3 text-sm text-green-600">${campaign.sent_count || 0}</td>
-                <td class="px-4 py-3 text-sm text-red-600">${campaign.failed_count || 0}</td>
-                <td class="px-4 py-3"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
-                <td class="px-4 py-3">
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign.id}</td>
+                <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</td>
+                <td class="p-4 whitespace-nowrap">${sourceBadge}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${date}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${campaign.total_recipients || 0}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-green-600">${campaign.sent_count || 0}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-red-600">${campaign.failed_count || 0}</td>
+                <td class="p-4 whitespace-nowrap"><span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusBadge}">${statusText}</span></td>
+                <td class="p-4 whitespace-nowrap">
                     <button onclick="viewCampaign(${campaign.id})" class="text-blue-600 hover:underline">View</button>
                     <button onclick="sendCampaign(${campaign.id})" class="text-green-600 hover:underline">Send</button>
                     <button onclick="deleteCampaign(${campaign.id})" class="text-red-600 hover:underline">Delete</button>
@@ -3640,7 +3611,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             const statusEl = document.getElementById('viewCampaignStatus');
             if (statusEl) {
                 statusEl.textContent = capitalize(campaign.status || 'pending');
-                statusEl.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + getStatusBadge(campaign.status || 'pending');
+                statusEl.className = 'inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ' + getStatusBadge(campaign.status || 'pending');
             }
             
             const total = campaign.total_recipients || recipientCount || 0;
@@ -3822,8 +3793,8 @@ function renderRecipients(recipients) {
         const isSent = status === 'sent' || status === 'delivered';
         
         html += `
-            <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white">
                     <div class="flex items-center gap-3">
                         <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                             <span class="text-blue-600 dark:text-blue-400 font-medium text-sm">${escapeHtml(tenantName.charAt(0).toUpperCase())}</span>
@@ -3831,9 +3802,9 @@ function renderRecipients(recipients) {
                         <span>${escapeHtml(tenantName)}</span>
                     </div>
                 </td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     ${escapeHtml(phone)}
                     <button onclick="copyToClipboard('${escapeHtml(phone)}')" 
                             class="ml-1 text-xs text-blue-500 hover:text-blue-700 px-1.5 py-0.5 rounded border border-blue-200 hover:border-blue-400" 
@@ -3841,20 +3812,20 @@ function renderRecipients(recipients) {
                         Copy
                     </button>
                 </td>
-                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(network) || '-'}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${parts || '-'}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${cost || '-'}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${sentTime || '-'}</td>
-                <td class="px-4 py-3 text-center text-sm text-gray-500 dark:text-gray-400">${deliveredTime || '-'}</td>
-                <td class="px-4 py-3 text-center text-sm ${status === 'failed' ? 'text-red-500' : 'text-gray-400'}">
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(network) || '-'}</td>
+                <td class="p-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">${parts || '-'}</td>
+                <td class="p-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">${cost || '-'}</td>
+                <td class="p-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">${sentTime || '-'}</td>
+                <td class="p-4 whitespace-nowrap text-center text-sm text-gray-500 dark:text-gray-400">${deliveredTime || '-'}</td>
+                <td class="p-4 whitespace-nowrap text-center text-sm ${status === 'failed' ? 'text-red-500' : 'text-gray-400'}">
                     ${status === 'failed' ? escapeHtml(failureReason) : '-'}
                 </td>
-                <td class="px-4 py-3 text-center">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusBadge}">
+                <td class="p-4 whitespace-nowrap text-center">
+                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${statusBadge}">
                         ${statusText}
                     </span>
                 </td>
-                <td class="px-4 py-3 text-center">
+                <td class="p-4 whitespace-nowrap text-center">
                     <div class="flex flex-wrap items-center justify-center gap-1">
                         ${canResend ? `
                         <button onclick="resendSingleRecipient(${id})" 
@@ -4672,13 +4643,13 @@ function updateRecipientPhone(recipientId) {
                 let errorMsg = r.error_message || 'No error message';
                 
                 html += `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                        <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(tenantName)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
-                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
-                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
-                        <td class="px-4 py-3 text-center">
+                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white">${escapeHtml(tenantName)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(unitNumber)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-red-500">${escapeHtml(displayPhone)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-red-500">${escapeHtml(errorMsg)}</td>
+                        <td class="p-4 whitespace-nowrap text-center">
                             <button onclick="resendSingleRecipient(${r.id})" class="text-orange-600 hover:text-orange-900 text-sm mr-2" title="Resend">
                                 <i class="fas fa-redo"></i>
                             </button>
@@ -4850,13 +4821,13 @@ function resendSingleRecipient(recipientId) {
                 const propertyName = recipient.property_name || recipient.property || 'N/A';
                 
                 html += `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                        <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
-                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(displayPhone)}</td>
-                        <td class="px-4 py-3 text-sm text-red-500">${escapeHtml(errorMsg)}</td>
-                        <td class="px-4 py-3 text-center">
+                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(propertyName)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-red-500">${escapeHtml(displayPhone)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-red-500">${escapeHtml(errorMsg)}</td>
+                        <td class="p-4 whitespace-nowrap text-center">
                             <button onclick="openUpdatePhoneModal(${recipient.id}, '${escapeHtml(recipient.name)}', '${escapeHtml(recipient.phone || '')}')" 
                                     class="text-blue-600 hover:text-blue-900 text-sm">
                                 <i class="fas fa-edit"></i> Update
@@ -4946,12 +4917,12 @@ function resendSingleRecipient(recipientId) {
                 displayPhone = displayPhone.replace(/^254/, '0');
                 
                 html += `
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150">
-                        <td class="px-4 py-3 text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
-                        <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
-                        <td class="px-4 py-3 text-sm text-yellow-600">${escapeHtml(displayPhone)}</td>
-                        <td class="px-4 py-3 text-sm text-yellow-600">${escapeHtml(recipient.error || 'Other Network (Airtel/Telkom)')}</td>
-                        <td class="px-4 py-3 text-center">
+                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white">${escapeHtml(recipient.name)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">${escapeHtml(recipient.unit_number)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-yellow-600">${escapeHtml(displayPhone)}</td>
+                        <td class="p-4 whitespace-nowrap text-sm text-yellow-600">${escapeHtml(recipient.error || 'Other Network (Airtel/Telkom)')}</td>
+                        <td class="p-4 whitespace-nowrap text-center">
                             <button onclick="openUpdatePhoneModal(${recipient.id}, '${escapeHtml(recipient.name)}', '${escapeHtml(recipient.phone || '')}')" 
                                     class="text-blue-600 hover:text-blue-900 text-sm">
                                 <i class="fas fa-edit"></i> Update

@@ -100,48 +100,48 @@
 
 {{-- Tables --}}
 <div class="mt-6 grid grid-cols-1 gap-4 2xl:grid-cols-5">
-  <div class="{{ $card }} 2xl:col-span-3">
-    <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Property performance</h3>
-    <div class="overflow-x-auto">
-      <table class="data-table w-full">
-        <thead><tr><th>Property</th><th class="!text-right">Units</th><th class="!text-right">Occupancy</th><th class="!text-right">Rent roll / month</th><th class="!text-right">Billed</th><th class="!text-right">Collected</th><th class="!text-right">Rate</th><th class="!text-right">Arrears now</th></tr></thead>
-        <tbody>
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] 2xl:col-span-3">
+    <h3 class="border-b border-gray-200 px-5 py-4 dark:border-gray-700 text-lg font-semibold text-gray-800 dark:text-white/90">Property performance</h3>
+    <div class="w-full overflow-x-auto">
+      <table class="data-table w-full table-auto">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Property</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Units</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Occupancy</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Rent roll / month</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Billed</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Collected</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Rate</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Arrears now</th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
           @forelse ($data['properties'] as $p)
-            <tr>
-              <td><a href="{{ route('reports.index', array_merge($query, ['property' => $p['id']])) }}" class="font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $p['name'] }}</a>
-                <span class="block text-xs text-gray-500">{{ $p['location'] }}@if ($companyId === null && $companies->isNotEmpty()) · {{ $p['company'] }}@endif</span></td>
-              <td class="text-right">{{ number_format($p['units']) }}</td>
-              <td class="text-right">{{ $pct($p['occupancy']) }}</td>
-              <td class="text-right">{{ number_format($p['rent_roll']) }}</td>
-              <td class="text-right">{{ number_format($p['billed']) }}</td>
-              <td class="text-right">{{ number_format($p['collected']) }}</td>
-              <td class="text-right">{{ $pct($p['collection_rate']) }}</td>
-              <td class="text-right {{ $p['arrears'] > 0 ? 'font-medium text-red-600 dark:text-red-400' : '' }}">{{ number_format($p['arrears']) }}</td>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><a href="{{ route('reports.index', array_merge($query, ['property' => $p['id']])) }}" class="text-sm font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $p['name'] }}</a>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $p['location'] }}@if ($companyId === null && $companies->isNotEmpty()) · {{ $p['company'] }}@endif</span></td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['units']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $pct($p['occupancy']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['rent_roll']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['billed']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['collected']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $pct($p['collection_rate']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm {{ $p['arrears'] > 0 ? 'font-medium text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">{{ number_format($p['arrears']) }}</td>
             </tr>
           @empty
-            <tr><td colspan="8" class="py-6 text-center text-gray-500">No properties yet.</td></tr>
+            <tr><td colspan="8" class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No properties yet.</td></tr>
           @endforelse
         </tbody>
       </table>
     </div>
   </div>
 
-  <div class="{{ $card }} 2xl:col-span-2">
-    <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Owing the most</h3>
-    <div class="overflow-x-auto">
-      <table class="data-table w-full">
-        <thead><tr><th>Tenant</th><th>Unit</th><th class="!text-right">Balance</th><th class="!text-right">Since</th></tr></thead>
-        <tbody>
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] 2xl:col-span-2">
+    <h3 class="border-b border-gray-200 px-5 py-4 dark:border-gray-700 text-lg font-semibold text-gray-800 dark:text-white/90">Owing the most</h3>
+    <div class="w-full overflow-x-auto">
+      <table class="data-table w-full table-auto">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Tenant</th><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Balance</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Since</th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
           @forelse ($data['top_arrears'] as $r)
-            <tr>
-              <td><a href="{{ url('/tenancies/'.$r['tenancy_id']) }}" class="font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $r['tenant'] ?: 'Tenancy #'.$r['tenancy_id'] }}</a>
-                <span class="block text-xs text-gray-500">{{ $r['phone'] }}@if ($r['tenancy_status'] === 'ended') · moved out @endif</span></td>
-              <td>{{ $r['unit'] }}<span class="block text-xs text-gray-500">{{ $r['property'] }}</span></td>
-              <td class="text-right font-medium text-red-600 dark:text-red-400">{{ number_format($r['balance']) }}</td>
-              <td class="text-right text-gray-500">{{ \Carbon\Carbon::parse($r['oldest'])->format('M Y') }}</td>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><a href="{{ url('/tenancies/'.$r['tenancy_id']) }}" class="text-sm font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $r['tenant'] ?: 'Tenancy #'.$r['tenancy_id'] }}</a>
+                <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $r['phone'] }}@if ($r['tenancy_status'] === 'ended') · moved out @endif</span></td>
+              <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $r['unit'] }}<span class="block text-xs text-gray-500 dark:text-gray-400">{{ $r['property'] }}</span></td>
+              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-red-600 dark:text-red-400">{{ number_format($r['balance']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($r['oldest'])->format('M Y') }}</td>
             </tr>
           @empty
-            <tr><td colspan="4" class="py-6 text-center text-gray-500">Nobody owes anything. <x-icon name="sparkles" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></td></tr>
+            <tr><td colspan="4" class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">Nobody owes anything. <x-icon name="sparkles" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></td></tr>
           @endforelse
         </tbody>
       </table>

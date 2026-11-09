@@ -1,190 +1,179 @@
 {{-- resources/views/partials/dashboard/revenue-analytics.blade.php --}}
 <div x-data="revenueAnalytics()" x-init="init()" class="space-y-6">
-    
-    <!-- Revenue Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                KES {{ number_format(array_sum($monthlyRevenue ?? []), 2) }}
-            </p>
-            <p class="text-xs text-green-600 dark:text-green-400">All time</p>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Average Monthly</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                KES {{ number_format(!empty($monthlyRevenue) ? array_sum($monthlyRevenue) / count($monthlyRevenue) : 0, 2) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Last 12 months</p>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Payment Methods</p>
-            <p class="text-2xl font-bold text-gray-900 dark:text-white">
-                {{ count($paymentMethods ?? []) }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Active payment channels</p>
-        </div>
-        
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">
-                {{ isset($stats['collection_rate']) ? number_format($stats['collection_rate'], 1) : '0' }}%
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">Of total invoiced</p>
-        </div>
+
+  <!-- Revenue Summary Cards -->
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
+      <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">KES {{ number_format(array_sum($monthlyRevenue ?? []), 2) }}</p>
+      <p class="mt-1 text-xs text-green-600 dark:text-green-400">All time</p>
     </div>
 
-    <!-- Revenue Chart -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">Monthly Revenue</h4>
-            <div class="flex items-center gap-2">
-                <span class="text-xs text-gray-500 dark:text-gray-400">Last 12 months</span>
-                <button @click="toggleChartView" class="text-xs text-brand-500 hover:text-brand-600">
-                    <span x-text="chartView === 'bar' ? 'Switch to Line' : 'Switch to Bar'"></span>
-                </button>
-            </div>
-        </div>
-        
+    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Average Monthly</p>
+      <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">KES {{ number_format(!empty($monthlyRevenue) ? array_sum($monthlyRevenue) / count($monthlyRevenue) : 0, 2) }}</p>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 12 months</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Payment Methods</p>
+      <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">{{ count($paymentMethods ?? []) }}</p>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Active payment channels</p>
+    </div>
+
+    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</p>
+      <p class="mt-2 text-2xl font-bold text-green-600 dark:text-green-400">{{ isset($stats['collection_rate']) ? number_format($stats['collection_rate'], 1) : '0' }}%</p>
+      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Of total invoiced</p>
+    </div>
+  </div>
+
+  <!-- Revenue Chart -->
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Monthly Revenue</h3>
+      <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+        <span class="text-sm text-gray-500 dark:text-gray-400">Last 12 months</span>
+        <button type="button" @click="toggleChartView" class="shadow-theme-xs inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
+          <span x-text="chartView === 'bar' ? 'Switch to Line' : 'Switch to Bar'"></span>
+        </button>
+      </div>
+    </div>
+    <div class="p-5">
+      <div class="h-64">
+        <canvas id="revenueChart" x-ref="revenueChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Methods Distribution -->
+  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    <!-- Payment Methods Chart -->
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Payment Methods</h3>
+      </div>
+      <div class="p-5">
         <div class="h-64">
-            <canvas id="revenueChart" x-ref="revenueChart"></canvas>
+          <canvas id="paymentMethodsChart" x-ref="paymentMethodsChart"></canvas>
         </div>
+      </div>
     </div>
 
-    <!-- Payment Methods Distribution -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Payment Methods Chart -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Payment Methods</h4>
-            <div class="h-64">
-                <canvas id="paymentMethodsChart" x-ref="paymentMethodsChart"></canvas>
-            </div>
-        </div>
-        
-        <!-- Payment Methods Table -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Payment Method Breakdown</h4>
-            <div class="overflow-x-auto">
-                <table class="data-table w-full">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-700">
-                            <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Method</th>
-                            <th class="text-right text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Amount</th>
-                            <th class="text-right text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Percentage</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                        @php
-                            $totalPaymentMethods = array_sum($paymentMethods ?? []);
-                            $methodColors = [
-                                'wallet' => '#465FFF',
-                                'mpesa_stk' => '#10B981',
-                                'mpesa_paybill' => '#059669',
-                                'bank_transfer' => '#8B5CF6',
-                                'cash' => '#F59E0B',
-                                'manual_topup' => '#EF4444',
-                                'message_paste' => '#3B82F6'
-                            ];
-                        @endphp
-                        @forelse($paymentMethods ?? [] as $method => $amount)
-                            <tr>
-                                <td class="py-2 text-sm text-gray-700 dark:text-gray-300">
-                                    <span class="inline-flex items-center gap-2">
-                                        <span class="w-2 h-2 rounded-full" style="background: {{ $methodColors[$method] ?? '#6B7280' }}"></span>
-                                        {{ ucfirst(str_replace('_', ' ', $method)) }}
-                                    </span>
-                                </td>
-                                <td class="py-2 text-sm text-right text-gray-700 dark:text-gray-300">
-                                    KES {{ number_format($amount, 2) }}
-                                </td>
-                                <td class="py-2 text-sm text-right text-gray-700 dark:text-gray-300">
-                                    {{ $totalPaymentMethods > 0 ? number_format(($amount / $totalPaymentMethods) * 100, 1) : 0 }}%
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="3" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                    No payment data available
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                    <tfoot class="border-t border-gray-200 dark:border-gray-700">
-                        <tr>
-                            <td class="py-2 text-sm font-semibold text-gray-800 dark:text-white/90">Total</td>
-                            <td class="py-2 text-sm font-semibold text-right text-gray-800 dark:text-white/90">
-                                KES {{ number_format($totalPaymentMethods, 2) }}
-                            </td>
-                            <td class="py-2 text-sm font-semibold text-right text-gray-800 dark:text-white/90">100%</td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
+    <!-- Payment Methods Table -->
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Payment Method Breakdown</h3>
+      </div>
+      <div class="w-full overflow-x-auto">
+        <table class="data-table w-full table-auto">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-800">
+              <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Method</th>
+              <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
+              <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Percentage</th>
+            </tr>
+          </thead>
+          <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+            @php
+              $totalPaymentMethods = array_sum($paymentMethods ?? []);
+              $methodColors = [
+                'wallet' => '#465FFF',
+                'mpesa_stk' => '#10B981',
+                'mpesa_paybill' => '#059669',
+                'bank_transfer' => '#8B5CF6',
+                'cash' => '#F59E0B',
+                'manual_topup' => '#EF4444',
+                'message_paste' => '#3B82F6'
+              ];
+            @endphp
+            @forelse($paymentMethods ?? [] as $method => $amount)
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                <td class="p-4 whitespace-nowrap">
+                  <span class="inline-flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-white/90">
+                    <span class="h-2 w-2 rounded-full" style="background: {{ $methodColors[$method] ?? '#6B7280' }}"></span>
+                    {{ ucfirst(str_replace('_', ' ', $method)) }}
+                  </span>
+                </td>
+                <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">KES {{ number_format($amount, 2) }}</td>
+                <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $totalPaymentMethods > 0 ? number_format(($amount / $totalPaymentMethods) * 100, 1) : 0 }}%</td>
+              </tr>
+            @empty
+              <tr>
+                <td colspan="3" class="px-4 py-12 text-center">
+                  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No payment data available</h3>
+                </td>
+              </tr>
+            @endforelse
+          </tbody>
+          <tfoot>
+            <tr class="border-t border-gray-200 dark:border-gray-800">
+              <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">Total</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($totalPaymentMethods, 2) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-gray-800 dark:text-white/90">100%</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
+  </div>
 
-    <!-- Monthly Revenue Summary Table -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-        <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Monthly Revenue Summary</h4>
-        <div class="overflow-x-auto">
-            <table class="data-table w-full">
-                <thead>
-                    <tr class="border-b border-gray-200 dark:border-gray-700">
-                        <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Month</th>
-                        <th class="text-right text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Revenue</th>
-                        <th class="text-right text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Change</th>
-                        <th class="text-right text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    @php
-                        $monthlyData = $monthlyRevenue ?? [];
-                        $previousMonth = null;
-                    @endphp
-                    @forelse($monthlyData as $month => $amount)
-                        @php
-                            $monthDate = \Carbon\Carbon::createFromFormat('Y-m', $month);
-                            $change = $previousMonth !== null ? (($amount - $previousMonth) / max($previousMonth, 1)) * 100 : null;
-                            $previousMonth = $amount;
-                            $isPositive = $change !== null && $change >= 0;
-                        @endphp
-                        <tr>
-                            <td class="py-2 text-sm text-gray-700 dark:text-gray-300">
-                                {{ $monthDate->format('M Y') }}
-                            </td>
-                            <td class="py-2 text-sm text-right text-gray-700 dark:text-gray-300">
-                                KES {{ number_format($amount, 2) }}
-                            </td>
-                            <td class="py-2 text-sm text-right">
-                                @if($change !== null)
-                                    <span class="text-{{ $isPositive ? 'green' : 'red' }}-600">
-                                        {{ $isPositive ? '+' : '' }}{{ number_format($change, 1) }}%
-                                    </span>
-                                @else
-                                    <span class="text-gray-400">—</span>
-                                @endif
-                            </td>
-                            <td class="py-2 text-sm text-right">
-                                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full
-                                    {{ $amount > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400' }}">
-                                    {{ $amount > 0 ? 'Collected' : 'No Revenue' }}
-                                </span>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="py-4 text-center text-sm text-gray-500 dark:text-gray-400">
-                                No revenue data available
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+  <!-- Monthly Revenue Summary Table -->
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Monthly Revenue Summary</h3>
     </div>
+    <div class="w-full overflow-x-auto">
+      <table class="data-table w-full table-auto">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-800">
+            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Month</th>
+            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Revenue</th>
+            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Change</th>
+            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+          @php
+            $monthlyData = $monthlyRevenue ?? [];
+            $previousMonth = null;
+          @endphp
+          @forelse($monthlyData as $month => $amount)
+            @php
+              $monthDate = \Carbon\Carbon::createFromFormat('Y-m', $month);
+              $change = $previousMonth !== null ? (($amount - $previousMonth) / max($previousMonth, 1)) * 100 : null;
+              $previousMonth = $amount;
+              $isPositive = $change !== null && $change >= 0;
+            @endphp
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ $monthDate->format('M Y') }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">KES {{ number_format($amount, 2) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm">
+                @if($change !== null)
+                  <span class="{{ $isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $isPositive ? '+' : '' }}{{ number_format($change, 1) }}%</span>
+                @else
+                  <span class="text-gray-400">—</span>
+                @endif
+              </td>
+              <td class="p-4 whitespace-nowrap text-right">
+                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $amount > 0 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ $amount > 0 ? 'Collected' : 'No Revenue' }}</span>
+              </td>
+            </tr>
+          @empty
+            <tr>
+              <td colspan="4" class="px-4 py-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No revenue data available</h3>
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
 
 <script>
 document.addEventListener('alpine:init', () => {

@@ -1,28 +1,37 @@
 {{-- resources/views/partials/modal/companies-users-modal.blade.php --}}
 <div x-data="companiesUsersModal()" x-init="init()" x-cloak>
-    <div x-show="showModal" class="fixed inset-0 z-99999 overflow-hidden" style="display: none;">
-        <div class="absolute inset-0 bg-gray-500 bg-opacity-75 transition-opacity dark:bg-gray-900 dark:bg-opacity-90" @click="closeModal"></div>
-        <div class="fixed inset-y-0 right-0 max-w-full flex">
-            <div class="relative w-screen max-w-2xl">
-                <div class="h-full flex flex-col bg-white shadow-xl overflow-y-auto dark:bg-gray-800">
-                    <!-- Header -->
-                    <div class="px-6 py-4 bg-gradient-to-r from-purple-600 to-indigo-700 sticky top-0 z-10">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h2 class="text-xl font-semibold text-white" x-text="'Manage Users - ' + companyName"></h2>
-                                <p class="text-sm text-purple-100 mt-1">Add and manage company staff members</p>
-                            </div>
-                            <button @click="closeModal" class="text-white hover:text-gray-200">
-                                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
+    <!-- Backdrop -->
+    <div x-show="showModal" x-cloak @click="closeModal()"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
 
-                    <div class="flex-1">
+    <!-- Slide-over panel (slides in from the right) -->
+    <div x-show="showModal" x-cloak
+        x-transition:enter="transition transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+        style="width: 42rem; max-width: calc(100% - 2rem);">
+        <div class="p-6 lg:p-10">
+            <button type="button" @click="closeModal()"
+                class="group absolute right-3 top-3 z-99999 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+                <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
+                </svg>
+            </button>
+
+            <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90" x-text="'Manage Users - ' + companyName"></h4>
+                    <div>
                         <!-- User Slots Info -->
-                        <div class="mx-6 mt-6 p-4 bg-gray-50 rounded-lg dark:bg-gray-700/50" x-show="availableUserSlots !== null">
+                        <div class="mb-6 p-4 bg-gray-50 rounded-lg dark:bg-gray-700/50" x-show="availableUserSlots !== null">
                             <div class="flex justify-between items-center">
                                 <span class="text-sm text-gray-600 dark:text-gray-400">Available User Slots:</span>
                                 <span class="text-2xl font-bold" :class="availableUserSlots > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'" x-text="availableUserSlots"></span>
@@ -37,7 +46,7 @@
                         </div>
 
                         <!-- Add New User Form -->
-                        <div class="mx-6 mt-6 p-5 border rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600">
+                        <div class="p-5 border rounded-lg bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600">
                             <h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                                 <svg class="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
@@ -78,7 +87,7 @@
                                     </div>
                                 </div>
                                 <div class="mt-4">
-                                    <button type="submit" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition" :disabled="addingUser">
+                                    <button type="submit" class="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed" :disabled="addingUser">
                                         <span x-show="!addingUser">Add User to Company</span>
                                         <span x-show="addingUser">Adding...</span>
                                     </button>
@@ -88,7 +97,7 @@
                         </div>
 
                         <!-- Users List -->
-                        <div class="mx-6 my-6">
+                        <div class="mt-6">
                             <h4 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
                                 <svg class="w-5 h-5 mr-2 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -133,8 +142,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

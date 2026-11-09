@@ -1,39 +1,37 @@
 {{-- resources/views/partials/modal/subscriptions-create-modal.blade.php --}}
 <!-- Subscriptions Create/Edit Slide-over Modal -->
-<div x-data="subscriptionsCreateModal()" x-init="init()" x-show="showModal" x-cloak class="fixed inset-0 z-99999 overflow-hidden" style="display: none;">
-    <!-- Frosty Background Overlay -->
-    <div class="absolute inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" @click="closeModal()"></div>
+<div x-data="subscriptionsCreateModal()" x-init="init()">
+    <!-- Backdrop -->
+    <div x-show="showModal" x-cloak @click="closeModal()"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
 
-    <!-- Slide-over Panel -->
-    <div class="absolute inset-y-0 right-0 max-w-full flex">
-        <div class="relative w-screen max-w-2xl">
-            <div class="h-full flex flex-col bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto">
-                
-                <!-- Modal Header -->
-                <div class="bg-gradient-to-r from-purple-600 to-indigo-700 px-6 py-5 sticky top-0 z-50 flex-shrink-0">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-4">
-                            <div class="h-12 w-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <h3 class="text-xl font-bold text-white" x-text="isEditing ? 'Edit Subscription Plan' : 'Create Subscription Plan'"></h3>
-                                <p class="text-sm text-purple-200" x-text="isEditing ? 'Update plan details and pricing' : 'Add a new subscription plan'"></p>
-                            </div>
-                        </div>
-                        <button @click="closeModal()" class="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
+    <!-- Slide-over panel (slides in from the right) -->
+    <div x-show="showModal" x-cloak
+        x-transition:enter="transition transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+        style="width: 42rem; max-width: calc(100% - 2rem);">
+        <div class="p-6 lg:p-10">
+            <button type="button" @click="closeModal()"
+                class="group absolute right-3 top-3 z-99999 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+                <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" />
+                </svg>
+            </button>
 
-                <!-- Modal Body -->
-                <form @submit.prevent="savePlan" class="flex-1 flex flex-col overflow-hidden">
-                    <div class="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+            <form @submit.prevent="savePlan">
+                <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90" x-text="isEditing ? 'Edit Subscription Plan' : 'Create Subscription Plan'"></h4>
+                    <div class="space-y-6">
                         <!-- Basic Information -->
                         <div class="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                             <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
@@ -228,13 +226,13 @@
                     </div>
 
                     <!-- Modal Footer -->
-                    <div class="bg-gray-100 dark:bg-gray-800/80 px-6 py-4 flex justify-end gap-3 sticky bottom-0 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <div class="flex items-center justify-end w-full gap-3 mt-6">
                         <button type="button" @click="closeModal()" 
-                            class="px-5 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition font-medium">
+                            class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto">
                             Cancel
                         </button>
                         <button type="submit" :disabled="saving" 
-                            class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2">
+                            class="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto">
                             <span x-show="!saving" x-text="isEditing ? 'Save Changes' : 'Create Plan'"></span>
                             <span x-show="saving" class="flex items-center gap-2">
                                 <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -248,7 +246,6 @@
                 </form>
             </div>
         </div>
-    </div>
 </div>
 
 <script>

@@ -61,9 +61,6 @@
             <button onclick="exportSelectedUsers()" id="exportSelectedBtn" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition">
                 <i class="fas fa-file-export"></i> Export Selected
             </button>
-            <button onclick="openAddUserDrawer()" class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition">
-                <i class="fas fa-plus"></i> Add User
-            </button>
         </div>
     </div>
 
@@ -213,120 +210,135 @@
     @endif
 
     <!-- ============================================================ -->
-    <!-- FILTER FORM – Cleaner Layout -->
+    <!-- USERS TABLE (filters, bulk actions, table, pager in one card) -->
     <!-- ============================================================ -->
-    <div class="mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
-        <form id="filterForm" method="GET" action="{{ route('users.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
-            <div class="relative lg:col-span-1">
-                <input type="text" name="search" id="searchInput" value="{{ $currentSearch }}" placeholder="Search users..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 pl-8 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-                <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs">
-                    <i class="fas fa-search"></i>
+    @php
+        $userTab = fn ($v) => request()->fullUrlWithQuery(['status' => $v, 'page' => null]);
+        $userTabs = [
+            ['label' => 'All', 'url' => $userTab(null), 'active' => $currentStatus === ''],
+            ['label' => 'Active', 'url' => $userTab('0'), 'active' => $currentStatus === '0', 'tone' => 'green'],
+            ['label' => 'Pending', 'url' => $userTab('2'), 'active' => $currentStatus === '2', 'tone' => 'amber'],
+            ['label' => 'Inactive', 'url' => $userTab('1'), 'active' => $currentStatus === '1', 'tone' => 'red'],
+        ];
+        $menuItem = 'text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300';
+    @endphp
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <form id="filterForm" method="GET" action="{{ route('users.index') }}" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+            <input type="hidden" name="status" id="statusFilter" value="{{ $currentStatus }}">
+            @include('partials.table.tabs', ['tabs' => $userTabs])
+
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+                <div class="relative">
+                    <select name="role_id" id="roleFilter" aria-label="Role" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 w-full min-w-[110px] appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-8 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <option value="">All Roles</option>
+                        @foreach($roles as $role)
+                            <option value="{{ $role->id }}" @selected($currentRole == $role->id)>{{ ucfirst(str_replace('_', ' ', $role->name)) }}</option>
+                        @endforeach
+                    </select>
+                    <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.293 7.293C5.68342 6.90258 6.31658 6.90258 6.707 7.293L10 10.586L13.293 7.293C13.6834 6.90258 14.3166 6.90258 14.707 7.293C15.0974 7.68342 15.0974 8.31658 14.707 8.707L10.707 12.707C10.3166 13.0974 9.68342 13.0974 9.293 12.707L5.293 8.707C4.90258 8.31658 4.90258 7.68342 5.293 7.293Z" fill=""/></svg></span>
                 </div>
-            </div>
-            <select name="role_id" id="roleFilter" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-                <option value="">All Roles</option>
-                @foreach($roles as $role)
-                    <option value="{{ $role->id }}" @selected($currentRole == $role->id)>{{ ucfirst(str_replace('_', ' ', $role->name)) }}</option>
-                @endforeach
-            </select>
-            <select name="company_id" id="companyFilter" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-                <option value="">All Companies</option>
-                @foreach($companies as $company)
-                    <option value="{{ $company->id }}" @selected($currentCompany == $company->id)>{{ $company->name }}</option>
-                @endforeach
-            </select>
-            <select name="status" id="statusFilter" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-                <option value="">All Status</option>
-                <option value="0" @selected($currentStatus === '0')>Active</option>
-                <option value="1" @selected($currentStatus === '1')>Inactive</option>
-                <option value="2" @selected($currentStatus === '2')>Pending</option>
-            </select>
-            <select name="verified" id="verifiedFilter" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-                <option value="">All</option>
-                <option value="verified" @selected($currentVerified == 'verified')>Verified</option>
-                <option value="unverified" @selected($currentVerified == 'unverified')>Unverified</option>
-            </select>
-            <input type="date" name="date_from" id="dateFrom" value="{{ $currentDateFrom }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-            <input type="date" name="date_to" id="dateTo" value="{{ $currentDateTo }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
-            <div class="flex gap-1.5">
-                <button type="submit" class="flex-1 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition h-9">
-                    <i class="fas fa-search mr-1.5 text-xs"></i> Apply
-                </button>
-                <a href="{{ route('users.index') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition h-9 w-9" title="Clear filters">
-                    <i class="fas fa-undo text-xs"></i>
-                </a>
+                <div class="relative">
+                    <select name="company_id" id="companyFilter" aria-label="Company" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 w-full min-w-[140px] appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-8 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <option value="">All Companies</option>
+                        @foreach($companies as $company)
+                            <option value="{{ $company->id }}" @selected($currentCompany == $company->id)>{{ $company->name }}</option>
+                        @endforeach
+                    </select>
+                    <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.293 7.293C5.68342 6.90258 6.31658 6.90258 6.707 7.293L10 10.586L13.293 7.293C13.6834 6.90258 14.3166 6.90258 14.707 7.293C15.0974 7.68342 15.0974 8.31658 14.707 8.707L10.707 12.707C10.3166 13.0974 9.68342 13.0974 9.293 12.707L5.293 8.707C4.90258 8.31658 4.90258 7.68342 5.293 7.293Z" fill=""/></svg></span>
+                </div>
+                <div class="relative">
+                    <select name="verified" id="verifiedFilter" aria-label="Verified" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 w-full min-w-[110px] appearance-none rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-8 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                        <option value="">Any email</option>
+                        <option value="verified" @selected($currentVerified == 'verified')>Verified</option>
+                        <option value="unverified" @selected($currentVerified == 'unverified')>Unverified</option>
+                    </select>
+                    <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.293 7.293C5.68342 6.90258 6.31658 6.90258 6.707 7.293L10 10.586L13.293 7.293C13.6834 6.90258 14.3166 6.90258 14.707 7.293C15.0974 7.68342 15.0974 8.31658 14.707 8.707L10.707 12.707C10.3166 13.0974 9.68342 13.0974 9.293 12.707L5.293 8.707C4.90258 8.31658 4.90258 7.68342 5.293 7.293Z" fill=""/></svg></span>
+                </div>
+                <input type="date" name="date_from" id="dateFrom" value="{{ $currentDateFrom }}" aria-label="Joined from" title="Joined from" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                <input type="date" name="date_to" id="dateTo" value="{{ $currentDateTo }}" aria-label="Joined to" title="Joined to" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                <div class="relative">
+                    <span class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400"><svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z" fill=""/></svg></span>
+                    <input type="search" name="search" id="searchInput" size="14" value="{{ $currentSearch }}" placeholder="Search users…" aria-label="Search users" class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full min-w-[140px] rounded-lg border border-gray-300 bg-transparent py-2.5 pr-4 pl-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30">
+                </div>
+                @if($currentRole || $currentCompany || $currentStatus !== '' || $currentSearch || $currentVerified || $currentDateFrom || $currentDateTo)
+                    <a href="{{ route('users.index') }}" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white" title="Clear filters">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Clear
+                    </a>
+                @endif
+                <button type="button" onclick="openAddUserDrawer()" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add User</button>
             </div>
         </form>
-    </div>
 
-    <!-- ============================================================ -->
-    <!-- BULK ACTIONS BAR -->
-    <!-- ============================================================ -->
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex items-center gap-3">
-            <button id="selectAllBtn" onclick="selectAllUsers()" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-                <i class="fas fa-check-double"></i> Select All
-            </button>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-                <span id="selectedCount" class="font-semibold text-indigo-600 dark:text-indigo-400">0</span> selected
-            </span>
+        <!-- Bulk actions -->
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 px-5 py-3 dark:border-gray-700">
+            <div class="flex items-center gap-3">
+                <button type="button" id="selectAllBtn" onclick="selectAllUsers()" class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800">
+                    <i class="fas fa-check-double"></i> Select All
+                </button>
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    <span id="selectedCount" class="font-semibold text-gray-800 dark:text-white/90">0</span> selected
+                </span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <select id="bulkAction" aria-label="Bulk action" class="h-9 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                    <option value="">Bulk Actions</option>
+                    <option value="activate">Activate</option>
+                    <option value="deactivate">Deactivate</option>
+                    <option value="change_role">Change Role</option>
+                    <option value="change_company">Change Company</option>
+                    <option value="delete">Delete</option>
+                </select>
+                <button type="button" id="applyBulkAction" onclick="applyBulkAction()" class="inline-flex h-9 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
+                    Apply
+                </button>
+                <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">Show</span>
+                <select id="perPage" aria-label="Rows per page" class="h-9 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90" onchange="changePerPage()">
+                    <option value="10" @selected($users->perPage() == 10)>10</option>
+                    <option value="20" @selected($users->perPage() == 20)>20</option>
+                    <option value="50" @selected($users->perPage() == 50)>50</option>
+                    <option value="100" @selected($users->perPage() == 100)>100</option>
+                </select>
+            </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-            <select id="bulkAction" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
-                <option value="">Bulk Actions</option>
-                <option value="activate">Activate</option>
-                <option value="deactivate">Deactivate</option>
-                <option value="change_role">Change Role</option>
-                <option value="change_company">Change Company</option>
-                <option value="delete">Delete</option>
-            </select>
-            <button id="applyBulkAction" onclick="applyBulkAction()" class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 transition">
-                Apply
-            </button>
-        </div>
-    </div>
 
-    <!-- ============================================================ -->
-    <!-- USERS TABLE – Clean with Visual Status Indicators -->
-    <!-- ============================================================ -->
-    <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
         <div class="w-full overflow-x-auto">
-            <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead class="bg-gray-50 dark:bg-gray-900/50">
-                    <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-10">
+            <table class="data-table w-full table-auto">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-800">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 w-10">
                             <input type="checkbox" id="masterCheckbox" onchange="toggleMasterCheckbox()" class="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500">
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('id')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('id')">
                             ID <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('name')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('name')">
                             User <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('email')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('email')">
                             Email <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('phone')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('phone')">
                             Phone <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('role_id')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('role_id')">
                             Role <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('company_id')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('company_id')">
                             Company <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('status')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('status')">
                             Status <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-700 dark:hover:text-gray-300 transition" onclick="sortTable('created_at')">
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer hover:text-gray-700 dark:hover:text-gray-300" onclick="sortTable('created_at')">
                             Joined <i class="fas fa-sort ml-1 text-xs"></i>
                         </th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                        <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">
                             Actions
                         </th>
                     </tr>
                 </thead>
-                <tbody id="usersTableBody" class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tbody id="usersTableBody" class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                     @forelse($users as $user)
                         @php
                             $primaryRole = $user->getRoleNames()->first() ?? 'No Role';
@@ -335,27 +347,27 @@
                             $isTenant = $user->hasRole('tenant');
                             $verified = !is_null($user->email_verified_at);
                             $statusLabel = $user->status == 0 ? 'Active' : ($user->status == 1 ? 'Inactive' : 'Pending');
-                            $statusColor = $user->status == 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : ($user->status == 1 ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400');
+                            $statusColor = $user->status == 0 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : ($user->status == 1 ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200');
                             $verifiedIcon = $verified ? 'fa-check-circle text-emerald-500' : 'fa-clock text-amber-500';
                         @endphp
-                        <tr id="user-row-{{ $user->id }}" class="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                            <td class="px-4 py-3">
+                        <tr id="user-row-{{ $user->id }}" class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td class="p-4 whitespace-nowrap">
                                 <input type="checkbox" class="user-checkbox rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500" data-id="{{ $user->id }}">
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 #{{ $user->id }}
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
+                            <td class="p-4 whitespace-nowrap">
+                                <div class="flex items-center gap-3">
                                     @if($user->avatar)
-                                        <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}" class="w-8 h-8 rounded-full object-cover">
+                                        <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}" class="h-8 w-8 flex-shrink-0 rounded-full object-cover">
                                     @else
-                                        <div class="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-sm font-bold">
-                                            {{ $user->getInitialsAttribute() ?? substr($user->name, 0, 1) }}
+                                        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                                            <span class="text-sm font-medium text-purple-600">{{ $user->getInitialsAttribute() ?? substr($user->name, 0, 1) }}</span>
                                         </div>
                                     @endif
                                     <div>
-                                        <div class="text-sm font-medium text-gray-800 dark:text-white" data-field="name">{{ $user->name }}</div>
+                                        <div class="text-sm font-medium text-gray-800 dark:text-white/90" data-field="name">{{ $user->name }}</div>
                                         <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
                                             <i class="fas {{ $verifiedIcon }} text-xs"></i>
                                             {{ $verified ? 'Verified' : 'Unverified' }}
@@ -363,10 +375,10 @@
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300" data-field="email">{{ $user->email }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300" data-field="phone">{{ $user->phone ?? '-' }}</td>
-                            <td class="px-4 py-3">
-                                <span class="inline-flex items-center rounded-full bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-xs font-medium text-indigo-700 dark:text-indigo-300">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-field="email">{{ $user->email }}</td>
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" data-field="phone">{{ $user->phone ?? '-' }}</td>
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                     {{ $primaryRole }}
                                 </span>
                                 @if(count($roleNames) > 1)
@@ -374,93 +386,64 @@
                                 @endif
                                 <span data-field="role_id" data-value="{{ $user->roles->first()?->id ?? '' }}" style="display:none;">{{ $user->roles->first()?->id ?? '' }}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $user->company->name ?? '-' }}
                                 <span data-field="company_id" data-value="{{ $user->company_id ?? '' }}" style="display:none;">{{ $user->company_id ?? '' }}</span>
                             </td>
-                            <td class="px-4 py-3">
-                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $statusColor }}">
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $statusColor }}">
                                     {{ $statusLabel }}
                                 </span>
                                 <span data-field="status" data-value="{{ $user->status }}" style="display:none;">{{ $user->status }}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $user->created_at->format('d M Y') }}
                             </td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-1">
-                                    <a href="{{ route('users.show', $user->id) }}" class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('users.edit', $user->id) }}" class="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition" title="Edit">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    @if(!$isSysadmin)
-                                        <button onclick="if(confirm('Delete user {{ $user->name }}?')) { fetch('{{ route('users.destroy', $user->id) }}', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(r=>r.json()).then(d=>{ if(d.success){ (window.schargeRefresh || (() => location.reload()))(); } else { alert(d.message); } }); }" class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition" title="Delete">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    @endif
+                            <td class="p-4 whitespace-nowrap text-right">
+                                <div x-data="{ open: false, x: 0, y: 0 }" class="relative" @click.outside="open = false" @scroll.window="open = false">
+                                  <button type="button" @click="const r = $el.getBoundingClientRect(); x = r.right; y = r.bottom + 4; open = !open" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" aria-label="Actions"><svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill=""/></svg></button>
+                                  <div x-show="open" x-cloak :style="`position:fixed;top:${y}px;left:${x - 160}px`" class="shadow-theme-lg dark:bg-gray-dark z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800">
+                                    <a href="{{ route('users.show', $user->id) }}" class="{{ $menuItem }}">View</a>
+                                    <a href="{{ route('users.edit', $user->id) }}" class="{{ $menuItem }}">Edit</a>
                                     @if(!$verified)
-                                        <button onclick="verifyUser({{ $user->id }})" class="p-1.5 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition" title="Verify">
-                                            <i class="fas fa-check-circle"></i>
-                                        </button>
+                                      <button type="button" @click="open = false" onclick="verifyUser({{ $user->id }})" class="{{ $menuItem }}">Verify</button>
                                     @endif
-                                    <button onclick="openAssignModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ $user->email }}', '{{ $primaryRole }}')" class="p-1.5 text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition" title="Assign Company">
-                                        <i class="fas fa-building"></i>
-                                    </button>
+                                    <button type="button" @click="open = false" onclick="openAssignModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ $user->email }}', '{{ $primaryRole }}')" class="{{ $menuItem }}">Assign company</button>
+                                    @if(!$isSysadmin)
+                                      <button type="button" @click="open = false" onclick="if(confirm('Delete user {{ $user->name }}?')) { fetch('{{ route('users.destroy', $user->id) }}', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(r=>r.json()).then(d=>{ if(d.success){ (window.schargeRefresh || (() => location.reload()))(); } else { alert(d.message); } }); }" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">Delete</button>
+                                    @endif
+                                  </div>
                                 </div>
                             </td>
                         </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                            <i class="fas fa-inbox text-3xl block mb-2 text-gray-300 dark:text-gray-600"></i>
-                            No users found.
-                        </td>
+                        <td colspan="10" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No users found</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your filters or search.</p>
+  </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="flex flex-wrap items-center justify-between gap-4 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
-            <div class="flex items-center gap-2">
-                <span class="text-sm text-gray-600 dark:text-gray-400">Show:</span>
-                <select id="perPage" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-2 py-1 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition" onchange="changePerPage()">
-                    <option value="10" @selected($users->perPage() == 10)>10</option>
-                    <option value="20" @selected($users->perPage() == 20)>20</option>
-                    <option value="50" @selected($users->perPage() == 50)>50</option>
-                    <option value="100" @selected($users->perPage() == 100)>100</option>
-                </select>
-                <span class="text-sm text-gray-600 dark:text-gray-400">entries</span>
-            </div>
-            <div class="text-sm text-gray-600 dark:text-gray-400">
-                {{ $users->appends(request()->query())->links() }}
-            </div>
-        </div>
+        @if (method_exists($users, 'lastPage'))
+            @include('partials.table.pager', ['paginator' => $users->appends(request()->query())])
+        @endif
     </div>
 </div>
 
 <!-- ============================================================ -->
 <!-- ADD USER DRAWER -->
 <!-- ============================================================ -->
-<div id="addUserDrawer" class="fixed inset-0 z-50 overflow-hidden" style="display: none;">
-    <div class="fixed inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAddUserDrawer()"></div>
-    <div class="fixed right-0 top-0 h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out overflow-y-auto" style="transform: translateX(100%);">
-        <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                    <i class="fas fa-user-plus text-lg"></i>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Add User</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Create a new system user</p>
-                </div>
-            </div>
-            <button onclick="closeAddUserDrawer()" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300 transition">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-        </div>
-        <div class="p-6">
+<div id="addUserDrawer" style="display: none;">
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" onclick="closeAddUserDrawer()"></div>
+    <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999 transform transition-transform duration-300 ease-in-out" style="width: 42rem; max-width: calc(100% - 2rem); transform: translateX(100%);">
+        <div class="p-6 lg:p-10">
+            <button type="button" onclick="closeAddUserDrawer()" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+            <h4 class="mb-1 text-lg font-medium text-gray-800 dark:text-white/90">Add User</h4>
+            <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Create a new system user</p>
             <form id="addUserForm" onsubmit="submitAddUser(event)">
                 @csrf
                 <div class="space-y-4">
@@ -557,55 +540,43 @@
 <!-- ============================================================ -->
 <!-- MODALS -->
 <!-- ============================================================ -->
-<div id="changeRoleModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('changeRoleModal')"></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Change Role</h3>
-                <button onclick="closeModal('changeRoleModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="px-6 py-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Select new role for <span id="changeRoleCount" class="font-semibold">0</span> user(s).</p>
-                <select id="newRoleId" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
-                    <option value="">Select Role...</option>
-                    @foreach($roles as $role)
-                        <option value="{{ $role->id }}">{{ ucfirst(str_replace('_', ' ', $role->name)) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
-                <button onclick="closeModal('changeRoleModal')" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancel</button>
-                <button onclick="executeBulkAction('change_role')" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Apply</button>
+<div id="changeRoleModal" style="display: none;">
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" onclick="closeModal('changeRoleModal')"></div>
+    <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 32rem; max-width: calc(100% - 2rem);">
+        <div class="p-6 lg:p-10">
+            <button type="button" onclick="closeModal('changeRoleModal')" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+            <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Change Role</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Select new role for <span id="changeRoleCount" class="font-semibold">0</span> user(s).</p>
+            <select id="newRoleId" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                <option value="">Select Role...</option>
+                @foreach($roles as $role)
+                    <option value="{{ $role->id }}">{{ ucfirst(str_replace('_', ' ', $role->name)) }}</option>
+                @endforeach
+            </select>
+            <div class="mt-8 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('changeRoleModal')" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">Cancel</button>
+                <button type="button" onclick="executeBulkAction('change_role')" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition">Apply</button>
             </div>
         </div>
     </div>
 </div>
 
-<div id="changeCompanyModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeModal('changeCompanyModal')"></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all">
-            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Change Company</h3>
-                <button onclick="closeModal('changeCompanyModal')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="px-6 py-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Select new company for <span id="changeCompanyCount" class="font-semibold">0</span> user(s).</p>
-                <select id="newCompanyId" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition">
-                    <option value="">Select Company...</option>
-                    @foreach($companies as $company)
-                        <option value="{{ $company->id }}">{{ $company->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30">
-                <button onclick="closeModal('changeCompanyModal')" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition">Cancel</button>
-                <button onclick="executeBulkAction('change_company')" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">Apply</button>
+<div id="changeCompanyModal" style="display: none;">
+    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" onclick="closeModal('changeCompanyModal')"></div>
+    <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 32rem; max-width: calc(100% - 2rem);">
+        <div class="p-6 lg:p-10">
+            <button type="button" onclick="closeModal('changeCompanyModal')" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+            <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Change Company</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Select new company for <span id="changeCompanyCount" class="font-semibold">0</span> user(s).</p>
+            <select id="newCompanyId" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                <option value="">Select Company...</option>
+                @foreach($companies as $company)
+                    <option value="{{ $company->id }}">{{ $company->name }}</option>
+                @endforeach
+            </select>
+            <div class="mt-8 flex justify-end gap-3">
+                <button type="button" onclick="closeModal('changeCompanyModal')" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">Cancel</button>
+                <button type="button" onclick="executeBulkAction('change_company')" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition">Apply</button>
             </div>
         </div>
     </div>

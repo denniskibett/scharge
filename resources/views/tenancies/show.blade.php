@@ -409,53 +409,54 @@
       <!-- Invoices Tab -->
       <div x-show="activeTab === 'invoices'" x-cloak>
         @if($tenancy->invoices->count() > 0)
-          <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-800">
-                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice #</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Month</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Amount</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Paid</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Balance</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+          <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="w-full overflow-x-auto">
+            <table class="data-table w-full table-auto">
+              <thead>
+                 <tr class="border-b border-gray-200 dark:border-gray-800">
+                  <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Invoice #</th>
+                  <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Month</th>
+                  <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Total Amount</th>
+                  <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Paid</th>
+                  <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Balance</th>
+                  <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                  <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                  </tr>
               </thead>
-              <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                 @foreach($tenancy->invoices as $invoice)
                 @php
                   $paidOnInvoice = $invoice->payments->sum('amount');
                   $balance = $invoice->total_amount - $paidOnInvoice;
                 @endphp
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                  <td class="p-4 whitespace-nowrap text-sm font-medium">
                     <a href="{{ route('invoices.show', $invoice) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
                       #{{ str_pad($invoice->id, 6, '0', STR_PAD_LEFT) }}
                     </a>
                    </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {{ \Carbon\Carbon::parse($invoice->billing_month)->format('M Y') }}
                    </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                  <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
                     KES {{ number_format($invoice->total_amount, 2) }}
                    </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                  <td class="p-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
                     KES {{ number_format($paidOnInvoice, 2) }}
                    </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {{ $balance > 0 ? 'text-red-600' : 'text-green-600' }}">
+                  <td class="p-4 whitespace-nowrap text-sm font-medium {{ $balance > 0 ? 'text-red-600' : 'text-green-600' }}">
                     KES {{ number_format($balance, 2) }}
                    </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                  <td class="p-4 whitespace-nowrap">
+                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
                       {{ $invoice->status === 'paid' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
-                         ($invoice->status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' : 
+                         ($invoice->status === 'partial' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' : 
                          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200') }}">
                       {{ ucfirst($invoice->status) }}
                     </span>
                     </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <a href="{{ route('invoices.show', $invoice) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                  <td class="p-4 whitespace-nowrap text-right text-sm">
+                    <a href="{{ route('invoices.show', $invoice) }}" class="font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                       View
                     </a>
                     </td>
@@ -463,14 +464,15 @@
                 @endforeach
               </tbody>
              </table>
+            </div>
           </div>
         @else
-          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center">
-            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="rounded-xl border border-gray-200 bg-white px-4 py-12 text-center dark:border-gray-800 dark:bg-white/[0.03]">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No Invoices</h3>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No invoices have been generated for this tenancy yet.</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No Invoices</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No invoices have been generated for this tenancy yet.</p>
             @if($tenancy->status === 'active')
             <div class="mt-6">
               <button 
@@ -490,45 +492,45 @@
       <!-- Payments Tab -->
       <div x-show="activeTab === 'payments'" x-cloak>
         @if($tenancy->payments->count() > 0)
-          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment #</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Invoice</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Payment Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Method</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Reference</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+          <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="w-full overflow-x-auto">
+              <table class="data-table w-full table-auto">
+                <thead>
+                   <tr class="border-b border-gray-200 dark:border-gray-800">
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Payment #</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Invoice</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Payment Date</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Method</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Reference</th>
+                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                    </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                   @foreach($tenancy->payments as $payment)
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                      <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
                         #{{ str_pad($payment->id, 6, '0', STR_PAD_LEFT) }}
                        </td>
-                      <td class="px-6 py-4 whitespace-nowrap">
-                        <a href="{{ route('invoices.show', $payment->invoice_id) }}" class="text-sm text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                      <td class="p-4 whitespace-nowrap">
+                        <a href="{{ route('invoices.show', $payment->invoice_id) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                           INV-{{ str_pad($payment->invoice_id, 6, '0', STR_PAD_LEFT) }}
                         </a>
                        </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                      <td class="p-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
                         KES {{ number_format($payment->amount, 2) }}
                        </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}
                        </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {{ ucfirst($payment->payment_method) }}
                        </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                      <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         {{ $payment->reference_number ?? '-' }}
                        </td>
-                      <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <a href="{{ route('payments.show', $payment) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                      <td class="p-4 whitespace-nowrap text-right text-sm">
+                        <a href="{{ route('payments.show', $payment) }}" class="font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                           View
                         </a>
                        </td>
@@ -539,12 +541,12 @@
             </div>
           </div>
         @else
-          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center">
-            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="rounded-xl border border-gray-200 bg-white px-4 py-12 text-center dark:border-gray-800 dark:bg-white/[0.03]">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No Payments</h3>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No payment records found for this tenancy.</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No Payments</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No payment records found for this tenancy.</p>
             @if($tenancy->status === 'active')
             <div class="mt-6">
               <button 
@@ -564,20 +566,20 @@
       <!-- Unit Tenancy History Tab -->
       <div x-show="activeTab === 'unit-history'" x-cloak>
         @if($unitTenancyHistory->count() > 0)
-          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                   <tr>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Move-in Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Move-out Date</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration</th>
-                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+          <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="w-full overflow-x-auto">
+              <table class="data-table w-full table-auto">
+                <thead>
+                   <tr class="border-b border-gray-200 dark:border-gray-800">
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Tenant</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Move-in Date</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Move-out Date</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Duration</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                    </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                   @foreach($unitTenancyHistory as $historyTenancy)
                     @php
                       $moveIn = \Carbon\Carbon::parse($historyTenancy->move_in_date);
@@ -586,8 +588,8 @@
                       $tenantName = optional($historyTenancy->tenant->user)->name ?? 'Unknown Tenant';
                       $tenantInitial = $tenantName[0] ?? 'T';
                     @endphp
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors {{ $historyTenancy->id === $tenancy->id ? 'bg-blue-50 dark:bg-blue-900/10' : '' }}">
-                      <td class="px-6 py-4">
+                    <tr class="transition {{ $historyTenancy->id === $tenancy->id ? 'bg-blue-50 dark:bg-blue-900/10' : 'hover:bg-gray-50 dark:hover:bg-gray-900' }}">
+                      <td class="p-4 whitespace-nowrap">
                         <div class="flex items-center gap-3">
                           <div class="flex-shrink-0 h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
                             <span class="text-purple-600 font-medium text-sm">{{ $tenantInitial }}</span>
@@ -602,17 +604,17 @@
                           </div>
                         </div>
                        </td>
-                      <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $moveIn->format('M d, Y') }}</td>
-                      <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $moveOut ? $moveOut->format('M d, Y') : '-' }}</td>
-                      <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{{ $duration }}</td>
-                      <td class="px-6 py-4">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                      <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $moveIn->format('M d, Y') }}</td>
+                      <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $moveOut ? $moveOut->format('M d, Y') : '-' }}</td>
+                      <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $duration }}</td>
+                      <td class="p-4 whitespace-nowrap">
+                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
                           {{ $historyTenancy->status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
                           {{ ucfirst($historyTenancy->status) }}
                         </span>
                        </td>
-                      <td class="px-6 py-4 text-right">
-                        <a href="{{ route('tenancies.show', $historyTenancy) }}" class="text-blue-600 hover:text-blue-900 dark:text-blue-400">
+                      <td class="p-4 whitespace-nowrap text-right">
+                        <a href="{{ route('tenancies.show', $historyTenancy) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                           View
                         </a>
                        </td>
@@ -623,12 +625,12 @@
             </div>
           </div>
         @else
-          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-12 text-center">
-            <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div class="rounded-xl border border-gray-200 bg-white px-4 py-12 text-center dark:border-gray-800 dark:bg-white/[0.03]">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No Tenancy History</h3>
-            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">No other tenancy records found for this unit.</p>
+            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No Tenancy History</h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No other tenancy records found for this unit.</p>
           </div>
         @endif
       </div>

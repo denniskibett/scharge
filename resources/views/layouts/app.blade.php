@@ -36,6 +36,8 @@
 
 
     <style>    
+        /* Date pickers must open above right-side slide-over forms (z-999999). */
+        .flatpickr-calendar.open { z-index: 9999999 !important; }
         :root {
             --primary-color: {{ SystemHelper::primaryColor() }};
             --secondary-color: {{ SystemHelper::secondaryColor() }};

@@ -243,42 +243,42 @@
           </div>
 
           <!-- Invoice Table -->
-          <div class="mb-6 overflow-hidden rounded-2xl border border-gray-100 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+          <div class="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="max-w-full overflow-x-auto">
               <div class="min-w-[800px]">
                 <!-- table header -->
-                <div class="grid grid-cols-12 px-5 py-3 bg-gray-50 dark:bg-gray-800/50">
+                <div class="grid grid-cols-12 border-b border-gray-200 px-5 py-4 dark:border-gray-800">
                   <div class="col-span-1 flex items-center">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-400">#</p>
+                    <p class="text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">#</p>
                   </div>
                   <div class="col-span-3 flex items-center">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Item Type</p>
+                    <p class="text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Item Type</p>
                   </div>
                   <div class="col-span-4 flex items-center">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Description</p>
+                    <p class="text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Description</p>
                   </div>
                   <div class="col-span-2 flex items-center justify-end">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Amount</p>
+                    <p class="text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</p>
                   </div>
                   <div class="col-span-2 flex items-center justify-end">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-400">Water Usage</p>
+                    <p class="text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Water Usage</p>
                   </div>
                 </div>
 
                 <!-- table body -->
                 <template x-for="(item, idx) in filteredItems" :key="item.id">
-                  <div class="grid grid-cols-12 border-t border-gray-100 px-5 py-3.5 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                  <div class="grid grid-cols-12 border-t border-gray-200 px-5 py-4 transition hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-900">
                     <div class="col-span-1 flex items-center">
                       <p class="text-theme-sm text-gray-500 dark:text-gray-400" x-text="idx + 1"></p>
                     </div>
                     <div class="col-span-3 flex items-center">
-                      <span :class="getItemTypeColor(item.item_type)" class="text-theme-xs rounded-full px-2 py-0.5 font-medium" x-text="capitalize(item.item_type)"></span>
+                      <span :class="getItemTypeColor(item.item_type)" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium" x-text="capitalize(item.item_type)"></span>
                     </div>
                     <div class="col-span-4 flex items-center">
                       <p class="text-theme-sm text-gray-500 dark:text-gray-400" x-text="item.description || '-'"></p>
                     </div>
                     <div class="col-span-2 flex items-center justify-end">
-                      <p class="text-right text-theme-sm font-medium text-gray-700 dark:text-gray-300" x-text="formatCurrency(item.amount)"></p>
+                      <p class="text-right text-sm font-medium text-gray-800 dark:text-white/90" x-text="formatCurrency(item.amount)"></p>
                     </div>
                     <div class="col-span-2 flex items-center justify-end">
                       <template x-if="item.item_type === 'water'">
@@ -295,8 +295,10 @@
                 </template>
 
                 <!-- No items message -->
-                <div x-show="filteredItems.length === 0" class="border-t border-gray-100 px-5 py-8 text-center dark:border-gray-800">
-                  <p class="text-sm text-gray-500 dark:text-gray-400">No invoice items found. Click "Add Item" to add items.</p>
+                <div x-show="filteredItems.length === 0" class="border-t border-gray-200 px-4 py-12 text-center dark:border-gray-800">
+                  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No invoice items found</h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Click "Add Item" to add items.</p>
                 </div>
               </div>
             </div>
@@ -446,8 +448,8 @@
     <!-- Invoice Mainbox End -->
   </div>
 
-  <!-- Add/Edit Item Modal -->
-  <div x-show="isModalOpen" 
+  <!-- Add/Edit Item Slide-over -->
+  <div x-show="isModalOpen"
        x-transition:enter="transition ease-out duration-300"
        x-transition:enter-start="opacity-0"
        x-transition:enter-end="opacity-100"
@@ -455,10 +457,20 @@
        x-transition:leave-start="opacity-100"
        x-transition:leave-end="opacity-0"
        x-cloak
-       class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
-    <div class="fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]" @click="closeModal()"></div>
-    <div class="relative w-full max-w-[600px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-8">
-      <button @click="closeModal()" class="group absolute right-3 top-3 z-999 flex h-9.5 w-9.5 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+       @click="closeModal()"
+       class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+  <div x-show="isModalOpen"
+       x-transition:enter="transition transform ease-out duration-300"
+       x-transition:enter-start="translate-x-full"
+       x-transition:enter-end="translate-x-0"
+       x-transition:leave="transition transform ease-in duration-200"
+       x-transition:leave-start="translate-x-0"
+       x-transition:leave-end="translate-x-full"
+       x-cloak
+       class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+       style="width: 32rem; max-width: calc(100% - 2rem);">
+    <div class="p-6 lg:p-10">
+      <button @click="closeModal()" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
         <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/>
         </svg>

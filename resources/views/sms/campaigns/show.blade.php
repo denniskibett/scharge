@@ -343,76 +343,77 @@
     </div>
 
     <!-- Recipients Table -->
-    <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-        <div class="flex flex-wrap items-center justify-between border-b border-stroke px-6 py-4 dark:border-strokedark">
-            <h5 class="text-base font-semibold text-black dark:text-white">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-800 dark:text-white/90">
                 Recipients
-                <span class="ml-2 rounded-full bg-primary/10 px-3 py-0.5 text-sm text-primary">{{ $stats['total'] }}</span>
+                <span class="ml-2 rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ $stats['total'] }}</span>
             </h5>
-            <div class="flex flex-wrap items-center gap-2">
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
                 <span class="text-sm text-success">● {{ $stats['delivered'] }}</span>
                 <span class="text-sm text-danger">● {{ $stats['failed'] }}</span>
                 <span class="text-sm text-warning">● {{ $stats['pending'] ?? 0 }}</span>
             </div>
         </div>
-        <div class="p-6">
-            <div class="overflow-x-auto">
+        <div>
+            <div class="w-full overflow-x-auto">
                 <table class="data-table w-full table-auto">
                     <thead>
-                        <tr class="border-b border-stroke dark:border-strokedark">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unit</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tenant</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sent At</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Failure Reason</th>
+                        <tr class="border-b border-gray-200 dark:border-gray-800">
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">#</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Tenant</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Phone</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Sent At</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Failure Reason</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         @forelse($recipients as $index => $recipient)
-                        <tr class="border-b border-stroke last:border-0 dark:border-strokedark hover:bg-gray-50 dark:hover:bg-gray-800">
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">{{ $index + 1 }}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-black dark:text-white">{{ $recipient->unit_number ?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $recipient->tenant_name ?? 'N/A' }}</td>
-                            <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ $recipient->phone }}</td>
-                            <td class="px-4 py-3 text-sm font-medium text-black dark:text-white">KES {{ number_format($recipient->water_bill ?? 0, 2) }}</td>
-                            <td class="px-4 py-3 text-sm">
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $index + 1 }}</td>
+                            <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ $recipient->unit_number ?? 'N/A' }}</td>
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $recipient->tenant_name ?? 'N/A' }}</td>
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $recipient->phone }}</td>
+                            <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($recipient->water_bill ?? 0, 2) }}</td>
+                            <td class="p-4 whitespace-nowrap">
                                 @php
                                     $recipientColors = [
-                                        'delivered' => 'bg-success/10 text-success',
-                                        'sent' => 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-300',
-                                        'queued' => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-300',
-                                        'failed' => 'bg-danger/10 text-danger',
-                                        'pending' => 'bg-warning/10 text-warning',
+                                        'delivered' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                        'sent' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                        'queued' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+                                        'failed' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                        'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
                                     ];
                                 @endphp
-                                <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium {{ $recipientColors[$recipient->status] ?? 'bg-gray-100 text-gray-700' }}">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $recipientColors[$recipient->status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
                                     {{ ucfirst($recipient->status) }}
                                 </span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $recipient->sent_at ? $recipient->sent_at->format('M d, H:i') : '-' }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $recipient->failure_reason ?? '-' }}
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                No recipients found for this campaign.
-                            </td>
+                            <td colspan="8" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No recipients found for this campaign</h3>
+  </td>
                         </tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
-            @if(method_exists($recipients, 'links'))
-            <div class="mt-4">
-                {{ $recipients->links() }}
-            </div>
+            @if(method_exists($recipients, 'lastPage'))
+                @include('partials.table.pager', ['paginator' => $recipients])
+            @elseif(method_exists($recipients, 'links'))
+                <div class="border-t border-gray-200 px-5 py-4 dark:border-gray-800">{{ $recipients->links() }}</div>
             @endif
         </div>
     </div>

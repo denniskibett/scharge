@@ -119,124 +119,97 @@
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <form method="GET" action="{{ route('security.index') }}" class="grid grid-cols-1 gap-4 sm:grid-cols-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date From</label>
-                <input type="date" name="date_from" value="{{ request('date_from') }}"
-                       class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Date To</label>
-                <input type="date" name="date_to" value="{{ request('date_to') }}"
-                       class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-                <select name="status" class="mt-1.5 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    <option value="">All Status</option>
-                    <option value="approved" {{ request('status') == 'approved' ? 'selected' : '' }}>Checked In</option>
-                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Checked Out</option>
-                    <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                </select>
-            </div>
-            <div class="flex items-end gap-2">
-                <button type="submit" class="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Filter
-                </button>
-                <a href="{{ route('security.index') }}" class="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    Clear
-                </a>
+    <!-- Logs Table (filters in its header) -->
+    @php $menuItem = 'text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300'; @endphp
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <form method="GET" action="{{ route('security.index') }}" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+            <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">Security Logs</h4>
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+                <input type="date" name="date_from" value="{{ request('date_from') }}" aria-label="Date from" title="Date from" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                <input type="date" name="date_to" value="{{ request('date_to') }}" aria-label="Date to" title="Date to" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                @include('partials.table.select', ['name' => 'status', 'aria' => 'Status', 'selected' => request('status'),
+                    'options' => ['' => 'All Status', 'approved' => 'Checked In', 'completed' => 'Checked Out', 'pending' => 'Pending']])
+                @if (request('date_from') || request('date_to') || request('status'))
+                    <a href="{{ route('security.index') }}" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        Clear
+                    </a>
+                @endif
+                <a href="{{ route('security.logs.index') }}" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">View all</a>
             </div>
         </form>
-    </div>
 
-    <!-- Logs Table -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <div class="flex items-center justify-between mb-4">
-            <h4 class="text-base font-medium text-gray-800 dark:text-white/90">Security Logs</h4>
-            <a href="{{ route('security.logs.index') }}" class="text-sm text-brand-600 hover:text-brand-700">
-                View All →
-            </a>
-        </div>
-        
-        @if($roleData['accessLogs']->count() > 0)
-        <div class="overflow-x-auto">
-            <table class="data-table w-full text-sm">
+        <div class="w-full overflow-x-auto">
+            <table class="data-table w-full table-auto">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-800">
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitor Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vehicle</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date & Time</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Visitor Name</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Phone</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Vehicle</th>
+                        <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                        <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
-                    @foreach($roleData['accessLogs'] as $log)
-                        <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+                    @forelse($roleData['accessLogs'] as $log)
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $log->access_time ? $log->access_time->format('M d, Y H:i') : 'N/A' }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $log->unit->unit_number ?? 'N/A' }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-800">
-                                <div class="font-medium">{{ $log->visitor_name_snapshot ?? 'N/A' }}</div>
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $log->visitor_name_snapshot ?? 'N/A' }}</span>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 {{ $log->visitor_phone_snapshot ?? 'N/A' }}
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-600">
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                 @if($log->vehicle_type || $log->vehicle_model)
                                     <div>{{ $log->vehicle_type ?? '' }} {{ $log->vehicle_model ?? '' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $log->vehicle_color ?? '' }} {{ $log->vehicle_registration_snapshot ?? '' }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ $log->vehicle_color ?? '' }} {{ $log->vehicle_registration_snapshot ?? '' }}</div>
                                 @else
-                                    <span class="text-gray-400">N/A</span>
+                                    N/A
                                 @endif
                             </td>
-                            <td class="px-4 py-3">
+                            <td class="p-4 whitespace-nowrap">
                                 @if($log->status === 'approved' && !$log->exit_time)
-                                    <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">Checked In</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Checked In</span>
                                 @elseif($log->status === 'completed' || $log->exit_time)
-                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">Checked Out</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Checked Out</span>
                                 @elseif($log->status === 'pending')
-                                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Pending</span>
                                 @else
-                                    <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">{{ ucfirst($log->status) }}</span>
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ ucfirst($log->status) }}</span>
                                 @endif
                             </td>
-                            <td class="px-4 py-3">
-                                <button onclick="viewLog({{ $log->id }})" 
-                                        class="inline-flex items-center rounded-lg bg-blue-500 px-2 py-1 text-xs text-white hover:bg-blue-600">
-                                    View
-                                </button>
-                                @if($log->status === 'approved' && !$log->exit_time)
-                                    <button onclick="checkOut({{ $log->id }})" 
-                                            class="ml-1 inline-flex items-center rounded-lg bg-red-500 px-2 py-1 text-xs text-white hover:bg-red-600">
-                                        Check Out
-                                    </button>
-                                @endif
+                            <td class="p-4 whitespace-nowrap text-right">
+                                <div x-data="{ open: false, x: 0, y: 0 }" class="relative" @click.outside="open = false" @scroll.window="open = false">
+                                  <button type="button" @click="const r = $el.getBoundingClientRect(); x = r.right; y = r.bottom + 4; open = !open" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" aria-label="Actions"><svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill=""/></svg></button>
+                                  <div x-show="open" x-cloak :style="`position:fixed;top:${y}px;left:${x - 160}px`" class="shadow-theme-lg dark:bg-gray-dark z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800">
+                                    <button type="button" onclick="viewLog({{ $log->id }})" @click="open = false" class="{{ $menuItem }}">View details</button>
+                                    @if($log->status === 'approved' && !$log->exit_time)
+                                      <button type="button" onclick="checkOut({{ $log->id }})" @click="open = false" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">Check out</button>
+                                    @endif
+                                  </div>
+                                </div>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="7" class="p-4 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No security logs found</h3>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400"><a href="{{ route('security.quick-entry') }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">Create your first entry →</a></p>
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
-        @else
-        <div class="text-center py-8 text-gray-500">
-            <p>No security logs found</p>
-            <a href="{{ route('security.quick-entry') }}" class="mt-2 inline-block text-brand-600 hover:text-brand-700">
-                Create your first entry →
-            </a>
-        </div>
-        @endif
     </div>
 </div>
 

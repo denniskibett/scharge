@@ -34,27 +34,6 @@
         </div>
     </div>
 
-    <!-- Period Filter -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-        <form method="GET" action="{{ route('security.reports.trends') }}" class="flex flex-wrap items-end gap-4">
-            <div>
-                <label for="period" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Period (Days)</label>
-                <select id="period" name="period" 
-                        class="mt-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800">
-                    <option value="7" {{ ($period ?? 30) == 7 ? 'selected' : '' }}>7 days</option>
-                    <option value="14" {{ ($period ?? 30) == 14 ? 'selected' : '' }}>14 days</option>
-                    <option value="30" {{ ($period ?? 30) == 30 ? 'selected' : '' }}>30 days</option>
-                    <option value="60" {{ ($period ?? 30) == 60 ? 'selected' : '' }}>60 days</option>
-                    <option value="90" {{ ($period ?? 30) == 90 ? 'selected' : '' }}>90 days</option>
-                </select>
-            </div>
-            <button type="submit" 
-                    class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700">
-                View Report
-            </button>
-        </form>
-    </div>
-
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -91,42 +70,48 @@
     </div>
 
     <!-- Daily Trends Chart (Table View) -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <div class="border-b border-gray-200 pb-3 dark:border-gray-800">
-            <h4 class="text-base font-medium text-gray-800 dark:text-white/90">Daily Visitor Trends</h4>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Last {{ $period ?? 30 }} days</p>
-        </div>
-        <div class="pt-4">
-            <div class="overflow-x-auto">
-                <table class="data-table w-full text-sm">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <form method="GET" action="{{ route('security.reports.trends') }}" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+            <div>
+                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">Daily Visitor Trends</h4>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Last {{ $period ?? 30 }} days</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+                @include('partials.table.select', ['name' => 'period', 'aria' => 'Period (days)', 'selected' => $period ?? 30, 'min' => 'min-w-[120px]',
+                    'options' => [7 => '7 days', 14 => '14 days', 30 => '30 days', 60 => '60 days', 90 => '90 days']])
+            </div>
+        </form>
+        <div>
+            <div class="w-full overflow-x-auto">
+                <table class="data-table w-full table-auto">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-800">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Total</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Active</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Completed</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Total</th>
+                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Active</th>
+                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Completed</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Trend</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         @forelse($dailyTrends as $trend)
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                                <td class="px-4 py-3 font-medium text-gray-800 dark:text-white">
+                            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
                                     {{ \Carbon\Carbon::parse($trend->date)->format('M d, Y') }}
                                     <span class="ml-2 text-xs text-gray-500 dark:text-gray-400">
                                         {{ \Carbon\Carbon::parse($trend->date)->format('l') }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-center text-gray-800 dark:text-white">
+                                <td class="p-4 whitespace-nowrap text-center text-sm text-gray-800 dark:text-white/90">
                                     <span class="font-semibold">{{ $trend->total }}</span>
                                 </td>
-                                <td class="px-4 py-3 text-center text-green-600 dark:text-green-400">
+                                <td class="p-4 whitespace-nowrap text-center text-sm text-green-600 dark:text-green-400">
                                     {{ $trend->active ?? 0 }}
                                 </td>
-                                <td class="px-4 py-3 text-center text-blue-600 dark:text-blue-400">
+                                <td class="p-4 whitespace-nowrap text-center text-sm text-blue-600 dark:text-blue-400">
                                     {{ $trend->completed ?? 0 }}
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="p-4 whitespace-nowrap">
                                     <div class="flex items-center gap-2">
                                         <div class="flex-1 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
                                             <div class="h-2 bg-brand-500 rounded-full" 
@@ -141,9 +126,10 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    <p>No data available for this period</p>
-                                </td>
+                                <td colspan="5" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No data available for this period</h3>
+  </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -216,33 +202,33 @@
     </div>
 
     <!-- Top Visitors -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <div class="border-b border-gray-200 pb-3 dark:border-gray-800">
-            <h4 class="text-base font-medium text-gray-800 dark:text-white/90">Top Frequent Visitors</h4>
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+            <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">Top Frequent Visitors</h4>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Visitors with the most visits</p>
         </div>
-        <div class="pt-4">
-            <div class="overflow-x-auto">
-                <table class="data-table w-full text-sm">
+        <div>
+            <div class="w-full overflow-x-auto">
+                <table class="data-table w-full table-auto">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-800">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitor</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Visits</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trend</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Visitor</th>
+                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Visits</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Trend</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         @forelse($topVisitors ?? [] as $visitor)
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                                <td class="px-4 py-3 font-medium text-gray-800 dark:text-white">
+                            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">
                                     {{ $visitor->visitor_name_snapshot ?? 'Unknown' }}
                                 </td>
-                                <td class="px-4 py-3 text-center">
-                                    <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+                                <td class="p-4 whitespace-nowrap text-center">
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                         {{ $visitor->visit_count }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3">
+                                <td class="p-4 whitespace-nowrap">
                                     <div class="w-32 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
                                         @php
                                             $maxVisits = $topVisitors->max('visit_count') ?? 1;
@@ -254,9 +240,10 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="3" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    <p>No frequent visitors data available</p>
-                                </td>
+                                <td colspan="3" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No frequent visitors data available</h3>
+  </td>
                             </tr>
                         @endforelse
                     </tbody>

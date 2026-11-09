@@ -88,34 +88,40 @@
     </div>
   </div>
 
-  <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-    <div class="flex flex-col justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:flex-row sm:items-center">
+  <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
       <div>
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Your keys</h3>
         <p class="text-sm text-gray-500 dark:text-gray-400">Test keys work while payments run in the sandbox. Live keys move real money.</p>
       </div>
       @if ($company)
-        <button type="button" @click="creating = true; form = { name: '', environment: 'test', scopes: [], allowed_ips: '' }; errors = {}"
-                class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-800 dark:bg-brand-500">+ Add API key</button>
+        <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+          <button type="button" @click="creating = true; form = { name: '', environment: 'test', scopes: [], allowed_ips: '' }; errors = {}" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition"><svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg> Add API key</button>
+        </div>
       @endif
     </div>
 
-    <p x-show="!keys.length" class="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No keys yet.</p>
-
-    <div x-show="keys.length" class="overflow-x-auto">
-      <table class="data-table min-w-full text-left">
+    <div class="w-full overflow-x-auto">
+      <table class="data-table w-full table-auto">
         <thead>
-          <tr class="border-b border-gray-100 text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
-            <th class="px-5 py-3">Name</th><th class="px-5 py-3">Status</th>
-            @if ($isAdmin)<th class="px-5 py-3">Company</th>@endif
-            <th class="px-5 py-3">Created</th><th class="px-5 py-3">Last used</th><th class="px-5 py-3">On / off</th><th class="px-5 py-3">Action</th>
+          <tr class="border-b border-gray-200 dark:border-gray-800">
+            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Name</th><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+            @if ($isAdmin)<th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Company</th>@endif
+            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Created</th><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Last used</th><th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">On / off</th><th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Action</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
+          <tr x-show="!keys.length">
+            <td colspan="{{ $isAdmin ? 7 : 6 }}" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No keys yet</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add a key to let your own systems call scharge.</p>
+  </td>
+          </tr>
           <template x-for="k in keys" :key="k.id">
-            <tr class="text-sm">
-              <td class="whitespace-nowrap px-5 py-3">
-                <p class="mb-1 flex items-center gap-2 text-gray-800 dark:text-gray-200">
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+              <td class="p-4 whitespace-nowrap">
+                <p class="mb-1 flex items-center gap-2 text-sm font-medium text-gray-800 dark:text-white/90">
                   <span x-text="k.name"></span>
                   <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase" :class="k.environment === 'live' ? 'bg-rose-100 text-rose-700' : 'bg-sky-100 text-sky-700'" x-text="k.environment"></span>
                 </p>
@@ -125,21 +131,24 @@
                   <span x-show="k.allowed_ips.length" class="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] text-gray-600 dark:bg-white/10 dark:text-gray-300" x-text="k.allowed_ips.length + ' IP' + (k.allowed_ips.length > 1 ? 's' : '')"></span>
                 </div>
               </td>
-              <td class="whitespace-nowrap px-5 py-3"><span class="rounded-full px-2.5 py-0.5 text-xs font-medium" :class="k.enabled ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'" x-text="k.enabled ? 'Active' : 'Disabled'"></span></td>
-              @if ($isAdmin)<td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400" x-text="k.owner"></td>@endif
-              <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400" x-text="k.created_at"></td>
-              <td class="whitespace-nowrap px-5 py-3 text-gray-500 dark:text-gray-400" x-text="k.last_used_at"></td>
-              <td class="whitespace-nowrap px-5 py-3">
+              <td class="p-4 whitespace-nowrap"><span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium" :class="k.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'" x-text="k.enabled ? 'Active' : 'Disabled'"></span></td>
+              @if ($isAdmin)<td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="k.owner"></td>@endif
+              <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="k.created_at"></td>
+              <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="k.last_used_at"></td>
+              <td class="p-4 whitespace-nowrap">
                 <button type="button" role="switch" :aria-checked="k.enabled" @click="toggle(k)" class="relative h-6 w-11 rounded-full transition" :class="k.enabled ? 'bg-gray-900 dark:bg-brand-500' : 'bg-gray-200 dark:bg-white/10'">
                   <span class="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition" :class="k.enabled && 'translate-x-5'"></span>
                 </button>
               </td>
-              <td class="whitespace-nowrap px-5 py-3">
-                <div class="flex gap-3 text-sm">
-                  <button type="button" class="text-gray-700 hover:underline dark:text-gray-300" @click="editing = k; access = { scopes: k.scopes.filter(x => x !== 'read'), allowed_ips: k.allowed_ips.join(', ') }; errors = {}">Access</button>
-                  <button type="button" class="text-gray-700 hover:underline dark:text-gray-300" @click="rotate(k)">Regenerate</button>
-                  <button type="button" class="text-red-600 hover:underline" @click="destroy(k)">Delete</button>
-                </div>
+              <td class="p-4 whitespace-nowrap text-right">
+                <div x-data="{ open: false, x: 0, y: 0 }" class="relative" @click.outside="open = false" @scroll.window="open = false">
+  <button type="button" @click="const r = $el.getBoundingClientRect(); x = r.right; y = r.bottom + 4; open = !open" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300" aria-label="Actions"><svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.99902 10.245C6.96552 10.245 7.74902 11.0285 7.74902 11.995V12.005C7.74902 12.9715 6.96552 13.755 5.99902 13.755C5.03253 13.755 4.24902 12.9715 4.24902 12.005V11.995C4.24902 11.0285 5.03253 10.245 5.99902 10.245ZM17.999 10.245C18.9655 10.245 19.749 11.0285 19.749 11.995V12.005C19.749 12.9715 18.9655 13.755 17.999 13.755C17.0325 13.755 16.249 12.9715 16.249 12.005V11.995C16.249 11.0285 17.0325 10.245 17.999 10.245ZM13.749 11.995C13.749 11.0285 12.9655 10.245 11.999 10.245C11.0325 10.245 10.249 11.0285 10.249 11.995V12.005C10.249 12.9715 11.0325 13.755 11.999 13.755C12.9655 13.755 13.749 12.9715 13.749 12.005V11.995Z" fill=""/></svg></button>
+  <div x-show="open" x-cloak :style="`position:fixed;top:${y}px;left:${x - 160}px`" class="shadow-theme-lg dark:bg-gray-dark z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800">
+    <button type="button" class="text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300" @click="open = false; editing = k; access = { scopes: k.scopes.filter(x => x !== 'read'), allowed_ips: k.allowed_ips.join(', ') }; errors = {}">Access</button>
+    <button type="button" class="text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300" @click="open = false; rotate(k)">Regenerate</button>
+    <button type="button" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10" @click="open = false; destroy(k)">Delete</button>
+  </div>
+</div>
               </td>
             </tr>
           </template>
@@ -149,10 +158,13 @@
   </div>
 
   {{-- Create --}}
-  <div x-show="creating" x-cloak class="fixed inset-0 z-[99999] flex items-center justify-center p-4" @keydown.escape.window="creating = false">
-    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="creating = false"></div>
-    <form x-show="creating" x-transition @submit.prevent="create()" class="relative w-full max-w-[560px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-8">
-      <h4 class="mb-1 text-xl font-semibold text-gray-800 dark:text-white/90">Generate API key</h4>
+  <div @keydown.escape.window="creating = false">
+    <div x-show="creating" x-cloak @click="creating = false" class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"></div>
+    <div x-show="creating" x-cloak x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 32rem; max-width: calc(100% - 2rem);">
+    <div class="p-6 lg:p-10">
+    <button type="button" @click="creating = false" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+    <form @submit.prevent="create()">
+      <h4 class="mb-1 text-lg font-medium text-gray-800 dark:text-white/90">Generate API key</h4>
       <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Name it after the system that will use it, so you can tell keys apart later.</p>
       <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300" for="key-name">Application name</label>
       <input id="key-name" x-model="form.name" class="{{ $input }}" placeholder="e.g. Our website" maxlength="80" required>
@@ -179,18 +191,23 @@
         <input x-model="form.allowed_ips" class="{{ $input }}" placeholder="41.90.12.7, 196.201.0.0/16">
         <p x-show="errors.allowed_ips" class="mt-1 text-xs text-red-600" x-text="errors.allowed_ips"></p>
       </div>
-      <div class="mt-8 flex gap-3">
-        <button type="button" @click="creating = false" class="h-11 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Close</button>
-        <button type="submit" :disabled="busy" class="h-11 flex-1 rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-brand-500">Generate API key</button>
+      <div class="mt-8 flex justify-end gap-3">
+        <button type="button" @click="creating = false" class="h-11 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Close</button>
+        <button type="submit" :disabled="busy" class="h-11 rounded-lg bg-gray-900 px-5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-brand-500">Generate API key</button>
       </div>
     </form>
+    </div>
+    </div>
   </div>
 
   {{-- Access: scopes and allowed IPs --}}
-  <div x-show="editing" x-cloak class="fixed inset-0 z-[99999] flex items-center justify-center p-4" @keydown.escape.window="editing = null">
-    <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @click="editing = null"></div>
-    <form x-show="editing" x-transition @submit.prevent="saveAccess()" class="relative w-full max-w-[560px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-8">
-      <h4 class="mb-1 text-xl font-semibold text-gray-800 dark:text-white/90">Access for <span x-text="editing?.name"></span></h4>
+  <div @keydown.escape.window="editing = null">
+    <div x-show="editing" x-cloak @click="editing = null" class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"></div>
+    <div x-show="editing" x-cloak x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 32rem; max-width: calc(100% - 2rem);">
+    <div class="p-6 lg:p-10">
+    <button type="button" @click="editing = null" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11" aria-label="Close"><svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z" /></svg></button>
+    <form @submit.prevent="saveAccess()">
+      <h4 class="mb-1 text-lg font-medium text-gray-800 dark:text-white/90">Access for <span x-text="editing?.name"></span></h4>
       <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">Changes apply to the next request.</p>
       <fieldset class="mt-5">
         @foreach ($scopes as $sc => $label)
@@ -202,11 +219,13 @@
         <input x-model="access.allowed_ips" class="{{ $input }}" placeholder="41.90.12.7, 196.201.0.0/16">
         <p x-show="errors.allowed_ips" class="mt-1 text-xs text-red-600" x-text="errors.allowed_ips"></p>
       </div>
-      <div class="mt-8 flex gap-3">
-        <button type="button" @click="editing = null" class="h-11 flex-1 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Close</button>
-        <button type="submit" :disabled="busy" class="h-11 flex-1 rounded-lg bg-gray-900 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-brand-500">Save</button>
+      <div class="mt-8 flex justify-end gap-3">
+        <button type="button" @click="editing = null" class="h-11 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Close</button>
+        <button type="submit" :disabled="busy" class="h-11 rounded-lg bg-gray-900 px-5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-brand-500">Save</button>
       </div>
     </form>
+    </div>
+    </div>
   </div>
 </div>
 

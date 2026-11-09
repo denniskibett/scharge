@@ -34,7 +34,7 @@
       <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <button 
           @click="openEditModal()"
-          class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 whitespace-nowrap text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300">
+          class="shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 whitespace-nowrap text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" class="text-yellow-600 dark:text-yellow-400">
             <path d="M13.5858 3.58579C14.3668 2.80474 15.6332 2.80474 16.4142 3.58579C17.1953 4.36684 17.1953 5.63317 16.4142 6.41421L15.6213 7.20711L12.7929 4.37868L13.5858 3.58579Z" fill="currentColor"/>
             <path d="M11.3787 5.79289L3 14.1716V17H5.82842L14.2071 8.62132L11.3787 5.79289Z" fill="currentColor"/>
@@ -44,7 +44,7 @@
         
         <button 
           @click="openDeleteModal()"
-          class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 whitespace-nowrap text-red-700 transition-colors hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:hover:text-red-300">
+          class="shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 whitespace-nowrap text-red-700 transition-colors hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:hover:text-red-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" class="text-red-600 dark:text-red-400">
             <path d="M8.75 4.25C8.75 3.83579 9.08579 3.5 9.5 3.5H10.5C10.9142 3.5 11.25 3.83579 11.25 4.25V4.75H8.75V4.25Z" fill="currentColor"/>
             <path fill-rule="evenodd" clip-rule="evenodd" d="M6 5.75V15.25C6 16.3546 6.89543 17.25 8 17.25H12C13.1046 17.25 14 16.3546 14 15.25V5.75H6ZM8.75 7.25C8.75 6.83579 9.08579 6.5 9.5 6.5H10.5C10.9142 6.5 11.25 6.83579 11.25 7.25V13.25C11.25 13.6642 10.9142 14 10.5 14H9.5C9.08579 14 8.75 13.6642 8.75 13.25V7.25Z" fill="currentColor"/>
@@ -112,8 +112,8 @@
           </div>
 
           <!-- Payments List -->
-          <div class="rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
-            <div class="flex items-center justify-between mb-4">
+          <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-4 dark:border-gray-700">
               <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-purple-500">
                   <path d="M14.5 4H1.5C0.671573 4 0 4.67157 0 5.5V10.5C0 11.3284 0.671573 12 1.5 12H14.5C15.3284 12 16 11.3284 16 10.5V5.5C16 4.67157 15.3284 4 14.5 4Z" fill="currentColor"/>
@@ -132,28 +132,28 @@
             </div>
             
             @if($expense->payments->count() > 0)
-            <div class="overflow-x-auto">
-              <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Method</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Paid By</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Transaction ID</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+            <div class="w-full overflow-x-auto">
+              <table class="data-table w-full table-auto">
+                <thead>
+                  <tr class="border-b border-gray-200 dark:border-gray-800">
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Method</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Paid By</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Transaction ID</th>
+                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Actions</th>
                   </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                   @foreach($expense->payments as $payment)
-                  <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                    <td class="px-4 py-3 text-sm font-medium text-green-600 dark:text-green-400">{{ SystemHelper::currencySymbol() }}{{ number_format($payment->amount, 2) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ strtoupper($payment->payment_method) }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ $payment->paid_by }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90 font-mono">{{ $payment->transaction_id ?? '-' }}</td>
-                    <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ \Carbon\Carbon::parse($payment->payment_datetime)->format('M d, Y H:i') }}</td>
-                    <td class="px-4 py-3 text-sm">
-                      <div class="flex items-center gap-2">
+                  <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                    <td class="p-4 whitespace-nowrap text-sm font-medium text-green-600 dark:text-green-400">{{ SystemHelper::currencySymbol() }}{{ number_format($payment->amount, 2) }}</td>
+                    <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white/90">{{ strtoupper($payment->payment_method) }}</td>
+                    <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white/90">{{ $payment->paid_by }}</td>
+                    <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white/90 font-mono">{{ $payment->transaction_id ?? '-' }}</td>
+                    <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white/90">{{ \Carbon\Carbon::parse($payment->payment_datetime)->format('M d, Y H:i') }}</td>
+                    <td class="p-4 whitespace-nowrap text-sm text-right">
+                      <div class="flex items-center justify-end gap-2">
                         <button 
                           @click="window.expensePaymentEditModal?.openModal({{ \Illuminate\Support\Js::encode([
                               'id' => $payment->id,
@@ -189,11 +189,11 @@
               </table>
             </div>
             @else
-            <div class="text-center py-8">
-              <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            <div class="px-4 py-12 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
               </svg>
-              <p class="text-sm text-gray-500 dark:text-gray-400">No payments yet</p>
+              <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No payments yet</h3>
             </div>
             @endif
           </div>

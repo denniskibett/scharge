@@ -204,28 +204,23 @@
         </div>
 
         <!-- Water Readings History Table -->
-        <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
-                <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Reading History</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Complete water meter reading history for this unit</p>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        <button @click="openUpdateModal()" class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600">
-                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Update Readings
-                        </button>
-                        <button @click="exportStatement()" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+        <div class="{CARD}">
+            <div class="{HEADER}">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Reading History</h3>
+                    <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+                        <button @click="exportStatement()" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                             </svg>
                             Export Statement
                         </button>
+                        <button @click="openUpdateModal()" class="{PRIMARY}">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Update Readings
+                        </button>
                     </div>
-                </div>
             </div>
 
             <!-- Loading State -->
@@ -235,28 +230,28 @@
             </div>
 
             <!-- Table Content -->
-            <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
+            <div x-show="!loading" class="w-full overflow-x-auto">
                 <table class="data-table w-full table-auto">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-800">
-                            <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Reading Date</th>
-                            <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Previous (m³)</th>
-                            <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Current (m³)</th>
-                            <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Consumption (m³)</th>
-                            <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Rate (KES/m³)</th>
-                            <th class="p-4 text-right text-xs font-medium text-gray-700 dark:text-gray-400">Charge (KES)</th>
-                            <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Status</th>
-                            <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Recorded By</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Reading Date</th>
+                            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Previous (m³)</th>
+                            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Current (m³)</th>
+                            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Consumption (m³)</th>
+                            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Rate (KES/m³)</th>
+                            <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Charge (KES)</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Recorded By</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                    <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         <template x-for="reading in readings" :key="reading.id">
                             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
                                 <td class="p-4 whitespace-nowrap">
                                     <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="formatDate(reading.reading_date)"></span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap text-right">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400" x-text="formatNumber(reading.previous_reading)"></span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400" x-text="formatNumber(reading.previous_reading)"></span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap text-right">
                                     <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="formatNumber(reading.current_reading)"></span>
@@ -265,33 +260,35 @@
                                     <span :class="getConsumptionClass(reading.consumption)" class="text-sm font-medium" x-text="formatNumber(reading.consumption)"></span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap text-right">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400" x-text="formatNumber(reading.rate_applied)"></span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400" x-text="formatNumber(reading.rate_applied)"></span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap text-right">
                                     <span class="text-sm font-medium text-blue-600 dark:text-blue-400">KES <span x-text="formatNumber(reading.charge)"></span></span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap">
-                                    <span :class="getStatusBadgeClass(reading.consumption)" class="px-2 py-1 text-xs font-medium rounded-full">
+                                    <span :class="getStatusBadgeClass(reading.consumption)" class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium">
                                         <span x-text="getStatusText(reading.consumption)"></span>
                                     </span>
                                 </td>
                                 <td class="p-4 whitespace-nowrap">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400" x-text="reading.recorded_by_name || 'System'"></span>
+                                    <span class="text-sm text-gray-500 dark:text-gray-400" x-text="reading.recorded_by_name || 'System'"></span>
                                 </td>
                             </tr>
                         </template>
                         <tr x-show="readings.length === 0">
-                            <td colspan="8" class="p-4 text-center text-gray-500 dark:text-gray-400">
-                                No water meter readings have been recorded for this unit yet.
+                            <td colspan="8" class="p-4 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No readings yet</h3>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No water meter readings have been recorded for this unit yet.</p>
                             </td>
                         </tr>
                     </tbody>
-                    <tfoot x-show="readings.length > 0" class="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900/50">
+                    <tfoot x-show="readings.length > 0" class="border-t border-gray-200 dark:border-gray-800">
                         <tr>
-                            <td colspan="3" class="p-4 text-right font-semibold text-gray-800 dark:text-white/90">Totals:</td>
-                            <td class="p-4 text-right font-semibold text-gray-800 dark:text-white/90" x-text="formatNumber(totalConsumption)"></td>
+                            <td colspan="3" class="p-4 text-right text-sm font-semibold text-gray-800 dark:text-white/90">Totals:</td>
+                            <td class="p-4 text-right text-sm font-semibold text-gray-800 dark:text-white/90" x-text="formatNumber(totalConsumption)"></td>
                             <td class="p-4 text-right"></td>
-                            <td class="p-4 text-right font-semibold text-blue-600 dark:text-blue-400">KES <span x-text="formatNumber(totalCharges)"></span></td>
+                            <td class="p-4 text-right text-sm font-semibold text-blue-600 dark:text-blue-400">KES <span x-text="formatNumber(totalCharges)"></span></td>
                             <td colspan="2"></td>
                         </tr>
                     </tfoot>
@@ -300,7 +297,7 @@
         </div>
 
         <!-- Consumption Chart -->
-        <div class="mt-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-show="readings.length > 0 && !loading">
+        <div class="mt-6 rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-show="readings.length > 0 && !loading">
             <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-800">
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Consumption Trend</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Monthly water consumption over time</p>
@@ -314,28 +311,25 @@
     <!-- ============================================ -->
     <!-- UPDATE READINGS MODAL -->
     <!-- ============================================ -->
-    <div x-show="updateModalOpen" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-cloak>
-        <!-- Backdrop -->
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="updateModalOpen = false"></div>
-        
-        <!-- Modal -->
-        <div class="relative min-h-screen flex items-center justify-center p-4">
-            <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
-                <!-- Modal Header -->
-                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
-                    <div>
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Update Water Readings</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Edit readings for <span x-text="unitNumber"></span></p>
-                    </div>
-                    <button @click="updateModalOpen = false" class="text-gray-400 hover:text-gray-500">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                
+    <div x-show="updateModalOpen" x-cloak
+         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click="updateModalOpen = false"
+         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+    <div x-show="updateModalOpen" x-cloak
+         x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+         class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+         style="display: none; width: 42rem; max-width: calc(100% - 2rem);">
+      <div class="p-6 lg:p-10">
+        <button type="button" @click="updateModalOpen = false" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+          <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/></svg>
+        </button>
+        <h4 class="mb-1 text-lg font-medium text-gray-800 dark:text-white/90">Update Water Readings</h4>
+        <p class="mb-6 text-sm text-gray-500 dark:text-gray-400">Edit readings for <span x-text="unitNumber"></span></p>
+
                 <!-- Modal Body -->
-                <div class="p-4">
+                <div>
                     <div class="mb-4 bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
                         <p class="text-sm text-yellow-800 dark:text-yellow-300">
                             <svg class="inline w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -347,30 +341,30 @@
                     </div>
                     
                     <div class="overflow-x-auto">
-                        <table class="data-table w-full border-collapse">
+                        <table class="data-table w-full table-auto">
                             <thead>
-                                <tr class="bg-gray-50 dark:bg-gray-800">
-                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Month</th>
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Previous Reading</th>
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Current Reading</th>
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Consumption</th>
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Charge</th>
+                                <tr class="border-b border-gray-200 dark:border-gray-800">
+                                    <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Month</th>
+                                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Previous Reading</th>
+                                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Current Reading</th>
+                                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Consumption</th>
+                                    <th class="p-4 text-right text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Charge</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                            <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                                 <template x-for="(reading, index) in editableReadings" :key="reading.id">
                                     <tr>
-                                        <td class="px-4 py-2 text-sm font-medium" x-text="formatDate(reading.reading_date)"></td>
-                                        <td class="px-4 py-2 text-sm text-gray-500 text-right" x-text="formatNumber(reading.previous_reading)"></td>
-                                        <td class="px-4 py-2 text-right">
+                                        <td class="p-4 whitespace-nowrap text-sm font-medium" x-text="formatDate(reading.reading_date)"></td>
+                                        <td class="p-4 whitespace-nowrap text-sm text-gray-500 text-right" x-text="formatNumber(reading.previous_reading)"></td>
+                                        <td class="p-4 whitespace-nowrap text-right">
                                             <input type="number" step="0.01" 
                                                 x-model="reading.current_reading"
                                                 @input="recalculateReading(index)"
                                                 :class="{'border-red-500': reading.current_reading < reading.previous_reading}"
                                                 class="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 text-right">
                                         </td>
-                                        <td class="px-4 py-2 text-sm text-green-600 text-right" x-text="formatNumber(reading.consumption)"></td>
-                                        <td class="px-4 py-2 text-sm text-blue-600 text-right" x-text="formatNumber(reading.charge)"></td>
+                                        <td class="p-4 whitespace-nowrap text-sm text-green-600 text-right" x-text="formatNumber(reading.consumption)"></td>
+                                        <td class="p-4 whitespace-nowrap text-sm text-blue-600 text-right" x-text="formatNumber(reading.charge)"></td>
                                     </tr>
                                 </template>
                             </tbody>
@@ -388,7 +382,7 @@
                 </div>
                 
                 <!-- Modal Footer -->
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-800 sticky bottom-0 bg-white dark:bg-gray-900">
+                <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
                     <button @click="updateModalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                         Cancel
                     </button>
@@ -396,28 +390,29 @@
                         Save Changes
                     </button>
                 </div>
-            </div>
-        </div>
+      </div>
     </div>
 
     <!-- ============================================ -->
     <!-- AUTO-FILL MODAL -->
     <!-- ============================================ -->
-    <div x-show="autoFillModalOpen" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-cloak>
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="autoFillModalOpen = false"></div>
-        
-        <div class="relative min-h-screen flex items-center justify-center p-4">
-            <div class="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl max-w-md w-full">
-                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Auto-Fill Missing Months</h3>
-                    <button @click="autoFillModalOpen = false" class="text-gray-400 hover:text-gray-500">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                
-                <div class="p-4">
+    <div x-show="autoFillModalOpen" x-cloak
+         x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         @click="autoFillModalOpen = false"
+         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+    <div x-show="autoFillModalOpen" x-cloak
+         x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+         x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+         class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999"
+         style="display: none; width: 32rem; max-width: calc(100% - 2rem);">
+      <div class="p-6 lg:p-10">
+        <button type="button" @click="autoFillModalOpen = false" class="group absolute right-3 top-3 z-99999 flex h-9 w-9 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11">
+          <svg class="transition-colors fill-current group-hover:text-gray-600 dark:group-hover:text-gray-200" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M6.04289 16.5413C5.65237 16.9318 5.65237 17.565 6.04289 17.9555C6.43342 18.346 7.06658 18.346 7.45711 17.9555L11.9987 13.4139L16.5408 17.956C16.9313 18.3466 17.5645 18.3466 17.955 17.956C18.3455 17.5655 18.3455 16.9323 17.955 16.5418L13.4129 11.9997L17.955 7.4576C18.3455 7.06707 18.3455 6.43391 17.955 6.04338C17.5645 5.65286 16.9313 5.65286 16.5408 6.04338L11.9987 10.5855L7.45711 6.0439C7.06658 5.65338 6.43342 5.65338 6.04289 6.0439C5.65237 6.43442 5.65237 7.06759 6.04289 7.45811L10.5845 11.9997L6.04289 16.5413Z"/></svg>
+        </button>
+        <h4 class="mb-6 text-lg font-medium text-gray-800 dark:text-white/90">Auto-Fill Missing Months</h4>
+
+                <div>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                         This will create readings for all missing months from the selected start month to the current month.
                         Each missing month will use the same reading value as the last available reading.
@@ -439,7 +434,7 @@
                     </div>
                 </div>
                 
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-800">
+                <div class="mt-6 flex justify-end gap-3 border-t border-gray-200 pt-6 dark:border-gray-800">
                     <button @click="autoFillModalOpen = false" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                         Cancel
                     </button>
@@ -447,8 +442,7 @@
                         Auto-Fill
                     </button>
                 </div>
-            </div>
-        </div>
+      </div>
     </div>
 </div>
 

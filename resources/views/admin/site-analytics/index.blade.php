@@ -5,8 +5,8 @@
 @section('content')
 @php
     $card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
-    $th = 'px-3 py-2 font-medium';
-    $td = 'px-3 py-2';
+    $th = 'p-4 text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
+    $td = 'p-4 text-sm';
 @endphp
 <div>
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -73,11 +73,11 @@
   <div class="mb-6 grid gap-6 xl:grid-cols-3">
     <div class="{{ $card }} overflow-x-auto xl:col-span-2">
       <h2 class="mb-3 font-semibold text-gray-900 dark:text-white">Top pages</h2>
-      <table class="data-table min-w-full text-left text-sm">
-        <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Page</th><th class="{{ $th }} text-right">Views</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Time</th><th class="{{ $th }} text-right">Scroll</th><th class="{{ $th }}"></th></tr></thead>
-        <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
+      <table class="data-table w-full table-auto text-left">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="{{ $th }}">Page</th><th class="{{ $th }} text-right">Views</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Time</th><th class="{{ $th }} text-right">Scroll</th><th class="{{ $th }}"></th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800 text-gray-500 dark:text-gray-400">
           @forelse ($pages as $p)
-            <tr><td class="{{ $td }} font-medium text-gray-900 dark:text-white">{{ $p->path }}</td><td class="{{ $td }} text-right">{{ number_format($p->views) }}</td><td class="{{ $td }} text-right">{{ number_format($p->visitors) }}</td><td class="{{ $td }} text-right">{{ $duration($p->avg_ms) }}</td><td class="{{ $td }} text-right">{{ $p->scroll ? round($p->scroll).'%' : '—' }}</td>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="{{ $td }} font-medium text-gray-800 dark:text-white/90">{{ $p->path }}</td><td class="{{ $td }} text-right">{{ number_format($p->views) }}</td><td class="{{ $td }} text-right">{{ number_format($p->visitors) }}</td><td class="{{ $td }} text-right">{{ $duration($p->avg_ms) }}</td><td class="{{ $td }} text-right">{{ $p->scroll ? round($p->scroll).'%' : '—' }}</td>
               <td class="{{ $td }} text-right"><a class="text-xs text-red-600 hover:underline" href="{{ route('site-analytics.heatmap', ['path' => $p->path, 'days' => $days]) }}">Heatmap</a></td></tr>
           @empty
             <tr><td colspan="6" class="{{ $td }} text-gray-500">No visits yet.</td></tr>
@@ -108,11 +108,11 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">Where visitors come from</h2>
       <p class="mb-3 text-xs text-gray-500">utm_source when the link was tagged, otherwise the referring site. Conversions use the visitor's first source this session.</p>
-      <table class="data-table min-w-full text-left text-sm">
-        <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Source</th><th class="{{ $th }} text-right">Views</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Conversions</th></tr></thead>
-        <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
+      <table class="data-table w-full table-auto text-left">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="{{ $th }}">Source</th><th class="{{ $th }} text-right">Views</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Conversions</th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800 text-gray-500 dark:text-gray-400">
           @forelse ($sources as $s)
-            <tr><td class="{{ $td }}">{{ $s->source }}</td><td class="{{ $td }} text-right">{{ number_format($s->views) }}</td><td class="{{ $td }} text-right">{{ number_format($s->visitors) }}</td><td class="{{ $td }} text-right font-medium">{{ $s->conversions }}</td></tr>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="{{ $td }}">{{ $s->source }}</td><td class="{{ $td }} text-right">{{ number_format($s->views) }}</td><td class="{{ $td }} text-right">{{ number_format($s->visitors) }}</td><td class="{{ $td }} text-right font-medium">{{ $s->conversions }}</td></tr>
           @empty
             <tr><td colspan="4" class="{{ $td }} text-gray-500">No visits yet.</td></tr>
           @endforelse
@@ -123,11 +123,11 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">UTM campaigns</h2>
       <p class="mb-3 text-xs text-gray-500">Links tagged with utm_campaign, e.g. <code>?utm_source=facebook&amp;utm_medium=paid_social&amp;utm_campaign=landlords_nairobi_2026q4</code>.</p>
-      <table class="data-table min-w-full text-left text-sm">
-        <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Campaign</th><th class="{{ $th }}">Source / medium</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Conv.</th><th class="{{ $th }} text-right">Rate</th></tr></thead>
-        <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
+      <table class="data-table w-full table-auto text-left">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="{{ $th }}">Campaign</th><th class="{{ $th }}">Source / medium</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Conv.</th><th class="{{ $th }} text-right">Rate</th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800 text-gray-500 dark:text-gray-400">
           @forelse ($campaigns as $c)
-            <tr><td class="{{ $td }} font-medium text-gray-900 dark:text-white">{{ $c->campaign }}</td><td class="{{ $td }} text-xs">{{ $c->source ?: '—' }} / {{ $c->medium ?: '—' }}</td><td class="{{ $td }} text-right">{{ number_format($c->visitors) }}</td><td class="{{ $td }} text-right">{{ $c->conversions }}</td><td class="{{ $td }} text-right">{{ $c->visitors ? round($c->conversions / $c->visitors * 100, 1) : 0 }}%</td></tr>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="{{ $td }} font-medium text-gray-800 dark:text-white/90">{{ $c->campaign }}</td><td class="{{ $td }} text-xs">{{ $c->source ?: '—' }} / {{ $c->medium ?: '—' }}</td><td class="{{ $td }} text-right">{{ number_format($c->visitors) }}</td><td class="{{ $td }} text-right">{{ $c->conversions }}</td><td class="{{ $td }} text-right">{{ $c->visitors ? round($c->conversions / $c->visitors * 100, 1) : 0 }}%</td></tr>
           @empty
             <tr><td colspan="5" class="{{ $td }} text-gray-500">No tagged campaign visits yet.</td></tr>
           @endforelse
@@ -140,11 +140,11 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">Conversions by form and source</h2>
       <p class="mb-3 text-xs text-gray-500">Which channel brought each sign-up. Leads themselves are in Sales CRM › Requests / Waitlist.</p>
-      <table class="data-table min-w-full text-left text-sm">
-        <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Form</th><th class="{{ $th }}">Source</th><th class="{{ $th }}">Campaign</th><th class="{{ $th }} text-right">Sent</th></tr></thead>
-        <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
+      <table class="data-table w-full table-auto text-left">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="{{ $th }}">Form</th><th class="{{ $th }}">Source</th><th class="{{ $th }}">Campaign</th><th class="{{ $th }} text-right">Sent</th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800 text-gray-500 dark:text-gray-400">
           @forelse ($formSources as $r)
-            <tr><td class="{{ $td }}">{{ $formLabels[$r->label] ?? $r->label }}</td><td class="{{ $td }}">{{ $r->source ?: 'direct' }}</td><td class="{{ $td }} text-xs">{{ $r->campaign ?: '—' }}</td><td class="{{ $td }} text-right font-medium">{{ $r->n }}</td></tr>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="{{ $td }}">{{ $formLabels[$r->label] ?? $r->label }}</td><td class="{{ $td }}">{{ $r->source ?: 'direct' }}</td><td class="{{ $td }} text-xs">{{ $r->campaign ?: '—' }}</td><td class="{{ $td }} text-right font-medium">{{ $r->n }}</td></tr>
           @empty
             <tr><td colspan="4" class="{{ $td }} text-gray-500">No conversions yet.</td></tr>
           @endforelse
@@ -155,11 +155,11 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">Listing views</h2>
       <p class="mb-3 text-xs text-gray-500">Listings opened on Open listings or their own page. {{ number_format($listingRequests) }} viewing / booking requests sent in this period.</p>
-      <table class="data-table min-w-full text-left text-sm">
-        <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Listing</th><th class="{{ $th }} text-right">Opened</th><th class="{{ $th }} text-right">Visitors</th></tr></thead>
-        <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
+      <table class="data-table w-full table-auto text-left">
+        <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="{{ $th }}">Listing</th><th class="{{ $th }} text-right">Opened</th><th class="{{ $th }} text-right">Visitors</th></tr></thead>
+        <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800 text-gray-500 dark:text-gray-400">
           @forelse ($listings as $l)
-            <tr><td class="{{ $td }}">{{ $l->label }}</td><td class="{{ $td }} text-right">{{ number_format($l->views) }}</td><td class="{{ $td }} text-right">{{ number_format($l->visitors) }}</td></tr>
+            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900"><td class="{{ $td }}">{{ $l->label }}</td><td class="{{ $td }} text-right">{{ number_format($l->views) }}</td><td class="{{ $td }} text-right">{{ number_format($l->visitors) }}</td></tr>
           @empty
             <tr><td colspan="3" class="{{ $td }} text-gray-500">No listings opened yet.</td></tr>
           @endforelse

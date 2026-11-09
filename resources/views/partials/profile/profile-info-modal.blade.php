@@ -1,18 +1,26 @@
-<div
-  x-show="isProfileInfoModal"
-  class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999"
->
-  <div
-    class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"
-  ></div>
-  <div
-    @click.outside="isProfileInfoModal = false"
-    class="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11"
-  >
+<div>
+  <div x-show="isProfileInfoModal" x-cloak @click="isProfileInfoModal = false"
+        x-transition:enter="transition ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+  <div x-show="isProfileInfoModal" x-cloak @click.outside="isProfileInfoModal = false"
+        x-transition:enter="transition transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="no-scrollbar fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999 p-6 lg:p-10"
+        style="width: 42rem; max-width: calc(100% - 2rem);">
     <!-- close btn -->
     <button
       @click="isProfileInfoModal = false"
-      class="transition-color absolute right-5 top-5 z-999 flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:bg-white/[0.05] dark:text-gray-400 dark:hover:bg-white/[0.07] dark:hover:text-gray-300"
+      type="button"
+      class="group absolute right-3 top-3 z-99999 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
     >
       <svg
         class="fill-current"
@@ -31,7 +39,7 @@
       </svg>
     </button>
     <div class="px-2 pr-14">
-      <h4 class="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+      <h4 class="mb-2 text-lg font-medium text-gray-800 dark:text-white/90">
         Edit Personal Information
       </h4>
       <p class="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
@@ -39,7 +47,7 @@
       </p>
     </div>
     <form class="flex flex-col">
-      <div class="custom-scrollbar h-[450px] overflow-y-auto px-2">
+      <div class="px-2">
         <div>
           <h5
             class="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6"
@@ -176,17 +184,17 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+      <div class="flex items-center justify-end w-full gap-3 mt-6">
         <button
           @click="isProfileInfoModal = false"
           type="button"
-          class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"
+          class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200 sm:w-auto"
         >
           Close
         </button>
         <button
           type="button"
-          class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto"
+          class="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium text-white rounded-lg bg-brand-500 shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
         >
           Save Changes
         </button>

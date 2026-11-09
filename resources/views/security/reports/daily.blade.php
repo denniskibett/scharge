@@ -34,21 +34,6 @@
         </div>
     </div>
 
-    <!-- Date Filter -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
-        <form method="GET" action="{{ route('security.reports.daily') }}" class="flex flex-wrap items-end gap-4">
-            <div>
-                <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Select Date</label>
-                <input type="date" id="date" name="date" value="{{ $date ?? now()->toDateString() }}"
-                       class="mt-1.5 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800">
-            </div>
-            <button type="submit" 
-                    class="inline-flex items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700">
-                View Report
-            </button>
-        </form>
-    </div>
-
     <!-- Statistics Cards -->
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
@@ -95,35 +80,38 @@
     </div>
 
     <!-- Visitors Table -->
-    <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-        <div class="border-b border-gray-200 pb-3 dark:border-gray-800">
-            <h4 class="text-base font-medium text-gray-800 dark:text-white/90">Visitor Log</h4>
-        </div>
-        <div class="pt-4">
-            <div class="overflow-x-auto">
-                <table class="data-table w-full text-sm">
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <form method="GET" action="{{ route('security.reports.daily') }}" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+            <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">Visitor Log</h4>
+            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+                <input type="date" id="date" name="date" value="{{ $date ?? now()->toDateString() }}" aria-label="Report date" onchange="this.form.requestSubmit ? this.form.requestSubmit() : this.form.submit()" class="dark:bg-dark-900 h-11 rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+            </div>
+        </form>
+        <div>
+            <div class="w-full overflow-x-auto">
+                <table class="data-table w-full table-auto">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-800">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Visitor</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Purpose</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-In</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-Out</th>
-                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Visitor</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Purpose</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Check-In</th>
+                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Check-Out</th>
+                            <th class="p-4 text-center text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                         @forelse($visitors ?? [] as $visitor)
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-                                            <span class="text-xs font-semibold">
+                            <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                                <td class="p-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100">
+                                            <span class="text-sm font-medium text-purple-600">
                                                 {{ $visitor->visitor_name_snapshot ? strtoupper(substr($visitor->visitor_name_snapshot, 0, 2)) : '??' }}
                                             </span>
                                         </div>
                                         <div>
-                                            <p class="font-medium text-gray-800 dark:text-white">
+                                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">
                                                 {{ $visitor->visitor_name_snapshot ?? $visitor->visitor->name ?? 'Unknown' }}
                                             </p>
                                             <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -132,39 +120,40 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-4 py-3 text-gray-800 dark:text-white">
+                                <td class="p-4 whitespace-nowrap text-sm text-gray-800 dark:text-white/90">
                                     {{ $visitor->unit->unit_number ?? 'N/A' }}
                                 </td>
-                                <td class="px-4 py-3">
-                                    <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+                                <td class="p-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                         {{ ucfirst($visitor->purpose ?? $visitor->access_type ?? 'Guest') }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ $visitor->access_time ? $visitor->access_time->format('M d, Y H:i') : 'N/A' }}
                                 </td>
-                                <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                                     {{ $visitor->exit_time ? $visitor->exit_time->format('M d, Y H:i') : '-' }}
                                 </td>
-                                <td class="px-4 py-3 text-center">
+                                <td class="p-4 whitespace-nowrap text-center">
                                     @if($visitor->status === 'approved' && !$visitor->exit_time)
-                                        <span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">Inside</span>
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Inside</span>
                                     @elseif($visitor->status === 'approved' && $visitor->exit_time)
-                                        <span class="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">Completed</span>
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Completed</span>
                                     @elseif($visitor->status === 'pending')
-                                        <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-400">Pending</span>
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">Pending</span>
                                     @elseif($visitor->status === 'denied')
-                                        <span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">Denied</span>
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Denied</span>
                                     @else
-                                        <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 dark:bg-gray-500/15 dark:text-gray-400">{{ ucfirst($visitor->status) }}</span>
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ ucfirst($visitor->status) }}</span>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
-                                    <p>No visitors recorded on this date</p>
-                                </td>
+                                <td colspan="6" class="p-4 text-center">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No visitors recorded on this date</h3>
+  </td>
                             </tr>
                         @endforelse
                     </tbody>

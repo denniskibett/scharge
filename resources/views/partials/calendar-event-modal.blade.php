@@ -1,16 +1,18 @@
 <div
-  class="fixed inset-0 items-center justify-center hidden p-5 overflow-y-auto modal z-99999"
+  class="fixed inset-0 hidden modal z-99999"
   id="eventModal"
 >
   <div
-    class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"
+    class="modal-close-btn fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
   ></div>
   <div
-    class="modal-dialog modal-dialog-scrollable modal-lg no-scrollbar relative flex w-full max-w-[700px] flex-col overflow-y-auto rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-11"
+    class="modal-dialog modal-dialog-scrollable modal-lg no-scrollbar fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999 p-6 lg:p-10"
+    style="width: 42rem; max-width: calc(100% - 2rem);"
   >
     <!-- close btn -->
     <button
-      class="modal-close-btn transition-color absolute right-5 top-5 z-999 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:bg-white/[0.05] dark:text-gray-400 dark:hover:bg-white/[0.07] dark:hover:text-gray-300 sm:h-11 sm:w-11"
+      type="button"
+      class="modal-close-btn group absolute right-3 top-3 z-99999 flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 text-gray-500 transition-colors hover:bg-gray-300 hover:text-gray-500 dark:bg-gray-800 dark:hover:bg-gray-700 sm:right-6 sm:top-6 sm:h-11 sm:w-11"
     >
       <svg
         class="fill-current"
@@ -30,11 +32,11 @@
     </button>
 
     <div
-      class="flex flex-col px-2 overflow-y-auto modal-content custom-scrollbar"
+      class="flex flex-col modal-content"
     >
       <div class="modal-header">
         <h5
-          class="mb-2 font-semibold text-gray-800 modal-title text-theme-xl dark:text-white/90 lg:text-2xl"
+          class="mb-2 text-lg font-medium text-gray-800 modal-title dark:text-white/90"
           id="eventModalLabel"
         >
           Add / Edit Event
@@ -250,7 +252,7 @@
           </div>
         </div>
       </div>
-      <div class="flex items-center gap-3 mt-6 modal-footer sm:justify-end">
+      <div class="flex items-center justify-end w-full gap-3 mt-6 modal-footer">
         <button
           type="button"
           class="btn modal-close-btn bg-danger-subtle text-danger flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"

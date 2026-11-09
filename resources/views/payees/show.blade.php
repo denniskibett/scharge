@@ -29,7 +29,7 @@
       <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <button 
           @click="openEditModal()"
-          class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 whitespace-nowrap text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300">
+          class="shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 whitespace-nowrap text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" class="text-yellow-600 dark:text-yellow-400">
             <path d="M13.5858 3.58579C14.3668 2.80474 15.6332 2.80474 16.4142 3.58579C17.1953 4.36684 17.1953 5.63317 16.4142 6.41421L15.6213 7.20711L12.7929 4.37868L13.5858 3.58579Z" fill="currentColor"/>
             <path d="M11.3787 5.79289L3 14.1716V17H5.82842L14.2071 8.62132L11.3787 5.79289Z" fill="currentColor"/>
@@ -39,7 +39,7 @@
         
         <button 
           @click="openDeleteModal()"
-          class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 whitespace-nowrap text-red-700 transition-colors hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:hover:text-red-300">
+          class="shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3 whitespace-nowrap text-red-700 transition-colors hover:bg-red-100 hover:text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30 dark:hover:text-red-300">
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none" class="text-red-600 dark:text-red-400">
             <path d="M8.75 4.25C8.75 3.83579 9.08579 3.5 9.5 3.5H10.5C10.9142 3.5 11.25 3.83579 11.25 4.25V4.75H8.75V4.25Z" fill="currentColor"/>
             <path fill-rule="evenodd" clip-rule="evenodd" d="M6 5.75V15.25C6 16.3546 6.89543 17.25 8 17.25H12C13.1046 17.25 14 16.3546 14 15.25V5.75H6ZM8.75 7.25C8.75 6.83579 9.08579 6.5 9.5 6.5H10.5C10.9142 6.5 11.25 6.83579 11.25 7.25V13.25C11.25 13.6642 10.9142 14 10.5 14H9.5C9.08579 14 8.75 13.6642 8.75 13.25V7.25Z" fill="currentColor"/>
@@ -153,8 +153,8 @@
 
       <!-- Expenses List -->
       @if($payee->expenses->count() > 0)
-      <div class="mt-6 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-5">
-        <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90 flex items-center gap-2">
+      <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <h4 class="flex items-center gap-2 border-b border-gray-200 px-5 py-4 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:text-white/90">
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none" class="text-purple-500">
             <path d="M13 1H3C1.89543 1 1 1.89543 1 3V13C1 14.1046 1.89543 15 3 15H13C14.1046 15 15 14.1046 15 13V3C15 1.89543 14.1046 1 13 1Z" fill="currentColor"/>
             <path d="M4 5H12V6H4V5Z" fill="white"/>
@@ -163,29 +163,29 @@
           </svg>
           Expenses
         </h4>
-        <div class="overflow-x-auto">
-          <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
-            <thead class="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Property</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Amount</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+        <div class="w-full overflow-x-auto">
+          <table class="data-table w-full table-auto">
+            <thead>
+              <tr class="border-b border-gray-200 dark:border-gray-800">
+                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Property</th>
+                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Category</th>
+                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
+                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Date</th>
+                <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
               @foreach($payee->expenses as $expense)
-              <tr class="hover:bg-gray-50 dark:hover:bg-gray-800">
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ $expense->property->name }}</td>
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ $expense->category->name }}</td>
-                <td class="px-4 py-3 text-sm font-medium text-gray-800 dark:text-white/90">{{ \App\Helpers\SystemHelper::currencySymbol() }}{{ number_format($expense->amount, 2) }}</td>
-                <td class="px-4 py-3 text-sm text-gray-800 dark:text-white/90">{{ \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y') }}</td>
-                <td class="px-4 py-3">
+              <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ $expense->property->name }}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $expense->category->name }}</td>
+                <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ \App\Helpers\SystemHelper::currencySymbol() }}{{ number_format($expense->amount, 2) }}</td>
+                <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($expense->expense_date)->format('M d, Y') }}</td>
+                <td class="p-4 whitespace-nowrap">
                   <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
-                    @if($expense->status == 'paid') bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400
-                    @elseif($expense->status == 'pending') bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400
-                    @else bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400 @endif">
+                    @if($expense->status == 'paid') bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
+                    @elseif($expense->status == 'pending') bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200
+                    @else bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 @endif">
                     {{ ucfirst($expense->status) }}
                   </span>
                 </td>

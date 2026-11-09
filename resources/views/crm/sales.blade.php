@@ -7,8 +7,13 @@
     $card = 'rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]';
     $field = 'h-11 rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $kes = fn ($n) => $n ? 'KES '.number_format($n) : '–';
-    $th = 'px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400';
-    $td = 'px-3 py-2.5 text-sm text-gray-800 dark:text-white/90';
+    $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
+    $td = 'p-4 whitespace-nowrap text-sm';
+    $tdm = $td.' text-gray-500 dark:text-gray-400';
+    $tdp = $td.' font-medium text-gray-800 dark:text-white/90';
+    $tcard = 'overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]';
+    $thead = 'flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700';
+    $link = 'text-blue-600 hover:text-blue-900 dark:text-blue-400';
     $kpis = [
         ['Closed won', $totals['won'], 'text-green-600'],
         ['Won: expected fees / month', $kes($totals['won_value']), 'text-green-600'],
@@ -59,51 +64,61 @@
     </div>
 
     {{-- Scoreboard --}}
-    <div class="{{ $card }} mb-6 overflow-x-auto">
-        <div class="flex items-center justify-between px-4 pt-4">
-            <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ $seesAll ? 'Account managers' : 'My numbers' }}</h3>
-            <span class="text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Deal values are expected monthly per-unit fees (KES): the value set on the company, else estimated units × KES {{ number_format($settings['pipeline_price_per_unit']) }}.</span>
+    <div class="{{ $tcard }} mb-6">
+        <div class="{{ $thead }}">
+            <div>
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $seesAll ? 'Account managers' : 'My numbers' }}</h3>
+            <p class="mt-1 max-w-3xl text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Deal values are expected monthly per-unit fees (KES): the value set on the company, else estimated units × KES {{ number_format($settings['pipeline_price_per_unit']) }}.</p>
+            </div>
         </div>
-        <table class="data-table mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-            <thead><tr>
+        <div class="w-full overflow-x-auto">
+        <table class="data-table w-full table-auto">
+            <thead><tr class="border-b border-gray-200 dark:border-gray-800">
                 <th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Won</th><th class="{{ $th }}">Won value</th><th class="{{ $th }}">Lost</th><th class="{{ $th }}">Win rate</th>
                 <th class="{{ $th }}">Open</th><th class="{{ $th }}">Proposal + negotiation</th><th class="{{ $th }}">Pipeline</th><th class="{{ $th }}">Calls / emails / meetings</th><th class="{{ $th }}">Overdue</th><th class="{{ $th }}">No next step</th>
                 <th class="{{ $th }}">Units managed</th><th class="{{ $th }}">Properties</th><th class="{{ $th }}">Fees settled</th><th class="{{ $th }}">Commission</th><th class="{{ $th }}">Forecast comm.</th>
             </tr></thead>
-            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+            <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                 @forelse ($rows as $r)
                     @php($pipelineLink = route('crm.index', ['owner' => $r['id'] ?? 'none', 'stage' => 'open']))
-                    <tr>
-                        <td class="{{ $td }} font-medium">
-                            @if ($seesAll)<a href="{{ route('crm.sales.index', ['period' => $period, 'owner' => $r['id'] ?? 'none']) }}" class="hover:text-brand-500">{{ $r['name'] }}</a>@else{{ $r['name'] }}@endif
+                    <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                        <td class="{{ $tdp }}">
+                            @if ($seesAll)<a href="{{ route('crm.sales.index', ['period' => $period, 'owner' => $r['id'] ?? 'none']) }}" class="{{ $link }}">{{ $r['name'] }}</a>@else{{ $r['name'] }}@endif
                         </td>
                         <td class="{{ $td }} font-semibold text-green-600">{{ $r['won'] }}</td>
-                        <td class="{{ $td }}">{{ $kes($r['won_value']) }}</td>
-                        <td class="{{ $td }}">{{ $r['lost'] }}</td>
-                        <td class="{{ $td }}">{{ $r['win_rate'] !== null ? $r['win_rate'].'%' : '–' }}</td>
-                        <td class="{{ $td }}"><a href="{{ $pipelineLink }}" class="hover:text-brand-500">{{ $r['open'] }}</a></td>
-                        <td class="{{ $td }}">{{ $r['late'] }}</td>
-                        <td class="{{ $td }}">{{ $kes($r['pipeline']) }}</td>
-                        <td class="{{ $td }}">{{ $r['activity'] ?? '–' }}</td>
-                        <td class="{{ $td }} {{ $r['overdue'] ? 'font-semibold text-red-600' : '' }}">{{ $r['overdue'] }}</td>
-                        <td class="{{ $td }} {{ $r['no_next_step'] ? 'text-amber-600' : '' }}">
+                        <td class="{{ $tdm }}">{{ $kes($r['won_value']) }}</td>
+                        <td class="{{ $tdm }}">{{ $r['lost'] }}</td>
+                        <td class="{{ $tdm }}">{{ $r['win_rate'] !== null ? $r['win_rate'].'%' : '–' }}</td>
+                        <td class="{{ $td }}"><a href="{{ $pipelineLink }}" class="font-medium {{ $link }}">{{ $r['open'] }}</a></td>
+                        <td class="{{ $tdm }}">{{ $r['late'] }}</td>
+                        <td class="{{ $tdm }}">{{ $kes($r['pipeline']) }}</td>
+                        <td class="{{ $tdm }}">{{ $r['activity'] ?? '–' }}</td>
+                        <td class="{{ $td }} {{ $r['overdue'] ? 'font-semibold text-red-600' : 'text-gray-500 dark:text-gray-400' }}">{{ $r['overdue'] }}</td>
+                        <td class="{{ $td }} {{ $r['no_next_step'] ? 'text-amber-600' : 'text-gray-500 dark:text-gray-400' }}">
                             @if ($r['no_next_step'])<a href="{{ route('crm.index', ['owner' => $r['id'] ?? 'none', 'attention' => 'unattended']) }}" class="hover:underline">{{ $r['no_next_step'] }}</a>@else 0 @endif
                         </td>
                         @if ($r['id'])
-                            <td class="{{ $td }}">{{ number_format($r['units']) }}</td>
-                            <td class="{{ $td }}">{{ $r['properties'] }}</td>
-                            <td class="{{ $td }}">{{ $kes(round($r['earned']['fees'])) }}</td>
+                            <td class="{{ $tdm }}">{{ number_format($r['units']) }}</td>
+                            <td class="{{ $tdm }}">{{ $r['properties'] }}</td>
+                            <td class="{{ $tdm }}">{{ $kes(round($r['earned']['fees'])) }}</td>
                             <td class="{{ $td }} font-semibold text-brand-500">{{ $kes(round($r['earned']['commission'])) }} <span class="text-xs font-normal text-gray-400">@ {{ $pct($r['rate']) }}</span></td>
-                            <td class="{{ $td }} text-gray-500" title="Weighted pipeline (expected monthly per-unit fees) × share">{{ $kes($r['forecast_commission']) }}</td>
+                            <td class="{{ $tdm }}" title="Weighted pipeline (expected monthly per-unit fees) × share">{{ $kes($r['forecast_commission']) }}</td>
                         @else
-                            <td class="{{ $td }} text-gray-400" colspan="5">No commission on unassigned accounts</td>
+                            <td class="{{ $tdm }}" colspan="5">No commission on unassigned accounts</td>
                         @endif
                     </tr>
                 @empty
-                    <tr><td colspan="16" class="{{ $td }} text-gray-500">No account managers yet. Give someone the account_manager role and assign them companies.</td></tr>
+                    <tr>
+                        <td colspan="16" class="p-4 text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No account managers yet</h3>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Give someone the account_manager role and assign them companies.</p>
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
+        </div>
     </div>
 
     {{-- How commission works + plan editor --}}
@@ -144,25 +159,27 @@
 
     {{-- Statement for one person --}}
     @if ($lines->isNotEmpty())
-        <div class="{{ $card }} mb-6 overflow-x-auto">
-            <h3 class="px-4 pt-4 text-base font-semibold text-gray-800 dark:text-white/90">Commission statement</h3>
-            <table class="data-table mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-                <thead><tr><th class="{{ $th }}">Company</th><th class="{{ $th }}">Property</th><th class="{{ $th }}">Billing month</th><th class="{{ $th }}">Settled</th><th class="{{ $th }}">Units</th><th class="{{ $th }}">Platform fee</th><th class="{{ $th }}">Share</th><th class="{{ $th }}">Commission</th></tr></thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+        <div class="{{ $tcard }} mb-6">
+            <div class="{{ $thead }}"><h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Commission statement</h3></div>
+            <div class="w-full overflow-x-auto">
+            <table class="data-table w-full table-auto">
+                <thead><tr class="border-b border-gray-200 dark:border-gray-800"><th class="{{ $th }}">Company</th><th class="{{ $th }}">Property</th><th class="{{ $th }}">Billing month</th><th class="{{ $th }}">Settled</th><th class="{{ $th }}">Units</th><th class="{{ $th }}">Platform fee</th><th class="{{ $th }}">Share</th><th class="{{ $th }}">Commission</th></tr></thead>
+                <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                     @foreach ($lines as $l)
-                        <tr>
-                            <td class="{{ $td }}"><a href="{{ route('crm.companies.show', $l->company_id) }}" class="hover:text-brand-500">{{ $l->company }}</a></td>
-                            <td class="{{ $td }}">{{ $l->property }}</td>
-                            <td class="{{ $td }}">{{ $l->period ?? '–' }}</td>
-                            <td class="{{ $td }}">{{ $l->paid_at->format('j M Y') }}</td>
-                            <td class="{{ $td }}">{{ number_format($l->units) }}@if ($l->price_per_unit) <span class="text-xs text-gray-400">× {{ number_format($l->price_per_unit) }}</span>@endif</td>
-                            <td class="{{ $td }}">{{ $kes(round($l->fee, 2)) }}</td>
-                            <td class="{{ $td }}">{{ $pct($l->rate) }}</td>
-                            <td class="{{ $td }} font-medium">{{ $kes(round($l->commission, 2)) }}</td>
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td class="{{ $td }}"><a href="{{ route('crm.companies.show', $l->company_id) }}" class="font-medium {{ $link }}">{{ $l->company }}</a></td>
+                            <td class="{{ $tdm }}">{{ $l->property }}</td>
+                            <td class="{{ $tdm }}">{{ $l->period ?? '–' }}</td>
+                            <td class="{{ $tdm }}">{{ $l->paid_at->format('j M Y') }}</td>
+                            <td class="{{ $tdm }}">{{ number_format($l->units) }}@if ($l->price_per_unit) <span class="text-xs text-gray-400">× {{ number_format($l->price_per_unit) }}</span>@endif</td>
+                            <td class="{{ $tdm }}">{{ $kes(round($l->fee, 2)) }}</td>
+                            <td class="{{ $tdm }}">{{ $pct($l->rate) }}</td>
+                            <td class="{{ $tdp }}">{{ $kes(round($l->commission, 2)) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+            </div>
         </div>
     @endif
 
