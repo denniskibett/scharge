@@ -227,6 +227,10 @@
       if (S) {
         $('#d-title').textContent = S.title; $('#d-sub').textContent = S.area + ', ' + S.owner;
         $('#d-lines').innerHTML = [[ls.kind === 2 ? 'Price' : ls.kind === 1 ? 'Per night' : 'Rent', 'KES ' + fmt(S.price)], ['Other costs', S.costs], ['Availability', S.avail], ['Inspected by scharge', S.verified ? 'Yes' : 'Listed by owner']].map(function (r) { return '<div class="kv"><span class="muted">' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
+        if (S.photos && S.photos.length) {
+          $('#d-lines').insertAdjacentHTML('afterbegin', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px">' +
+            S.photos.slice(0, 12).map(function (u, i) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="' + esc(S.title) + ' photo ' + (i + 1) + '" loading="lazy" style="width:100%;height:72px;object-fit:cover;border-radius:10px"></a>'; }).join('') + '</div>');
+        }
         $('#d-tags').innerHTML = S.tags.map(function (t) { return '<span class="pill" style="background:var(--blush)">' + esc(t) + '</span>'; }).join('');
         $('#d-form-title').textContent = K.formTitle; $('#d-when-label').textContent = K.whenLabel; $('#d-when').placeholder = K.whenHint;
         $('#d-submit').textContent = K.formBtn; $('#d-thanks-msg').textContent = K.sentMsg;

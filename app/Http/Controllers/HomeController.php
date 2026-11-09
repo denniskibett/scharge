@@ -39,7 +39,7 @@ class HomeController extends Controller
 
     public function listings(): View
     {
-        return view('home.listings');
+        return view('home.listings', ['listingItems' => app(\App\Services\ListingCatalog::class)->items()]);
     }
 
     public function api(): View

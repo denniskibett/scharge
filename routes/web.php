@@ -355,6 +355,9 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     // UNIT ROUTES
     // ============================================
     Route::resource('units', UnitController::class);
+    Route::get('/units/{unit}/photos', [App\Http\Controllers\UnitPhotoController::class, 'index'])->name('units.photos.index');
+    Route::post('/units/{unit}/photos', [App\Http\Controllers\UnitPhotoController::class, 'store'])->name('units.photos.store');
+    Route::delete('/units/{unit}/photos/{photo}', [App\Http\Controllers\UnitPhotoController::class, 'destroy'])->name('units.photos.destroy');
     Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
     Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->name('units.meter-reading-data');

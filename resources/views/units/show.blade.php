@@ -389,6 +389,8 @@
               <p class="text-xs font-medium text-gray-800 dark:text-white/90">{{ $unit->updated_at ? \Carbon\Carbon::parse($unit->updated_at)->format('M d, Y H:i') : '-' }}</p>
             </div>
           </div>
+
+          @include('units.partials.photos')
         </div>
       </div>
 

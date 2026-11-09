@@ -511,3 +511,22 @@ The live server was checked read-only. Nothing on the server was changed.
   - the page sweep as sysadmin, company admin, property manager and tenant matches the pre-rename baseline exactly;
   - the remaining 500s already existed: `/tenants` and `/tenancies` (missing `App\Models\Role`, `User::role()` called without a role), `/sms/campaigns` (missing `getStatusBadge()`), `/reports/financial` (missing method);
   - the Sharet payment checks pass, 31 of 31.
+
+---
+
+## 15. Listings, photos and calendar (2026-11-09)
+
+- **Calendar.** `/calendar` is real. One role-scoped feed shows:
+  - rent due, collections, the meter-reading window and the readings done or flagged;
+  - repairs, move-ins and move-outs;
+  - Sharet payouts, CRM follow-ups and subscription renewals.
+
+  Tenants see only their own bills and payments.
+- **Public Open listings.** The page now shows real vacant units instead of sample homes. There is one card per property, house type and rent (e.g. "Studio · Bloomfield Apartments · 10 available"), so 934 vacant units become 9 cards. Short stays use the nightly rate.
+- **House photos** (`database/schema/2026_11_09_unit_photos.sql`, hand-applied). On a unit's page, upload photos for:
+  - this house only;
+  - all houses of the same type in the property (the default);
+  - the whole property.
+
+  Similar houses share the photos without copies, and the public card shows them. Cards without photos get a neutral "photos coming soon" picture, never a stock photo.
+- **Roles list fix.** `/admin/roles/list` no longer reads `roles.description`, which doesn't exist in the live Spatie table, so the "No roles available" error is gone.
