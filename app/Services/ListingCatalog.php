@@ -45,7 +45,7 @@ class ListingCatalog
                 COALESCE(NULLIF(u.rent_amount, 0), 0) as rent, u.bnb_nightly_rate, MAX(u.service_charge) as service,
                 MAX(u.security_deposit_amount) as deposit, MAX(u.furnishing_status) as furnishing, MAX(u.custom_water_rate) as custom_rate,
                 COUNT(*) as n, MIN(u.id) as first_unit")
-            ->groupBy('p.id', 'p.name', 'p.location', 'p.water_rate', 'u.unit_type', 'u.stay_type', DB::raw('COALESCE(NULLIF(u.rent_amount, 0), 0)'), 'u.bnb_nightly_rate')
+            ->groupBy('p.id', 'p.name', 'p.location', 'p.water_rate', 'u.unit_type', 'u.stay_type', 'rent', 'u.bnb_nightly_rate')
             ->orderBy('p.name')->get();
 
         $photos = Schema::hasTable('unit_photos')
