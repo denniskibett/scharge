@@ -292,15 +292,15 @@
 
 <script>
 // Global data for preloaded invoices - MUST be defined BEFORE Alpine components
-let invoicesData = @json($mappedInvoices ?? []);
-let activeTenanciesData = @json($mappedActiveTenancies ?? []);
+var invoicesData = @json($mappedInvoices ?? []);
+var activeTenanciesData = @json($mappedActiveTenancies ?? []);
 
 // Enums and Data - Pure JavaScript, no PHP dependencies
-const invoiceTypeEnum = ['move_in', 'monthly', 'move_out'];
-const itemTypeEnum = ['rent', 'power', 'internet', 'water', 'security', 'garbage', 'service', 'other'];
-const statusEnum = ['draft', 'unpaid', 'partial', 'paid'];
+var invoiceTypeEnum = ['move_in', 'monthly', 'move_out'];
+var itemTypeEnum = ['rent', 'power', 'internet', 'water', 'security', 'garbage', 'service', 'other'];
+var statusEnum = ['draft', 'unpaid', 'partial', 'paid'];
 
-const itemTypeLabels = {
+var itemTypeLabels = {
     rent: "Rent",
     power: "Power/Electricity",
     internet: "Internet",
@@ -311,20 +311,20 @@ const itemTypeLabels = {
     other: "Other"
 };
 
-const invoiceTypeLabels = {
+var invoiceTypeLabels = {
     move_in: "Move In",
     monthly: "Monthly",
     move_out: "Move Out"
 };
 
-const statusLabels = {
+var statusLabels = {
     draft: "Draft",
     unpaid: "Unpaid",
     partial: "Partial",
     paid: "Paid"
 };
 
-const currencySymbol = "{{ SystemHelper::currencySymbol() }}";
+var currencySymbol = "{{ SystemHelper::currencySymbol() }}";
 var csrfToken = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {

@@ -363,12 +363,12 @@
 <script>
     console.log('Staff Management script loaded');
 
-    let selectedIds = new Set();
-    let allIds = [];
+    var selectedIds = new Set();
+    var allIds = [];
 
-    const masterCheckbox = document.getElementById('masterCheckbox');
-    const selectedCountSpan = document.getElementById('selectedCount');
-    const bulkActionSelect = document.getElementById('bulkAction');
+    var masterCheckbox = document.getElementById('masterCheckbox');
+    var selectedCountSpan = document.getElementById('selectedCount');
+    var bulkActionSelect = document.getElementById('bulkAction');
 
     // Helper: Toast
     function showToast(message, type) {
@@ -737,7 +737,7 @@
         if (dateTo) url.searchParams.append('date_to', dateTo);
 
         console.log('Export URL:', url.toString());
-        window.location.href = url.toString();
+        window.location.href = url.toString(); // export: a normal download
     }
 
     // Export Selected
@@ -767,7 +767,7 @@
         if (dateTo) url.searchParams.append('date_to', dateTo);
 
         console.log('Export URL:', url.toString());
-        window.location.href = url.toString();
+        window.location.href = url.toString(); // export: a normal download
     }
 
     // Update stats
@@ -820,7 +820,7 @@
 
         currentUrl.searchParams.set('sort', column);
         currentUrl.searchParams.set('direction', newDir);
-        window.location.href = currentUrl.toString();
+        (window.spaVisit || ((u) => { window.location.href = u; }))(currentUrl.toString());
     }
 
     // Change per page
@@ -829,7 +829,7 @@
         var url = new URL(window.location.href);
         url.searchParams.set('per_page', perPage);
         url.searchParams.delete('page');
-        window.location.href = url.toString();
+        (window.spaVisit || ((u) => { window.location.href = u; }))(url.toString());
     }
 
     // Initialise

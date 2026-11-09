@@ -646,14 +646,14 @@
 <script>
     console.log('User Management script loaded');
 
-    let selectedIds = new Set();
-    let allIds = [];
+    var selectedIds = new Set();
+    var allIds = [];
 
-    const masterCheckbox = document.getElementById('masterCheckbox');
-    const selectedCountSpan = document.getElementById('selectedCount');
-    const bulkActionSelect = document.getElementById('bulkAction');
-    const drawer = document.getElementById('addUserDrawer');
-    const drawerPanel = drawer ? drawer.querySelector('.fixed.right-0') : null;
+    var masterCheckbox = document.getElementById('masterCheckbox');
+    var selectedCountSpan = document.getElementById('selectedCount');
+    var bulkActionSelect = document.getElementById('bulkAction');
+    var drawer = document.getElementById('addUserDrawer');
+    var drawerPanel = drawer ? drawer.querySelector('.fixed.right-0') : null;
 
     function openAddUserDrawer() {
         if (!drawer) return;
@@ -1161,7 +1161,7 @@
         if (dateFrom) url.searchParams.append('date_from', dateFrom);
         if (dateTo) url.searchParams.append('date_to', dateTo);
 
-        window.location.href = url.toString();
+        window.location.href = url.toString(); // export: a normal download
     }
 
     function exportUsers() {
@@ -1183,7 +1183,7 @@
         if (dateFrom) url.searchParams.append('date_from', dateFrom);
         if (dateTo) url.searchParams.append('date_to', dateTo);
 
-        window.location.href = url.toString();
+        window.location.href = url.toString(); // export: a normal download
     }
 
     function updateStats() {
@@ -1233,7 +1233,7 @@
 
         currentUrl.searchParams.set('sort', column);
         currentUrl.searchParams.set('direction', newDir);
-        window.location.href = currentUrl.toString();
+        (window.spaVisit || ((u) => { window.location.href = u; }))(currentUrl.toString());
     }
 
     function changePerPage() {
@@ -1241,7 +1241,7 @@
         var url = new URL(window.location.href);
         url.searchParams.set('per_page', perPage);
         url.searchParams.delete('page');
-        window.location.href = url.toString();
+        (window.spaVisit || ((u) => { window.location.href = u; }))(url.toString());
     }
 
     updateSelectedCount();

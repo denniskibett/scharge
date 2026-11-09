@@ -7,7 +7,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>@hasSection('title')@yield('title') | {{ SystemHelper::appName() }}@else{{ SystemHelper::appName() }} | {{ ucfirst(request()->segment(1) ?? 'Dashboard') }}@endif</title>
-    <style>.spa-loading #app-content{opacity:.55;transition:opacity .15s}</style>
 
     {{-- Dynamic Meta --}}
     @if(SystemHelper::metaDescription())

@@ -224,7 +224,7 @@
 
 <script>
 // Global data for preloaded companies (if available)
-let companiesData = @json($companies ?? []);
+var companiesData = @json($companies ?? []);
 var csrfToken = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {
@@ -416,7 +416,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         goToShowPage(companyId) {
-            window.location.href = `/admin/companies/${companyId}`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/admin/companies/${companyId}`);
         },
         
         openCreateModal() {

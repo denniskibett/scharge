@@ -170,7 +170,7 @@ document.addEventListener('alpine:init', () => {
         
         editRequest() {
             if (this.requestId) {
-                window.location.href = `/maintenance/${this.requestId}/edit`;
+                (window.spaVisit || ((u) => { window.location.href = u; }))(`/maintenance/${this.requestId}/edit`);
             }
         },
         

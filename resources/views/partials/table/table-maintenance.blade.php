@@ -375,11 +375,11 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewRequest(id) {
-            window.location.href = `/maintenance/${id}`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/maintenance/${id}`);
         },
         
         updateRequest(id) {
-            window.location.href = `/maintenance/${id}/edit`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/maintenance/${id}/edit`);
         },
 
         openEditModal(id) {

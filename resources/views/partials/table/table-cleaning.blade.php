@@ -460,11 +460,11 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewTask(taskId) {
-            window.location.href = `/cleaning/tasks/${taskId}`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/cleaning/tasks/${taskId}`);
         },
         
         reassignTask(taskId) {
-            window.location.href = `/cleaning/tasks/${taskId}/reassign`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/cleaning/tasks/${taskId}/reassign`);
         }
     }));
 });

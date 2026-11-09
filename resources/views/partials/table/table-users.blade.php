@@ -243,7 +243,7 @@
 @include('partials.modal.user-create-modal')
 
 <script>
-const csrfTokenUsers = "{{ csrf_token() }}";
+var csrfTokenUsers = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {
     // Users Table Component
@@ -444,7 +444,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewUser(userId) {
-            window.location.href = `/admin/users/${userId}`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/admin/users/${userId}`);
         },
         
         openCreateModal() {

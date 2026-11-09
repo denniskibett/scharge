@@ -367,7 +367,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         manageSubscription(subscriptionId) {
-            window.location.href = `/admin/subscriptions/subscription/${subscriptionId}`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/admin/subscriptions/subscription/${subscriptionId}`);
         },
         
         async cancelSubscription(subscriptionId) {

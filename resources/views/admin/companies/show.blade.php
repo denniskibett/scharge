@@ -491,11 +491,11 @@
 
 <script>
 var csrfToken = "{{ csrf_token() }}";
-const companyId = {{ $company->id }};
-const currencySymbol = "KES";
-const initialStats = @json($stats);
-const initialPropertiesData = @json($propertiesData);
-const initialTenanciesData = @json($tenanciesData);
+var companyId = {{ $company->id }};
+var currencySymbol = "KES";
+var initialStats = @json($stats);
+var initialPropertiesData = @json($propertiesData);
+var initialTenanciesData = @json($tenanciesData);
 
 // Staff Table Component
 function staffTable() {

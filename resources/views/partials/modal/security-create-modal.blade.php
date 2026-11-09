@@ -453,7 +453,7 @@
 
 <script>
 // ==================== MAIN SECURITY VISITOR MODAL ====================
-let securityState = {
+var securityState = {
     step: 1,
     propertyId: null,
     unitId: null,
@@ -461,9 +461,9 @@ let securityState = {
     currentTab: 'visitors'
 };
 
-let visitorsList = [];
-let logsList = [];
-let oneTimeList = [];
+var visitorsList = [];
+var logsList = [];
+var oneTimeList = [];
 
 function openSecurityVisitorModal() {
     const modal = document.getElementById('securityVisitorModal');

@@ -1082,22 +1082,22 @@
         // ============================================
         // TAB SWITCHING
         // ============================================
-        let activeTab = 'tenants';
-        let currentPage = 1;
-        let hidePaid = false;
-        let rowsPerPage = 10;
-        let sortColumn = '';
-        let sortDirection = 'asc';
-        let allRows = [];
-        let allTenantsData = [];
-        let currentCampaignId = null;
-        let currentRecipients = [];
-        let currentRecipientsFull = [];
-        let currentFilteredRecipients = [];
-        let currentRecipientFilter = 'all';
-        let currentInvalidRecipients = [];
-        let currentOtherNetworkRecipients = [];
-        let currentFailedRecipients = [];
+        var activeTab = 'tenants';
+        var currentPage = 1;
+        var hidePaid = false;
+        var rowsPerPage = 10;
+        var sortColumn = '';
+        var sortDirection = 'asc';
+        var allRows = [];
+        var allTenantsData = [];
+        var currentCampaignId = null;
+        var currentRecipients = [];
+        var currentRecipientsFull = [];
+        var currentFilteredRecipients = [];
+        var currentRecipientFilter = 'all';
+        var currentInvalidRecipients = [];
+        var currentOtherNetworkRecipients = [];
+        var currentFailedRecipients = [];
 
        // ============================================================
 // FORMAT MONTH YEAR - FIXED
@@ -2104,7 +2104,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         // ============================================
         // BULK FORM SUBMIT
         // ============================================
-        const bulkForm = document.getElementById('bulkForm');
+        var bulkForm = document.getElementById('bulkForm');
         if (bulkForm) {
             bulkForm.addEventListener('submit', function(e) {
                 let selected = [];
@@ -2199,10 +2199,10 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             });
         }
 
-        let campaignsData = [];
-        let currentCampaignFilter = 'all';
-        let currentSourceFilter = 'all';
-        let isSandbox = true;
+        var campaignsData = [];
+        var currentCampaignFilter = 'all';
+        var currentSourceFilter = 'all';
+        var isSandbox = true;
 
 function loadCampaigns() {
     // RESET FILTER TO 'ALL'

@@ -437,7 +437,7 @@ function submitForm() {
             document.getElementById('unit_id').innerHTML = '<option value="">Select Unit</option>';
             // Redirect after delay
             setTimeout(() => {
-                window.location.href = '/security';
+                (window.spaVisit || ((u) => { window.location.href = u; }))('/security');
             }, 1500);
         } else {
             showMessage(data.message || 'Failed to register visitor', 'error');

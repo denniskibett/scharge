@@ -330,11 +330,11 @@ document.addEventListener('alpine:init', () => {
         previousPage() { if (this.currentPage > 1) this.currentPage--; },
         
         viewPayment(id) {
-            window.location.href = `/payments/${id}`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/payments/${id}`);
         },
         
         editPayment(id) {
-            window.location.href = `/payments/${id}/edit`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/payments/${id}/edit`);
         },
         
         deletePayment(id) {

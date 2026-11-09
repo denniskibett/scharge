@@ -232,7 +232,7 @@
 @include('partials.modal.subscriptions-create-modal')
 
 <script>
-const csrfTokenSubscriptions = "{{ csrf_token() }}";
+var csrfTokenSubscriptions = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {
     // Subscriptions Table Component - OPTIMIZED
@@ -440,7 +440,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewSubscribers(planId) {
-            window.location.href = `/admin/subscriptions/plans/${planId}#subscribers`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/admin/subscriptions/plans/${planId}#subscribers`);
         }
     }));
     

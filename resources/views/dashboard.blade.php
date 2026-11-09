@@ -203,15 +203,15 @@ function dashboard() {
 // ============================================================
 
 function editCompany(companyId) {
-    window.location.href = `/admin/companies/${companyId}/edit`;
+    (window.spaVisit || ((u) => { window.location.href = u; }))(`/admin/companies/${companyId}/edit`);
 }
 
 function viewCompany(companyId) {
-    window.location.href = `/admin/companies/${companyId}`;
+    (window.spaVisit || ((u) => { window.location.href = u; }))(`/admin/companies/${companyId}`);
 }
 
 function createCompany() {
-    window.location.href = '/admin/companies/create';
+    (window.spaVisit || ((u) => { window.location.href = u; }))('/admin/companies/create');
 }
 
 function verifyUser(userId) {
@@ -304,7 +304,7 @@ function openCreateReadingModal(unitId) {
 }
 
 function viewPayment(paymentId) {
-    window.location.href = `/payments/${paymentId}`;
+    (window.spaVisit || ((u) => { window.location.href = u; }))(`/payments/${paymentId}`);
 }
 
 function deletePayment(paymentId) {
@@ -323,15 +323,15 @@ function deletePayment(paymentId) {
 }
 
 function updateRequestStatus(requestId) {
-    window.location.href = `/maintenance/${requestId}/edit`;
+    (window.spaVisit || ((u) => { window.location.href = u; }))(`/maintenance/${requestId}/edit`);
 }
 
 function viewRequest(requestId) {
-    window.location.href = `/maintenance/${requestId}`;
+    (window.spaVisit || ((u) => { window.location.href = u; }))(`/maintenance/${requestId}`);
 }
 
 function viewLog(logId) {
-    window.location.href = `/security/logs/${logId}`;
+    (window.spaVisit || ((u) => { window.location.href = u; }))(`/security/logs/${logId}`);
 }
 
 function markTaskComplete(taskId) {

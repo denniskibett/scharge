@@ -439,7 +439,7 @@ function submitForm() {
             document.getElementById('visitor_id').value = '';
             document.getElementById('searchResult').classList.add('hidden');
             setTimeout(() => {
-                window.location.href = '/security';
+                (window.spaVisit || ((u) => { window.location.href = u; }))('/security');
             }, 1500);
         } else {
             showMessage(data.message || 'Failed to check in visitor', 'error');

@@ -73,7 +73,7 @@
 
 @push('scripts')
 <script>
-let activeTab = 'tenants';
+var activeTab = 'tenants';
 
 function switchTab(tab) {
     activeTab = tab;
@@ -94,13 +94,13 @@ function switchTab(tab) {
 }
 
 // Broadcast form logic
-let checkboxes = document.querySelectorAll('.tenant-checkbox');
-let selectedCountSpan = document.getElementById('selectedCount');
-let toggleAllCheckbox = document.getElementById('toggleAllCheckbox');
-let templateTextarea = document.getElementById('template');
-let previewSection = document.getElementById('previewSection');
-let previewContainer = document.getElementById('previewContainer');
-let propertyFilter = document.getElementById('propertyFilter');
+var checkboxes = document.querySelectorAll('.tenant-checkbox');
+var selectedCountSpan = document.getElementById('selectedCount');
+var toggleAllCheckbox = document.getElementById('toggleAllCheckbox');
+var templateTextarea = document.getElementById('template');
+var previewSection = document.getElementById('previewSection');
+var previewContainer = document.getElementById('previewContainer');
+var propertyFilter = document.getElementById('propertyFilter');
 
 function filterByProperty() {
     let selectedPropertyId = propertyFilter?.value;

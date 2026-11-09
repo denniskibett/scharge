@@ -379,7 +379,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         viewHistory(unitId, unitNumber) {
-            window.location.href = `/water/unit/${unitId}/statement`;
+            (window.spaVisit || ((u) => { window.location.href = u; }))(`/water/unit/${unitId}/statement`);
         },
         
         exportData() {

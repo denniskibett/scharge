@@ -230,7 +230,7 @@
 
 <script>
     // Sample tenant data for preview
-    let sampleTenant = {
+    var sampleTenant = {
         name: 'John Doe',
         unit: 'A-101',
         property_name: 'Bloomfield Apartments',

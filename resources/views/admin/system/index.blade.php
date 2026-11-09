@@ -1119,7 +1119,7 @@ function diagnoseForm() {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.4.12/ace.js" integrity="sha512-GJrW9pX9Z1GDZCBoBPuiGNsq4CPGK/c/pX9nuSUXwxLBzME2YkdE+5EYXPLkZX31lrT7xvFeoJq6Dig0lzVE3ig==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script>
     // Initialize Ace Editor for Custom CSS
-    const cssEditor = ace.edit("css-editor");
+    var cssEditor = ace.edit("css-editor");
     cssEditor.setTheme("ace/theme/monokai");
     cssEditor.session.setMode("ace/mode/css");
     cssEditor.setValue(`{{ old('custom_css', $system->custom_css) }}`, -1);
@@ -1128,7 +1128,7 @@ function diagnoseForm() {
     });
 
     // Initialize Ace Editor for Custom JS
-    const jsEditor = ace.edit("js-editor");
+    var jsEditor = ace.edit("js-editor");
     jsEditor.setTheme("ace/theme/monokai");
     jsEditor.session.setMode("ace/mode/javascript");
     jsEditor.setValue(`{{ old('custom_js', $system->custom_js) }}`, -1);
@@ -1140,7 +1140,7 @@ function diagnoseForm() {
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
         // Debug functionality
-    let debugVisible = false;
+    var debugVisible = false;
 
     function toggleDebug() {
         const debugContent = document.getElementById('debug-content');
