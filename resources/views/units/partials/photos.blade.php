@@ -1,6 +1,6 @@
 {{-- Photos for this house. Shared photos (all houses of this type, or the whole property) show on every
      similar house and on the public Open listings page for prospective tenants. --}}
-@hasanyrole('sysadmin|admin|property_manager')
+@hasanyrole('sysadmin|admin|property_manager|bnb_host')
 <div class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-700"
      x-data="unitPhotos('{{ route('units.photos.index', $unit) }}', '{{ $unit->unit_type }}')" x-init="load()">
   <div class="mb-3 flex flex-wrap items-center justify-between gap-3">

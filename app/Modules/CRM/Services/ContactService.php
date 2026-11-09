@@ -24,6 +24,7 @@ class ContactService
     public const PROFILE_FIELDS = [
         'website', 'phone_alt', 'business_type', 'portfolio', 'scale_signal', 'opportunity', 'target_role', 'route',
         'linkedin', 'decision_maker', 'current_system', 'estimated_units', 'next_action', 'needs_verification', 'notes', 'lost_reason',
+        'segment', 'city', 'area', 'clientele', 'deal_value', 'expected_close',
     ];
 
     /**

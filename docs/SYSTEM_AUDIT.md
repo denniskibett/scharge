@@ -530,3 +530,35 @@ The live server was checked read-only. Nothing on the server was changed.
 
   Similar houses share the photos without copies, and the public card shows them. Cards without photos get a neutral "photos coming soon" picture, never a stock photo.
 - **Roles list fix.** `/admin/roles/list` no longer reads `roles.description`, which doesn't exist in the live Spatie table, so the "No roles available" error is gone.
+
+---
+
+## 16. BnB hosts inside shared buildings (2026-11-09)
+
+Schema: `database/schema/2026_11_09_bnb_hosts.sql` (hand-applied, run once), then `php artisan properties:index-keys`.
+
+**Ownership model**
+- `properties.company_id`: the building's management company. It is NULL while the building is unclaimed.
+- `units.company_id`: who keeps the books for the unit.
+- `unit_managements`: who manages each unit and in what role (`manager`, `bnb_host` or `owner`), with history.
+
+**One record per building**
+- Every new property is matched first on a normalized name and area ("Kitengela Gardens" matches "Kitengela Gardens Apartments, Kitengela").
+- A host is offered the existing building. A management company gets a 409 with the matches and chooses either **Claim this building** or **a different building**.
+
+**Host flow**
+- A host signs up at `/host/register` (the website's "Add my listing" button). This creates their company (kind `bnb_host`), their user (role `bnb_host`) and their unit.
+- The unit goes into the existing building, or into a new unclaimed one.
+- Hosts manage their units at `/host`.
+
+**Claims**
+- Claims go to `/admin/property-claims`, where the company's account manager or a sysadmin approves them.
+- On approval the company manages the building, and host units' books move to it.
+- An owner tenancy (rent 0) is created so management can bill each host service charge and water.
+- The host keeps the unit:
+  - only the host can change listing fields (nightly rate, type, status);
+  - only management can change billing fields;
+  - management cannot delete a host's unit.
+- A host who joins an already-managed building has their unit's books with the manager from day one.
+
+**Verified:** 21 of 21 checks on a scratch copy of live data.

@@ -4,7 +4,7 @@
 @section('description', 'Calendar sync, smart-lock codes, cleaner checklists and payouts for Airbnb and short-stay hosts across Africa, starting in Kenya.')
 
 @section('header_cta')
-<a class="btn btn--primary" href="#calc">Add my listing</a>
+<a class="btn btn--primary" href="{{ route('host.register') }}">Add my listing</a>
 @endsection
 
 @section('subnav')

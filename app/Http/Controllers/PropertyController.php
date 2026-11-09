@@ -129,10 +129,26 @@ class PropertyController extends Controller
             $validated['garbage_charge'] = $validated['garbage_charge'] ?? 0;
             $validated['security_charge'] = $validated['security_charge'] ?? 0;
 
+            // One record per building: if this looks like a property already in scharge (e.g. a BnB
+            // host registered it first), offer to claim it instead of creating a duplicate.
+            if (! $request->boolean('confirm_new') && \Illuminate\Support\Facades\Schema::hasTable('property_claims')) {
+                $matches = app(\App\Services\Properties\PropertyRegistry::class)->matches($validated['name'], $validated['location'] ?? null)
+                    ->reject(fn ($m) => (int) $m['property']->company_id === (int) Auth::user()->company_id);
+                if ($matches->isNotEmpty()) {
+                    return response()->json([
+                        'success' => false,
+                        'duplicate' => true,
+                        'message' => 'This looks like a building already registered on scharge. Claim it instead of creating a duplicate, or confirm it is a different building.',
+                        'matches' => $matches->take(5)->map(fn ($m) => \App\Services\Properties\PropertyRegistry::present($m['property'], $m['score']))->values(),
+                    ], 409);
+                }
+            }
+
             // Add company_id from authenticated user
             $validated['company_id'] = Auth::user()->company_id;
 
             $property = Property::create($validated);
+            \App\Services\Properties\PropertyRegistry::index($property);
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -190,6 +206,7 @@ class PropertyController extends Controller
             $validated['security_charge'] = $validated['security_charge'] ?? 0;
 
             $property->update($validated);
+            \App\Services\Properties\PropertyRegistry::index($property);
 
             if ($request->wantsJson()) {
                 return response()->json([

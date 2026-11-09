@@ -321,6 +321,25 @@
                 </h4>
 
                 <!-- Form Errors -->
+                <template x-if="duplicates.length > 0">
+                    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+                        <p class="mb-3 font-medium">This building may already be on scharge (perhaps a BnB host registered a unit in it).</p>
+                        <template x-for="m in duplicates" :key="m.id">
+                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white/70 p-3 dark:bg-white/5">
+                                <div>
+                                    <p class="font-semibold" x-text="m.name"></p>
+                                    <p class="text-xs" x-text="(m.location || 'No location') + ' · ' + m.units + ' unit(s) · ' + (m.managed ? 'managed by another company' : 'not managed yet')"></p>
+                                </div>
+                                <button type="button" @click="claim(m)" :disabled="loading"
+                                        class="rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50">Claim this building</button>
+                            </div>
+                        </template>
+                        <textarea x-model="claimMessage" rows="2" maxlength="500" placeholder="Optional note for scharge, e.g. we have managed this block since 2024"
+                                  class="mt-1 w-full rounded-lg border border-amber-200 bg-white p-2 text-xs text-gray-800 dark:bg-gray-900 dark:text-white/90"></textarea>
+                        <button type="button" @click="confirmNew()" class="mt-2 text-xs font-medium underline">It is a different building: create it anyway</button>
+                    </div>
+                </template>
+
                 <template x-if="formErrors.length > 0">
                     <div class="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
                         <ul class="list-disc pl-5">
@@ -853,7 +872,7 @@ function propertyTable() {
 }
 
 function createPropertyModal() {
-    return {
+    return propertyDuplicateActions({
         isOpen: false,
         form: {
             name: '',
@@ -864,6 +883,8 @@ function createPropertyModal() {
             security_charge: ''
         },
         formErrors: [],
+        duplicates: [],
+        claimMessage: '',
         loading: false,
         
         init() {
@@ -877,6 +898,7 @@ function createPropertyModal() {
         },
         
         closeModal() {
+            this.duplicates = []; this.claimMessage = '';
             this.isOpen = false;
             this.formErrors = [];
             this.loading = false;
@@ -912,6 +934,11 @@ function createPropertyModal() {
                 });
                 
                 const data = await response.json();
+
+                if (response.status === 409 && data.duplicate) {
+                    this.duplicates = data.matches || [];
+                    return;
+                }
                 
                 if (response.ok) {
                     this.closeModal();
@@ -948,7 +975,28 @@ function createPropertyModal() {
                 this.loading = false;
             }
         }
+    });
+}
+
+
+// Duplicate-building helpers, mixed into createPropertyModal()
+function propertyDuplicateActions(vm) {
+    vm.confirmNew = function () { this.form.confirm_new = 1; this.duplicates = []; this.submitForm(); };
+    vm.claim = async function (m) {
+        this.loading = true;
+        try {
+            const r = await fetch('{{ route("property-claims.store") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({ property_id: m.id, message: this.claimMessage })
+            });
+            const d = await r.json();
+            this.closeModal();
+            if (r.ok && window.successModal) window.successModal.simple('Claim sent', d.message);
+            else if (window.errorModal) window.errorModal.show('Claim not sent', d.message || 'Please try again.');
+        } finally { this.loading = false; }
     };
+    return vm;
 }
 
 function editPropertyModal() {

@@ -12,7 +12,8 @@ class ImportProspects extends Command
 {
     protected $signature = 'crm:import
         {files?* : CSV files to import (default: every CSV in database/data/crm)}
-        {--owner= : Email of the staff member who owns rows without an Owner}';
+        {--owner= : Email of the staff member who owns rows without an Owner}
+        {--dry-run : Run the whole import inside a transaction and roll it back, to check the files}';
 
     protected $description = 'Import prospect sheets into the CRM, merging duplicates';
 
@@ -48,12 +49,23 @@ class ImportProspects extends Command
             }
         }
 
+        $dryRun = (bool) $this->option('dry-run');
         $rows = [];
-        foreach ($files as $file) {
-            $stats = $importer->import($file, $ownerId);
-            $rows[] = [basename($file), $stats['rows'], $stats['created'], $stats['merged'], $stats['skipped'], $stats['flagged']];
+        DB::beginTransaction();
+        try {
+            foreach ($files as $file) {
+                $stats = $importer->import($file, $ownerId);
+                $rows[] = [basename($file), $stats['rows'], $stats['created'], $stats['merged'], $stats['skipped'], $stats['flagged']];
+            }
+            $dryRun ? DB::rollBack() : DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
         }
         $this->table(['File', 'Rows', 'New companies', 'Merged into existing', 'Skipped', 'Need verifying'], $rows);
+        if ($dryRun) {
+            $this->warn('Dry run: nothing was saved.');
+        }
 
         return self::SUCCESS;
     }

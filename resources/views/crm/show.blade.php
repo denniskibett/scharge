@@ -95,8 +95,11 @@
                 @csrf @method('PUT')
                 <button type="button" @click="open = !open" class="flex w-full items-center justify-between"><h3 class="{{ $h }}">Company details</h3><span class="text-sm text-brand-500" x-text="open ? 'Close' : 'Edit'"></span></button>
                 <dl x-show="!open" class="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[140px_1fr]">
-                    @foreach (['Portfolio' => 'portfolio', 'Scale' => 'scale_signal', 'Opportunity' => 'opportunity', 'Target role' => 'target_role', 'Route' => 'route', 'Units' => 'estimated_units', 'Sheet next step' => 'next_action', 'Notes' => 'notes'] as $term => $key)
-                        @if ($company->profile($key))<dt class="text-gray-500 dark:text-gray-400">{{ $term }}</dt><dd class="whitespace-pre-line text-gray-800 dark:text-white/90">{{ $key === 'estimated_units' ? number_format((int) $company->profile($key)) : $company->profile($key) }}</dd>@endif
+                    @foreach (['Deal value (KES/mo)' => 'deal_value', 'Expected close' => 'expected_close', 'Segment' => 'segment', 'Location' => 'location_label', 'Clientele' => 'clientele', 'Portfolio' => 'portfolio', 'Scale' => 'scale_signal', 'Opportunity' => 'opportunity', 'Target role' => 'target_role', 'Route' => 'route', 'Units' => 'estimated_units', 'Sheet next step' => 'next_action', 'Notes' => 'notes'] as $term => $key)
+                        @php($value = $key === 'location_label' ? collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') : $company->profile($key))
+                        @if ($value && $key === 'deal_value')<dt class="text-gray-500 dark:text-gray-400">{{ $term }}</dt><dd class="font-medium text-gray-800 dark:text-white/90">{{ number_format((int) preg_replace('/\D/', '', $value)) }}</dd>
+                        @elseif ($value && $key === 'location_label')<dt class="text-gray-500 dark:text-gray-400">{{ $term }}</dt><dd class="text-gray-800 dark:text-white/90">{{ $value }}</dd>
+                        @elseif ($company->profile($key))<dt class="text-gray-500 dark:text-gray-400">{{ $term }}</dt><dd class="whitespace-pre-line text-gray-800 dark:text-white/90">{{ $key === 'estimated_units' ? number_format((int) $company->profile($key)) : $company->profile($key) }}</dd>@endif
                     @endforeach
                     @if ($company->source)<dt class="text-gray-500 dark:text-gray-400">Source</dt><dd class="text-gray-800 dark:text-white/90">{{ $company->source }}</dd>@endif
                 </dl>
@@ -111,6 +114,12 @@
                         <div><label class="{{ $label }}" for="d-units">Units</label><input id="d-units" name="profile[estimated_units]" inputmode="numeric" value="{{ $company->profile('estimated_units') }}" class="{{ $field }}"></div>
                         <div><label class="{{ $label }}" for="d-country">Country</label><select id="d-country" name="country_code" class="{{ $field }}">@foreach (Countries::ordered() as $code => $c)<option value="{{ $code }}" @selected(($company->country_code ?? 'KE') === $code)>{{ $c['name'] }}</option>@endforeach</select></div>
                         <div><label class="{{ $label }}" for="d-role">Target role</label><input id="d-role" name="profile[target_role]" value="{{ $company->profile('target_role') }}" class="{{ $field }}"></div>
+                        <div><label class="{{ $label }}" for="d-value">Deal value (KES / month)</label><input id="d-value" name="profile[deal_value]" inputmode="numeric" value="{{ $company->profile('deal_value') }}" class="{{ $field }}"></div>
+                        <div><label class="{{ $label }}" for="d-close">Expected close</label><input id="d-close" name="profile[expected_close]" type="date" value="{{ $company->profile('expected_close') }}" class="{{ $field }}"></div>
+                        <div><label class="{{ $label }}" for="d-seg">Segment</label><input id="d-seg" name="profile[segment]" value="{{ $company->profile('segment') }}" placeholder="Office / Commercial, Serviced Apartments…" class="{{ $field }}"></div>
+                        <div><label class="{{ $label }}" for="d-client">Clientele (as the firm states it)</label><input id="d-client" name="profile[clientele]" value="{{ $company->profile('clientele') }}" class="{{ $field }}"></div>
+                        <div><label class="{{ $label }}" for="d-city">City</label><input id="d-city" name="profile[city]" value="{{ $company->profile('city') }}" class="{{ $field }}"></div>
+                        <div><label class="{{ $label }}" for="d-area">Area</label><input id="d-area" name="profile[area]" value="{{ $company->profile('area') }}" class="{{ $field }}"></div>
                     </div>
                     <div><label class="{{ $label }}" for="d-port">Portfolio</label><textarea id="d-port" name="profile[portfolio]" rows="2" class="{{ $area }}">{{ $company->profile('portfolio') }}</textarea></div>
                     <div><label class="{{ $label }}" for="d-opp">Opportunity</label><textarea id="d-opp" name="profile[opportunity]" rows="2" class="{{ $area }}">{{ $company->profile('opportunity') }}</textarea></div>

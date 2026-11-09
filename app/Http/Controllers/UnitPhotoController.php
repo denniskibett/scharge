@@ -94,6 +94,8 @@ class UnitPhotoController extends Controller
     {
         $user = $request->user();
         $companyId = $unit->property?->company_id ?? $unit->company_id;
-        abort_unless($user->hasRole('sysadmin') || ((int) $user->company_id === (int) $companyId && $user->hasAnyRole(['admin', 'property_manager'])), 403);
+        $isHost = \Illuminate\Support\Facades\Schema::hasTable('unit_managements') && $user->hasRole('bnb_host')
+            && \App\Models\UnitManagement::where('unit_id', $unit->id)->where('company_id', $user->company_id)->where('role', 'bnb_host')->where('status', 'active')->exists();
+        abort_unless($isHost || $user->hasRole('sysadmin') || ((int) $user->company_id === (int) $companyId && $user->hasAnyRole(['admin', 'property_manager'])), 403);
     }
 }

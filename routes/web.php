@@ -205,6 +205,13 @@ Route::prefix('public')->name('public.')->group(function () {
     Route::get('/invoice/{invoice}/status/{checkoutId}', [PublicInvoiceController::class, 'checkStatus'])->name('invoice.status');
 });
 
+// BnB hosts: public sign-up with their unit (website "Add my listing")
+Route::middleware('guest')->group(function () {
+    Route::get('/host/register', [App\Http\Controllers\HostController::class, 'create'])->name('host.register');
+    Route::post('/host/register', [App\Http\Controllers\HostController::class, 'store'])->middleware('throttle:6,1')->name('host.store');
+});
+Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1')->name('host.properties.search');
+
 // Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
 Route::post('/webhooks/sharet', App\Http\Controllers\SharetWebhookController::class)->name('webhooks.sharet');
 
@@ -347,6 +354,20 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     // ============================================
     // PROPERTY ROUTES
     // ============================================
+    // Claiming a building already on scharge (approved by the account manager)
+    Route::post('/property-claims', [App\Http\Controllers\PropertyClaimController::class, 'store'])->middleware('role:admin|property_manager')->name('property-claims.store');
+    Route::middleware('role:sysadmin|account_manager')->group(function () {
+        Route::get('/admin/property-claims', [App\Http\Controllers\PropertyClaimController::class, 'index'])->name('property-claims.index');
+        Route::post('/admin/property-claims/{claim}/approve', [App\Http\Controllers\PropertyClaimController::class, 'approve'])->name('property-claims.approve');
+        Route::post('/admin/property-claims/{claim}/reject', [App\Http\Controllers\PropertyClaimController::class, 'reject'])->name('property-claims.reject');
+    });
+
+    // BnB host's own area
+    Route::middleware('role:bnb_host')->group(function () {
+        Route::get('/host', [App\Http\Controllers\HostController::class, 'dashboard'])->name('host.dashboard');
+        Route::post('/host/units', [App\Http\Controllers\HostController::class, 'addUnit'])->name('host.units.store');
+    });
+
     Route::resource('properties', PropertyController::class);
     // Old links and bookmarks from before the Estate -> Property rename.
     Route::get('/estates/{rest?}', fn (?string $rest = null) => redirect('/properties'.($rest ? '/'.$rest : ''), 301))->where('rest', '.*');

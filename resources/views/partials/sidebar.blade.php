@@ -178,7 +178,7 @@ document.addEventListener('alpine:init', () => {
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
         'administration', 'companies', 'users', 'staff', 'roles', 'system_settings', 'clear_cache',
-        'settings', 'integrations', 'api_keys',
+        'settings', 'integrations', 'api_keys', 'property_claims',
         'forms', 'form_elements',
         'tables', 'basic_tables',
         'pages', 'blank_page', '404_page',
@@ -189,7 +189,7 @@ document.addEventListener('alpine:init', () => {
       'account_manager': [
         'dashboard', 'calendar', 'profile',
         'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
-        'administration', 'companies',
+        'administration', 'companies', 'property_claims',
       ],
       'admin': [
         'dashboard', 'calendar', 'profile',
@@ -235,6 +235,10 @@ document.addEventListener('alpine:init', () => {
         'property', 'tenancies',
         'maintenance',
         'security', 'security_logs'
+      ],
+      // BnB host: their own units only.
+      'bnb_host': [
+        'dashboard', 'calendar', 'profile', 'host', 'host_units',
       ],
       'guest': [
         'dashboard', 'profile'
@@ -448,6 +452,13 @@ document.addEventListener('alpine:init', () => {
         ]
       },
       {
+        title: 'MY BNB',
+        items: [
+          { name: 'Host', label: 'My BnB units', link: '/host', page: 'host', permission: 'host',
+            icon: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5Z' }
+        ]
+      },
+      {
         title: 'SETTINGS',
         items: [
           {
@@ -478,6 +489,12 @@ document.addEventListener('alpine:init', () => {
                 link: '/admin/companies',
                 page: 'companies',
                 permission: 'companies'
+              },
+              {
+                label: 'Building claims',
+                link: '/admin/property-claims',
+                page: 'propertyClaims',
+                permission: 'property_claims'
               },
               {
                 label: 'Users',

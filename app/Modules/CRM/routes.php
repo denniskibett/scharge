@@ -3,6 +3,7 @@
 use App\Models\Company;
 use App\Modules\CRM\Controllers\Admin\CrmCompanyController;
 use App\Modules\CRM\Controllers\Admin\CrmFollowUpController;
+use App\Modules\CRM\Controllers\Admin\CrmSalesController;
 use App\Modules\CRM\Controllers\Admin\CrmWaitlistController;
 use App\Modules\CRM\Controllers\Site\SiteFeedbackController;
 use App\Modules\CRM\Controllers\Site\SiteFormController;
@@ -31,6 +32,7 @@ Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->midd
 // ---------------------------------------------------------------------------
 Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('crm')->name('crm.')->group(function () {
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
+    Route::get('/sales', [CrmSalesController::class, 'index'])->name('sales.index');
     Route::post('/companies', [CrmCompanyController::class, 'store'])->name('companies.store');
     Route::get('/companies/{crmCompany}', [CrmCompanyController::class, 'show'])->name('companies.show');
     Route::put('/companies/{crmCompany}', [CrmCompanyController::class, 'update'])->name('companies.update');

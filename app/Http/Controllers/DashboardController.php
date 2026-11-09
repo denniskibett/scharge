@@ -41,6 +41,8 @@ class DashboardController extends Controller
         switch ($roleName) {
             case 'sysadmin':
                 return $this->sysAdminDashboard();
+            case 'bnb_host':
+                return redirect()->route('host.dashboard');
             case 'account_manager':
                 // Until a dedicated staff dashboard exists, account managers land on their CRM book.
                 return redirect()->route('crm.index');

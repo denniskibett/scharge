@@ -41,6 +41,12 @@ class CrmImporter
         'owner' => 'owner',
         'notes' => 'notes',
         'source' => 'source',
+        'segment' => 'segment',
+        'city' => 'city',
+        'area' => 'area',
+        'clientele focus' => 'clientele',
+        'verified' => 'verified',
+        'needs verification' => 'needs_verification',
     ];
 
     /** Sheet "Lead Status" values => CRM stage. */
@@ -134,7 +140,14 @@ class CrmImporter
             'last_contact' => $this->date($row['last_contact'] ?? null)?->toDateString(),
             'owner_id' => $this->owner($row['owner'] ?? null) ?? $defaultOwnerId,
             'notes' => $row['notes'] ?? null,
-            'needs_verification' => $verify($row['phone'] ?? null) || $verify($row['email'] ?? null) || $verify($row['website'] ?? null),
+            'segment' => $row['segment'] ?? null,
+            'city' => $row['city'] ?? null,
+            'area' => $row['area'] ?? null,
+            'clientele' => $row['clientele'] ?? null,
+            'needs_verification' => $verify($row['phone'] ?? null) || $verify($row['email'] ?? null) || $verify($row['website'] ?? null)
+                // "Verified: No" / "Needs verification: Yes" columns flag the row too.
+                || in_array(Str::lower($row['verified'] ?? ''), ['no', 'n', 'false', '0'], true)
+                || in_array(Str::lower($row['needs_verification'] ?? ''), ['yes', 'y', 'true', '1'], true),
         ];
         if (! empty($row['source'])) {
             $data['notes'] = trim(($data['notes'] ? $data['notes']."\n" : '').'Source: '.$row['source']);

@@ -255,7 +255,7 @@ class UnitController extends Controller
         $validated['security_deposit_amount'] = $validated['security_deposit_amount'] ?? null;
         $validated['commission_rate'] = $validated['commission_rate'] ?? null;
 
-        $unit->update($validated);
+        $unit->update($this->restrictHostUnitFields($unit, $validated));
 
         if ($request->wantsJson()) {
             // Reload the unit with property to return complete data
@@ -298,6 +298,11 @@ class UnitController extends Controller
 
     public function destroy(Unit $unit)
     {
+        // A host-managed unit is never deleted by the building's company (only scharge support can move it).
+        if (\Illuminate\Support\Facades\Schema::hasTable('unit_managements') && ($host = \App\Models\UnitManagement::hostOf($unit->id))
+            && (int) $host->company_id !== (int) Auth::user()->company_id && ! Auth::user()->hasRole('sysadmin')) {
+            abort(403, 'This unit is managed by its BnB host and cannot be deleted here.');
+        }
         // Ensure the unit belongs to the current user's company
         $this->authorizeCompanyAccess($unit);
         
@@ -488,8 +493,34 @@ class UnitController extends Controller
      */
     private function authorizeCompanyAccess(Unit $unit)
     {
-        if ($unit->company_id !== Auth::user()->company_id) {
-            abort(403, 'You do not have permission to access this unit.');
+        $companyId = Auth::user()->company_id;
+        if ((int) $unit->company_id === (int) $companyId || Auth::user()->hasRole('sysadmin')) {
+            return;
         }
+        // A BnB host manages their own unit even when the building's company holds its books.
+        if (\Illuminate\Support\Facades\Schema::hasTable('unit_managements')
+            && \App\Models\UnitManagement::where('unit_id', $unit->id)->where('company_id', $companyId)->where('role', 'bnb_host')->where('status', 'active')->exists()) {
+            return;
+        }
+        abort(403, 'You do not have permission to access this unit.');
+    }
+
+    /** Which fields of a host-managed unit the building's management company may change (billing only). */
+    private function restrictHostUnitFields(Unit $unit, array $validated): array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('unit_managements')) {
+            return $validated;
+        }
+        $host = \App\Models\UnitManagement::hostOf($unit->id);
+        if (! $host) {
+            return $validated;
+        }
+        $billing = ['water_charge', 'service_charge', 'garbage_charge', 'security_charge', 'custom_water_rate', 'water_billing_type'];
+        $hostOnly = ['unit_type', 'rent_amount', 'status', 'stay_type', 'bnb_nightly_rate', 'bnb_cleaning_fee', 'min_stay_days', 'max_stay_days', 'furnishing_status'];
+
+        // The host edits their listing; the building's company edits only what it bills.
+        return (int) $host->company_id === (int) Auth::user()->company_id
+            ? array_diff_key($validated, array_flip($billing))
+            : array_intersect_key($validated, array_flip($billing));
     }
 }
