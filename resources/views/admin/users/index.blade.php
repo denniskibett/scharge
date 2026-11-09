@@ -38,7 +38,7 @@
 @endphp
 
 @section('content')
-<div class="container mx-auto px-4 py-6 max-w-screen-2xl">
+<div>
 
     <!-- CSRF Meta -->
     <meta name="csrf-token" content="{{ csrf_token() }}">

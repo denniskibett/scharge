@@ -4,7 +4,7 @@
 @section('title', $company->name)
 
 @section('content')
-<div x-data="companyShowPage()" x-init="init()" class="container-fluid px-4 py-4">
+<div x-data="companyShowPage()" x-init="init()">
     <!-- Header -->
     <div class="row mb-4">
         <div class="col-12">

@@ -1,7 +1,7 @@
 ﻿@extends('layouts.app')
 
 @section('content')
-<div class="container mx-auto py-6">
+<div>
     <h1 class="text-2xl font-bold mb-4">Edit SMS Template</h1>
 
     <form action="{{ route('sms.templates.update', $template) }}" method="POST" class="bg-white p-6 rounded shadow">

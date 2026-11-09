@@ -4,7 +4,7 @@
 @section('title', 'Security Dashboard')
 
 @section('content')
-<div class="container-fluid px-4 py-4">
+<div>
     
     <!-- Welcome Card -->
     <div class="row mb-6">

@@ -136,7 +136,7 @@
                       <li x-show="hasPermission(child)">
                         <a
                           :href="child.link"
-                          @click="setActive(child.page, child.label, child.link)"
+                          @click="$event.preventDefault() || setActive(child.page, child.label, child.link)"
                           class="relative flex items-center rounded-lg px-4 py-2.5 font-medium duration-300 ease-in-out cursor-pointer"
                           :class="isActive(child.page) ? 'text-sm text-primary bg-primary-10' : 'text-sm text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary-10'"
                           x-text="child.label"
@@ -292,12 +292,19 @@ document.addEventListener('alpine:init', () => {
       {
         title: 'TENANT MESSAGES',
         items: [
-          { name: 'smsSend', label: 'Send SMS', link: '/sms/broadcast', page: 'smsSend', permission: 'sms_send',
-            icon: 'M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20ZM8 8H16V10H8V8ZM8 12H16V14H8V12ZM8 16H13V18H8V16Z' },
-          { name: 'smsHistory', label: 'History', link: '/sms/history', page: 'smsHistory', permission: 'sms_history',
-            icon: 'M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20ZM8 8H16V10H8V8ZM8 12H16V14H8V12ZM8 16H13V18H8V16Z' },
-          { name: 'smsTemplates', label: 'Templates', link: '/sms/templates', page: 'smsTemplates', permission: 'sms_templates',
-            icon: 'M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20ZM8 8H16V10H8V8ZM8 12H16V14H8V12ZM8 16H13V18H8V16Z' }
+          {
+            name: 'SMS',
+            label: 'SMS',
+            link: '/#',
+            page: 'sms',
+            permission: 'sms',
+            icon: 'M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2ZM12 20C7.58172 20 4 16.4183 4 12C4 7.58172 7.58172 4 12 4C16.4183 4 20 7.58172 20 12C20 16.4183 16.4183 20 12 20ZM8 8H16V10H8V8ZM8 12H16V14H8V12ZM8 16H13V18H8V16Z',
+            children: [
+              { label: 'Send SMS', link: '/sms/broadcast', page: 'smsSend', permission: 'sms_send' },
+              { label: 'History', link: '/sms/history', page: 'smsHistory', permission: 'sms_history' },
+              { label: 'Templates', link: '/sms/templates', page: 'smsTemplates', permission: 'sms_templates' }
+            ]
+          }
         ]
       },
       {
@@ -435,13 +442,17 @@ document.addEventListener('alpine:init', () => {
       // The menu entry whose link is the longest match for the current path.
       const path = window.location.pathname;
       let best = { page: 'dashboard', len: 0, label: 'Dashboard' };
+      const consider = (entry, parent) => {
+        const l = entry.link;
+        if (l && l !== '/#' && (path === l || path.startsWith(l + '/')) && l.length > best.len) best = { page: entry.page, len: l.length, label: entry.label, parent };
+      };
       this.menuData.forEach(group => group.items.forEach(item => {
-        const l = item.link;
-        if (l && l !== '/#' && (path === l || path.startsWith(l + '/')) && l.length > best.len) best = { page: item.page, len: l.length, label: item.label };
+        consider(item, '');
+        (item.children || []).forEach(child => consider(child, item.name)); // e.g. SMS › Send SMS
       }));
       this.activePage = best.page;
       this.activeItemLabel = best.label;
-      this.selected = '';
+      this.selected = best.parent || '';
     },
 
     setActiveItemLabel(page) {

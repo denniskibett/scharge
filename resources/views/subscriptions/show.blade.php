@@ -4,7 +4,7 @@
 @section('title', 'Subscription Plan Details - ' . ($planData['name'] ?? 'Plan'))
 
 @section('content')
-<div x-data="{ activeTab: 'features' }" class="container mx-auto px-4 py-8">
+<div x-data="{ activeTab: 'features' }">
     <!-- Back Button -->
     <div class="mb-6">
         <a href="{{ route('admin.subscriptions.plans.index') }}" class="inline-flex items-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">

@@ -3,7 +3,7 @@
 @section('title', 'Staff Profile - ' . ($user->name ?? 'Unknown'))
 
 @section('content')
-<div class="container mx-auto px-4 py-6">
+<div>
     <div class="mb-6">
         <a href="{{ route('admin.staff.index') }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
             <i class="fas fa-arrow-left mr-2"></i> Back to Staff

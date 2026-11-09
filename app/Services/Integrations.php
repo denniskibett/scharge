@@ -76,6 +76,31 @@ class Integrations
         }
     }
 
+    /**
+     * Which KenyaSMS key and sender to use for a company's messages. A company's own "SMS sender ID" card
+     * (when switched on) gives the sender name, and its own API key if it has one; otherwise scharge's.
+     * $companyId defaults to the signed-in user's company; null means scharge itself.
+     *
+     * @return array{api_key: ?string, sender_id: ?string, own_account: bool}
+     */
+    public static function smsSender(?int $companyId = -1): array
+    {
+        if ($companyId === -1) {
+            $companyId = auth()->user()?->company_id;
+        }
+        $out = ['api_key' => config('sms.kenyasms.api_key') ?: config('sms.api_key'), 'sender_id' => config('sms.kenyasms.sender_id') ?: config('sms.sender_id'), 'own_account' => false];
+        $row = $companyId ? self::for((int) $companyId, 'kenyasms_sender') : null;
+        if ($row && filled($row->get('sender_id'))) {
+            $out['sender_id'] = $row->get('sender_id');
+            if (filled($row->get('api_key'))) {
+                $out['api_key'] = $row->get('api_key');
+                $out['own_account'] = true;
+            }
+        }
+
+        return $out;
+    }
+
     /** scharge's own Sharet account, if a key is saved and switched on. */
     public static function sharet(): ?CompanyIntegration
     {
@@ -110,6 +135,7 @@ class Integrations
             'mpesa_daraja', 'mpesa' => self::testDaraja($row),
             'airtel_money' => self::testAirtel($row),
             'kenyasms' => self::testKenyaSms($row),
+            'kenyasms_sender' => self::testSmsSender($row),
             'africastalking' => self::testAfricasTalking($row),
             'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),
@@ -165,6 +191,28 @@ class Integrations
         return $res->successful() && $res->json('access_token')
             ? [true, 'Airtel accepted the client ID and secret ('.($row->get('environment') === 'production' ? 'live' : 'staging').').']
             : [false, 'Airtel rejected the credentials (HTTP '.$res->status().').'];
+    }
+
+    private static function testSmsSender(CompanyIntegration $row): array
+    {
+        $sender = (string) $row->get('sender_id');
+        if (! preg_match('/^[A-Za-z0-9 ._-]{1,11}$/', $sender)) {
+            return [false, 'A sender ID is 1 to 11 letters or numbers ("'.$sender.'" is not).'];
+        }
+        $own = filled($row->get('api_key'));
+        $key = $own ? (string) $row->get('api_key') : (string) (config('sms.kenyasms.api_key') ?: config('sms.api_key'));
+        if (blank($key)) {
+            return [false, 'scharge\'s KenyaSMS account is not set up yet, so there is nothing to send through. Add your own API key or ask scharge.'];
+        }
+        $base = rtrim((string) config('sms.kenyasms.base_url', 'https://kenyasms.com/api/v1'), '/');
+        $res = Http::withToken($key)->acceptJson()->timeout(20)->get($base.'/campaigns', ['page' => 1, 'limit' => 1]);
+        if (! $res->successful()) {
+            return [false, ($own ? 'KenyaSMS rejected your API key' : 'scharge\'s KenyaSMS account did not answer').' (HTTP '.$res->status().').'];
+        }
+
+        return [true, $own
+            ? "Your KenyaSMS account works. Messages to your tenants will come from {$sender}."
+            : "Messages to your tenants will come from {$sender} through scharge's KenyaSMS account, once KenyaSMS approves the name there."];
     }
 
     private static function testKenyaSms(CompanyIntegration $row): array

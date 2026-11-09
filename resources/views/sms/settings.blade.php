@@ -3,7 +3,7 @@
 @section('title', 'SMS Settings')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div>
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-white">⚙️ SMS Settings</h1>
         <p class="text-gray-500 mt-1">Configure and test your KenyaSMS integration.</p>

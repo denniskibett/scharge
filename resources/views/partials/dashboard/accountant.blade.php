@@ -5,7 +5,7 @@
 
 @section('content')
 <div x-data="accountantDashboard()" x-init="init()">
-    <div class="container-fluid px-4 py-4">
+    <div>
         
         <!-- Welcome Card -->
         <div class="row mb-6">

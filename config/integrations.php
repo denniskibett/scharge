@@ -16,6 +16,7 @@ return [
         'category' => 'Payments',
         'description' => "scharge's own Sharet business account. Tenants pay through Sharet pay links into this wallet; landlords are paid out at the 08:00, 12:00 and 16:00 sweeps.",
         'color' => '#111827',
+        'logo' => 'sharet.svg', // public/images/integrations
         'fields' => [
             'environment' => ['label' => 'Environment', 'type' => 'select', 'options' => ['test' => 'Sandbox (sk_test_)', 'live' => 'Live (sk_live_)'], 'required' => true],
             'api_key' => ['label' => 'API key', 'secret' => true, 'required' => true, 'help' => 'Sharet › Developers › API keys. Scopes: collect, payout, connect. Live payouts need this server\'s IP on the key.'],
@@ -32,6 +33,7 @@ return [
         'category' => 'Payments',
         'description' => "scharge's own Safaricom Daraja app: STK prompts for companies without their own app, and subscription payments. Overrides the MPESA_* values in .env when switched on.",
         'color' => '#00A651',
+        'logo' => 'mpesa.svg', // public/images/integrations
         'fields' => [
             'environment' => ['label' => 'Environment', 'type' => 'select', 'options' => ['sandbox' => 'Sandbox (testing)', 'production' => 'Live'], 'required' => true],
             'consumer_key' => ['label' => 'Consumer key', 'secret' => true, 'required' => true, 'help' => 'From your app on developer.safaricom.co.ke.'],
@@ -51,6 +53,7 @@ return [
         'category' => 'Payments',
         'description' => 'Airtel Africa Open API credentials for Airtel Money collections and disbursements. Saved and tested here; Airtel payments are taken through Sharet Africa until a direct Airtel flow is switched on.',
         'color' => '#E40000',
+        'logo' => 'airtel-money.svg', // public/images/integrations
         'fields' => [
             'environment' => ['label' => 'Environment', 'type' => 'select', 'options' => ['staging' => 'Staging (testing)', 'production' => 'Live'], 'required' => true],
             'client_id' => ['label' => 'Client ID', 'secret' => true, 'required' => true, 'help' => 'From developers.airtel.africa (your app).'],
@@ -67,6 +70,7 @@ return [
         'category' => 'Messaging',
         'description' => 'Bulk and transactional SMS: bills, reminders, receipts and campaigns. Overrides the KENYASMS_* values in .env when switched on.',
         'color' => '#1D4ED8',
+        'logo' => 'kenyasms.png', // public/images/integrations
         'fields' => [
             'api_key' => ['label' => 'API key', 'secret' => true, 'required' => true],
             'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'SHARETENT', 'help' => 'The approved name tenants see.'],
@@ -94,6 +98,7 @@ return [
         'category' => 'Messaging',
         'description' => 'Outgoing email: invoices, receipts, password resets, CRM email. Replaces the MAIL_* values in .env (currently "log", so no email is sent) when switched on.',
         'color' => '#7C3AED',
+        'logo' => 'email.svg', // public/images/integrations
         'fields' => [
             'host' => ['label' => 'SMTP host', 'required' => true, 'placeholder' => 'smtp.example.com'],
             'port' => ['label' => 'Port', 'required' => true, 'placeholder' => '587'],
@@ -105,19 +110,47 @@ return [
         ],
     ],
 
+    'kenyasms_sender' => [
+        'name' => 'SMS sender ID',
+        'scope' => 'company',
+        'category' => 'Messaging',
+        'description' => 'Bills, reminders and receipts to your tenants arrive under your own name instead of scharge\'s. Use scharge\'s KenyaSMS account (we register your sender ID there) or your own.',
+        'color' => '#1D4ED8',
+        'logo' => 'kenyasms.png', // public/images/integrations
+        'fields' => [
+            'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'MYAPARTMNT', 'help' => 'Up to 11 letters or numbers, exactly as approved by KenyaSMS. Until it is approved, messages may fail; switch this card off to fall back to scharge\'s sender.'],
+            'api_key' => ['label' => 'Your own KenyaSMS API key', 'secret' => true, 'help' => 'Only if you have your own KenyaSMS account (you pay for your SMS there). Leave blank to send through scharge\'s account.'],
+        ],
+    ],
+
+    'absa_bank' => [
+        'name' => 'Absa Bank',
+        'scope' => 'company',
+        'category' => 'Banking',
+        'description' => 'Your Absa Bank Kenya account. Choose "My Absa Bank account" under Rent collection & payouts and each sweep (08:00, 12:00, 16:00) pays straight into it.',
+        'color' => '#AF144B',
+        'logo' => 'absa.svg', // public/images/integrations
+        'fields' => [
+            'account_name' => ['label' => 'Account name', 'required' => true, 'placeholder' => 'As on your Absa statement'],
+            'account_number' => ['label' => 'Account number', 'required' => true, 'placeholder' => '2041234567'],
+            'branch' => ['label' => 'Branch', 'placeholder' => 'e.g. Absa Plaza, Loita Street'],
+        ],
+    ],
+
     'sharet_payouts' => [
         'name' => 'Rent collection & payouts',
         'scope' => 'company',
         'category' => 'Payments',
         'description' => 'How rent collected through scharge reaches you: swept from the scharge wallet at 08:00, 12:00 and 16:00 to your M-Pesa, paybill, till or bank, or straight into your own connected Sharet account.',
         'color' => '#DC2626',
+        'logo' => 'sharet.svg', // public/images/integrations
         'fields' => [
             'mode' => ['label' => 'Collection mode', 'type' => 'select', 'required' => true, 'options' => [
                 'rail' => 'Through scharge (swept to me 3× a day)',
                 'connected' => 'Into my own Sharet account (connect below)',
             ]],
             'payout_type' => ['label' => 'Pay me to', 'type' => 'select', 'options' => [
-                'mpesa' => 'M-Pesa number', 'paybill' => 'Paybill', 'till' => 'Till (Buy Goods)', 'bank' => 'Bank account (PesaLink)',
+                'mpesa' => 'M-Pesa number', 'paybill' => 'Paybill', 'till' => 'Till (Buy Goods)', 'bank' => 'Bank account (PesaLink)', 'absa' => 'My Absa Bank account (Absa Bank card)',
             ], 'help' => 'Used in "Through scharge" mode.'],
             'phone' => ['label' => 'M-Pesa number', 'placeholder' => '0712 345 678'],
             'paybill' => ['label' => 'Paybill number'],
@@ -135,6 +168,7 @@ return [
         'category' => 'Payments',
         'description' => 'Already have a Daraja app? Tenants are prompted on their phone and pay straight into your own paybill or till. scharge only records the payment.',
         'color' => '#00A651',
+        'logo' => 'mpesa.svg', // public/images/integrations
         'fields' => [
             'environment' => ['label' => 'Environment', 'type' => 'select', 'options' => ['sandbox' => 'Sandbox (testing)', 'production' => 'Live'], 'required' => true],
             'consumer_key' => ['label' => 'Consumer key', 'secret' => true, 'required' => true, 'help' => 'From your app on developer.safaricom.co.ke.'],

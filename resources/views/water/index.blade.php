@@ -4,7 +4,7 @@
 
 @section('content')
 <div x-data="waterIndex()" x-init="init()">
-    <div class="container-fluid px-4 py-4">
+    <div>
         <!-- Header -->
         <div class="row mb-6">
             <div class="col-12">

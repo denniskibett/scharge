@@ -20,7 +20,7 @@
     $contactPeople = $contacts->map(fn ($r) => $r->contact)->filter();
     $website = $company->profile('website');
 @endphp
-<div class="mx-auto max-w-screen-2xl">
+<div>
     @include('crm.partials.nav', ['title' => $company->name, 'subtitle' => collect([$company->profile('business_type') ?? 'Prospect', Countries::name($company->country_code)])->filter()->join(' · ')])
 
     {{-- Summary bar --}}

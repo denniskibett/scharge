@@ -29,6 +29,9 @@ class SharetPayouts
             'paybill' => ['type' => 'paybill', 'paybill' => $g('paybill'), 'account' => $g('account')],
             'till' => ['type' => 'till', 'till' => $g('till')],
             'bank' => ['type' => 'bank', 'bank' => $g('bank'), 'account' => $g('bank_account')],
+            'absa' => ($absa = Integrations::for($settings->company_id, 'absa_bank'))
+                ? ['type' => 'bank', 'bank' => 'absa', 'account' => $absa->get('account_number')]
+                : null,
             default => null,
         };
 

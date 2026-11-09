@@ -5,7 +5,7 @@
 
 @section('content')
 <div x-data="sysAdminDashboard()" x-init="init()" x-cloak>
-    <div class="container-fluid px-4 py-4">
+    <div>
         
         <!-- Welcome Card - SysAdmin Style -->
         <div class="row mb-6">

@@ -6,7 +6,7 @@
 @include('partials.modal.error-modal')
 
 @section('content')
-<div class="container mx-auto px-4 py-6" x-data="smsLogsTable()" x-init="init()">
+<div x-data="smsLogsTable()" x-init="init()">
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
         <div class="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>

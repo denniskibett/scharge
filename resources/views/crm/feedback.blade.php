@@ -6,7 +6,7 @@
     $card = 'rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]';
     $bands = ['' => 'All', 'pending' => 'Waiting for an answer', 'detractor' => 'Unhappy (0–6)', 'passive' => 'Neutral (7–8)', 'promoter' => 'Happy (9–10)'];
 @endphp
-<div class="mx-auto max-w-screen-2xl">
+<div>
     @include('crm.partials.nav', ['title' => 'Customer feedback', 'subtitle' => 'Ask after demos, onboarding and support. Low scores automatically open a recovery call for the account owner.'])
 
     <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">

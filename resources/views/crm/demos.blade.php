@@ -17,7 +17,7 @@
         'listing_alert' => 'Renters who asked for an SMS when a new match is listed. Each person keeps one active alert with their latest search.',
     ][$type];
 @endphp
-<div class="mx-auto max-w-screen-xl">
+<div>
     @include('crm.partials.nav', ['title' => 'Requests', 'subtitle' => $intro])
 
     <div class="mb-3 flex flex-wrap gap-2">

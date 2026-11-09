@@ -4,7 +4,7 @@
 @section('title', 'Subscription Plans')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Subscription Plans</h1>

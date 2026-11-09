@@ -5,7 +5,7 @@
 @include('partials.modal.success-modal')
 @include('partials.modal.error-modal')
 
-<div class="container mx-auto px-4 py-6" x-data="propertyShow()" x-init="init()">
+<div x-data="propertyShow()" x-init="init()">
     <!-- Property Info Card -->
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-6 pb-6 pt-6 dark:border-gray-800 dark:bg-white/[0.03] mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">

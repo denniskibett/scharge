@@ -4,7 +4,7 @@
 
 @section('content')
 <div x-data="dashboard()" x-init="init()">
-    <div class="container-fluid px-4 py-4">
+    <div>
 
     <!-- Dashboard Cards - Only for non-sysadmin roles -->
     @if(!auth()->user()->hasRole('sysadmin'))

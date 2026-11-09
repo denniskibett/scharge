@@ -3,7 +3,7 @@
 @section('title', 'Calendar')
 
 @section('content')
-<main class="p-4 md:p-6">
+<div>
   <div x-data="{ pageName: `Calendar`}">
     @include('partials.breadcrumb')
   </div>
@@ -103,5 +103,5 @@
   <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <div id="calendar" class="min-h-screen" data-feed="{{ route('calendar.events') }}" data-types="{{ $types->keys()->join(',') }}"></div>
   </div>
-</main>
+</div>
 @endsection

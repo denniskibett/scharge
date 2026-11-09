@@ -7,7 +7,7 @@
     @include('partials.breadcrumb', ['pageName' => 'System Settings'])
 </div>
     
-<div class="container mx-auto px-4 py-6">
+<div>
     <!-- Header with Actions -->
     <div class="mb-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">

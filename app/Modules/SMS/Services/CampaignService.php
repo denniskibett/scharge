@@ -729,11 +729,13 @@ public function createCampaign(array $data): SmsCampaign
             ->where('status', 'pending')
             ->update(['attempted_at' => now()]);
 
-        $senderId = env('KENYASMS_SENDER_ID', 'TextSMS');
+        // Send as the company that created the campaign (its own sender ID, if it has one).
+        $sms = $this->kenyaSMS->forCompany(\App\Models\User::whereKey($campaign->created_by)->value('company_id'));
+        $senderId = $sms->senderId();
         $messageType = $campaign->campaign_type === 'promotional' ? 'promotional' : 'transactional';
-        $callbackUrl = env('KENYASMS_WEBHOOK_URL');
+        $callbackUrl = config('sms.kenyasms.webhook_url');
 
-        $kenyaResult = $this->kenyaSMS->sendPersonalizedCampaign(
+        $kenyaResult = $sms->sendPersonalizedCampaign(
             $senderId,
             $messageType,
             $template->content,

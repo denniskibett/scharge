@@ -4,7 +4,7 @@
 @section('title', 'Campaign History')
 
 @section('content')
-<div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+<div>
     
     <!-- Header -->
     <div class="mb-6 flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">

@@ -3,7 +3,7 @@
 @section('title', 'SMS Manager')
 
 @section('content')
-<div class="container mx-auto px-4 py-8">
+<div>
     <!-- Header -->
     @include('partials.sms-header', ['sandbox' => $sandbox ?? false, 'internationalCount' => $internationalCount ?? 0])
 

@@ -15,6 +15,22 @@ class SmsService
         $this->baseUrl = config('sms.base_url');
         $this->apiKey = config('sms.api_key');
         $this->senderId = config('sms.sender_id');
+        $this->useSender(Integrations::smsSender()); // the signed-in user's company sender, if set
+    }
+
+    /** The same service, sending as a given company (null = scharge's own sender). */
+    public function forCompany(?int $companyId): static
+    {
+        $copy = clone $this;
+        $copy->useSender(Integrations::smsSender($companyId));
+
+        return $copy;
+    }
+
+    protected function useSender(array $sender): void
+    {
+        $this->senderId = $sender['sender_id'] ?: $this->senderId;
+        $this->apiKey = $sender['api_key'] ?: $this->apiKey;
     }
 
     public function send($phone, $message, $type = 'transactional')

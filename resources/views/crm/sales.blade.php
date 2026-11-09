@@ -22,7 +22,7 @@
     ];
     $pct = fn ($n) => rtrim(rtrim(number_format((float) $n, 2), '0'), '.').'%';
 @endphp
-<div class="mx-auto max-w-screen-2xl">
+<div>
     @include('crm.partials.nav', ['title' => 'Sales tracker', 'subtitle' => 'Who is closing what: wins, pipeline and overdue work per account manager, and the deals nearest to closing.'])
 
     {{-- Period + owner --}}

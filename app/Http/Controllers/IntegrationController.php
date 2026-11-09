@@ -174,6 +174,7 @@ class IntegrationController extends Controller
             'category' => $d['category'],
             'description' => $d['description'],
             'color' => $d['color'],
+            'logo' => isset($d['logo']) && is_file(public_path('images/integrations/'.$d['logo'])) ? '/images/integrations/'.$d['logo'] : null,
             'scope' => $d['scope'],
             'fields' => collect($d['fields'])->map(fn ($f, $k) => $f + ['key' => $k, 'type' => $f['type'] ?? 'text'])->values(),
             'connected' => (bool) $row?->exists,

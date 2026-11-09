@@ -15,7 +15,7 @@
         ['NPS', $stats['nps'] ?? '–', route('crm.feedback.index'), 'text-gray-800 dark:text-white/90'],
     ];
 @endphp
-<div class="mx-auto max-w-screen-2xl" x-data="{ adding: {{ $errors->any() && old('_form') === 'add' ? 'true' : 'false' }} }">
+<div x-data="{ adding: {{ $errors->any() && old('_form') === 'add' ? 'true' : 'false' }} }">
     @include('crm.partials.nav', ['title' => 'Sales CRM', 'subtitle' => 'Every prospect, who owns it, and the next step. Nothing open should be without a follow-up.'])
 
     {{-- KPIs --}}

@@ -7,7 +7,7 @@
     $card = 'rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]';
     $field = 'h-11 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
 @endphp
-<div class="mx-auto max-w-screen-2xl">
+<div>
     @include('crm.partials.nav', ['title' => 'Waitlist', 'subtitle' => 'People and demo requests for countries scharge is not live in yet. When you launch somewhere, move that country into the CRM in one click.'])
 
     <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

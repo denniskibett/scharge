@@ -38,7 +38,7 @@ class InvoicePayLinkController extends Controller
         if (($data['send_sms'] ?? true) && $phone) {
             $balance = number_format(max(0, (float) $invoice->total_amount - (float) $invoice->total_paid));
             try {
-                $sms->send($phone, "Your bill of KES {$balance} is ready. Pay securely here: {$url}");
+                $sms->forCompany($invoice->owningCompanyId())->send($phone, "Your bill of KES {$balance} is ready. Pay securely here: {$url}");
                 $sent = true;
             } catch (\Throwable $e) {
                 Log::warning('Pay link SMS failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);

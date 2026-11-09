@@ -28,12 +28,38 @@ class KenyaSMS
         $this->defaultType = config('sms.kenyasms.default_type', 'transactional');
         $this->webhookUrl = config('sms.kenyasms.webhook_url');
         $this->inboundWebhookUrl = config('sms.kenyasms.inbound_webhook_url');
-        
-        Log::info('KenyaSMS initialized', [
+        $this->useSender(\App\Services\Integrations::smsSender()); // the signed-in user's company sender, if set
+
+        Log::debug('KenyaSMS initialized', [
             'sender_id' => $this->senderId,
             'sandbox' => $this->sandbox,
             'base_url' => $this->baseUrl
         ]);
+    }
+
+    /** The same client, sending as a given company (null = scharge's own sender). */
+    public function forCompany(?int $companyId): static
+    {
+        $copy = clone $this;
+        $copy->useSender(\App\Services\Integrations::smsSender($companyId));
+
+        return $copy;
+    }
+
+    public function senderId(): string
+    {
+        return (string) $this->senderId;
+    }
+
+    protected function useSender(array $sender): void
+    {
+        $this->senderId = $sender['sender_id'] ?: $this->senderId;
+        if (filled($sender['api_key'])) {
+            $this->apiKey = $sender['api_key'];
+        }
+        if ($sender['own_account']) {
+            $this->sandbox = false; // a client's own account is a real one
+        }
     }
 
     /**

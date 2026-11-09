@@ -5,7 +5,7 @@
     $card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
     $views = ['overdue' => 'Overdue', 'today' => 'Due today', 'open' => 'All open', 'done' => 'Done'];
 @endphp
-<div class="mx-auto max-w-screen-xl">
+<div>
     @include('crm.partials.nav', ['title' => 'Follow-ups', 'subtitle' => 'Work top to bottom. When you mark one done, book the next step so no prospect goes quiet.'])
 
     <div class="mb-4 flex flex-wrap items-center gap-2">

@@ -4,7 +4,7 @@
 
 @section('content')
 <div x-data="waterStatement()" x-init="init()" @update-readings.window="loadReadings()">
-    <div class="container-fluid px-4 py-4">
+    <div>
         
         <!-- Header -->
         <div class="row mb-6">

@@ -4,7 +4,7 @@
 @section('title', 'Edit ' . $company->name)
 
 @section('content')
-<div class="container-fluid px-4 py-4">
+<div>
     <div class="row mb-4">
         <div class="col-12">
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Company: {{ $company->name }}</h1>
