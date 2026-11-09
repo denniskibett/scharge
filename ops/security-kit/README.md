@@ -18,8 +18,9 @@ What each site gets:
 - **Page** `/admin/security-report` (signed-in admins only): this site's findings from the defense agent
   (`/home/<account>/security/site.json`, rewritten every morning), the daily trend, its domains' certificate and
   SPF/DKIM/DMARC status, and the attempt log (24 h totals, IPs with a block/watch verdict, recent failures).
-  The page counts as admin for anyone listed in `SECURITY_ADMINS` (comma list of emails), anyone with a
-  Spatie role such as admin, super-admin or sysadmin, or anyone with an `is_admin` / `role=admin` style column.
+  Who can open it: emails listed in `SECURITY_ADMINS`, plus platform-level super-admins / sysadmins (a Spatie
+  role, an `isSuperAdmin()` method, or a `role=super_admin` style column). Plain "admin" or "owner" roles do not
+  count, because in multi-tenant apps (breve) those are customers.
 
 Each page is branded as its own site, with tabs (Overview, What to fix, Domains, Sign-in attempts). The site's name,
 colour and logo come from `SECURITY_BRAND_NAME`, `SECURITY_BRAND_COLOR` and `SECURITY_BRAND_LOGO`. When those are unset,
