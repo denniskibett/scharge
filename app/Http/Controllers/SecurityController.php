@@ -219,10 +219,18 @@ class SecurityController extends Controller
                 ], 400);
             }
             
+            if ($log->gate_pass_id && ($pass = \App\Modules\Security\Models\GatePass::find($log->gate_pass_id))) {
+                // A coded visit: end it the same way the gate page does (pass, pivot, host email).
+                $err = \App\Services\Gate\Gate::checkOut($pass, auth()->user(), 'guard');
+                return response()->json(['success' => ! $err, 'message' => $err ?? 'Visitor checked out successfully', 'log' => $log->fresh()], $err ? 400 : 200);
+            }
+
             $log->exit_time = now();
-            $log->duration_hours = now()->diffInHours($log->access_time);
+            $log->duration_hours = (int) $log->access_time->diffInHours(now());
             $log->status = 'completed';
             $log->save();
+            \App\Modules\Security\Models\VisitorPlace::where('visitor_id', $log->visitor_id)->where('unit_id', $log->unit_id)
+                ->update(['last_check_out_at' => now(), 'updated_at' => now()]);
             
             // Update visitor visit count
             if ($log->visitor_id) {
@@ -351,6 +359,16 @@ class SecurityController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'verified_by_user_id' => auth()->id(),
             ]);
+
+            // Remember the visitor for this unit (visits, last in, car) so they are recognised next time.
+            try {
+                $visitor->rememberVehicle($validated['vehicle_registration'] ?? null, trim(($validated['vehicle_color'] ?? '').' '.($validated['vehicle_model'] ?? '')) ?: null);
+                $place = \App\Services\Gate\Gate::place($visitor, $unit, \App\Services\Gate\Gate::companyFor($unit), [
+                    'last_check_in_at' => now(), 'last_vehicle_plate' => \App\Modules\Security\Models\Visitor::plate($validated['vehicle_registration'] ?? null)]);
+                $place->forceFill(['visit_count' => $place->visit_count + 1, 'first_visit_at' => $place->first_visit_at ?? now()])->save();
+            } catch (\Throwable $e) {
+                Log::warning('Visitor place not updated', ['error' => $e->getMessage()]);
+            }
             
             return response()->json([
                 'success' => true,

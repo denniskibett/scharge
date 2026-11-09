@@ -8,6 +8,10 @@
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">My BnB units</h1>
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">These units are yours to manage. If your building's management joins scharge, they handle the building's service charge and water; your bookings and earnings stay private to you.</p>
     </div>
+    <div class="flex gap-2">
+      <a href="{{ route('gate.index') }}" class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Guests & gate</a>
+      <a href="{{ route('gate.passes.create') }}" class="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600">Send a guest code</a>
+    </div>
   </div>
 
   @if (session('success'))

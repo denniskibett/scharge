@@ -21,6 +21,7 @@ class SecurityLog extends Model
         'unit_id', 
         'tenant_id', 
         'visitor_id', 
+        'gate_pass_id',
         'verified_by_user_id',
         'visitor_name_snapshot', 
         'visitor_phone_snapshot', 
@@ -65,6 +66,11 @@ class SecurityLog extends Model
     public function visitor()
     {
         return $this->belongsTo(Visitor::class);
+    }
+
+    public function gatePass()
+    {
+        return $this->belongsTo(GatePass::class, 'gate_pass_id');
     }
 
     public function verifiedByUser()

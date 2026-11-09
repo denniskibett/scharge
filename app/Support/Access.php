@@ -117,7 +117,7 @@ class Access
         'tenants' => 'tenants.view', 'tenancies' => 'tenants.view',
         'water' => 'water.view', 'water_readings' => 'water.view', 'water_reports' => 'water.view',
         'maintenance' => 'maintenance.view',
-        'security' => 'security.view', 'security_logs' => 'security.view',
+        'gate' => 'security.view', 'security' => 'security.view', 'security_logs' => 'security.view',
         'finance' => ['invoices.view', 'payments.view'], 'invoices' => 'invoices.view', 'payments' => 'payments.view',
         'expenses' => 'expenses.view', 'payees' => 'expenses.view',
         'sms' => 'sms.view', 'sms_send' => 'sms.manage', 'sms_history' => 'sms.view', 'sms_templates' => 'sms.manage', 'sms_settings' => 'settings.manage',
@@ -140,6 +140,7 @@ class Access
         $keys = ['dashboard', 'calendar', 'profile'];
         if ($user->hasRole('bnb_host')) {
             $keys[] = 'host';
+            $keys[] = 'gate'; // guests & gate for their own units
         }
         foreach (self::MENU as $key => $needs) {
             if ($user->hasRole('sysadmin') || collect((array) $needs)->contains(fn ($perm) => $user->can($perm))) {

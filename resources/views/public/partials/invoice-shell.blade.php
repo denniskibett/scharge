@@ -1,5 +1,5 @@
-{{-- Shared look for the public invoice pages, in the website's design (styles.css tokens, Unbounded + DM Sans).
-     $title: page title. Content goes in the slot. --}}
+{{-- Shared look for the public invoice and gate pass pages, in the website's design (styles.css tokens, Unbounded + DM Sans).
+     $title: page title; optional $badge (top-right pill) and $footNote. Content goes in the slot. --}}
 <!doctype html>
 <html lang="en">
 <head>
@@ -86,10 +86,10 @@ body { background: var(--blush); }
 <main class="pay-page">
   <div class="pay-top">
     <a href="{{ route('home') }}" aria-label="scharge home"><img src="{{ asset('assets/images/brand/scharge-logo.svg') }}" alt="scharge" width="116" height="28"></a>
-    <span class="pay-secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg><span>Secure payment</span></span>
+    <span class="pay-secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg><span>{{ $badge ?? 'Secure payment' }}</span></span>
   </div>
   {{ $slot }}
-  <p class="pay-foot">Sent with scharge · Property management, simplified.<br>Questions about this bill? Contact your property manager. <a href="{{ route('home') }}">scharge.sharet.africa</a></p>
+  <p class="pay-foot">Sent with scharge · Property management, simplified.<br>{{ $footNote ?? 'Questions about this bill? Contact your property manager.' }} <a href="{{ route('home') }}">scharge.sharet.africa</a></p>
 </main>
 {{ $scripts ?? '' }}
 </body>
