@@ -100,6 +100,24 @@
                     x-text="item.label"
                   ></span>
 
+                  <!-- What's waiting (role-specific count; the dot blinks when something needs action now) -->
+                  <template x-if="badge(item)">
+                    <span class="ml-auto inline-flex items-center gap-1.5" :class="[sidebarToggle ? 'lg:hidden' : '', item.children ? 'mr-6' : '']" :title="badge(item).title">
+                      <span x-show="badge(item).urgent" class="relative flex h-2 w-2">
+                        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+                      </span>
+                      <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="badge(item).urgent ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'" x-text="badgeText(badge(item))"></span>
+                    </span>
+                  </template>
+                  <!-- Collapsed sidebar: just the blinking dot on the icon -->
+                  <template x-if="badge(item) && badge(item).urgent">
+                    <span class="absolute left-9 top-2 hidden h-2 w-2" :class="sidebarToggle ? 'lg:flex' : ''">
+                      <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                      <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
+                    </span>
+                  </template>
+
                   <!-- Dropdown Arrow -->
                   <svg
                     x-show="item.children"
@@ -136,8 +154,11 @@
                           @click="$event.preventDefault() || setActive(child.page, child.label, child.link)"
                           class="relative flex items-center rounded-lg px-4 py-2.5 font-medium duration-300 ease-in-out cursor-pointer"
                           :class="isActive(child.page) ? 'text-sm text-primary bg-primary-10' : 'text-sm text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary-10'"
-                          x-text="child.label"
-                        ></a>
+                        ><span x-text="child.label"></span>
+                          <template x-if="badges[child.page]">
+                            <span class="ml-auto rounded-full px-2 py-0.5 text-xs font-medium" :class="badges[child.page].urgent ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'" :title="badges[child.page].title" x-text="badgeText(badges[child.page])"></span>
+                          </template>
+                        </a>
                       </li>
                     </template>
                   </ul>
@@ -164,6 +185,8 @@ document.addEventListener('alpine:init', () => {
     userRole: @js(auth()->user()->getRoleNames()->first() ?? 'guest'),
     // From the user's real permissions (App\Support\Access::menuFor); null = use the role list below.
     allowedMenu: @js(\App\Support\Access::menuFor(auth()->user())),
+    // What is waiting for this person, per menu page (App\Support\SidebarBadges, role-specific). Refreshed after each page change.
+    badges: @js(\App\Support\SidebarBadges::for(auth()->user())),
     
     // Role-based permissions mapping
     rolePermissions: {
@@ -395,7 +418,7 @@ document.addEventListener('alpine:init', () => {
 
     init() {
       this.setInitialActivePage();
-      window.addEventListener('spa:navigated', () => this.setInitialActivePage());
+      window.addEventListener('spa:navigated', () => { this.setInitialActivePage(); this.refreshBadges(); });
     },
 
     hasPermission(item) {
@@ -476,6 +499,22 @@ document.addEventListener('alpine:init', () => {
 
     isSelected(itemName) {
       return this.selected === itemName;
+    },
+
+    badge(item) {
+      if (item.children) {
+        const kids = item.children.filter(c => this.hasPermission(c) && this.badges[c.page]);
+        if (!kids.length) return null;
+        return { n: kids.reduce((t, c) => t + this.badges[c.page].n, 0), urgent: kids.some(c => this.badges[c.page].urgent), title: kids.map(c => this.badges[c.page].title).join(' · ') };
+      }
+      return this.badges[item.page] || null;
+    },
+    badgeText(b) {
+      return b ? (b.n > 99 ? '99+' : String(b.n)) : '';
+    },
+    refreshBadges() {
+      fetch('/sidebar/badges', { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : null).then(d => { if (d && d.badges) { this.badges = d.badges; window.dispatchEvent(new CustomEvent('badges:updated', { detail: d })); } }).catch(() => {});
     },
 
     isActive(page) {

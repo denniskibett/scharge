@@ -282,6 +282,9 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // DASHBOARD
     // ============================================
+    // Sidebar / header counts of what is waiting for this person (App\Support\SidebarBadges), re-read after page changes.
+    Route::get('/sidebar/badges', fn () => response()->json(['badges' => \App\Support\SidebarBadges::for(auth()->user()), 'total' => \App\Support\SidebarBadges::total(auth()->user())]))
+        ->middleware('throttle:120,1')->name('sidebar.badges');
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware(['verified'])
         ->name('dashboard');

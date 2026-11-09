@@ -233,20 +233,20 @@
         <!-- Notification Menu Area -->
         <div
           class="relative"
-          x-data="{ dropdownOpen: false, notifying: true }"
+          x-data="{ dropdownOpen: false, waiting: @js(\App\Support\SidebarBadges::total(auth()->user())), seen: false }"
+          @badges:updated.window="waiting = $event.detail.total; seen = false"
           @click.outside="dropdownOpen = false"
         >
           <button
             class="hover:text-dark-900 relative flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
-            @click.prevent="dropdownOpen = ! dropdownOpen; notifying = false"
+            @click.prevent="dropdownOpen = ! dropdownOpen; seen = true"
           >
-            <span
-              :class="!notifying ? 'hidden' : 'flex'"
-              class="absolute right-0 top-0.5 z-1 h-2 w-2 rounded-full bg-primary"
-            >
-              <span
-                class="absolute -z-1 inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75"
-              ></span>
+            {{-- What's waiting for this person (role-specific): the count, with the blinking dot while something urgent is open --}}
+            <span x-show="waiting.n > 0" x-cloak class="absolute -right-1 -top-1 z-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold text-white"
+                  :class="waiting.urgent ? 'bg-red-500' : 'bg-gray-500'" x-text="waiting.n > 99 ? '99+' : waiting.n"></span>
+            <span x-show="waiting.urgent && !seen" x-cloak class="absolute -left-0.5 top-0.5 z-1 flex h-2 w-2">
+              <span class="absolute -z-1 inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
             </span>
             <svg
               class="fill-current"
@@ -276,7 +276,7 @@
               <h5
                 class="text-lg font-semibold text-gray-800 dark:text-white/90"
               >
-                Notification
+                Notifications
               </h5>
 
               <button
@@ -301,350 +301,26 @@
               </button>
             </div>
 
-            <ul class="custom-scrollbar flex h-auto flex-col overflow-y-auto">
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-02.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-success-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Terry Franci</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
+            {{-- What's waiting for this person (App\Support\SidebarBadges), most urgent first --}}
+            <ul class="custom-scrollbar flex h-auto flex-col overflow-y-auto" x-data="{ items: [] }"
+                x-init="const load = () => fetch('/sidebar/badges', { headers: { Accept: 'application/json' } }).then(r => r.json()).then(d => items = Object.values(d.badges || {}).sort((a, b) => (b.urgent - a.urgent) || (b.n - a.n))).catch(() => {}); load(); $watch('dropdownOpen', v => v && load())">
+              <template x-for="it in items" :key="it.url">
+                <li>
+                  <a :href="it.url" @click="dropdownOpen = false" class="flex items-center gap-3 rounded-lg border-b border-gray-100 px-4 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold" :class="it.urgent ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'" x-text="it.n > 99 ? '99+' : it.n"></span>
+                    <span class="block min-w-0">
+                      <span class="block text-sm font-medium text-gray-800 dark:text-white/90" x-text="it.label"></span>
+                      <span class="block truncate text-xs text-gray-500 dark:text-gray-400" x-text="it.title"></span>
                     </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>5 min ago</span>
+                    <span x-show="it.urgent" class="relative ml-auto flex h-2 w-2 shrink-0">
+                      <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                      <span class="relative inline-flex h-2 w-2 rounded-full bg-red-500"></span>
                     </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-03.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-success-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Alena Franci</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>8 min ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-04.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-success-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Jocelyn Kenter</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>15 min ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-05.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-error-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Brandon Philips</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>1 hr ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-02.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-success-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Terry Franci</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>5 min ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-03.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-success-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Alena Franci</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>8 min ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-04.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-success-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Jocelyn Kenter</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>15 min ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
-
-              <li>
-                <a
-                  class="flex gap-3 rounded-lg border-b border-gray-100 p-3 px-4.5 py-3 hover:bg-gray-100 dark:border-gray-800 dark:hover:bg-white/5"
-                  href="#"
-                >
-                  <span
-                    class="relative z-1 block h-10 w-full max-w-10 rounded-full"
-                  >
-                    <img
-                      src="./images/user/user-05.jpg"
-                      alt="User"
-                      class="overflow-hidden rounded-full"
-                    />
-                    <span
-                      class="absolute bottom-0 right-0 z-10 h-2.5 w-full max-w-2.5 rounded-full border-[1.5px] border-white bg-error-500 dark:border-gray-900"
-                    ></span>
-                  </span>
-
-                  <span class="block">
-                    <span
-                      class="mb-1.5 block text-theme-sm text-gray-500 dark:text-gray-400"
-                    >
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Brandon Philips</span
-                      >
-                      requests permission to change
-                      <span class="font-medium text-gray-800 dark:text-white/90"
-                        >Project - Nganter App</span
-                      >
-                    </span>
-
-                    <span
-                      class="flex items-center gap-2 text-theme-xs text-gray-500 dark:text-gray-400"
-                    >
-                      <span>Project</span>
-                      <span class="h-1 w-1 rounded-full bg-gray-400"></span>
-                      <span>1 hr ago</span>
-                    </span>
-                  </span>
-                </a>
-              </li>
+                  </a>
+                </li>
+              </template>
+              <li x-show="!items.length" class="px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400">You're all caught up.</li>
             </ul>
-
-            <a
-              href="#"
-              class="mt-3 flex justify-center rounded-lg border border-gray-300 bg-white p-3 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-            >
-              View All Notification
-            </a>
           </div>
           <!-- Dropdown End -->
         </div>
