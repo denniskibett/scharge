@@ -40,14 +40,14 @@ class PayeeController extends Controller
     public function index(Request $request)
     {
         BusinessBooks::ensureDefaults(BusinessBooks::companyId($request->user()));
-        $payees = BusinessBooks::scope(Payee::query(), $request->user())->with('expenses')->orderBy('name')->get();
+        $payees = BusinessBooks::scopePayees(Payee::query(), $request->user())->with('expenses')->orderBy('name')->get();
 
         return view('payees.index', compact('payees'));
     }
 
     public function show(Request $request, Payee $payee)
     {
-        $this->mine($request, $payee);
+        abort_unless(BusinessBooks::seesPayee($request->user(), $payee), 404);
         $payee->load(['expenses' => fn ($q) => BusinessBooks::scopeExpenses($q, $request->user()), 'expenses.property', 'expenses.category']);
 
         return view('payees.show', compact('payee'));

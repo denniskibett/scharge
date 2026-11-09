@@ -31,7 +31,8 @@ class ExpenseController extends Controller
 
         return [
             'property_id' => ['required', $inScope('properties')],
-            'payee_id' => ['required', $inScope('payees')],
+            'payee_id' => ['required', $ids === null ? Rule::exists('payees', 'id')
+                : Rule::exists('payees', 'id')->where(fn ($q) => $q->where(fn ($w) => $w->whereIn('company_id', $ids ?: [0])->orWhereNull('company_id')))],
             'expense_category_id' => ['required', $inScope('expense_categories')],
             'amount' => 'required|numeric|min:0.01',
             'description' => 'nullable|string',
@@ -51,7 +52,7 @@ class ExpenseController extends Controller
         BusinessBooks::ensureDefaults(BusinessBooks::companyId($user));
         $expenses = BusinessBooks::scopeExpenses(Expense::query(), $user)->with(['property', 'payee', 'category'])->latest('expense_date')->get();
         $properties = BusinessBooks::scope(Property::query(), $user)->orderBy('name')->get();
-        $payees = BusinessBooks::scope(Payee::query(), $user)->orderBy('name')->get();
+        $payees = BusinessBooks::scopePayees(Payee::query(), $user)->orderBy('name')->get();
         $categories = BusinessBooks::scope(ExpenseCategory::query(), $user)->orderBy('name')->get();
 
         return view('expenses.index', compact('expenses', 'properties', 'payees', 'categories'));

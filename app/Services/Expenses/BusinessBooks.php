@@ -16,24 +16,34 @@ use Illuminate\Support\Facades\Schema;
  *   bnb_host   a short-stay host: cleaning & laundry, guest supplies, Airbnb/Booking commissions, tokens, rent…
  *   developer  a developer: contractors, materials, professional fees, approvals, sales commissions…
  * (database/schema/2026_11_10_business_payees.sql). Names only: each business adds its own phone numbers.
+ *
+ * National bodies and utilities (SHARED_PAYEES) are one shared row each (company_id NULL): every business sees and
+ * uses them, only sysadmin edits them. Service payees are per business and carry its name ("Cleaning company · Danaff Kenya").
  */
 class BusinessBooks
 {
+    /** One shared payee each, seen by every business: name => type. */
+    public const SHARED_PAYEES = [
+        'Kenya Power (KPLC)' => 'utility',
+        'Nairobi City Water and Sewerage Company' => 'utility',
+        'Nairobi City County' => 'utility',
+        'Safaricom (internet & airtime)' => 'utility',
+        'Kenya Revenue Authority (KRA)' => 'vendor',
+        'NSSF' => 'vendor',
+        'Social Health Authority (SHA)' => 'vendor',
+        'National Construction Authority (NCA)' => 'vendor',
+        'Airbnb' => 'vendor',
+        'Booking.com' => 'vendor',
+    ];
+
     /** kind => [payees name => type, categories name => description] */
     public const DEFAULTS = [
         'manager' => [
             'payees' => [
-                'Kenya Power (KPLC)' => 'utility',
-                'Nairobi City Water and Sewerage Company' => 'utility',
-                'Nairobi City County (rates & garbage)' => 'utility',
                 'Private water supplier (bowser / borehole)' => 'vendor',
                 'Private garbage collector' => 'vendor',
                 'Security company' => 'vendor',
                 'Cleaning company' => 'vendor',
-                'Safaricom (internet & airtime)' => 'utility',
-                'Kenya Revenue Authority (KRA)' => 'vendor',
-                'NSSF' => 'vendor',
-                'Social Health Authority (SHA)' => 'vendor',
             ],
             'categories' => [
                 'Water' => 'Water bills, private bowsers and borehole water',
@@ -54,15 +64,11 @@ class BusinessBooks
         ],
         'bnb_host' => [
             'payees' => [
-                'Kenya Power (KPLC tokens)' => 'utility',
                 'Building management (service charge)' => 'vendor',
                 'Landlord (rent)' => 'vendor',
                 'Cleaner' => 'staff',
                 'Laundry service' => 'vendor',
-                'Airbnb' => 'vendor',
-                'Booking.com' => 'vendor',
                 'Internet provider' => 'utility',
-                'Kenya Revenue Authority (KRA)' => 'vendor',
             ],
             'categories' => [
                 'Cleaning & laundry' => 'Turnover cleaning, linen and laundry',
@@ -86,10 +92,6 @@ class BusinessBooks
                 'Building materials supplier' => 'vendor',
                 'Architect / engineers' => 'vendor',
                 'Lawyer' => 'vendor',
-                'Nairobi City County (approvals & rates)' => 'utility',
-                'National Construction Authority (NCA)' => 'vendor',
-                'Kenya Power (KPLC)' => 'utility',
-                'Kenya Revenue Authority (KRA)' => 'vendor',
                 'Sales agent' => 'vendor',
             ],
             'categories' => [
@@ -143,7 +145,39 @@ class BusinessBooks
     {
         $ids = self::companyIds($user);
 
-        return $ids === null || in_array((int) $model->company_id, $ids, true);
+        return $ids === null || ($model->company_id !== null && in_array((int) $model->company_id, $ids, true));
+    }
+
+    /** Payees a user can pick: their business's own plus the shared ones. */
+    public static function scopePayees(Builder $q, $user): Builder
+    {
+        $ids = self::companyIds($user);
+
+        return $ids === null ? $q : $q->where(fn ($w) => $w->whereIn('payees.company_id', $ids ?: [0])->orWhereNull('payees.company_id'));
+    }
+
+    /** Can see (not necessarily edit) this payee: own business's or shared. */
+    public static function seesPayee($user, $payee): bool
+    {
+        return $payee->company_id === null || self::owns($user, $payee);
+    }
+
+    /** "Danaff Kenya Co. Limited" → "Danaff Kenya". */
+    public static function shortName(string $name): string
+    {
+        return trim(preg_replace('/\s*(co\.?|company)?\s*(limited|ltd\.?)$/i', '', trim($name))) ?: trim($name);
+    }
+
+    /** Make sure each shared payee exists once. */
+    public static function ensureSharedPayees(): void
+    {
+        $have = DB::table('payees')->whereNull('company_id')->pluck('name')->all();
+        $now = now();
+        $missing = collect(self::SHARED_PAYEES)->reject(fn ($t, $n) => in_array($n, $have, true))
+            ->map(fn ($type, $name) => ['company_id' => null, 'name' => $name, 'type' => $type, 'created_at' => $now, 'updated_at' => $now])->values()->all();
+        if ($missing) {
+            DB::table('payees')->insert($missing);
+        }
     }
 
     /** Give a business its starting payees and categories (by its kind) if it has none yet. */
@@ -158,9 +192,11 @@ class BusinessBooks
         }
         $set = self::DEFAULTS[$company->kind ?? 'manager'] ?? self::DEFAULTS['manager'];
         $now = now();
+        self::ensureSharedPayees();
         if (! DB::table('payees')->where('company_id', $companyId)->exists()) {
+            $suffix = ' · '.self::shortName($company->name);
             DB::table('payees')->insert(collect($set['payees'])->map(fn ($type, $name) => [
-                'company_id' => $companyId, 'name' => $name, 'type' => $type, 'created_at' => $now, 'updated_at' => $now,
+                'company_id' => $companyId, 'name' => $name.$suffix, 'type' => $type, 'created_at' => $now, 'updated_at' => $now,
             ])->values()->all());
         }
         if (! DB::table('expense_categories')->where('company_id', $companyId)->exists()) {

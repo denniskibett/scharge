@@ -26,6 +26,7 @@
         </div>
       </div>
 
+      @if (\App\Services\Expenses\BusinessBooks::owns(auth()->user(), $payee))
       <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <button 
           @click="openEditModal()"
@@ -48,6 +49,7 @@
           Delete Payee
         </button>
       </div>
+      @endif
     </div>
 
     <!-- Payee Details -->
