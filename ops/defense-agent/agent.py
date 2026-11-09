@@ -333,7 +333,7 @@ def check_laravel(app, do_audit):
         if os.path.isdir(sp) and os.stat(sp).st_mode & 0o002:
             add(scope, "laravel", "medium", f"{sub} is world-writable (777)", f"chmod -R o-w {sp} (owner = the site user, 775 at most).")
     if do_audit and os.path.exists(os.path.join(p, "composer.lock")):
-        code, out, err = sh(f"cd {p!r} && COMPOSER_ALLOW_SUPERUSER=1 timeout 90 composer audit --locked --format=json --no-interaction 2>/dev/null", timeout=100)
+        code, out, err = sh(f"cd {p!r} && COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_MEMORY_LIMIT=256M timeout 90 nice -n 19 composer audit --locked --format=json --no-interaction 2>/dev/null", timeout=100)
         try:
             data = json.loads(out[out.index("{"):])
             advisories = data.get("advisories") or {}
@@ -497,13 +497,15 @@ MALWARE = [
     (r"move_uploaded_file\s*\(\s*\$_FILES\[[^\]]+\]\['tmp_name'\]\s*,\s*\$_(POST|GET)", "uploader taking path from visitor"),
 ]
 SKIP_DIRS = {"node_modules", ".git", "cache", "sessions", "views", "logs", ".cache"}
+# Old deploy copies and backups are not served; skipping them keeps the scan (and memory) small on a 2 GB box.
+SKIP_COPIES = re.compile(r"^(laravel_prev_.*|releases|versions|old.*|.*backup.*|\.trash)$", re.I)
 
 
 def webroot_files(sites):
     homes = sorted(set(s["home"] for s in sites if os.path.isdir(s["home"])))
     for home in homes:
         for dirpath, dirnames, files in os.walk(home):
-            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not d.startswith("laravel_prev_")]
+            dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS and not SKIP_COPIES.match(d)]
             for f in files:
                 if f.endswith((".php", ".phtml", ".php5", ".php7", ".phar", ".htaccess")) or f == ".htaccess":
                     yield os.path.join(dirpath, f)
@@ -624,6 +626,52 @@ def publish(report, target):
         os.replace(tmp, os.path.join(target, name))
 
 
+def publish_sites(report, sites):
+    """Each /home/<account>/security/site.json gets only that account's domains and findings (for the security kit
+    page inside each app). Owned by the account's user, mode 640."""
+    homes = {}
+    for s in sites:
+        if s["mail_host"] or not s["home"].startswith("/home/"):
+            continue
+        homes.setdefault(s["home"], set()).add(s["domain"])
+    for home, names in homes.items():
+        if not os.path.isdir(home):
+            continue
+        names = set(names) | {apex(n) for n in names}
+        account = os.path.basename(home)
+        mine = [f for f in report["findings"] if f["scope"] in names or f["scope"] == account
+                or str(f["scope"]).startswith(home + "/")]
+        sub = {
+            "generated_at": report["generated_at"], "server": report["server"],
+            "sites": {n: v for n, v in report.get("sites", {}).items() if n in names},
+            "domains": {n: v for n, v in report.get("domains", {}).items() if n in names},
+            "laravel": [a for a in report.get("laravel", []) if a["path"].startswith(home + "/") and a.get("live")],
+            "findings": mine,
+            "summary": {k: len([f for f in mine if f["severity"] == k]) for k in ("critical", "high", "medium", "low")},
+        }
+        try:
+            target = os.path.join(home, "security")
+            st = os.stat(home)
+            if not os.path.isdir(target):
+                os.makedirs(target, mode=0o750)
+                os.chown(target, st.st_uid, st.st_gid)
+            hist_file = os.path.join(target, "site-history.json")
+            try:
+                hist = json.load(open(hist_file))
+            except Exception:  # noqa
+                hist = []
+            hist = [h for h in hist if h["at"][:10] != sub["generated_at"][:10]]
+            hist.append({"at": sub["generated_at"], "summary": sub["summary"]})
+            for name, data in (("site.json", sub), ("site-history.json", hist[-120:])):
+                tmp = os.path.join(target, name + ".tmp")
+                json.dump(data, open(tmp, "w"), default=str)
+                os.chown(tmp, st.st_uid, st.st_gid)
+                os.chmod(tmp, 0o640)
+                os.replace(tmp, os.path.join(target, name))
+        except Exception as e:  # noqa
+            print("publish failed for", home, e, file=sys.stderr)
+
+
 # ---------------------------------------------------------------- main
 
 def main():
@@ -633,6 +681,7 @@ def main():
     ap.add_argument("--audit", action="store_true", help="run composer audit (slow; weekly)")
     ap.add_argument("--full", action="store_true", help="re-read every file, not just changed ones (weekly)")
     ap.add_argument("--publish", default=os.environ.get("DEFENSE_PUBLISH", ""), help="also copy latest.json + history.json here (dashboard)")
+    ap.add_argument("--publish-sites", action="store_true", help="write /home/<account>/security/site.json for the security kit")
     ap.add_argument("--defend", default="", help="comma list of opt-in defenses, e.g. block-ssh-bruteforce")
     ap.add_argument("--digest", choices=["daily", "weekly"], help="also email the digest")
     ap.add_argument("--mail-to", default=os.environ.get("DEFENSE_MAIL_TO", ""))
@@ -661,7 +710,7 @@ def main():
                 report["domains"][n] = r
     if want("laravel"):
         apps = laravel_apps(sites)
-        with cf.ThreadPoolExecutor(max_workers=3) as pool:
+        with cf.ThreadPoolExecutor(max_workers=1 if a.audit else 3) as pool:  # composer audit is memory-hungry
             report["laravel"] = list(pool.map(lambda app: check_laravel(app, a.audit), apps))
     if want("server"):
         report["server_checks"] = check_server()
@@ -713,6 +762,8 @@ def main():
     print(path, report["summary"])
     if a.publish:
         publish(report, a.publish)
+    if a.publish_sites:
+        publish_sites(report, sites)
     here = os.path.dirname(os.path.abspath(__file__))
     if report.get("admin_changes") and a.mail_to and "alert-admins" in a.defend:
         sh([sys.executable, os.path.join(here, "digest.py"), "--alert", "--to", a.mail_to, "--send"], timeout=120)

@@ -9,4 +9,6 @@ ExecStart=/bin/sh /opt/defense-agent/run.sh
 Nice=15
 IOSchedulingClass=idle
 CPUQuota=60%
+MemoryLimit=600M
+MemoryHigh=450M
 TimeoutStartSec=3h

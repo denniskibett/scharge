@@ -9,4 +9,4 @@ EXTRA=""
 # First run ever: no baseline yet, so everything is read anyway.
 exec /usr/bin/python3 /opt/defense-agent/agent.py $EXTRA \
   --digest "$MODE" --mail-to "$DEFENSE_MAIL_TO" \
-  --defend "$DEFENSE_DEFEND" --publish "$DEFENSE_PUBLISH"
+  --defend "$DEFENSE_DEFEND" --publish "$DEFENSE_PUBLISH" --publish-sites
