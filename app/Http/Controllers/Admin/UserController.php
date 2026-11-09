@@ -477,13 +477,13 @@ class UserController extends Controller
                     $exclude = explode(',', $request->exclude);
                     return $query->whereNotIn('name', $exclude);
                 })
-                ->get(['id', 'name', 'description'])
+                ->get(['id', 'name'])
                 ->map(function ($role) {
                     return [
                         'id' => $role->id,
                         'name' => $role->name,
                         'label' => ucfirst(str_replace('_', ' ', $role->name)),
-                        'description' => $role->description ?? 'No description',
+                        'description' => \App\Support\RoleDescriptions::for($role),
                         'initial' => strtoupper(substr($role->name, 0, 1)),
                     ];
                 });

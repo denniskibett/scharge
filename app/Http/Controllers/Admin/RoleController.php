@@ -69,7 +69,7 @@ class RoleController extends Controller
             ]);
 
             // Store description in a custom field (if you have one)
-            if ($request->has('description') && $request->description) {
+            if ($request->has('description') && $request->description && \App\Support\RoleDescriptions::hasColumn()) {
                 $role->description = $request->description;
                 $role->save();
             }
@@ -125,7 +125,7 @@ class RoleController extends Controller
             ]);
 
             // Store description if you have a custom field
-            if ($request->has('description')) {
+            if ($request->has('description') && \App\Support\RoleDescriptions::hasColumn()) {
                 $role->description = $request->description;
                 $role->save();
             }
@@ -204,7 +204,7 @@ class RoleController extends Controller
             'role' => [
                 'id' => $role->id,
                 'name' => $role->name,
-                'description' => $role->description ?? '',
+                'description' => \App\Support\RoleDescriptions::for($role),
                 'users_count' => $role->users_count,
                 'is_protected' => $this->isProtectedRole($role->name),
                 'permissions' => $role->permissions->pluck('id')->toArray(),
@@ -235,7 +235,7 @@ class RoleController extends Controller
                     return [
                         'id' => $role->id,
                         'name' => $role->name,
-                        'description' => $role->description ?? ucfirst(str_replace('_', ' ', $role->name)) . ' role',
+                        'description' => \App\Support\RoleDescriptions::for($role),
                         'users_count' => $role->users()->count(),
                         'is_protected' => $this->isProtectedRole($role->name),
                         'initial' => strtoupper(substr($role->name, 0, 1)),
