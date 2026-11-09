@@ -634,8 +634,9 @@ def publish_sites(report, sites):
         if s["mail_host"] or not s["home"].startswith("/home/"):
             continue
         homes.setdefault(s["home"], set()).add(s["domain"])
+    skip = {x.strip() for x in os.environ.get("DEFENSE_SITES_SKIP", "").split(",") if x.strip()}
     for home, names in homes.items():
-        if not os.path.isdir(home):
+        if not os.path.isdir(home) or os.path.basename(home) in skip:
             continue
         own = set(names)
         parents = {apex(n) for n in own} - own  # e.g. sharet.africa for ndoams.sharet.africa: mail records only

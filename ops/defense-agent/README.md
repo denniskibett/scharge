@@ -97,11 +97,11 @@ The app's own super-admin/sysadmin users can see the page too.
 | followup.sharet.africa | /home/followup.sharet.africa/laravel | nobody yet (none of your emails has an account) |
 | invites.aiyotickets.com | /home/invites.aiyotickets.com/laravel | kibettdennis@ |
 | loans.sharet.africa | /home/loans.sharet.africa/laravel | kibettdennis@, sysadmin@aimzoneventures.com |
-| mensch.sharet.africa | /home/mensch.sharet.africa/public_html | nobody yet |
-| menschtech.co.ke | /home/menschtech.co.ke/public_html | nobody yet |
 | ndoams.sharet.africa | /home/ndoams.sharet.africa/laravel | kibettdennis@ |
 | thewillishotel.co.ke | /home/thewillishotel.co.ke/laravel | kibettdennis@ |
 
+Left out on purpose (kit removed 9 Nov; `DEFENSE_SITES_SKIP` stops their per-site report): mensch.sharet.africa and
+menschtech.co.ke (Mensch Tech). The server-wide checks still cover them.
 Not installed: scharge (it has the full `/admin/security` dashboard and its own KYC log). Sites whose names do not
 resolve were also skipped: invites.sharet.africa, lendu, renteasy.co.ke, sharetweddings.imaginenation.co.ke.
 
