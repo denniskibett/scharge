@@ -64,6 +64,7 @@ class User extends Authenticatable implements Wallet
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'email_confirmed_at' => 'datetime', // confirmed with an emailed code (App\Services\EmailOtp)
         'social' => 'array',
         'status' => 'boolean',
     ];

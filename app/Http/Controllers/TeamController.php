@@ -48,7 +48,7 @@ class TeamController extends Controller
         $roles = $this->assignableRoles($request, $staffTeam);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+            'email' => ['required', 'email', 'max:190', Rule::unique('users', 'email'), new \App\Rules\RealEmail],
             'phone' => ['nullable', 'string', 'max:40'],
             'role' => ['required', Rule::in(array_keys($roles))],
         ], ['email.unique' => 'This email already has a scharge login. Use another email, or ask scharge support to move it.']);

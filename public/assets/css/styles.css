@@ -498,6 +498,7 @@ pre.code { box-shadow: var(--shadow-l); }
 .otp { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
 .otp input { text-align: center; padding: 0 !important; font: 700 1.3rem var(--font-display) !important; min-height: 56px !important; }
 .auth-error { color: var(--alert); font-size: .85rem; font-weight: 600; }
+.auth-note { color: #027a48; background: #ecfdf3; border-radius: 10px; padding: 10px 12px; font-size: .9rem; margin: 0 0 12px; }
 .auth-done { align-items: center; text-align: center; padding-top: 20px; }
 .auth-done .tick { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; background: var(--ok-bg); color: var(--ok-ink); font-size: 34px; animation: pop .5s var(--ease) both; }
 .auth-demo { font-size: .75rem; color: var(--muted); text-align: center; }

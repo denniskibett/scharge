@@ -71,6 +71,7 @@ public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResp
                     'email',
                     'max:255',
                     Rule::unique('users')->ignore($user->id),
+                new \App\Rules\RealEmail,
                 ],
                 'phone' => 'nullable|string|max:20',
                 'bio' => 'nullable|string|max:500',
@@ -145,8 +146,9 @@ public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResp
             // Fill and save user data
             $user->fill($validated);
             
-            if ($user->isDirty('email')) {
-                $user->email_verified_at = null;
+            if ($user->isDirty('email') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'email_confirmed_at')) {
+                // New address: confirm it with a code again (email_verified_at means "approved by an admin" here).
+                $user->email_confirmed_at = null;
             }
             
             $user->save();
@@ -189,6 +191,7 @@ public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResp
                 'email',
                 'max:255',
                 Rule::unique('users')->ignore($user->id),
+                new \App\Rules\RealEmail,
             ],
             'phone' => 'nullable|string|max:20',
             'bio' => 'nullable|string|max:500',
@@ -249,8 +252,9 @@ public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResp
         
         $user->fill($validated);
         
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
+        if ($user->isDirty('email') && \Illuminate\Support\Facades\Schema::hasColumn('users', 'email_confirmed_at')) {
+            // New address: confirm it with a code again (email_verified_at means "approved by an admin" here).
+            $user->email_confirmed_at = null;
         }
         
         $user->save();

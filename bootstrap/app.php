@@ -28,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.key' => \App\Http\Middleware\AuthenticateApiKey::class,
             'access' => \App\Http\Middleware\CheckAccess::class,
         ]);
+
+        // Signed-in people confirm their email with a code before using the app (only when real mail is set up).
+        $middleware->appendToGroup('web', \App\Http\Middleware\EnsureEmailConfirmed::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

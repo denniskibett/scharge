@@ -149,7 +149,7 @@ class StaffController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
+            'email'    => ['required', 'string', 'email', 'max:255', 'unique:users', new \App\Rules\RealEmail],
             'password' => 'required|string|min:8|confirmed',
             'phone'    => 'nullable|string|max:20',
             'role_id'  => 'required|exists:roles,id',
@@ -276,7 +276,7 @@ class StaffController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $id,
+            'email' => ['required', 'email', 'unique:users,email,' . $id, new \App\Rules\RealEmail],
             'phone' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
             'company_id' => ['nullable', new \App\Rules\CustomerCompany],

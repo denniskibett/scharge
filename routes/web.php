@@ -574,6 +574,14 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     Route::resource('staff', StaffController::class)->middleware('access:team')->middleware('role:sysadmin|admin|accountant');
 
     // ============================================
+    // Confirm email with a one-time code (KYC). App\Http\Middleware\EnsureEmailConfirmed sends people here.
+    Route::prefix('confirm-email')->name('email-code.')->controller(\App\Http\Controllers\Auth\EmailCodeController::class)->group(function () {
+        Route::get('/', 'show')->name('show');
+        Route::post('/', 'verify')->middleware('throttle:10,1')->name('verify');
+        Route::post('/resend', 'resend')->middleware('throttle:5,1')->name('resend');
+        Route::post('/change', 'change')->middleware('throttle:5,1')->name('change');
+    });
+
     // Header search (Breve-style quick switcher)
     Route::get('/search', \App\Http\Controllers\SearchController::class)->middleware('throttle:120,1')->name('search');
 
