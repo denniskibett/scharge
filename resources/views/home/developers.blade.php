@@ -1,7 +1,7 @@
 @extends('home.layout')
 
-@section('title', 'scharge for developers and landowners')
-@section('description', 'Buyer instalments, snag lists, service charge and handover for developers and landowners across Africa, starting in Kenya.')
+@section('title', 'Software for real estate developers in Kenya | Instalments & handover | scharge')
+@section('description', 'Off-plan buyer instalments on M-Pesa, snag lists, service charge and handover for real estate developers and landowners in Kenya.')
 
 @section('header_cta')
 <a class="btn btn--primary" href="#talk">Book a meeting</a>

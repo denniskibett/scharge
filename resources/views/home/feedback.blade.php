@@ -1,4 +1,5 @@
 @extends('home.layout')
+@section('robots', 'noindex,follow')
 
 @section('title', 'Your feedback | scharge')
 @section('description', 'Tell us how we did.')

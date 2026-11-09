@@ -190,6 +190,25 @@ Route::controller(App\Http\Controllers\HomeController::class)->group(function ()
     Route::get('/credits', 'credits')->name('home.credits');
 });
 
+// One public listing's own page (shareable, indexed; built from ListingCatalog)
+Route::get('/listings/{slug}', [App\Http\Controllers\HomeController::class, 'listing'])->where('slug', '[a-z0-9-]+')->name('home.listing');
+
+// Search engines (sitemap, robots) and AI assistants (llms.txt)
+Route::get('/sitemap.xml', [App\Http\Controllers\SeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/robots.txt', [App\Http\Controllers\SeoController::class, 'robots'])->name('robots');
+Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->name('llms');
+
+// First-party website analytics beacon (public/assets/js/track.js; CSRF exempt in bootstrap/app.php)
+Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1')->name('track');
+
+// Sales CRM > Website analytics (traffic, UTM campaigns, conversions, heatmap) for scharge staff
+Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('admin/website-analytics')->name('site-analytics.')
+    ->controller(App\Http\Controllers\Admin\SiteAnalyticsController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/heatmap', 'heatmap')->name('heatmap');
+        Route::get('/clicks', 'clicks')->name('clicks');
+    });
+
 // Old static-site addresses (index.html, developers.html, ...) keep working.
 Route::permanentRedirect('/index.html', '/');
 foreach (['developers', 'airbnb', 'listings', 'api', 'credits'] as $page) {

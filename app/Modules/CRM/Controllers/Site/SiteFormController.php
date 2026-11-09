@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\CRM\Support\Countries;
 use App\Modules\CRM\Support\Normalizer;
 use App\Modules\CRM\Services\LeadService;
+use App\Support\SiteAnalytics;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -258,8 +259,22 @@ class SiteFormController extends Controller
         return strtok((string) $name, ' ') ?: 'you';
     }
 
+    /** Route name => conversion label in Website analytics (App\Support\SiteAnalytics::FORMS). */
+    private const CONVERSIONS = [
+        'site.waitlist.store' => 'waitlist',
+        'site.demo.store' => 'demo',
+        'site.api-keys.store' => 'api_keys',
+        'site.listings.request' => 'listing_request',
+        'site.listings.alert' => 'listing_alert',
+    ];
+
     private function alert(Request $request, string $title, string $message, string $type = 'success', int $status = 200): JsonResponse|RedirectResponse
     {
+        // Every accepted form answers through here: count it (bots that fill the hidden field are not counted).
+        if ($type === 'success' && ! $this->isBot($request) && ($form = self::CONVERSIONS[$request->route()?->getName()] ?? null)) {
+            SiteAnalytics::conversion($request, $form);
+        }
+
         if ($request->expectsJson()) {
             return response()->json(['type' => $type, 'title' => $title, 'message' => $message], $status);
         }

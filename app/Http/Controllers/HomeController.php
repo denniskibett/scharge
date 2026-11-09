@@ -42,6 +42,15 @@ class HomeController extends Controller
         return view('home.listings', ['listingItems' => app(\App\Services\ListingCatalog::class)->items()]);
     }
 
+    /** One listing's own page: shareable on WhatsApp/Facebook and indexed by search engines. */
+    public function listing(string $slug): View
+    {
+        $item = app(\App\Services\ListingCatalog::class)->find($slug);
+        abort_if(! $item, 404); // let or no longer advertised
+
+        return view('home.listing', ['item' => $item]);
+    }
+
     public function api(): View
     {
         return view('home.api');

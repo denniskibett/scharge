@@ -63,6 +63,7 @@ class HostController extends Controller
             return [$user, $unit];
         });
 
+        \App\Support\SiteAnalytics::conversion($request, 'host_register');
         Auth::login($user);
         $user->sendEmailVerificationNotification();
 

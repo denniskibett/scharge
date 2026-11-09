@@ -1,4 +1,5 @@
 @extends('home.auth')
+@section('robots', 'noindex,follow')
 
 @section('title', 'Create your account | scharge')
 @section('description', 'Create a scharge account and set up your first property in about 15 minutes.')

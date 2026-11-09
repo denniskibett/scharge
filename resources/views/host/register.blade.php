@@ -1,6 +1,6 @@
 @extends('home.auth')
 
-@section('title', 'List your BnB | scharge')
+@section('title', 'List your Airbnb or BnB in Kenya free | scharge')
 @section('description', 'Register your short-stay unit on scharge. Your building is added once; your unit stays yours even when the building management joins.')
 
 @section('auth_form')

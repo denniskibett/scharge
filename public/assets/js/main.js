@@ -193,6 +193,13 @@
 
   /* Open listings: filters, cards, detail panel */
   var L = data('listings-data');
+  /* Website analytics (track.js): a listing was opened */
+  function listingViewed(title) {
+    if (window.scTrack) window.scTrack('listing_view', title);
+    try { document.dispatchEvent(new CustomEvent('sc:listing', { detail: { title: title } })); } catch (e) {}
+  }
+  window.listingViewed = listingViewed;
+
   var lroot = $('#browse');
   if (L && lroot) {
     var ls = { kind: 0, area: 'All', max: null, ver: false, sel: null };
@@ -213,12 +220,12 @@
       grid.innerHTML = list.map(function (h) {
         var on = ls.sel === h.id;
         return '<article class="listing' + (on ? ' is-selected' : '') + '"><div class="listing-photo" style="background-image:url(' + h.photo + ')"><span class="pill" style="background:' + TAG[ls.kind][0] + ';color:' + TAG[ls.kind][1] + '">' + esc(h.avail) + '</span>' + (h.verified ? '<span class="pill pill--ink">✓ Inspected</span>' : '') + '</div>' +
-          '<div class="listing-body"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>' + esc(h.title) + '</b><span class="small muted">' + esc(h.area) + '</span></div>' +
+          '<div class="listing-body"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>' + (h.url ? '<a href="' + esc(h.url) + '" style="color:inherit">' + esc(h.title) + '</a>' : esc(h.title)) + '</b><span class="small muted">' + esc(h.area) + '</span></div>' +
           '<span class="listing-price">KES ' + fmt(h.price) + ' <span class="small muted" style="font-family:var(--font-body)">' + K.per + '</span></span><span class="small muted">' + esc(h.costs) + '</span>' +
           '<button type="button" class="btn ' + (on ? 'btn--ink' : 'btn--primary') + '" style="margin-top:10px" data-open="' + h.id + '">' + (on ? 'Selected' : K.btn) + '</button></div></article>';
       }).join('');
       $('#none').hidden = list.length > 0;
-      $$('[data-open]', grid).forEach(function (b) { b.addEventListener('click', function () { ls.sel = +b.dataset.open; lastOpen = ls.sel; lrender(); $('#d-close').focus(); }); });
+      $$('[data-open]', grid).forEach(function (b) { b.addEventListener('click', function () { ls.sel = +b.dataset.open; lastOpen = ls.sel; lrender(); $('#d-close').focus(); listingViewed($('#d-title').textContent); }); });
       var S = L.items.filter(function (h) { return h.id === ls.sel && h.k === ls.kind; })[0];
       var wasOpen = !detail.hidden;
       detail.hidden = !S; if (backdrop) backdrop.hidden = !S;

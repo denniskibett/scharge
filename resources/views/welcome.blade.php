@@ -1,13 +1,25 @@
 @extends('home.layout')
 
-@section('title', 'scharge | Property management for Africa, starting in Kenya')
-@section('description', 'Collect rent, service charge and water on M-Pesa. Repairs, payouts and reports in one app. Built in Kenya for property across Africa.')
+@section('title', 'scharge | Property management software in Kenya: rent, water & M-Pesa')
+@section('description', 'Collect rent, service charge and water bills on M-Pesa. Landlord and property management app for Nairobi and all of Kenya, from KES 40 per unit a month.')
 
 @section('header_cta')
 <a class="btn btn--primary" href="#pricing">Get started</a>
 @endsection
 
 @section('content')
+@php
+$faqs = [
+    ['How is my price worked out?', 'Property type, the area band your property is in, and the number of units. One flat price per unit per month, the same whatever rent you charge.'],
+    ['Do I pay for empty units?', 'Vacant or unlisted units are billed at half price, so listings, deposits and history stay live.'],
+    ['I have apartments and an Airbnb. One account?', 'Yes. Each property is priced by its own type and area, on one bill and one dashboard.'],
+    ['Do you work outside Kenya?', 'We are live in Kenya today, with Uganda, Tanzania and Rwanda next. If you manage property elsewhere in Africa, <a href="#africa">join the waitlist</a> and we will set you up first when we launch in your country. Properties in different countries can sit on one account.'],
+    ['How do tenants and guests pay?', 'M-Pesa (prompt or Paybill), card or bank transfer. Payments match to the unit automatically and receipts go to both sides.'],
+    ['Can you move my existing tenant list?', 'Yes, free. Send us your Excel sheet or export from your current system and we set it up.'],
+    ['Is my money safe?', 'Tenants and guests pay straight into your own M-Pesa Paybill, Till or bank account. scharge matches and receipts every payment but never holds your money, so payouts are as fast as your bank.'],
+    ['Is tenant data protected?', 'We handle tenant and guest data under Kenya’s Data Protection Act, 2019, and the data protection law of every country we launch in. IDs are encrypted, visible only to people you choose, and deleted when you ask.'],
+];
+@endphp
 <section class="hero" data-slider aria-roledescription="carousel" aria-label="Highlights">
 <div class="hero-slide is-active" role="group" aria-roledescription="slide" aria-label="1 of 4">
 <div class="hero-bg" style="background-image:url('{{ asset('assets/images/slides/home-1.jpg') }}')"></div><div class="hero-shade"></div><div class="hero-stripe s-red"></div>
@@ -126,7 +138,7 @@
 <blockquote>Airbnb and Booking.com used to sell the same night twice. Now one calendar closes the other, and my cleaner sends photos of every turnover.</blockquote><figcaption><span class="t-logo">MM</span><span style="display:flex;flex-direction:column"><b>Arlene Chebet</b><span class="small" style="opacity:.85">Maji Mazuri Airbnbs</span></span></figcaption></figure><figure class="t-card t-white"><span class="t-mark" aria-hidden="true">“</span>
 <blockquote>Every owner can see what service charge came in and where it went. The AGM was the shortest we have ever had.</blockquote><figcaption><span class="t-logo">HC</span><span style="display:flex;flex-direction:column"><b>Harlequins Court HOA</b><span class="small" style="opacity:.85">Owners’ association</span></span></figcaption></figure></div></div></div>
 </section>
-<section class="section section--blush" id="faq"><div class="wrap stack-l" style="max-width:860px"><h2>Quick answers</h2><div class="faq stack"><details><summary>How is my price worked out?</summary><p>Property type, the area band your property is in, and the number of units. One flat price per unit per month, the same whatever rent you charge.</p></details><details><summary>Do I pay for empty units?</summary><p>Vacant or unlisted units are billed at half price, so listings, deposits and history stay live.</p></details><details><summary>I have apartments and an Airbnb. One account?</summary><p>Yes. Each property is priced by its own type and area, on one bill and one dashboard.</p></details><details><summary>Do you work outside Kenya?</summary><p>We are live in Kenya today, with Uganda, Tanzania and Rwanda next. If you manage property elsewhere in Africa, <a href="#africa">join the waitlist</a> and we will set you up first when we launch in your country. Properties in different countries can sit on one account.</p></details><details><summary>How do tenants and guests pay?</summary><p>M-Pesa (prompt or Paybill), card or bank transfer. Payments match to the unit automatically and receipts go to both sides.</p></details><details><summary>Can you move my existing tenant list?</summary><p>Yes, free. Send us your Excel sheet or export from your current system and we set it up.</p></details><details><summary>Is my money safe?</summary><p>Tenants and guests pay straight into your own M-Pesa Paybill, Till or bank account. scharge matches and receipts every payment but never holds your money, so payouts are as fast as your bank.</p></details><details><summary>Is tenant data protected?</summary><p>We handle tenant and guest data under Kenya’s Data Protection Act, 2019, and the data protection law of every country we launch in. IDs are encrypted, visible only to people you choose, and deleted when you ask.</p></details></div></div></section>
+<section class="section section--blush" id="faq"><div class="wrap stack-l" style="max-width:860px"><h2>Quick answers</h2><div class="faq stack">@foreach ($faqs as [$q, $a])<details><summary>{{ $q }}</summary><p>{!! $a !!}</p></details>@endforeach</div></div></section>
 <section class="section section--red"><div class="wrap row" style="align-items:center;justify-content:space-between"><div class="stack"><h2>Apartments, hotels, offices or warehouses. Live this week.</h2><p>We import your units and tenants for free. Tenants, ask your manager for an invite.</p></div><div class="actions"><a class="btn btn--light" href="#pricing">Start collecting</a><a class="btn btn--glass" href="{{ route('home.developers') }}#talk">Book a demo</a></div></div></section>
 @endsection
 
@@ -134,4 +146,9 @@
 @verbatim
 <script type="application/json" id="pricing-data">{"types": [{"name": "Apartments", "unit": "unit", "rates": [500, 300, 150, 40]}, {"name": "Airbnb & serviced", "unit": "listing", "rates": [1500, 1000, 700, 400]}, {"name": "Hotels", "unit": "room", "rates": [800, 600, 400, 250]}, {"name": "Offices", "unit": "suite", "rates": [2000, 1500, 1000, 600]}, {"name": "Warehouses", "unit": "bay", "rates": [2000, 1600, 1200, 800]}], "bands": [{"name": "Prime", "eg": "e.g. Westlands, Kilimani, Karen, Upper Hill"}, {"name": "Upmarket", "eg": "e.g. Kileleshwa, Lang’ata, Syokimau, Nyali"}, {"name": "Mid-market", "eg": "e.g. Ruaka, Kasarani, South B, Thindigua"}, {"name": "Affordable", "eg": "e.g. Kitengela, Ruiru, Rongai, Umoja"}], "minimum": 1500, "audienceType": [0, 0, 0, 1, 2, 3, 4, 0]}</script>
 @endverbatim
+@endpush
+
+@push('jsonld')
+{!! \App\Support\Seo::script(\App\Support\Seo::softwareApplication()) !!}
+{!! \App\Support\Seo::script(\App\Support\Seo::faq($faqs)) !!}
 @endpush

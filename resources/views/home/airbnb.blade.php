@@ -1,7 +1,7 @@
 @extends('home.layout')
 
-@section('title', 'scharge for Airbnb hosts | One calendar, no double bookings')
-@section('description', 'Calendar sync, smart-lock codes, cleaner checklists and payouts for Airbnb and short-stay hosts across Africa, starting in Kenya.')
+@section('title', 'Airbnb host tools in Kenya | Calendar, smart locks, M-Pesa | scharge')
+@section('description', 'Airbnb and short-stay host software for Kenya: one calendar, smart-lock codes, cleaner checklists and M-Pesa payouts. Flat fee per listing, no commission.')
 
 @section('header_cta')
 <a class="btn btn--primary" href="{{ route('host.register') }}">Add my listing</a>
@@ -12,6 +12,16 @@
 @endsection
 
 @section('content')
+@php
+$faqs = [
+    ['Do you take a percentage of my bookings?', 'No. You pay a flat monthly fee per listing based on the area. Your bookings are yours.'],
+    ['Do you replace a co-host?', 'We replace the systems: codes, messages, checklists and reports. Someone still needs to clean and handle emergencies, usually your caretaker or cleaner, who use scharge free.'],
+    ['Which smart locks work?', 'Wi-Fi smart locks that run on TTLock, igloohome or Yale apps, the brands most sold in Kenya. No smart lock yet? Use the key-handover checklist and we’ll suggest one.'],
+    ['Will it connect to my Airbnb account?', 'Calendar sync with Airbnb and Booking.com is coming soon. Join the waitlist and we’ll set it up for you first.'],
+    ['I also have long-term tenants. One account?', 'Yes. Short stays and long lets on one dashboard, each priced by its own type and area.'],
+    ['Is guest data safe?', 'Yes. We follow Kenya’s Data Protection Act, 2019, and the data law of each country we launch in. Guest IDs are encrypted, shown only to you and your team, and deleted 90 days after checkout unless there is an open damage claim.'],
+];
+@endphp
 <section class="hero" data-slider aria-roledescription="carousel" aria-label="Highlights">
 <div class="hero-slide is-active" role="group" aria-roledescription="slide" aria-label="1 of 4">
 <div class="hero-bg" style="background-image:url('{{ asset('assets/images/slides/airbnb-1.jpg') }}')"></div><div class="hero-shade"></div><div class="hero-stripe s-jac"></div>
@@ -72,7 +82,7 @@
 <div class="actions" style="flex:1 1 280px"><a class="btn btn--primary" href="{{ route('home.api') }}#code">See the booking widget</a><a class="btn btn--glass" href="{{ route('home.listings') }}">Your listings on open listings</a></div></div></div></section>
 <section class="section section--dark" id="features"><div class="wrap stack-l"><h2>Everything between the booking and the payout.</h2><div class="grid"><div class="card card--dark"><h3>Smart-lock codes</h3><p>A unique code for each stay, valid only from check-in to checkout.</p></div><div class="card card--dark"><h3>Gate pass for the guard</h3><p>Your building’s guard gets the guest’s name and car plate before they arrive.</p></div><div class="card card--dark"><h3>Auto check-in guide</h3><p>Directions, Wi-Fi and house rules sent on WhatsApp the morning of arrival.</p></div><div class="card card--dark"><h3>Guest ID check</h3><p>Passport or ID collected before the code is released.</p></div><div class="card card--dark"><h3>Cleaner checklists</h3><p>Photo proof of every turnover, restock list and damage reports.</p></div><div class="card card--dark"><h3>Damage deposits</h3><p>Hold a deposit and claim against it with the cleaner’s photos.</p></div><div class="card card--dark"><h3>Direct bookings on M-Pesa</h3><p>Repeat guests book with you directly, no platform commission.</p></div><div class="card card--dark"><h3>Earnings per listing</h3><p>Bookings minus cleaning, restocking and fees, exportable for your accountant.</p></div><div class="card card--dark"><h3>Airbnb &amp; Booking.com calendar sync</h3><p>One calendar, no double bookings.</p></div></div></div></section>
 <section class="section" id="how"><div class="wrap stack-l"><h2>How a stay runs on scharge.</h2><div class="steps"><div class="step"><span class="label">Booked</span><h3>Guest books</h3><p class="muted">On Airbnb, Booking.com or directly on M-Pesa.</p></div><div class="step"><span class="label">Day before</span><h3>ID &amp; deposit</h3><p class="muted">Guest uploads ID; deposit held.</p></div><div class="step"><span class="label">Morning of</span><h3>Codes sent</h3><p class="muted">Lock code, Wi-Fi, directions; guard gets the gate pass.</p></div><div class="step"><span class="label">During</span><h3>Stay</h3><p class="muted">Guest messages and issues in one thread.</p></div><div class="step"><span class="label">Checkout</span><h3>Turnover</h3><p class="muted">Cleaner runs the photo checklist; code expires.</p></div><div class="step"><span class="label">Month end</span><h3>Payout report</h3><p class="muted">Net earnings per listing and channel.</p></div></div></div></section>
-<section class="section section--blush" id="faq"><div class="wrap stack-l" style="max-width:860px"><h2>Host questions</h2><div class="faq stack"><details><summary>Do you take a percentage of my bookings?</summary><p>No. You pay a flat monthly fee per listing based on the area. Your bookings are yours.</p></details><details><summary>Do you replace a co-host?</summary><p>We replace the systems: codes, messages, checklists and reports. Someone still needs to clean and handle emergencies, usually your caretaker or cleaner, who use scharge free.</p></details><details><summary>Which smart locks work?</summary><p>Wi-Fi smart locks that run on TTLock, igloohome or Yale apps, the brands most sold in Kenya. No smart lock yet? Use the key-handover checklist and we’ll suggest one.</p></details><details><summary>Will it connect to my Airbnb account?</summary><p>Calendar sync with Airbnb and Booking.com is coming soon. Join the waitlist and we’ll set it up for you first.</p></details><details><summary>I also have long-term tenants. One account?</summary><p>Yes. Short stays and long lets on one dashboard, each priced by its own type and area.</p></details><details><summary>Is guest data safe?</summary><p>Yes. We follow Kenya’s Data Protection Act, 2019, and the data law of each country we launch in. Guest IDs are encrypted, shown only to you and your team, and deleted 90 days after checkout unless there is an open damage claim.</p></details></div></div></section>
+<section class="section section--blush" id="faq"><div class="wrap stack-l" style="max-width:860px"><h2>Host questions</h2><div class="faq stack">@foreach ($faqs as [$q, $a])<details><summary>{{ $q }}</summary><p>{!! $a !!}</p></details>@endforeach</div></div></section>
 <section class="section"><div class="wrap stack-l">
 <h2>Your money, your data, our promise.</h2>
 <div class="grid">
@@ -87,4 +97,8 @@
 @verbatim
 <script type="application/json" id="host-data">{"bands": [{"name": "Prime", "eg": "e.g. Westlands, Kilimani, Karen", "rate": 1500}, {"name": "Upmarket", "eg": "e.g. Kileleshwa, Lavington, Nyali", "rate": 1000}, {"name": "Mid-market", "eg": "e.g. Ruaka, Kasarani, Thika Rd", "rate": 700}, {"name": "Affordable", "eg": "e.g. Kitengela, Ruiru, Rongai", "rate": 400}]}</script>
 @endverbatim
+@endpush
+
+@push('jsonld')
+{!! \App\Support\Seo::script(\App\Support\Seo::faq($faqs)) !!}
 @endpush

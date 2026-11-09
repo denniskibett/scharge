@@ -1,7 +1,7 @@
 @extends('home.layout')
 
-@section('title', 'scharge API and white label')
-@section('description', 'Put vacancies and booking calendars on your own website, or launch a tenant and buyer app in your brand.')
+@section('title', 'Property listings API and white-label tenant app | scharge Kenya')
+@section('description', 'Put live vacancies and booking calendars on your own website, or launch a tenant and buyer app in your brand. REST API with sandbox keys.')
 
 @section('header_cta')
 <a class="btn btn--primary" href="#keys">Get sandbox keys</a>

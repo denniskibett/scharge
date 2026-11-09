@@ -114,6 +114,8 @@
           form.reset();
           form.classList.add('is-sent');
           showAlert(r.data);
+          // The server already counted it (Website analytics); this tells optional ad tags, if accepted.
+          try { document.dispatchEvent(new CustomEvent('sc:conversion', { detail: { form: new URL(form.action, location.href).pathname } })); } catch (e) {}
         } else if (r.status === 422) {
           var errors = r.data.errors || {};
           showErrors(form, errors);

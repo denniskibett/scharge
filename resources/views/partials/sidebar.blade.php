@@ -380,7 +380,8 @@ document.addEventListener('alpine:init', () => {
               { label: 'Follow-ups', link: '/crm/follow-ups', page: 'crmFollowUps', permission: 'crm_follow_ups' },
               { label: 'Requests', link: '/crm/requests', page: 'crmDemos', permission: 'crm_demos' },
               { label: 'Waitlist', link: '/crm/waitlist', page: 'crmWaitlist', permission: 'crm_waitlist' },
-              { label: 'Feedback', link: '/crm/feedback', page: 'crmFeedback', permission: 'crm_feedback' }
+              { label: 'Feedback', link: '/crm/feedback', page: 'crmFeedback', permission: 'crm_feedback' },
+              { label: 'Website analytics', link: '/admin/website-analytics', page: 'websiteAnalytics', permission: 'crm' }
             ]
           },
           {

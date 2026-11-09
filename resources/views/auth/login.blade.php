@@ -1,4 +1,5 @@
 @extends('home.auth')
+@section('robots', 'noindex,follow')
 
 @section('title', 'Log in | scharge')
 @section('description', 'Log in to scharge to see who has paid, what is due and what needs fixing.')

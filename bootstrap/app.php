@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'sms/mpesa/callback',
             'sms/webhook/*',
             'webhooks/sharet',
+            't', // website analytics beacon: no cookies needed, always answers 204
         ]);
 
         $middleware->alias([

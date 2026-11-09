@@ -1,7 +1,7 @@
 @extends('home.layout')
 
-@section('title', 'Open listings | Verified homes, short stays and plots | scharge')
-@section('description', 'Vacant homes, short stays and plots from owners on scharge. Every cost shown, no viewing fees.')
+@section('title', 'Houses to rent in Nairobi & Kenya, no agent fees | scharge listings')
+@section('description', 'Vacant houses, apartments and short stays to rent in Nairobi and across Kenya. Rent, water, service charge and deposit shown up front. Book viewings free.')
 
 @section('header_cta')
 <a class="btn btn--primary" href="#owners">List my vacancy free</a>
@@ -60,6 +60,14 @@
 <div class="detail" id="detail" role="dialog" aria-modal="true" aria-labelledby="d-title" hidden><div class="stack"><div class="row" style="justify-content:space-between;align-items:flex-start;gap:10px"><div><h3 id="d-title"></h3><p class="muted" id="d-sub"></p></div><button type="button" class="t-btn" id="d-close" aria-label="Close">×</button></div><div id="d-lines"></div><div class="chip-row" id="d-tags"></div></div>
 <div class="card card--blush"><form class="form" id="d-form" method="POST" action="{{ route('site.listings.request') }}" data-remote data-context="listing" novalidate>@csrf<div class="fields form"><h3 id="d-form-title"></h3><label for="v-name">Your name</label><input id="v-name" name="name" required maxlength="120" autocomplete="name"><label for="v-ph">Phone (WhatsApp)</label><input id="v-ph" name="phone" type="tel" required maxlength="40" autocomplete="tel"><label for="d-when" id="d-when-label"></label><input id="d-when" name="when" maxlength="120"><input type="hidden" name="listing_title"><input type="hidden" name="listing_area"><input type="hidden" name="listing_owner"><input type="hidden" name="listing_kind"><input type="hidden" name="listing_action"><input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true"><button class="btn btn--primary" type="submit" id="d-submit"></button><p class="small muted">Free. The owner or caretaker replies on WhatsApp.</p></div><div class="thanks stack" tabindex="-1"><h3>Request sent.</h3><p class="muted" id="d-thanks-msg"></p><button type="button" class="btn btn--ghost" data-reset>Send another request</button></div></form></div></div>
 </div></section>
+@if (! empty($listingItems))
+<section class="section" id="all-vacancies" aria-labelledby="all-vacancies-h"><div class="wrap stack">
+<h2 id="all-vacancies-h" style="font-size:1.3rem">Every vacancy, by area</h2>
+@foreach (collect($listingItems)->groupBy('area')->sortKeys() as $area => $group)
+<p class="small"><b>{{ $area }}:</b> @foreach ($group as $h)<a href="{{ $h['url'] }}">{{ $h['title'] }}, KES {{ number_format($h['price']) }}{{ $h['k'] === 1 ? ' a night' : ' a month' }}</a>@unless ($loop->last) · @endunless @endforeach</p>
+@endforeach
+</div></section>
+@endif
 <section class="section section--dark" id="how"><div class="wrap stack-l"><h2>Renting through scharge</h2><div class="grid"><div class="card card--dark"><span class="step-n" style="color:var(--rose)">01</span><h3>See the real cost</h3><p>Rent, water, service charge and deposit on every listing.</p></div><div class="card card--dark"><span class="step-n" style="color:var(--rose)">02</span><h3>Book a viewing free</h3><p>The caretaker confirms a time on WhatsApp.</p></div><div class="card card--dark"><span class="step-n" style="color:var(--rose)">03</span><h3>Apply in the app</h3><p>Upload your ID and payslip once; reuse for any listing.</p></div><div class="card card--dark"><span class="step-n" style="color:var(--rose)">04</span><h3>Pay safely, move in</h3><p>Deposit on M-Pesa to the property account, digital lease, keys.</p></div></div><p class="muted" style="color:var(--on-dark)">Never pay a deposit to a personal number. On scharge, deposits go to the property's account and you get a receipt.</p></div></section>
 <section class="section" id="owners"><div class="wrap"><div class="section--red row" style="border-radius:28px;padding:clamp(24px,4vw,48px);align-items:center;justify-content:space-between"><div class="stack" style="max-width:40rem"><h2>Got an empty unit, listing or plot?</h2><p>List it here free with any scharge plan. Viewings, applications, screening and the first deposit all land in your dashboard, and you can show the same listings on your own website.</p></div><div class="actions"><a class="btn btn--light" href="{{ route('home') }}#pricing">List my vacancy</a><a class="btn btn--glass" href="{{ route('home.api') }}">Embed on my website</a></div></div></div></section>
 @endsection
@@ -68,4 +76,10 @@
 @verbatim
 <script type="application/json" id="listings-data">{"items": @endverbatim@json($listingItems ?? [])@verbatim, "kinds": [{"name": "Homes to rent", "per": "/ month", "priceLabel": "Max rent", "min": 5000, "max": 150000, "step": 5000, "def": 150000, "btn": "Book a viewing", "formTitle": "Book a viewing", "whenLabel": "Preferred day", "whenHint": "e.g. Saturday morning", "formBtn": "Request viewing", "sentMsg": "The caretaker will WhatsApp you a time today."}, {"name": "Short stays", "per": "/ night", "priceLabel": "Max per night", "min": 2000, "max": 30000, "step": 500, "def": 30000, "btn": "Check dates", "formTitle": "Request these dates", "whenLabel": "Check-in and check-out", "whenHint": "e.g. 17\u201318 Oct", "formBtn": "Request booking", "sentMsg": "The host confirms on WhatsApp, then you pay a deposit on M-Pesa."}, {"name": "Plots for sale", "per": "total", "priceLabel": "Max price", "min": 300000, "max": 5000000, "step": 50000, "def": 5000000, "btn": "Book a site visit", "formTitle": "Book a site visit", "whenLabel": "Preferred day", "whenHint": "Site visits on Saturdays", "formBtn": "Request site visit", "sentMsg": "The landowner\u2019s team will call to arrange transport to the site."}]}</script>
 @endverbatim
+@endpush
+
+@push('jsonld')
+@if (! empty($listingItems))
+{!! \App\Support\Seo::script(\App\Support\Seo::listingList($listingItems)) !!}
+@endif
 @endpush

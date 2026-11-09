@@ -21,12 +21,18 @@ class ListingCatalog
 
     public function items(): array
     {
-        return Cache::remember('public-listings', now()->addMinutes(5), fn () => $this->build());
+        return Cache::remember('public-listings-v2', now()->addMinutes(5), fn () => $this->build());
+    }
+
+    /** One listing by its page address (home.listing), or null when it is let / no longer advertised. */
+    public function find(string $slug): ?array
+    {
+        return collect($this->items())->firstWhere('slug', $slug);
     }
 
     public static function forget(): void
     {
-        Cache::forget('public-listings');
+        Cache::forget('public-listings-v2');
     }
 
     private function build(): array
@@ -65,9 +71,15 @@ class ListingCatalog
                 (float) $r->deposit > 0 ? 'deposit KES '.number_format((float) $r->deposit) : null,
             ])->filter()->join(' · ') ?: 'Ask the caretaker for other costs';
 
+            // Stable address for the listing's own page: survives other listings coming and going.
+            $slug = \Illuminate\Support\Str::slug(($r->unit_type ?: 'house').' '.($r->location ?: $r->pname))
+                .'-'.substr(md5($r->pid.'|'.$r->unit_type.'|'.$r->stay_type.'|'.$price), 0, 8);
+
             return [
                 'k' => $stay ? self::KIND_STAY : self::KIND_RENT,
                 'id' => $i + 1,
+                'slug' => $slug,
+                'url' => route('home.listing', $slug),
                 'title' => trim(($r->unit_type ?: 'House').' · '.$r->pname),
                 'area' => $r->location ?: $r->pname,
                 'price' => $price,

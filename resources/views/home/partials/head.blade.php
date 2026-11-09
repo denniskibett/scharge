@@ -1,12 +1,46 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>@yield('title', 'scharge | Property management for Africa, starting in Kenya')</title>
-<meta name="description" content="@yield('description')">
+@php
+    // Sections set with @section('x', '...') are already escaped by Blade, so they are printed raw below.
+    $seoTitle = trim($__env->yieldContent('title')) ?: e(\App\Support\Seo::TITLE);
+    $seoDesc = trim($__env->yieldContent('description')) ?: e(\App\Support\Seo::DESCRIPTION);
+    $seoCanonical = trim($__env->yieldContent('canonical')) ?: e(url()->current()); // never the query string (utm tags, filters)
+    $seoRobots = trim($__env->yieldContent('robots')) ?: 'index,follow,max-image-preview:large';
+    $seoImage = trim($__env->yieldContent('og_image')) ?: e(asset('assets/images/og-image.png'));
+@endphp
+<title>{!! $seoTitle !!}</title>
+<meta name="description" content="{!! $seoDesc !!}">
+<meta name="keywords" content="{{ \App\Support\Seo::KEYWORDS }}">
+<meta name="robots" content="{{ $seoRobots }}">
+<link rel="canonical" href="{!! $seoCanonical !!}">
 <meta name="theme-color" content="#DC2626">
-<meta property="og:title" content="{!! $__env->yieldContent('og_title') ?: $__env->yieldContent('title') !!}">
-<meta property="og:description" content="{!! $__env->yieldContent('og_description') ?: $__env->yieldContent('description') !!}">
-<meta property="og:image" content="{{ asset('assets/images/og-image.png') }}">
+<meta name="geo.region" content="KE">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="scharge">
+<meta property="og:locale" content="en_KE">
+<meta property="og:url" content="{!! $seoCanonical !!}">
+<meta property="og:title" content="{!! trim($__env->yieldContent('og_title')) ?: $seoTitle !!}">
+<meta property="og:description" content="{!! trim($__env->yieldContent('og_description')) ?: $seoDesc !!}">
+<meta property="og:image" content="{!! $seoImage !!}">
+@unless (trim($__env->yieldContent('og_image')))
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+@endunless
+<meta property="og:image:alt" content="scharge: property management for Kenya">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{!! trim($__env->yieldContent('og_title')) ?: $seoTitle !!}">
+<meta name="twitter:description" content="{!! trim($__env->yieldContent('og_description')) ?: $seoDesc !!}">
+<meta name="twitter:image" content="{!! $seoImage !!}">
+@if (config('analytics.google_site_verification'))
+<meta name="google-site-verification" content="{{ config('analytics.google_site_verification') }}">
+@endif
+@if (config('analytics.bing_site_verification'))
+<meta name="msvalidate.01" content="{{ config('analytics.bing_site_verification') }}">
+@endif
+{!! \App\Support\Seo::script(\App\Support\Seo::siteGraph()) !!}
+@stack('jsonld')
+@include('home.partials.analytics')
 <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
 <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
