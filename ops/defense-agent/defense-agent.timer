@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the defense agent every morning (06:00 Nairobi)
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

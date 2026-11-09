@@ -124,7 +124,7 @@ class Access
         'crm' => 'crm.view', 'crm_pipeline' => 'crm.view', 'crm_follow_ups' => 'crm.view', 'crm_demos' => 'crm.view', 'crm_waitlist' => 'crm.view', 'crm_feedback' => 'crm.view',
         'companies' => 'companies.view', 'property_claims' => 'companies.manage',
         'settings' => ['settings.view', 'team.view', 'system.view'], 'integrations' => 'settings.view', 'api_keys' => 'settings.view',
-        'users' => 'team.view', 'staff' => 'team.view', 'team' => 'team.view', 'roles' => 'system.view', 'system_settings' => 'system.view',
+        'users' => 'team.view', 'staff' => 'team.view', 'team' => 'team.view', 'roles' => 'system.view', 'system_settings' => 'system.view', 'server_security' => 'system.view',
         'analytics' => 'reports.view', 'reports' => 'reports.view',
     ];
 

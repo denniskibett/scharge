@@ -177,7 +177,7 @@ document.addEventListener('alpine:init', () => {
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
         'administration', 'companies', 'users', 'staff', 'team', 'roles', 'system_settings', 'clear_cache',
-        'settings', 'integrations', 'api_keys', 'property_claims',
+        'settings', 'integrations', 'api_keys', 'property_claims', 'server_security',
       ],
       // scharge staff: manages a book of companies, their leads and revenue.
       'account_manager': [
@@ -330,6 +330,8 @@ document.addEventListener('alpine:init', () => {
         items: [
           { name: 'integrations', label: 'Integrations', link: '/integrations', page: 'integrations', permission: 'integrations',
             stroke: true, icon: 'M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 0 0 .658-.663 48.422 48.422 0 0 0-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 0 1-.61-.58v0Z' },
+          { name: 'serverSecurity', label: 'Server security', link: '/admin/security', page: 'serverSecurity', permission: 'server_security',
+            stroke: true, icon: 'M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z' },
           { name: 'apiKeys', label: 'API keys', link: '/api-keys', page: 'apiKeys', permission: 'api_keys',
             stroke: true, icon: 'M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z' },
           { name: 'smsSettings', label: 'SMS settings', link: '/sms/settings', page: 'smsSettings', permission: 'sms_settings',

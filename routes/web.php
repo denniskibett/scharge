@@ -209,6 +209,10 @@ Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('admin/webs
         Route::get('/clicks', 'clicks')->name('clicks');
     });
 
+// Setup > Server security: VPS defense agent report (ops/defense-agent) for scharge sysadmins
+Route::get('/admin/security', [App\Http\Controllers\Admin\ServerSecurityController::class, 'index'])
+    ->middleware(['auth', 'role:sysadmin'])->name('server-security.index');
+
 // Old static-site addresses (index.html, developers.html, ...) keep working.
 Route::permanentRedirect('/index.html', '/');
 foreach (['developers', 'airbnb', 'listings', 'api', 'credits'] as $page) {

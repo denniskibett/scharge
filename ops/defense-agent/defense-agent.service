@@ -1,0 +1,12 @@
+[Unit]
+Description=Sharet VPS defense agent (security checks + digest)
+After=network-online.target postfix.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/defense-agent.env
+ExecStart=/bin/sh /opt/defense-agent/run.sh
+Nice=15
+IOSchedulingClass=idle
+CPUQuota=60%
+TimeoutStartSec=3h
