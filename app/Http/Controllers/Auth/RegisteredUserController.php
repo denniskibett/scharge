@@ -29,6 +29,13 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        $guard = \App\Services\KycLog::verdict(email: (string) $request->input('email'));
+        if (! $guard['allow']) {
+            \App\Services\KycLog::record('signup.blocked', null, ['email' => (string) $request->input('email'), 'reasons' => $guard['reasons'], 'form' => 'register']);
+
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'Too many failed attempts from your network. Please try again in an hour or contact support.']);
+        }
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class, new \App\Rules\RealEmail],
@@ -41,6 +48,7 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        \App\Services\KycLog::record('signup.ok', $user, ['form' => 'register']);
         event(new Registered($user));
 
         Auth::login($user);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Rules\RealEmail;
 use App\Services\EmailOtp;
+use App\Services\KycLog;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -51,6 +52,7 @@ class EmailCodeController extends Controller
     {
         $user = $request->user();
         $data = $request->validate(['email' => ['required', 'email', 'max:190', new RealEmail, Rule::unique('users', 'email')->ignore($user->id)]]);
+        KycLog::record('email.changed', $user, ['from' => $user->email, 'email' => strtolower($data['email'])]);
         $user->forceFill(['email' => strtolower($data['email']), 'email_confirmed_at' => null])->save();
         $r = EmailOtp::send($user, force: true);
 

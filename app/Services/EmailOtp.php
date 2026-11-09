@@ -64,10 +64,12 @@ class EmailOtp
             Mail::to($user->email)->send(new EmailOtpCode($user, $code, $minutes));
         } catch (\Throwable $e) {
             Log::error('Email code could not be sent', ['user' => $user->id, 'error' => $e->getMessage()]);
+            KycLog::record('otp.send_failed', $user);
 
             return ['ok' => false, 'message' => 'We could not send the email just now. Try again in a minute.'];
         }
 
+        KycLog::record('otp.sent', $user, ['forced' => $force ?: null]);
         Cache::put(self::key($user), ['hash' => Hash::make($code), 'email' => $user->email, 'expires' => time() + $minutes * 60, 'attempts' => 0, 'sent_at' => time()], $minutes * 60);
 
         return ['ok' => true, 'message' => "We sent a {$digits}-digit code to {$user->email}. It works for {$minutes} minutes."];
@@ -76,12 +78,21 @@ class EmailOtp
     /** @return array{ok: bool, message: string} */
     public static function verify($user, string $code): array
     {
+        $guard = KycLog::verdict($user);
+        if (! $guard['allow']) {
+            KycLog::record('otp.blocked', $user, ['reasons' => $guard['reasons']]);
+
+            return ['ok' => false, 'message' => 'Too many wrong codes. For your safety, wait an hour and try again, or contact support.'];
+        }
         $s = Cache::get(self::key($user));
         if (! $s || $s['expires'] < time() || $s['email'] !== $user->email) {
+            KycLog::record('otp.expired', $user);
+
             return ['ok' => false, 'message' => 'That code has expired. Send a new one.'];
         }
         if ($s['attempts'] >= (int) config('kyc.email_otp.max_attempts', 5)) {
             Cache::forget(self::key($user));
+            KycLog::record('otp.after_lock', $user);
 
             return ['ok' => false, 'message' => 'Too many wrong tries. Send a new code.'];
         }
@@ -89,12 +100,14 @@ class EmailOtp
             $s['attempts']++;
             Cache::put(self::key($user), $s, max(1, $s['expires'] - time()));
             $left = (int) config('kyc.email_otp.max_attempts', 5) - $s['attempts'];
+            KycLog::record($left > 0 ? 'otp.wrong' : 'otp.locked', $user, ['attempt' => $s['attempts'], 'seconds_since_sent' => time() - $s['sent_at']]);
 
             return ['ok' => false, 'message' => "That code is not right. {$left} ".($left === 1 ? 'try' : 'tries').' left.'];
         }
 
         Cache::forget(self::key($user));
         $user->forceFill(['email_confirmed_at' => now()])->save();
+        KycLog::record('otp.ok', $user, ['attempt' => $s['attempts'] + 1, 'seconds_since_sent' => time() - $s['sent_at']]);
 
         return ['ok' => true, 'message' => 'Email confirmed. Thank you.'];
     }

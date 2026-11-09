@@ -38,6 +38,13 @@ class HostController extends Controller
 
     public function store(Request $request, HostUnits $hosts)
     {
+        $guard = \App\Services\KycLog::verdict(email: (string) $request->input('email'));
+        if (! $guard['allow']) {
+            \App\Services\KycLog::record('signup.blocked', null, ['email' => (string) $request->input('email'), 'reasons' => $guard['reasons'], 'form' => 'host']);
+
+            return back()->withInput($request->except('password', 'password_confirmation'))
+                ->withErrors(['email' => 'Too many failed attempts from your network. Please try again in an hour or contact support.']);
+        }
         $data = $request->validate([
             'name' => 'required|string|max:120',
             'email' => 'required|email|max:190|unique:users,email',
@@ -63,6 +70,7 @@ class HostController extends Controller
             return [$user, $unit];
         });
 
+        \App\Services\KycLog::record('signup.ok', $user, ['form' => 'host']);
         \App\Support\SiteAnalytics::conversion($request, 'host_register');
         Auth::login($user);
         $user->sendEmailVerificationNotification();
