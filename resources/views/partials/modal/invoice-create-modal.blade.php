@@ -1090,7 +1090,7 @@ document.addEventListener('alpine:init', () => {
             alert(`Success! Generated ${data.generated_count} invoices.`);
           }
           
-          setTimeout(() => window.location.reload(), 2000);
+          setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 2000);
         } else {
           alert(data.message || 'Failed to generate missing invoices');
         }
@@ -1283,7 +1283,7 @@ document.addEventListener('alpine:init', () => {
           await this.checkExistingInvoices();
           await this.fetchBillingHistory();
           await this.determineNextBillingMonth();
-          setTimeout(() => window.location.reload(), 1500);
+          setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
         } else {
           this.formErrors = [data.message];
         }
@@ -1410,7 +1410,7 @@ document.addEventListener('alpine:init', () => {
           }
           
           setTimeout(() => {
-            window.location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
           }, 1500);
         } else {
           if (data.errors) {

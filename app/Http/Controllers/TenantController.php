@@ -38,9 +38,9 @@ class TenantController extends Controller
         // Get existing users without tenant records (for dropdown in modal)
         $existingUsersWithoutTenant = User::whereDoesntHave('tenant')
             ->where(function($q) {
-                $q->whereHas('role', function($r) {
+                $q->whereHas('roles', function($r) {
                     $r->where('name', 'tenant');
-                })->orWhereNull('role_id');
+                })->orWhereDoesntHave('roles');
             })
             ->get(['id', 'name', 'email', 'phone']);
         

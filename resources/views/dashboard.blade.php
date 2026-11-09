@@ -225,7 +225,7 @@ function verifyUser(userId) {
         }).then(response => response.json())
           .then(data => {
               if (data.success) {
-                  location.reload();
+                  (window.schargeRefresh || (() => location.reload()))();
               } else {
                   alert('Failed to verify user');
               }
@@ -246,7 +246,7 @@ function assignCompany(userId) {
         }).then(response => response.json())
           .then(data => {
               if (data.success) {
-                  location.reload();
+                  (window.schargeRefresh || (() => location.reload()))();
               } else {
                   alert('Failed to assign company');
               }
@@ -317,7 +317,7 @@ function deletePayment(paymentId) {
             }
         }).then(response => response.json())
           .then(data => {
-              if (data.success) location.reload();
+              if (data.success) (window.schargeRefresh || (() => location.reload()))();
           });
     }
 }
@@ -345,7 +345,7 @@ function markTaskComplete(taskId) {
         }).then(response => response.json())
           .then(data => {
               if (data.success) {
-                  location.reload();
+                  (window.schargeRefresh || (() => location.reload()))();
               } else {
                   alert('Failed to mark task as complete');
               }
@@ -364,7 +364,7 @@ function approveAccessLog(logId) {
         }).then(response => response.json())
           .then(data => {
               if (data.success) {
-                  location.reload();
+                  (window.schargeRefresh || (() => location.reload()))();
               } else {
                   alert('Failed to approve access');
               }
@@ -383,7 +383,7 @@ function rejectAccessLog(logId) {
         }).then(response => response.json())
           .then(data => {
               if (data.success) {
-                  location.reload();
+                  (window.schargeRefresh || (() => location.reload()))();
               } else {
                   alert('Failed to reject access');
               }

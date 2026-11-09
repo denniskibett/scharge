@@ -190,7 +190,7 @@ document.addEventListener('alpine:init', () => {
                     this.closeModal();
                     window.alertModal.showSuccess('Role Deleted', result.message);
                     setTimeout(() => {
-                        location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1500);
                 } else {
                     window.alertModal.showError('Deletion Failed', result.message);

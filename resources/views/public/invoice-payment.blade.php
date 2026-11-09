@@ -380,7 +380,7 @@
                         
                         // Reload the page to show updated status after a delay
                         setTimeout(() => {
-                            window.location.reload();
+                            (window.schargeRefresh || (() => location.reload()))();
                         }, 6000);
                     } else if (data.status === 'failed' || (data.success === false && data.status === 'failed')) {
                         // Payment failed

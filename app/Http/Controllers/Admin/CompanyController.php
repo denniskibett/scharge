@@ -170,7 +170,7 @@ class CompanyController extends Controller
     private function getUsersForView($company)
     {
         return User::where('company_id', $company->id)
-            ->whereHas('role', function($q) {
+            ->whereHas('roles', function($q) {
                 $q->where('name', '!=', 'tenant');
             })
             ->with('role')
@@ -234,7 +234,7 @@ class CompanyController extends Controller
     {
         // Staff count (users with company_id that are NOT tenant role)
         $totalStaff = User::where('company_id', $company->id)
-            ->whereHas('role', function($q) {
+            ->whereHas('roles', function($q) {
                 $q->where('name', '!=', 'tenant');
             })
             ->count();
@@ -398,7 +398,7 @@ class CompanyController extends Controller
         $company = Company::findOrFail($id);
         
         $users = User::where('company_id', $company->id)
-            ->whereHas('role', function($q) {
+            ->whereHas('roles', function($q) {
                 $q->where('name', '!=', 'tenant');
             })
             ->with('role')

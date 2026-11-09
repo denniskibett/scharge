@@ -447,7 +447,7 @@ function editPropertyModal() {
                         window.successModal.simple('Property Updated', `Property "${this.form.name}" has been updated successfully!`);
                     }
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1500);
                 } else {
                     if (data.errors) {

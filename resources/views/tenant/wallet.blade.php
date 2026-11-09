@@ -424,7 +424,7 @@ function tenantWalletComponent() {
                 const result = await response.json();
                 
                 if (result.success) {
-                    window.location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.error || 'Deposit failed');
                     this.showDepositModal = false;
@@ -476,7 +476,7 @@ function tenantWalletComponent() {
                 const result = await response.json();
                 
                 if (result.success) {
-                    window.location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.error || 'Withdrawal failed');
                     this.showWithdrawModal = false;
@@ -530,7 +530,7 @@ function tenantWalletComponent() {
                 const result = await response.json();
                 
                 if (result.success) {
-                    window.location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.error || 'Transfer failed');
                     this.showTransferModal = false;
@@ -561,7 +561,7 @@ function tenantWalletComponent() {
                 const result = await response.json();
                 
                 if (result.success) {
-                    window.location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.error || 'Payment failed');
                 }

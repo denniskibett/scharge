@@ -139,7 +139,7 @@ document.addEventListener('alpine:init', () => {
                 if (data.success) {
                     alert(data.message);
                     this.closeModal();
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1000);
                 } else if (data.requires_registration) {
                     alert('Visitor not found. Please register them first.');
                     this.closeModal();

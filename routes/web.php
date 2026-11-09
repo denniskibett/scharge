@@ -256,7 +256,15 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // ADMIN ROLES ROUTES
     // ============================================
-    Route::prefix('roles')->name('roles.')->middleware('role:sysadmin')->group(function () {
+    // Team & access: invite employees, give roles, switch logins off (Brevemaster pattern)
+    Route::middleware('access:team')->group(function () {
+        Route::get('/team', [App\Http\Controllers\TeamController::class, 'index'])->name('team.index');
+        Route::post('/team', [App\Http\Controllers\TeamController::class, 'store'])->middleware('throttle:20,1')->name('team.store');
+        Route::put('/team/{user}', [App\Http\Controllers\TeamController::class, 'update'])->name('team.update');
+        Route::delete('/team/{user}', [App\Http\Controllers\TeamController::class, 'destroy'])->name('team.destroy');
+    });
+
+    Route::prefix('roles')->name('roles.')->middleware('role:sysadmin')->middleware('access:system')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
         Route::get('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'show'])->name('show');
         Route::post('/', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('store');
@@ -317,7 +325,7 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // SYSTEM ROUTES
     // ============================================
-    Route::prefix('system')->name('system.')->middleware('role:sysadmin')->group(function () {
+    Route::prefix('system')->name('system.')->middleware('role:sysadmin')->middleware('access:system')->group(function () {
         Route::get('/', [SystemController::class, 'index'])->name('index');
         Route::put('/update', [SystemController::class, 'update'])->name('update');
         Route::get('/clear-cache', [SystemController::class, 'clearCache'])->name('clear-cache');
@@ -329,7 +337,7 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 // ADMIN USER MANAGEMENT ROUTES
 // ============================================
-Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|accountant')->group(function () {
+Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(function () {
 
     Route::resource('/', App\Http\Controllers\Admin\UserController::class)
         ->parameters(['' => 'user']);
@@ -387,61 +395,61 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
         Route::post('/host/units', [App\Http\Controllers\HostController::class, 'addUnit'])->name('host.units.store');
     });
 
-    Route::resource('properties', PropertyController::class);
+    Route::resource('properties', PropertyController::class)->middleware('access:properties');
     // Old links and bookmarks from before the Estate -> Property rename.
     Route::get('/estates/{rest?}', fn (?string $rest = null) => redirect('/properties'.($rest ? '/'.$rest : ''), 301))->where('rest', '.*');
 
     // ============================================
     // UNIT ROUTES
     // ============================================
-    Route::resource('units', UnitController::class);
-    Route::get('/units/{unit}/photos', [App\Http\Controllers\UnitPhotoController::class, 'index'])->name('units.photos.index');
-    Route::post('/units/{unit}/photos', [App\Http\Controllers\UnitPhotoController::class, 'store'])->name('units.photos.store');
-    Route::delete('/units/{unit}/photos/{photo}', [App\Http\Controllers\UnitPhotoController::class, 'destroy'])->name('units.photos.destroy');
-    Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
-    Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
-    Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->name('units.meter-reading-data');
-    Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
-    Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
+    Route::resource('units', UnitController::class)->middleware('access:properties');
+    Route::get('/units/{unit}/photos', [App\Http\Controllers\UnitPhotoController::class, 'index'])->name('units.photos.index')->middleware('access:properties');
+    Route::post('/units/{unit}/photos', [App\Http\Controllers\UnitPhotoController::class, 'store'])->name('units.photos.store')->middleware('access:properties');
+    Route::delete('/units/{unit}/photos/{photo}', [App\Http\Controllers\UnitPhotoController::class, 'destroy'])->name('units.photos.destroy')->middleware('access:properties');
+    Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading')->middleware('access:properties');
+    Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update')->middleware('access:properties');
+    Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->name('units.meter-reading-data')->middleware('access:properties');
+    Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading')->middleware('access:properties');
+    Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update')->middleware('access:properties');
 
     // ============================================
     // EXPENSE ROUTES
     // ============================================
-    Route::resource('expenses', ExpenseController::class);
-    Route::resource('expense-categories', ExpenseCategoryController::class);
-    Route::resource('payees', PayeeController::class);
+    Route::resource('expenses', ExpenseController::class)->middleware('access:expenses');
+    Route::resource('expense-categories', ExpenseCategoryController::class)->middleware('access:expenses');
+    Route::resource('payees', PayeeController::class)->middleware('access:expenses');
 
     // ============================================
     // TENANT ROUTES
     // ============================================
-    Route::resource('tenants', TenantController::class);
-    Route::post('/tenants/bulk-store', [TenantController::class, 'bulkStore'])->name('tenants.bulkStore');
-    Route::post('/tenants/{tenant}/invoices', [TenantController::class, 'storeInvoice'])->name('tenants.store.invoice');
-    Route::post('/tenants/{tenant}/payments', [TenantController::class, 'storePayment'])->name('tenants.store.payment');
+    Route::resource('tenants', TenantController::class)->middleware('access:tenants');
+    Route::post('/tenants/bulk-store', [TenantController::class, 'bulkStore'])->name('tenants.bulkStore')->middleware('access:tenants');
+    Route::post('/tenants/{tenant}/invoices', [TenantController::class, 'storeInvoice'])->name('tenants.store.invoice')->middleware('access:tenants');
+    Route::post('/tenants/{tenant}/payments', [TenantController::class, 'storePayment'])->name('tenants.store.payment')->middleware('access:tenants');
 
     // ============================================
     // TENANCY ROUTES
     // ============================================
-    Route::resource('tenancies', TenancyController::class);
-    Route::get('/tenancies/{tenancy}/invoice-data', [InvoiceController::class, 'getInvoiceData'])->name('tenancies.invoice-data');
-    Route::get('/tenancies/{tenancy}/check-invoice-status', [InvoiceController::class, 'checkInvoiceGenerationStatus'])->name('tenancies.check-invoice-status');
-    Route::post('/tenancies/{tenancy}/force-invoice', [InvoiceController::class, 'forceGenerateInvoice'])->name('tenancies.force-invoice');
-    Route::get('/tenancies/{tenancy}/billing-history', [InvoiceController::class, 'getBillingHistory'])->name('tenancies.billing-history');
-    Route::post('/tenancies/{tenancy}/generate-missing-invoices', [InvoiceController::class, 'generateMissingInvoices'])->name('tenancies.generate-missing-invoices');
-    Route::post('/tenancies/{tenancy}/invoices/bulk-missing', [InvoiceController::class, 'generateMissingInvoicesBulk'])->name('tenancies.invoices.bulk-missing');
-    Route::post('/tenancies/{tenancy}/payments', [PaymentController::class, 'store'])->name('tenancies.payments.store');
+    Route::resource('tenancies', TenancyController::class)->middleware('access:tenants');
+    Route::get('/tenancies/{tenancy}/invoice-data', [InvoiceController::class, 'getInvoiceData'])->name('tenancies.invoice-data')->middleware('access:invoices');
+    Route::get('/tenancies/{tenancy}/check-invoice-status', [InvoiceController::class, 'checkInvoiceGenerationStatus'])->name('tenancies.check-invoice-status')->middleware('access:invoices');
+    Route::post('/tenancies/{tenancy}/force-invoice', [InvoiceController::class, 'forceGenerateInvoice'])->name('tenancies.force-invoice')->middleware('access:invoices');
+    Route::get('/tenancies/{tenancy}/billing-history', [InvoiceController::class, 'getBillingHistory'])->name('tenancies.billing-history')->middleware('access:invoices');
+    Route::post('/tenancies/{tenancy}/generate-missing-invoices', [InvoiceController::class, 'generateMissingInvoices'])->name('tenancies.generate-missing-invoices')->middleware('access:invoices');
+    Route::post('/tenancies/{tenancy}/invoices/bulk-missing', [InvoiceController::class, 'generateMissingInvoicesBulk'])->name('tenancies.invoices.bulk-missing')->middleware('access:invoices');
+    Route::post('/tenancies/{tenancy}/payments', [PaymentController::class, 'store'])->name('tenancies.payments.store')->middleware('access:payments');
 
     // ============================================
     // INVOICE ROUTES
     // ============================================
-    Route::resource('invoices', InvoiceController::class);
+    Route::resource('invoices', InvoiceController::class)->middleware('access:invoices');
     Route::post('/invoices/{invoice}/pay-link', App\Http\Controllers\InvoicePayLinkController::class)
         ->middleware('role:sysadmin|admin|accountant|property_manager')->name('invoices.pay-link');
 
     // ============================================
     // SETTINGS: INTEGRATIONS & API KEYS (Sharet-style pages)
     // ============================================
-    Route::middleware('role:sysadmin|admin')->group(function () {
+    Route::middleware('access:settings')->group(function () {
         Route::get('/integrations', [App\Http\Controllers\IntegrationController::class, 'index'])->name('integrations.index');
         Route::get('/integrations/sharet/connected', [App\Http\Controllers\IntegrationController::class, 'connected'])->name('integrations.connected');
         Route::post('/integrations/sharet_payouts/connect', [App\Http\Controllers\IntegrationController::class, 'connect'])->name('integrations.connect');
@@ -459,24 +467,24 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     });
 
     // Invoice generation routes
-    Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single');
-    Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllInvoices'])->name('invoices.generate.all');
+    Route::post('/invoices/generate/single', [InvoiceController::class, 'generateSingleInvoice'])->name('invoices.generate.single')->middleware('access:invoices');
+    Route::post('/invoices/generate/all', [InvoiceController::class, 'generateAllInvoices'])->name('invoices.generate.all')->middleware('access:invoices');
 
     // Invoice payment routes
-    Route::post('/invoices/payments', [InvoiceController::class, 'processPayment'])->name('invoices.payments.store');
+    Route::post('/invoices/payments', [InvoiceController::class, 'processPayment'])->name('invoices.payments.store')->middleware('access:invoices');
 
     // Bulk invoice operations
-    Route::post('/invoices/bulk-create', [InvoiceController::class, 'bulkCreate'])->name('invoices.bulk.create');
-    Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing');
-    Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates');
-    Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile');
+    Route::post('/invoices/bulk-create', [InvoiceController::class, 'bulkCreate'])->name('invoices.bulk.create')->middleware('access:invoices');
+    Route::post('/invoices/check-existing', [InvoiceController::class, 'checkExistingInvoices'])->name('invoices.check.existing')->middleware('access:invoices');
+    Route::post('/invoices/resolve-duplicates', [InvoiceController::class, 'resolveDuplicates'])->name('invoices.resolve-duplicates')->middleware('access:invoices');
+    Route::post('/invoices/bulk-reconcile', [InvoiceController::class, 'bulkReconcileWaterCharges'])->name('invoices.bulk-reconcile')->middleware('access:invoices');
 
     // Invoice data routes
-    Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data');
-    Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details');
+    Route::get('/invoices/{invoice}/edit-data', [InvoiceController::class, 'getInvoiceForEditing'])->name('invoices.edit-data')->middleware('access:invoices');
+    Route::get('/invoices/{invoice}/details', [InvoiceController::class, 'getInvoiceDetails'])->name('invoices.details')->middleware('access:invoices');
 
     // Invoice item routes - MAIN (using the prefix group)
-    Route::prefix('invoices/{invoice}')->group(function () {
+    Route::prefix('invoices/{invoice}')->middleware('access:invoices')->group(function () {
         // CRUD operations for invoice items
         Route::post('/items', [InvoiceController::class, 'addItemToInvoice'])->name('invoices.items.store');
         Route::put('/items/{item}', [InvoiceController::class, 'updateInvoiceItem'])->name('invoices.items.update');
@@ -484,25 +492,25 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     });
 
     // Tenancy-specific invoice routes
-    Route::prefix('tenancies/{tenancy}')->name('tenancies.')->group(function () {
+    Route::prefix('tenancies/{tenancy}')->name('tenancies.')->middleware('access:invoices')->group(function () {
         Route::post('/invoices', [InvoiceController::class, 'storeForTenancy'])->name('invoices.store');
         Route::get('/invoices', [InvoiceController::class, 'indexForTenancy'])->name('invoices.index');
-        Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('invoices.check');
+        Route::get('/invoices/check', [InvoiceController::class, 'getExistingInvoice'])->name('invoices.check')->middleware('access:invoices');
     });
 
     // ============================================
     // PAYMENT ROUTES
     // ============================================
-    Route::resource('payments', PaymentController::class);
-    Route::post('/payments/bulk', [PaymentController::class, 'bulkStore'])->name('payments.bulk.store');
-    Route::get('/payments/create-data', [PaymentController::class, 'getCreateData'])->name('payments.create-data');
-    Route::get('/payments/tenant/{tenantId}/invoices', [PaymentController::class, 'getTenantInvoices'])->name('payments.tenant.invoices');
+    Route::resource('payments', PaymentController::class)->middleware('access:payments');
+    Route::post('/payments/bulk', [PaymentController::class, 'bulkStore'])->name('payments.bulk.store')->middleware('access:payments');
+    Route::get('/payments/create-data', [PaymentController::class, 'getCreateData'])->name('payments.create-data')->middleware('access:payments');
+    Route::get('/payments/tenant/{tenantId}/invoices', [PaymentController::class, 'getTenantInvoices'])->name('payments.tenant.invoices')->middleware('access:payments');
     Route::get('/api/invoices/{invoice}/details', [PaymentController::class, 'getInvoiceDetails'])->name('api.invoices.details');
 
     // ============================================
     // WATER READING ROUTES
     // ============================================
-    Route::prefix('water')->name('water.')->group(function () {
+    Route::prefix('water')->name('water.')->middleware('access:water')->group(function () {
         Route::get('/', [WaterReadingController::class, 'index'])->name('index');
         Route::post('/readings', [WaterReadingController::class, 'store'])->name('readings.store');
         Route::post('/readings/bulk', [WaterReadingController::class, 'storeBulk'])->name('readings.bulk');
@@ -523,7 +531,7 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
 
     // Meter Reader specific routes
-    Route::middleware(['role:sysadmin|admin|property_manager|meter_reader'])->group(function () {
+    Route::middleware(['access:water'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
         Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
     });
@@ -540,26 +548,26 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     // ============================================
     // MAINTENANCE ROUTES
     // ============================================
-    Route::resource('maintenance', MaintenanceController::class);
-    Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])->name('maintenance.unit.history');
-    Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json');
+    Route::resource('maintenance', MaintenanceController::class)->middleware('access:maintenance');
+    Route::get('/maintenance/unit/{unit}/history', [MaintenanceController::class, 'getUnitHistory'])->name('maintenance.unit.history')->middleware('access:maintenance');
+    Route::get('/maintenance/{id}/json', [MaintenanceController::class, 'showJson'])->name('maintenance.show.json')->middleware('access:maintenance');
     Route::get('/tenant/maintenance', [MaintenanceController::class, 'tenantRequests'])->name('tenant.maintenance');
-    Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data');
+    Route::get('/maintenance/{maintenance}/edit-data', [MaintenanceController::class, 'getEditData'])->name('maintenance.edit-data')->middleware('access:maintenance');
 
     // Maintenance Staff routes
-    Route::middleware(['role:sysadmin|admin|property_manager|maintenance'])->group(function () {
-        Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments');
+    Route::middleware(['access:maintenance'])->group(function () {
+        Route::get('/maintenance/assignments', [MaintenanceController::class, 'assignments'])->name('maintenance.assignments')->middleware('access:maintenance');
     });
 
     // ============================================
     // STAFF ROUTES
     // ============================================
-    Route::resource('staff', StaffController::class)->middleware('role:sysadmin|admin|accountant');
+    Route::resource('staff', StaffController::class)->middleware('access:team')->middleware('role:sysadmin|admin|accountant');
 
     // ============================================
     // REPORT ROUTES
     // ============================================
-    Route::prefix('reports')->name('reports.')->middleware('role:sysadmin|admin|accountant|property_manager|account_manager')->group(function () {
+    Route::prefix('reports')->name('reports.')->middleware('role:sysadmin|admin|accountant|property_manager|account_manager')->middleware('access:reports')->group(function () {
         Route::get('/financial', [ReportController::class, 'financial'])->name('financial');
         Route::get('/invoices', [ReportController::class, 'invoices'])->name('invoices');
         Route::get('/payments', [ReportController::class, 'payments'])->name('payments');
@@ -658,8 +666,8 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
         Route::get('/api/companies', [SubscriptionController::class, 'getCompanies'])->name('api.companies');
         Route::get('/api/invoices/{invoice}', [SubscriptionController::class, 'getInvoice'])->name('api.invoice');
         Route::post('/plans/{plan}/invoices', [SubscriptionController::class, 'generateInvoice'])->name('plans.invoices.generate');
-        Route::put('/invoices/{invoice}', [SubscriptionController::class, 'updateInvoice'])->name('invoices.update');
-        Route::post('/invoices/{invoice}/mark-paid', [SubscriptionController::class, 'markInvoicePaid'])->name('invoices.mark-paid');
+        Route::put('/invoices/{invoice}', [SubscriptionController::class, 'updateInvoice'])->name('invoices.update')->middleware('access:invoices');
+        Route::post('/invoices/{invoice}/mark-paid', [SubscriptionController::class, 'markInvoicePaid'])->name('invoices.mark-paid')->middleware('access:invoices');
         Route::post('/subscription/{subscription}/cancel', [SubscriptionController::class, 'cancelSubscription'])->name('subscription.cancel');
         Route::post('/subscription/{subscription}/resume', [SubscriptionController::class, 'resumeSubscription'])->name('subscription.resume');
         
@@ -674,7 +682,7 @@ Route::prefix('users')->name('admin.users.')->middleware('role:sysadmin|admin|ac
     // ============================================
     // COMPANY MANAGEMENT ROUTES - Admin Section
     // ============================================
-    Route::prefix('admin/companies')->name('admin.companies.')->middleware('role:sysadmin|account_manager')->group(function () {
+    Route::prefix('admin/companies')->name('admin.companies.')->middleware('role:sysadmin|account_manager')->middleware('access:companies')->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\CompanyController::class, 'index'])->name('index');
         Route::get('/data', [App\Http\Controllers\Admin\CompanyController::class, 'getCompaniesData'])->name('data');
         Route::post('/', [App\Http\Controllers\Admin\CompanyController::class, 'store'])->name('store');

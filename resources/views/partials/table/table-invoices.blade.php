@@ -325,7 +325,7 @@ const statusLabels = {
 };
 
 const currencySymbol = "{{ SystemHelper::currencySymbol() }}";
-const csrfToken = "{{ csrf_token() }}";
+var csrfToken = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {
     // Main Page Component

@@ -21,7 +21,7 @@ Route::post('/sms/webhook/dlr', [WebhookController::class, 'handleDLR'])->name('
 // =========================================================
 // 📱 SMS ROUTES - Authenticated
 // =========================================================
-Route::prefix('sms')->middleware(['auth'])->group(function () {
+Route::prefix('sms')->middleware(['auth', 'access:sms'])->group(function () {
 
     // ======================
     // Broadcast & Sending
@@ -101,7 +101,7 @@ Route::prefix('sms')->middleware(['auth'])->group(function () {
 // =========================================================
 // 📊 SMS API ROUTES (For AJAX calls from frontend)
 // =========================================================
-Route::prefix('api/sms')->middleware(['auth'])->group(function () {
+Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () {
     
     // Templates API
     Route::get('/templates', function () {

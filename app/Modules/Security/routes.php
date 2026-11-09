@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SecurityController;
 
-Route::middleware(['auth'])->prefix('security')->name('security.')->group(function () {
+Route::middleware(['auth', 'access:security'])->prefix('security')->name('security.')->group(function () {
     
     // ============================================
     // 📊 DASHBOARD - Main page

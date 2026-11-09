@@ -1065,7 +1065,7 @@ document.addEventListener('alpine:init', () => {
             } else {
               alert(`Success: Unit ${this.formData.unit_number} created successfully.`);
             }
-            setTimeout(() => window.location.reload(), 1500);
+            setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
           } else {
             if (data.errors) {
               this.formErrors = Object.values(data.errors).flat();
@@ -1189,7 +1189,7 @@ document.addEventListener('alpine:init', () => {
         }
         
         if (created > 0) {
-          setTimeout(() => window.location.reload(), 1500);
+          setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
         }
         
         this.loading = false;

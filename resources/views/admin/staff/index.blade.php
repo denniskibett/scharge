@@ -625,7 +625,7 @@
             console.log('📥 Bulk action response:', data);
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(function() { window.location.reload(); }, 1500);
+                setTimeout(function() { (window.schargeRefresh || (() => location.reload()))(); }, 1500);
             } else {
                 showToast(data.error || 'Something went wrong.', 'error');
             }

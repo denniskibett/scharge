@@ -674,7 +674,7 @@ document.addEventListener('alpine:init', () => {
         
         if (response.ok && data.success) {
           this.closeModal();
-          window.location.reload();
+          (window.schargeRefresh || (() => location.reload()))();
         } else {
           this.formErrors = [data.message || 'Failed to save item'];
         }
@@ -714,7 +714,7 @@ document.addEventListener('alpine:init', () => {
         const data = await response.json();
         
         if (response.ok && data.success) {
-          window.location.reload();
+          (window.schargeRefresh || (() => location.reload()))();
         } else {
           window.alertModal.showError('Delete Failed', data.message || 'Failed to delete item');
         }

@@ -1,308 +1,147 @@
+{{-- Roles & permissions (Sharet design). Data: RoleController@index as JSON. Built-in roles keep their names;
+     their permissions can change. Editing opens a slide-over: permissions grouped by area, switches, "turn all on". --}}
 @extends('layouts.app')
+@section('title', 'Roles & permissions')
 
 @section('content')
-<main>
-    <div x-data="rolesIndex()" x-init="init()" class="mx-auto max-w-(--breakpoint-2xl) p-4 md:p-6">
-        
-        <!-- Breadcrumb -->
-        <div x-data="{ pageName: 'Roles Management' }">
-            @include('partials.breadcrumb')
-        </div>
-
-        <!-- Header -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
-                    Roles & Permissions
-                </h1>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Manage system roles and their permissions
-                </p>
-            </div>
-            <button @click="openCreateModal()" 
-                class="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg transition shadow-md hover:shadow-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                </svg>
-                Create Role
-            </button>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Total Roles</span>
-                        <h4 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="roles.length"></h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
-                        <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Total Permissions</span>
-                        <h4 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="totalPermissions"></h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
-                        <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Protected Roles</span>
-                        <h4 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="protectedCount"></h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-                        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <span class="text-sm text-gray-500 dark:text-gray-400">Custom Roles</span>
-                        <h4 class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="customCount"></h4>
-                    </div>
-                    <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                        <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Search and Filter Bar -->
-        <div class="flex flex-col sm:flex-row gap-4 mb-6">
-            <div class="flex-1 relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                </div>
-                <input type="text" 
-                    x-model="searchQuery"
-                    @input="filterRoles()"
-                    placeholder="Search roles by name or description..."
-                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition">
-            </div>
-            <div class="flex gap-2">
-                <button @click="filterRoles()" 
-                    class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
-                    Search
-                </button>
-                <button @click="searchQuery = ''; filterRoles()" 
-                    class="px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    Clear
-                </button>
-            </div>
-        </div>
-
-        <!-- Roles Table -->
-        <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-            <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
-                    All Roles
-                </h3>
-                <span class="text-sm text-gray-500 dark:text-gray-400" x-text="filteredRoles.length + ' roles'"></span>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Role</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Users</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Permissions</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <template x-for="role in filteredRoles" :key="role.id">
-                            <tr class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                                <td class="px-4 py-3">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-9 w-9 rounded-lg flex items-center justify-center" 
-                                            :class="{
-                                                'bg-red-100 dark:bg-red-900/30': role.name === 'super_admin',
-                                                'bg-blue-100 dark:bg-blue-900/30': role.name === 'admin',
-                                                'bg-green-100 dark:bg-green-900/30': role.name === 'property_manager',
-                                                'bg-purple-100 dark:bg-purple-900/30': role.name === 'accountant',
-                                                'bg-gray-100 dark:bg-gray-800/50': true
-                                            }">
-                                            <span class="font-bold text-sm" 
-                                                :class="{
-                                                    'text-red-600 dark:text-red-400': role.name === 'super_admin',
-                                                    'text-blue-600 dark:text-blue-400': role.name === 'admin',
-                                                    'text-green-600 dark:text-green-400': role.name === 'property_manager',
-                                                    'text-purple-600 dark:text-purple-400': role.name === 'accountant',
-                                                    'text-gray-600 dark:text-gray-400': true
-                                                }" 
-                                                x-text="role.initial || role.name.charAt(0).toUpperCase()">
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <p class="font-medium text-gray-800 dark:text-white/90" x-text="role.display_name || role.name.replace('_', ' ').toTitleCase()"></p>
-                                            <span class="text-xs px-2 py-0.5 rounded-full" 
-                                                :class="{
-                                                    'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400': role.name === 'super_admin',
-                                                    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': role.name === 'admin',
-                                                    'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': role.name === 'property_manager',
-                                                    'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400': role.name === 'accountant',
-                                                    'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400': role.name === 'tenant',
-                                                    'bg-gray-100 text-gray-800 dark:bg-gray-800/50 dark:text-gray-400': true
-                                                }"
-                                                x-text="role.is_protected ? '🔒 Protected' : '✨ Custom'">
-                                            </span>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="inline-flex items-center gap-1">
-                                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                                        </svg>
-                                        <span x-text="role.users_count"></span>
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400" x-text="role.permissions_count + ' permissions'"></span>
-                                </td>
-                                <td class="px-4 py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate" x-text="role.description || '-'"></td>
-                                <td class="px-4 py-3 text-right">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <a :href="'/roles/' + role.id" 
-                                            class="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition"
-                                            title="View Role Details">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                            </svg>
-                                        </a>
-                                        <button @click="openEditModal(role)" 
-                                            class="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition"
-                                            title="Edit Role">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
-                                        <button @click="confirmDelete(role)" 
-                                            x-show="!role.is_protected"
-                                            class="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition"
-                                            title="Delete Role">
-                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                        </button>
-                                        <span x-show="role.is_protected" class="text-xs text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full">Protected</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </template>
-                        <tr x-show="filteredRoles.length === 0">
-                            <td colspan="5" class="px-4 py-12 text-center text-gray-500 dark:text-gray-400">
-                                <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
-                                </svg>
-                                <p class="mt-4 font-medium" x-text="searchQuery ? 'No roles match your search' : 'No roles found'"></p>
-                                <p class="text-sm mt-1" x-text="searchQuery ? 'Try adjusting your search terms' : 'Click "Create Role" to add your first role'"></p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+<div x-data="rolesPage('{{ route('roles.index') }}')" class="p-4 md:p-6">
+  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Roles & permissions</h1>
+      <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Choose what each role can open, change and delete. Changes apply on the person's next page. Invite people and give them a role on <a href="{{ route('team.index') }}" class="underline">Team &amp; access</a>.</p>
     </div>
+    <button type="button" @click="edit(null)" class="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-gray-900 px-4 text-sm font-medium text-white hover:bg-gray-800 dark:bg-brand-500">+ New role</button>
+  </div>
 
-    <!-- Include Modals -->
-    @include('partials.modal.role-create-modal')
-    @include('partials.modal.role-delete-modal')
-</main>
+  <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <template x-for="s in [['Roles', stats.roles, stats.roles_hint], ['Custom roles', stats.custom, stats.custom_hint], ['Permissions', stats.permissions, stats.permissions_hint], ['People with a role', stats.people, stats.people_hint]]">
+      <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        <p class="text-sm text-gray-500 dark:text-gray-400" x-text="s[0]"></p>
+        <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-white" x-text="s[1] ?? '—'"></p>
+        <p class="mt-1 text-xs text-gray-500" x-text="s[2]"></p>
+      </div>
+    </template>
+  </div>
+
+  <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    <div class="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Roles</h3>
+      <input type="search" x-model="search" placeholder="Search roles…" aria-label="Search roles" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-[280px]">
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-left text-sm">
+        <thead class="border-y border-gray-100 bg-gray-50 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
+          <tr><th class="px-6 py-3 font-medium">Role</th><th class="px-6 py-3 font-medium">Access</th><th class="px-6 py-3 font-medium">People</th><th class="px-6 py-3 font-medium">Type</th><th class="px-6 py-3 text-right font-medium">Action</th></tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+          <tr x-show="loading"><td colspan="5" class="px-6 py-12 text-center text-gray-500">Loading…</td></tr>
+          <template x-for="r in filtered" :key="r.id">
+            <tr class="text-gray-700 hover:bg-gray-50/60 dark:text-gray-400 dark:hover:bg-white/[0.02]">
+              <td class="px-6 py-3"><p class="font-medium text-gray-800 dark:text-white/90" x-text="r.label"></p><p class="max-w-md text-xs text-gray-500 dark:text-gray-400" x-text="r.description"></p></td>
+              <td class="whitespace-nowrap px-6 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="h-1.5 w-24 rounded-full bg-gray-100 dark:bg-white/5"><div class="h-1.5 rounded-full bg-gray-900 dark:bg-brand-500" :style="`width: ${r.name === 'sysadmin' ? 100 : (total ? Math.round(r.permissions.length / total * 100) : 0)}%`"></div></div>
+                  <span class="text-xs" x-text="r.name === 'sysadmin' ? 'Everything' : r.permissions.length + ' of ' + total"></span>
+                </div>
+              </td>
+              <td class="whitespace-nowrap px-6 py-3" x-text="r.users"></td>
+              <td class="whitespace-nowrap px-6 py-3"><span class="rounded-full px-2.5 py-0.5 text-xs font-medium" :class="r.protected ? 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300' : 'bg-sky-50 text-sky-700'" x-text="r.protected ? 'Built-in' : 'Custom'"></span></td>
+              <td class="whitespace-nowrap px-6 py-3 text-right">
+                <button type="button" @click="edit(r)" class="text-sm font-medium text-gray-800 hover:underline dark:text-gray-200" x-text="r.name === 'sysadmin' ? 'View' : 'Edit permissions'"></button>
+                <a :href="'{{ route('team.index') }}?role=' + r.name" class="ml-3 text-sm text-gray-500 hover:underline">People</a>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {{-- Slide-over editor --}}
+  <div x-show="open" x-cloak class="fixed inset-0 z-[99999]" @keydown.escape.window="open = false">
+    <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="open = false"></div>
+    <aside x-show="open" x-transition class="absolute inset-y-0 right-0 flex w-full max-w-2xl flex-col bg-white shadow-xl dark:bg-gray-900">
+      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white" x-text="form.id ? 'Edit ' + form.label : 'New role'"></h3>
+        <button type="button" @click="open = false" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5" aria-label="Close">✕</button>
+      </div>
+      <form id="role-form" @submit.prevent="save()" class="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300" for="role-name">Role name</label>
+          <input id="role-name" x-model="form.name" :disabled="form.protected" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm disabled:opacity-60 dark:border-gray-700 dark:text-white/90" placeholder="finance_officer">
+          <p class="mt-1 text-xs text-gray-500">Lowercase with underscores. Built-in roles cannot be renamed.</p>
+          <p x-show="errors.name" class="mt-1 text-xs text-red-600" x-text="errors.name"></p>
+        </div>
+        <p x-show="form.name === 'sysadmin'" class="rounded-xl bg-gray-50 p-3 text-sm text-gray-600 dark:bg-white/5 dark:text-gray-300">The system admin always has every permission.</p>
+        <input type="search" x-model="permQuery" placeholder="Find a permission…" aria-label="Find a permission" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:text-white/90">
+        <template x-for="g in visibleGroups" :key="g.key">
+          <section class="rounded-xl border border-gray-200 dark:border-gray-800">
+            <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+              <div><h4 class="font-medium text-gray-900 dark:text-white" x-text="g.label"></h4>
+                <p class="text-xs text-gray-500" x-text="g.permissions.filter(p => form.permissions.includes(p.id)).length + ' of ' + g.permissions.length + ' on'"></p></div>
+              <button type="button" x-show="form.name !== 'sysadmin'" @click="toggleGroup(g)" class="text-xs font-medium text-gray-700 hover:underline dark:text-gray-300" x-text="groupOn(g) ? 'Turn all off' : 'Turn all on'"></button>
+            </div>
+            <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+              <template x-for="p in g.permissions.filter(p => match(p))" :key="p.id">
+                <li class="flex items-center justify-between gap-4 px-4 py-3">
+                  <span class="min-w-0"><span class="block text-sm text-gray-800 dark:text-gray-200" x-text="p.label"></span><code class="text-[11px] text-gray-400" x-text="p.name"></code></span>
+                  <button type="button" role="switch" :aria-checked="on(p.id)" :disabled="form.name === 'sysadmin'" @click="toggle(p.id)"
+                          class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:opacity-60" :class="on(p.id) ? 'bg-gray-900 dark:bg-brand-500' : 'bg-gray-200 dark:bg-white/10'">
+                    <span class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition" :class="on(p.id) ? 'translate-x-5' : 'translate-x-0.5'"></span>
+                  </button>
+                </li>
+              </template>
+            </ul>
+          </section>
+        </template>
+      </form>
+      <div class="flex items-center gap-3 border-t border-gray-200 px-6 py-4 dark:border-gray-800">
+        <button type="button" x-show="form.id && !form.protected" @click="destroy()" class="mr-auto rounded-lg px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50">Delete role</button>
+        <span x-show="message" class="mr-auto text-sm" :class="ok ? 'text-emerald-600' : 'text-red-600'" x-text="message"></span>
+        <button type="button" @click="open = false" class="h-11 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 dark:border-gray-700 dark:text-gray-300">Cancel</button>
+        <button type="submit" form="role-form" x-show="form.name !== 'sysadmin'" :disabled="busy" class="h-11 rounded-lg bg-gray-900 px-5 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50 dark:bg-brand-500" x-text="form.id ? 'Save changes' : 'Create role'"></button>
+      </div>
+    </aside>
+  </div>
+</div>
 
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('rolesIndex', () => ({
-        roles: @json($roles),
-        totalPermissions: {{ $permissions->count() ?? 0 }},
-        searchQuery: '',
-        filteredRoles: [],
-        
-        get protectedCount() {
-            return this.roles.filter(r => r.is_protected).length;
-        },
-        
-        get customCount() {
-            return this.roles.filter(r => !r.is_protected).length;
-        },
-        
-        init() {
-            this.filteredRoles = this.roles;
-        },
-        
-        filterRoles() {
-            const query = this.searchQuery.toLowerCase().trim();
-            if (!query) {
-                this.filteredRoles = this.roles;
-                return;
-            }
-            this.filteredRoles = this.roles.filter(role => {
-                const searchable = [
-                    role.name,
-                    role.description,
-                    role.display_name
-                ].filter(Boolean).join(' ').toLowerCase();
-                return searchable.includes(query);
-            });
-        },
-        
-        openCreateModal() {
-            if (window.roleCreateModal) {
-                window.roleCreateModal.openModal();
-            }
-        },
-        
-        openEditModal(role) {
-            if (window.roleEditModal) {
-                // Load permissions for this role
-                fetch('/roles/' + role.id + '/data')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            window.roleEditModal.openModal(data.role);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error loading role data:', error);
-                        window.alertModal.showError('Error', 'Failed to load role data');
-                    });
-            }
-        },
-        
-        confirmDelete(role) {
-            if (window.roleDeleteModal) {
-                window.roleDeleteModal.openModal(role);
-            }
-        }
-    }));
-});
-
-// Helper: String to Title Case
-String.prototype.toTitleCase = function() {
-    return this.replace(/\w\S*/g, function(txt) {
-        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
-    });
-};
+  function rolesPage(url) {
+    const send = async (method, u, body) => {
+      const r = await fetch(u, { method, headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: body ? JSON.stringify(body) : undefined });
+      const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.message || 'Failed'); e.errors = d.errors || {}; throw e; } return d;
+    };
+    return {
+      roles: [], groups: [], stats: {}, loading: true, search: '', permQuery: '', busy: false, errors: {}, open: false, message: '', ok: true,
+      form: { id: null, name: '', label: '', protected: false, permissions: [] },
+      async init() { await this.load(); },
+      async load() { const b = await (await fetch(url, { headers: { Accept: 'application/json' } })).json(); Object.assign(this, { roles: b.roles, groups: b.groups, stats: b.stats, loading: false }); },
+      get total() { return this.groups.reduce((n, g) => n + g.permissions.length, 0); },
+      get filtered() { const q = this.search.toLowerCase(); return this.roles.filter(r => (r.label + r.description).toLowerCase().includes(q)); },
+      match(p) { const q = this.permQuery.toLowerCase(); return !q || (p.label + p.name).toLowerCase().includes(q); },
+      get visibleGroups() { return this.groups.filter(g => g.permissions.some(p => this.match(p))); },
+      on(id) { return this.form.name === 'sysadmin' || this.form.permissions.includes(id); },
+      edit(r) {
+        this.errors = {}; this.permQuery = ''; this.message = '';
+        this.form = r ? { id: r.id, name: r.name, label: r.label, protected: r.protected, users: r.users, permissions: [...r.permissions] } : { id: null, name: '', label: '', protected: false, permissions: [] };
+        this.open = true;
+      },
+      toggle(id) { const i = this.form.permissions.indexOf(id); i >= 0 ? this.form.permissions.splice(i, 1) : this.form.permissions.push(id); },
+      groupOn(g) { return g.permissions.every(p => this.form.permissions.includes(p.id)); },
+      toggleGroup(g) { const ids = g.permissions.map(p => p.id); this.form.permissions = this.groupOn(g) ? this.form.permissions.filter(id => !ids.includes(id)) : [...new Set([...this.form.permissions, ...ids])]; },
+      async save() {
+        this.busy = true; this.errors = {}; this.message = '';
+        try {
+          const d = await send(this.form.id ? 'PUT' : 'POST', this.form.id ? `${url}/${this.form.id}` : url, { name: this.form.name, permissions: this.form.permissions });
+          this.ok = true; this.message = d.message; await this.load(); setTimeout(() => this.open = false, 700);
+        } catch (e) { this.ok = false; this.message = e.message; this.errors = Object.fromEntries(Object.entries(e.errors || {}).map(([k, v]) => [k, v[0]])); }
+        this.busy = false;
+      },
+      async destroy() {
+        if (!confirm(`Delete ${this.form.label}? People with only this role lose the access it gave them.`)) return;
+        try { await send('DELETE', `${url}/${this.form.id}`); this.open = false; await this.load(); } catch (e) { this.ok = false; this.message = e.message; }
+      },
+    };
+  }
 </script>
 @endsection

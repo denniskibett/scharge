@@ -194,7 +194,7 @@ function resendFailedCampaign(campaignId) {
             }
         }).then(response => response.json()).then(data => {
             if (data.success) {
-                location.reload();
+                (window.schargeRefresh || (() => location.reload()))();
             } else {
                 alert('Failed to resend: ' + data.error);
             }

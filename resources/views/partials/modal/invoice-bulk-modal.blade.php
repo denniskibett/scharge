@@ -936,7 +936,7 @@ document.addEventListener('alpine:init', () => {
         }
         
         this.closeModal();
-        setTimeout(() => window.location.reload(), 1500);
+        setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
       } catch (error) {
         console.error('Error creating bulk invoices:', error);
         alert('An error occurred while creating invoices: ' + error.message);
@@ -1023,7 +1023,7 @@ document.addEventListener('alpine:init', () => {
         
         alert(`Generating invoices for ${invoicesToGenerate.length} tenancies...`);
         this.closeModal();
-        setTimeout(() => window.location.reload(), 2000);
+        setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 2000);
       } catch (error) { 
         console.error('Error generating missing invoices:', error); 
         alert('An error occurred');

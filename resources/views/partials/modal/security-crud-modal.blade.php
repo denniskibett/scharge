@@ -166,7 +166,7 @@ document.addEventListener('alpine:init', () => {
             alert(this.form.id ? 'Log updated' : 'Log created');
             this.submitting = false;
             this.closeFormModal();
-            location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
         }
     }));
 });

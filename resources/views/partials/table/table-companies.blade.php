@@ -225,7 +225,7 @@
 <script>
 // Global data for preloaded companies (if available)
 let companiesData = @json($companies ?? []);
-const csrfToken = "{{ csrf_token() }}";
+var csrfToken = "{{ csrf_token() }}";
 
 document.addEventListener('alpine:init', () => {
     // Main Page Component with stats

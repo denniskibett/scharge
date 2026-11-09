@@ -30,7 +30,7 @@ Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->midd
 // ---------------------------------------------------------------------------
 // CRM (scharge staff only)
 // ---------------------------------------------------------------------------
-Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('crm')->name('crm.')->group(function () {
+Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->prefix('crm')->name('crm.')->group(function () {
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
     Route::get('/sales', [CrmSalesController::class, 'index'])->name('sales.index');
     Route::get('/sales/commission.csv', [CrmSalesController::class, 'export'])->name('sales.export');

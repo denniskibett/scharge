@@ -192,7 +192,7 @@ document.addEventListener('alpine:init', () => {
             alert('Invoice deleted successfully');
           }
           
-          setTimeout(() => window.location.reload(), 1500);
+          setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
         } else {
           alert(data.message || 'Failed to delete invoice');
         }

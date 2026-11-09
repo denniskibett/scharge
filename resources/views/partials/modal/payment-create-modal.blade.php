@@ -574,7 +574,7 @@ document.addEventListener('alpine:init', () => {
             // ✅ NO BROWSER ALERT - Using alert modal
             window.alertModal.showSuccess('Payment Successful', data.message || 'Payment recorded successfully!');
             setTimeout(() => {
-              window.location.reload();
+              (window.schargeRefresh || (() => location.reload()))();
             }, 1500);
           }
         } else if (data.requires_confirmation) {
@@ -666,7 +666,7 @@ document.addEventListener('alpine:init', () => {
             // ✅ NO BROWSER ALERT - Using alert modal
             window.alertModal.showSuccess('Payment Successful', data.message || 'Payment recorded successfully!');
             setTimeout(() => {
-              window.location.reload();
+              (window.schargeRefresh || (() => location.reload()))();
             }, 1500);
           }
         } else {
@@ -733,7 +733,7 @@ document.addEventListener('alpine:init', () => {
               
               setTimeout(() => {
                 this.closeModal();
-                window.location.reload();
+                (window.schargeRefresh || (() => location.reload()))();
               }, 3000);
               
             } else if (status === '1' || status === 'failed' || status === 'error') {

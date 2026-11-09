@@ -946,7 +946,7 @@ function createPropertyModal() {
                         window.successModal.simple('Property Created', `Property "${this.form.name}" has been created successfully!`);
                     }
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1500);
                 } else {
                     if (data.errors) {
@@ -1065,7 +1065,7 @@ function editPropertyModal() {
                         window.successModal.simple('Property Updated', `Property "${this.form.name}" has been updated successfully!`);
                     }
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1500);
                 } else {
                     if (data.errors) {
@@ -1137,7 +1137,7 @@ function deletePropertyModal() {
                         window.successModal.simple('Property Deleted', data.message || 'Property deleted successfully!');
                     }
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1500);
                 } else {
                     if (window.errorModal) {

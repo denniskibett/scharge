@@ -213,7 +213,7 @@ document.addEventListener('alpine:init', () => {
                     // Show success message with details
                     alert(`✅ ${result.message}\n\nTotal Units: ${result.total_units}\nTotal Revenue: KES ${(result.total_revenue || 0).toLocaleString()}`);
                     // Refresh the page to show updated data
-                    location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.message || 'Error assigning companies');
                 }

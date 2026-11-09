@@ -396,7 +396,7 @@
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     @if(!$isSysadmin)
-                                        <button onclick="if(confirm('Delete user {{ $user->name }}?')) { fetch('{{ route('users.destroy', $user->id) }}', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(r=>r.json()).then(d=>{ if(d.success){ location.reload(); } else { alert(d.message); } }); }" class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition" title="Delete">
+                                        <button onclick="if(confirm('Delete user {{ $user->name }}?')) { fetch('{{ route('users.destroy', $user->id) }}', { method: 'DELETE', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } }).then(r=>r.json()).then(d=>{ if(d.success){ (window.schargeRefresh || (() => location.reload()))(); } else { alert(d.message); } }); }" class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     @endif
@@ -717,7 +717,7 @@
         .then(data => {
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
             } else {
                 showToast(data.message, 'error');
             }
@@ -808,7 +808,7 @@
                 showToast(data.message || 'User created successfully!', 'success');
                 closeAddUserDrawer();
                 form.reset();
-                setTimeout(() => window.location.reload(), 1000);
+                setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1000);
             } else {
                 let errorMsg = data.message || 'Something went wrong.';
                 if (data.errors && Array.isArray(data.errors)) {
@@ -1045,7 +1045,7 @@
         .then(function(data) {
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(function() { window.location.reload(); }, 1500);
+                setTimeout(function() { (window.schargeRefresh || (() => location.reload()))(); }, 1500);
             } else {
                 showToast(data.error || 'Something went wrong.', 'error');
             }

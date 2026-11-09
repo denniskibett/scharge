@@ -370,7 +370,7 @@ async function loadBulkUnits() {
         document.getElementById('bulkTableContainer').innerHTML = `
             <div class="text-center text-gray-500 py-8">
                 <p>No units loaded. Please refresh the page.</p>
-                <button onclick="location.reload()" class="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
+                <button onclick="(window.schargeRefresh || (() => location.reload()))()" class="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
                     Refresh Page
                 </button>
             </div>
@@ -960,7 +960,7 @@ document.getElementById('createReadingForm')?.addEventListener('submit', async f
                 alert(message || 'Readings processed successfully!');
                 
                 if (created > 0 || updated > 0) {
-                    setTimeout(() => window.location.reload(), 1000);
+                    setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1000);
                 }
             } else {
                 if (data.errors) {

@@ -236,7 +236,7 @@ class MaintenanceController extends Controller
         $maintenance = Maintenance::with(['unit', 'tenant.user', 'assignedStaff'])->findOrFail($id);
         
         // Get staff users for assignment dropdown
-        $staffUsers = User::whereHas('role', function($q) {
+        $staffUsers = User::whereHas('roles', function($q) {
             $q->whereIn('name', ['admin', 'super_admin', 'property_manager', 'maintenance']);
         })->select('id', 'name', 'email')->get();
         

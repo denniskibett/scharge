@@ -426,7 +426,7 @@
         .then(data => {
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
             } else {
                 showToast(data.message || 'Verification failed.', 'error');
             }
@@ -457,7 +457,7 @@
         .then(data => {
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
             } else {
                 showToast(data.message || 'Failed to suspend user.', 'error');
             }
@@ -488,7 +488,7 @@
         .then(data => {
             if (data.success) {
                 showToast(data.message, 'success');
-                setTimeout(() => location.reload(), 1500);
+                setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
             } else {
                 showToast(data.message || 'Failed to activate user.', 'error');
             }

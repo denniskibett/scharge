@@ -490,7 +490,7 @@
 </style>
 
 <script>
-const csrfToken = "{{ csrf_token() }}";
+var csrfToken = "{{ csrf_token() }}";
 const companyId = {{ $company->id }};
 const currencySymbol = "KES";
 const initialStats = @json($stats);
@@ -1282,7 +1282,7 @@ document.addEventListener('alpine:init', () => {
                 
                 if (result.success) {
                     this.showEditModal = false;
-                    window.location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.message || 'Error updating company');
                 }

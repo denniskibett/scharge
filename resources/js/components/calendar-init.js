@@ -3,6 +3,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import listPlugin from "@fullcalendar/list";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+import { onPageLoad } from "../spa.js";
 
 /*========Calender Js=========*/
 /*==========================*/
@@ -33,7 +34,7 @@ function initFeedCalendar(el) {
   window.schargeCalendarTypes = (off) => { hidden = off; calendar.refetchEvents(); };
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+onPageLoad(function () {
   const calendarWrapper = document.querySelector("#calendar");
 
   if (calendarWrapper && calendarWrapper.dataset.feed) {

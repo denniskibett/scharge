@@ -751,7 +751,7 @@ document.addEventListener('alpine:init', () => {
             );
           }
           
-          setTimeout(() => window.location.reload(), 1500);
+          setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
         } else {
           this.formErrors = [data.message || 'Failed to save tenancy'];
           const modalContent = this.$el.closest('.overflow-y-auto');

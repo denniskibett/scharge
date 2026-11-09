@@ -347,7 +347,7 @@ document.addEventListener('alpine:init', () => {
                 }).then(response => response.json())
                   .then(data => {
                       if (data.success) {
-                          location.reload();
+                          (window.schargeRefresh || (() => location.reload()))();
                       } else {
                           alert(data.message || 'Failed to delete payment');
                       }

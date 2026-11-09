@@ -505,7 +505,7 @@ function sysAdminDashboard() {
                 .then(data => {
                     if (data.success) {
                         alert('User verified successfully!');
-                        location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     } else {
                         alert(data.message || 'Failed to verify user');
                     }
@@ -531,7 +531,7 @@ function sysAdminDashboard() {
                 .then(data => {
                     if (data.success) {
                         alert(data.message || 'User suspended successfully!');
-                        location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     } else {
                         alert(data.message || 'Failed to suspend user');
                     }
@@ -568,7 +568,7 @@ function cancelSubscription(subscriptionId) {
         .then(data => {
             if (data.success) {
                 alert('Subscription cancelled successfully!');
-                location.reload();
+                (window.schargeRefresh || (() => location.reload()))();
             } else {
                 alert(data.message || 'Failed to cancel subscription');
             }

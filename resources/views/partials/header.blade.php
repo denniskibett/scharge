@@ -858,6 +858,13 @@
                 Account settings
               </a>
             </li>
+            <li>
+              <a href="{{ url('/') }}" target="_blank" rel="noopener" data-no-spa
+                class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                <svg class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20ZM9.07 3.94A8.52 8.52 0 0 0 3.55 11.25h3.71c.12-2.82.75-5.33 1.81-7.31Zm1.7-.36c-1.24 1.76-2.05 4.48-2.2 7.67h6.86c-.15-3.19-.96-5.91-2.2-7.67a8.6 8.6 0 0 0-2.46 0Zm4.16.36c1.06 1.98 1.69 4.49 1.81 7.31h3.71a8.52 8.52 0 0 0-5.52-7.31Zm5.52 8.81h-3.71c-.12 2.82-.75 5.33-1.81 7.31a8.52 8.52 0 0 0 5.52-7.31Zm-7.22 7.67c1.24-1.76 2.05-4.48 2.2-7.67H8.57c.15 3.19.96 5.91 2.2 7.67a8.6 8.6 0 0 0 2.46 0Zm-4.16-.36c-1.06-1.98-1.69-4.49-1.81-7.31H3.55a8.52 8.52 0 0 0 5.52 7.31Z"/></svg>
+                Website
+              </a>
+            </li>
             
             {{-- Check if user is admin --}}
             @if(auth()->check() && auth()->user()->role?->name === 'admin')

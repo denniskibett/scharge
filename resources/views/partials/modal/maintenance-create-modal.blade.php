@@ -662,7 +662,7 @@ document.addEventListener('alpine:init', () => {
                 if (response.ok && data.success) {
                     this.closeModal();
                     alert(data.message || (this.isEditMode ? 'Maintenance request updated successfully!' : 'Maintenance request submitted successfully!'));
-                    setTimeout(() => window.location.reload(), 1500);
+                    setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1500);
                 } else {
                     if (data.errors) {
                         this.formErrors = Object.values(data.errors).flat();

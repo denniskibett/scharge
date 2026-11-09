@@ -282,7 +282,7 @@ document.addEventListener('alpine:init', () => {
           }
           
           setTimeout(() => {
-            window.location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
           }, 1500);
         } else {
           this.formErrors = [data.message || 'Failed to update tenant'];

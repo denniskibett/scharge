@@ -178,7 +178,7 @@ function sendCampaign(id) {
         success: function(response) {
             if (response.success) {
                 toastr.success('Campaign is being sent!');
-                setTimeout(function() { location.reload(); }, 2000);
+                setTimeout(function() { (window.schargeRefresh || (() => location.reload()))(); }, 2000);
             } else {
                 toastr.error(response.message || 'Failed to send');
             }
@@ -198,7 +198,7 @@ function duplicateCampaign(id) {
         success: function(response) {
             if (response.success) {
                 toastr.success('Campaign duplicated!');
-                location.reload();
+                (window.schargeRefresh || (() => location.reload()))();
             } else {
                 toastr.error(response.message || 'Failed to duplicate');
             }

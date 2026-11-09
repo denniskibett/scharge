@@ -74,7 +74,7 @@ function removeManager(planId, managerId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
         } else {
             alert(data.message || 'Error removing manager');
         }

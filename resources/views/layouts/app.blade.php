@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ SystemHelper::appName() }} | {{ ucfirst(request()->segment(1) ?? 'Dashboard') }}</title>
+    <title>@hasSection('title')@yield('title') | {{ SystemHelper::appName() }}@else{{ SystemHelper::appName() }} | {{ ucfirst(request()->segment(1) ?? 'Dashboard') }}@endif</title>
+    <style>.spa-loading #app-content{opacity:.55;transition:opacity .15s}</style>
 
     {{-- Dynamic Meta --}}
     @if(SystemHelper::metaDescription())
@@ -336,7 +337,7 @@
 
 
         {{-- Page Content --}}
-        <main class="flex-1 p-6">
+        <main id="app-content" class="flex-1 p-6">
             @yield('content')
         </main>
 

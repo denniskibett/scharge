@@ -225,7 +225,7 @@ document.addEventListener('alpine:init', () => {
         if (response.ok && data.success) {
           this.closeModal();
           setTimeout(() => {
-            window.location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
           }, 500);
         } else {
           if (data.errors) {

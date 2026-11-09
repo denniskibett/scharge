@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'api.key' => \App\Http\Middleware\AuthenticateApiKey::class,
+            'access' => \App\Http\Middleware\CheckAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

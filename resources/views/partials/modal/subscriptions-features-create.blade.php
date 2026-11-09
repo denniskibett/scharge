@@ -126,7 +126,7 @@ document.addEventListener('alpine:init', () => {
                 const result = await response.json();
                 if (result.success) {
                     this.closeModal();
-                    location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.message || 'Error saving features');
                 }

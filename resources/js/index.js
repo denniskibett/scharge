@@ -13,6 +13,7 @@ import chart02 from "./components/charts/chart-02";
 import chart03 from "./components/charts/chart-03";
 import map01 from "./components/map-01";
 import "./components/calendar-init.js";
+import { onPageLoad } from "./spa.js";
 import "./components/image-resize";
 
 Alpine.plugin(persist);
@@ -50,7 +51,7 @@ if (dropzoneArea.length) {
 }
 
 // Document Loaded
-document.addEventListener("DOMContentLoaded", () => {
+onPageLoad(() => {
   chart01();
   chart02();
   chart03();
@@ -64,7 +65,7 @@ if (year) {
 }
 
 // For Copy//
-document.addEventListener("DOMContentLoaded", () => {
+onPageLoad(() => {
   const copyInput = document.getElementById("copy-input");
   if (copyInput) {
     // Select the copy button and input field

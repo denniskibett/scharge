@@ -562,3 +562,37 @@ Schema: `database/schema/2026_11_09_bnb_hosts.sql` (hand-applied, run once), the
 - A host who joins an already-managed building has their unit's books with the manager from day one.
 
 **Verified:** 21 of 21 checks on a scratch copy of live data.
+
+---
+
+## 17. Roles that work, Team & access, no full reloads (2026-11-09)
+
+**Permissions**
+- `App\Support\Access` is the catalogue: 15 areas × view, manage and delete (45 permissions), plus default grants for each role.
+- `php artisan access:sync` writes the catalogue into Spatie and removes the 60 old permissions, which nothing ever checked. **Run it on every database when deploying.** Until it has run, the access checks let everything through, so nobody gets locked out.
+- Routes check the right permission per area through `access:<area>` (opening a page needs view, saving needs manage, deleting needs delete).
+- The sidebar is built from the user's real permissions. Tenants keep their personal menu.
+- A page sweep under each role shows every role opening its areas and getting 403 elsewhere, with no 500s.
+
+**Roles page (`/roles`, Sharet design)**
+- Permissions are grouped by area, with switches and "turn all on".
+- Built-in roles can't be renamed or deleted. Custom roles can be added.
+
+**Team & access (`/team`, Brevemaster design)**
+- A company admin invites people with an email link (plus an SMS when a phone is given) to set their own password.
+- They can change roles and switch logins off; the last admin is protected.
+- A table shows what each role can do in each area.
+
+**Fixed along the way**
+- `App\Models\Role` was missing, which broke `/tenancies`.
+- Legacy `whereHas('role')` calls broke `/tenants`.
+
+**Navigation**
+- The sidebar is flat (no dropdowns): six sections, every page one click away, with Team & access and Roles under Setup.
+- The header user menu has **Website**.
+
+**No full reloads (`resources/js/spa.js`)**
+- Dashboard links swap only the page content in the background; back and forward work.
+- Saves in modals call `schargeRefresh()` (79 former `location.reload()` calls), which refreshes the content in the background.
+- A page whose scripts can't run twice in one window falls back to one normal load.
+- Verified in the browser: Properties, Payments, Water, Calendar and Team load with no reloads and every component started. Invoices falls back to a normal load once and then works fully.

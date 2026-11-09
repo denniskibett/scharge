@@ -775,7 +775,7 @@ document.addEventListener('alpine:init', () => {
                     body: JSON.stringify({ lookup_by: this.lookupBy, lookup_value: this.lookupValue, unit_id: this.unitId, access_type: this.accessType, purpose: this.purpose })
                 });
                 const data = await response.json();
-                if (data.success) { alert(data.message); this.closeModal(); setTimeout(() => window.location.reload(), 1000); }
+                if (data.success) { alert(data.message); this.closeModal(); setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 1000); }
                 else if (data.requires_registration) { alert('Visitor not found. Please register them first.'); this.closeModal(); if (window.securityAddVisitorModal) window.securityAddVisitorModal.openModal(); }
                 else alert(data.message || 'Check-in failed');
             } catch (error) { console.error('Error:', error); alert('An error occurred'); }

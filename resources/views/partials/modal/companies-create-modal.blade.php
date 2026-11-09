@@ -338,7 +338,7 @@ document.addEventListener('alpine:init', () => {
                     } else {
                         alert(result.message || (this.modalMode === 'create' ? 'Company created successfully!' : 'Company updated successfully!'));
                     }
-                    location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.message || 'Error saving company');
                 }

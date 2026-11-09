@@ -152,7 +152,7 @@ document.addEventListener('alpine:init', () => {
 
         if (response.ok && data.success) {
           this.closeModal();
-          setTimeout(() => window.location.reload(), 500);
+          setTimeout(() => (window.schargeRefresh || (() => location.reload()))(), 500);
         } else {
           if (data.errors) this.formErrors = Object.values(data.errors).flat();
           else this.formErrors = [data.message || 'Failed to create category. Please try again.'];

@@ -1152,7 +1152,7 @@ function createTenantModal() {
                     this.isModalOpen = false;
                     this.showNotification('Tenant created successfully! Email: ' + data.tenant?.user?.email, 'success');
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1500);
                 } else {
                     this.errors = data.errors || {};
@@ -1335,7 +1335,7 @@ function bulkCreateTenantModal() {
                     }
                     
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 2000);
                 } else {
                     this.errors = data.errors || {};
@@ -1420,7 +1420,7 @@ function editTenantModal() {
                     this.isModalOpen = false;
                     this.showNotification('Tenant updated successfully!', 'success');
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1000);
                 } else {
                     this.errors = data.errors || {};
@@ -1471,7 +1471,7 @@ function deleteTenantModal() {
                     this.isModalOpen = false;
                     this.showNotification('Tenant deleted successfully!', 'success');
                     setTimeout(() => {
-                        window.location.reload();
+                        (window.schargeRefresh || (() => location.reload()))();
                     }, 1000);
                 } else {
                     this.showNotification(data.message || 'Failed to delete tenant.', 'error');

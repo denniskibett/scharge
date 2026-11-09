@@ -547,7 +547,7 @@ document.addEventListener('alpine:init', () => {
                 if (result.success) {
                     this.closeModal();
                     alert(result.message || (this.editing ? 'Invoice updated successfully!' : 'Invoice generated successfully!'));
-                    location.reload();
+                    (window.schargeRefresh || (() => location.reload()))();
                 } else {
                     alert(result.message || 'Error saving invoice');
                 }

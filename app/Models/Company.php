@@ -141,7 +141,7 @@ class Company extends Model
     // Get admin users of this company
     public function adminUsers()
     {
-        return $this->users()->whereHas('role', function($q) {
+        return $this->users()->whereHas('roles', function($q) {
             $q->whereIn('name', ['super_admin', 'admin']);
         });
     }
@@ -149,7 +149,7 @@ class Company extends Model
     // Get staff users of this company (non-tenant)
     public function staffUsers()
     {
-        return $this->users()->whereHas('role', function($q) {
+        return $this->users()->whereHas('roles', function($q) {
             $q->whereNotIn('name', ['tenant']);
         });
     }
@@ -157,7 +157,7 @@ class Company extends Model
     // Get tenant users of this company
     public function tenantUsers()
     {
-        return $this->users()->whereHas('role', function($q) {
+        return $this->users()->whereHas('roles', function($q) {
             $q->where('name', 'tenant');
         });
     }

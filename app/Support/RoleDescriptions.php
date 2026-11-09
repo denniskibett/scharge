@@ -22,6 +22,7 @@ class RoleDescriptions
         'maintenance' => 'Repairs and work orders assigned to them.',
         'security' => 'Gate and visitor logs.',
         'tenant' => 'Pays rent and bills, reports repairs, sees their own tenancy.',
+        'bnb_host' => 'Runs their own BnB unit(s) inside a building; bookings and earnings stay private.',
         'guest' => 'Signed up, not yet assigned to a company or role.',
     ];
 

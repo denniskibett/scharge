@@ -101,7 +101,7 @@ document.addEventListener('alpine:init', () => {
 
         if (response.ok && data.success) {
           this.closeModal();
-          window.location.reload();
+          (window.schargeRefresh || (() => location.reload()))();
         } else {
           this.errorMessage = data.message || 'Failed to delete payee. Please try again.';
         }

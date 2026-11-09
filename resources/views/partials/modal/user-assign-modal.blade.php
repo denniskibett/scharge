@@ -441,7 +441,7 @@ document.addEventListener('alpine:init', () => {
                     const checkModalClosed = setInterval(() => {
                         if (!window.alertModal.isOpen) {
                             clearInterval(checkModalClosed);
-                            location.reload();
+                            (window.schargeRefresh || (() => location.reload()))();
                         }
                     }, 100);
                     

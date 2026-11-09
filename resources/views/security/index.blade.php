@@ -276,7 +276,7 @@ function checkOut(logId) {
     .then(data => {
         if (data.success) {
             alert('✅ Visitor checked out successfully!');
-            location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
         } else {
             alert('❌ ' + (data.message || 'Failed to check out visitor'));
         }

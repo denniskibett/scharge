@@ -333,7 +333,7 @@ document.addEventListener('alpine:init', () => {
           
           // Reload after a short delay
           setTimeout(() => {
-            window.location.reload();
+            (window.schargeRefresh || (() => location.reload()))();
           }, 1500);
         } else {
           this.formErrors = [data.message || 'Failed to update tenancy'];
