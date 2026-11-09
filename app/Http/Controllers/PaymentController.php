@@ -460,8 +460,36 @@ class PaymentController extends Controller
             'tenant_id' => $tenant->id
         ]);
         
+        // Sharet is the default gateway until the client connects their own paybill (Daraja) in Integrations:
+        // the tenant gets the Sharet pay link by SMS and the invoice is settled by Sharet's webhook.
+        if (! \App\Services\Integrations::daraja($invoice->owningCompanyId()) && \App\Services\Sharet\SharetCollections::available()) {
+            try {
+                $link = app(\App\Services\Sharet\SharetCollections::class)->payLink($invoice, (float) $request->amount, $phone);
+            } catch (\Throwable $e) {
+                Log::error('Sharet pay link failed (staff M-Pesa)', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
+
+                return response()->json(['success' => false, 'message' => 'Could not start the payment: '.$e->getMessage()], 400);
+            }
+            $sent = false;
+            try {
+                app(\App\Services\SmsService::class)->forCompany($invoice->owningCompanyId())
+                    ->send($phone, 'Your bill of KES '.number_format((float) $request->amount).' is ready. Pay securely here: '.$link->pay_url);
+                $sent = true;
+            } catch (\Throwable $e) {
+                Log::warning('Sharet pay link SMS failed', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'provider' => 'sharet',
+                'pay_url' => $link->pay_url,
+                'message' => ($sent ? "Payment link sent by SMS to {$phone}." : 'Payment link ready (SMS not sent).')
+                    .' The invoice updates automatically once the tenant pays.',
+            ]);
+        }
+
         // Send STK Push - this creates the MpesaStk record internally
-        // The company's own Daraja app if it has one switched on, else scharge's.
+        // The company's own Daraja app (its paybill/till).
         $mpesa = \App\Services\MpesaService::forCompany($invoice->owningCompanyId());
         $result = $mpesa->stkPush(
             $phone,

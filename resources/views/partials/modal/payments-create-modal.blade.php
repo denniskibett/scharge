@@ -251,7 +251,7 @@
         >
           <option value="cash">Cash</option>
           <option value="bank_transfer">Bank Transfer</option>
-          <option value="mpesa_paybill">M-Pesa Paybill (STK Push)</option>
+          <option value="mpesa_paybill">Sharet Pay (M-Pesa or Airtel Money)</option>
           <option value="manual_topup">Manual Top-up</option>
         </select>
       </div>
@@ -259,7 +259,7 @@
       <!-- M-Pesa Phone Field (shown only when mpesa_paybill is selected) -->
       <div x-show="form.payment_method === 'mpesa_paybill'" class="mb-5">
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-          <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> M-Pesa Phone Number *
+          <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Tenant phone number *
         </label>
         <input
           type="text"
@@ -268,19 +268,18 @@
           placeholder="2547XXXXXXXX"
         />
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-          Enter the Safaricom phone number registered with M-Pesa
+          The Sharet pay link is sent to this number by SMS
         </p>
       </div>
 
       <!-- M-Pesa Instructions -->
       <div x-show="form.payment_method === 'mpesa_paybill'" class="mb-5">
         <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-          <strong><x-icon name="map-pin" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> How M-Pesa Paybill works:</strong>
+          <span class="flex items-center gap-2"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" class="h-4 w-auto"><strong>How Sharet Pay works</strong></span>
           <ul class="mt-1 list-disc pl-5">
-            <li>You will receive an STK Push pop-up on your phone</li>
-            <li>Enter your M-Pesa PIN to confirm</li>
-            <li>Payment will be confirmed automatically</li>
-            <li>You will receive a confirmation SMS</li>
+            <li>The tenant gets a secure Sharet pay link by SMS</li>
+            <li>They pay with M-Pesa or Airtel Money on Sharet's page</li>
+            <li>The invoice is marked paid automatically once Sharet confirms</li>
           </ul>
         </div>
       </div>
@@ -390,7 +389,7 @@
           class="flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs disabled:opacity-50 disabled:cursor-not-allowed"
           :class="form.payment_method === 'mpesa_paybill' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-500 hover:bg-brand-600'"
         >
-          <span x-show="!loading" x-text="form.payment_method === 'mpesa_paybill' ? 'Pay with M-Pesa' : 'Process Payment'"></span>
+          <span x-show="!loading" x-text="form.payment_method === 'mpesa_paybill' ? 'Send Sharet pay link' : 'Process Payment'"></span>
           <span x-show="loading">Processing...</span>
         </button>
       </div>
@@ -800,7 +799,7 @@ document.addEventListener('alpine:init', () => {
       const labels = {
         'cash': 'Cash',
         'bank_transfer': 'Bank Transfer',
-        'mpesa_paybill': 'M-Pesa Paybill (STK Push)',
+        'mpesa_paybill': 'Sharet Pay',
         'manual_topup': 'Manual Top-up'
       };
       return labels[method] || method;
@@ -1066,7 +1065,9 @@ document.addEventListener('alpine:init', () => {
         console.log('Payment response:', data);
         
         if (response.ok && data.success) {
-          if (data.is_mpesa) {
+          if (data.pay_url) {
+            this.successMessage = data.message;
+          } else if (data.is_mpesa) {
             this.showMpesaStatus(data.checkout_request_id);
           } else {
             const amountPaid = data.data?.amount_paid_to_invoice || parseFloat(this.form.amount);

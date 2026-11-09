@@ -1,38 +1,34 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice Already Paid - {{ config('app.name') }}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-lg">
-        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div class="text-6xl mb-4"><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></div>
-            <h1 class="text-2xl font-bold text-gray-800 mb-2">Invoice Already Paid</h1>
-            <p class="text-gray-500 mb-6">This invoice has been fully paid. Thank you for your payment!</p>
-            
-            <div class="bg-gray-50 rounded-xl p-4 text-left mb-6">
-                <div class="flex justify-between py-2 border-b border-gray-200">
-                    <span class="text-gray-500">Invoice #</span>
-                    <span class="font-medium text-gray-800">#{{ $invoice->id }}</span>
-                </div>
-                <div class="flex justify-between py-2 border-b border-gray-200">
-                    <span class="text-gray-500">Tenant</span>
-                    <span class="font-medium text-gray-800">{{ $invoice->tenancy?->tenant?->user?->name ?? 'N/A' }}</span>
-                </div>
-                <div class="flex justify-between py-2">
-                    <span class="text-gray-500">Total Amount</span>
-                    <span class="font-bold text-green-600">KES {{ number_format($invoice->total_amount, 2) }}</span>
-                </div>
-            </div>
-            
-            <a href="{{ route('public.invoice.show', $invoice->id) }}" 
-               class="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition">
-                View Invoice
-            </a>
-        </div>
+{{-- Public invoice page once the bill is fully paid, in the website's design. --}}
+@php
+  $tenancy = $invoice->tenancy;
+  $unit = $tenancy?->unit;
+  $property = $unit?->property;
+  $month = $invoice->billing_month ? \Carbon\Carbon::parse($invoice->billing_month)->format('F Y') : null;
+@endphp
+@component('public.partials.invoice-shell', ['title' => 'Invoice #'.$invoice->id.' paid'])
+<section class="pay-card">
+  <header class="pay-head">
+    <div class="pay-head-row">
+      <span class="pay-kicker">Invoice #{{ $invoice->id }}{{ $month ? ' · '.$month : '' }}</span>
+      <span class="pay-pill pay-pill--paid">Paid</span>
     </div>
-</body>
-</html>
+    <div class="pay-amount">
+      <div class="label">Amount paid</div>
+      <div class="value"><small>KES</small>{{ number_format($invoice->total_amount, 2) }}</div>
+    </div>
+  </header>
+  <div class="pay-body">
+    <div class="pay-done">
+      <span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/></svg></span>
+      <h2>This bill is fully paid</h2>
+      <p>Thank you. Nothing more to pay on this invoice.</p>
+    </div>
+    <dl class="pay-rows">
+      <dt>Tenant</dt><dd>{{ $tenancy?->tenant?->user?->name ?? '–' }}</dd>
+      @if ($property)<dt>Property</dt><dd>{{ $property->name }}</dd>@endif
+      @if ($unit)<dt>Unit</dt><dd>{{ $unit->unit_number }}</dd>@endif
+      <div class="total" style="display:contents"><dt>Total</dt><dd>KES {{ number_format($invoice->total_amount, 2) }}</dd></div>
+    </dl>
+  </div>
+</section>
+@endcomponent

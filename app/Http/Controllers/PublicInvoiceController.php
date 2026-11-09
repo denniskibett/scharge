@@ -34,8 +34,11 @@ class PublicInvoiceController extends Controller
         
         // Get tenant phone number if available
         $phone = $invoice->tenancy?->tenant?->user?->phone ?? null;
-        
-        return view('public.invoice-payment', compact('invoice', 'balanceDue', 'phone'));
+
+        // Same routing as pay(): the company's own M-Pesa first, else Sharet's secure page.
+        $viaSharet = ! Integrations::daraja($invoice->owningCompanyId()) && SharetCollections::available();
+
+        return view('public.invoice-payment', compact('invoice', 'balanceDue', 'phone', 'viaSharet'));
     }
 
     public function pay(Request $request, $invoiceId)

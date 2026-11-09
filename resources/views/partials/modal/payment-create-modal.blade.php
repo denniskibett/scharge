@@ -160,16 +160,16 @@
             required
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
           >
-            <option value="mpesa">M-Pesa Paybill (STK Push)</option>
-            <option value="cash">Cash</option>
-            <option value="bank">Bank Transfer</option>
+            <option value="mpesa">Sharet Pay (M-Pesa or Airtel Money)</option>
+            <option value="cash">Cash received (record only)</option>
+            <option value="bank">Bank transfer received (record only)</option>
           </select>
         </div>
 
         <!-- M-Pesa Phone Number (shown only for mpesa) -->
         <div class="col-span-1" x-show="form.payment_method === 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-            <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> M-Pesa Phone Number *
+            <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Tenant phone number *
           </label>
           <input
             type="text"
@@ -178,19 +178,18 @@
             placeholder="2547XXXXXXXX"
           />
           <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Enter the Safaricom phone number registered with M-Pesa
+            The Sharet pay link is sent to this number by SMS
           </p>
         </div>
 
         <!-- M-Pesa Instructions -->
         <div class="col-span-2" x-show="form.payment_method === 'mpesa'">
           <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-            <strong><x-icon name="map-pin" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> How M-Pesa Paybill works:</strong>
+            <span class="flex items-center gap-2"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" class="h-4 w-auto"><strong>How Sharet Pay works</strong></span>
             <ul class="mt-1 list-disc pl-5">
-              <li>You will receive an STK Push pop-up on your phone</li>
-              <li>Enter your M-Pesa PIN to confirm</li>
-              <li>Payment will be confirmed automatically</li>
-              <li>You will receive a confirmation SMS</li>
+              <li>The tenant gets a secure Sharet pay link by SMS</li>
+              <li>They pay with M-Pesa or Airtel Money on Sharet's page</li>
+              <li>This invoice is marked paid automatically once Sharet confirms</li>
             </ul>
           </div>
         </div>
@@ -287,9 +286,9 @@
           type="submit"
           :disabled="loading || !form.invoice_id || !form.amount || !form.payment_method || (form.payment_method === 'mpesa' && !form.mpesa_phone)"
           class="flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs disabled:opacity-50 disabled:cursor-not-allowed"
-          :class="form.payment_method === 'mpesa' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-500 hover:bg-brand-600'"
+          :class="'bg-brand-500 hover:bg-brand-600'"
         >
-          <span x-show="!loading" x-text="form.payment_method === 'mpesa' ? 'Pay with M-Pesa' : 'Record Payment'"></span>
+          <span x-show="!loading" x-text="form.payment_method === 'mpesa' ? 'Send Sharet pay link' : 'Record payment'"></span>
           <span x-show="loading">Processing...</span>
         </button>
       </div>
@@ -567,7 +566,10 @@ document.addEventListener('alpine:init', () => {
         const data = await response.json();
         
         if (response.ok && data.success) {
-          if (data.is_mpesa) {
+          if (data.pay_url) {
+            this.closeModal();
+            window.alertModal.showSuccess('Payment link sent', data.message);
+          } else if (data.is_mpesa) {
             this.showMpesaStatus(data.checkout_request_id);
           } else {
             this.closeModal();
@@ -659,7 +661,10 @@ document.addEventListener('alpine:init', () => {
         const data = await response.json();
         
         if (response.ok && data.success) {
-          if (data.is_mpesa) {
+          if (data.pay_url) {
+            this.closeModal();
+            window.alertModal.showSuccess('Payment link sent', data.message);
+          } else if (data.is_mpesa) {
             this.showMpesaStatus(data.checkout_request_id);
           } else {
             this.closeModal();
