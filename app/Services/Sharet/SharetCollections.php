@@ -43,7 +43,8 @@ class SharetCollections
         [$mode, $account] = $this->modeFor($companyId);
         $client = SharetClient::fromIntegration($platform)->asAccount($mode === 'connected' ? $account : null);
         $tenant = $invoice->tenancy?->tenant;
-        $reference = mb_substr(trim('Invoice #'.($invoice->invoice_number ?? $invoice->id).' · '.($invoice->billing_month ?? '')), 0, 140);
+        $month = $invoice->billing_month ? \Carbon\Carbon::parse($invoice->billing_month)->format('F Y') : null;
+        $reference = mb_substr('Invoice #'.($invoice->invoice_number ?? $invoice->id).($month ? ' · '.$month : ''), 0, 140);
 
         $body = array_filter([
             'amount' => number_format($amount, 2, '.', ''),
