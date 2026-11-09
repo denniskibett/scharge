@@ -14,6 +14,29 @@ class KycLog
 {
     public const FAIL = ['login.fail', 'register.fail', 'otp.fail', 'password.fail'];
 
+    /** env() returns null once config is cached, so fall back to reading .env directly. */
+    public static function setting(string $key, $default = null)
+    {
+        $v = env($key);
+        if ($v !== null) {
+            return $v;
+        }
+        static $file;
+        if ($file === null) {
+            try {
+                $file = \Dotenv\Dotenv::parse((string) @file_get_contents(base_path('.env')));
+            } catch (\Throwable $e) {
+                $file = [];
+            }
+        }
+        if (! array_key_exists($key, $file)) {
+            return $default;
+        }
+        $v = $file[$key];
+
+        return match (strtolower((string) $v)) { 'true' => true, 'false' => false, 'null', '' => $default, default => $v };
+    }
+
     public static function path(?string $date = null): string
     {
         return storage_path('logs/kyc/attempts-'.($date ?? now()->format('Y-m-d')).'.jsonl');
@@ -22,10 +45,10 @@ class KycLog
     public static function limits(): array
     {
         return [
-            'ip_fail_per_hour' => (int) env('SECURITY_IP_FAIL_PER_HOUR', 40),
-            'ip_accounts_per_hour' => (int) env('SECURITY_IP_ACCOUNTS_PER_HOUR', 6),
-            'ip_signups_per_hour' => (int) env('SECURITY_IP_SIGNUPS_PER_HOUR', 10),
-            'account_fail_per_day' => (int) env('SECURITY_ACCOUNT_FAIL_PER_DAY', 20),
+            'ip_fail_per_hour' => (int) self::setting('SECURITY_IP_FAIL_PER_HOUR', 40),
+            'ip_accounts_per_hour' => (int) self::setting('SECURITY_IP_ACCOUNTS_PER_HOUR', 6),
+            'ip_signups_per_hour' => (int) self::setting('SECURITY_IP_SIGNUPS_PER_HOUR', 10),
+            'account_fail_per_day' => (int) self::setting('SECURITY_ACCOUNT_FAIL_PER_DAY', 20),
         ];
     }
 
@@ -68,7 +91,7 @@ class KycLog
     public static function verdict(?string $identity = null, ?string $kind = null): array
     {
         $ip = request()?->ip();
-        $trusted = array_filter(array_map('trim', explode(',', (string) env('SECURITY_TRUSTED_IPS', ''))));
+        $trusted = array_filter(array_map('trim', explode(',', (string) self::setting('SECURITY_TRUSTED_IPS', ''))));
         if (! $ip || in_array($ip, $trusted, true)) {
             return ['allow' => true, 'reasons' => []];
         }

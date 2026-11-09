@@ -68,7 +68,7 @@ class SecurityReportController extends Controller
     /** /home/<site>/security/site.json, written by the defense agent for this site only. */
     public static function reportFile(): string
     {
-        if ($f = env('SECURITY_REPORT_FILE')) {
+        if ($f = KycLog::setting('SECURITY_REPORT_FILE')) {
             return $f;
         }
         $parts = explode('/', base_path());
@@ -76,17 +76,20 @@ class SecurityReportController extends Controller
         return '/home/'.($parts[2] ?? '').'/security/site.json';
     }
 
-    /** Admins: SECURITY_ADMINS emails, or common admin roles / flags. */
+    /**
+     * Who may see this page: emails in SECURITY_ADMINS, or platform-level roles only (super-admin / sysadmin).
+     * Plain "admin", "owner" or an app's own isAdmin() are NOT enough: in multi-tenant apps those are customers.
+     */
     public static function isAdmin($user): bool
     {
         if (! $user) {
             return false;
         }
-        $emails = array_filter(array_map(fn ($e) => strtolower(trim($e)), explode(',', (string) env('SECURITY_ADMINS', ''))));
+        $emails = array_filter(array_map(fn ($e) => strtolower(trim($e)), explode(',', (string) KycLog::setting('SECURITY_ADMINS', ''))));
         if ($emails && in_array(strtolower((string) $user->email), $emails, true)) {
             return true;
         }
-        $roles = ['super-admin', 'super_admin', 'superadmin', 'Super Admin', 'sysadmin', 'admin', 'Admin', 'administrator'];
+        $roles = ['super-admin', 'super_admin', 'superadmin', 'Super Admin', 'Super-Admin', 'sysadmin', 'system-admin'];
         try {
             if (method_exists($user, 'hasAnyRole') && $user->hasAnyRole($roles)) {
                 return true;
@@ -94,14 +97,23 @@ class SecurityReportController extends Controller
         } catch (\Throwable $e) {
             // roles table missing for this guard
         }
-        foreach (['is_admin', 'is_super_admin', 'isAdmin', 'admin'] as $flag) {
-            if (! empty($user->getAttribute($flag)) && $user->getAttribute($flag) !== '0') {
-                return true;
+        foreach (['isSuperAdmin', 'isSysadmin'] as $method) {
+            if (method_exists($user, $method)) {
+                try {
+                    if ((new \ReflectionMethod($user, $method))->getNumberOfRequiredParameters() === 0 && $user->{$method}() === true) {
+                        return true;
+                    }
+                } catch (\Throwable $e) {
+                }
             }
         }
+        $attrs = method_exists($user, 'getAttributes') ? $user->getAttributes() : [];
+        if (! empty($attrs['is_super_admin']) && $attrs['is_super_admin'] !== '0') {
+            return true;
+        }
         foreach (['role', 'user_type', 'type', 'account_type'] as $col) {
-            $v = $user->getAttribute($col);
-            if (is_string($v) && in_array(strtolower($v), ['admin', 'super-admin', 'super_admin', 'superadmin', 'sysadmin', 'administrator'], true)) {
+            $v = $attrs[$col] ?? null;
+            if (is_string($v) && in_array(strtolower($v), ['super-admin', 'super_admin', 'superadmin', 'sysadmin'], true)) {
                 return true;
             }
         }

@@ -73,3 +73,35 @@ scp defense-agent.service defense-agent.timer root@185.113.249.146:/etc/systemd/
 - New malware pattern: add to `MALWARE`. Keep patterns specific; vendor code is noisy.
 - New defense: add a branch to `defend()` under its own name, and enable it in `/etc/defense-agent.env`.
 - Thresholds: `EXPECTED_PUBLIC_PORTS`, the SSH-block threshold (20) in `defend()`, and the days-left limits in `check_tls()`.
+
+## Security kit (per-site page + attempt log)
+
+Every live Laravel app also runs the security kit (`ops/security-kit`, see its README). It provides:
+- `/admin/security-report`, built from the `/home/<account>/security/site.json` the agent writes with `--publish-sites`
+- a JSON Lines log of login, sign-up, password and code attempts, with a guard that refuses guessing networks and accounts
+- a small "Security" button on the app's pages for people allowed to see the report
+
+`SECURITY_ADMINS` on every app is set to kibettdennis@gmail.com, dennis@sharet.africa and admin@sharet.africa.
+The app's own super-admin/sysadmin users can see the page too.
+
+| Site | App folder | Who can open it (2026-11-09) |
+|---|---|---|
+| sharet.africa | /home/sharet.africa/public_html | admin@sharet.africa, kibettdennis@ (menu: admin › Security; badge off) |
+| breve.sharet.africa | /home/breve.sharet.africa/public_html | kibettdennis@, dennis@sharet.africa |
+| aiyotickets.com | /home/aiyotickets.com/laravel | kibettdennis@ |
+| eserviz.aiyotickets.com | /home/eserviz.aiyotickets.com/eserviz | sysadmin@eserviz.co.ke |
+| chatbotfaqs.sharet.africa | /home/chatbotfaqs.sharet.africa/laravel | kibettdennis@ + 4 superadmins (eCitizen staff) |
+| fitbeat.sharet.africa | /home/fitbeat.sharet.africa/laravel | kibettdennis@ |
+| followup.sharet.africa | /home/followup.sharet.africa/laravel | nobody yet (none of your emails has an account) |
+| invites.aiyotickets.com | /home/invites.aiyotickets.com/laravel | kibettdennis@ |
+| loans.sharet.africa | /home/loans.sharet.africa/laravel | kibettdennis@, sysadmin@aimzoneventures.com |
+| mensch.sharet.africa | /home/mensch.sharet.africa/public_html | nobody yet |
+| menschtech.co.ke | /home/menschtech.co.ke/public_html | nobody yet |
+| ndoams.sharet.africa | /home/ndoams.sharet.africa/laravel | kibettdennis@ |
+| thewillishotel.co.ke | /home/thewillishotel.co.ke/laravel | kibettdennis@ |
+
+Not installed: scharge (it has the full `/admin/security` dashboard and its own KYC log). Sites whose names do not
+resolve were also skipped: invites.sharet.africa, lendu, renteasy.co.ke, sharetweddings.imaginenation.co.ke.
+
+Backups from every install: `/root/scha-backups/security-kit-*.tgz` (providers + bootstrap/cache) and
+`/root/scha-backups/env-<domain>-*` (each .env before SECURITY_ADMINS was added).

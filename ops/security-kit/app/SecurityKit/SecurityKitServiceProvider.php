@@ -17,21 +17,21 @@ class SecurityKitServiceProvider extends ServiceProvider
 {
     public function boot(Router $router): void
     {
-        if (! env('SECURITY_KIT', true)) {
+        if (! KycLog::setting('SECURITY_KIT', true)) {
             return;
         }
         // Through the HTTP kernel: since Laravel 11 it re-syncs its groups to the router, dropping router-only pushes.
         $kernel = $this->app->make(\Illuminate\Contracts\Http\Kernel::class);
-        foreach (['web', 'api'] as $group) {
+        foreach ([['web', KycGuard::class], ['api', KycGuard::class], ['web', SecurityBadge::class]] as [$group, $mw]) {
             if (method_exists($kernel, 'appendMiddlewareToGroup')) {
                 try {
-                    $kernel->appendMiddlewareToGroup($group, KycGuard::class);
+                    $kernel->appendMiddlewareToGroup($group, $mw);
                     continue;
                 } catch (\Throwable $e) {
                     // group not defined in this app
                 }
             }
-            $router->pushMiddlewareToGroup($group, KycGuard::class);
+            $router->pushMiddlewareToGroup($group, $mw);
         }
         $this->loadViewsFrom(__DIR__.'/views', 'securitykit');
 

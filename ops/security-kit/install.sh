@@ -52,12 +52,13 @@ trap 'echo "failed at line $LINENO"; rollback' ERR
 rm -rf app/SecurityKit
 cp -r "$KIT" app/SecurityKit
 chown -R "$OWNER:$GROUP" app/SecurityKit
-grep -qF 'SecurityKitServiceProvider' bootstrap/providers.php || sed -i "s#^\(\s*\)\];#    $LINE\n\1];#" bootstrap/providers.php
-grep -qF 'SecurityKitServiceProvider' bootstrap/providers.php
+grep -qF "$LINE" bootstrap/providers.php || sed -i "s#^\(\s*\)\];#    ${LINE//\\/\\\\}\n\1];#" bootstrap/providers.php
+grep -qF "$LINE" bootstrap/providers.php
 mkdir -p storage/logs/kyc && chown "$OWNER:$GROUP" storage/logs/kyc
 caches "$HAD_CONFIG" "$HAD_ROUTES"
-ROUTES=$(sudo -u "$OWNER" "$PHP" artisan route:list --name=securitykit 2>&1 || true)
-grep -q security-report <<<"$ROUTES"
+# Boot the app and ask the router (route:list can crash on an unrelated broken route in the app)
+ROUTES=$(sudo -u "$OWNER" "$PHP" -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo app("router")->has("securitykit.report") ? "security-report ok" : "route not registered";' 2>&1 || true)
+grep -q security-report <<<"$ROUTES" || { echo "route missing:"; echo "$ROUTES" | tail -5; false; }
 trap - ERR
 
 AFTER_HOME=$(code /); REPORT=$(code /admin/security-report)
