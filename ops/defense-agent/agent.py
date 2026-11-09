@@ -637,14 +637,18 @@ def publish_sites(report, sites):
     for home, names in homes.items():
         if not os.path.isdir(home):
             continue
-        names = set(names) | {apex(n) for n in names}
+        own = set(names)
+        parents = {apex(n) for n in own} - own  # e.g. sharet.africa for ndoams.sharet.africa: mail records only
         account = os.path.basename(home)
-        mine = [f for f in report["findings"] if f["scope"] in names or f["scope"] == account
-                or str(f["scope"]).startswith(home + "/")]
+        mail_checks = {"spf", "dkim", "dmarc"}
+        mine = [f for f in report["findings"]
+                if f["scope"] in own or str(f["scope"]).startswith(home + "/")
+                or (f["scope"] == account and account in own)
+                or (f["scope"] in parents and f["check"] in mail_checks)]
         sub = {
             "generated_at": report["generated_at"], "server": report["server"],
-            "sites": {n: v for n, v in report.get("sites", {}).items() if n in names},
-            "domains": {n: v for n, v in report.get("domains", {}).items() if n in names},
+            "sites": {n: v for n, v in report.get("sites", {}).items() if n in own},
+            "domains": {n: v for n, v in report.get("domains", {}).items() if n in own or n in parents},
             "laravel": [a for a in report.get("laravel", []) if a["path"].startswith(home + "/") and a.get("live")],
             "findings": mine,
             "summary": {k: len([f for f in mine if f["severity"] == k]) for k in ("critical", "high", "medium", "low")},
@@ -681,11 +685,19 @@ def main():
     ap.add_argument("--audit", action="store_true", help="run composer audit (slow; weekly)")
     ap.add_argument("--full", action="store_true", help="re-read every file, not just changed ones (weekly)")
     ap.add_argument("--publish", default=os.environ.get("DEFENSE_PUBLISH", ""), help="also copy latest.json + history.json here (dashboard)")
+    ap.add_argument("--republish", action="store_true", help="only rewrite the dashboard/site files from the latest report")
     ap.add_argument("--publish-sites", action="store_true", help="write /home/<account>/security/site.json for the security kit")
     ap.add_argument("--defend", default="", help="comma list of opt-in defenses, e.g. block-ssh-bruteforce")
     ap.add_argument("--digest", choices=["daily", "weekly"], help="also email the digest")
     ap.add_argument("--mail-to", default=os.environ.get("DEFENSE_MAIL_TO", ""))
     a = ap.parse_args()
+    if a.republish:
+        latest = json.load(open(f"{STATE_DIR}/reports/latest.json"))
+        if a.publish:
+            [publish(latest, d.strip()) for d in a.publish.split(",") if d.strip()]
+        publish_sites(latest, inventory())
+        print("republished", latest["generated_at"])
+        return
     only = set(filter(None, a.only.split(",")))
     want = lambda k: not only or k in only  # noqa
     t0 = time.time()
@@ -761,7 +773,7 @@ def main():
         os.remove(old)
     print(path, report["summary"])
     if a.publish:
-        publish(report, a.publish)
+        [publish(report, d.strip()) for d in a.publish.split(",") if d.strip()]
     if a.publish_sites:
         publish_sites(report, sites)
     here = os.path.dirname(os.path.abspath(__file__))

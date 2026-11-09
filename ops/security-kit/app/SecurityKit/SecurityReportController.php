@@ -53,6 +53,7 @@ class SecurityReportController extends Controller
         })->sortByDesc(fn ($s) => [$s['verdict'] === 'block', $s['fail']])->take(25)->values();
 
         return view('securitykit::report', [
+            'brand' => self::brand(),
             'report' => $report, 'history' => $history, 'file' => $file,
             'kyc' => [
                 'fail' => $count($day, '.fail'), 'ok' => $count($day, '.ok'), 'blocked' => $count($day, '.blocked'),
@@ -63,6 +64,31 @@ class SecurityReportController extends Controller
             'recent' => array_slice(array_reverse(array_values(array_filter($rows, fn ($r) => ! str_ends_with($r['event'], '.ok')))), 0, 40),
             'sev' => self::SEV,
         ]);
+    }
+
+    /** Name, colour and logo so each site's page looks like that site. Override with SECURITY_BRAND_*. */
+    public static function brand(): array
+    {
+        $name = KycLog::setting('SECURITY_BRAND_NAME') ?: config('app.name');
+        if (! $name || in_array(strtolower($name), ['laravel', 'app'], true)) {
+            $name = parse_url((string) config('app.url'), PHP_URL_HOST) ?: request()->getHost();
+        }
+        $color = (string) (KycLog::setting('SECURITY_BRAND_COLOR') ?: '#E0362C');
+        if (! preg_match('/^#[0-9a-f]{3,8}$/i', $color)) {
+            $color = '#E0362C';
+        }
+        $logo = KycLog::setting('SECURITY_BRAND_LOGO');
+        if (! $logo) {
+            foreach (['logo.svg', 'logo.png', 'images/logo.svg', 'images/logo.png', 'img/logo.png', 'img/logo.svg', 'assets/logo.png',
+                'assets/images/logo.png', 'assets/img/logo.png', 'favicon.svg', 'favicon.png', 'apple-touch-icon.png', 'favicon.ico'] as $f) {
+                if (is_file(public_path($f))) {
+                    $logo = asset($f);
+                    break;
+                }
+            }
+        }
+
+        return ['name' => $name, 'color' => $color, 'logo' => $logo];
     }
 
     /** /home/<site>/security/site.json, written by the defense agent for this site only. */

@@ -21,6 +21,15 @@ What each site gets:
   The page counts as admin for anyone listed in `SECURITY_ADMINS` (comma list of emails), anyone with a
   Spatie role such as admin, super-admin or sysadmin, or anyone with an `is_admin` / `role=admin` style column.
 
+Each page is branded as its own site, with tabs (Overview, What to fix, Domains, Sign-in attempts). The site's name,
+colour and logo come from `SECURITY_BRAND_NAME`, `SECURITY_BRAND_COLOR` and `SECURITY_BRAND_LOGO`. When those are unset,
+the page falls back to the app name, red and the first logo file found in `public/`. The brands set on 9 Nov came from each homepage.
+The "Security" button on the app's own pages can be turned off with `SECURITY_BADGE=false`.
+Settings are read from `.env` directly when the config is cached.
+
+sharet.africa carries the kit in its own repo (`app/SecurityKit`, branch `claude/security-dashboard`). It also has the
+all-domains page, Administration › Security (`/admin/security`). Keep the two copies of the kit the same.
+
 Turn the kit off without uninstalling it: `SECURITY_KIT=false` in `.env`, then `php artisan config:cache`.
 
 ## Install / uninstall (on the server, as root)

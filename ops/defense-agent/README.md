@@ -19,7 +19,9 @@ Plain Python 3.8 standard library. Nothing to `pip install`.
 - `/etc/defense-agent.env`: recipient, publish folder, enabled defenses (root, mode 600).
 - `/var/lib/defense-agent/reports/*.json`: one report per run (last 90 kept). `latest.json` is a symlink.
 - `/var/lib/defense-agent/baseline.json`: file-integrity baseline (size, mtime, sha256 of every PHP and .htaccess file under `/home`).
-- `/home/scharge.sharet.africa/security/{latest,history}.json`: copy for the dashboard, owned by the scharge site user (`schar5452`).
+- `/home/scharge.sharet.africa/security/` and `/home/sharet.africa/security/` `{latest,history}.json`: the full report for the all-domains dashboards (scharge `/admin/security`, sharet.africa Administration › Security). `DEFENSE_PUBLISH` takes a comma list.
+- `/home/<account>/security/site{,-history}.json`: one per hosting account, holding only that account's own names, apps and findings, plus the parent domain's SPF/DKIM/DMARC (`--publish-sites`). Each site's own page reads it.
+- `python3 agent.py --republish` rewrites all of these from the latest report without running the checks again.
   scharge reads it via `config('server_security.report_dir')` (env `SERVER_SECURITY_DIR`).
 
 ## What it checks
