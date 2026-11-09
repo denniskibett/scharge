@@ -17,7 +17,7 @@
         ['Pipeline fees / month', $kes($totals['pipeline']), 'text-gray-800 dark:text-white/90'],
         ['Weighted forecast', $kes($totals['forecast']), 'text-gray-800 dark:text-white/90'],
         ['Expected to close', $totals['closing'], 'text-gray-800 dark:text-white/90'],
-        ['Platform fees earned', $kes(round($totals['fees'])), 'text-gray-800 dark:text-white/90'],
+        ['Platform fees settled', $kes(round($totals['fees'])), 'text-gray-800 dark:text-white/90'],
         [$seesAll && ! $ownerFilter ? 'Team commission' : 'Commission earned', $kes(round($totals['commission'])), 'text-brand-500'],
     ];
     $pct = fn ($n) => rtrim(rtrim(number_format((float) $n, 2), '0'), '.').'%';
@@ -62,13 +62,13 @@
     <div class="{{ $card }} mb-6 overflow-x-auto">
         <div class="flex items-center justify-between px-4 pt-4">
             <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ $seesAll ? 'Account managers' : 'My numbers' }}</h3>
-            <span class="text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Deal values are expected monthly platform fees (KES).</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Deal values are expected monthly per-unit fees (KES): the value set on the company, else estimated units × KES {{ number_format($settings['pipeline_price_per_unit']) }}.</span>
         </div>
         <table class="mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
             <thead><tr>
                 <th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Won</th><th class="{{ $th }}">Won value</th><th class="{{ $th }}">Lost</th><th class="{{ $th }}">Win rate</th>
                 <th class="{{ $th }}">Open</th><th class="{{ $th }}">Proposal + negotiation</th><th class="{{ $th }}">Pipeline</th><th class="{{ $th }}">Calls / emails / meetings</th><th class="{{ $th }}">Overdue</th><th class="{{ $th }}">No next step</th>
-                <th class="{{ $th }}">Properties managed</th><th class="{{ $th }}">Rent collected</th><th class="{{ $th }}">Platform fees</th><th class="{{ $th }}">Commission</th><th class="{{ $th }}">Forecast comm.</th>
+                <th class="{{ $th }}">Units managed</th><th class="{{ $th }}">Properties</th><th class="{{ $th }}">Fees settled</th><th class="{{ $th }}">Commission</th><th class="{{ $th }}">Forecast comm.</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse ($rows as $r)
@@ -90,11 +90,11 @@
                             @if ($r['no_next_step'])<a href="{{ route('crm.index', ['owner' => $r['id'] ?? 'none', 'attention' => 'unattended']) }}" class="hover:underline">{{ $r['no_next_step'] }}</a>@else 0 @endif
                         </td>
                         @if ($r['id'])
+                            <td class="{{ $td }}">{{ number_format($r['units']) }}</td>
                             <td class="{{ $td }}">{{ $r['properties'] }}</td>
-                            <td class="{{ $td }}">{{ $kes(round($r['earned']['collected'])) }}</td>
                             <td class="{{ $td }}">{{ $kes(round($r['earned']['fees'])) }}</td>
                             <td class="{{ $td }} font-semibold text-brand-500">{{ $kes(round($r['earned']['commission'])) }} <span class="text-xs font-normal text-gray-400">@ {{ $pct($r['rate']) }}</span></td>
-                            <td class="{{ $td }} text-gray-500" title="Weighted pipeline fees × share, per month">{{ $kes($r['forecast_commission']) }}</td>
+                            <td class="{{ $td }} text-gray-500" title="Weighted pipeline (expected monthly per-unit fees) × share">{{ $kes($r['forecast_commission']) }}</td>
                         @else
                             <td class="{{ $td }} text-gray-400" colspan="5">No commission on unassigned accounts</td>
                         @endif
@@ -111,9 +111,8 @@
         <div class="flex flex-wrap items-start justify-between gap-2">
             <div class="max-w-3xl space-y-1 text-sm text-gray-600 dark:text-gray-400">
                 <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Commission plan</h3>
-                <p>Account managers are scharge staff who manage properties on our behalf, and <strong>scharge pays them</strong>: {{ $pct($settings['rate']) }} of the platform fees scharge bills the property managers in the companies they own.</p>
-                <p>Commission is payable only on fees the property manager has <strong>settled</strong>. Today that's the fee scharge keeps at each Sharet payout, counted once the payout has gone through.</p>
-                <p><strong>Not included:</strong> subscriptions (scharge's own platform revenue), and tenant deposits or property sales, where any commission is paid by the owner to their agent and isn't scharge money.</p>
+                <p>scharge charges a <strong>platform fee per unit per month</strong>, whether the unit is occupied or rent is collected, and bills it to the property manager. Account managers are scharge staff who manage those properties for us, and <strong>scharge pays them {{ $pct($settings['rate']) }} of that fee</strong> once the property manager has settled the bill.</p>
+                <p><strong>Not included:</strong> tenant deposits and property sales, where any commission is paid by the owner to their agent and isn't scharge money.</p>
                 <p>Commission follows the company's current owner, so download each period's statement at payout time before reassigning accounts.</p>
             </div>
             @if ($seesAll)<button type="button" @click="editing = !editing" class="text-sm font-medium text-brand-500" x-text="editing ? 'Close' : 'Edit plan'"></button>@endif
@@ -121,7 +120,10 @@
         @if ($seesAll)
             <form method="POST" action="{{ route('crm.sales.commission.update') }}" x-show="editing" x-cloak class="mt-4 space-y-4">
                 @csrf @method('PUT')
-                <label class="block max-w-xs text-sm text-gray-700 dark:text-gray-300">Share of platform fees (%)<input name="rate" type="number" step="0.1" min="0" max="100" value="{{ $settings['rate'] }}" class="{{ $field }} mt-1 w-full"></label>
+                <div class="grid max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+                    <label class="text-sm text-gray-700 dark:text-gray-300">Share of the per-unit fee (%)<input name="rate" type="number" step="0.1" min="0" max="100" value="{{ $settings['rate'] }}" class="{{ $field }} mt-1 w-full"></label>
+                    <label class="text-sm text-gray-700 dark:text-gray-300">Pipeline price per unit (KES / month)<input name="pipeline_price_per_unit" type="number" min="0" value="{{ $settings['pipeline_price_per_unit'] }}" class="{{ $field }} mt-1 w-full"></label>
+                </div>
                 @if ($staff->isNotEmpty())
                     <div>
                         <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">Per-person share (leave blank to use the plan rate):</p>
@@ -145,14 +147,15 @@
         <div class="{{ $card }} mb-6 overflow-x-auto">
             <h3 class="px-4 pt-4 text-base font-semibold text-gray-800 dark:text-white/90">Commission statement</h3>
             <table class="mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-                <thead><tr><th class="{{ $th }}">Company</th><th class="{{ $th }}">Property</th><th class="{{ $th }}">Payout</th><th class="{{ $th }}">Rent collected</th><th class="{{ $th }}">Platform fee</th><th class="{{ $th }}">Share</th><th class="{{ $th }}">Commission</th></tr></thead>
+                <thead><tr><th class="{{ $th }}">Company</th><th class="{{ $th }}">Property</th><th class="{{ $th }}">Billing month</th><th class="{{ $th }}">Settled</th><th class="{{ $th }}">Units</th><th class="{{ $th }}">Platform fee</th><th class="{{ $th }}">Share</th><th class="{{ $th }}">Commission</th></tr></thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach ($lines as $l)
                         <tr>
                             <td class="{{ $td }}"><a href="{{ route('crm.companies.show', $l->company_id) }}" class="hover:text-brand-500">{{ $l->company }}</a></td>
                             <td class="{{ $td }}">{{ $l->property }}</td>
-                            <td class="{{ $td }}">{{ $l->swept_at->format('j M Y H:i') }}</td>
-                            <td class="{{ $td }}">{{ $kes(round($l->collected)) }}</td>
+                            <td class="{{ $td }}">{{ $l->period ?? '–' }}</td>
+                            <td class="{{ $td }}">{{ $l->paid_at->format('j M Y') }}</td>
+                            <td class="{{ $td }}">{{ number_format($l->units) }}@if ($l->price_per_unit) <span class="text-xs text-gray-400">× {{ number_format($l->price_per_unit) }}</span>@endif</td>
                             <td class="{{ $td }}">{{ $kes(round($l->fee, 2)) }}</td>
                             <td class="{{ $td }}">{{ $pct($l->rate) }}</td>
                             <td class="{{ $td }} font-medium">{{ $kes(round($l->commission, 2)) }}</td>

@@ -75,10 +75,11 @@ class CrmSalesController extends Controller
         $earned = $this->commission->totalsByOwner($lines);
         $settings = $this->commission->settings();
         $ids = $rows->pluck('id')->filter()->values()->all();
-        $managed = $this->commission->managedProperties($ids);
+        $managed = $this->commission->managed($ids);
         $rows = $rows->map(fn ($r) => $r + [
-            'properties' => $r['id'] ? (int) ($managed[$r['id']] ?? 0) : null,
-            'earned' => $r['id'] ? ($earned[$r['id']] ?? ['collected' => 0, 'fees' => 0, 'commission' => 0, 'properties' => 0]) : null,
+            'units' => $r['id'] ? (int) ($managed[$r['id']]->units ?? 0) : null,
+            'properties' => $r['id'] ? (int) ($managed[$r['id']]->properties ?? 0) : null,
+            'earned' => $r['id'] ? ($earned[$r['id']] ?? ['fees' => 0, 'commission' => 0, 'properties' => 0]) : null,
             'rate' => $r['id'] ? $this->commission->rateFor($r['id'], $settings) : null,
             // Weighted pipeline (expected monthly platform fees) × this person's share.
             'forecast_commission' => $r['id'] ? (int) round($open->where('owner_id', $r['id'])->sum(fn ($c) => self::value($c) * (self::STAGE_WEIGHTS[$c->crm_stage] ?? 0)) * $this->commission->rateFor($r['id'], $settings) / 100) : null,
@@ -99,7 +100,6 @@ class CrmSalesController extends Controller
                 'open' => $open->count(),
                 'pipeline' => $open->sum(fn ($c) => self::value($c)),
                 'forecast' => (int) round($open->sum(fn ($c) => self::value($c) * (self::STAGE_WEIGHTS[$c->crm_stage] ?? 0))),
-                'collected' => $lines->sum('collected'),
                 'fees' => $lines->sum('fee'),
                 'commission' => $lines->sum('commission'),
                 'closing' => $open->filter(fn ($c) => ($d = self::date($c->profile('expected_close'))) && $d->between($from, $to))->count(),
@@ -120,6 +120,7 @@ class CrmSalesController extends Controller
         abort_unless(CrmAccess::seesAll($request->user()), 403);
         $input = $request->validate([
             'rate' => ['required', 'numeric', 'between:0,100'],
+            'pipeline_price_per_unit' => ['required', 'integer', 'between:0,100000'],
             'overrides' => ['nullable', 'array'],
             'overrides.*.rate' => ['nullable', 'numeric', 'between:0,100'],
         ]);
@@ -129,12 +130,12 @@ class CrmSalesController extends Controller
             ->map(fn ($o) => ['rate' => (float) $o['rate']])
             ->all();
 
-        $this->commission->save(['rate' => (float) $input['rate'], 'overrides' => $overrides]);
+        $this->commission->save(['rate' => (float) $input['rate'], 'pipeline_price_per_unit' => (int) $input['pipeline_price_per_unit'], 'overrides' => $overrides]);
 
         return back()->with('success', 'Commission plan saved.');
     }
 
-    /** Commission statement (one line per paid sweep per property) as CSV, for payroll. Managers get only their own. */
+    /** Commission statement (one line per settled bill per property) as CSV, for payroll. Managers get only their own. */
     public function export(Request $request): StreamedResponse
     {
         $user = $request->user();
@@ -147,11 +148,11 @@ class CrmSalesController extends Controller
         return response()->streamDownload(function () use ($lines, $names) {
             $out = fopen('php://output', 'w');
             $row = fn (array $cells) => fputcsv($out, $cells, ',', '"', '');
-            $row(['Account manager', 'Company', 'Property', 'Payout date', 'Rent collected', 'Platform fee', 'Share %', 'Commission']);
+            $row(['Account manager', 'Company', 'Property', 'Invoice', 'Billing month', 'Settled on', 'Units', 'Price per unit', 'Platform fee', 'Share %', 'Commission']);
             foreach ($lines as $l) {
-                $row([$names[$l->owner_id] ?? $l->owner_id, $l->company, $l->property, $l->swept_at->toDateString(), $l->collected, $l->fee, $l->rate, $l->commission]);
+                $row([$names[$l->owner_id] ?? $l->owner_id, $l->company, $l->property, $l->invoice_number ?? $l->invoice_id, $l->period, $l->paid_at->toDateString(), $l->units, $l->price_per_unit, $l->fee, $l->rate, $l->commission]);
             }
-            $row(['Total', '', '', '', $lines->sum('collected'), $lines->sum('fee'), '', $lines->sum('commission')]);
+            $row(['Total', '', '', '', '', '', $lines->sum('units'), '', $lines->sum('fee'), '', $lines->sum('commission')]);
             fclose($out);
         }, 'commission-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
     }
@@ -190,10 +191,13 @@ class CrmSalesController extends Controller
             ->sortByDesc(fn ($r) => [$r['won_value'], $r['won'], $r['pipeline'], $r['open']])->values();
     }
 
-    /** Monthly deal value in KES from crm_profile.deal_value ("KES 45,000" → 45000). */
+    /** Expected monthly platform fee of a deal (entered value, else estimated units × pipeline price per unit). */
     public static function value(?Company $company): int
     {
-        return (int) preg_replace('/\D/', '', (string) $company?->profile('deal_value'));
+        static $settings;
+        $settings ??= app(CommissionService::class)->settings();
+
+        return app(CommissionService::class)->dealValue($company, $settings);
     }
 
     public static function date(?string $value): ?Carbon
