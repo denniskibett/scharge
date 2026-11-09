@@ -17,7 +17,7 @@
                     {{ $accountManager->title ?? 'Account Manager' }}
                 </p>
             </div>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                 <a href="{{ route('admin.account-managers.edit', $accountManager->id) }}" 
                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 dark:bg-brand-600 dark:hover:bg-brand-700">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

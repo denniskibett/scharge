@@ -547,3 +547,27 @@ span.flatpickr-weekday,
   opacity: 0.8;
   cursor: grabbing; /* Changes the cursor to indicate dragging */
 }
+
+/* ---------------------------------------------------------------------------
+ * One table look across the dashboard (TailAdmin, as the dashboard's companies table).
+ * Applied with class="data-table" on <table>. Descendant selectors outrank the per-cell
+ * utility classes older tables carry, so every table renders the same.
+ * ------------------------------------------------------------------------- */
+.data-table { @apply min-w-full border-collapse text-left; }
+.data-table thead { @apply bg-transparent; }
+.data-table thead tr { @apply border-y border-gray-100 dark:border-gray-800; }
+.data-table thead th {
+  @apply whitespace-nowrap bg-transparent px-5 py-3 text-left text-theme-xs font-medium normal-case tracking-normal text-gray-500 dark:text-gray-400;
+}
+.data-table thead th:first-child { @apply sm:pl-6; }
+.data-table thead th:last-child { @apply sm:pr-6; }
+.data-table tbody { @apply divide-y divide-gray-100 dark:divide-gray-800; }
+.data-table tbody tr { @apply bg-transparent transition-colors hover:bg-gray-50 dark:hover:bg-white/[0.02]; }
+.data-table tbody td { @apply px-5 py-3.5 align-middle text-theme-sm text-gray-500 dark:text-gray-400; }
+.data-table tbody td:first-child { @apply font-medium text-gray-800 dark:text-white/90 sm:pl-6; }
+.data-table tbody td:last-child { @apply sm:pr-6; }
+.data-table tfoot td { @apply border-t border-gray-100 px-5 py-3 text-theme-sm font-medium text-gray-800 dark:border-gray-800 dark:text-white/90; }
+/* status pills inside tables keep TailAdmin's small rounded look */
+.data-table .badge, .data-table [class*="rounded-full"][class*="px-2"] { @apply text-theme-xs font-medium; }
+/* the card a table sits in */
+.data-card { @apply overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]; }

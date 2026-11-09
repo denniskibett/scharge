@@ -1,7 +1,7 @@
 @props(['tenants' => [], 'showActions' => true, 'showTenancyInfo' => true])
 
 <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-  <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+  <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-700">
     <thead class="bg-gray-50 dark:bg-gray-800">
       <tr>
         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>

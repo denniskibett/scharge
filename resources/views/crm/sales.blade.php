@@ -64,7 +64,7 @@
             <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ $seesAll ? 'Account managers' : 'My numbers' }}</h3>
             <span class="text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Deal values are expected monthly per-unit fees (KES): the value set on the company, else estimated units × KES {{ number_format($settings['pipeline_price_per_unit']) }}.</span>
         </div>
-        <table class="mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+        <table class="data-table mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
             <thead><tr>
                 <th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Won</th><th class="{{ $th }}">Won value</th><th class="{{ $th }}">Lost</th><th class="{{ $th }}">Win rate</th>
                 <th class="{{ $th }}">Open</th><th class="{{ $th }}">Proposal + negotiation</th><th class="{{ $th }}">Pipeline</th><th class="{{ $th }}">Calls / emails / meetings</th><th class="{{ $th }}">Overdue</th><th class="{{ $th }}">No next step</th>
@@ -146,7 +146,7 @@
     @if ($lines->isNotEmpty())
         <div class="{{ $card }} mb-6 overflow-x-auto">
             <h3 class="px-4 pt-4 text-base font-semibold text-gray-800 dark:text-white/90">Commission statement</h3>
-            <table class="mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
+            <table class="data-table mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
                 <thead><tr><th class="{{ $th }}">Company</th><th class="{{ $th }}">Property</th><th class="{{ $th }}">Billing month</th><th class="{{ $th }}">Settled</th><th class="{{ $th }}">Units</th><th class="{{ $th }}">Platform fee</th><th class="{{ $th }}">Share</th><th class="{{ $th }}">Commission</th></tr></thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach ($lines as $l)

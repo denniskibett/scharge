@@ -236,7 +236,7 @@
 
             <!-- Table Content -->
             <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
-                <table class="w-full table-auto">
+                <table class="data-table w-full table-auto">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-800">
                             <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400">Reading Date</th>
@@ -347,7 +347,7 @@
                     </div>
                     
                     <div class="overflow-x-auto">
-                        <table class="w-full border-collapse">
+                        <table class="data-table w-full border-collapse">
                             <thead>
                                 <tr class="bg-gray-50 dark:bg-gray-800">
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Month</th>

@@ -2,12 +2,12 @@
 <!-- Companies Table - Pure Alpine.js Component -->
 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-data="companiesTable()" x-init="init()">
     <!-- Table Header -->
-    <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
-        <div>
+    <div class="flex flex-col flex-wrap justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
+        <div class="min-w-[12rem] shrink-0">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Companies</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Manage all businesses on the platform</p>
         </div>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <!-- Items Per Page Filter -->
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-500 dark:text-gray-400">Show:</label>
@@ -62,7 +62,7 @@
     
     <!-- Table Content -->
     <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
-        <table class="w-full table-auto">
+        <table class="data-table w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                     <th class="cursor-pointer p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('id')">

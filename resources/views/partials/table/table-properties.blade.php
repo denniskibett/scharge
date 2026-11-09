@@ -64,7 +64,7 @@
         </div>
 
         <div class="w-full overflow-x-auto">
-            <table class="min-w-full" id="propertiesTable">
+            <table class="data-table min-w-full" id="propertiesTable">
                 <!-- Desktop table header -->
                 <thead class="hidden sm:table-header-group">
                     <tr class="border-gray-100 border-y dark:border-gray-800">

@@ -2,12 +2,12 @@
 
 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-data="paymentsTable()" x-init="init()">
     <!-- Table Header -->
-    <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
-        <div>
+    <div class="flex flex-col flex-wrap justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
+        <div class="min-w-[12rem] shrink-0">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Payment Transactions</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Track all payment transactions</p>
         </div>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <!-- Payment Method Filters -->
             <div class="hidden h-11 items-center gap-0.5 rounded-lg bg-gray-100 p-0.5 lg:inline-flex dark:bg-gray-900">
                 <button @click="filterMethod = 'all'; currentPage = 1" :class="filterMethod === 'all' ? 'shadow-theme-xs text-gray-900 dark:text-white bg-white dark:bg-gray-800' : 'text-gray-500 dark:text-gray-400'" class="text-theme-sm h-10 rounded-md px-3 py-2 font-medium hover:text-gray-900 dark:hover:text-white">
@@ -55,7 +55,7 @@
     
     <!-- Table Content -->
     <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
-        <table class="w-full table-auto">
+        <table class="data-table w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('id')">

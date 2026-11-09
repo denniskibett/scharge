@@ -140,7 +140,7 @@
 
         <!-- Logs Table -->
         <div x-show="!loading && !error" class="w-full overflow-x-auto">
-            <table class="min-w-full">
+            <table class="data-table min-w-full">
                 <thead>
                     <tr class="border-gray-100 border-y dark:border-gray-800">
                         <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="sortBy('id')">

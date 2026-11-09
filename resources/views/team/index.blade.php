@@ -62,7 +62,7 @@
       <p class="text-sm text-gray-500 dark:text-gray-400">Full = open, change and delete · Edit = open and change · View = open only.@role('sysadmin') Change these on <a href="{{ route('roles.index') }}" class="underline">Roles &amp; permissions</a>.@endrole</p>
     </div>
     <div class="overflow-x-auto">
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="bg-gray-50 text-xs text-gray-500 dark:bg-gray-900 dark:text-gray-400">
           <tr><th class="px-5 py-3 font-medium">Area</th>@foreach (\App\Support\Access::COMPANY_ROLES as $r => $label)<th class="px-3 py-3 text-center font-medium">{{ ucfirst(str_replace('_', ' ', $r)) }}</th>@endforeach</tr>
         </thead>

@@ -357,7 +357,7 @@
         </div>
         <div class="p-6">
             <div class="overflow-x-auto">
-                <table class="w-full table-auto">
+                <table class="data-table w-full table-auto">
                     <thead>
                         <tr class="border-b border-stroke dark:border-strokedark">
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>

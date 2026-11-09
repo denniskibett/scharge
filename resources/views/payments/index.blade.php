@@ -17,7 +17,7 @@
         </p>
       </div>
 
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <div class="relative">
           <span class="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
             <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -45,7 +45,7 @@
     </div>
     
     <div class="custom-scrollbar overflow-x-auto">
-      <table class="w-full table-auto">
+      <table class="data-table w-full table-auto">
         <thead>
           <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
             <th class="p-4 whitespace-nowrap">

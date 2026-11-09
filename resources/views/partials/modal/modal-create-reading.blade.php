@@ -436,7 +436,7 @@ async function loadBulkUnits() {
     let html = `
         <div class="text-xs text-gray-400 mb-2">Showing ${filteredUnits.length} units for ${monthDisplay}</div>
         ${infoMessage}
-        <table class="w-full text-sm">
+        <table class="data-table w-full text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800 sticky top-0">
                 <tr>
                     <th class="px-3 py-2 text-left">Unit</th>
@@ -818,7 +818,7 @@ function renderMultiMonthMode() {
         </div>
         <div class="border rounded-lg overflow-hidden">
             <div class="overflow-x-auto max-h-60 overflow-y-auto">
-                <table class="w-full text-sm">
+                <table class="data-table w-full text-sm">
                     <thead class="bg-gray-50 sticky top-0">
                         <tr>
                             <th class="px-3 py-2 text-left">Month</th>

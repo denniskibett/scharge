@@ -193,7 +193,7 @@
 
         <!-- Table Content with max-width and horizontal scroll -->
         <div class="w-full overflow-x-auto">
-            <table class="w-full min-w-[1000px] table-auto">
+            <table class="data-table w-full min-w-[1000px] table-auto">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-800">
                         <th class="p-3 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" @click="sortBy('unit_number')">

@@ -92,7 +92,7 @@
 
         <!-- Templates Table -->
         <div x-show="!loading && !error" class="w-full overflow-x-auto">
-            <table class="min-w-full" id="templatesTable">
+            <table class="data-table min-w-full" id="templatesTable">
                 <thead class="hidden sm:table-header-group">
                     <tr class="border-gray-100 border-y dark:border-gray-800">
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" @click="sortBy('name')">

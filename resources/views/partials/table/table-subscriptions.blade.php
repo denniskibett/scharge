@@ -2,12 +2,12 @@
 <!-- Subscriptions Table - Optimized -->
 <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-data="subscriptionsTable()" x-init="init()">
     <!-- Table Header -->
-    <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
-        <div>
+    <div class="flex flex-col flex-wrap justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
+        <div class="min-w-[12rem] shrink-0">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Subscription Plans</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Manage per-unit subscription plans and pricing</p>
         </div>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <!-- Search -->
             <div class="relative">
                 <span class="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
@@ -56,7 +56,7 @@
     
     <!-- Table Content -->
     <div x-show="!loading && !error" class="custom-scrollbar overflow-x-auto">
-        <table class="w-full table-auto">
+        <table class="data-table w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                     <th class="cursor-pointer p-3 text-left text-xs font-medium text-gray-700 dark:text-gray-400" @click="sort('id')">

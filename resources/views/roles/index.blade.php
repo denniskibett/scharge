@@ -29,7 +29,7 @@
       <input type="search" x-model="search" placeholder="Search roles…" aria-label="Search roles" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 sm:w-[280px]">
     </div>
     <div class="overflow-x-auto">
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="border-y border-gray-100 bg-gray-50 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
           <tr><th class="px-6 py-3 font-medium">Role</th><th class="px-6 py-3 font-medium">Access</th><th class="px-6 py-3 font-medium">People</th><th class="px-6 py-3 font-medium">Type</th><th class="px-6 py-3 text-right font-medium">Action</th></tr>
         </thead>

@@ -4,12 +4,12 @@
      x-init="init()"
      x-cloak>
     <!-- Table Header -->
-    <div class="flex flex-col justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
-        <div>
+    <div class="flex flex-col flex-wrap justify-between gap-5 border-b border-gray-200 px-5 py-4 sm:flex-row lg:items-center dark:border-gray-800">
+        <div class="min-w-[12rem] shrink-0">
             <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Invoices</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">Your most recent invoices list</p>
         </div>
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <!-- Items Per Page -->
             <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-500 dark:text-gray-400">Show:</span>
@@ -86,7 +86,7 @@
     <!-- Table Content -->
     <template x-if="!loading && filteredInvoices.length > 0">
         <div class="custom-scrollbar overflow-x-auto">
-            <table class="w-full table-auto">
+            <table class="data-table w-full table-auto">
                 <thead>
                     <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                         <th class="p-4 whitespace-nowrap">

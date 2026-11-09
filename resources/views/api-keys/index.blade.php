@@ -102,7 +102,7 @@
     <p x-show="!keys.length" class="px-5 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No keys yet.</p>
 
     <div x-show="keys.length" class="overflow-x-auto">
-      <table class="min-w-full text-left">
+      <table class="data-table min-w-full text-left">
         <thead>
           <tr class="border-b border-gray-100 text-xs font-medium text-gray-500 dark:border-gray-800 dark:text-gray-400">
             <th class="px-5 py-3">Name</th><th class="px-5 py-3">Status</th>

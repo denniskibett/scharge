@@ -73,7 +73,7 @@
   <div class="mb-6 grid gap-6 xl:grid-cols-3">
     <div class="{{ $card }} overflow-x-auto xl:col-span-2">
       <h2 class="mb-3 font-semibold text-gray-900 dark:text-white">Top pages</h2>
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Page</th><th class="{{ $th }} text-right">Views</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Time</th><th class="{{ $th }} text-right">Scroll</th><th class="{{ $th }}"></th></tr></thead>
         <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
           @forelse ($pages as $p)
@@ -108,7 +108,7 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">Where visitors come from</h2>
       <p class="mb-3 text-xs text-gray-500">utm_source when the link was tagged, otherwise the referring site. Conversions use the visitor's first source this session.</p>
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Source</th><th class="{{ $th }} text-right">Views</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Conversions</th></tr></thead>
         <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
           @forelse ($sources as $s)
@@ -123,7 +123,7 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">UTM campaigns</h2>
       <p class="mb-3 text-xs text-gray-500">Links tagged with utm_campaign, e.g. <code>?utm_source=facebook&amp;utm_medium=paid_social&amp;utm_campaign=landlords_nairobi_2026q4</code>.</p>
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Campaign</th><th class="{{ $th }}">Source / medium</th><th class="{{ $th }} text-right">Visitors</th><th class="{{ $th }} text-right">Conv.</th><th class="{{ $th }} text-right">Rate</th></tr></thead>
         <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
           @forelse ($campaigns as $c)
@@ -140,7 +140,7 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">Conversions by form and source</h2>
       <p class="mb-3 text-xs text-gray-500">Which channel brought each sign-up. Leads themselves are in Sales CRM › Requests / Waitlist.</p>
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Form</th><th class="{{ $th }}">Source</th><th class="{{ $th }}">Campaign</th><th class="{{ $th }} text-right">Sent</th></tr></thead>
         <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
           @forelse ($formSources as $r)
@@ -155,7 +155,7 @@
     <div class="{{ $card }} overflow-x-auto">
       <h2 class="font-semibold text-gray-900 dark:text-white">Listing views</h2>
       <p class="mb-3 text-xs text-gray-500">Listings opened on Open listings or their own page. {{ number_format($listingRequests) }} viewing / booking requests sent in this period.</p>
-      <table class="min-w-full text-left text-sm">
+      <table class="data-table min-w-full text-left text-sm">
         <thead class="text-xs text-gray-500"><tr><th class="{{ $th }}">Listing</th><th class="{{ $th }} text-right">Opened</th><th class="{{ $th }} text-right">Visitors</th></tr></thead>
         <tbody class="divide-y divide-gray-100 text-gray-700 dark:divide-gray-800 dark:text-gray-300">
           @forelse ($listings as $l)

@@ -39,7 +39,7 @@
     </form>
 
     <div class="{{ $card }} overflow-x-auto">
-        <table class="min-w-full text-sm">
+        <table class="data-table min-w-full text-sm">
             <thead class="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-500 dark:border-gray-800 dark:text-gray-400">
                 <tr><th class="px-4 py-3 font-medium">Person</th><th class="px-4 py-3 font-medium">Country</th><th class="px-4 py-3 font-medium">Company</th><th class="px-4 py-3 font-medium">Demo details</th><th class="px-4 py-3 font-medium">Joined</th><th class="px-4 py-3 font-medium">Status</th></tr>
             </thead>

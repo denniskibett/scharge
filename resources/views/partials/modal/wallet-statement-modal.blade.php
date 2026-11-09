@@ -91,7 +91,7 @@
 
                 {{-- Transactions Table --}}
                 <div x-show="!loading" class="overflow-x-auto">
-                    <table class="min-w-full">
+                    <table class="data-table min-w-full">
                         <thead class="border-y border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500">Date</th>

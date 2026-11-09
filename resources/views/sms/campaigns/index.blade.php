@@ -88,7 +88,7 @@
 
                     <!-- Campaigns Table -->
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover">
+                        <table class="data-table table table-bordered table-hover">
                             <thead>
                                 <tr>
                                     <th>#</th>

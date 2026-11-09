@@ -70,7 +70,7 @@
     
     <!-- Table Content -->
     <div x-show="!loading" class="custom-scrollbar overflow-x-auto">
-        <table class="w-full table-auto">
+        <table class="data-table w-full table-auto">
             <thead>
                 <tr class="border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
                     <th class="p-4 text-left text-xs font-medium text-gray-700 dark:text-gray-400 cursor-pointer hover:text-gray-900" @click="sort('request_number')">

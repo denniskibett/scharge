@@ -82,7 +82,7 @@
         @endif
 
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="data-table w-full">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-800">
                         <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visitor</th>

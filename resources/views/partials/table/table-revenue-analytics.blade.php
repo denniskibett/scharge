@@ -67,7 +67,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
             <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Payment Method Breakdown</h4>
             <div class="overflow-x-auto">
-                <table class="w-full">
+                <table class="data-table w-full">
                     <thead>
                         <tr class="border-b border-gray-200 dark:border-gray-700">
                             <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Method</th>
@@ -129,7 +129,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
         <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-4">Monthly Revenue Summary</h4>
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="data-table w-full">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-700">
                         <th class="text-left text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Month</th>

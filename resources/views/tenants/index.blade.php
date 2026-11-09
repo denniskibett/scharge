@@ -106,7 +106,7 @@
 
     <!-- Table Content -->
     <div class="w-full overflow-x-auto">
-      <table class="w-full table-auto">
+      <table class="data-table w-full table-auto">
         <thead>
           <tr class="border-b border-gray-200 dark:border-gray-800">
             <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400 cursor-pointer" @click="sortBy('name')">

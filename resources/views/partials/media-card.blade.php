@@ -9,7 +9,7 @@
         All Media
       </h3>
 
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <div class="relative">
           <button
             class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"

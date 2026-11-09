@@ -13,7 +13,7 @@
   @endif
 
   <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-    <table class="min-w-full text-left text-sm">
+    <table class="data-table min-w-full text-left text-sm">
       <thead class="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">
         <tr><th class="px-5 py-3">Building</th><th class="px-5 py-3">Company asking</th><th class="px-5 py-3">Their note</th><th class="px-5 py-3">Status</th><th class="px-5 py-3 text-right">Action</th></tr>
       </thead>

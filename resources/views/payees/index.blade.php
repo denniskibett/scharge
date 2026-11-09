@@ -19,7 +19,7 @@
         </p>
       </div>
 
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <div class="relative">
           <span class="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400">
             <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -47,7 +47,7 @@
     </div>
     
     <div class="custom-scrollbar overflow-x-auto">
-      <table class="w-full table-auto">
+      <table class="data-table w-full table-auto">
         <thead class="bg-gray-50 dark:bg-gray-800">
           <tr class="border-b border-gray-200 dark:border-gray-700">
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>

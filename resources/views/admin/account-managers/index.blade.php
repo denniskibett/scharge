@@ -95,7 +95,7 @@
     <!-- Account Managers Table -->
     <div class="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="overflow-x-auto">
-            <table class="w-full text-sm">
+            <table class="data-table w-full text-sm">
                 <thead>
                     <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase dark:text-gray-400">Manager</th>

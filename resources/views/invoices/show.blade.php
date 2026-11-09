@@ -318,7 +318,7 @@
         <!--    <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-3">Payment History</h4>-->
         <!--    @if($invoice->payments->isNotEmpty())-->
         <!--      <div class="overflow-x-auto">-->
-        <!--        <table class="w-full text-sm">-->
+        <!--        <table class="data-table w-full text-sm">-->
         <!--          <thead class="bg-gray-50 dark:bg-gray-800/50">-->
         <!--            <tr>-->
         <!--              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Amount</th>-->
@@ -850,7 +850,7 @@ document.addEventListener('alpine:init', () => {
             </div>
 
             <!-- Items -->
-            <table class="print-table">
+            <table class="data-table print-table">
               <thead>
                 <tr>
                   <th style="width: 8%">#</th>
@@ -909,7 +909,7 @@ document.addEventListener('alpine:init', () => {
             <div style="margin-top: 32px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
               <h4 style="font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 12px;">Payment History</h4>
               @if($invoice->payments->isNotEmpty())
-                <table class="print-payment-table">
+                <table class="data-table print-payment-table">
                   <thead>
                     <tr>
                       <th>Amount</th>

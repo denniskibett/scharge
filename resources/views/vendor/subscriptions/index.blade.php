@@ -12,7 +12,7 @@
                     <h3>Companies with Subscriptions</h3>
                 </div>
                 <div class="card-body">
-                    <table class="table">
+                    <table class="data-table table">
                         <thead>
                             <tr>
                                 <th>Company</th>

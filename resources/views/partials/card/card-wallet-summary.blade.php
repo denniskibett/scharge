@@ -314,7 +314,7 @@
             <div>
                 <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Recent Transactions</h3>
             </div>
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                 <div class="relative">
                     <span class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2">
                         <svg class="fill-gray-500 dark:fill-gray-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -335,7 +335,7 @@
         </div>
 
         <div class="custom-scrollbar max-w-full overflow-x-auto">
-            <table class="min-w-full">
+            <table class="data-table min-w-full">
                 <thead class="border-y border-gray-100 bg-gray-50 dark:border-gray-800 dark:bg-gray-900">
                     <tr>
                         <th class="px-6 py-3 text-left whitespace-nowrap"><span class="text-theme-xs block font-medium text-gray-500 dark:text-gray-400">Transaction ID</span></th>

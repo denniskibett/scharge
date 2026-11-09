@@ -101,7 +101,7 @@
     <!-- Campaigns Table -->
     <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
         <div class="overflow-x-auto">
-            <table class="w-full table-auto">
+            <table class="data-table w-full table-auto">
                 <thead>
                     <tr class="bg-gray-50 dark:bg-gray-800">
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>

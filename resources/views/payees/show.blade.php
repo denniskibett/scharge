@@ -26,7 +26,7 @@
         </div>
       </div>
 
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
         <button 
           @click="openEditModal()"
           class="hover:text-dark-900 shadow-theme-xs relative flex h-11 items-center justify-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 whitespace-nowrap text-yellow-700 transition-colors hover:bg-yellow-100 hover:text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30 dark:hover:text-yellow-300">
@@ -164,7 +164,7 @@
           Expenses
         </h4>
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-800">
+          <table class="data-table min-w-full divide-y divide-gray-200 dark:divide-gray-800">
             <thead class="bg-gray-50 dark:bg-gray-800">
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Property</th>

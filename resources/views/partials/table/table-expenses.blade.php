@@ -43,7 +43,7 @@
     
     <!-- Table -->
     <div x-show="!loading" class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="data-table w-full text-sm">
             <thead>
                 <tr class="border-b border-gray-200 dark:border-gray-700">
                     <th class="text-left py-2.5 px-3 text-gray-600 dark:text-gray-400 font-medium cursor-pointer" @click="sortBy('expense_date')">

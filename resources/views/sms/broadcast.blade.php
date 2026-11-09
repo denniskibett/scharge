@@ -225,7 +225,7 @@
                 <!-- Tenants Table Section -->
                 <div class="p-6">
                     <div class="w-full overflow-x-auto">
-                        <table class="min-w-full">
+                        <table class="data-table min-w-full">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr class="border-gray-100 border-y dark:border-gray-800">
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
@@ -390,7 +390,7 @@
             <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
                 <div class="p-6">
                     <div class="w-full overflow-x-auto">
-                        <table class="min-w-full">
+                        <table class="data-table min-w-full">
                             <thead class="bg-gray-50 dark:bg-gray-800">
                                 <tr class="border-gray-100 border-y dark:border-gray-800">
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
@@ -551,7 +551,7 @@
                     <p class="mt-2 text-gray-500">Loading campaigns...</p>
                 </div>
                 <div id="campaignsTable" style="display: none;">
-                    <table class="min-w-full">
+                    <table class="data-table min-w-full">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr class="border-gray-100 border-y dark:border-gray-800">
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
@@ -906,7 +906,7 @@
                         <!-- Recipients Table -->
                         <div class="mt-4">
                             <div class="w-full overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
-                                <table class="min-w-full">
+                                <table class="data-table min-w-full">
                                     <thead>
                                         <tr class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
@@ -968,7 +968,7 @@
                             </button>
                         </div>
                         <div class="w-full overflow-x-auto rounded-xl border border-yellow-200 dark:border-yellow-800">
-                            <table class="min-w-full">
+                            <table class="data-table min-w-full">
                                 <thead>
                                     <tr class="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800">
                                         <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tenant</th>
@@ -2435,7 +2435,7 @@ function renderKenyaSmsCampaigns(campaigns, total) {
             </div>
         </div>
         <div class="w-full overflow-x-auto">
-            <table class="min-w-full">
+            <table class="data-table min-w-full">
                 <thead class="bg-gray-50 dark:bg-gray-800">
                     <tr class="border-b border-gray-200 dark:border-gray-700">
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Campaign</th>
