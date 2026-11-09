@@ -44,7 +44,10 @@
           </svg>
           Back
         </a>
-        <button 
+        @if ($tenant->user)
+          <x-reverify-email :user="$tenant->user" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300" />
+        @endif
+                <button 
           @click="openEditModal()"
           class="inline-flex items-center gap-2 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-2 text-sm font-medium text-yellow-700 shadow-theme-xs transition hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400 dark:hover:bg-yellow-900/30">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,6 +84,9 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <span>{{ $tenant->user->email ?? 'N/A' }}</span>
+                @if ($tenant->user && \Illuminate\Support\Facades\Schema::hasColumn('users', 'email_confirmed_at'))
+                  <span class="rounded-full px-2 py-0.5 text-xs font-medium {{ $tenant->user->email_confirmed_at ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">{{ $tenant->user->email_confirmed_at ? 'Email confirmed' : 'Email not confirmed' }}</span>
+                @endif
               </div>
               <div class="flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

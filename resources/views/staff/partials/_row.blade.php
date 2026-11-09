@@ -24,6 +24,7 @@
   <td>
     <div class="flex items-center gap-3">
       <a href="{{ route('staff.show', $user->id) }}" class="text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300">View</a>
+      <x-reverify-email :user="$user" label="Re-verify" />
       @if ((int) $user->status !== 0)
         <button type="button" onclick="quickUpdate({{ $user->id }}, 'status', 0)" class="text-sm font-medium text-emerald-600 hover:text-emerald-700">Activate</button>
       @elseif (! $user->is(auth()->user()))

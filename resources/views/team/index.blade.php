@@ -112,7 +112,11 @@
                   @endif
                   <div class="min-w-0">
                     <p class="truncate font-medium text-gray-800 dark:text-white/90">{{ $m->name }} @if ($m->is(auth()->user()))<span class="text-xs font-normal text-gray-400">(you)</span>@endif</p>
-                    <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $m->email }}</p>
+                    <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $m->email }}
+                      @if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'email_confirmed_at'))
+                        · <span class="{{ $m->email_confirmed_at ? 'text-emerald-600' : 'text-amber-600' }}">{{ $m->email_confirmed_at ? 'email confirmed' : 'email not confirmed' }}</span>
+                      @endif
+                    </p>
                   </div>
                 </div>
               </td>
@@ -122,6 +126,7 @@
               <td class="text-gray-700 dark:text-gray-300">{{ optional($m->created_at)->format('j M, Y') ?? '—' }}</td>
               <td class="text-right">
                 <div class="inline-flex items-center gap-3">
+                  <x-reverify-email :user="$m" label="Re-verify" />
                   <button type="button" class="text-sm font-medium text-gray-700 hover:text-brand-500 dark:text-gray-300" @click="openForm({{ \Illuminate\Support\Js::from($editData) }})">Edit</button>
                   @if ($p['status'] !== 'off' && ! $m->is(auth()->user()))
                     <button type="button" class="text-sm font-medium text-red-600 hover:text-red-700" @click="switchOff({{ $m->id }}, @js($m->name))">Switch off</button>

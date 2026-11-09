@@ -574,6 +574,9 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     Route::resource('staff', StaffController::class)->middleware('access:team')->middleware('role:sysadmin|admin|accountant');
 
     // ============================================
+    // Staff can make someone confirm their email again (KYC done badly before).
+    Route::post('/users/{user}/reverify-email', App\Http\Controllers\EmailReverifyController::class)->middleware('throttle:30,1')->name('users.reverify-email');
+
     // Confirm email with a one-time code (KYC). App\Http\Middleware\EnsureEmailConfirmed sends people here.
     Route::prefix('confirm-email')->name('email-code.')->controller(\App\Http\Controllers\Auth\EmailCodeController::class)->group(function () {
         Route::get('/', 'show')->name('show');
