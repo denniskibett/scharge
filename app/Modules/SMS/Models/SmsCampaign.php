@@ -31,8 +31,8 @@ class SmsCampaign extends Model
     'failed_count',
     'delivered_count',
     'kenyasms_campaign_id',
-    'source',      // ✅ Add this
-    'source_id',   // ✅ Add this
+    'source',      // Add this
+    'source_id',   // Add this
    ];
 
     protected $casts = [
@@ -43,7 +43,7 @@ class SmsCampaign extends Model
         'updated_at' => 'datetime',
         'sent_count' => 'integer',
         'failed_count' => 'integer',
-        'delivered_count' => 'integer',   // 🆕 ADDED
+        'delivered_count' => 'integer',   // ADDED
         'total_recipients' => 'integer',
     ];
 

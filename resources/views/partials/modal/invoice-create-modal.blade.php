@@ -228,7 +228,7 @@
         <div x-show="forceGenerateMode" class="mb-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-red-800 dark:text-red-400">⚠️ Force Generate Mode</p>
+              <p class="text-sm font-medium text-red-800 dark:text-red-400"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Force Generate Mode</p>
               <p class="text-xs text-red-700 dark:text-red-500 mt-1">You're generating an invoice for a month that's not the next sequential month.</p>
             </div>
             <button
@@ -547,7 +547,7 @@
           
           <div x-show="waterSequentialWarning" class="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
             <p class="text-sm text-yellow-800 dark:text-yellow-400">
-              ⚠️ Water readings must be sequential. Each month's reading must be greater than or equal to the previous month's reading.
+              <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Water readings must be sequential. Each month's reading must be greater than or equal to the previous month's reading.
             </p>
           </div>
         </div>

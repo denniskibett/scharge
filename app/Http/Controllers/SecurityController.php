@@ -17,7 +17,7 @@ use Carbon\Carbon;
 class SecurityController extends Controller
 {
     // ============================================
-    // 📊 DASHBOARD
+    // DASHBOARD
     // ============================================
     
     /**
@@ -70,7 +70,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📋 VIEW ALL LOGS
+    // VIEW ALL LOGS
     // ============================================
     
     /**
@@ -113,7 +113,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📊 STATS API
+    // STATS API
     // ============================================
     
     /**
@@ -152,7 +152,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📥 CHECK-IN / CHECK-OUT API
+    // CHECK-IN / CHECK-OUT API
     // ============================================
     
     /**
@@ -249,7 +249,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📝 QUICK ENTRY
+    // QUICK ENTRY
     // ============================================
     
     /**
@@ -378,7 +378,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📋 FULL ENTRY
+    // FULL ENTRY
     // ============================================
     
     /**
@@ -509,7 +509,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📊 REPORTS
+    // REPORTS
     // ============================================
     
     /**
@@ -595,7 +595,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📋 SINGLE LOG (API)
+    // SINGLE LOG (API)
     // ============================================
     
     /**
@@ -647,7 +647,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 📋 OTHER LOGS & CRUD
+    // OTHER LOGS & CRUD
     // ============================================
     
     // Store security log (API)
@@ -812,7 +812,7 @@ class SecurityController extends Controller
     }
     
     // ============================================
-    // 🏢 PROPERTY / UNIT / TENANT API ENDPOINTS
+    // PROPERTY / UNIT / TENANT API ENDPOINTS
     // ============================================
 
     /**
@@ -1066,7 +1066,7 @@ class SecurityController extends Controller
     }
 
     // ============================================
-    // 📋 ACCESS RECORDS (Alias)
+    // ACCESS RECORDS (Alias)
     // ============================================
 
     /**

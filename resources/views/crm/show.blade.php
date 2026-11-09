@@ -13,7 +13,7 @@
     $btn = 'inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600';
     $btnGhost = 'inline-flex h-11 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5';
     $h = 'text-base font-semibold text-gray-800 dark:text-white/90';
-    $icons = ['note' => '📝', 'call' => '📞', 'email' => '✉️', 'whatsapp' => '💬', 'meeting' => '🤝', 'demo' => '📅', 'stage' => '➡️', 'feedback' => '⭐', 'import' => '📥', 'contact' => '👤'];
+    $icons = ['note' => 'pencil-square', 'call' => 'phone', 'email' => 'envelope', 'whatsapp' => 'chat-bubble-left-ellipsis', 'meeting' => 'user-group', 'demo' => 'calendar-days', 'stage' => 'arrow-right', 'feedback' => 'star', 'import' => 'arrow-down-tray', 'contact' => 'user'];
     $tel = fn ($p) => 'tel:'.preg_replace('/[^\d+]/', '', (string) $p);
     $wa = fn ($p) => 'https://wa.me/'.preg_replace('/\D/', '', (string) $p);
     $sources = ['website_waitlist' => 'joined the website waitlist', 'website_demo' => 'booked a demo on the website', 'crm_manual' => 'added in the CRM'];
@@ -31,10 +31,10 @@
             <span @class(['rounded-full px-2.5 py-0.5 text-xs font-medium', 'bg-green-50 text-green-700' => $company->lifecycle === 'customer', 'bg-gray-100 text-gray-600' => $company->lifecycle !== 'customer'])>{{ ucfirst($company->lifecycle) }}</span>
         </div>
         @if ($company->profile('needs_verification'))<span class="rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">Some details were marked “Verify” in the sales sheet</span>@endif
-        @if ($company->phone)<a href="{{ $tel($company->phone) }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300">📞 {{ $company->phone }}</a>@endif
-        @if ($company->profile('phone_alt'))<a href="{{ $tel($company->profile('phone_alt')) }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300">📞 {{ $company->profile('phone_alt') }}</a>@endif
-        @if ($company->email)<a href="mailto:{{ $company->email }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300">✉️ {{ $company->email }}</a>@endif
-        @if ($website)<a href="{{ $website }}" target="_blank" rel="noopener" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300">🌐 {{ $company->domain ?? $website }}</a>@endif
+        @if ($company->phone)<a href="{{ $tel($company->phone) }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300"><x-icon name="phone" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> {{ $company->phone }}</a>@endif
+        @if ($company->profile('phone_alt'))<a href="{{ $tel($company->profile('phone_alt')) }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300"><x-icon name="phone" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> {{ $company->profile('phone_alt') }}</a>@endif
+        @if ($company->email)<a href="mailto:{{ $company->email }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300"><x-icon name="envelope" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> {{ $company->email }}</a>@endif
+        @if ($website)<a href="{{ $website }}" target="_blank" rel="noopener" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300"><x-icon name="globe-alt" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> {{ $company->domain ?? $website }}</a>@endif
         <span class="ml-auto text-sm text-gray-500 dark:text-gray-400">Owner: {{ $company->owner?->name ?? 'nobody' }}</span>
     </div>
 
@@ -70,8 +70,8 @@
                             <div class="text-xs text-gray-500 dark:text-gray-400">{{ $row->detail('job_title') ?? 'Role not recorded' }}@if ($person->lead_source) · {{ $sources[$person->lead_source] ?? $person->lead_source }}@endif</div>
                         </div>
                         <div class="flex shrink-0 gap-2 text-sm">
-                            @if ($person->phone)<a href="{{ $tel($person->phone) }}" title="Call {{ $person->phone }}">📞</a><a href="{{ $wa($person->phone) }}" target="_blank" rel="noopener" title="WhatsApp">💬</a>@endif
-                            @if ($person->email)<a href="mailto:{{ $person->email }}" title="{{ $person->email }}">✉️</a>@endif
+                            @if ($person->phone)<a href="{{ $tel($person->phone) }}" title="Call {{ $person->phone }}"><x-icon name="phone" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></a><a href="{{ $wa($person->phone) }}" target="_blank" rel="noopener" title="WhatsApp"><x-icon name="chat-bubble-left-ellipsis" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></a>@endif
+                            @if ($person->email)<a href="mailto:{{ $person->email }}" title="{{ $person->email }}"><x-icon name="envelope" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></a>@endif
                         </div>
                     </div>
                 @empty
@@ -203,7 +203,7 @@
                 <ol class="relative space-y-4 border-l border-gray-200 pl-5 dark:border-gray-800">
                     @forelse ($history as $row)
                         <li>
-                            <span class="absolute -left-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs dark:bg-gray-900" aria-hidden="true">{{ $icons[$row->type] ?? '•' }}</span>
+                            <span class="absolute -left-2.5 flex h-5 w-5 items-center justify-center rounded-full bg-white text-xs dark:bg-gray-900" aria-hidden="true"><x-icon :name="$icons[$row->type] ?? 'information-circle'" class="h-3 w-3 text-gray-500" /></span>
                             <div class="text-sm font-medium text-gray-800 dark:text-white/90">
                                 {{ $row->title }}
                                 @if (in_array($row->status, ['missed', 'cancelled'], true))<span class="ml-1 text-xs font-normal text-red-600">({{ $row->status }})</span>@endif

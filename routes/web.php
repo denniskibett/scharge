@@ -29,10 +29,10 @@ use App\Http\Controllers\RoleController;
 
 require __DIR__ . '/mpesa.php';
 
-// ✅ DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
+// DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
 Route::middleware('auth')->get('/campaign/{id}', function($id) {
     try {
-        // ✅ Clear query cache to ensure fresh data on each request
+        // Clear query cache to ensure fresh data on each request
         DB::connection()->getQueryLog();
         
         $campaign = DB::table('sms_campaigns')->where('id', $id)->first();
@@ -731,7 +731,7 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     Route::get('/my-payments', [TenantController::class, 'myPayments'])->name('tenant.payments');
 
     // ============================================
-    // 📱 M-PESA STK PUSH PAYMENT ROUTES
+    // M-PESA STK PUSH PAYMENT ROUTES
     // ============================================
     Route::prefix('payments/mpesa')->name('payments.mpesa.')->group(function () {
         Route::get('/status', [PaymentController::class, 'checkMpesaStatus'])->name('status');

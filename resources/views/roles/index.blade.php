@@ -63,7 +63,7 @@
     <aside x-show="open" x-transition class="absolute inset-y-0 right-0 flex w-full max-w-2xl flex-col bg-white shadow-xl dark:bg-gray-900">
       <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-800">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white" x-text="form.id ? 'Edit ' + form.label : 'New role'"></h3>
-        <button type="button" @click="open = false" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5" aria-label="Close">✕</button>
+        <button type="button" @click="open = false" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5" aria-label="Close"><x-icon name="x-mark" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></button>
       </div>
       <form id="role-form" @submit.prevent="save()" class="flex-1 space-y-6 overflow-y-auto px-6 py-5">
         <div>

@@ -117,13 +117,13 @@ class Campaign extends Model
     public function getStatusBadgeAttribute(): string
     {
         $badges = [
-            'draft' => '📝 Draft',
-            'scheduled' => '⏳ Scheduled',
-            'queued' => '⏳ Queued',
-            'sending' => '📤 Sending',
-            'completed' => '✅ Completed',
-            'failed' => '❌ Failed',
-            'cancelled' => '🚫 Cancelled',
+            'draft' => 'Draft',
+            'scheduled' => 'Scheduled',
+            'queued' => 'Queued',
+            'sending' => 'Sending',
+            'completed' => 'Completed',
+            'failed' => 'Failed',
+            'cancelled' => 'Cancelled',
         ];
         
         return $badges[$this->status] ?? $this->status;

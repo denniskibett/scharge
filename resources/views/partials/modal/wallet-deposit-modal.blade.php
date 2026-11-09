@@ -59,17 +59,17 @@
                     <button type="button" @click="inputMode = 'manual'"
                         class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
                         :class="inputMode === 'manual' ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'">
-                        📱 STK Push / Manual
+                        <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> STK Push / Manual
                     </button>
                     <button type="button" @click="inputMode = 'message'"
                         class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
                         :class="inputMode === 'message' ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'">
-                        📋 Paste Transaction Message
+                        <x-icon name="clipboard-document-list" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Paste Transaction Message
                     </button>
                     <button type="button" @click="inputMode = 'manual_topup'"
                         class="flex-1 py-2 text-sm font-medium rounded-md transition-all"
                         :class="inputMode === 'manual_topup' ? 'bg-white dark:bg-gray-900 text-brand-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'">
-                        💰 Manual Top-up
+                        <x-icon name="banknotes" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Manual Top-up
                     </button>
                 </div>
 
@@ -78,7 +78,7 @@
 
                 {{-- Tenant Account Details Section --}}
                 <div class="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-                    <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300">👤 Your Account Details</h5>
+                    <h5 class="mb-3 text-sm font-semibold text-gray-700 dark:text-gray-300"><x-icon name="user" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Your Account Details</h5>
                     <div class="grid grid-cols-2 gap-3 text-sm">
                         <div>
                             <span class="text-gray-500 dark:text-gray-400">Tenant Name:</span>
@@ -314,7 +314,7 @@
 
                     {{-- Parsed Details Preview --}}
                     <div x-show="hasParsedData" class="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
-                        <h5 class="mb-3 text-sm font-semibold text-green-800 dark:text-green-400">📋 Extracted Payment Details</h5>
+                        <h5 class="mb-3 text-sm font-semibold text-green-800 dark:text-green-400"><x-icon name="clipboard-document-list" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Extracted Payment Details</h5>
                         <div class="grid grid-cols-2 gap-3 text-sm">
                             <div x-show="parsedData.amount">
                                 <span class="text-gray-600 dark:text-gray-400">Amount:</span>
@@ -351,7 +351,7 @@
 
                     {{-- Manual Edit Section --}}
                     <div x-show="showManualEdit" class="mb-6 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
-                        <h5 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">✏️ Edit fields below if extraction was incorrect</h5>
+                        <h5 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90"><x-icon name="pencil-square" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Edit fields below if extraction was incorrect</h5>
                         
                         <div class="grid grid-cols-2 gap-4">
                             <div>
@@ -394,7 +394,7 @@
                             Manual Top-up (Pending Approval)
                         </h5>
                         <p class="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
-                            ⚠️ Manual top-ups require accountant approval before funds are added to your wallet.
+                            <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Manual top-ups require accountant approval before funds are added to your wallet.
                             This is typically used for rent credits, adjustments, or cash payments.
                         </p>
                         
@@ -859,10 +859,10 @@ document.addEventListener('alpine:init', () => {
 
             // Validate
             if (!this.parsedData.amount) {
-                this.parsedError = '⚠️ Could not extract amount from this message. Please review and edit the fields below.';
+                this.parsedError = 'Could not extract amount from this message. Please review and edit the fields below.';
                 this.showManualEdit = true;
             } else if (this.parsedData.amount <= 0) {
-                this.parsedError = '⚠️ Invalid amount extracted. Please check and correct below.';
+                this.parsedError = 'Invalid amount extracted. Please check and correct below.';
                 this.showManualEdit = true;
             } else {
                 this.parsedError = null;
@@ -959,10 +959,10 @@ document.addEventListener('alpine:init', () => {
                 
                 if (result.success) {
                     if (result.data.requires_approval) {
-                        this.successMessage = `✅ Deposit request submitted! Amount KES ${this.formatNumber(depositData.amount)} is pending approval by accountant.`;
+                        this.successMessage = `Deposit request submitted! Amount KES ${this.formatNumber(depositData.amount)} is pending approval by accountant.`;
                         this.showToast('info', `KES ${this.formatNumber(depositData.amount)} pending approval`);
                     } else {
-                        this.successMessage = `✅ Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
+                        this.successMessage = `Successfully deposited KES ${this.formatNumber(depositData.amount)} for ${billMonth}!`;
                         this.showToast('success', `KES ${this.formatNumber(depositData.amount)} deposited!`);
                     }
                     

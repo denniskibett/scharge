@@ -60,7 +60,7 @@
           
           <!-- Success Items List -->
           <div x-show="successItems.length > 0" class="mb-3">
-            <p class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2">✓ Successfully processed:</p>
+            <p class="text-xs font-semibold text-green-600 dark:text-green-400 mb-2"><x-icon name="check" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Successfully processed:</p>
             <ul class="space-y-1">
               <template x-for="item in successItems" :key="item">
                 <li class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">
@@ -75,7 +75,7 @@
           
           <!-- Failed Items List -->
           <div x-show="failedItems.length > 0">
-            <p class="text-xs font-semibold text-red-600 dark:text-red-400 mb-2">✗ Failed to process:</p>
+            <p class="text-xs font-semibold text-red-600 dark:text-red-400 mb-2"><x-icon name="x-mark" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Failed to process:</p>
             <ul class="space-y-1">
               <template x-for="item in failedItems" :key="item">
                 <li class="text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2">

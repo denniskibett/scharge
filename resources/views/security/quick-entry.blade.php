@@ -46,7 +46,7 @@
                     <h4 class="text-base font-medium text-gray-800 dark:text-white/90">Quick Check-In</h4>
                     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Fill in the essential details below</p>
                 </div>
-                <!-- 🔍 VISITOR SEARCH -->
+                <!-- VISITOR SEARCH -->
                 <div class="mt-3 sm:mt-0">
                     <div class="flex gap-2">
                         <input type="text" id="searchVisitor" 
@@ -242,12 +242,12 @@ function showMessage(message, type) {
     const errorEl = document.getElementById('errorMessage');
     
     if (type === 'success') {
-        successEl.textContent = '✅ ' + message;
+        successEl.textContent = '' + message;
         successEl.classList.remove('hidden');
         errorEl.classList.add('hidden');
         setTimeout(() => successEl.classList.add('hidden'), 5000);
     } else {
-        errorEl.textContent = '❌ ' + message;
+        errorEl.textContent = '' + message;
         errorEl.classList.remove('hidden');
         successEl.classList.add('hidden');
         setTimeout(() => errorEl.classList.add('hidden'), 5000);
@@ -322,7 +322,7 @@ function loadUnits(propertyId) {
     });
 }
 
-// 🔍 SEARCH VISITOR BY PHONE OR ID
+// SEARCH VISITOR BY PHONE OR ID
 function searchVisitor() {
     const searchTerm = document.getElementById('searchVisitor').value.trim();
     const resultDiv = document.getElementById('searchResult');
@@ -354,20 +354,20 @@ function searchVisitor() {
             document.getElementById('visitor_id').value = visitor.id;
             
             // Show success
-            resultDiv.innerHTML = `✅ Visitor found: <strong>${visitor.name}</strong> (${visitor.phone}) - ${visitor.visitor_type_label || 'Visitor'}`;
+            resultDiv.innerHTML = `Visitor found: <strong>${visitor.name}</strong> (${visitor.phone}) - ${visitor.visitor_type_label || 'Visitor'}`;
             resultDiv.className = 'mt-2 rounded-lg border border-green-200 bg-green-50 p-2 text-sm text-green-700';
             
             showMessage('Visitor found! Form auto-populated.', 'success');
             
         } else {
-            resultDiv.innerHTML = '❌ No visitor found with that phone or ID. Please fill in the form manually.';
+            resultDiv.innerHTML = 'No visitor found with that phone or ID. Please fill in the form manually.';
             resultDiv.className = 'mt-2 rounded-lg border border-yellow-200 bg-yellow-50 p-2 text-sm text-yellow-700';
             document.getElementById('visitor_id').value = '';
         }
     })
     .catch(error => {
         console.error('Error searching visitor:', error);
-        resultDiv.innerHTML = '❌ Error searching. Please try again.';
+        resultDiv.innerHTML = 'Error searching. Please try again.';
         resultDiv.className = 'mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700';
     });
 }

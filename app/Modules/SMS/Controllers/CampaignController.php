@@ -53,8 +53,8 @@ public function apiIndex(Request $request)
     try {
         $sandbox = config('sms.kenyasms.sandbox', true);
         
-        // ✅ If sandbox is true, show ONLY local campaigns
-        // ✅ If sandbox is false, show ALL campaigns (local + imported)
+        // If sandbox is true, show ONLY local campaigns
+        // If sandbox is false, show ALL campaigns (local + imported)
         $query = SmsCampaign::select(
             'id',
             'name',
@@ -71,7 +71,7 @@ public function apiIndex(Request $request)
             'updated_at'
         )->orderBy('created_at', 'desc');
         
-        // ✅ If sandbox is true, only show local campaigns
+        // If sandbox is true, only show local campaigns
         if ($sandbox) {
             $query->where(function($q) {
                 $q->where('source', 'local')
@@ -114,7 +114,7 @@ public function apiIndex(Request $request)
             'success' => true,
             'campaigns' => $campaignsArray,
             'stats' => $stats,
-            'sandbox' => $sandbox, // ✅ Include sandbox status
+            'sandbox' => $sandbox, // Include sandbox status
         ]);
         
     } catch (\Exception $e) {
@@ -133,12 +133,12 @@ public function listFromKenyaSMS(Request $request)
     try {
         $sandbox = config('sms.kenyasms.sandbox', true);
         
-        // ✅ If sandbox is true, show mock data
+        // If sandbox is true, show mock data
         if ($sandbox) {
-            \Log::info('📡 Sandbox mode: Showing mock campaigns');
+            \Log::info('Sandbox mode: Showing mock campaigns');
             
             $mockCampaigns = $this->getMockKenyaSmsCampaigns();
-            // ✅ Add source to mock campaigns
+            // Add source to mock campaigns
             $mockCampaigns = array_map(function($campaign) {
                 $campaign['source'] = 'mock';
                 return $campaign;
@@ -155,7 +155,7 @@ public function listFromKenyaSMS(Request $request)
             ]);
         }
         
-        // ✅ Live mode: Fetch from KenyaSMS
+        // Live mode: Fetch from KenyaSMS
         $page = $request->input('page', 1);
         $limit = $request->input('limit', 20);
         $status = $request->input('status', null);
@@ -169,7 +169,7 @@ public function listFromKenyaSMS(Request $request)
             ], 400);
         }
 
-        // ✅ Ensure campaigns is always an array
+        // Ensure campaigns is always an array
         $campaigns = $result['campaigns'] ?? [];
         
         if (!is_array($campaigns)) {
@@ -180,13 +180,13 @@ public function listFromKenyaSMS(Request $request)
             $campaigns = $campaigns->toArray();
         }
 
-        // ✅ Get all imported campaign IDs to show which are already imported
+        // Get all imported campaign IDs to show which are already imported
         $importedIds = SmsCampaign::whereNotNull('kenyasms_campaign_id')
             ->pluck('kenyasms_campaign_id')
             ->map(function($id) { return (string) $id; })
             ->toArray();
 
-        // ✅ Map fields to a consistent format
+        // Map fields to a consistent format
         $mappedCampaigns = array_map(function ($campaign) use ($importedIds) {
             if (is_object($campaign)) {
                 $campaign = (array) $campaign;
@@ -230,7 +230,7 @@ public function listFromKenyaSMS(Request $request)
             ];
         }, $campaigns);
 
-        // ✅ Remove campaigns with null ID
+        // Remove campaigns with null ID
         $mappedCampaigns = array_filter($mappedCampaigns, function($campaign) {
             return !empty($campaign['id']);
         });
@@ -245,9 +245,9 @@ public function listFromKenyaSMS(Request $request)
             'sandbox' => false,
         ]);
     } catch (\Exception $e) {
-        \Log::error('❌ listFromKenyaSMS error: ' . $e->getMessage());
+        \Log::error('listFromKenyaSMS error: ' . $e->getMessage());
         
-        // ✅ Return mock data on any error
+        // Return mock data on any error
         $mockCampaigns = $this->getMockKenyaSmsCampaigns();
         return response()->json([
             'success' => true,
@@ -1306,7 +1306,7 @@ public function listFromKenyaSMS(Request $request)
 public function importKenyaSmsCampaigns(Request $request)
 {
     try {
-        \Log::info('📥 importKenyaSmsCampaigns started');
+        \Log::info('importKenyaSmsCampaigns started');
         
         $page = $request->input('page', 1);
         $limit = $request->input('limit', 100);
@@ -1314,15 +1314,15 @@ public function importKenyaSmsCampaigns(Request $request)
         // Step 1: Fetch campaigns from KenyaSMS
         $result = app(KenyaSMS::class)->listCampaigns($page, $limit);
         
-        \Log::info('📥 KenyaSMS listCampaigns result', [
+        \Log::info('KenyaSMS listCampaigns result', [
             'success' => $result['success'] ?? false,
             'campaigns_count' => count($result['campaigns'] ?? []),
             'error' => $result['error'] ?? null
         ]);
         
-        // ✅ If API fails or returns empty, use mock data
+        // If API fails or returns empty, use mock data
         if (!$result['success'] || empty($result['campaigns'])) {
-            \Log::warning('⚠️ Using mock data for import');
+            \Log::warning('Using mock data for import');
             
             $mockCampaigns = $this->getMockKenyaSmsCampaigns();
             $imported = 0;
@@ -1380,7 +1380,7 @@ public function importKenyaSmsCampaigns(Request $request)
             ]);
         }
         
-        // ✅ Process real campaigns from KenyaSMS
+        // Process real campaigns from KenyaSMS
         $campaigns = $result['campaigns'] ?? [];
         $imported = 0;
         $skipped = 0;
@@ -1389,7 +1389,7 @@ public function importKenyaSmsCampaigns(Request $request)
         
         foreach ($campaigns as $remoteCampaign) {
             try {
-                // ✅ Get campaign ID
+                // Get campaign ID
                 $remoteId = $remoteCampaign['id'] ?? $remoteCampaign['campaign_id'] ?? null;
                 if (empty($remoteId)) {
                     $errors[] = 'Campaign has no ID: ' . json_encode($remoteCampaign);
@@ -1457,8 +1457,8 @@ public function importKenyaSmsCampaigns(Request $request)
         ]);
         
     } catch (\Exception $e) {
-        \Log::error('❌ importKenyaSmsCampaigns error: ' . $e->getMessage());
-        \Log::error('❌ importKenyaSmsCampaigns trace: ' . $e->getTraceAsString());
+        \Log::error('importKenyaSmsCampaigns error: ' . $e->getMessage());
+        \Log::error('importKenyaSmsCampaigns trace: ' . $e->getTraceAsString());
         
         return response()->json([
             'success' => false,
@@ -1474,9 +1474,9 @@ public function importKenyaSmsCampaigns(Request $request)
 public function importFromKenyaSMS($campaignId)
 {
     try {
-        \Log::info('📥 importFromKenyaSMS called for campaign: ' . $campaignId);
+        \Log::info('importFromKenyaSMS called for campaign: ' . $campaignId);
         
-        // ✅ Check if campaign ID is valid
+        // Check if campaign ID is valid
         if (empty($campaignId) || $campaignId === 'null' || $campaignId === 'undefined') {
             return response()->json([
                 'success' => false,
@@ -1484,7 +1484,7 @@ public function importFromKenyaSMS($campaignId)
             ], 400);
         }
 
-        // ✅ Check if already imported
+        // Check if already imported
         $existing = SmsCampaign::where('kenyasms_campaign_id', $campaignId)->first();
         if ($existing) {
             return response()->json([
@@ -1494,7 +1494,7 @@ public function importFromKenyaSMS($campaignId)
             ], 200);
         }
 
-        // ✅ Check if this is a mock campaign
+        // Check if this is a mock campaign
         $isMock = strpos($campaignId, 'mock-') === 0;
         
         $campaignData = null;
@@ -1566,7 +1566,7 @@ public function importFromKenyaSMS($campaignId)
             $logs = $logsResult['logs'] ?? [];
         }
 
-        // ✅ Create local campaign
+        // Create local campaign
         $campaign = SmsCampaign::create([
             'name' => $isMock ? $campaignData['name'] : ($statusData['name'] ?? 'Imported Campaign ' . $campaignId),
             'description' => $isMock ? 'Imported from mock KenyaSMS data' : ('Imported from KenyaSMS on ' . now()->format('Y-m-d H:i:s')),
@@ -1582,7 +1582,7 @@ public function importFromKenyaSMS($campaignId)
             'kenyasms_campaign_id' => $campaignId,
         ]);
 
-        // ✅ Match phone numbers to tenants and create recipient records
+        // Match phone numbers to tenants and create recipient records
         $matched = 0;
         $unmatched = 0;
 
@@ -1635,8 +1635,8 @@ public function importFromKenyaSMS($campaignId)
         ]);
 
     } catch (\Exception $e) {
-        \Log::error('❌ importFromKenyaSMS error: ' . $e->getMessage());
-        \Log::error('❌ importFromKenyaSMS trace: ' . $e->getTraceAsString());
+        \Log::error('importFromKenyaSMS error: ' . $e->getMessage());
+        \Log::error('importFromKenyaSMS trace: ' . $e->getTraceAsString());
         
         return response()->json([
             'success' => false,

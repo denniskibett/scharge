@@ -211,7 +211,7 @@ document.addEventListener('alpine:init', () => {
                 if (result.success) {
                     this.closeModal();
                     // Show success message with details
-                    alert(`✅ ${result.message}\n\nTotal Units: ${result.total_units}\nTotal Revenue: KES ${(result.total_revenue || 0).toLocaleString()}`);
+                    alert(`${result.message}\n\nTotal Units: ${result.total_units}\nTotal Revenue: KES ${(result.total_revenue || 0).toLocaleString()}`);
                     // Refresh the page to show updated data
                     (window.schargeRefresh || (() => location.reload()))();
                 } else {

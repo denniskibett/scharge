@@ -287,17 +287,17 @@
                 :disabled="!form.unit_id || !form.tenant_name"
                 class="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                📄 <span x-text="leaseAgreementGenerated ? 'View Agreement' : 'Generate Agreement'"></span>
+                <x-icon name="document-text" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> <span x-text="leaseAgreementGenerated ? 'View Agreement' : 'Generate Agreement'"></span>
               </button>
             </div>
             <div x-show="leaseAgreementGenerated" class="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <p class="text-sm text-green-700 dark:text-green-300">
-                ✅ Lease agreement generated. <a href="#" @click.prevent="viewLeaseAgreement()" class="underline font-medium">View Document</a>
+                <x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Lease agreement generated. <a href="#" @click.prevent="viewLeaseAgreement()" class="underline font-medium">View Document</a>
               </p>
             </div>
             <div x-show="!leaseAgreementGenerated && form.unit_id" class="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
               <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                ⚠️ Click "Generate Agreement" to create the lease document.
+                <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Click "Generate Agreement" to create the lease document.
               </p>
             </div>
           </div>

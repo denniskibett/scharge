@@ -174,7 +174,7 @@
             <!-- Preview Section -->
             <div id="previewSection" class="mb-4 rounded border border-stroke p-4 dark:border-strokedark" style="display: none;">
                 <div class="flex items-center justify-between mb-3">
-                    <h4 class="text-sm font-semibold text-black dark:text-white">📱 Message Preview</h4>
+                    <h4 class="text-sm font-semibold text-black dark:text-white"><x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Message Preview</h4>
                     <span class="text-xs text-gray-500">Showing preview for first tenant</span>
                 </div>
                 <div id="previewContent" class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
@@ -321,7 +321,7 @@
                     </div>
                     <div class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">${preview}</div>
                     <div class="mt-2 flex items-center gap-2 text-xs text-gray-400">
-                        <span>📱 To: ${data.unit} - ${data.tenant_name}</span>
+                        <span>To: ${data.unit} - ${data.tenant_name}</span>
                     </div>
                 </div>
             </div>

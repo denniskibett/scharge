@@ -160,16 +160,16 @@
             required
             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
           >
-            <option value="mpesa">💳 M-Pesa Paybill (STK Push)</option>
-            <option value="cash">💰 Cash</option>
-            <option value="bank">🏦 Bank Transfer</option>
+            <option value="mpesa">M-Pesa Paybill (STK Push)</option>
+            <option value="cash">Cash</option>
+            <option value="bank">Bank Transfer</option>
           </select>
         </div>
 
         <!-- M-Pesa Phone Number (shown only for mpesa) -->
         <div class="col-span-1" x-show="form.payment_method === 'mpesa'">
           <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-            📱 M-Pesa Phone Number *
+            <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> M-Pesa Phone Number *
           </label>
           <input
             type="text"
@@ -185,7 +185,7 @@
         <!-- M-Pesa Instructions -->
         <div class="col-span-2" x-show="form.payment_method === 'mpesa'">
           <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-            <strong>📌 How M-Pesa Paybill works:</strong>
+            <strong><x-icon name="map-pin" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> How M-Pesa Paybill works:</strong>
             <ul class="mt-1 list-disc pl-5">
               <li>You will receive an STK Push pop-up on your phone</li>
               <li>Enter your M-Pesa PIN to confirm</li>
@@ -289,7 +289,7 @@
           class="flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs disabled:opacity-50 disabled:cursor-not-allowed"
           :class="form.payment_method === 'mpesa' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-500 hover:bg-brand-600'"
         >
-          <span x-show="!loading" x-text="form.payment_method === 'mpesa' ? '💳 Pay with M-Pesa' : 'Record Payment'"></span>
+          <span x-show="!loading" x-text="form.payment_method === 'mpesa' ? 'Pay with M-Pesa' : 'Record Payment'"></span>
           <span x-show="loading">Processing...</span>
         </button>
       </div>
@@ -571,7 +571,7 @@ document.addEventListener('alpine:init', () => {
             this.showMpesaStatus(data.checkout_request_id);
           } else {
             this.closeModal();
-            // ✅ NO BROWSER ALERT - Using alert modal
+            // NO BROWSER ALERT - Using alert modal
             window.alertModal.showSuccess('Payment Successful', data.message || 'Payment recorded successfully!');
             setTimeout(() => {
               (window.schargeRefresh || (() => location.reload()))();
@@ -579,10 +579,10 @@ document.addEventListener('alpine:init', () => {
           }
         } else if (data.requires_confirmation) {
           this.loading = false;
-          // ✅ NO BROWSER CONFIRM - Using alert modal
+          // NO BROWSER CONFIRM - Using alert modal
           this.showInsufficientBalanceConfirmation(data);
         } else {
-          // ✅ NO BROWSER ALERT - Using alert modal for errors
+          // NO BROWSER ALERT - Using alert modal for errors
           if (data.message) {
             window.alertModal.showError('Payment Failed', data.message);
           }
@@ -595,7 +595,7 @@ document.addEventListener('alpine:init', () => {
         }
       } catch (error) {
         console.error('Error:', error);
-        // ✅ NO BROWSER ALERT - Using alert modal
+        // NO BROWSER ALERT - Using alert modal
         window.alertModal.showError('Error', 'An error occurred. Please try again.');
         this.formErrors = ['An error occurred. Please try again.'];
         this.loading = false;
@@ -608,10 +608,10 @@ document.addEventListener('alpine:init', () => {
       const formattedAmount = data.data?.formatted_amount || currency + '0.00';
       const tenantName = data.data?.tenant_name || 'Tenant';
       
-      // ✅ NO BROWSER CONFIRM - Using alert modal
+      // NO BROWSER CONFIRM - Using alert modal
       window.alertModal.show(
         'warning',
-        '⚠️ Insufficient Wallet Balance',
+        'Insufficient Wallet Balance',
         `Payment amount (${formattedAmount}) exceeds wallet balance (${formattedBalance}). ${tenantName} will need to top up their wallet. Continue?`,
         [],
         {
@@ -663,14 +663,14 @@ document.addEventListener('alpine:init', () => {
             this.showMpesaStatus(data.checkout_request_id);
           } else {
             this.closeModal();
-            // ✅ NO BROWSER ALERT - Using alert modal
+            // NO BROWSER ALERT - Using alert modal
             window.alertModal.showSuccess('Payment Successful', data.message || 'Payment recorded successfully!');
             setTimeout(() => {
               (window.schargeRefresh || (() => location.reload()))();
             }, 1500);
           }
         } else {
-          // ✅ NO BROWSER ALERT - Using alert modal
+          // NO BROWSER ALERT - Using alert modal
           if (data.message) {
             window.alertModal.showError('Payment Failed', data.message);
           }
@@ -679,7 +679,7 @@ document.addEventListener('alpine:init', () => {
         }
       } catch (error) {
         console.error('Error:', error);
-        // ✅ NO BROWSER ALERT - Using alert modal
+        // NO BROWSER ALERT - Using alert modal
         window.alertModal.showError('Error', 'An error occurred. Please try again.');
         this.formErrors = ['An error occurred. Please try again.'];
         this.loading = false;
@@ -689,7 +689,7 @@ document.addEventListener('alpine:init', () => {
     showMpesaStatus(checkoutId) {
       this.mpesaStatus.show = true;
       this.mpesaStatus.checkoutId = checkoutId;
-      this.mpesaStatus.title = '📱 STK Push Sent!';
+      this.mpesaStatus.title = 'STK Push Sent!';
       this.mpesaStatus.message = `Please check your phone (${this.form.mpesa_phone}) and enter your M-Pesa PIN.`;
       this.mpesaStatus.icon = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       this.mpesaStatus.class = 'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
@@ -726,7 +726,7 @@ document.addEventListener('alpine:init', () => {
               this.mpesaStatus.interval = null;
               this.mpesaStatus.progress = 100;
               this.mpesaStatus.progressClass = 'bg-green-600';
-              this.mpesaStatus.title = '✅ Payment Successful!';
+              this.mpesaStatus.title = 'Payment Successful!';
               this.mpesaStatus.message = `Your payment has been confirmed. Receipt: ${data.data?.ReceiptNumber || 'N/A'}`;
               this.mpesaStatus.icon = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
               this.mpesaStatus.class = 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400';
@@ -739,7 +739,7 @@ document.addEventListener('alpine:init', () => {
             } else if (status === '1' || status === 'failed' || status === 'error') {
               clearInterval(this.mpesaStatus.interval);
               this.mpesaStatus.interval = null;
-              this.mpesaStatus.title = '❌ Payment Failed';
+              this.mpesaStatus.title = 'Payment Failed';
               this.mpesaStatus.message = data.message || 'Transaction failed. Please try again.';
               this.mpesaStatus.icon = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
               this.mpesaStatus.class = 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400';
@@ -752,7 +752,7 @@ document.addEventListener('alpine:init', () => {
         if (this.mpesaStatus.attempts >= this.mpesaStatus.maxAttempts) {
           clearInterval(this.mpesaStatus.interval);
           this.mpesaStatus.interval = null;
-          this.mpesaStatus.title = '⏳ Payment Still Processing';
+          this.mpesaStatus.title = 'Payment Still Processing';
           this.mpesaStatus.message = 'Please check your M-Pesa app for status.';
           this.mpesaStatus.icon = `<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
           this.mpesaStatus.class = 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';

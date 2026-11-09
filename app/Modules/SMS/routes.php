@@ -8,7 +8,7 @@ use App\Modules\SMS\Controllers\WebhookController;
 use App\Http\Controllers\MpesaController;
 
 // =========================================================
-// 📨 M-PESA CALLBACK - PUBLIC ROUTE (No Auth, No CSRF)
+// M-PESA CALLBACK - PUBLIC ROUTE (No Auth, No CSRF)
 // =========================================================
 // CSRF exemption lives in bootstrap/app.php (validateCsrfTokens except).
 Route::post('/sms/mpesa/callback', [MpesaController::class, 'handleCallback'])
@@ -19,7 +19,7 @@ Route::post('/sms/mpesa/callback', [MpesaController::class, 'handleCallback'])
 Route::post('/sms/webhook/dlr', [WebhookController::class, 'handleDLR'])->name('sms.webhook.dlr');
 
 // =========================================================
-// 📱 SMS ROUTES - Authenticated
+// SMS ROUTES - Authenticated
 // =========================================================
 Route::prefix('sms')->middleware(['auth', 'access:sms'])->group(function () {
 
@@ -54,7 +54,7 @@ Route::prefix('sms')->middleware(['auth', 'access:sms'])->group(function () {
     Route::post('/settings', [SmsController::class, 'updateSettings'])->name('sms.settings.update');
 
     // =========================================================
-    // 📊 CAMPAIGNS - Full CRUD (Web routes)
+    // CAMPAIGNS - Full CRUD (Web routes)
     // =========================================================
     Route::get('/campaigns', [CampaignController::class, 'index'])->name('sms.campaigns.index');
     Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('sms.campaigns.create');
@@ -81,25 +81,25 @@ Route::prefix('sms')->middleware(['auth', 'access:sms'])->group(function () {
     // (KenyaSMS delivery-report webhook moved above, outside the auth group.)
 
     // =========================================================
-    // 📱 M-PESA ROUTES (Authenticated)
+    // M-PESA ROUTES (Authenticated)
     // =========================================================
     // (Removed sms/mpesa/stk-push, query-status, b2b-payment: they pointed at
     // MpesaController methods that never existed.)
 
     // =========================================================
-    // 🏷️ LEGACY
+    // LEGACY
     // =========================================================
     Route::get('/api/tenant-payment-status/{tenantId}', [SmsController::class, 'getTenantPaymentStatus']);
 });
 
 // =========================================================
-// 📨 B2B CALLBACKS - PUBLIC ROUTES (No Auth, No CSRF)
+// B2B CALLBACKS - PUBLIC ROUTES (No Auth, No CSRF)
 // =========================================================
 // (Removed /mpesa/b2b/result and /mpesa/b2b/queue: MpesaController::b2bResult
 // and b2bQueueTimeout never existed. Re-add with the B2B payout work.)
 
 // =========================================================
-// 📊 SMS API ROUTES (For AJAX calls from frontend)
+// SMS API ROUTES (For AJAX calls from frontend)
 // =========================================================
 Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () {
     
@@ -121,7 +121,7 @@ Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () 
     });
     
     // =========================================================
-    // 📊 CAMPAIGNS API
+    // CAMPAIGNS API
     // =========================================================
     
     // Specific routes first
@@ -130,10 +130,10 @@ Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () 
     Route::post('/campaigns/preview', [CampaignController::class, 'preview']);
     Route::get('/campaigns/kenyasms', [CampaignController::class, 'listFromKenyaSMS']);
     
-    // ✅ IMPORT ALL CAMPAIGNS - ADD THIS ROUTE
+    // IMPORT ALL CAMPAIGNS - ADD THIS ROUTE
     Route::post('/campaigns/import-kenyasms', [CampaignController::class, 'importKenyaSmsCampaigns']);
     
-    // ✅ IMPORT SINGLE CAMPAIGN
+    // IMPORT SINGLE CAMPAIGN
     Route::post('/campaigns/kenyasms/{campaignId}/import', [CampaignController::class, 'importFromKenyaSMS']);
     
     // Generic {id} route - must come after specific routes

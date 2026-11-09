@@ -8,10 +8,10 @@ This document records what the codebase does today against what the website and 
 
 | Label | Meaning |
 |---|---|
-| ✅ Working | Implemented end-to-end and wired up |
-| 🟡 Partial | Some of it exists; important pieces are missing or broken |
-| 🔴 Broken | Code exists but cannot work as written |
-| ⚪ Missing | Nothing in the backend; at most marketing copy |
+| Working | Implemented end-to-end and wired up |
+| Partial | Some of it exists; important pieces are missing or broken |
+| Broken | Code exists but cannot work as written |
+| Missing | Nothing in the backend; at most marketing copy |
 
 ---
 
@@ -19,21 +19,21 @@ This document records what the codebase does today against what the website and 
 
 | Area | Status | One-line verdict |
 |---|---|---|
-| bavix wallet | 🟡 Partial | On `User` and `Tenant` only; M-Pesa callback double-counts; no company/landlord wallet |
-| Spatie roles & permissions | 🟡 Partial | Tables exist in the live DB but not in migrations; role names inconsistent; admin routes unguarded |
-| KYC | ⚪ Missing | Free-text `id_number` only; no uploads, verification status or screening |
-| OCR | ⚪ Missing | No OCR library; water readings have no photo column |
-| Staff vs non-staff dashboards | 🔴 Broken split | Everyone gets the admin (TailAdmin, blue) layout; website design not used after login |
-| Website forms → backend | 🟡 Partial | 5 forms save to CRM; none notify anyone; most CTAs link nowhere |
-| CRM for staff | 🟡 Partial | Good pipeline UI, but `sysadmin`-only; schema is hand-run SQL |
-| Cold email / marketing | ⚪ Missing | `MAIL_MAILER=log`, no Mailables, no unsubscribe/consent |
-| White label (monthly) | ⚪ Missing | Marketing copy only ("quoted per portfolio"); no plan, no per-company branding |
-| Subscription invoice via M-Pesa | ⚪ Missing | No STK for subscription invoices; renewal uses a fake gateway that always succeeds |
-| Client's own Daraja | ⚪ Missing | One global credential set; nowhere to store a client's keys |
-| scharge as payment rail | ⚪ Missing | No company ledger, fees, B2C/B2B payouts or statements |
-| Expenses paid from portal | 🟡 Record-keeping | Expenses are logged; no money moves, no approvals |
-| Sweeping 08:00 / 12:00 / 16:00 | ⚪ Missing | No sweep job, and **the scheduler doesn't run at all** |
-| M-Pesa STK (tenant rent) | 🔴 Broken | Callback is blocked by CSRF (419); env names mismatched |
+| bavix wallet | Partial | On `User` and `Tenant` only; M-Pesa callback double-counts; no company/landlord wallet |
+| Spatie roles & permissions | Partial | Tables exist in the live DB but not in migrations; role names inconsistent; admin routes unguarded |
+| KYC | Missing | Free-text `id_number` only; no uploads, verification status or screening |
+| OCR | Missing | No OCR library; water readings have no photo column |
+| Staff vs non-staff dashboards | Broken split | Everyone gets the admin (TailAdmin, blue) layout; website design not used after login |
+| Website forms → backend | Partial | 5 forms save to CRM; none notify anyone; most CTAs link nowhere |
+| CRM for staff | Partial | Good pipeline UI, but `sysadmin`-only; schema is hand-run SQL |
+| Cold email / marketing | Missing | `MAIL_MAILER=log`, no Mailables, no unsubscribe/consent |
+| White label (monthly) | Missing | Marketing copy only ("quoted per portfolio"); no plan, no per-company branding |
+| Subscription invoice via M-Pesa | Missing | No STK for subscription invoices; renewal uses a fake gateway that always succeeds |
+| Client's own Daraja | Missing | One global credential set; nowhere to store a client's keys |
+| scharge as payment rail | Missing | No company ledger, fees, B2C/B2B payouts or statements |
+| Expenses paid from portal | Record-keeping | Expenses are logged; no money moves, no approvals |
+| Sweeping 08:00 / 12:00 / 16:00 | Missing | No sweep job, and **the scheduler doesn't run at all** |
+| M-Pesa STK (tenant rent) | Broken | Callback is blocked by CSRF (419); env names mismatched |
 
 ---
 
@@ -49,7 +49,7 @@ This document records what the codebase does today against what the website and 
   - a custom `2026_05_27_132019_create_wallets_table.php` would collide with bavix's `wallets` table;
   - six duplicate `create_sms_templates_table` migrations.
 
-  ➜ A fresh `php artisan migrate` cannot rebuild production. **Fix this first.**
+  A fresh `php artisan migrate` cannot rebuild production. **Fix this first.**
 - **Two model trees:** `app/Models/*` and `app/Modules/*/Models/*` duplicate Tenant, User, Invoice, Payment, etc. 17 files import `App\Models\Tenant` and 9 import the module class. With no morph map, bavix `holder_type` differs and wallets split.
 - **Timezone:** `config/app.php:71` falls back to `UTC`, so Nairobi times are wrong by 3 hours.
 
@@ -57,7 +57,7 @@ This document records what the codebase does today against what the website and 
 
 ## 3. Core platform
 
-### 3.1 bavix wallet: 🟡 Partial
+### 3.1 bavix wallet: Partial
 
 **Exists**
 - `HasWallet` on `App\Modules\Users\Models\User` (User.php:17-19) and `App\Modules\Tenants\Models\Tenant` (Tenant.php:16-18).
@@ -74,7 +74,7 @@ This document records what the codebase does today against what the website and 
    - `CreateTenantWallets.php:8`, which imports a non-existent `App\Modules\Payments\Models\Wallet`.
 5. `method_exists($tenant,'balance')` is always false, so `wallet_balance_before` is always 0.
 
-### 3.2 Spatie roles & permissions: 🟡 Partial
+### 3.2 Spatie roles & permissions: Partial
 
 - `HasRoles` on User; `config/permission.php` has `teams=false`. Company scoping is manual (`company_id` plus `SetCompanyContext`).
 - **Two competing seeders:**
@@ -93,7 +93,7 @@ This document records what the codebase does today against what the website and 
   - `public/invoice/{invoice}/*` uses sequential IDs with no signed URL (web.php:200-206).
 - `User::isStaff()` (User.php:404-416) counts property managers, accountants and meter readers as "staff". That conflicts with the business meaning of staff (scharge's own team). There is no account-manager or sales role.
 
-### 3.3 KYC: ⚪ Missing
+### 3.3 KYC: Missing
 
 - `tenants.id_number` is free text (`nullable|string|max:50`, TenantController.php:165).
 - Visitor ID capture exists in Security (gate log, not KYC).
@@ -105,7 +105,7 @@ This document records what the codebase does today against what the website and 
   - format validation;
   - encryption of ID numbers (required under the Kenya Data Protection Act).
 
-### 3.4 OCR: ⚪ Missing
+### 3.4 OCR: Missing
 
 - There is no OCR dependency (tesseract, Google Vision, AWS Textract).
 - `water_readings` has **no photo column**. The model's fillable fields (`recorded_by`, `is_initial`, `rate_applied`, `billing_type`) don't exist in the migration, which has `rate_per_unit`, so meter-reading inserts can fail.
@@ -122,12 +122,12 @@ This document records what the codebase does today against what the website and 
 
 **Requirement:** scharge staff use an admin dashboard. Customers (landlords/owners, managers, tenants, BnB hosts, caretakers/meter readers, fundis) get dashboards that carry the **website design** (red `#DC2626`, ink `#1A1214`, white; Unbounded + DM Sans; `public/assets/css/styles.css`).
 
-**Current state: 🔴 not split.**
+**Current state: not split.**
 
 | Layout | Used by | Design |
 |---|---|---|
 | `layouts/app.blade.php` | **Every** page after login: all dashboards, tenant wallet, estates, units, payments, CRM, admin | TailAdmin, Outfit, blue `#3A57E8` / `#465FFF` |
-| `home/layout.blade.php` + `home/auth.blade.php` | Public site, login, register | Website design ✅ |
+| `home/layout.blade.php` + `home/auth.blade.php` | Public site, login, register | Website design |
 | `layouts/guest.blade.php` | reset / confirm / verify-email | Plain Breeze (matches neither) |
 | `layouts.admin` | `vendor/subscriptions/index.blade.php` | **Does not exist** |
 
@@ -147,7 +147,7 @@ This document records what the codebase does today against what the website and 
 
 ## 5. Payments and money movement
 
-### 5.1 M-Pesa STK for tenant invoices: 🔴 Broken
+### 5.1 M-Pesa STK for tenant invoices: Broken
 
 - **CSRF blocks Safaricom.** `routes/mpesa.php:8` registers `POST /pay` inside the web stack and calls `withoutMiddleware(App\Http\Middleware\VerifyCsrfToken)`. Laravel 12 runs `ValidateCsrfToken`, which is a different class. `bootstrap/app.php` has no `validateCsrfTokens(except: …)`. The callback therefore gets **419**.
 - **Env names don't match:**
@@ -166,7 +166,7 @@ This document records what the codebase does today against what the website and 
 - **No reconciliation:** `pending_mpesa_payments` is unused, and there's no C2B register/confirm/validate.
 - **Logs leak data:** the consumer-key prefix (MpesaService.php:55), the full B2B payload including `SecurityCredential` (`:332`), and raw callbacks with headers (`MpesaController.php:30-49`).
 
-### 5.2 Subscription invoice payment via M-Pesa: ⚪ Missing
+### 5.2 Subscription invoice payment via M-Pesa: Missing
 
 - No STK for `SubscriptionInvoice`, and the callback only knows tenant `Invoice` (MpesaController.php:202,237).
 - `PaymentGatewayService::charge` is a **stub that always returns `successful` in USD** (`PaymentGatewayService.php:30-48`). Auto-renewal "succeeds" without money moving.
@@ -184,7 +184,7 @@ This document records what the codebase does today against what the website and 
 - C2B paybill confirmation for manual paybill payments.
 - A reconciliation job, plus receipts by SMS/email.
 
-### 5.3 Client's own Daraja: ⚪ Missing
+### 5.3 Client's own Daraja: Missing
 
 - `MpesaService` is a singleton credential set with one token cache key and one callback URL.
 - Two conflicting `CompanyPaymentMethod` models on one table: the Payments one is display-only paybill/till/bank; the Subscriptions one is card fields.
@@ -199,7 +199,7 @@ This document records what the codebase does today against what the website and 
 
   Payments go **straight to the client's paybill**. scharge only records them and bills its subscription.
 
-### 5.4 scharge as the payment rail: ⚪ Missing
+### 5.4 scharge as the payment rail: Missing
 
 For clients without Daraja, tenants pay scharge's shortcode with an account ref that identifies unit and company (e.g. `B04MWANGAZA`, as in the tenant app design).
 
@@ -213,7 +213,7 @@ For clients without Daraja, tenants pay scharge's shortcode with an account ref 
   - payouts by B2B (paybill/till) or bank;
   - the sweep job (§5.6).
 
-### 5.5 Expenses from the portal: 🟡 Record-keeping only
+### 5.5 Expenses from the portal: Record-keeping only
 
 - `ExpenseController` stores expenses with `status pending|paid`.
 - `ExpensePayment` is never written, and `Payee` has no paybill/till/bank fields.
@@ -227,7 +227,7 @@ For clients without Daraja, tenants pay scharge's shortcode with an account ref 
 
   For Daraja clients, record the expense and optionally disburse via their own B2C credentials.
 
-### 5.6 Sweeping (08:00, 12:00, 16:00 Africa/Nairobi): ⚪ Missing
+### 5.6 Sweeping (08:00, 12:00, 16:00 Africa/Nairobi): Missing
 
 - **No scheduler runs.**
   - `app/Console/Kernel.php::schedule()` is ignored by Laravel 12.
@@ -265,33 +265,33 @@ All public forms live in `app/Modules/CRM/Controllers/Site/SiteFormController.ph
 
 | Offering (canvas page) | Backend | Status |
 |---|---|---|
-| Waitlist (landing) | `waitlist_entries` + nurture company | ✅ (manual "launch country" step) |
-| Book a meeting (developers) | `crm_follow_ups` type=demo, due next working day | ✅ in CRM, no notification |
-| Get sandbox keys (API) | follow-up type=api_keys; **no keys generated** | 🟡 saves only |
-| Viewing/application request (listings) | follow-up type=viewing, unassigned, no company | 🟡 saves only; nothing reaches the owner |
-| SMS me new matches (listings) | one listing_alert per user (overwrites) | 🟡 saves only; no matching, no SMS, no STOP |
-| Feedback link | NPS; a score ≤6 opens a recovery call | ✅ |
-| Pricing calculator (landing) | JS only (`main.js:117-131`); the minimum is applied per account, not per property | ⚪ Frontend only |
-| "Send me this quote" | Link to `developers#talk`; the quote is lost | ⚪ |
-| Airbnb cost calculator | JS only | ⚪ |
-| "Add my listing", "List my vacancy", "Embed on website" | Links loop back to pricing/API | ⚪ Goes nowhere |
-| Open listings browse | Hard-coded JSON in `listings.blade.php:67`; no listings table | ⚪ |
-| Channel sync, direct booking, smart locks, host earnings | Only `units.stay_type=bnb` and `bnb_nightly_rate` | ⚪ |
-| Cleaning/turnover | Routes → empty `CleaningController` (would error) | 🔴 |
-| Off-plan instalments, snag lists, handover, plots | — | ⚪ |
-| API endpoints and webhooks | No `routes/api.php`, Sanctum or webhook dispatch | ⚪ |
-| Tenant pay via M-Pesa | Public invoice STK works up to the callback (419) | 🔴 see §5.1 |
-| Receipts | Receipt number stored; no SMS/email receipt | 🟡 |
-| Metered water + photo proof | Readings exist; no photo, OCR or anomaly | 🟡 |
-| Repairs / work orders / fundi | Store/update exist; images validated then saved as `[]`; `assignments()` and `destroy()` missing | 🟡 |
-| Notices, arrears reminders | Manual SMS campaigns only | 🟡 |
-| Payment plans, owner payouts, MRI tax set-aside, screening, e-lease, gate passes, offline reader | Stubs or nothing (`LeaseAgreement` and `HouseChecklist` models have no tables) | ⚪ |
+| Waitlist (landing) | `waitlist_entries` + nurture company | (manual "launch country" step) |
+| Book a meeting (developers) | `crm_follow_ups` type=demo, due next working day | in CRM, no notification |
+| Get sandbox keys (API) | follow-up type=api_keys; **no keys generated** | saves only |
+| Viewing/application request (listings) | follow-up type=viewing, unassigned, no company | saves only; nothing reaches the owner |
+| SMS me new matches (listings) | one listing_alert per user (overwrites) | saves only; no matching, no SMS, no STOP |
+| Feedback link | NPS; a score ≤6 opens a recovery call | |
+| Pricing calculator (landing) | JS only (`main.js:117-131`); the minimum is applied per account, not per property | Frontend only |
+| "Send me this quote" | Link to `developers#talk`; the quote is lost | |
+| Airbnb cost calculator | JS only | |
+| "Add my listing", "List my vacancy", "Embed on website" | Links loop back to pricing/API | Goes nowhere |
+| Open listings browse | Hard-coded JSON in `listings.blade.php:67`; no listings table | |
+| Channel sync, direct booking, smart locks, host earnings | Only `units.stay_type=bnb` and `bnb_nightly_rate` | |
+| Cleaning/turnover | Routes → empty `CleaningController` (would error) | |
+| Off-plan instalments, snag lists, handover, plots | — | |
+| API endpoints and webhooks | No `routes/api.php`, Sanctum or webhook dispatch | |
+| Tenant pay via M-Pesa | Public invoice STK works up to the callback (419) | see §5.1 |
+| Receipts | Receipt number stored; no SMS/email receipt | |
+| Metered water + photo proof | Readings exist; no photo, OCR or anomaly | |
+| Repairs / work orders / fundi | Store/update exist; images validated then saved as `[]`; `assignments()` and `destroy()` missing | |
+| Notices, arrears reminders | Manual SMS campaigns only | |
+| Payment plans, owner payouts, MRI tax set-aside, screening, e-lease, gate passes, offline reader | Stubs or nothing (`LeaseAgreement` and `HouseChecklist` models have no tables) | |
 
 ---
 
 ## 7. CRM, marketing and cold email
 
-**CRM (🟡)**
+**CRM ()**
 - The pipeline lives on `companies`:
   - `lifecycle` (prospect/customer/churned);
   - `crm_stage`: new, contacted, qualified, demo_booked, proposal, negotiation, won, lost, nurture;
@@ -308,7 +308,7 @@ All public forms live in `app/Modules/CRM/Controllers/Site/SiteFormController.ph
   - no bulk actions, kanban, UI import or delete;
   - the schema isn't in migrations.
 
-**Cold email (⚪)**
+**Cold email ()**
 - `MAIL_MAILER=log` and `MAIL_FROM_ADDRESS=hello@example.com`.
 - No `app/Mail`, and no Notifications. The two listeners reference Mailables that don't exist and would crash.
 - No templates, sequences, tracking, bounce handling, unsubscribe link, `List-Unsubscribe` header or consent record.
@@ -469,8 +469,8 @@ The live server was checked read-only. Nothing on the server was changed.
   - Six files were edited on the server only: `bootstrap/app.php`, `routes/mpesa.php`, `VerifyCsrfToken.php`, `composer.json`, `RoleSeeder.php` and `StaffController.php`. Only the StaffController view fix was worth porting.
   - Live also has leftovers that the repo deleted: `routes/api.php`, `routes/test.php`, old models (`Loan`, `Payee`, …), `bootstrap/app.php.bak`.
   - Stray files in the app root (`-d`, `-H`, `n't work, try:`, …) came from a mistyped shell command.
-- **🔴 `POST https://scharge.sharet.africa/pay` returns 419.** Safaricom STK callbacks are being rejected in production today.
-- **🔴 `APP_DEBUG=true` and `APP_ENV=local` in production.** Errors show stack traces and config to the public. Set `APP_ENV=production`, `APP_DEBUG=false`.
+- **`POST https://scharge.sharet.africa/pay` returns 419.** Safaricom STK callbacks are being rejected in production today.
+- **`APP_DEBUG=true` and `APP_ENV=local` in production.** Errors show stack traces and config to the public. Set `APP_ENV=production`, `APP_DEBUG=false`.
 - **No crontab for the site user `schar5452`,** so no scheduled task can run. Add:
   ```
   * * * * * cd /home/scharge.sharet.africa/laravel && php artisan schedule:run >> /dev/null 2>&1

@@ -140,7 +140,7 @@
 
                         <!-- Company Preview -->
                         <div x-show="formData.name" class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800/30">
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📋 Company Preview:</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"><x-icon name="clipboard-document-list" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Company Preview:</p>
                             <div class="grid grid-cols-2 gap-2 text-sm">
                                 <div>
                                     <span class="text-gray-500 dark:text-gray-400">Name:</span>
@@ -170,7 +170,7 @@
                         </button>
                         <button type="submit" :disabled="saving" 
                             class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2">
-                            <span x-show="!saving" x-text="modalMode === 'create' ? '✨ Create Company' : '💾 Save Changes'"></span>
+                            <span x-show="!saving" x-text="modalMode === 'create' ? 'Create Company' : 'Save Changes'"></span>
                             <span x-show="saving" class="flex items-center gap-2">
                                 <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

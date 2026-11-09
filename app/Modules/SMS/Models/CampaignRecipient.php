@@ -108,12 +108,12 @@ protected $table = 'campaign_recipients';
     public function getStatusBadgeAttribute(): string
     {
         $badges = [
-            'pending' => '<span class="badge badge-warning">⏳ Pending</span>',
-            'queued' => '<span class="badge badge-info">📤 Queued</span>',
-            'sending' => '<span class="badge badge-info">📤 Sending</span>',
-            'sent' => '<span class="badge badge-primary">✅ Sent</span>',
-            'delivered' => '<span class="badge badge-success">📨 Delivered</span>',
-            'failed' => '<span class="badge badge-danger">❌ Failed</span>',
+            'pending' => '<span class="badge badge-warning">Pending</span>',
+            'queued' => '<span class="badge badge-info">Queued</span>',
+            'sending' => '<span class="badge badge-info">Sending</span>',
+            'sent' => '<span class="badge badge-primary">Sent</span>',
+            'delivered' => '<span class="badge badge-success">Delivered</span>',
+            'failed' => '<span class="badge badge-danger">Failed</span>',
         ];
         
         return $badges[$this->status] ?? $this->status;

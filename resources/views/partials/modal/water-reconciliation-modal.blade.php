@@ -78,9 +78,9 @@
                              }">
                             <div>
                                 <span x-text="'#' + result.invoice_id + ' - Unit ' + result.unit_number"></span>
-                                <span x-show="result.status === 'updated'" class="text-green-600 dark:text-green-400 text-xs ml-2">✓ Updated</span>
-                                <span x-show="result.status === 'already_correct'" class="text-blue-600 dark:text-blue-400 text-xs ml-2">✓ Already correct</span>
-                                <span x-show="result.status === 'no_reading'" class="text-yellow-600 dark:text-yellow-400 text-xs ml-2">⚠️ No reading</span>
+                                <span x-show="result.status === 'updated'" class="text-green-600 dark:text-green-400 text-xs ml-2"><x-icon name="check" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Updated</span>
+                                <span x-show="result.status === 'already_correct'" class="text-blue-600 dark:text-blue-400 text-xs ml-2"><x-icon name="check" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Already correct</span>
+                                <span x-show="result.status === 'no_reading'" class="text-yellow-600 dark:text-yellow-400 text-xs ml-2"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> No reading</span>
                             </div>
                             <div class="text-right">
                                 <span x-show="result.status === 'updated'" x-text="'KES ' + result.old_charge + ' → KES ' + result.new_charge" class="text-sm"></span>

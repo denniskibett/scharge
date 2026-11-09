@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Log;
 
 class CampaignService
 {
-    protected KenyaSMS $kenyaSMS;  // ✅ FIXED: Was KenyaSMSService
+    protected KenyaSMS $kenyaSMS;  // FIXED: Was KenyaSMSService
 
-    public function __construct(KenyaSMS $kenyaSMS)  // ✅ FIXED: Was KenyaSMSService
+    public function __construct(KenyaSMS $kenyaSMS)  // FIXED: Was KenyaSMSService
     {
         $this->kenyaSMS = $kenyaSMS;
     }
@@ -187,7 +187,7 @@ public function createCampaign(array $data): SmsCampaign
             throw new \Exception('No valid recipients with placeholders.');
         }
         
-        // ✅ FORCE SANDBOX MODE - ALWAYS skip API call
+        // FORCE SANDBOX MODE - ALWAYS skip API call
         $sandbox = true;  // ← FORCED to true
         $kenyasmsCampaignId = 'sandbox-' . uniqid() . '-' . time();
         
@@ -196,7 +196,7 @@ public function createCampaign(array $data): SmsCampaign
             'recipients' => count($kenyaRecipients)
         ]);
         
-        // ✅ Create campaign locally
+        // Create campaign locally
         $campaign = SmsCampaign::create([
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
@@ -796,7 +796,7 @@ public function createCampaign(array $data): SmsCampaign
     }
 
     /**
-     * ✅ NEW: Check pending status for a campaign
+     * NEW: Check pending status for a campaign
      * This queries KenyaSMS for pending messages and updates their status
      */
     public function checkPendingStatus($campaignId): array

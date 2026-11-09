@@ -172,7 +172,7 @@ class MpesaService
     }
 
     // =========================================================
-    // 📱 STK PUSH (Lipa Na M-Pesa Online)
+    // STK PUSH (Lipa Na M-Pesa Online)
     // =========================================================
 
 
@@ -233,7 +233,7 @@ class MpesaService
                 
                 if ($checkoutRequestId) {
                     try {
-                        // ✅ ONLY create MpesaStk record - NO PendingMpesaPayment
+                        // ONLY create MpesaStk record - NO PendingMpesaPayment
                         \App\Models\MpesaStk::createFromRequest(
                             $checkoutRequestId,
                             $merchantRequestId,
@@ -243,12 +243,12 @@ class MpesaService
                             $userId
                         );
                         
-                        Log::info('✅ M-Pesa STK record stored in database', [
+                        Log::info('M-Pesa STK record stored in database', [
                             'checkout_request_id' => $checkoutRequestId,
                             'invoice_id' => $invoiceId
                         ]);
                     } catch (\Exception $e) {
-                        Log::error('❌ Failed to store M-Pesa STK record: ' . $e->getMessage(), [
+                        Log::error('Failed to store M-Pesa STK record: ' . $e->getMessage(), [
                             'checkout_request_id' => $checkoutRequestId
                         ]);
                     }
@@ -350,7 +350,7 @@ class MpesaService
     }
 
     // =========================================================
-    // 💰 B2B (Business PayBill) API
+    // B2B (Business PayBill) API
     // =========================================================
 
     /**
@@ -447,7 +447,7 @@ class MpesaService
     }
 
     // =========================================================
-    // 🏦 WALLET & ACCOUNT
+    // WALLET & ACCOUNT
     // =========================================================
 
     /**
@@ -474,7 +474,7 @@ class MpesaService
     }
 
     // =========================================================
-    // 📞 HELPER METHODS
+    // HELPER METHODS
     // =========================================================
 
     /**

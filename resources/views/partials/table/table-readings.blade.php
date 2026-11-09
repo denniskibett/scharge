@@ -110,7 +110,7 @@
                             <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="reading.unit_number"></span>
                             <span x-show="reading.water_billing_type === 'flat'" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">Flat</span>
                             <span x-show="reading.has_gaps" class="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                                ⚠️ Gaps
+                                <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Gaps
                             </span>
                         </td>
                         <td class="p-4 whitespace-nowrap">

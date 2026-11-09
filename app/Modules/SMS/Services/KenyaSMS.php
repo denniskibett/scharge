@@ -377,7 +377,7 @@ class KenyaSMS
     }
 
     // =========================================================
-    // 🚀 CAMPAIGN METHODS (Added for CampaignService)
+    // CAMPAIGN METHODS (Added for CampaignService)
     // =========================================================
 
     /**
@@ -620,13 +620,13 @@ class KenyaSMS
      */
     public function listCampaigns($page = 1, $limit = 20, $status = null)
     {
-        // ✅ Check if API key is configured
+        // Check if API key is configured
         if (empty($this->apiKey)) {
             Log::warning('KenyaSMS: API key not configured, returning mock data');
             return $this->getMockCampaigns();
         }
 
-        // ✅ If sandbox is enabled, return mock data
+        // If sandbox is enabled, return mock data
         if ($this->sandbox) {
             Log::info('KenyaSMS: Sandbox mode enabled, returning mock campaigns');
             return $this->getMockCampaigns();
@@ -670,7 +670,7 @@ class KenyaSMS
                 ];
             }
 
-            // ✅ If API returns an error, log it and return mock data
+            // If API returns an error, log it and return mock data
             Log::error('KenyaSMS: Failed to list campaigns', [
                 'status_code' => $response->status(),
                 'body' => $response->body(),
@@ -684,7 +684,7 @@ class KenyaSMS
                 'trace' => $e->getTraceAsString()
             ]);
             
-            // ✅ Return mock data on any exception
+            // Return mock data on any exception
             return $this->getMockCampaigns();
         }
     }

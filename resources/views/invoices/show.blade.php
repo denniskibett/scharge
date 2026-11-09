@@ -50,7 +50,7 @@
               <span class="text-gray-500 dark:text-gray-400">Water Sync:</span>
               <span class="inline-flex px-2 py-0.5 text-xs rounded-full" 
                     :class="getWaterSyncStatusClass('{{ $waterSyncStatus ?? 'none' }}')">
-                {{ $waterSyncStatus === 'synced' ? '✓ Synced' : ($waterSyncStatus === 'pending' ? '⏳ Pending' : '⚠️ Needs Review') }}
+                {{ $waterSyncStatus === 'synced' ? 'Synced' : ($waterSyncStatus === 'pending' ? 'Pending' : 'Needs Review') }}
               </span>
             </div>
             @endif
@@ -143,7 +143,7 @@
                   @if($payment->is_reconciled)
                     <div class="flex justify-between">
                       <span class="text-gray-500 dark:text-gray-400">Reconciled:</span>
-                      <span class="text-xs text-blue-600 dark:text-blue-400">✓ Yes</span>
+                      <span class="text-xs text-blue-600 dark:text-blue-400"><x-icon name="check" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Yes</span>
                     </div>
                   @endif
                 </div>
@@ -284,7 +284,7 @@
                       <template x-if="item.item_type === 'water'">
                         <div class="flex items-center gap-2">
                           <span x-show="item.water_units_used > 0" class="text-theme-sm text-blue-600 dark:text-blue-400" x-text="item.water_units_used + ' m³'"></span>
-                          <span x-show="!item.water_units_used || item.water_units_used === 0" class="text-theme-sm text-yellow-600 dark:text-yellow-400" title="Water usage not recorded">⚠️ Not synced</span>
+                          <span x-show="!item.water_units_used || item.water_units_used === 0" class="text-theme-sm text-yellow-600 dark:text-yellow-400" title="Water usage not recorded"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Not synced</span>
                         </div>
                       </template>
                       <template x-if="item.item_type !== 'water'">
@@ -365,7 +365,7 @@
         <!--                    {{ $payment->status_badge['label'] ?? ucfirst($payment->status) }}-->
         <!--                  </span>-->
         <!--                  @if($payment->is_reconciled)-->
-        <!--                    <span class="ml-1 inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">✓</span>-->
+        <!--                    <span class="ml-1 inline-flex px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"></span>-->
         <!--                  @endif-->
         <!--                </td>-->
         <!--              </tr>-->
@@ -419,7 +419,7 @@
           
           if (navigator.clipboard) {
               navigator.clipboard.writeText(url).then(() => {
-                  showToast('success', '✅ Payment link copied to clipboard!');
+                  showToast('success', 'Payment link copied to clipboard!');
               });
           } else {
               // Fallback
@@ -429,7 +429,7 @@
               textarea.select();
               document.execCommand('copy');
               document.body.removeChild(textarea);
-              showToast('success', '✅ Payment link copied to clipboard!');
+              showToast('success', 'Payment link copied to clipboard!');
           }
       }
 
@@ -938,7 +938,7 @@ document.addEventListener('alpine:init', () => {
                           {{ $payment->status_badge['label'] ?? ucfirst($payment->status) }}
                         </span>
                         @if($payment->is_reconciled)
-                          <span style="display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; background: #dbeafe; color: #1e40af; margin-left: 4px;">✓</span>
+                          <span style="display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; background: #dbeafe; color: #1e40af; margin-left: 4px;"></span>
                         @endif
                       </td>
                     </tr>

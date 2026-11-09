@@ -587,9 +587,9 @@ document.addEventListener('alpine:init', () => {
         getWaterSyncText(invoice) {
             const status = invoice.water_status || 'none';
             const labels = {
-                'synced': '✓ Synced',
-                'pending': '⏳ Pending',
-                'needs_review': '⚠️ Review',
+                'synced': 'Synced',
+                'pending': 'Pending',
+                'needs_review': 'Review',
                 'none': '—'
             };
             return labels[status] || labels['none'];

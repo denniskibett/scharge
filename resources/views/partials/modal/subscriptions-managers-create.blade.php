@@ -136,7 +136,7 @@
                         <button @click="closeModal()" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition font-medium">Cancel</button>
                         <button @click="saveManager()" :disabled="saving || !form.user_id || !form.county_id || !form.subcounty_id" 
                             class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium">
-                            <span x-show="!saving" x-text="editing ? '💾 Update Manager' : '✨ Assign Manager'"></span>
+                            <span x-show="!saving" x-text="editing ? 'Update Manager' : 'Assign Manager'"></span>
                             <span x-show="saving" class="flex items-center gap-2">
                                 <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

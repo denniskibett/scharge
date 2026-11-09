@@ -193,7 +193,7 @@
         @endif
         @if($currentVerified)
             <span class="inline-flex items-center rounded-full bg-indigo-200 dark:bg-indigo-800 px-3 py-0.5 text-xs font-medium text-indigo-800 dark:text-indigo-200">
-                Verified: {{ $currentVerified == 'verified' ? '✅ Verified' : '⏳ Unverified' }}
+                Verified: {{ $currentVerified == 'verified' ? 'Verified' : 'Unverified' }}
             </span>
         @endif
         @if($currentDateFrom)
@@ -218,7 +218,7 @@
     <div class="mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-sm">
         <form id="filterForm" method="GET" action="{{ route('users.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2">
             <div class="relative lg:col-span-1">
-                <input type="text" name="search" id="searchInput" value="{{ $currentSearch }}" placeholder="🔍 Search users..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 pl-8 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
+                <input type="text" name="search" id="searchInput" value="{{ $currentSearch }}" placeholder="Search users..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 pl-8 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
                 <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs">
                     <i class="fas fa-search"></i>
                 </div>
@@ -243,8 +243,8 @@
             </select>
             <select name="verified" id="verifiedFilter" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
                 <option value="">All</option>
-                <option value="verified" @selected($currentVerified == 'verified')>✅ Verified</option>
-                <option value="unverified" @selected($currentVerified == 'unverified')>⏳ Unverified</option>
+                <option value="verified" @selected($currentVerified == 'verified')>Verified</option>
+                <option value="unverified" @selected($currentVerified == 'unverified')>Unverified</option>
             </select>
             <input type="date" name="date_from" id="dateFrom" value="{{ $currentDateFrom }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
             <input type="date" name="date_to" id="dateTo" value="{{ $currentDateTo }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition h-9">
@@ -644,7 +644,7 @@
 <!-- JAVASCRIPT -->
 <!-- ============================================================ -->
 <script>
-    console.log('🔍 User Management script loaded');
+    console.log('User Management script loaded');
 
     let selectedIds = new Set();
     let allIds = [];
@@ -737,7 +737,7 @@
 
     function submitAddUser(event) {
         event.preventDefault();
-        console.log('🔄 Add User form submitted');
+        console.log('Add User form submitted');
 
         const form = document.getElementById('addUserForm');
         const submitBtn = document.getElementById('submitUserBtn');
@@ -794,7 +794,7 @@
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 const text = await response.text();
-                console.error('❌ Non-JSON response:', text);
+                console.error('Non-JSON response:', text);
                 throw new Error('Server returned non-JSON response. Check logs.');
             }
             if (!response.ok) {
@@ -818,7 +818,7 @@
             }
         })
         .catch(error => {
-            console.error('❌ Fetch error:', error);
+            console.error('Fetch error:', error);
             showToast('Error: ' + error.message, 'error');
         })
         .finally(() => {
@@ -938,7 +938,7 @@
             }
         })
         .catch(function(error) {
-            console.error('❌ Select All error:', error);
+            console.error('Select All error:', error);
             showToast('Error loading all IDs: ' + error.message, 'error');
         })
         .finally(function() {
@@ -1051,7 +1051,7 @@
             }
         })
         .catch(function(error) {
-            console.error('❌ Bulk action error:', error);
+            console.error('Bulk action error:', error);
             showToast('Error: ' + error.message, 'error');
         })
         .finally(function() {
@@ -1130,7 +1130,7 @@
             }
         })
         .catch(function(error) {
-            console.error('❌ Quick update error:', error);
+            console.error('Quick update error:', error);
             showToast('Error: ' + error.message, 'error');
         });
     }
@@ -1246,6 +1246,6 @@
 
     updateSelectedCount();
     updateMasterCheckbox();
-    console.log('✅ User Management JS initialised successfully.');
+    console.log('User Management JS initialised successfully.');
 </script>
 @endsection

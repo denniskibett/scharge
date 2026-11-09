@@ -141,7 +141,7 @@
               <td class="text-right text-gray-500">{{ \Carbon\Carbon::parse($r['oldest'])->format('M Y') }}</td>
             </tr>
           @empty
-            <tr><td colspan="4" class="py-6 text-center text-gray-500">Nobody owes anything. 🎉</td></tr>
+            <tr><td colspan="4" class="py-6 text-center text-gray-500">Nobody owes anything. <x-icon name="sparkles" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></td></tr>
           @endforelse
         </tbody>
       </table>

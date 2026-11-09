@@ -508,7 +508,7 @@ async function loadBulkUnits() {
         let displayValue = existingValue > 0 ? existingValue : '';
         
         if (hasExistingReading) {
-            unitStatus = '✅ Already Recorded';
+            unitStatus = 'Already Recorded';
             unitStatusClass = 'bg-green-100 text-green-700';
             inputDisabled = 'disabled';
             inputClass = 'border-green-400 bg-green-50 dark:bg-green-900/30 opacity-70';
@@ -520,7 +520,7 @@ async function loadBulkUnits() {
                 <td class="px-3 py-2">
                     <span class="font-medium">${unit.unit_number}</span>
                     <span class="text-xs text-gray-400 block">${unit.property_name}</span>
-                    ${hasExistingReading ? '<span class="text-xs text-green-500 block">✓ Already recorded</span>' : ''}
+                    ${hasExistingReading ? '<span class="text-xs text-green-500 block">Already recorded</span>' : ''}
                 </td>
                 <td class="px-3 py-2 text-center">
                     <div>
@@ -639,7 +639,7 @@ function updateRowDisplay(index, status) {
         if (amountCell) amountCell.textContent = '-';
         if (statusBadge) {
             statusBadge.className = 'status-badge px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700';
-            statusBadge.textContent = '⚠️ Below Previous';
+            statusBadge.textContent = 'Below Previous';
         }
         return;
     }
@@ -649,7 +649,7 @@ function updateRowDisplay(index, status) {
         if (amountCell) amountCell.textContent = 'KES ' + data.amount.toFixed(2);
         if (statusBadge) {
             statusBadge.className = 'status-badge px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700';
-            statusBadge.textContent = '✅ Recorded';
+            statusBadge.textContent = 'Recorded';
         }
     } else if (data.hasReading && data.consumption === 0) {
         if (consumptionCell) consumptionCell.textContent = '0.00 m³';

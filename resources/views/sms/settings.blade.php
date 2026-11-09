@@ -5,7 +5,7 @@
 @section('content')
 <div>
     <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-white">⚙️ SMS Settings</h1>
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-white"><x-icon name="cog-6-tooth" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SMS Settings</h1>
         <p class="text-gray-500 mt-1">Configure and test your KenyaSMS integration.</p>
     </div>
 
@@ -18,13 +18,13 @@
     <!-- Tabs -->
     <div class="flex border-b border-gray-200 mb-6">
         <button onclick="showTab('general')" id="tab-general-btn" class="py-2 px-4 text-sm font-medium border-b-2 border-brand-500 text-brand-600 transition">
-            📡 General
+            <x-icon name="signal" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> General
         </button>
         <button onclick="showTab('placeholders')" id="tab-placeholders-btn" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            🔤 Placeholders Guide
+            <x-icon name="language" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Placeholders Guide
         </button>
         <button onclick="showTab('help')" id="tab-help-btn" class="py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600 transition">
-            🆘 Help & Troubleshooting
+            <x-icon name="lifebuoy" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Help & Troubleshooting
         </button>
     </div>
 
@@ -35,10 +35,10 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- API Key -->
                     <div class="bg-gray-50 rounded-xl p-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">🔑 API Key</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2"><x-icon name="key" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> API Key</label>
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $apiKeyConfigured ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $apiKeyConfigured ? '✓ Configured' : '✗ Not configured' }}
+                                {{ $apiKeyConfigured ? 'Configured' : 'Not configured' }}
                             </span>
                             <span class="text-xs text-gray-500">Set via <code class="bg-gray-200 px-1 rounded">KENYASMS_KEY</code> in .env</span>
                         </div>
@@ -46,7 +46,7 @@
 
                     <!-- Credit Balance (ADDED) -->
                     <div class="bg-gray-50 rounded-xl p-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">💰 SMS Credit Balance</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2"><x-icon name="banknotes" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SMS Credit Balance</label>
                         @if($apiKeyConfigured)
                             @if($balanceInfo['success'])
                                 <div class="text-2xl font-bold text-green-600">{{ number_format($balanceInfo['balance'], 2) }} {{ $balanceInfo['currency'] ?? 'KES' }}</div>
@@ -63,21 +63,21 @@
 
                     <!-- Sender ID -->
                     <div class="bg-gray-50 rounded-xl p-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">📤 Sender ID</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2"><x-icon name="arrow-up-tray" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Sender ID</label>
                         <div class="font-mono text-sm">{{ $senderId }}</div>
                         <p class="text-xs text-gray-500 mt-1">Set via <code class="bg-gray-200 px-1 rounded">KENYASMS_SENDER_ID</code></p>
                     </div>
 
                     <!-- Default Message Type -->
                     <div class="bg-gray-50 rounded-xl p-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">📨 Default Message Type</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2"><x-icon name="envelope" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Default Message Type</label>
                         <div class="font-mono text-sm">{{ ucfirst($defaultType) }}</div>
                         <p class="text-xs text-gray-500 mt-1">Set via <code class="bg-gray-200 px-1 rounded">KENYASMS_DEFAULT_TYPE</code></p>
                     </div>
 
                     <!-- Sandbox Mode -->
                     <div class="bg-gray-50 rounded-xl p-4">
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">🧪 Sandbox Mode</label>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2"><x-icon name="beaker" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Sandbox Mode</label>
                         <div class="flex items-center gap-3">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ $sandbox ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800' }}">
                                 {{ $sandbox ? 'Active (No real SMS sent)' : 'Inactive (Live mode)' }}
@@ -92,7 +92,7 @@
         <!-- Test SMS Card -->
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-2">📱 Test SMS</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-2"><x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Test SMS</h3>
                 <p class="text-gray-500 text-sm mb-4">Send a test message to verify your API key and configuration.</p>
                 <div class="space-y-4">
                     <div>
@@ -105,7 +105,7 @@
                         <textarea id="test_message" rows="2" class="w-full rounded-xl border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500" placeholder="Hello, this is a test message from your property management system."></textarea>
                     </div>
                     <button type="button" onclick="sendTestSms()" class="bg-brand-600 hover:bg-brand-700 text-white font-bold py-2 px-4 rounded-xl shadow-sm transition">
-                        ✈️ Send Test SMS
+                        <x-icon name="paper-airplane" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Send Test SMS
                     </button>
                     <div id="testResult" class="mt-3 text-sm hidden"></div>
                 </div>
@@ -117,7 +117,7 @@
     <div id="tab-placeholders" class="hidden space-y-6">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-800 mb-3">📝 Available Placeholders</h3>
+                <h3 class="text-lg font-semibold text-gray-800 mb-3"><x-icon name="pencil-square" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Available Placeholders</h3>
                 <p class="text-gray-500 text-sm mb-4">Use these placeholders in your SMS templates. They will be replaced automatically when sending to tenants.</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     @php
@@ -131,7 +131,7 @@
                     @endforeach
                 </div>
                 <div class="mt-4 bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
-                    💡 Tip: You can also create custom placeholders by modifying the controller.
+                    <x-icon name="light-bulb" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Tip: You can also create custom placeholders by modifying the controller.
                 </div>
             </div>
         </div>
@@ -141,27 +141,27 @@
     <div id="tab-help" class="hidden space-y-6">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
             <div class="p-6 space-y-4">
-                <h3 class="text-lg font-semibold text-gray-800">🆘 Need Help?</h3>
+                <h3 class="text-lg font-semibold text-gray-800"><x-icon name="lifebuoy" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Need Help?</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="border rounded-xl p-4">
-                        <div class="font-semibold text-brand-600">🔑 How to get an API key?</div>
+                        <div class="font-semibold text-brand-600"><x-icon name="key" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> How to get an API key?</div>
                         <p class="text-sm text-gray-600 mt-1">Register at <a href="https://kenyasms.com" target="_blank" class="text-brand-500 hover:underline">KenyaSMS.com</a>, purchase SMS credits, and copy your API key from the dashboard.</p>
                     </div>
                     <div class="border rounded-xl p-4">
-                        <div class="font-semibold text-brand-600">📤 Sender ID approval</div>
+                        <div class="font-semibold text-brand-600"><x-icon name="arrow-up-tray" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Sender ID approval</div>
                         <p class="text-sm text-gray-600 mt-1">Sender ID must be approved by KenyaSMS. Use a short, recognizable name (e.g., SHARETENT).</p>
                     </div>
                     <div class="border rounded-xl p-4">
-                        <div class="font-semibold text-brand-600">🧪 Sandbox vs Live</div>
+                        <div class="font-semibold text-brand-600"><x-icon name="beaker" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Sandbox vs Live</div>
                         <p class="text-sm text-gray-600 mt-1">In sandbox mode, messages are logged but not actually sent – perfect for testing. Set <code>KENYASMS_SANDBOX=false</code> in .env to send real SMS.</p>
                     </div>
                     <div class="border rounded-xl p-4">
-                        <div class="font-semibold text-brand-600">❌ Messages not being sent?</div>
+                        <div class="font-semibold text-brand-600"><x-icon name="x-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Messages not being sent?</div>
                         <p class="text-sm text-gray-600 mt-1">Check your API key, ensure you have SMS credits, and that the recipient numbers are valid Kenyan phone numbers (format 254...).</p>
                     </div>
                 </div>
                 <div class="mt-4 bg-yellow-50 p-3 rounded-lg text-sm text-yellow-800">
-                    ⚠️ If you change <code>.env</code> settings, you must restart the server (<code>composer run dev</code> or <code>php artisan serve</code>).
+                    <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> If you change <code>.env</code> settings, you must restart the server (<code>composer run dev</code> or <code>php artisan serve</code>).
                 </div>
             </div>
         </div>
@@ -252,15 +252,15 @@
         .then(function(data) {
             if (data.success) {
                 resultDiv.className = 'mt-3 text-sm text-green-600';
-                resultDiv.innerText = '✅ Test SMS sent successfully!';
+                resultDiv.innerText = 'Test SMS sent successfully!';
             } else {
                 resultDiv.className = 'mt-3 text-sm text-red-600';
-                resultDiv.innerText = '❌ Failed to send: ' + (data.error || 'Unknown error');
+                resultDiv.innerText = 'Failed to send: ' + (data.error || 'Unknown error');
             }
         })
         .catch(function(err) {
             resultDiv.className = 'mt-3 text-sm text-red-600';
-            resultDiv.innerText = '❌ Error: ' + err.message;
+            resultDiv.innerText = 'Error: ' + err.message;
         });
     }
 

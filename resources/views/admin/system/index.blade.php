@@ -251,8 +251,8 @@ function diagnoseForm() {
         html += '<div class="ml-4 space-y-1">';
         
         elements.forEach(input => {
-            const hasName = input.name ? '✅' : '❌';
-            const hasValue = input.value || input.checked ? '✅' : '❌';
+            const hasName = input.name ? '' : '';
+            const hasValue = input.value || input.checked ? '' : '';
             html += `<div class="text-xs">
                 ${hasName} Name: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">${input.name || '(no name)'}</code>
                 ${hasValue} Value: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">${input.type === 'checkbox' ? input.checked : input.value}</code>

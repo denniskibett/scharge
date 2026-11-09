@@ -275,15 +275,15 @@ function checkOut(logId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Visitor checked out successfully!');
+            alert('Visitor checked out successfully!');
             (window.schargeRefresh || (() => location.reload()))();
         } else {
-            alert('❌ ' + (data.message || 'Failed to check out visitor'));
+            alert('' + (data.message || 'Failed to check out visitor'));
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('❌ Failed to check out visitor');
+        alert('Failed to check out visitor');
     });
 }
 

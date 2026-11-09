@@ -159,7 +159,7 @@
                         <button @click="saveInvoice()" 
                             :disabled="saving || !form.company_id || !form.amount || !form.due_date || !form.billing_start || !form.billing_end" 
                             class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium">
-                            <span x-show="!saving" x-text="editing ? '💾 Update Invoice' : '✨ Generate Invoice'"></span>
+                            <span x-show="!saving" x-text="editing ? 'Update Invoice' : 'Generate Invoice'"></span>
                             <span x-show="saving" class="flex items-center gap-2">
                                 <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

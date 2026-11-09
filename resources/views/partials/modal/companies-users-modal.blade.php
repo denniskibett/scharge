@@ -32,7 +32,7 @@
                                 <span class="font-medium text-gray-900 dark:text-white" x-text="users.length"></span>
                             </div>
                             <div x-show="availableUserSlots !== null && availableUserSlots <= 0 && users.length > 0" class="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-xs dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-400">
-                                ⚠️ This company has reached its maximum user limit. Please upgrade their subscription to add more users.
+                                <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> This company has reached its maximum user limit. Please upgrade their subscription to add more users.
                             </div>
                         </div>
 

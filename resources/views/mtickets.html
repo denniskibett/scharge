@@ -257,7 +257,7 @@
   document.querySelectorAll('.book-link, .slide-btn, .btn-cta, .glass-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       if(btn.classList.contains('book-link')||btn.classList.contains('slide-btn')||btn.classList.contains('btn-cta')||btn.classList.contains('glass-btn')) {
-        e.preventDefault(); alert("✨ Welcome to mtickets! Your adventure awaits — secure checkout, best price guarantee.");
+        e.preventDefault(); alert("Welcome to mtickets! Your adventure awaits — secure checkout, best price guarantee.");
       }
     });
   });

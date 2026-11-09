@@ -92,7 +92,7 @@ class PublicInvoiceController extends Controller
         $callbackUrl = config('mpesa.callbacks.callback_url');
         
         // Debug: Log the callback URL
-        Log::info('📱 STK Push Initiated with Callback URL', [
+        Log::info('STK Push Initiated with Callback URL', [
             'callback_url' => $callbackUrl,
             'invoice_id' => $invoice->id,
             'phone' => $phone,
@@ -125,7 +125,7 @@ class PublicInvoiceController extends Controller
             );
 
             // Log the FULL response from Safaricom
-            Log::info('📤 STK Push FULL Response', [
+            Log::info('STK Push FULL Response', [
                 'result' => $result,
                 'checkout_request_id' => $result['checkout_request_id'] ?? null,
                 'merchant_request_id' => $result['merchant_request_id'] ?? null,

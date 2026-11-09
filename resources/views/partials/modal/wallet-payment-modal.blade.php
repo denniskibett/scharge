@@ -51,7 +51,7 @@
                 {{-- Debug/Error Logs Section --}}
                 <div x-show="errorLogs.length > 0" class="mb-6 rounded-lg bg-yellow-50 p-4 text-sm dark:bg-yellow-900/20">
                     <div class="flex items-center justify-between mb-2">
-                        <h5 class="font-semibold text-yellow-800 dark:text-yellow-400">🔍 Debug Information</h5>
+                        <h5 class="font-semibold text-yellow-800 dark:text-yellow-400"><x-icon name="magnifying-glass" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Debug Information</h5>
                         <button @click="errorLogs = []" class="text-xs text-yellow-600 hover:text-yellow-800">Clear</button>
                     </div>
                     <div class="space-y-1 max-h-32 overflow-y-auto">
@@ -221,7 +221,7 @@
                                 </span>
                             </div>
                             <div x-show="paymentAmount > walletBalance" class="text-red-600 text-xs mt-1">
-                                ⚠️ Insufficient balance. Please deposit more funds.
+                                <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Insufficient balance. Please deposit more funds.
                             </div>
                         </div>
                     </div>

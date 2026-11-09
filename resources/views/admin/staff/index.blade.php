@@ -145,7 +145,7 @@
     <div class="mb-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3 shadow-sm">
         <form id="filterForm" method="GET" action="{{ route('staff.index') }}" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
             <div class="relative">
-                <input type="text" name="search" id="searchInput" value="{{ $currentSearch }}" placeholder="🔍 Search..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 pl-8 text-sm text-gray-700 dark:text-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition h-9">
+                <input type="text" name="search" id="searchInput" value="{{ $currentSearch }}" placeholder="Search..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 pl-8 text-sm text-gray-700 dark:text-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition h-9">
                 <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 text-xs">
                     <i class="fas fa-search"></i>
                 </div>
@@ -361,7 +361,7 @@
 </div>
 
 <script>
-    console.log('🔍 Staff Management script loaded');
+    console.log('Staff Management script loaded');
 
     let selectedIds = new Set();
     let allIds = [];
@@ -434,7 +434,7 @@
 
     // Toggle master checkbox
     function toggleMasterCheckbox() {
-        console.log('🔄 Master checkbox toggled');
+        console.log('Master checkbox toggled');
         var checkboxes = document.querySelectorAll('.staff-checkbox');
         if (masterCheckbox.checked) {
             checkboxes.forEach(function(cb) {
@@ -472,7 +472,7 @@
 
     // Select All
     function selectAllStaff() {
-        console.log('🔄 Select All button clicked');
+        console.log('Select All button clicked');
         var btn = document.getElementById('selectAllBtn');
         var originalText = btn ? btn.innerHTML : 'Select All';
         if (btn) {
@@ -491,7 +491,7 @@
             return response.json();
         })
         .then(function(data) {
-            console.log('📥 Select All response:', data);
+            console.log('Select All response:', data);
             if (data.ids) {
                 allIds = data.ids;
                 document.querySelectorAll('.staff-checkbox').forEach(function(cb) {
@@ -507,7 +507,7 @@
             }
         })
         .catch(function(error) {
-            console.error('❌ Select All error:', error);
+            console.error('Select All error:', error);
             showToast('Error loading all IDs: ' + error.message, 'error');
         })
         .finally(function() {
@@ -520,7 +520,7 @@
 
     // Apply Bulk Action
     function applyBulkAction() {
-        console.log('🔄 Apply Bulk Action clicked');
+        console.log('Apply Bulk Action clicked');
         var action = bulkActionSelect ? bulkActionSelect.value : '';
         if (!action) {
             showToast('Please select a bulk action.', 'warning');
@@ -532,7 +532,7 @@
             return;
         }
 
-        console.log('📊 Selected IDs:', Array.from(selectedIds));
+        console.log('Selected IDs:', Array.from(selectedIds));
 
         switch(action) {
             case 'activate':
@@ -567,7 +567,7 @@
     }
 
     function executeBulkAction(action) {
-        console.log('🔄 Executing bulk action:', action);
+        console.log('Executing bulk action:', action);
         var ids = Array.from(selectedIds);
         var data = { user_ids: ids, action: action };
 
@@ -622,7 +622,7 @@
         })
         .then(function(response) { return response.json(); })
         .then(function(data) {
-            console.log('📥 Bulk action response:', data);
+            console.log('Bulk action response:', data);
             if (data.success) {
                 showToast(data.message, 'success');
                 setTimeout(function() { (window.schargeRefresh || (() => location.reload()))(); }, 1500);
@@ -631,7 +631,7 @@
             }
         })
         .catch(function(error) {
-            console.error('❌ Bulk action error:', error);
+            console.error('Bulk action error:', error);
             showToast('Error: ' + error.message, 'error');
         })
         .finally(function() {
@@ -644,7 +644,7 @@
 
     // Quick Update
     function quickUpdate(userId, field, value) {
-        console.log('🔄 Quick update:', userId, field, value);
+        console.log('Quick update:', userId, field, value);
         var row = document.querySelector('#staff-row-' + userId);
         if (!row) {
             showToast('Row not found.', 'error');
@@ -712,14 +712,14 @@
             }
         })
         .catch(function(error) {
-            console.error('❌ Quick update error:', error);
+            console.error('Quick update error:', error);
             showToast('Error: ' + error.message, 'error');
         });
     }
 
     // Export
     function exportStaff() {
-        console.log('🔄 Export All called');
+        console.log('Export All called');
         var url = new URL('{{ route("staff.create") }}');
 
         var search = document.getElementById('searchInput') ? document.getElementById('searchInput').value : '';
@@ -736,13 +736,13 @@
         if (dateFrom) url.searchParams.append('date_from', dateFrom);
         if (dateTo) url.searchParams.append('date_to', dateTo);
 
-        console.log('📤 Export URL:', url.toString());
+        console.log('Export URL:', url.toString());
         window.location.href = url.toString();
     }
 
     // Export Selected
     function exportSelected() {
-        console.log('🔄 Export Selected called');
+        console.log('Export Selected called');
         if (selectedIds.size === 0) {
             showToast('Please select at least one staff member.', 'warning');
             return;
@@ -766,13 +766,13 @@
         if (dateFrom) url.searchParams.append('date_from', dateFrom);
         if (dateTo) url.searchParams.append('date_to', dateTo);
 
-        console.log('📤 Export URL:', url.toString());
+        console.log('Export URL:', url.toString());
         window.location.href = url.toString();
     }
 
     // Update stats
     function updateStats() {
-        console.log('🔄 Updating stats');
+        console.log('Updating stats');
         var url = new URL('{{ route("staff.index") }}');
         url.searchParams.set('stats_only', '1');
 
@@ -800,7 +800,7 @@
                 document.getElementById('statsActive').textContent = data.stats.active;
                 document.getElementById('statsPending').textContent = data.stats.pending;
                 document.getElementById('statsInactive').textContent = data.stats.inactive;
-                console.log('📊 Stats updated:', data.stats);
+                console.log('Stats updated:', data.stats);
             }
         })
         .catch(function() {});
@@ -808,7 +808,7 @@
 
     // Sort table
     function sortTable(column) {
-        console.log('🔄 Sorting by:', column);
+        console.log('Sorting by:', column);
         var currentUrl = new URL(window.location.href);
         var currentSort = currentUrl.searchParams.get('sort');
         var currentDir = currentUrl.searchParams.get('direction') || 'desc';
@@ -835,6 +835,6 @@
     // Initialise
     updateSelectedCount();
     updateMasterCheckbox();
-    console.log('✅ Staff Management JS initialised successfully.');
+    console.log('Staff Management JS initialised successfully.');
 </script>
 @endsection

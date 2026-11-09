@@ -285,12 +285,12 @@ function showMessage(message, type) {
     const errorEl = document.getElementById('errorMessage');
     
     if (type === 'success') {
-        successEl.textContent = '✅ ' + message;
+        successEl.textContent = '' + message;
         successEl.classList.remove('hidden');
         errorEl.classList.add('hidden');
         setTimeout(() => successEl.classList.add('hidden'), 5000);
     } else {
-        errorEl.textContent = '❌ ' + message;
+        errorEl.textContent = '' + message;
         errorEl.classList.remove('hidden');
         successEl.classList.add('hidden');
         setTimeout(() => errorEl.classList.add('hidden'), 5000);

@@ -203,7 +203,7 @@
 
                         <!-- Price Preview -->
                         <div x-show="form.price_per_unit > 0" class="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800/30">
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">📊 Price Preview:</p>
+                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"><x-icon name="chart-bar" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Price Preview:</p>
                             <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 <div class="bg-white dark:bg-gray-800/50 rounded p-2 text-center">
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Per Unit</p>
@@ -235,7 +235,7 @@
                         </button>
                         <button type="submit" :disabled="saving" 
                             class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center gap-2">
-                            <span x-show="!saving" x-text="isEditing ? '💾 Save Changes' : '✨ Create Plan'"></span>
+                            <span x-show="!saving" x-text="isEditing ? 'Save Changes' : 'Create Plan'"></span>
                             <span x-show="saving" class="flex items-center gap-2">
                                 <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

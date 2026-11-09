@@ -90,20 +90,20 @@
             <h1 class="text-2xl font-bold text-gray-800 dark:text-white">SMS Manager</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Send personalized SMS to tenants, a single number, or view history.</p>
             @if($sandbox)
-                <div class="inline-block mt-3 rounded-full bg-yellow-100 px-4 py-1 text-sm text-yellow-800">⚠️ SANDBOX MODE – No real SMS will be sent</div>
+                <div class="inline-block mt-3 rounded-full bg-yellow-100 px-4 py-1 text-sm text-yellow-800"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SANDBOX MODE – No real SMS will be sent</div>
             @endif
         </div>
 
         <!-- Flash Messages -->
         @if(session('success'))
             <div class="mb-4 rounded-lg bg-green-100 p-4 text-green-800 border border-green-300">
-                <strong>✅ Success!</strong> {{ session('success') }}
+                <strong><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Success!</strong> {{ session('success') }}
             </div>
         @endif
 
         @if(session('error'))
             <div class="mb-4 rounded-lg bg-red-100 p-4 text-red-800 border border-red-300">
-                <strong>❌ Error!</strong> {{ session('error') }}
+                <strong><x-icon name="x-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Error!</strong> {{ session('error') }}
             </div>
         @endif
 
@@ -145,7 +145,7 @@
                     </div>
                     <div id="charCounter" class="mt-2 text-sm"></div>
                     <button type="button" onclick="makeMessageCompact()" class="mt-2 text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                        🔧 Make Compact (reduce characters)
+                        <x-icon name="wrench" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Make Compact (reduce characters)
                     </button>
                 </div>
 
@@ -232,31 +232,31 @@
                                         <input type="checkbox" id="toggleAllCheckbox" onchange="toggleAllCheckboxes()">
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('name')">
-                                        Name <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Name <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('phone')">
-                                        Phone <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Phone <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('unit')">
-                                        Unit <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Unit <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('property')">
-                                        Property <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Property <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('water_bill')">
-                                        Water Bill <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Water Bill <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('prev_read')">
-                                        Previous Reading <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Previous Reading <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('curr_read')">
-                                        Current Reading <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Current Reading <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('due_date')">
-                                        Due Date <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Due Date <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" onclick="sortTable('payment_status')">
-                                        Payment Status <span class="sort-icon inline-block ml-1">↕️</span>
+                                        Payment Status <span class="sort-icon inline-block ml-1"><x-icon name="arrows-up-down" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></span>
                                     </th>
                                 </tr>
                             </thead>
@@ -451,12 +451,12 @@
                     @if($sandbox)
                         <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
                             <span class="inline-block h-2 w-2 rounded-full bg-yellow-400 animate-pulse"></span>
-                            🔒 SANDBOX MODE – Showing local campaigns only
+                            <x-icon name="lock-closed" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SANDBOX MODE – Showing local campaigns only
                         </div>
                     @else
                         <div class="mt-1 inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
                             <span class="inline-block h-2 w-2 rounded-full bg-green-400"></span>
-                            🌐 LIVE MODE – Showing all campaigns (including KenyaSMS)
+                            <x-icon name="globe-alt" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> LIVE MODE – Showing all campaigns (including KenyaSMS)
                         </div>
                     @endif
                 </div>
@@ -467,8 +467,8 @@
                         <select id="sourceFilter" onchange="filterCampaignsBySource()" 
                                 class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                             <option value="all">All Sources</option>
-                            <option value="local">📤 Local</option>
-                            <option value="kenyasms_imported">📥 Imported from KenyaSMS</option>
+                            <option value="local">Local</option>
+                            <option value="kenyasms_imported">Imported from KenyaSMS</option>
                         </select>
                     </div>
                     @endif
@@ -535,11 +535,11 @@
                     <p class="text-2xl font-bold text-red-600" id="statsFailed">0</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">📤 Local</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400"><x-icon name="arrow-up-tray" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Local</p>
                     <p class="text-2xl font-bold text-blue-600" id="statsLocal">0</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-                    <p class="text-sm text-gray-500 dark:text-gray-400">📥 Imported</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400"><x-icon name="arrow-down-tray" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Imported</p>
                     <p class="text-2xl font-bold text-purple-600" id="statsImported">0</p>
                 </div>
             </div>
@@ -775,19 +775,19 @@
                     <!-- Validation Stats Cards -->
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                         <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                            <p class="text-xs text-green-600 dark:text-green-400">✅ Valid Safaricom</p>
+                            <p class="text-xs text-green-600 dark:text-green-400"><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Valid Safaricom</p>
                             <p class="text-xl font-bold text-green-700 dark:text-green-300" id="viewCampaignValid">0</p>
                         </div>
                         <div class="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 border border-yellow-200 dark:border-yellow-800">
-                            <p class="text-xs text-yellow-600 dark:text-yellow-400">⚠️ Other Networks</p>
+                            <p class="text-xs text-yellow-600 dark:text-yellow-400"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Other Networks</p>
                             <p class="text-xl font-bold text-yellow-700 dark:text-yellow-300" id="viewCampaignOtherNetwork">0</p>
                         </div>
                         <div class="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                            <p class="text-xs text-red-600 dark:text-red-400">❌ Invalid Numbers</p>
+                            <p class="text-xs text-red-600 dark:text-red-400"><x-icon name="x-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Invalid Numbers</p>
                             <p class="text-xl font-bold text-red-700 dark:text-red-300" id="viewCampaignInvalid">0</p>
                         </div>
                         <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
-                            <p class="text-xs text-blue-600 dark:text-blue-400">📊 Total</p>
+                            <p class="text-xs text-blue-600 dark:text-blue-400"><x-icon name="chart-bar" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Total</p>
                             <p class="text-xl font-bold text-blue-700 dark:text-blue-300" id="viewCampaignTotal">0</p>
                         </div>
                     </div>
@@ -1188,7 +1188,7 @@ function formatMonthYear(dateStr) {
         function copyToClipboard(text) {
             if (!text) return;
             navigator.clipboard.writeText(text).then(() => {
-                showToast('📋 Copied to clipboard!');
+                showToast('Copied to clipboard!');
             }).catch(() => {
                 const input = document.createElement('input');
                 input.value = text;
@@ -1196,7 +1196,7 @@ function formatMonthYear(dateStr) {
                 input.select();
                 document.execCommand('copy');
                 document.body.removeChild(input);
-                showToast('📋 Copied to clipboard!');
+                showToast('Copied to clipboard!');
             });
         }
 
@@ -1235,7 +1235,7 @@ function formatMonthYear(dateStr) {
         // RENDER TAB
         // ============================================
         function renderTab() {
-            console.log('📋 Rendering tab:', activeTab);
+            console.log('Rendering tab:', activeTab);
             
             const tenantsTab = document.getElementById('tenants-tab');
             const customTab = document.getElementById('custom-tab');
@@ -1250,9 +1250,9 @@ function formatMonthYear(dateStr) {
             const activeTabElement = document.getElementById(activeTab + '-tab');
             if (activeTabElement) {
                 activeTabElement.style.display = 'block';
-                console.log('✅ Showing tab:', activeTab);
+                console.log('Showing tab:', activeTab);
             } else {
-                console.error('❌ Tab not found:', activeTab + '-tab');
+                console.error('Tab not found:', activeTab + '-tab');
             }
             
             const tabIds = ['tab-tenants', 'tab-custom', 'tab-history', 'tab-campaigns'];
@@ -1271,7 +1271,7 @@ function formatMonthYear(dateStr) {
             }
             
             if (activeTab === 'campaigns') {
-                console.log('🔄 Loading campaigns...');
+                console.log('Loading campaigns...');
                 loadCampaigns();
             }
         }
@@ -1280,7 +1280,7 @@ function formatMonthYear(dateStr) {
         // DOM READY
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 DOM Ready - Initializing...');
+            console.log('DOM Ready - Initializing...');
             
             const templateSelect = document.getElementById('templateSelect');
             if (templateSelect) {
@@ -1391,7 +1391,7 @@ function formatMonthYear(dateStr) {
                     });
                 }
             });
-            console.log('📊 Loaded tenants data:', allTenantsData.length, 'tenants');
+            console.log('Loaded tenants data:', allTenantsData.length, 'tenants');
             return allTenantsData;
         }
 
@@ -1618,7 +1618,7 @@ function formatMonthYear(dateStr) {
                 }
             }
 
-            console.log('📤 Sending current_month:', currentMonth);
+            console.log('Sending current_month:', currentMonth);
 
             previewSection.style.display = 'block';
             previewContainer.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Loading invoice data...</div>';
@@ -1637,7 +1637,7 @@ function formatMonthYear(dateStr) {
             })
             .then(response => response.json())
             .then(data => {
-                console.log('📥 API response:', data);
+                console.log('API response:', data);
                 if (data.success && data.invoices) {
                     renderPreviewWithData(data.invoices, template, allSelected, selectedCount);
                 } else {
@@ -1645,7 +1645,7 @@ function formatMonthYear(dateStr) {
                 }
             })
             .catch(error => {
-                console.warn('⚠️ Falling back to dummy data:', error);
+                console.warn('Falling back to dummy data:', error);
                 renderPreviewWithDummyData(template, allSelected, selectedCount);
             });
         }
@@ -1654,7 +1654,7 @@ function formatMonthYear(dateStr) {
 // RENDER PREVIEW WITH REAL INVOICE DATA (UPDATED)
 // ============================================================
 function renderPreviewWithData(invoiceData, template, allSelected, selectedCount) {
-    console.log('📥 invoiceData received:', invoiceData);
+    console.log('invoiceData received:', invoiceData);
     const previewCount = document.getElementById('previewCount');
     if (previewCount) {
         previewCount.textContent = `Showing ${Math.min(3, selectedCount)} of ${selectedCount} selected tenants`;
@@ -1669,7 +1669,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let cb = allSelected[i];
         let tenantId = cb.dataset.id || '';
         let tenantInvoices = invoiceData[tenantId] || [];
-        console.log(`🔍 Tenant ${tenantId} invoices:`, tenantInvoices);
+        console.log(`Tenant ${tenantId} invoices:`, tenantInvoices);
 
         // --- Determine current month (from checkbox) ---
         let currentMonthY = '';
@@ -1696,7 +1696,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             const d = new Date();
             currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         }
-        console.log(`📅 currentMonthY: ${currentMonthY}`);
+        console.log(`currentMonthY: ${currentMonthY}`);
 
         // --- GET CURRENT MONTH'S BILL FROM INVOICE DATA ---
         let currentInvoice = tenantInvoices.find(inv => {
@@ -1705,16 +1705,16 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             return invMonth === currentMonthY;
         });
         let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
-        console.log(`💵 currentBill from invoices: ${currentBill}`);
-        console.log(`💵 waterbill from checkbox: ${parseFloat(cb.getAttribute('data-waterbill') || 0)}`);
+        console.log(`currentBill from invoices: ${currentBill}`);
+        console.log(`waterbill from checkbox: ${parseFloat(cb.getAttribute('data-waterbill') || 0)}`);
 
-        // ✅ FIX: If no current invoice OR invoice amount is 0, use the checkbox's waterbill as fallback
+        // FIX: If no current invoice OR invoice amount is 0, use the checkbox's waterbill as fallback
         if ((!currentInvoice || currentBill === 0) && parseFloat(cb.getAttribute('data-waterbill') || 0) > 0) {
             let fallbackBill = parseFloat(cb.getAttribute('data-waterbill') || 0);
-            console.warn(`⚠️ No invoice or invoice amount is 0 for tenant ${tenantId}, using checkbox waterbill: ${fallbackBill}`);
+            console.warn(`No invoice or invoice amount is 0 for tenant ${tenantId}, using checkbox waterbill: ${fallbackBill}`);
             currentBill = fallbackBill;
         }
-        console.log(`💵 FINAL currentBill: ${currentBill}`);
+        console.log(`FINAL currentBill: ${currentBill}`);
 
         // --- Compute due date for current month ---
         let dueDateFormatted = '';
@@ -1968,7 +1968,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
             let html = '';
             previews.forEach((p) => {
                 let unpaidInfo = p.unpaid_count > 0
-                    ? `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${p.unpaid_count} unpaid (KES ${p.unpaid_total})</span>`
+                    ? `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">${p.unpaid_count} unpaid (KES ${p.unpaid_total})</span>`
                     : '';
 
                 html += `
@@ -2127,7 +2127,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                 const originalText = submitBtn ? submitBtn.innerHTML : 'Send SMS';
                 if (submitBtn) {
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '⏳ Sending...';
+                    submitBtn.innerHTML = 'Sending...';
                 }
                 
                 allSelected.forEach(cb => {
@@ -2190,7 +2190,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = originalText;
                     }
-                    alert('✅ SMS sent to ' + selected.length + ' tenants!');
+                    alert('SMS sent to ' + selected.length + ' tenants!');
                 }, 1000);
                 
                 e.preventDefault();
@@ -2204,7 +2204,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         let isSandbox = true;
 
 function loadCampaigns() {
-    // 🔄 RESET FILTER TO 'ALL'
+    // RESET FILTER TO 'ALL'
     currentCampaignFilter = 'all';
     const sourceFilter = document.getElementById('sourceFilter');
     if (sourceFilter) {
@@ -2223,7 +2223,7 @@ function loadCampaigns() {
         allBtn.classList.add('bg-blue-600', 'text-white');
     }
 
-    console.log('🔄 Loading campaigns...');
+    console.log('Loading campaigns...');
     
     const loadingEl = document.getElementById('campaignsLoading');
     const tableEl = document.getElementById('campaignsTable');
@@ -2233,26 +2233,26 @@ function loadCampaigns() {
     
     fetch('/api/sms/campaigns')
         .then(response => {
-            console.log('📥 Response status:', response.status);
+            console.log('Response status:', response.status);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
-            console.log('📥 Campaigns data received:', data);
+            console.log('Campaigns data received:', data);
             
-            // ✅ Store sandbox status
+            // Store sandbox status
             isSandbox = data.sandbox || true;
             
             campaignsData = data.campaigns || [];
-            console.log('📊 Campaigns loaded:', campaignsData.length);
-            console.log('📊 Sandbox mode:', isSandbox);
+            console.log('Campaigns loaded:', campaignsData.length);
+            console.log('Sandbox mode:', isSandbox);
             
-            // ✅ Update stats
+            // Update stats
             updateCampaignStats(data.stats || { total: 0, sent: 0, pending: 0, failed: 0 });
             
-            // ✅ Apply source filter if set (only in live mode)
+            // Apply source filter if set (only in live mode)
             if (!isSandbox) {
                 const sourceFilter = document.getElementById('sourceFilter');
                 if (sourceFilter && sourceFilter.value !== 'all') {
@@ -2268,7 +2268,7 @@ function loadCampaigns() {
             if (tableEl) tableEl.style.display = 'block';
         })
         .catch(error => {
-            console.error('❌ Error loading campaigns:', error);
+            console.error('Error loading campaigns:', error);
             if (loadingEl) loadingEl.style.display = 'none';
             if (tableEl) {
                 tableEl.style.display = 'block';
@@ -2317,8 +2317,8 @@ function showFilterInfo(source) {
     if (filterInfo && filterText) {
         filterInfo.classList.remove('hidden');
         const labels = {
-            'local': '📤 Showing local campaigns only',
-            'kenyasms_imported': '📥 Showing imported campaigns only'
+            'local': 'Showing local campaigns only',
+            'kenyasms_imported': 'Showing imported campaigns only'
         };
         filterText.textContent = labels[source] || 'Filtered by source';
     }
@@ -2425,9 +2425,9 @@ function renderKenyaSmsCampaigns(campaigns, total) {
             <div class="text-sm text-gray-500 dark:text-gray-400">
                 Showing <strong>${campaigns.length}</strong> of ${total || campaigns.length} campaigns
                 <span class="ml-2 text-xs">
-                    <span class="text-green-600">✅ ${importedCount} imported</span>
+                    <span class="text-green-600">${importedCount} imported</span>
                     <span class="text-gray-400 mx-1">|</span>
-                    <span class="text-orange-600">📥 ${notImportedCount} available</span>
+                    <span class="text-orange-600">${notImportedCount} available</span>
                 </span>
             </div>
             <div class="text-xs text-gray-400">
@@ -2468,7 +2468,7 @@ function renderKenyaSmsCampaigns(campaigns, total) {
                 <td class="px-4 py-3">
                     <div class="flex items-center gap-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-800 dark:text-white">${escapeHtml(campaign.name)}</span>
-                        ${isImported ? '<span class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ Imported</span>' : ''}
+                        ${isImported ? '<span class="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Imported</span>' : ''}
                     </div>
                     <div class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">${escapeHtml(campaign.sender_id || 'No Sender')} • ${escapeHtml(campaign.message_type || '')}</div>
                 </td>
@@ -2550,22 +2550,22 @@ function importSingleKenyaSmsCampaign(campaignId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            let msg = `✅ Campaign imported successfully!\n\n`;
-            msg += `📊 Total recipients: ${data.recipients_imported || 0}\n`;
-            msg += `🏠 Matched to tenants: ${data.matched_tenants || 0}\n`;
-            msg += `⚠️ Unmatched phones: ${data.unmatched_phones || 0}\n`;
-            msg += `\n🔍 Check the campaign in the list above to see unit numbers.`;
+            let msg = `Campaign imported successfully!\n\n`;
+            msg += `Total recipients: ${data.recipients_imported || 0}\n`;
+            msg += `Matched to tenants: ${data.matched_tenants || 0}\n`;
+            msg += `Unmatched phones: ${data.unmatched_phones || 0}\n`;
+            msg += `\nCheck the campaign in the list above to see unit numbers.`;
             
             alert(msg);
             closeKenyaSmsModal();
             loadCampaigns(); // Refresh the local campaigns list
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to import campaign'));
+            alert('Error: ' + (data.message || 'Failed to import campaign'));
         }
     })
     .catch(error => {
         console.error('Error importing campaign:', error);
-        alert('❌ Error importing campaign: ' + error.message);
+        alert('Error importing campaign: ' + error.message);
     })
     .finally(() => {
         if (btn) {
@@ -2609,22 +2609,22 @@ function importKenyaSmsCampaigns() {
     })
     .then(data => {
         if (data.success) {
-            let msg = `✅ ${data.message}\n\n`;
+            let msg = `${data.message}\n\n`;
             msg += `Imported: ${data.data.imported}\n`;
             msg += `Skipped: ${data.data.skipped}\n`;
             if (data.data.errors && data.data.errors.length > 0) {
-                msg += `\n⚠️ Errors: ${data.data.errors.length}`;
+                msg += `\nErrors: ${data.data.errors.length}`;
                 console.log('Import errors:', data.data.errors);
             }
             alert(msg);
             loadCampaigns(); // Refresh the campaigns list
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to import campaigns'));
+            alert('Error: ' + (data.message || 'Failed to import campaigns'));
         }
     })
     .catch(error => {
         console.error('Error importing campaigns:', error);
-        alert('❌ Error importing campaigns: ' + error.message);
+        alert('Error importing campaigns: ' + error.message);
     })
     .finally(() => {
         if (btn) {
@@ -2656,7 +2656,7 @@ document.addEventListener('click', function(event) {
         // LOAD CAMPAIGNS FROM KENYASMS
         // ============================================
         function loadKenyaSmsCampaigns() {
-            console.log('🔄 Fetching campaigns from KenyaSMS...');
+            console.log('Fetching campaigns from KenyaSMS...');
             
             const loadingEl = document.getElementById('campaignsLoading');
             const tableEl = document.getElementById('campaignsTable');
@@ -2673,7 +2673,7 @@ document.addEventListener('click', function(event) {
                     return response.json();
                 })
                 .then(data => {
-                    console.log('📥 KenyaSMS campaigns received:', data);
+                    console.log('KenyaSMS campaigns received:', data);
                     
                     if (loadingEl) loadingEl.style.display = 'none';
                     if (tableEl) tableEl.style.display = 'block';
@@ -2710,8 +2710,8 @@ document.addEventListener('click', function(event) {
                         campaignsArray = [];
                     }
                     
-                    console.log('📊 Processed campaigns array:', campaignsArray);
-                    console.log('📊 Array length:', campaignsArray.length);
+                    console.log('Processed campaigns array:', campaignsArray);
+                    console.log('Array length:', campaignsArray.length);
                     
                     if (!campaignsArray || campaignsArray.length === 0) {
                         if (tbody) {
@@ -2769,7 +2769,7 @@ document.addEventListener('click', function(event) {
                     
                 })
                 .catch(error => {
-                    console.error('❌ Error loading KenyaSMS campaigns:', error);
+                    console.error('Error loading KenyaSMS campaigns:', error);
                     if (loadingEl) loadingEl.style.display = 'none';
                     if (tableEl) {
                         tableEl.style.display = 'block';
@@ -2791,7 +2791,7 @@ document.addEventListener('click', function(event) {
         // VIEW KENYASMS CAMPAIGN DETAILS
         // ============================================
         function viewKenyaSmsCampaign(campaignId) {
-            console.log('👁️ Viewing KenyaSMS campaign:', campaignId);
+            console.log('Viewing KenyaSMS campaign:', campaignId);
             
             fetch('/api/sms/campaigns')
                 .then(r => r.json())
@@ -2844,7 +2844,7 @@ document.addEventListener('click', function(event) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`✅ Campaign imported successfully!\n\nRecipients imported: ${data.recipients_imported || 0}`);
+                    alert(`Campaign imported successfully!\n\nRecipients imported: ${data.recipients_imported || 0}`);
                     loadCampaigns();
                     loadKenyaSmsCampaigns();
                     if (data.campaign_id) {
@@ -2859,20 +2859,20 @@ document.addEventListener('click', function(event) {
                             if (campaign) {
                                 viewCampaign(campaign.id);
                             } else {
-                                alert('⚠️ Campaign found but could not open. Please refresh and try again.');
+                                alert('Campaign found but could not open. Please refresh and try again.');
                             }
                         })
                         .catch(err => {
                             console.error('Error finding campaign:', err);
-                            alert('⚠️ Could not open campaign. Please refresh and try again.');
+                            alert('Could not open campaign. Please refresh and try again.');
                         });
                 } else {
-                    alert('❌ Error importing campaign: ' + (data.message || 'Unknown error'));
+                    alert('Error importing campaign: ' + (data.message || 'Unknown error'));
                 }
             })
             .catch(error => {
                 console.error('Import error:', error);
-                alert('❌ Error importing campaign: ' + error.message);
+                alert('Error importing campaign: ' + error.message);
             })
             .finally(() => {
                 if (btn) {
@@ -2919,14 +2919,14 @@ document.addEventListener('click', function(event) {
         }
 
 function renderCampaigns() {
-    console.log('🎨 Rendering campaigns, data:', campaignsData);
+    console.log('Rendering campaigns, data:', campaignsData);
     const tbody = document.getElementById('campaignsTableBody');
     if (!tbody) return;
     
-    // ✅ Apply filters
+    // Apply filters
     let filteredData = campaignsData;
     
-    // ✅ If in sandbox mode, only show local campaigns
+    // If in sandbox mode, only show local campaigns
     if (isSandbox) {
         filteredData = filteredData.filter(c => c.source === 'local' || c.source === null);
     }
@@ -2944,7 +2944,7 @@ function renderCampaigns() {
     if (filteredData.length === 0) {
         let message = 'No campaigns found.';
         if (isSandbox) {
-            message = '🔒 Sandbox mode: No local campaigns found. Create a new campaign to test.';
+            message = 'Sandbox mode: No local campaigns found. Create a new campaign to test.';
         } else if (currentSourceFilter !== 'all' || currentCampaignFilter !== 'all') {
             message = 'No campaigns match the current filters.';
         }
@@ -2958,12 +2958,12 @@ function renderCampaigns() {
         const statusText = capitalize(campaign.status);
         const date = formatDate(campaign.created_at);
         
-        // ✅ Determine source badge
+        // Determine source badge
         let sourceBadge = '';
         if (campaign.source === 'kenyasms_imported') {
-            sourceBadge = '<span class="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">📥 Imported</span>';
+            sourceBadge = '<span class="text-xs text-purple-600 bg-purple-100 px-2 py-0.5 rounded-full">Imported</span>';
         } else if (campaign.source === 'local' || campaign.source === null) {
-            sourceBadge = '<span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">📤 Local</span>';
+            sourceBadge = '<span class="text-xs text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Local</span>';
         } else {
             sourceBadge = '<span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Unknown</span>';
         }
@@ -3030,7 +3030,7 @@ function renderCampaigns() {
         // UPDATE CAMPAIGN PREVIEW ON PROPERTY CHANGE
         // ============================================
         function updateCampaignPreviewOnPropertyChange() {
-            console.log('🔄 Property changed in campaign modal');
+            console.log('Property changed in campaign modal');
             const select = document.getElementById('campaignTemplate');
             const selected = select ? select.options[select.selectedIndex] : null;
             const content = selected ? selected.getAttribute('data-content') : null;
@@ -3139,8 +3139,8 @@ function renderCampaigns() {
                 }
             }
             
-            console.log('📤 Fetching invoices for tenant IDs:', tenantIds);
-            console.log('📤 Current month:', currentMonth);
+            console.log('Fetching invoices for tenant IDs:', tenantIds);
+            console.log('Current month:', currentMonth);
             
             fetch('/api/sms/preview-invoices', {
                 method: 'POST',
@@ -3155,12 +3155,12 @@ function renderCampaigns() {
             })
             .then(response => response.json())
             .then(data => {
-                console.log('📥 Invoice data for campaign preview:', data);
+                console.log('Invoice data for campaign preview:', data);
                 const invoiceData = data.success ? data.invoices : {};
                 renderCampaignPreviewWithData(filteredTenants, templateContent, invoiceData, previewContainer);
             })
             .catch(error => {
-                console.warn('⚠️ Failed to fetch invoice data, falling back to dummy data:', error);
+                console.warn('Failed to fetch invoice data, falling back to dummy data:', error);
                 renderCampaignPreviewWithDummy(filteredTenants, templateContent, previewContainer);
             });
         }
@@ -3169,8 +3169,8 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    console.log('🔍 Rendering with invoiceData:', invoiceData);
-    console.log('🔍 invoiceData keys:', Object.keys(invoiceData));
+    console.log('Rendering with invoiceData:', invoiceData);
+    console.log('invoiceData keys:', Object.keys(invoiceData));
     
     const previewLimit = 10;
     let html = '<div class="space-y-3">';
@@ -3186,30 +3186,30 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         let tenantInvoices = [];
         const tenantId = tenant.tenantId;
         
-        console.log(`🔍 Looking for invoices for tenant ID: ${tenantId} (${tenant.name})`);
-        console.log(`🔍 Tenant waterbill from table: ${tenant.waterbill}`);
-        console.log(`🔍 Tenant payment status: ${tenant.paymentStatus}`);
+        console.log(`Looking for invoices for tenant ID: ${tenantId} (${tenant.name})`);
+        console.log(`Tenant waterbill from table: ${tenant.waterbill}`);
+        console.log(`Tenant payment status: ${tenant.paymentStatus}`);
         
         // Find invoices for this tenant (using multiple key formats)
         if (invoiceData[String(tenantId)]) {
             tenantInvoices = invoiceData[String(tenantId)];
-            console.log(`✅ Found invoices using string key "${String(tenantId)}"`);
+            console.log(`Found invoices using string key "${String(tenantId)}"`);
         } else if (invoiceData[Number(tenantId)]) {
             tenantInvoices = invoiceData[Number(tenantId)];
-            console.log(`✅ Found invoices using number key "${Number(tenantId)}"`);
+            console.log(`Found invoices using number key "${Number(tenantId)}"`);
         } else {
             for (const key in invoiceData) {
                 if (String(key) === String(tenantId) || 
                     String(key) === String(Number(tenantId)) ||
                     String(tenantId) === String(key).replace(/[^0-9]/g, '')) {
                     tenantInvoices = invoiceData[key];
-                    console.log(`✅ Found invoices using key "${key}" (matched to ${tenantId})`);
+                    console.log(`Found invoices using key "${key}" (matched to ${tenantId})`);
                     break;
                 }
             }
         }
         
-        console.log(`🔍 Tenant ${tenantId} (${tenant.name}) - Invoices found:`, tenantInvoices.length);
+        console.log(`Tenant ${tenantId} (${tenant.name}) - Invoices found:`, tenantInvoices.length);
         
         // --- Determine current month ---
         let currentMonthY = '';
@@ -3220,7 +3220,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                     currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
                 }
             } catch (e) {
-                console.warn('⚠️ Error parsing tenant month:', tenant.month, e);
+                console.warn('Error parsing tenant month:', tenant.month, e);
             }
         }
         
@@ -3238,7 +3238,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             currentMonthY = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
         }
         
-        console.log(`📅 Tenant ${tenantId} currentMonthY: ${currentMonthY}`);
+        console.log(`Tenant ${tenantId} currentMonthY: ${currentMonthY}`);
         
         // --- Find current month's invoice (show for accountability) ---
         let currentInvoice = tenantInvoices.find(inv => {
@@ -3249,18 +3249,18 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         let currentBill = currentInvoice ? parseFloat(currentInvoice.amount || 0) : 0;
         let currentStatus = currentInvoice ? currentInvoice.status : 'unknown';
         
-        console.log(`💵 currentBill from invoices: ${currentBill}`);
-        console.log(`📊 currentStatus: ${currentStatus}`);
+        console.log(`currentBill from invoices: ${currentBill}`);
+        console.log(`currentStatus: ${currentStatus}`);
         
-        // ✅ If no invoice, fallback to tenant waterbill
+        // If no invoice, fallback to tenant waterbill
         if ((!currentInvoice || currentBill === 0) && tenant.waterbill > 0) {
-            console.warn(`⚠️ No invoice for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
+            console.warn(`No invoice for tenant ${tenantId}, using table waterbill: ${tenant.waterbill}`);
             currentBill = tenant.waterbill;
             currentStatus = 'unknown';
         }
         
         // --- Filter OLDER invoices (billing_month < currentMonthY) ---
-        // ✅ Include ONLY unpaid, partial, and overdue – EXCLUDE paid invoices
+        // Include ONLY unpaid, partial, and overdue – EXCLUDE paid invoices
         let olderInvoices = tenantInvoices.filter(inv => {
             if (!inv.billing_month) return false;
             let invMonth = inv.billing_month.substring(0, 7);
@@ -3268,7 +3268,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             // Only older invoices
             if (invMonth >= currentMonthY) return false;
             
-            // ✅ EXCLUDE paid invoices from older invoices
+            // EXCLUDE paid invoices from older invoices
             if (!isUnpaidOrPartial(inv.status)) return false;
             
             // Check if due date is today or earlier
@@ -3292,13 +3292,13 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         let unpaidCount = olderInvoices.length;
         
-        console.log(`💰 Tenant ${tenantId} totalDue: ${totalDue}`);
-        console.log(`💰 Tenant ${tenantId} currentBill: ${currentBill}`);
-        console.log(`💰 Tenant ${tenantId} unpaidTotal: ${unpaidTotal}`);
-        console.log(`🔍 Tenant ${tenantId} olderInvoices count: ${unpaidCount}`);
-        console.log(`🔍 Tenant ${tenantId} currentStatus: ${currentStatus}`);
+        console.log(`Tenant ${tenantId} totalDue: ${totalDue}`);
+        console.log(`Tenant ${tenantId} currentBill: ${currentBill}`);
+        console.log(`Tenant ${tenantId} unpaidTotal: ${unpaidTotal}`);
+        console.log(`Tenant ${tenantId} olderInvoices count: ${unpaidCount}`);
+        console.log(`Tenant ${tenantId} currentStatus: ${currentStatus}`);
         
-        // ✅ Build unpaid list (only older unpaid/partial invoices)
+        // Build unpaid list (only older unpaid/partial invoices)
         let unpaidList = '';
         if (olderInvoices.length > 0) {
             unpaidList = olderInvoices.map(inv => {
@@ -3308,7 +3308,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
             }).join('\n');
         }
         
-        // ✅ Track if any outstanding balance exists
+        // Track if any outstanding balance exists
         if (totalDue > 0) {
             hasOutstanding = true;
         }
@@ -3358,7 +3358,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         // Remove any remaining placeholders
         message = message.replace(/\{\{[^}]*\}\}/g, '');
         
-        // ✅ CLEAN THE MESSAGE – remove excessive blank lines
+        // CLEAN THE MESSAGE – remove excessive blank lines
         function cleanMessage(msg) {
             // Remove multiple consecutive newlines (keep max 2)
             msg = msg.replace(/\n{3,}/g, '\n\n');
@@ -3370,7 +3370,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         }
         message = cleanMessage(message);
         
-        console.log(`📨 Final message for ${tenant.name}:`, message);
+        console.log(`Final message for ${tenant.name}:`, message);
         
         // --- Build HTML ---
         let statusBadgeClass = 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
@@ -3384,10 +3384,10 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         
         let unpaidBadge = '';
         if (unpaidCount > 0) {
-            unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} overdue</span>`;
+            unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">${unpaidCount} overdue</span>`;
         }
         
-        // ✅ Show current bill status if it's paid
+        // Show current bill status if it's paid
         let currentBillStatus = '';
         if (currentStatus === 'paid') {
             currentBillStatus = ` (Paid)`;
@@ -3413,7 +3413,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                     <span class="text-gray-500 dark:text-gray-400">Reading: ${tenant.prevRead || 0} → ${tenant.currRead || 0}</span>
                     ${unpaidCount > 0 ? `<span class="text-orange-600 dark:text-orange-400">| Unpaid/Partial: KES ${unpaidTotal.toFixed(2)}</span>` : ''}
                     ${totalDue > 0 ? `<span class="text-blue-600 dark:text-blue-400">| Total Due: KES ${totalDue.toFixed(2)}</span>` : 
-                    `<span class="text-green-600 dark:text-green-400">| ✅ All paid</span>`}
+                    `<span class="text-green-600 dark:text-green-400">| All paid</span>`}
                 </div>
             </div>
         `;
@@ -3510,7 +3510,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 
                 let unpaidBadge = '';
                 if (unpaidCount > 0) {
-                    unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">⚠️ ${unpaidCount} unpaid</span>`;
+                    unpaidBadge = `<span class="text-xs text-orange-600 dark:text-orange-400 ml-2">${unpaidCount} unpaid</span>`;
                 }
                 
                 html += `
@@ -3549,7 +3549,7 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
         // ============================================
         function viewCampaign(id) {
             currentCampaignId = id;
-            console.log('👁️ Viewing campaign:', id);
+            console.log('Viewing campaign:', id);
             
             const modal = document.getElementById('viewCampaignModal');
             const loading = document.getElementById('viewCampaignLoading');
@@ -3570,14 +3570,14 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 }
             })
             .then(response => {
-                console.log('📥 API Response status:', response.status);
+                console.log('API Response status:', response.status);
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 return response.json();
             })
             .then(data => {
-                console.log('📥 FULL Campaign data received:', data);
+                console.log('FULL Campaign data received:', data);
                 
                 if (data.campaign) {
                     const formattedData = {
@@ -3611,9 +3611,9 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
                 }
             })
             .catch(error => {
-                console.error('❌ Error loading campaign details:', error);
+                console.error('Error loading campaign details:', error);
                 if (loading) loading.style.display = 'none';
-                alert('❌ Error loading campaign details: ' + error.message);
+                alert('Error loading campaign details: ' + error.message);
             });
         }
 
@@ -3780,11 +3780,11 @@ function renderCampaignPreviewWithData(tenants, templateContent, invoiceData, co
 // RENDER RECIPIENTS – With Updated Actions
 // ============================================
 function renderRecipients(recipients) {
-    console.log('📋 Rendering recipients, count:', recipients ? recipients.length : 0);
+    console.log('Rendering recipients, count:', recipients ? recipients.length : 0);
     
     const tbody = document.getElementById('viewRecipientsBody');
     if (!tbody) {
-        console.warn('⚠️ viewRecipientsBody element not found');
+        console.warn('viewRecipientsBody element not found');
         return;
     }
     
@@ -3898,7 +3898,7 @@ function renderRecipients(recipients) {
     });
     
     tbody.innerHTML = html;
-    console.log('✅ Recipients rendered with updated actions');
+    console.log('Recipients rendered with updated actions');
 }
 
 // ============================================
@@ -3921,7 +3921,7 @@ function viewDeliveryDetails(recipientId) {
     const providerStatus = recipient.provider_status || 'N/A';
     const message = recipient.message || 'No message';
     
-    alert(`📬 Delivery Details\n\n` +
+    alert(`Delivery Details\n\n` +
           `Tenant: ${recipient.tenant_name || 'Unknown'}\n` +
           `Phone: ${phone}\n` +
           `Status: ${status}\n` +
@@ -3949,7 +3949,7 @@ function copyRecipientMessage(recipientId) {
         return;
     }
     copyToClipboard(message);
-    showToast('📋 Message copied to clipboard!');
+    showToast('Message copied to clipboard!');
 }
 // ============================================
 // VIEW FAILURE REASON
@@ -3965,7 +3965,7 @@ function viewFailureReason(recipientId) {
     const phone = recipient.phone || recipient.phone_number || 'N/A';
     const tenantName = recipient.tenant_name || recipient.name || 'Unknown';
     
-    alert(`❌ Failure Reason\n\n` +
+    alert(`Failure Reason\n\n` +
           `Tenant: ${tenantName}\n` +
           `Phone: ${phone}\n` +
           `Provider Status: ${providerStatus || 'N/A'}\n\n` +
@@ -3990,7 +3990,7 @@ function viewRecipientMessage(recipientId) {
     const unitNumber = recipient.unit_number || recipient.unit || 'N/A';
     const propertyName = recipient.property_name || recipient.property || 'N/A';
     
-    alert(`📨 Message Details\n\n` +
+    alert(`Message Details\n\n` +
           `Tenant: ${tenantName}\n` +
           `Unit: ${unitNumber}\n` +
           `Property: ${propertyName}\n` +
@@ -4044,15 +4044,15 @@ function updateRecipientPhone(recipientId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('✅ Phone number updated successfully!');
+            alert('Phone number updated successfully!');
             viewCampaign(currentCampaignId);
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to update phone'));
+            alert('Error: ' + (data.message || 'Failed to update phone'));
         }
     })
     .catch(error => {
         console.error('Error updating phone:', error);
-        alert('❌ Error updating phone: ' + error.message);
+        alert('Error updating phone: ' + error.message);
     })
     .finally(() => {
         if (btn) {
@@ -4144,7 +4144,7 @@ function updateRecipientPhone(recipientId) {
         // TAB SWITCHING FOR RECIPIENT TABS
         // ============================================
         function switchRecipientTab(tab) {
-            console.log('🔄 Switching to tab:', tab);
+            console.log('Switching to tab:', tab);
             
             const recipientsTab = document.getElementById('recipientsTabContent');
             const invalidTab = document.getElementById('invalidTabContent');
@@ -4458,16 +4458,16 @@ function updateRecipientPhone(recipientId) {
             })
             .then(data => {
                 if (data.success) {
-                    alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
+                    alert(`Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
                     viewCampaign(currentCampaignId);
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to resend messages'));
+                    alert('Error: ' + (data.message || 'Failed to resend messages'));
                 }
             })
             .catch(error => {
                 clearTimeout(timeoutId);
                 console.error('Error resending:', error);
-                alert('❌ Error resending messages: ' + (error.message || 'Unknown error'));
+                alert('Error resending messages: ' + (error.message || 'Unknown error'));
             })
             .finally(() => {
                 clearTimeout(timeoutId);
@@ -4510,15 +4510,15 @@ function updateRecipientPhone(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`✅ Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
+                    alert(`Resend completed!\n\nSent: ${data.data.sent}\nFailed: ${data.data.failed}\nTotal: ${data.data.total}`);
                     viewCampaign(currentCampaignId);
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to resend pending messages'));
+                    alert('Error: ' + (data.message || 'Failed to resend pending messages'));
                 }
             })
             .catch(error => {
                 console.error('Error resending pending:', error);
-                alert('❌ Error resending pending messages: ' + error.message);
+                alert('Error resending pending messages: ' + error.message);
             })
             .finally(() => {
                 if (btn) {
@@ -4556,15 +4556,15 @@ function updateRecipientPhone(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`✅ Status sync completed!\n\nSynced: ${data.data.synced}\nFailed: ${data.data.failed}\nStatus changes: ${data.data.status_changes?.length || 0}`);
+                    alert(`Status sync completed!\n\nSynced: ${data.data.synced}\nFailed: ${data.data.failed}\nStatus changes: ${data.data.status_changes?.length || 0}`);
                     viewCampaign(currentCampaignId);
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to sync status'));
+                    alert('Error: ' + (data.message || 'Failed to sync status'));
                 }
             })
             .catch(error => {
                 console.error('Error refreshing status:', error);
-                alert('❌ Error refreshing status: ' + error.message);
+                alert('Error refreshing status: ' + error.message);
             })
             .finally(() => {
                 if (btn) {
@@ -4608,15 +4608,15 @@ function updateRecipientPhone(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert(`✅ Status check completed!\n\nUpdated: ${data.updated}\nFailed: ${data.failed}\nPending: ${data.pending}`);
+                    alert(`Status check completed!\n\nUpdated: ${data.updated}\nFailed: ${data.failed}\nPending: ${data.pending}`);
                     viewCampaign(currentCampaignId);
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to check status'));
+                    alert('Error: ' + (data.message || 'Failed to check status'));
                 }
             })
             .catch(error => {
                 console.error('Error checking status:', error);
-                alert('❌ Error checking status: ' + error.message);
+                alert('Error checking status: ' + error.message);
             })
             .finally(() => {
                 if (btn) {
@@ -4737,16 +4737,16 @@ function resendSingleRecipient(recipientId) {
     })
     .then(data => {
         if (data.success) {
-            alert('✅ Message resent successfully!');
+            alert('Message resent successfully!');
             viewCampaign(currentCampaignId);
         } else {
-            alert('❌ Error: ' + (data.message || 'Failed to resend'));
+            alert('Error: ' + (data.message || 'Failed to resend'));
         }
     })
     .catch(error => {
         clearTimeout(timeoutId);
         console.error('Error resending:', error);
-        alert('❌ Error resending: ' + (error.message || 'Unknown error'));
+        alert('Error resending: ' + (error.message || 'Unknown error'));
     })
     .finally(() => {
         clearTimeout(timeoutId);
@@ -5012,16 +5012,16 @@ function resendSingleRecipient(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Phone number updated successfully!');
+                    alert('Phone number updated successfully!');
                     closeUpdatePhoneModal();
                     viewCampaign(currentCampaignId);
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to update phone'));
+                    alert('Error: ' + (data.message || 'Failed to update phone'));
                 }
             })
             .catch(error => {
                 console.error('Error updating phone:', error);
-                alert('❌ Error updating phone: ' + error.message);
+                alert('Error updating phone: ' + error.message);
             })
             .finally(() => {
                 btn.disabled = false;
@@ -5058,15 +5058,15 @@ function resendSingleRecipient(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Campaign is being sent!');
+                    alert('Campaign is being sent!');
                     loadCampaigns();
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to send campaign'));
+                    alert('Error: ' + (data.message || 'Failed to send campaign'));
                 }
             })
             .catch(error => {
                 console.error('Error sending campaign:', error);
-                alert('❌ Error sending campaign');
+                alert('Error sending campaign');
             });
         }
 
@@ -5084,15 +5084,15 @@ function resendSingleRecipient(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Retrying failed messages!');
+                    alert('Retrying failed messages!');
                     loadCampaigns();
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to retry'));
+                    alert('Error: ' + (data.message || 'Failed to retry'));
                 }
             })
             .catch(error => {
                 console.error('Error retrying campaign:', error);
-                alert('❌ Error retrying campaign');
+                alert('Error retrying campaign');
             });
         }
 
@@ -5109,15 +5109,15 @@ function resendSingleRecipient(recipientId) {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    alert('✅ Campaign deleted successfully!');
+                    alert('Campaign deleted successfully!');
                     loadCampaigns();
                 } else {
-                    alert('❌ Error: ' + (data.message || 'Failed to delete campaign'));
+                    alert('Error: ' + (data.message || 'Failed to delete campaign'));
                 }
             })
             .catch(error => {
                 console.error('Error deleting campaign:', error);
-                alert('❌ Error deleting campaign: ' + error.message);
+                alert('Error deleting campaign: ' + error.message);
             });
         }
 
@@ -5125,10 +5125,10 @@ function resendSingleRecipient(recipientId) {
         // OPEN CREATE CAMPAIGN MODAL
         // ============================================
         function openCreateCampaignModal() {
-            console.log('📝 Opening create campaign modal');
+            console.log('Opening create campaign modal');
             const modal = document.getElementById('createCampaignModal');
             if (!modal) {
-                console.error('❌ Create campaign modal not found');
+                console.error('Create campaign modal not found');
                 return;
             }
             
@@ -5170,7 +5170,7 @@ function resendSingleRecipient(recipientId) {
         }
 
         function closeCreateCampaignModal() {
-            console.log('📝 Closing create campaign modal');
+            console.log('Closing create campaign modal');
             const modal = document.getElementById('createCampaignModal');
             if (modal) modal.style.display = 'none';
         }
@@ -5182,7 +5182,7 @@ function resendSingleRecipient(recipientId) {
             const selected = select.options[select.selectedIndex];
             const content = selected ? selected.getAttribute('data-content') : null;
             
-            console.log('📝 Template selected:', selected ? selected.text : 'None');
+            console.log('Template selected:', selected ? selected.text : 'None');
             
             const previewDiv = document.getElementById('campaignTemplatePreview');
             const contentEl = document.getElementById('campaignTemplateContent');
@@ -5235,7 +5235,7 @@ function resendSingleRecipient(recipientId) {
                 scheduled_at: scheduledAt || null
             };
             
-            console.log('📤 Submitting campaign:', formData);
+            console.log('Submitting campaign:', formData);
             
             fetch('/api/sms/campaigns', {
                 method: 'POST',
@@ -5258,14 +5258,14 @@ function resendSingleRecipient(recipientId) {
                 if (data.success) {
                     closeCreateCampaignModal();
                     loadCampaigns();
-                    alert('✅ Campaign created successfully!');
+                    alert('Campaign created successfully!');
                 } else {
                     throw new Error(data.message || 'Something went wrong');
                 }
             })
             .catch(error => {
                 console.error('Error creating campaign:', error);
-                alert('❌ Error: ' + error.message);
+                alert('Error: ' + error.message);
             })
             .finally(() => {
                 if (submitBtn) submitBtn.disabled = false;

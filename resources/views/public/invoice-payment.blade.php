@@ -99,7 +99,7 @@
                 <form @submit.prevent="submitPayment()" class="space-y-4">
                     <div>
                         <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
-                            📱 M-Pesa Phone Number *
+                            <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> M-Pesa Phone Number *
                         </label>
                         <input 
                             type="tel" 
@@ -176,7 +176,7 @@
                         x-bind:disabled="loading || !phone || !amount || parseFloat(amount) > {{ $balanceDue }}"
                         class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        <span x-show="!loading">💳 Pay with M-Pesa</span>
+                        <span x-show="!loading"><x-icon name="credit-card" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Pay with M-Pesa</span>
                         <span x-show="loading" class="flex items-center justify-center gap-2">
                             <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -188,7 +188,7 @@
                 </form>
                 @else
                 <div class="bg-green-50 text-green-800 p-6 rounded-lg text-center">
-                    <p class="text-2xl mb-2">✅</p>
+                    <p class="text-2xl mb-2"><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></p>
                     <p class="text-lg font-bold">Invoice Already Paid</p>
                     <p class="text-sm">This invoice has been fully paid. Thank you!</p>
                 </div>
@@ -302,7 +302,7 @@
                         url.searchParams.set('checkout', this.checkoutId);
                         window.history.pushState({}, '', url);
                         
-                        this.showStatus('pending', '📱 STK Push Sent!', 
+                        this.showStatus('pending', 'STK Push Sent!', 
                             `Please check your phone (${this.phone}) and enter your M-Pesa PIN.`,
                             'bg-yellow-50 text-yellow-800 border-yellow-200'
                         );
@@ -325,7 +325,7 @@
                 this.status.message = message;
                 this.status.class = className || 'bg-gray-50 text-gray-800 border-gray-200';
                 this.status.loading = status === 'pending';
-                this.status.icon = status === 'success' ? '✅' : (status === 'failed' ? '❌' : '');
+                this.status.icon = status === 'success' ? '' : (status === 'failed' ? '' : '');
                 this.status.progress = status === 'pending' ? 0 : (status === 'success' ? 100 : 0);
                 this.status.progressClass = status === 'pending' ? 'bg-blue-600' : 
                                             (status === 'success' ? 'bg-green-600' : 'bg-red-600');
@@ -373,7 +373,7 @@
                         this.status.progress = 100;
                         this.status.loading = false;
                         
-                        this.showStatus('success', '✅ Payment Successful!', 
+                        this.showStatus('success', 'Payment Successful!', 
                             'Your payment has been confirmed. Thank you!',
                             'bg-green-50 text-green-800 border-green-200'
                         );
@@ -389,7 +389,7 @@
                         this.status.progress = 100;
                         this.status.loading = false;
                         
-                        this.showStatus('failed', '❌ Payment Failed', 
+                        this.showStatus('failed', 'Payment Failed', 
                             data.message || 'Payment was not successful. Please try again.',
                             'bg-red-50 text-red-800 border-red-200'
                         );

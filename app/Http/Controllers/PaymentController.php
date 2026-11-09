@@ -221,14 +221,14 @@ class PaymentController extends Controller
             $invoice = Invoice::findOrFail($request->invoice_id);
             
             // =========================================================
-            // 📱 M-PESA PAYBILL - STK PUSH
+            // M-PESA PAYBILL - STK PUSH
             // =========================================================
             if (in_array($request->payment_method, ['mpesa', 'mpesa_paybill'])) {
                 return $this->processMpesaPayment($request, $tenant, $invoice);
             }
             
             // =========================================================
-            // 💰 REGULAR PAYMENT (Cash, Bank Transfer)
+            // REGULAR PAYMENT (Cash, Bank Transfer)
             //    For cash/bank payments, we deposit the money into the wallet first,
             //    then pay the invoice from the wallet.
             //    This ensures the wallet balance reflects the payment.
@@ -453,7 +453,7 @@ class PaymentController extends Controller
         // Format phone number
         $phone = $this->formatPhoneNumber($phone);
         
-        Log::info('📱 Processing M-Pesa payment from admin', [
+        Log::info('Processing M-Pesa payment from admin', [
             'phone' => $phone,
             'amount' => $request->amount,
             'invoice_id' => $invoice->id,
@@ -472,7 +472,7 @@ class PaymentController extends Controller
             auth()->id()   // Pass user_id if authenticated
         );
         
-        Log::info('📤 STK Push result from admin', ['result' => $result]);
+        Log::info('STK Push result from admin', ['result' => $result]);
         
         if ($result['success']) {
             // Store in session for immediate use
@@ -486,7 +486,7 @@ class PaymentController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => '✅ STK Push sent to ' . $phone . '! Please check your phone.',
+                'message' => 'STK Push sent to ' . $phone . '! Please check your phone.',
                 'checkout_request_id' => $result['checkout_request_id'],
                 'is_mpesa' => true,
                 'phone' => $phone
@@ -495,7 +495,7 @@ class PaymentController extends Controller
         
         return response()->json([
             'success' => false,
-            'message' => '❌ STK Push failed: ' . ($result['message'] ?? 'Please try again.')
+            'message' => 'STK Push failed: ' . ($result['message'] ?? 'Please try again.')
         ], 400);
     }
 

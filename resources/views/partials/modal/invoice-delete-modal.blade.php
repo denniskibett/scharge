@@ -93,7 +93,7 @@
             </div>
           </div>
           <p class="mt-4 text-sm text-red-600 dark:text-red-400">
-            ⚠️ This action cannot be undone. All associated items and payments will also be deleted.
+            <x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> This action cannot be undone. All associated items and payments will also be deleted.
           </p>
         </div>
       </div>

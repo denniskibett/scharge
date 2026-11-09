@@ -9,7 +9,7 @@
 <body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-lg">
         <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div class="text-6xl mb-4">✅</div>
+            <div class="text-6xl mb-4"><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /></div>
             <h1 class="text-2xl font-bold text-gray-800 mb-2">Invoice Already Paid</h1>
             <p class="text-gray-500 mb-6">This invoice has been fully paid. Thank you for your payment!</p>
             

@@ -222,37 +222,37 @@
               <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="selectedUtilities.rent ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
                 <input type="checkbox" x-model="selectedUtilities.rent" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
-                <span class="text-sm">🏠 Rent</span>
+                <span class="text-sm"><x-icon name="home" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Rent</span>
               </label>
               
               <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="selectedUtilities.water ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
                 <input type="checkbox" x-model="selectedUtilities.water" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
-                <span class="text-sm">💧 Water</span>
+                <span class="text-sm"><x-icon name="beaker" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Water</span>
               </label>
               
               <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="selectedUtilities.service ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
                 <input type="checkbox" x-model="selectedUtilities.service" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
-                <span class="text-sm">🔧 Service</span>
+                <span class="text-sm"><x-icon name="wrench" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Service</span>
               </label>
               
               <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="selectedUtilities.garbage ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
                 <input type="checkbox" x-model="selectedUtilities.garbage" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
-                <span class="text-sm">🗑️ Garbage</span>
+                <span class="text-sm"><x-icon name="trash" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Garbage</span>
               </label>
               
               <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="selectedUtilities.security ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
                 <input type="checkbox" x-model="selectedUtilities.security" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
-                <span class="text-sm">🛡️ Security</span>
+                <span class="text-sm"><x-icon name="shield-check" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Security</span>
               </label>
               
               <label class="flex items-center p-2 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                      :class="selectedUtilities.other ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20' : 'border-gray-200 dark:border-gray-700'">
                 <input type="checkbox" x-model="selectedUtilities.other" @change="updateSelectedItems()" class="mr-2 rounded border-gray-300 text-brand-500">
-                <span class="text-sm">📋 Other</span>
+                <span class="text-sm"><x-icon name="clipboard-document-list" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Other</span>
               </label>
             </div>
             
@@ -273,7 +273,7 @@
                     @click="checkExistingInvoices"
                     :disabled="isCheckingInvoices"
                     class="w-full py-2.5 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">
-              <span x-show="!isCheckingInvoices">🔍 Check Existing Invoices for Selected Month</span>
+              <span x-show="!isCheckingInvoices"><x-icon name="magnifying-glass" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Check Existing Invoices for Selected Month</span>
               <span x-show="isCheckingInvoices">Checking...</span>
             </button>
             

@@ -520,7 +520,7 @@ function updateStepIndicators(step) {
         if (indicator) {
             if (i < step) {
                 indicator.classList.remove('opacity-50');
-                if (icon) { icon.innerHTML = '✓'; icon.classList.add('bg-green-500', 'text-white'); icon.classList.remove('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300'); }
+                if (icon) { icon.innerHTML = ''; icon.classList.add('bg-green-500', 'text-white'); icon.classList.remove('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300'); }
             } else if (i === step) {
                 indicator.classList.remove('opacity-50');
                 if (icon) { icon.innerHTML = step.toString(); icon.classList.add('bg-brand-500', 'text-white'); icon.classList.remove('bg-gray-200', 'text-gray-600', 'dark:bg-gray-700', 'dark:text-gray-300', 'bg-green-500'); }
@@ -592,7 +592,7 @@ async function loadUnits(propertyId) {
         if (data.success && data.units) {
             unitSelect.innerHTML = '<option value="">-- Select a unit --</option>';
             data.units.forEach(unit => {
-                const tenantInfo = unit.has_active_tenancy ? '✓ Occupied' : '○ Vacant';
+                const tenantInfo = unit.has_active_tenancy ? 'Occupied' : '○ Vacant';
                 unitSelect.innerHTML += `<option value="${unit.id}" data-has-tenant="${unit.has_active_tenancy}">${unit.unit_number} - ${tenantInfo}</option>`;
             });
             unitSelect.onchange = () => onUnitSelected();

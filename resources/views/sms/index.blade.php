@@ -21,19 +21,19 @@
     <div class="flex border-b border-gray-200 mb-6">
         <button onclick="switchTab('tenants')" id="tab-tenants" 
             class="tab-button py-2 px-4 text-sm font-medium border-b-2 border-brand-500 text-brand-600">
-            📢 Send to Tenants
+            <x-icon name="megaphone" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Send to Tenants
         </button>
         <button onclick="switchTab('custom')" id="tab-custom" 
             class="tab-button py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600">
-            ✉️ Send Custom SMS
+            <x-icon name="envelope" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Send Custom SMS
         </button>
         <button onclick="switchTab('history')" id="tab-history" 
             class="tab-button py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600">
-            📜 SMS History
+            <x-icon name="document-text" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SMS History
         </button>
         <button onclick="switchTab('campaigns')" id="tab-campaigns" 
             class="tab-button py-2 px-4 text-sm font-medium border-b-2 border-transparent hover:text-brand-600">
-            📊 Campaigns
+            <x-icon name="chart-bar" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Campaigns
         </button>
         <button onclick="openTemplateModal()" 
             class="ml-auto py-2 px-4 text-sm font-medium bg-brand-600 text-white rounded-lg hover:bg-brand-700">

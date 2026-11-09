@@ -79,7 +79,7 @@
 
       <!-- Invoice Summary (when opened from invoice) -->
       <div x-show="preSelectedInvoice" class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-        <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400">📄 Invoice Details</h5>
+        <h5 class="mb-2 text-sm font-semibold text-blue-800 dark:text-blue-400"><x-icon name="document-text" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Invoice Details</h5>
         <div class="grid grid-cols-2 gap-3 text-sm">
           <div>
             <span class="text-gray-600 dark:text-gray-400">Invoice #:</span>
@@ -137,7 +137,7 @@
       <div x-show="walletBalance !== null && !walletLoading" class="mb-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
         <div class="flex items-center justify-between">
           <div>
-            <span class="text-xs text-blue-700 dark:text-blue-400">💰 Wallet Balance (Bavix)</span>
+            <span class="text-xs text-blue-700 dark:text-blue-400"><x-icon name="banknotes" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Wallet Balance (Bavix)</span>
             <p class="text-lg font-bold text-blue-800 dark:text-blue-300" x-text="formatCurrency(walletBalance)"></p>
             <p class="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
               <span x-show="walletBalance > 0">Available for payment</span>
@@ -158,10 +158,10 @@
           </div>
         </div>
         <div class="mt-2 text-xs text-blue-600 dark:text-blue-400">
-          <span x-show="walletBalance >= selectedInvoiceRemaining && selectedInvoiceRemaining > 0">✅ Sufficient balance to pay invoice in full</span>
-          <span x-show="walletBalance > 0 && walletBalance < selectedInvoiceRemaining">⚠️ Partial balance - <span x-text="formatCurrency(selectedInvoiceRemaining - walletBalance)"></span> additional required</span>
+          <span x-show="walletBalance >= selectedInvoiceRemaining && selectedInvoiceRemaining > 0"><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Sufficient balance to pay invoice in full</span>
+          <span x-show="walletBalance > 0 && walletBalance < selectedInvoiceRemaining"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Partial balance - <span x-text="formatCurrency(selectedInvoiceRemaining - walletBalance)"></span> additional required</span>
           <span x-show="walletBalance === 0">ℹ️ No wallet balance available - manual payment required</span>
-          <span x-show="selectedInvoiceRemaining === 0">✅ Invoice is fully paid</span>
+          <span x-show="selectedInvoiceRemaining === 0"><x-icon name="check-circle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> Invoice is fully paid</span>
         </div>
       </div>
 
@@ -249,17 +249,17 @@
           required
           class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
         >
-          <option value="cash">💰 Cash</option>
-          <option value="bank_transfer">🏦 Bank Transfer</option>
-          <option value="mpesa_paybill">📱 M-Pesa Paybill (STK Push)</option>
-          <option value="manual_topup">📝 Manual Top-up</option>
+          <option value="cash">Cash</option>
+          <option value="bank_transfer">Bank Transfer</option>
+          <option value="mpesa_paybill">M-Pesa Paybill (STK Push)</option>
+          <option value="manual_topup">Manual Top-up</option>
         </select>
       </div>
 
       <!-- M-Pesa Phone Field (shown only when mpesa_paybill is selected) -->
       <div x-show="form.payment_method === 'mpesa_paybill'" class="mb-5">
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-          📱 M-Pesa Phone Number *
+          <x-icon name="device-phone-mobile" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> M-Pesa Phone Number *
         </label>
         <input
           type="text"
@@ -275,7 +275,7 @@
       <!-- M-Pesa Instructions -->
       <div x-show="form.payment_method === 'mpesa_paybill'" class="mb-5">
         <div class="rounded-lg bg-blue-50 p-3 text-sm text-blue-800 dark:bg-blue-900/20 dark:text-blue-400">
-          <strong>📌 How M-Pesa Paybill works:</strong>
+          <strong><x-icon name="map-pin" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> How M-Pesa Paybill works:</strong>
           <ul class="mt-1 list-disc pl-5">
             <li>You will receive an STK Push pop-up on your phone</li>
             <li>Enter your M-Pesa PIN to confirm</li>
@@ -390,7 +390,7 @@
           class="flex justify-center rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs disabled:opacity-50 disabled:cursor-not-allowed"
           :class="form.payment_method === 'mpesa_paybill' ? 'bg-green-600 hover:bg-green-700' : 'bg-brand-500 hover:bg-brand-600'"
         >
-          <span x-show="!loading" x-text="form.payment_method === 'mpesa_paybill' ? '💳 Pay with M-Pesa' : 'Process Payment'"></span>
+          <span x-show="!loading" x-text="form.payment_method === 'mpesa_paybill' ? 'Pay with M-Pesa' : 'Process Payment'"></span>
           <span x-show="loading">Processing...</span>
         </button>
       </div>
@@ -722,9 +722,9 @@ document.addEventListener('alpine:init', () => {
       
       // Show feedback
       if (this.walletBalance >= this.selectedInvoiceRemaining) {
-        this.showToast('success', '✅ Using wallet balance to pay invoice in full');
+        this.showToast('success', 'Using wallet balance to pay invoice in full');
       } else if (this.walletBalance > 0) {
-        this.showToast('info', `💰 Using KES ${this.formatNumber(this.walletBalance)} from wallet balance. Additional KES ${this.formatNumber(this.selectedInvoiceRemaining - this.walletBalance)} required.`);
+        this.showToast('info', `Using KES ${this.formatNumber(this.walletBalance)} from wallet balance. Additional KES ${this.formatNumber(this.selectedInvoiceRemaining - this.walletBalance)} required.`);
       }
     },
     
@@ -823,7 +823,7 @@ document.addEventListener('alpine:init', () => {
     showMpesaStatus(checkoutId) {
       this.mpesaStatus.show = true;
       this.mpesaStatus.checkoutId = checkoutId;
-      this.mpesaStatus.title = '📱 STK Push Sent!';
+      this.mpesaStatus.title = 'STK Push Sent!';
       this.mpesaStatus.message = `Please check your phone (${this.form.mpesa_phone}) and enter your M-Pesa PIN.`;
       this.mpesaStatus.icon = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
       this.mpesaStatus.class = 'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
@@ -860,7 +860,7 @@ document.addEventListener('alpine:init', () => {
               this.mpesaStatus.interval = null;
               this.mpesaStatus.progress = 100;
               this.mpesaStatus.progressClass = 'bg-green-600';
-              this.mpesaStatus.title = '✅ Payment Successful!';
+              this.mpesaStatus.title = 'Payment Successful!';
               this.mpesaStatus.message = `Your payment has been confirmed. Receipt: ${data.data?.ReceiptNumber || 'N/A'}`;
               this.mpesaStatus.icon = `<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
               this.mpesaStatus.class = 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400';
@@ -871,7 +871,7 @@ document.addEventListener('alpine:init', () => {
             } else if (status === '1' || status === 'failed' || status === 'error') {
               clearInterval(this.mpesaStatus.interval);
               this.mpesaStatus.interval = null;
-              this.mpesaStatus.title = '❌ Payment Failed';
+              this.mpesaStatus.title = 'Payment Failed';
               this.mpesaStatus.message = data.message || 'Transaction failed. Please try again.';
               this.mpesaStatus.icon = `<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
               this.mpesaStatus.class = 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400';
@@ -884,7 +884,7 @@ document.addEventListener('alpine:init', () => {
         if (this.mpesaStatus.attempts >= this.mpesaStatus.maxAttempts) {
           clearInterval(this.mpesaStatus.interval);
           this.mpesaStatus.interval = null;
-          this.mpesaStatus.title = '⏳ Payment Still Processing';
+          this.mpesaStatus.title = 'Payment Still Processing';
           this.mpesaStatus.message = 'Please check your M-Pesa app for status.';
           this.mpesaStatus.icon = `<svg class="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
           this.mpesaStatus.class = 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400';
@@ -962,7 +962,7 @@ document.addEventListener('alpine:init', () => {
         const proceed = await new Promise((resolve) => {
           window.alertModal.show(
             'warning',
-            '⚠️ Insufficient Wallet Balance',
+            'Insufficient Wallet Balance',
             `Payment amount (${this.formatCurrency(this.form.amount)}) exceeds wallet balance (${this.formatCurrency(this.walletBalance)}). The tenant will need to top up their wallet. Continue?`,
             [],
             {
@@ -986,7 +986,7 @@ document.addEventListener('alpine:init', () => {
           const proceed = await new Promise((resolve) => {
             window.alertModal.show(
               'info',
-              '⚠️ Excess Payment',
+              'Excess Payment',
               `Amount exceeds invoice due by ${this.formatCurrency(excess)}. This excess will be added to the tenant's wallet balance. Continue?`,
               [],
               {
