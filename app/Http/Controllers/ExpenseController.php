@@ -2,138 +2,125 @@
 
 namespace App\Http\Controllers;
 
-use App\Modules\Expenses\Models\Expense;
 use App\Models\Property;
-use App\Modules\Expenses\Models\Payee; 
+use App\Modules\Expenses\Models\Expense;
 use App\Modules\Expenses\Models\ExpenseCategory;
+use App\Modules\Expenses\Models\Payee;
+use App\Services\Expenses\BusinessBooks;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
+/**
+ * A business's expenses (App\Services\Expenses\BusinessBooks): each company sees and records only its own,
+ * against its own properties, payees and categories.
+ */
 class ExpenseController extends Controller
 {
-    public function index()
+    private function wantsJson(Request $request): bool
     {
-        $expenses = Expense::with(['property', 'payee', 'category'])->get();
-        $properties = Property::all();
-        $payees = Payee::all();
-        $categories = ExpenseCategory::all();
-        
+        return $request->ajax() || $request->wantsJson();
+    }
+
+    /** Rules where the property, payee and category must belong to the user's business. */
+    private function rules(Request $request): array
+    {
+        $ids = BusinessBooks::companyIds($request->user());
+        $inScope = fn (string $table) => $ids === null
+            ? Rule::exists($table, 'id')
+            : Rule::exists($table, 'id')->where(fn ($q) => $q->whereIn('company_id', $ids ?: [0]));
+
+        return [
+            'property_id' => ['required', $inScope('properties')],
+            'payee_id' => ['required', $inScope('payees')],
+            'expense_category_id' => ['required', $inScope('expense_categories')],
+            'amount' => 'required|numeric|min:0.01',
+            'description' => 'nullable|string',
+            'expense_date' => 'required|date',
+            'status' => 'required|in:pending,paid',
+        ];
+    }
+
+    private function mine(Request $request, Expense $expense): void
+    {
+        abort_unless(BusinessBooks::scopeExpenses(Expense::whereKey($expense->id), $request->user())->exists(), 404);
+    }
+
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        BusinessBooks::ensureDefaults(BusinessBooks::companyId($user));
+        $expenses = BusinessBooks::scopeExpenses(Expense::query(), $user)->with(['property', 'payee', 'category'])->latest('expense_date')->get();
+        $properties = BusinessBooks::scope(Property::query(), $user)->orderBy('name')->get();
+        $payees = BusinessBooks::scope(Payee::query(), $user)->orderBy('name')->get();
+        $categories = BusinessBooks::scope(ExpenseCategory::query(), $user)->orderBy('name')->get();
+
         return view('expenses.index', compact('expenses', 'properties', 'payees', 'categories'));
+    }
+
+    private function save(Request $request, ?Expense $expense)
+    {
+        try {
+            $data = $request->validate($this->rules($request));
+            $data['company_id'] = Property::whereKey($data['property_id'])->value('company_id') ?? BusinessBooks::companyId($request->user());
+            if ($expense) {
+                $expense->forceFill($data)->save();
+            } else {
+                $expense = Expense::forceCreate($data);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($this->wantsJson($request)) {
+                return response()->json(['success' => false, 'errors' => $e->errors()], 422);
+            }
+            throw $e;
+        } catch (\Exception $e) {
+            if ($this->wantsJson($request)) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            }
+            throw $e;
+        }
+
+        return $expense;
     }
 
     public function store(Request $request)
     {
-        if ($request->ajax() || $request->wantsJson()) {
-            try {
-                $validated = $request->validate([
-                    'property_id' => 'required|exists:properties,id',
-                    'payee_id' => 'required|exists:payees,id',
-                    'expense_category_id' => 'required|exists:expense_categories,id',
-                    'amount' => 'required|numeric|min:0.01',
-                    'description' => 'nullable|string',
-                    'expense_date' => 'required|date',
-                    'status' => 'required|in:pending,paid',
-                ]);
-
-                $expense = Expense::create($validated);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Expense created successfully!',
-                    'data' => $expense
-                ], 201);
-            } catch (\Illuminate\Validation\ValidationException $e) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $e->errors()
-                ], 422);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
-            }
+        $result = $this->save($request, null);
+        if (! $result instanceof Expense) {
+            return $result;
         }
 
-        $validated = $request->validate([
-            'property_id' => 'required|exists:properties,id',
-            'payee_id' => 'required|exists:payees,id',
-            'expense_category_id' => 'required|exists:expense_categories,id',
-            'amount' => 'required|numeric|min:0.01',
-            'description' => 'nullable|string',
-            'expense_date' => 'required|date',
-            'status' => 'required|in:pending,paid',
-        ]);
-
-        Expense::create($validated);
-        return redirect()->route('expenses.index')->with('success', 'Expense created successfully!');
+        return $this->wantsJson($request)
+            ? response()->json(['success' => true, 'message' => 'Expense created successfully!', 'data' => $result], 201)
+            : redirect()->route('expenses.index')->with('success', 'Expense created successfully!');
     }
 
     public function update(Request $request, Expense $expense)
     {
-        if ($request->ajax() || $request->wantsJson()) {
-            try {
-                $validated = $request->validate([
-                    'property_id' => 'required|exists:properties,id',
-                    'payee_id' => 'required|exists:payees,id',
-                    'expense_category_id' => 'required|exists:expense_categories,id',
-                    'amount' => 'required|numeric|min:0.01',
-                    'description' => 'nullable|string',
-                    'expense_date' => 'required|date',
-                    'status' => 'required|in:pending,paid',
-                ]);
-
-                $expense->update($validated);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Expense updated successfully!',
-                    'data' => $expense
-                ]);
-            } catch (\Illuminate\Validation\ValidationException $e) {
-                return response()->json([
-                    'success' => false,
-                    'errors' => $e->errors()
-                ], 422);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
-            }
+        $this->mine($request, $expense);
+        $result = $this->save($request, $expense);
+        if (! $result instanceof Expense) {
+            return $result;
         }
 
-        $validated = $request->validate([
-            'property_id' => 'required|exists:properties,id',
-            'payee_id' => 'required|exists:payees,id',
-            'expense_category_id' => 'required|exists:expense_categories,id',
-            'amount' => 'required|numeric|min:0.01',
-            'description' => 'nullable|string',
-            'expense_date' => 'required|date',
-            'status' => 'required|in:pending,paid',
-        ]);
-
-        $expense->update($validated);
-        return redirect()->route('expenses.index')->with('success', 'Expense updated successfully!');
+        return $this->wantsJson($request)
+            ? response()->json(['success' => true, 'message' => 'Expense updated successfully!', 'data' => $result])
+            : redirect()->route('expenses.index')->with('success', 'Expense updated successfully!');
     }
 
     public function destroy(Request $request, Expense $expense)
     {
-        if ($request->ajax() || $request->wantsJson()) {
-            try {
-                $expense->delete();
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Expense deleted successfully!'
-                ]);
-            } catch (\Exception $e) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
+        $this->mine($request, $expense);
+        try {
+            $expense->delete();
+        } catch (\Exception $e) {
+            if ($this->wantsJson($request)) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
             }
+            throw $e;
         }
 
-        $expense->delete();
-        return redirect()->route('expenses.index')->with('success', 'Expense deleted successfully!');
+        return $this->wantsJson($request)
+            ? response()->json(['success' => true, 'message' => 'Expense deleted successfully!'])
+            : redirect()->route('expenses.index')->with('success', 'Expense deleted successfully!');
     }
 }

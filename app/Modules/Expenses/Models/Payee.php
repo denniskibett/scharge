@@ -10,6 +10,7 @@ class Payee extends Model
     use HasFactory;
 
     protected $fillable = [
+        'company_id',
         'name',
         'type',
         'phone',

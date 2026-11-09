@@ -306,7 +306,7 @@ class PageCards
 
     private function pagePayees(): array
     {
-        $all = $this->has('payees') ? DB::table('payees')->count() : 0;
+        $all = $this->has('payees') ? (\Illuminate\Support\Facades\Schema::hasColumn('payees', 'company_id') ? $this->scope(DB::table('payees'), 'company_id') : DB::table('payees'))->count() : 0; // this business's payees
         $paidMonth = $this->expenses()->where('e.expense_date', '>=', $this->monthStart)->whereNotNull('e.payee_id')->distinct()->count('e.payee_id');
         [$sum, $sD] = $this->mom(fn () => $this->expenses()->whereNotNull('e.payee_id'), 'e.expense_date', 'e.amount');
         $top = $this->expenses()->whereNotNull('e.payee_id')->join('payees as py', 'py.id', '=', 'e.payee_id')

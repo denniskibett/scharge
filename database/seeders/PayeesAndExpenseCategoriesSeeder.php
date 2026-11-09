@@ -2,68 +2,38 @@
 
 namespace Database\Seeders;
 
+use App\Services\Expenses\BusinessBooks;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The usual payees and expense categories of a Kenyan property business, so expenses can be recorded
- * straight away: utilities, county, statutory bodies, and the monthly cost categories (water, electricity,
- * garbage, marketing, commissions, salaries…). Names only: phone numbers and emails are left for each
- * business to fill in. Only adds what is missing (matched by name), so it is safe to run again.
+ * Gives every business its own starting payees and expense categories, chosen by what it is
+ * (manager / bnb_host / developer, see App\Services\Expenses\BusinessBooks::DEFAULTS). A business that already
+ * has its own keeps them untouched. New businesses get theirs the first time they open Expenses or Payees.
+ *
+ * Shared rows (company_id NULL) from the earlier one-list version are removed when no expense uses them, since
+ * each business now has its own copies.
  *
  *   php artisan db:seed --class=PayeesAndExpenseCategoriesSeeder --force
  */
 class PayeesAndExpenseCategoriesSeeder extends Seeder
 {
-    /** name => type (staff | vendor | utility) */
-    public const PAYEES = [
-        'Kenya Power (KPLC)' => 'utility',
-        'Nairobi City Water and Sewerage Company' => 'utility',
-        'Nairobi City County (rates & garbage)' => 'utility',
-        'Private water supplier (bowser / borehole)' => 'vendor',
-        'Private garbage collector' => 'vendor',
-        'Safaricom (internet & airtime)' => 'utility',
-        'Zuku (internet)' => 'utility',
-        'Kenya Revenue Authority (KRA)' => 'vendor',
-        'NSSF' => 'vendor',
-        'Social Health Authority (SHA)' => 'vendor',
-    ];
-
-    /** name => description */
-    public const CATEGORIES = [
-        'Water' => 'Water bills, private bowsers and borehole water',
-        'Electricity' => 'Power for common areas, pumps, lifts and lighting',
-        'Garbage collection' => 'County or private waste collection and disposal',
-        'Security' => 'Guards, CCTV and alarm services',
-        'Cleaning' => 'Cleaning services and supplies',
-        'Repairs & maintenance' => 'Repairs, plumbing, electrical and general upkeep',
-        'Salaries & wages' => 'Staff salaries, wages and casual labour',
-        'Commissions' => 'Agent and account-manager commissions',
-        'Marketing' => 'Listings, adverts, signage and promotions',
-        'Internet & phone' => 'Internet, airtime and phone bills',
-        'Insurance' => 'Building and liability insurance',
-        'Taxes & statutory' => 'KRA, NSSF, SHA and county levies',
-        'Bank & M-PESA charges' => 'Transaction and account charges',
-        'Office & admin' => 'Stationery, printing and office costs',
-    ];
-
     public function run(): void
     {
-        $now = now();
-        $payees = 0;
-        foreach (self::PAYEES as $name => $type) {
-            if (! DB::table('payees')->where('name', $name)->exists()) {
-                DB::table('payees')->insert(['name' => $name, 'type' => $type, 'created_at' => $now, 'updated_at' => $now]);
-                $payees++;
-            }
+        $companies = DB::table('companies')->where(fn ($q) => $q->whereNull('lifecycle')->orWhere('lifecycle', '!=', 'prospect'))->orderBy('id')->get(['id', 'name', 'kind']); // customers, not CRM prospects
+        $done = 0;
+        foreach ($companies as $c) {
+            $before = DB::table('payees')->where('company_id', $c->id)->count() + DB::table('expense_categories')->where('company_id', $c->id)->count();
+            BusinessBooks::ensureDefaults((int) $c->id);
+            $after = DB::table('payees')->where('company_id', $c->id)->count() + DB::table('expense_categories')->where('company_id', $c->id)->count();
+            $done += $after > $before ? 1 : 0;
         }
-        $categories = 0;
-        foreach (self::CATEGORIES as $name => $description) {
-            if (! DB::table('expense_categories')->where('name', $name)->exists()) {
-                DB::table('expense_categories')->insert(['name' => $name, 'description' => $description, 'created_at' => $now, 'updated_at' => $now]);
-                $categories++;
-            }
-        }
-        $this->command?->info("Added {$payees} payees and {$categories} expense categories (existing ones kept).");
+
+        $usedPayees = DB::table('expenses')->whereNotNull('payee_id')->distinct()->pluck('payee_id');
+        $usedCats = DB::table('expenses')->whereNotNull('expense_category_id')->distinct()->pluck('expense_category_id');
+        $p = DB::table('payees')->whereNull('company_id')->whereNotIn('id', $usedPayees)->delete();
+        $k = DB::table('expense_categories')->whereNull('company_id')->whereNotIn('id', $usedCats)->delete();
+
+        $this->command?->info("Set up defaults for {$done} of {$companies->count()} businesses; removed {$p} unused shared payees and {$k} unused shared categories.");
     }
 }
