@@ -79,6 +79,7 @@ class IntegrationController extends Controller
             $row->enabled = true;
         }
         $row->save();
+        Integrations::forget($companyId, $provider);
 
         return response()->json(['message' => "{$definition['name']} saved.", 'provider' => $this->state($provider, $row)]);
     }
@@ -87,6 +88,7 @@ class IntegrationController extends Controller
     {
         $row = $this->row($request, $provider);
         $row->update(['enabled' => ! $row->enabled, 'updated_by' => $request->user()->id]);
+        Integrations::forget($row->company_id, $provider);
 
         return response()->json(['message' => $row->enabled ? 'Turned on.' : 'Turned off.', 'provider' => $this->state($provider, $row)]);
     }
@@ -101,7 +103,9 @@ class IntegrationController extends Controller
 
     public function destroy(Request $request, string $provider)
     {
-        $this->row($request, $provider)->delete();
+        $row = $this->row($request, $provider);
+        $row->delete();
+        Integrations::forget($row->company_id, $provider);
 
         return response()->json(['message' => 'Removed. Saved credentials were deleted.', 'provider' => $this->state($provider, null)]);
     }

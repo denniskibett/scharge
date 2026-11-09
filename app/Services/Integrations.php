@@ -17,9 +17,63 @@ class Integrations
             return null;
         }
 
-        return CompanyIntegration::where('provider', $provider)->where('enabled', true)
+        // Read on most requests (mail, SMS, M-Pesa): cache briefly; forget() runs on every change.
+        $id = \Illuminate\Support\Facades\Cache::remember(self::cacheKey($companyId, $provider), 60, fn () => CompanyIntegration::where('provider', $provider)->where('enabled', true)
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId), fn ($q) => $q->whereNull('company_id'))
-            ->latest('id')->first();
+            ->latest('id')->value('id') ?? 0);
+
+        return $id ? CompanyIntegration::find($id) : null;
+    }
+
+    public static function forget(?int $companyId, string $provider): void
+    {
+        \Illuminate\Support\Facades\Cache::forget(self::cacheKey($companyId, $provider));
+    }
+
+    private static function cacheKey(?int $companyId, string $provider): string
+    {
+        return 'integration:'.($companyId ?? 'platform').':'.$provider;
+    }
+
+    /** scharge's own Daraja app from Integrations, if switched on and complete. */
+    public static function platformMpesa(): ?CompanyIntegration
+    {
+        $row = self::for(null, 'mpesa');
+
+        return $row && filled($row->get('consumer_key')) && filled($row->get('consumer_secret')) && filled($row->get('passkey')) ? $row : null;
+    }
+
+    /** Apply saved SMTP / KenyaSMS settings over .env for this request (called from AppServiceProvider). */
+    public static function applyToConfig(): void
+    {
+        if (! self::installed()) {
+            return;
+        }
+        if ($smtp = self::for(null, 'smtp')) {
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.host' => $smtp->get('host'),
+                'mail.mailers.smtp.port' => (int) $smtp->get('port', 587),
+                'mail.mailers.smtp.scheme' => $smtp->get('encryption') === 'ssl' ? 'smtps' : null,
+                'mail.mailers.smtp.username' => $smtp->get('username'),
+                'mail.mailers.smtp.password' => $smtp->get('password'),
+                'mail.from.address' => $smtp->get('from_address'),
+                'mail.from.name' => $smtp->get('from_name', 'scharge'),
+            ]);
+        }
+        if (($sms = self::for(null, 'kenyasms')) && filled($sms->get('api_key'))) {
+            config([
+                'sms.kenyasms.api_key' => $sms->get('api_key'),
+                'sms.kenyasms.sender_id' => $sms->get('sender_id', config('sms.kenyasms.sender_id')),
+                'sms.kenyasms.base_url' => $sms->get('base_url', config('sms.kenyasms.base_url')),
+                'sms.kenyasms.sandbox' => $sms->get('mode', 'sandbox') !== 'live',
+                'sms.sandbox' => $sms->get('mode', 'sandbox') !== 'live',
+                // app/Services/SmsService reads these:
+                'sms.api_key' => $sms->get('api_key'),
+                'sms.sender_id' => $sms->get('sender_id', config('sms.sender_id')),
+                'sms.base_url' => $sms->get('base_url', config('sms.base_url', config('sms.kenyasms.base_url'))),
+            ]);
+        }
     }
 
     /** scharge's own Sharet account, if a key is saved and switched on. */
@@ -53,7 +107,11 @@ class Integrations
     {
         [$ok, $message] = match ($row->provider) {
             'sharet' => self::testSharet($row),
-            'mpesa_daraja' => self::testDaraja($row),
+            'mpesa_daraja', 'mpesa' => self::testDaraja($row),
+            'airtel_money' => self::testAirtel($row),
+            'kenyasms' => self::testKenyaSms($row),
+            'africastalking' => self::testAfricasTalking($row),
+            'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),
             default => [false, 'No test available for this provider.'],
         };
@@ -95,6 +153,58 @@ class Integrations
         return $res->successful() && $res->json('access_token')
             ? [true, 'Safaricom accepted the consumer key and secret.']
             : [false, 'Safaricom rejected the consumer key/secret (HTTP '.$res->status().').'];
+    }
+
+    private static function testAirtel(CompanyIntegration $row): array
+    {
+        $base = $row->get('environment') === 'production' ? 'https://openapi.airtel.africa' : 'https://openapiuat.airtel.africa';
+        $res = Http::acceptJson()->asJson()->timeout(20)->post($base.'/auth/oauth2/token', [
+            'client_id' => $row->get('client_id'), 'client_secret' => $row->get('client_secret'), 'grant_type' => 'client_credentials',
+        ]);
+
+        return $res->successful() && $res->json('access_token')
+            ? [true, 'Airtel accepted the client ID and secret ('.($row->get('environment') === 'production' ? 'live' : 'staging').').']
+            : [false, 'Airtel rejected the credentials (HTTP '.$res->status().').'];
+    }
+
+    private static function testKenyaSms(CompanyIntegration $row): array
+    {
+        $base = rtrim((string) $row->get('base_url', 'https://kenyasms.com/api/v1'), '/');
+        $res = Http::withToken((string) $row->get('api_key'))->acceptJson()->timeout(20)->get($base.'/campaigns', ['page' => 1, 'limit' => 1]);
+
+        return $res->successful()
+            ? [true, 'KenyaSMS accepted the API key. Sender ID: '.$row->get('sender_id').'; mode: '.$row->get('mode', 'sandbox').'.']
+            : [false, 'KenyaSMS rejected the API key (HTTP '.$res->status().').'];
+    }
+
+    private static function testAfricasTalking(CompanyIntegration $row): array
+    {
+        $sandbox = $row->get('username') === 'sandbox';
+        $res = Http::withHeaders(['apiKey' => (string) $row->get('api_key')])->acceptJson()->timeout(20)
+            ->get(($sandbox ? 'https://api.sandbox.africastalking.com' : 'https://api.africastalking.com').'/version1/user', ['username' => $row->get('username')]);
+
+        return $res->successful()
+            ? [true, "Africa's Talking accepted the key. Balance: ".($res->json('UserData.balance') ?? 'n/a').'.']
+            : [false, "Africa's Talking rejected the username/key (HTTP ".$res->status().').'];
+    }
+
+    private static function testSmtp(CompanyIntegration $row): array
+    {
+        try {
+            $transport = new \Symfony\Component\Mailer\Transport\Smtp\EsmtpTransport(
+                (string) $row->get('host'), (int) $row->get('port', 587), $row->get('encryption') === 'ssl'
+            );
+            if (filled($row->get('username'))) {
+                $transport->setUsername((string) $row->get('username'));
+                $transport->setPassword((string) $row->get('password'));
+            }
+            $transport->start();
+            $transport->stop();
+
+            return [true, 'Connected and signed in to '.$row->get('host').'. Emails will come from '.$row->get('from_address').'.'];
+        } catch (\Throwable $e) {
+            return [false, 'Could not sign in to the mail server: '.mb_substr($e->getMessage(), 0, 160)];
+        }
     }
 
     private static function testPayouts(CompanyIntegration $row): array

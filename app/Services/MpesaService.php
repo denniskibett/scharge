@@ -30,6 +30,22 @@ class MpesaService
         $this->initiator = config('mpesa.initiator_name');
         $this->securityCredential = (string) config('mpesa.security_credential');
         $this->passkey = (string) config('mpesa.passkey');
+
+        // scharge's own Daraja app saved on Integrations wins over .env.
+        if ($row = \App\Services\Integrations::platformMpesa()) {
+            $this->consumerKey = $row->get('consumer_key');
+            $this->consumerSecret = $row->get('consumer_secret');
+            $this->environment = $row->get('environment', 'sandbox');
+            $this->shortcode = $row->get('shortcode');
+            $this->passkey = (string) $row->get('passkey');
+            $this->initiator = $row->get('initiator_name', $this->initiator);
+            $this->securityCredential = (string) $row->get('security_credential', $this->securityCredential);
+            if ($row->get('kind') === 'till') {
+                $this->transactionType = 'CustomerBuyGoodsOnline';
+                $this->partyB = $row->get('party_b') ?: $row->get('shortcode');
+            }
+            $this->tokenCacheKey = 'mpesa_access_token_platform_'.$row->id;
+        }
         
         // Set base URL based on environment
         $this->baseUrl = $this->environment === 'production'

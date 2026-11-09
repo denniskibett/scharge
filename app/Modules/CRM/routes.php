@@ -33,6 +33,8 @@ Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->midd
 Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('crm')->name('crm.')->group(function () {
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
     Route::get('/sales', [CrmSalesController::class, 'index'])->name('sales.index');
+    Route::get('/sales/commission.csv', [CrmSalesController::class, 'export'])->name('sales.export');
+    Route::put('/sales/commission', [CrmSalesController::class, 'updateCommission'])->name('sales.commission.update');
     Route::post('/companies', [CrmCompanyController::class, 'store'])->name('companies.store');
     Route::get('/companies/{crmCompany}', [CrmCompanyController::class, 'show'])->name('companies.show');
     Route::put('/companies/{crmCompany}', [CrmCompanyController::class, 'update'])->name('companies.update');

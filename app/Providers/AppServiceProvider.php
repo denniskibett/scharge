@@ -40,6 +40,13 @@ class AppServiceProvider extends ServiceProvider
             'App\Models\User' => \App\Modules\Users\Models\User::class,
         ]);
 
+        // Mail and SMS settings saved on Settings › Integrations override .env.
+        try {
+            \App\Services\Integrations::applyToConfig();
+        } catch (\Throwable $e) {
+            report($e);   // never take the app down over integration settings
+        }
+
         // Register role-based Blade directives
         $this->registerBladeDirectives();
     }

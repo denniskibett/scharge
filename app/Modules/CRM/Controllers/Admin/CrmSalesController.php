@@ -5,8 +5,11 @@ namespace App\Modules\CRM\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Modules\CRM\Models\CrmFollowUp;
+use App\Modules\CRM\Services\CommissionService;
 use App\Modules\CRM\Support\CrmAccess;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\View\View;
@@ -18,6 +21,10 @@ use Illuminate\View\View;
  */
 class CrmSalesController extends Controller
 {
+    public function __construct(private CommissionService $commission)
+    {
+    }
+
     public const PERIODS = ['week' => 'This week', 'month' => 'This month', 'last_month' => 'Last month', 'quarter' => 'This quarter', 'year' => 'This year'];
 
     /** Stages on the closing board, in order; "advance" moves a deal one column right. */
@@ -63,6 +70,16 @@ class CrmSalesController extends Controller
             ->selectRaw('assigned_to, COUNT(*) as total')->groupBy('assigned_to')->pluck('total', 'assigned_to');
 
         $rows = $this->scoreboard($staff, $seesAll ? null : $user->id, $open, $won, $lost, $activity, $overdue, $ownerFilter);
+        $lines = $this->commission->lines($from, $to, $rows->pluck('id')->filter()->values()->all());
+        $earned = $this->commission->totalsByOwner($lines);
+        $settings = $this->commission->settings();
+        $rows = $rows->map(fn ($r) => $r + [
+            'revenue' => $r['id'] ? ($earned[$r['id']]['revenue'] ?? 0) : null,
+            'commission' => $r['id'] ? ($earned[$r['id']] ?? ['new' => 0, 'share' => 0, 'total' => 0]) : null,
+            'rates' => $r['id'] ? $this->commission->ratesFor($r['id'], $settings) : null,
+            // What the weighted pipeline would pay in its first month at this person's new-business rate.
+            'forecast_commission' => $r['id'] ? round($open->where('owner_id', $r['id'])->sum(fn ($c) => self::value($c) * (self::STAGE_WEIGHTS[$c->crm_stage] ?? 0)) / (1 + ($settings['vat_inclusive'] ? $settings['vat_rate'] / 100 : 0)) * $this->commission->ratesFor($r['id'], $settings)['new_rate'] / 100) : null,
+        ]);
 
         $board = collect(self::CLOSING_STAGES)->mapWithKeys(fn ($stage) => [$stage => $open->where('crm_stage', $stage)
             ->sortBy(fn ($c) => [self::date($c->profile('expected_close'))?->timestamp ?? PHP_INT_MAX, $c->tier, $c->name])->values()]);
@@ -79,6 +96,8 @@ class CrmSalesController extends Controller
                 'open' => $open->count(),
                 'pipeline' => $open->sum(fn ($c) => self::value($c)),
                 'forecast' => (int) round($open->sum(fn ($c) => self::value($c) * (self::STAGE_WEIGHTS[$c->crm_stage] ?? 0))),
+                'revenue' => $lines->sum('net'),
+                'commission' => $lines->sum('commission'),
                 'closing' => $open->filter(fn ($c) => ($d = self::date($c->profile('expected_close'))) && $d->between($from, $to))->count(),
             ],
             'board' => $board,
@@ -86,7 +105,63 @@ class CrmSalesController extends Controller
             'staff' => $staff,
             'ownerFilter' => $ownerFilter,
             'seesAll' => $seesAll,
+            'lines' => ($ownerFilter && $ownerFilter !== 'none') || ! $seesAll ? $lines : collect(),
+            'settings' => $settings,
         ]);
+    }
+
+    /** Sysadmins set the commission plan: default rates, first-year window, VAT, per-manager overrides. */
+    public function updateCommission(Request $request): RedirectResponse
+    {
+        abort_unless(CrmAccess::seesAll($request->user()), 403);
+        $input = $request->validate([
+            'new_rate' => ['required', 'numeric', 'between:0,100'],
+            'share_rate' => ['required', 'numeric', 'between:0,100'],
+            'new_months' => ['required', 'integer', 'between:0,60'],
+            'vat_inclusive' => ['nullable', 'boolean'],
+            'vat_rate' => ['required', 'numeric', 'between:0,50'],
+            'overrides' => ['nullable', 'array'],
+            'overrides.*.new_rate' => ['nullable', 'numeric', 'between:0,100'],
+            'overrides.*.share_rate' => ['nullable', 'numeric', 'between:0,100'],
+        ]);
+        $staffIds = CrmCompanyController::staff()->pluck('id')->all();
+        $overrides = collect($input['overrides'] ?? [])
+            ->filter(fn ($o, $id) => in_array((int) $id, $staffIds, true))
+            ->map(fn ($o) => array_filter(['new_rate' => $o['new_rate'] ?? null, 'share_rate' => $o['share_rate'] ?? null], fn ($v) => $v !== null && $v !== ''))
+            ->map(fn ($o) => array_map('floatval', $o))
+            ->filter()->all();
+
+        $this->commission->save([
+            'new_rate' => (float) $input['new_rate'],
+            'share_rate' => (float) $input['share_rate'],
+            'new_months' => (int) $input['new_months'],
+            'vat_inclusive' => $request->boolean('vat_inclusive'),
+            'vat_rate' => (float) $input['vat_rate'],
+            'overrides' => $overrides,
+        ]);
+
+        return back()->with('success', 'Commission plan saved.');
+    }
+
+    /** Commission statement (one line per paid invoice) as CSV, for payroll. Managers get only their own. */
+    public function export(Request $request): StreamedResponse
+    {
+        $user = $request->user();
+        $period = array_key_exists($request->query('period'), self::PERIODS) ? $request->query('period') : 'month';
+        [$from, $to] = self::range($period);
+        $owner = CrmAccess::seesAll($user) ? $request->query('owner') : $user->id;
+        $lines = $this->commission->lines($from, $to, $owner && $owner !== 'none' ? [(int) $owner] : null);
+        $names = CrmCompanyController::staff()->pluck('name', 'id');
+
+        return response()->streamDownload(function () use ($lines, $names) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Account manager', 'Company', 'Invoice', 'Paid on', 'Amount', 'Net of VAT', 'Type', 'Rate %', 'Commission'], ',', '"', '');
+            foreach ($lines as $l) {
+                fputcsv($out, [$names[$l->owner_id] ?? $l->owner_id, $l->company, $l->invoice_number ?? $l->invoice_id, $l->paid_at->toDateString(), $l->gross, $l->net, $l->kind === 'new' ? 'New business' : 'Revenue share', $l->rate, $l->commission], ',', '"', '');
+            }
+            fputcsv($out, ['Total', '', '', '', $lines->sum('gross'), $lines->sum('net'), '', '', $lines->sum('commission')], ',', '"', '');
+            fclose($out);
+        }, 'commission-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
     }
 
     /** One row per staff member (and "Unassigned"), busiest first. */
