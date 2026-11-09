@@ -11,13 +11,13 @@
     $td = 'px-3 py-2.5 text-sm text-gray-800 dark:text-white/90';
     $kpis = [
         ['Closed won', $totals['won'], 'text-green-600'],
-        ['Won value / month', $kes($totals['won_value']), 'text-green-600'],
+        ['Won: expected fees / month', $kes($totals['won_value']), 'text-green-600'],
         ['Lost', $totals['lost'], 'text-gray-800 dark:text-white/90'],
         ['Open deals', $totals['open'], 'text-gray-800 dark:text-white/90'],
-        ['Pipeline / month', $kes($totals['pipeline']), 'text-gray-800 dark:text-white/90'],
+        ['Pipeline fees / month', $kes($totals['pipeline']), 'text-gray-800 dark:text-white/90'],
         ['Weighted forecast', $kes($totals['forecast']), 'text-gray-800 dark:text-white/90'],
         ['Expected to close', $totals['closing'], 'text-gray-800 dark:text-white/90'],
-        ['Revenue collected (net)', $kes(round($totals['revenue'])), 'text-gray-800 dark:text-white/90'],
+        ['Platform fees earned', $kes(round($totals['fees'])), 'text-gray-800 dark:text-white/90'],
         [$seesAll && ! $ownerFilter ? 'Team commission' : 'Commission earned', $kes(round($totals['commission'])), 'text-brand-500'],
     ];
     $pct = fn ($n) => rtrim(rtrim(number_format((float) $n, 2), '0'), '.').'%';
@@ -62,13 +62,13 @@
     <div class="{{ $card }} mb-6 overflow-x-auto">
         <div class="flex items-center justify-between px-4 pt-4">
             <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">{{ $seesAll ? 'Account managers' : 'My numbers' }}</h3>
-            <span class="text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Values are monthly (KES).</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400">Won/lost = deals moved to that stage in the period, credited to the current owner. Deal values are expected monthly platform fees (KES).</span>
         </div>
         <table class="mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
             <thead><tr>
                 <th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Won</th><th class="{{ $th }}">Won value</th><th class="{{ $th }}">Lost</th><th class="{{ $th }}">Win rate</th>
                 <th class="{{ $th }}">Open</th><th class="{{ $th }}">Proposal + negotiation</th><th class="{{ $th }}">Pipeline</th><th class="{{ $th }}">Calls / emails / meetings</th><th class="{{ $th }}">Overdue</th><th class="{{ $th }}">No next step</th>
-                <th class="{{ $th }}">Revenue (net)</th><th class="{{ $th }}">New-business comm.</th><th class="{{ $th }}">Revenue share</th><th class="{{ $th }}">Total commission</th><th class="{{ $th }}">Forecast comm.</th>
+                <th class="{{ $th }}">Properties managed</th><th class="{{ $th }}">Rent collected</th><th class="{{ $th }}">Platform fees</th><th class="{{ $th }}">Commission</th><th class="{{ $th }}">Forecast comm.</th>
             </tr></thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                 @forelse ($rows as $r)
@@ -90,11 +90,11 @@
                             @if ($r['no_next_step'])<a href="{{ route('crm.index', ['owner' => $r['id'] ?? 'none', 'attention' => 'unattended']) }}" class="hover:underline">{{ $r['no_next_step'] }}</a>@else 0 @endif
                         </td>
                         @if ($r['id'])
-                            <td class="{{ $td }}">{{ $kes(round($r['revenue'])) }}</td>
-                            <td class="{{ $td }}">{{ $kes(round($r['commission']['new'])) }} <span class="text-xs text-gray-400">@ {{ $pct($r['rates']['new_rate']) }}</span></td>
-                            <td class="{{ $td }}">{{ $kes(round($r['commission']['share'])) }} <span class="text-xs text-gray-400">@ {{ $pct($r['rates']['share_rate']) }}</span></td>
-                            <td class="{{ $td }} font-semibold text-brand-500">{{ $kes(round($r['commission']['total'])) }}</td>
-                            <td class="{{ $td }} text-gray-500" title="Weighted pipeline × new-business rate, first month">{{ $kes($r['forecast_commission']) }}</td>
+                            <td class="{{ $td }}">{{ $r['properties'] }}</td>
+                            <td class="{{ $td }}">{{ $kes(round($r['earned']['collected'])) }}</td>
+                            <td class="{{ $td }}">{{ $kes(round($r['earned']['fees'])) }}</td>
+                            <td class="{{ $td }} font-semibold text-brand-500">{{ $kes(round($r['earned']['commission'])) }} <span class="text-xs font-normal text-gray-400">@ {{ $pct($r['rate']) }}</span></td>
+                            <td class="{{ $td }} text-gray-500" title="Weighted pipeline fees × share, per month">{{ $kes($r['forecast_commission']) }}</td>
                         @else
                             <td class="{{ $td }} text-gray-400" colspan="5">No commission on unassigned accounts</td>
                         @endif
@@ -109,35 +109,28 @@
     {{-- How commission works + plan editor --}}
     <div class="{{ $card }} mb-6 p-4" x-data="{ editing: {{ $errors->any() ? 'true' : 'false' }} }">
         <div class="flex flex-wrap items-start justify-between gap-2">
-            <div class="max-w-3xl text-sm text-gray-600 dark:text-gray-400">
-                <h3 class="mb-1 text-base font-semibold text-gray-800 dark:text-white/90">Commission plan</h3>
-                Paid on cash collected, not on signed deals: only <strong>paid</strong> subscription invoices count{{ $settings['vat_inclusive'] ? ', after taking out '.$pct($settings['vat_rate']).' VAT' : '' }}.
-                <strong>New business:</strong> {{ $pct($settings['new_rate']) }} of a customer's revenue for its first {{ $settings['new_months'] }} months after it is marked Won.
-                <strong>Revenue share:</strong> {{ $pct($settings['share_rate']) }} of that customer's revenue after that, for as long as the account manager owns the account.
-                Commission follows the account's current owner, so download each period's statement at payout time before reassigning accounts.
+            <div class="max-w-3xl space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                <h3 class="text-base font-semibold text-gray-800 dark:text-white/90">Commission plan</h3>
+                <p>Account managers are scharge staff who manage properties on our behalf, and <strong>scharge pays them</strong>: {{ $pct($settings['rate']) }} of the platform fees scharge bills the property managers in the companies they own.</p>
+                <p>Commission is payable only on fees the property manager has <strong>settled</strong>. Today that's the fee scharge keeps at each Sharet payout, counted once the payout has gone through.</p>
+                <p><strong>Not included:</strong> subscriptions (scharge's own platform revenue), and tenant deposits or property sales, where any commission is paid by the owner to their agent and isn't scharge money.</p>
+                <p>Commission follows the company's current owner, so download each period's statement at payout time before reassigning accounts.</p>
             </div>
             @if ($seesAll)<button type="button" @click="editing = !editing" class="text-sm font-medium text-brand-500" x-text="editing ? 'Close' : 'Edit plan'"></button>@endif
         </div>
         @if ($seesAll)
             <form method="POST" action="{{ route('crm.sales.commission.update') }}" x-show="editing" x-cloak class="mt-4 space-y-4">
                 @csrf @method('PUT')
-                <div class="grid grid-cols-2 gap-3 sm:grid-cols-5">
-                    <label class="text-sm text-gray-700 dark:text-gray-300">New-business %<input name="new_rate" type="number" step="0.1" min="0" max="100" value="{{ $settings['new_rate'] }}" class="{{ $field }} mt-1 w-full"></label>
-                    <label class="text-sm text-gray-700 dark:text-gray-300">Revenue share %<input name="share_rate" type="number" step="0.1" min="0" max="100" value="{{ $settings['share_rate'] }}" class="{{ $field }} mt-1 w-full"></label>
-                    <label class="text-sm text-gray-700 dark:text-gray-300">New-business months<input name="new_months" type="number" min="0" max="60" value="{{ $settings['new_months'] }}" class="{{ $field }} mt-1 w-full"></label>
-                    <label class="text-sm text-gray-700 dark:text-gray-300">VAT %<input name="vat_rate" type="number" step="0.1" min="0" max="50" value="{{ $settings['vat_rate'] }}" class="{{ $field }} mt-1 w-full"></label>
-                    <label class="flex items-end gap-2 pb-3 text-sm text-gray-700 dark:text-gray-300"><input type="hidden" name="vat_inclusive" value="0"><input type="checkbox" name="vat_inclusive" value="1" @checked($settings['vat_inclusive'])> Invoices include VAT</label>
-                </div>
+                <label class="block max-w-xs text-sm text-gray-700 dark:text-gray-300">Share of platform fees (%)<input name="rate" type="number" step="0.1" min="0" max="100" value="{{ $settings['rate'] }}" class="{{ $field }} mt-1 w-full"></label>
                 @if ($staff->isNotEmpty())
                     <div>
-                        <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">Per-person rates (leave blank to use the plan above):</p>
+                        <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">Per-person share (leave blank to use the plan rate):</p>
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                             @foreach ($staff as $s)
-                                <div class="flex items-center gap-2 text-sm">
-                                    <span class="w-40 truncate text-gray-800 dark:text-white/90">{{ $s->name }}</span>
-                                    <input name="overrides[{{ $s->id }}][new_rate]" type="number" step="0.1" min="0" max="100" placeholder="{{ $settings['new_rate'] }}" value="{{ $settings['overrides'][$s->id]['new_rate'] ?? '' }}" class="{{ $field }} w-20" aria-label="{{ $s->name }} new-business %">
-                                    <input name="overrides[{{ $s->id }}][share_rate]" type="number" step="0.1" min="0" max="100" placeholder="{{ $settings['share_rate'] }}" value="{{ $settings['overrides'][$s->id]['share_rate'] ?? '' }}" class="{{ $field }} w-20" aria-label="{{ $s->name }} revenue share %">
-                                </div>
+                                <label class="flex items-center gap-2 text-sm">
+                                    <span class="w-48 truncate text-gray-800 dark:text-white/90">{{ $s->name }}</span>
+                                    <input name="overrides[{{ $s->id }}][rate]" type="number" step="0.1" min="0" max="100" placeholder="{{ $settings['rate'] }}" value="{{ $settings['overrides'][$s->id]['rate'] ?? '' }}" class="{{ $field }} w-24" aria-label="{{ $s->name }} share %">
+                                </label>
                             @endforeach
                         </div>
                     </div>
@@ -152,17 +145,17 @@
         <div class="{{ $card }} mb-6 overflow-x-auto">
             <h3 class="px-4 pt-4 text-base font-semibold text-gray-800 dark:text-white/90">Commission statement</h3>
             <table class="mt-2 min-w-full divide-y divide-gray-100 dark:divide-gray-800">
-                <thead><tr><th class="{{ $th }}">Company</th><th class="{{ $th }}">Invoice</th><th class="{{ $th }}">Paid</th><th class="{{ $th }}">Net revenue</th><th class="{{ $th }}">Type</th><th class="{{ $th }}">Rate</th><th class="{{ $th }}">Commission</th></tr></thead>
+                <thead><tr><th class="{{ $th }}">Company</th><th class="{{ $th }}">Property</th><th class="{{ $th }}">Payout</th><th class="{{ $th }}">Rent collected</th><th class="{{ $th }}">Platform fee</th><th class="{{ $th }}">Share</th><th class="{{ $th }}">Commission</th></tr></thead>
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach ($lines as $l)
                         <tr>
                             <td class="{{ $td }}"><a href="{{ route('crm.companies.show', $l->company_id) }}" class="hover:text-brand-500">{{ $l->company }}</a></td>
-                            <td class="{{ $td }}">{{ $l->invoice_number ?? '#'.$l->invoice_id }}</td>
-                            <td class="{{ $td }}">{{ $l->paid_at->format('j M Y') }}</td>
-                            <td class="{{ $td }}">{{ $kes(round($l->net)) }}</td>
-                            <td class="{{ $td }}">{{ $l->kind === 'new' ? 'New business' : 'Revenue share' }}</td>
+                            <td class="{{ $td }}">{{ $l->property }}</td>
+                            <td class="{{ $td }}">{{ $l->swept_at->format('j M Y H:i') }}</td>
+                            <td class="{{ $td }}">{{ $kes(round($l->collected)) }}</td>
+                            <td class="{{ $td }}">{{ $kes(round($l->fee, 2)) }}</td>
                             <td class="{{ $td }}">{{ $pct($l->rate) }}</td>
-                            <td class="{{ $td }} font-medium">{{ $kes(round($l->commission)) }}</td>
+                            <td class="{{ $td }} font-medium">{{ $kes(round($l->commission, 2)) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

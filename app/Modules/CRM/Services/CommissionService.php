@@ -3,31 +3,29 @@
 namespace App\Modules\CRM\Services;
 
 use App\Models\System;
-use App\Modules\CRM\Models\CrmFollowUp;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Account-manager commission, paid on cash actually collected (paid subscription invoices), never on bookings:
+ * Account-manager commission = a share of scharge's platform fees on the properties they manage for us.
  *
- *   new business   – new_rate % of net revenue from a company in its first `new_months` months as a customer
- *                    (from the day it was marked Won, else its first subscription start);
- *   revenue share  – share_rate % of net revenue after that, while the manager still owns the account.
+ * What counts and what doesn't:
+ *  - Platform fees: scharge's cut of rent collected through Sharet, taken at each payout sweep (sharet_sweeps.fee).
+ *    Only sweeps that were actually paid out count. This is the commission base.
+ *  - Subscriptions: scharge's own platform revenue. No account-manager commission.
+ *  - Tenant deposits / property sales: commission paid by owners to their agents (units.commission_rate).
+ *    Not scharge money, so never part of this.
  *
- * Net = invoice amount without VAT when invoices include it. Revenue is credited to the company's current owner,
- * so reassigning an account moves its future share with it. Rates live in system.settings.crm_commission
- * (no schema change) and can be overridden per manager.
+ * A sweep belongs to a company; its fee is credited to the company's current owner (companies.owner_id) and split
+ * across that company's properties pro rata to the rent collected for each, so statements show which property
+ * earned what. Rates live in system.settings.crm_commission (no schema change), with per-person overrides.
  */
 class CommissionService
 {
     public const DEFAULTS = [
-        'new_rate' => 10.0,        // % of net revenue, first year
-        'share_rate' => 5.0,       // % of net revenue, after the first year
-        'new_months' => 12,
-        'vat_inclusive' => true,   // invoice amounts include VAT
-        'vat_rate' => 16.0,
-        'overrides' => [],         // user_id => ['new_rate' => .., 'share_rate' => ..]
+        'rate' => 20.0,        // % of platform fees on managed properties
+        'overrides' => [],     // user_id => ['rate' => ..]
     ];
 
     public function settings(): array
@@ -41,84 +39,88 @@ class CommissionService
     {
         $system = System::first() ?? System::create(['name' => config('app.name')]);
         $settings = $system->settings ?? [];
+        // Only the current keys are kept, so older plan shapes are dropped on the next save.
         $settings['crm_commission'] = array_merge($this->settings(), array_intersect_key($values, self::DEFAULTS));
         $system->forceFill(['settings' => $settings])->save();
     }
 
-    /** @return array{new_rate: float, share_rate: float} */
-    public function ratesFor(?int $userId, ?array $settings = null): array
+    public function rateFor(?int $userId, ?array $settings = null): float
     {
         $s = $settings ?? $this->settings();
-        $o = $userId ? (array) ($s['overrides'][$userId] ?? []) : [];
+        $override = $userId ? ($s['overrides'][$userId]['rate'] ?? null) : null;
 
-        return [
-            'new_rate' => (float) (isset($o['new_rate']) && $o['new_rate'] !== '' ? $o['new_rate'] : $s['new_rate']),
-            'share_rate' => (float) (isset($o['share_rate']) && $o['share_rate'] !== '' ? $o['share_rate'] : $s['share_rate']),
-        ];
+        return (float) ($override !== null && $override !== '' ? $override : $s['rate']);
     }
 
     /**
-     * Every paid subscription invoice in the period on a company with an owner, with its commission line.
+     * One line per paid sweep per property, for companies with an owner.
      *
      * @param  array<int>|null  $ownerIds  limit to these owners (null = all)
-     * @return Collection<int, object{invoice_id:int, invoice_number:?string, company_id:int, company:string, owner_id:int, paid_at:Carbon, gross:float, net:float, kind:string, rate:float, commission:float}>
+     * @return Collection<int, object{sweep_id:int, swept_at:Carbon, company_id:int, company:string, owner_id:int, property_id:?int, property:string, collected:float, fee:float, rate:float, commission:float}>
      */
     public function lines(Carbon $from, Carbon $to, ?array $ownerIds = null): Collection
     {
         $s = $this->settings();
-        $invoices = DB::table('subscription_invoices as i')
-            ->join('company_subscriptions as cs', 'cs.id', '=', 'i.company_subscription_id')
-            ->join('companies as c', 'c.id', '=', 'cs.company_id')
-            ->where('i.status', 'paid')
-            ->whereBetween('i.paid_at', [$from, $to])
+        $sweeps = DB::table('sharet_sweeps as sw')
+            ->join('companies as c', 'c.id', '=', 'sw.company_id')
+            ->where('sw.status', 'paid')
+            ->where('sw.fee', '>', 0)
+            ->whereBetween('sw.created_at', [$from, $to])
             ->whereNotNull('c.owner_id')
             ->when($ownerIds !== null, fn ($q) => $q->whereIn('c.owner_id', $ownerIds))
-            ->orderBy('i.paid_at')
-            ->get(['i.id as invoice_id', 'i.invoice_number', 'i.amount', 'i.paid_at', 'c.id as company_id', 'c.name as company', 'c.owner_id']);
-        if ($invoices->isEmpty()) {
+            ->orderBy('sw.created_at')
+            ->get(['sw.id', 'sw.created_at', 'sw.gross', 'sw.fee', 'c.id as company_id', 'c.name as company', 'c.owner_id']);
+        if ($sweeps->isEmpty()) {
             return collect();
         }
 
-        $since = $this->customerSince($invoices->pluck('company_id')->unique()->all());
+        // Rent collected per property inside each sweep.
+        $byProperty = DB::table('sharet_payment_requests as r')
+            ->leftJoin('invoices as i', 'i.id', '=', 'r.invoice_id')
+            // invoices.property_id is often empty; the tenancy (or its unit) knows the property.
+            ->leftJoin('tenancies as t', 't.id', '=', 'i.tenancy_id')
+            ->leftJoin('units as u', 'u.id', '=', 't.unit_id')
+            ->leftJoin('properties as p', 'p.id', '=', DB::raw('COALESCE(i.property_id, t.property_id, u.property_id)'))
+            ->whereIn('r.sweep_id', $sweeps->pluck('id'))
+            ->groupBy('r.sweep_id', 'p.id', 'p.name')
+            ->get(['r.sweep_id', 'p.id as property_id', 'p.name as property', DB::raw('SUM(r.amount) as collected')])
+            ->groupBy('sweep_id');
 
-        return $invoices->map(function ($inv) use ($s, $since) {
-            $paidAt = Carbon::parse($inv->paid_at);
-            $gross = (float) $inv->amount;
-            $net = $s['vat_inclusive'] ? round($gross / (1 + $s['vat_rate'] / 100), 2) : $gross;
-            $start = $since[$inv->company_id] ?? $paidAt;
-            $kind = $paidAt->lt($start->copy()->addMonthsNoOverflow((int) $s['new_months'])) ? 'new' : 'share';
-            $rates = $this->ratesFor((int) $inv->owner_id, $s);
-            $rate = $kind === 'new' ? $rates['new_rate'] : $rates['share_rate'];
+        return $sweeps->flatMap(function ($sw) use ($byProperty, $s) {
+            $rate = $this->rateFor((int) $sw->owner_id, $s);
+            $parts = $byProperty[$sw->id] ?? collect([(object) ['property_id' => null, 'property' => null, 'collected' => $sw->gross]]);
+            $total = (float) $parts->sum('collected') ?: (float) $sw->gross ?: 1;
 
-            return (object) [
-                'invoice_id' => $inv->invoice_id, 'invoice_number' => $inv->invoice_number,
-                'company_id' => $inv->company_id, 'company' => $inv->company, 'owner_id' => (int) $inv->owner_id,
-                'paid_at' => $paidAt, 'gross' => $gross, 'net' => $net, 'kind' => $kind, 'rate' => $rate,
-                'commission' => round($net * $rate / 100, 2),
-            ];
-        });
+            return $parts->map(function ($p) use ($sw, $rate, $total) {
+                $fee = round((float) $sw->fee * (float) $p->collected / $total, 2);
+
+                return (object) [
+                    'sweep_id' => $sw->id, 'swept_at' => Carbon::parse($sw->created_at),
+                    'company_id' => $sw->company_id, 'company' => $sw->company, 'owner_id' => (int) $sw->owner_id,
+                    'property_id' => $p->property_id, 'property' => $p->property ?? 'Unallocated',
+                    'collected' => (float) $p->collected, 'fee' => $fee, 'rate' => $rate,
+                    'commission' => round($fee * $rate / 100, 2),
+                ];
+            });
+        })->values();
     }
 
-    /** Per owner: revenue, new-business commission, revenue share, total. */
+    /** Per owner: rent collected, platform fees, commission, and how many properties earned. */
     public function totalsByOwner(Collection $lines): Collection
     {
         return $lines->groupBy('owner_id')->map(fn ($l) => [
-            'revenue' => $l->sum('net'),
-            'new' => $l->where('kind', 'new')->sum('commission'),
-            'share' => $l->where('kind', 'share')->sum('commission'),
-            'total' => $l->sum('commission'),
+            'collected' => $l->sum('collected'),
+            'fees' => $l->sum('fee'),
+            'commission' => $l->sum('commission'),
+            'properties' => $l->pluck('property_id')->filter()->unique()->count(),
         ]);
     }
 
-    /** When each company became a customer: first time it was marked Won, else its first subscription start. */
-    private function customerSince(array $companyIds): array
+    /** Properties each owner manages for scharge today (via the companies they own). */
+    public function managedProperties(array $ownerIds): Collection
     {
-        $won = CrmFollowUp::where('type', 'stage')->whereIn('company_id', $companyIds)->where('details->to', 'won')
-            ->selectRaw('company_id, MIN(done_at) as at')->groupBy('company_id')->pluck('at', 'company_id');
-        $subs = DB::table('company_subscriptions')->whereIn('company_id', $companyIds)
-            ->selectRaw('company_id, MIN(starts_at) as at')->groupBy('company_id')->pluck('at', 'company_id');
-
-        return collect($companyIds)->mapWithKeys(fn ($id) => [$id => ($at = $won[$id] ?? $subs[$id] ?? null) ? Carbon::parse($at) : null])
-            ->filter()->all();
+        return DB::table('properties as p')->join('companies as c', 'c.id', '=', 'p.company_id')
+            ->whereIn('c.owner_id', $ownerIds)
+            ->selectRaw('c.owner_id, COUNT(*) as total')->groupBy('c.owner_id')->pluck('total', 'owner_id');
     }
 }
