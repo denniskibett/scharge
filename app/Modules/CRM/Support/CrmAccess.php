@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Builder;
  *   unassigned ones, so they can pick up new inbound leads; and the follow-ups
  *   on those companies, follow-ups assigned to them, and unassigned inbound
  *   requests that have no company yet (viewings, listing alerts).
+ * - anyone given "crm.all" (Access::EXTRA): every prospect, follow-up and the whole pipeline.
+ *   Sales, revenue and commission of other people stay sysadmin-only (seesAll).
  */
 class CrmAccess
 {
@@ -22,9 +24,15 @@ class CrmAccess
         return $user && $user->hasRole('sysadmin');
     }
 
+    /** Sees every prospect and the whole pipeline (sysadmin, or given "crm.all"). */
+    public static function seesPipeline(?Authenticatable $user): bool
+    {
+        return self::seesAll($user) || ($user && $user->can('crm.all'));
+    }
+
     public static function companies(Builder $query, ?Authenticatable $user): Builder
     {
-        if (self::seesAll($user)) {
+        if (self::seesPipeline($user)) {
             return $query;
         }
 
@@ -33,7 +41,7 @@ class CrmAccess
 
     public static function followUps(Builder $query, ?Authenticatable $user): Builder
     {
-        if (self::seesAll($user)) {
+        if (self::seesPipeline($user)) {
             return $query;
         }
 
@@ -46,7 +54,7 @@ class CrmAccess
     public static function authorizeCompany(Company $company, ?Authenticatable $user): void
     {
         abort_unless(
-            self::seesAll($user) || $company->owner_id === null || $company->owner_id === $user?->id,
+            self::seesPipeline($user) || $company->owner_id === null || $company->owner_id === $user?->id,
             403,
             'This account belongs to another account manager.'
         );

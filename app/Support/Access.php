@@ -68,6 +68,11 @@ class Access
     public const BUILT_IN = ['sysadmin', 'account_manager', 'admin', 'property_manager', 'accountant', 'meter_reader',
         'maintenance', 'cleaning_staff', 'security', 'tenant', 'bnb_host', 'guest'];
 
+    /** Extra permissions given to particular people (never through a role's "area.*" wildcard). */
+    public const EXTRA = [
+        'crm.all' => 'See every prospect, follow-up and the whole pipeline, whoever owns them',
+    ];
+
     /** @return string[] every permission name */
     public static function permissions(): array
     {
@@ -78,7 +83,7 @@ class Access
             }
         }
 
-        return $out;
+        return array_merge($out, array_keys(self::EXTRA));
     }
 
     /** @return string[] the permission names a role gets by default */
@@ -92,7 +97,7 @@ class Access
         return array_values(array_filter(self::permissions(), function ($p) use ($grants) {
             [$area] = explode('.', $p);
 
-            return in_array($p, $grants, true) || in_array("{$area}.*", $grants, true);
+            return in_array($p, $grants, true) || (! isset(self::EXTRA[$p]) && in_array("{$area}.*", $grants, true));
         }));
     }
 
