@@ -7,8 +7,39 @@ import interactionPlugin from "@fullcalendar/interaction";
 /*========Calender Js=========*/
 /*==========================*/
 
+const levels = { Danger: "danger", Success: "success", Primary: "primary", Warning: "warning" };
+
+/** /calendar: events come from the server (CalendarController), filtered by role. */
+function initFeedCalendar(el) {
+  const allTypes = (el.dataset.types || "").split(",").filter(Boolean);
+  let hidden = [];
+  const calendar = new Calendar(el, {
+    plugins: [dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin],
+    initialView: window.innerWidth < 768 ? "listMonth" : "dayGridMonth",
+    headerToolbar: { left: "prev,next today", center: "title", right: "dayGridMonth,timeGridWeek,listMonth" },
+    buttonText: { today: "Today", month: "Month", week: "Week", list: "List" },
+    dayMaxEvents: 4,
+    eventTimeFormat: { hour: "2-digit", minute: "2-digit", hour12: false },
+    events: (info, success, failure) => {
+      const types = allTypes.filter((t) => !hidden.includes(t)).join(",");
+      if (!types) return success([]);
+      const url = `${el.dataset.feed}?start=${encodeURIComponent(info.startStr)}&end=${encodeURIComponent(info.endStr)}&types=${types}`;
+      fetch(url, { headers: { Accept: "application/json" } }).then((r) => r.json()).then(success).catch(failure);
+    },
+    eventClassNames: ({ event }) => ["event-fc-color", `fc-bg-${levels[event.extendedProps.calendar] || "primary"}`],
+    eventDidMount: ({ event, el: node }) => { node.title = event.title; },
+  });
+  calendar.render();
+  window.schargeCalendarTypes = (off) => { hidden = off; calendar.refetchEvents(); };
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   const calendarWrapper = document.querySelector("#calendar");
+
+  if (calendarWrapper && calendarWrapper.dataset.feed) {
+    initFeedCalendar(calendarWrapper);
+    return;
+  }
 
   if (calendarWrapper) {
     /*=================*/

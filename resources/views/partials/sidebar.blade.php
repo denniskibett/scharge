@@ -214,23 +214,23 @@ document.addEventListener('alpine:init', () => {
         'users', 'staff',
       ],
       'meter_reader': [
-        'dashboard', 'profile',
+        'dashboard', 'calendar', 'profile',
         'water', 'water_readings'
       ],
       'cleaning_staff': [
-        'dashboard', 'profile',
+        'dashboard', 'calendar', 'profile',
         'maintenance'
       ],
       'maintenance': [
-        'dashboard', 'profile',
+        'dashboard', 'calendar', 'profile',
         'maintenance'
       ],
       'security': [
-        'dashboard', 'profile',
+        'dashboard', 'calendar', 'profile',
         'security', 'security_logs'
       ],
       'tenant': [
-        'dashboard', 'profile',
+        'dashboard', 'calendar', 'profile',
         'finance', 'invoices', 'payments',
         'property', 'tenancies',
         'maintenance',
