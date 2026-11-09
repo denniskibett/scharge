@@ -13,6 +13,7 @@
 @endphp
 
 @section('content')
+@include('partials.card.sms')
     @include('partials.modal.success-modal')
     @include('partials.modal.error-modal')
 

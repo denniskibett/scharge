@@ -559,6 +559,9 @@ span.flatpickr-weekday,
 .data-table thead th {
   @apply whitespace-nowrap bg-transparent px-5 py-3 text-left text-theme-xs font-medium normal-case tracking-normal text-gray-500 dark:text-gray-400;
 }
+/* Headers always sit on one line, whatever is nested inside (sort icons, flex wrappers, spans). */
+#app-content table thead th, #app-content table thead th * { white-space: nowrap; }
+#app-content table thead th .flex, #app-content table thead th.flex { flex-wrap: nowrap; }
 .data-table thead th:first-child { @apply sm:pl-6; }
 .data-table thead th:last-child { @apply sm:pr-6; }
 .data-table tbody { @apply divide-y divide-gray-100 dark:divide-gray-800; }

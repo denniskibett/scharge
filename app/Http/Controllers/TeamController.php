@@ -27,8 +27,12 @@ class TeamController extends Controller
             ->when($request->query('role'), fn ($q, $role) => $q->whereHas('roles', fn ($r) => $r->where('name', $role)))
             ->orderBy('name')->get();
 
+        // Invited = their set-your-password link is still unused.
+        $invited = \Illuminate\Support\Facades\DB::table('password_reset_tokens')->whereIn('email', $members->pluck('email'))->pluck('email')->flip();
+
         return view('team.index', [
             'members' => $members,
+            'invited' => $invited,
             'roles' => $this->assignableRoles($request, $staffTeam),
             'matrix' => $this->matrix(),
             'scopeName' => $staffTeam ? 'the scharge team' : (Company::find($companyId)?->name ?? 'your company'),

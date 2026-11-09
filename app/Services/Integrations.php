@@ -136,6 +136,7 @@ class Integrations
             'airtel_money' => self::testAirtel($row),
             'kenyasms' => self::testKenyaSms($row),
             'kenyasms_sender' => self::testSmsSender($row),
+            'whatsapp', 'whatsapp_business' => WhatsApp::test($row),
             'africastalking' => self::testAfricasTalking($row),
             'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),

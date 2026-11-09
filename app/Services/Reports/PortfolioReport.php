@@ -271,6 +271,56 @@ class PortfolioReport
             ->map(fn ($r) => ['category' => $r->category, 'total' => (float) $r->total])->all();
     }
 
+    // ---------------------------------------------------------------- water
+
+    private function waterReadings(): Builder
+    {
+        return DB::table('water_readings as w')->join('units as u', 'u.id', '=', 'w.unit_id')
+            ->leftJoin('properties as pr', 'pr.id', '=', 'u.property_id')
+            ->where(fn ($q) => $q->whereNull('w.is_initial')->orWhere('w.is_initial', 0))
+            ->when($this->companyIds !== null, fn ($q) => $q->whereIn(DB::raw('COALESCE(w.company_id, u.company_id)'), $this->companyIds ?: [0]))
+            ->when($this->propertyId, fn ($q) => $q->where('u.property_id', $this->propertyId));
+    }
+
+    /** Water for the period: by month, by property, the heaviest users, and occupied units not read this month. */
+    public function water(): array
+    {
+        if (! $this->hasTable('water_readings')) {
+            return ['monthly' => [], 'properties' => [], 'top_units' => [], 'unread' => [], 'unread_count' => 0];
+        }
+        $inPeriod = fn () => $this->waterReadings()->whereBetween('w.reading_date', [$this->from->toDateString(), $this->to->toDateString()]);
+
+        $months = [];
+        for ($m = $this->from->startOfMonth(), $i = 0; $m->lessThanOrEqualTo($this->to) && $i < 36; $m = $m->addMonth(), $i++) {
+            $months[$m->format('Y-m')] = ['month' => $m->format('M y'), 'consumption' => 0.0, 'charge' => 0.0, 'readings' => 0];
+        }
+        foreach ($inPeriod()->selectRaw("DATE_FORMAT(w.reading_date, '%Y-%m') as ym, SUM(w.consumption) as cons, SUM(w.charge) as charge, COUNT(*) as n")->groupBy('ym')->get() as $r) {
+            if (isset($months[$r->ym])) {
+                $months[$r->ym] = ['month' => $months[$r->ym]['month'], 'consumption' => (float) $r->cons, 'charge' => (float) $r->charge, 'readings' => (int) $r->n];
+            }
+        }
+
+        $properties = $inPeriod()->selectRaw('u.property_id as pid, MAX(pr.name) as name, COUNT(DISTINCT w.unit_id) as units_read, COUNT(*) as readings,
+                SUM(w.consumption) as cons, SUM(w.charge) as charge')
+            ->groupBy('pid')->orderByDesc('cons')->get()
+            ->map(fn ($r) => ['id' => $r->pid, 'name' => $r->name ?? 'No property', 'units_read' => (int) $r->units_read, 'readings' => (int) $r->readings,
+                'consumption' => (float) $r->cons, 'charge' => (float) $r->charge,
+                'per_unit' => $r->units_read ? round($r->cons / $r->units_read, 1) : 0])->all();
+
+        $top = $inPeriod()->selectRaw('w.unit_id as unit_id, MAX(u.unit_number) as unit, MAX(pr.name) as property, SUM(w.consumption) as cons, SUM(w.charge) as charge, COUNT(*) as readings')
+            ->groupBy('unit_id')->orderByDesc('cons')->limit(10)->get()
+            ->map(fn ($r) => ['unit_id' => $r->unit_id, 'unit' => $r->unit, 'property' => $r->property, 'consumption' => (float) $r->cons, 'charge' => (float) $r->charge, 'readings' => (int) $r->readings])->all();
+
+        $monthStart = CarbonImmutable::now()->startOfMonth()->toDateString();
+        $unreadQ = $this->units()->where('u.status', 'occupied')
+            ->whereNotExists(fn ($q) => $q->from('water_readings as wr')->whereColumn('wr.unit_id', 'u.id')->where('wr.reading_date', '>=', $monthStart));
+        $unreadCount = (clone $unreadQ)->count();
+        $unread = $unreadQ->orderBy('pr.name')->orderBy('u.unit_number')->limit(12)->get(['u.id', 'u.unit_number', 'pr.name as property', 'u.last_reading_date'])
+            ->map(fn ($r) => (array) $r)->all();
+
+        return ['monthly' => array_values($months), 'properties' => $properties, 'top_units' => $top, 'unread' => $unread, 'unread_count' => $unreadCount];
+    }
+
     /** Everything the page needs, in one array. */
     public function all(): array
     {
@@ -284,6 +334,7 @@ class PortfolioReport
             'top_arrears' => $this->topArrears(),
             'properties' => $this->properties(),
             'expense_categories' => $this->expenseCategories(),
+            'water' => $this->water(),
         ];
     }
 

@@ -1,0 +1,16 @@
+# Medical schemes used by the Hospitals & clinics industry (client field "Insurer / scheme").
+# One per line. Lines starting with # are ignored. Add your local schemes freely.
+Social Health Authority (SHA)
+AAR Insurance
+APA Insurance
+Britam
+CIC Insurance
+First Assurance
+GA Insurance
+Jubilee Health Insurance
+Madison Insurance
+Minet (administered schemes)
+Old Mutual
+Pacis Insurance
+Sanlam
+Self pay / cash

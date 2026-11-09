@@ -102,13 +102,38 @@
             </div>
         </div>
 
-        <!-- Water Readings Table -->
-        @include('partials.table.table-readings', [
-            'readings' => $groupedReadings ?? [],
-            'showActions' => true,
-            'showConsumption' => true,
-            'units' => $units ?? []
-        ])
+        <!-- Readings and reports: one card, two tabs -->
+        @php
+          $waterReport = (new \App\Services\Reports\PortfolioReport(\App\Services\Reports\PortfolioReport::companyIdsFor(auth()->user()), null, 'last_6'))->water();
+          $tabCard = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
+        @endphp
+        <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]"
+             x-data="{ tab: new URLSearchParams(location.search).get('tab') === 'reports' ? 'reports' : 'readings' }"
+             x-init="$watch('tab', t => { const u = new URL(location.href); t === 'reports' ? u.searchParams.set('tab', 'reports') : u.searchParams.delete('tab'); history.replaceState(history.state, '', u); $nextTick(() => window.dispatchEvent(new Event('resize'))); })">
+          <div class="flex items-center gap-1 border-b border-gray-200 px-5 dark:border-gray-800" role="tablist">
+            @foreach (['readings' => ['Readings', 'pencil-square'], 'reports' => ['Reports', 'chart-bar']] as $key => [$label, $icon])
+              <button type="button" role="tab" @click="tab = '{{ $key }}'" :aria-selected="tab === '{{ $key }}'"
+                      class="-mb-px inline-flex items-center gap-2 border-b-2 px-3 py-4 text-sm font-medium transition"
+                      :class="tab === '{{ $key }}' ? 'border-brand-500 text-brand-500 dark:text-brand-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'">
+                <x-icon :name="$icon" class="h-4 w-4" />{{ $label }}
+              </button>
+            @endforeach
+          </div>
+          <div x-show="tab === 'readings'" class="[&>div]:rounded-none [&>div]:border-0">
+            @include('partials.table.table-readings', [
+                'readings' => $groupedReadings ?? [],
+                'showActions' => true,
+                'showConsumption' => true,
+                'units' => $units ?? []
+            ])
+          </div>
+          <div x-show="tab === 'reports'" x-cloak class="p-5">
+            <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">Last 6 months. For other periods and filters, open <a href="{{ route('reports.index') }}#water" class="font-medium text-brand-500 hover:underline">Reports</a>.</p>
+            @include('partials.reports.water', ['w' => $waterReport, 'card' => $tabCard, 'heading' => false])
+            @php $waterChart = ['water' => $waterReport['monthly']]; @endphp
+            <script type="application/json" id="reports-data">@json($waterChart)</script>
+          </div>
+        </div>
     </div>
 </div>
 

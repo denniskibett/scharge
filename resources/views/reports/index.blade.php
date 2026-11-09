@@ -160,6 +160,9 @@
   </div>
 @endif
 
-@php $chartData = ['monthly' => $data['monthly'], 'methods' => $data['methods'], 'aging' => $data['aging'], 'properties' => $data['properties']]; @endphp
+
+@include('partials.reports.water', ['w' => $data['water'], 'card' => $card])
+
+@php $chartData = ['monthly' => $data['monthly'], 'methods' => $data['methods'], 'aging' => $data['aging'], 'properties' => $data['properties'], 'water' => $data['water']['monthly']]; @endphp
 <script type="application/json" id="reports-data">@json($chartData)</script>
 @endsection

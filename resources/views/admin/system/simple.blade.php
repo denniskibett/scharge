@@ -5,6 +5,7 @@
 @section('content')
 <div x-data="{ pageName: 'System Settings' }">
     @include('partials.breadcrumb', ['pageName' => 'System Settings'])
+    @include('partials.card.system')
 </div>
     
 <div>

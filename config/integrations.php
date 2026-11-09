@@ -79,6 +79,42 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'name' => 'WhatsApp Business',
+        'scope' => 'platform',
+        'category' => 'Messaging',
+        'description' => "scharge's WhatsApp number (Meta Cloud API). Reaches tenants on international numbers, which SMS cannot, and anyone you choose to message on WhatsApp.",
+        'color' => '#25D366',
+        'logo' => 'whatsapp.svg', // public/images/integrations
+        'fields' => [
+            'mode' => ['label' => 'Use', 'type' => 'select', 'required' => true, 'options' => ['cloud' => 'Send through the WhatsApp Cloud API', 'links' => 'Share links only (wa.me, no sending)']],
+            'phone_number_id' => ['label' => 'Phone number ID', 'help' => 'Meta Business › WhatsApp Manager › API setup (the ID of the sending number, not the number itself).'],
+            'access_token' => ['label' => 'Access token', 'secret' => true, 'help' => 'A permanent system-user token with whatsapp_business_messaging.'],
+            'business_account_id' => ['label' => 'WhatsApp Business account ID', 'help' => 'Optional; shown for reference.'],
+            'template' => ['label' => 'Message template', 'placeholder' => 'scharge_notice', 'help' => 'An approved template with one body variable {{1}}. Needed to message people who have not written to you in the last 24 hours.'],
+            'language' => ['label' => 'Template language', 'placeholder' => 'en', 'help' => 'Language code of the template, e.g. en or en_US.'],
+            'api_version' => ['label' => 'Graph API version', 'placeholder' => 'v21.0'],
+        ],
+    ],
+
+    'whatsapp_business' => [
+        'name' => 'WhatsApp (your number)',
+        'scope' => 'company',
+        'category' => 'Messaging',
+        'description' => "Send bills and reminders from your own WhatsApp Business number instead of scharge's. Tenants with international numbers get WhatsApp instead of SMS.",
+        'color' => '#25D366',
+        'logo' => 'whatsapp.svg', // public/images/integrations
+        'fields' => [
+            'mode' => ['label' => 'Use', 'type' => 'select', 'required' => true, 'options' => ['cloud' => 'Send through the WhatsApp Cloud API', 'links' => 'Share links only (wa.me, no sending)']],
+            'phone_number_id' => ['label' => 'Phone number ID', 'help' => 'Meta Business › WhatsApp Manager › API setup (the ID of the sending number, not the number itself).'],
+            'access_token' => ['label' => 'Access token', 'secret' => true, 'help' => 'A permanent system-user token with whatsapp_business_messaging.'],
+            'business_account_id' => ['label' => 'WhatsApp Business account ID', 'help' => 'Optional; shown for reference.'],
+            'template' => ['label' => 'Message template', 'placeholder' => 'scharge_notice', 'help' => 'An approved template with one body variable {{1}}. Needed to message people who have not written to you in the last 24 hours.'],
+            'language' => ['label' => 'Template language', 'placeholder' => 'en', 'help' => 'Language code of the template, e.g. en or en_US.'],
+            'api_version' => ['label' => 'Graph API version', 'placeholder' => 'v21.0'],
+        ],
+    ],
+
     'africastalking' => [
         'name' => "Africa's Talking",
         'scope' => 'platform',
@@ -156,7 +192,7 @@ return [
             'paybill' => ['label' => 'Paybill number'],
             'account' => ['label' => 'Paybill account number'],
             'till' => ['label' => 'Till number'],
-            'bank' => ['label' => 'Bank code', 'help' => 'As listed by Sharet (e.g. equity, kcb, coop).'],
+            'bank' => ['label' => 'Bank', 'type' => 'select', 'options_from' => 'banks', 'help' => 'Kenyan banks licensed by the CBK (resources/data/banks-kenya.txt). Paid by PesaLink.'],
             'bank_account' => ['label' => 'Bank account number'],
             'sharet_account' => ['label' => 'Connected Sharet ID', 'placeholder' => 'SH-…', 'help' => 'Filled in automatically when you connect your Sharet account.'],
         ],

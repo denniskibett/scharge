@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@include('partials.card.crm-follow-ups')
 @php
     $card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
     $views = ['overdue' => 'Overdue', 'today' => 'Due today', 'open' => 'All open', 'done' => 'Done'];

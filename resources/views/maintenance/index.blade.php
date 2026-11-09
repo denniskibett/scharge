@@ -2,7 +2,7 @@
 
 @section('content')
 <div x-data="invoicePage()">
-    {{-- @include('partials.card.card-maintenance') --}}
+    @include('partials.card.maintenance')
     @include('partials.table.table-maintenance')
 </div>
 

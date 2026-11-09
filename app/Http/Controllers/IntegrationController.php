@@ -166,7 +166,7 @@ class IntegrationController extends Controller
     /** What the page needs about one provider; secrets only as "saved". */
     protected function state(string $key, ?CompanyIntegration $row): array
     {
-        $d = config("integrations.$key");
+        $d = self::withOptions(config("integrations.$key"));
 
         return [
             'key' => $key,
@@ -192,7 +192,21 @@ class IntegrationController extends Controller
     /** Providers for this scope: platform ones for scharge itself, company ones for a company. */
     protected function definitions(?int $companyId)
     {
-        return collect(config('integrations'))->filter(fn ($p) => $p['scope'] === ($companyId ? 'company' : 'platform'));
+        return collect(config('integrations'))->filter(fn ($p) => $p['scope'] === ($companyId ? 'company' : 'platform'))->map(fn ($p) => self::withOptions($p));
+    }
+
+    /** Fields with 'options_from' => 'banks' get the Kenyan bank list (resources/data/banks-kenya.txt). */
+    protected static function withOptions(array $d): array
+    {
+        foreach ($d['fields'] ?? [] as $k => $f) {
+            if (($f['options_from'] ?? null) === 'banks') {
+                $d['fields'][$k]['options'] = collect(\App\Support\DataList::get('banks-kenya'))
+                    ->mapWithKeys(fn ($b) => [(\App\Support\Partners::forBank($b['name']) ?? \Illuminate\Support\Str::slug($b['name'])) => $b['name']])
+                    ->all();
+            }
+        }
+
+        return $d;
     }
 
     protected function definition(string $provider, ?int $companyId): array

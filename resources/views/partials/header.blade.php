@@ -1,109 +1,33 @@
 <style>
-  ::highlight(page-search) { background-color: #fde68a; color: #111827; }
-  ::highlight(page-search-current) { background-color: #f59e0b; color: #111827; }
   [x-cloak] { display: none !important; }
 </style>
 <script>
-  // Header search: finds text in the current page's <main>. Table rows (and any element
-  // marked data-search-item) that don't match are hidden; every match is highlighted and
-  // Enter / Shift+Enter jumps between them. Highlights use the CSS Custom Highlight API,
-  // so the page's HTML is never rewritten.
-  window.pageSearch = function () {
+  // Header search (Breve's quick switcher, inline): type to jump to a page or open a property, unit, tenant,
+  // invoice, team member or company. Data: SearchController (GET /search). Ctrl/Cmd+K or "/" focuses the box.
+  window.globalSearch = function (url) {
     return {
-      query: '',
-      total: 0,
-      current: 0,
-      ranges: [],
-      applying: false,
-      isMac: /Mac|iPhone|iPad|iPod/.test(navigator.platform),
-
-      init() {
-        const root = this.root();
-        if (!root) return;
-        // Rows added later (AJAX tables, Alpine lists) are filtered too.
-        let timer;
-        new MutationObserver(() => {
-          if (this.applying || !this.query.trim()) return;
-          clearTimeout(timer);
-          timer = setTimeout(() => this.run(true), 200);
-        }).observe(root, { childList: true, subtree: true, characterData: true });
+      q: '', results: [], active: 0, open: false, loading: false, isMac: /Mac|iPhone|iPad/.test(navigator.platform), seq: 0,
+      async search() {
+        const q = this.q.trim(); const n = ++this.seq;
+        this.loading = true;
+        try {
+          const r = await fetch(url + '?q=' + encodeURIComponent(q), { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+          const d = await r.json();
+          if (n !== this.seq) return; // a newer search finished first
+          this.results = d.results || []; this.active = 0; this.open = true;
+        } catch (e) { if (n === this.seq) this.results = []; }
+        if (n === this.seq) this.loading = false;
       },
-
-      root() {
-        return document.querySelector('main');
-      },
-
+      focus() { this.open = true; if (!this.results.length) this.search(); },
+      move(step) { if (!this.results.length) return; this.active = (this.active + step + this.results.length) % this.results.length; this.$nextTick(() => this.$refs.list?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' })); },
+      go(i = this.active) { const r = this.results[i]; if (!r) return; this.close(); window.spaVisit ? window.spaVisit(r.url) : (location.href = r.url); },
+      close() { this.open = false; this.q = ''; this.results = []; this.$refs.input?.blur(); },
       shortcut(e) {
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-          e.preventDefault();
-          this.$refs.input.focus();
-          this.$refs.input.select();
-        }
+        const typing = /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.target.isContentEditable;
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); this.$refs.input.focus(); }
+        else if (e.key === '/' && !typing) { e.preventDefault(); this.$refs.input.focus(); }
       },
-
-      clear() {
-        this.query = '';
-        this.run();
-        this.$refs.input.blur();
-      },
-
-      run(keepPosition = false) {
-        const root = this.root();
-        if (!root) return;
-        this.applying = true;
-        const q = this.query.trim().toLowerCase();
-
-        root.querySelectorAll('tbody tr, [data-search-item]').forEach((row) => {
-          const hide = q && !row.textContent.toLowerCase().includes(q);
-          if (hide && !row.hasAttribute('data-search-hidden')) {
-            row.dataset.searchHidden = row.style.display;
-            row.style.display = 'none';
-          } else if (!hide && row.hasAttribute('data-search-hidden')) {
-            row.style.display = row.dataset.searchHidden;
-            row.removeAttribute('data-search-hidden');
-          }
-        });
-
-        this.ranges = [];
-        if (q) {
-          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-            acceptNode: (node) => {
-              const parent = node.parentElement;
-              if (!parent || parent.closest('script, style, template')) return NodeFilter.FILTER_REJECT;
-              return parent.getClientRects().length ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
-            },
-          });
-          for (let node; (node = walker.nextNode()) && this.ranges.length < 1000; ) {
-            const text = node.nodeValue.toLowerCase();
-            for (let i = text.indexOf(q); i !== -1 && this.ranges.length < 1000; i = text.indexOf(q, i + q.length)) {
-              const range = new Range();
-              range.setStart(node, i);
-              range.setEnd(node, i + q.length);
-              this.ranges.push(range);
-            }
-          }
-        }
-
-        this.total = this.ranges.length;
-        if (!keepPosition || this.current >= this.total) this.current = 0;
-        this.paint(!keepPosition);
-        this.applying = false;
-      },
-
-      next(step) {
-        if (!this.total) return;
-        this.current = (this.current + step + this.total) % this.total;
-        this.paint(true);
-      },
-
-      paint(scroll) {
-        const range = this.ranges[this.current];
-        if (window.CSS && CSS.highlights) {
-          CSS.highlights.set('page-search', new Highlight(...this.ranges));
-          range ? CSS.highlights.set('page-search-current', new Highlight(range)) : CSS.highlights.delete('page-search-current');
-        }
-        if (scroll && range) range.startContainer.parentElement?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      },
+      icon(name) { const t = this.$refs.icons?.content.querySelector('[data-icon="' + name + '"]'); return t ? t.innerHTML : ''; },
     };
   };
 </script>
@@ -215,56 +139,53 @@
       </button>
       <!-- Application nav menu button -->
 
-      <div class="hidden lg:block" x-data="pageSearch()" @keydown.window="shortcut($event)">
-        <form role="search" @submit.prevent="next(1)">
+      <div class="relative hidden lg:block" x-data="globalSearch(@js(route('search')))" @keydown.window="shortcut($event)" @click.outside="open = false" @spa:navigated.window="open = false">
+        <form role="search" @submit.prevent="go()">
           <div class="relative">
-            <button type="submit" tabindex="-1" aria-label="Search this page" class="absolute left-4 top-1/2 -translate-y-1/2">
-              <svg
-                class="fill-gray-500 dark:fill-gray-400"
-                width="20"
-                height="20"
-                viewBox="0 0 20 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  clip-rule="evenodd"
-                  d="M3.04175 9.37363C3.04175 5.87693 5.87711 3.04199 9.37508 3.04199C12.8731 3.04199 15.7084 5.87693 15.7084 9.37363C15.7084 12.8703 12.8731 15.7053 9.37508 15.7053C5.87711 15.7053 3.04175 12.8703 3.04175 9.37363ZM9.37508 1.54199C5.04902 1.54199 1.54175 5.04817 1.54175 9.37363C1.54175 13.6991 5.04902 17.2053 9.37508 17.2053C11.2674 17.2053 13.003 16.5344 14.357 15.4176L17.177 18.238C17.4699 18.5309 17.9448 18.5309 18.2377 18.238C18.5306 17.9451 18.5306 17.4703 18.2377 17.1774L15.418 14.3573C16.5365 13.0033 17.2084 11.2669 17.2084 9.37363C17.2084 5.04817 13.7011 1.54199 9.37508 1.54199Z"
-                  fill=""
-                />
-              </svg>
-            </button>
-            <input
-              type="search"
-              x-ref="input"
-              x-model="query"
-              @input.debounce.150ms="run()"
-              @keydown.escape.prevent="clear()"
-              @keydown.enter.prevent="next($event.shiftKey ? -1 : 1)"
-              aria-label="Search this page"
-              placeholder="Search this page..."
-              autocomplete="off"
-              class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-24 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-primary focus:outline-none focus:ring focus:ring-primary-20 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-primary xl:w-[430px] [&::-webkit-search-cancel-button]:hidden"
-            />
-
-            <!-- Match count while searching, keyboard shortcut otherwise -->
-            <span
-              x-show="query.trim()"
-              x-cloak
-              aria-live="polite"
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs text-gray-500 dark:text-gray-400"
-              x-text="total ? (current + 1) + ' of ' + total : 'No matches'"
-            ></span>
-            <kbd
-              x-show="!query.trim()"
-              class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] font-sans text-xs -tracking-[0.2px] text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400"
-            >
-              <span x-text="isMac ? '⌘' : 'Ctrl'"></span>
-              <span> K </span>
+            <span class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><x-icon name="magnifying-glass" class="h-5 w-5" /></span>
+            <input type="search" x-ref="input" x-model="q" @focus="focus()" @input.debounce.150ms="search()"
+                   @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter.prevent="go()" @keydown.escape.prevent="close()"
+                   placeholder="Search or jump to…" aria-label="Search" autocomplete="off" role="combobox" aria-controls="header-search-results" :aria-expanded="open && results.length > 0"
+                   class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-16 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 xl:w-[430px] [&::-webkit-search-cancel-button]:hidden" />
+            <span x-show="loading" x-cloak class="absolute right-14 top-1/2 -translate-y-1/2 text-gray-400"><x-icon name="arrow-path" class="h-4 w-4 animate-spin" /></span>
+            <kbd class="absolute right-2.5 top-1/2 inline-flex -translate-y-1/2 items-center gap-0.5 rounded-lg border border-gray-200 bg-gray-50 px-[7px] py-[4.5px] font-sans text-xs text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
+              <span x-text="isMac ? '⌘' : 'Ctrl'"></span><span>K</span>
             </kbd>
           </div>
         </form>
+
+        {{-- Results: Breve's quick-switcher list, under the box --}}
+        <div x-show="open && (results.length || (q.trim().length >= 2 && !loading))" x-cloak
+             x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 -translate-y-1" x-transition:enter-end="opacity-100 translate-y-0"
+             class="absolute left-0 top-full z-99999 mt-2 w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 xl:w-[430px]">
+          <ul id="header-search-results" x-ref="list" role="listbox" class="max-h-[60vh] overflow-y-auto p-2">
+            <template x-for="(r, i) in results" :key="r.url + i">
+              <li role="option" :aria-selected="i === active">
+                <p x-show="i === 0 || results[i - 1].group !== r.group" x-text="r.group" class="px-3 pb-1 pt-3 text-theme-xs font-semibold uppercase tracking-wider text-gray-400"></p>
+                <a :href="r.url" @mouseenter="active = i" @click.prevent="go(i)"
+                   :class="i === active ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-200' : 'text-gray-700 dark:text-gray-300'"
+                   class="flex items-center gap-3 rounded-lg px-3 py-2.5">
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 dark:bg-white/5" x-html="icon(r.icon) || icon('magnifying-glass')"></span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-theme-sm font-medium" x-text="r.label"></span>
+                    <span class="block truncate text-theme-xs text-gray-500 dark:text-gray-400" x-text="r.sub"></span>
+                  </span>
+                </a>
+              </li>
+            </template>
+            <li x-show="!loading && q.trim().length >= 2 && !results.length" class="px-3 py-8 text-center text-theme-sm text-gray-500 dark:text-gray-400">Nothing found for “<span x-text="q"></span>”.</li>
+          </ul>
+          <div class="flex items-center gap-4 border-t border-gray-200 px-4 py-2.5 text-theme-xs text-gray-400 dark:border-gray-800">
+            <span><kbd class="font-sans">↑</kbd> <kbd class="font-sans">↓</kbd> to move</span><span><kbd class="font-sans">Enter</kbd> to open</span><span class="ml-auto"><kbd class="font-sans">Esc</kbd> to close</span>
+          </div>
+        </div>
+
+        {{-- Icons the results can use, rendered once on the server --}}
+        <template x-ref="icons">
+          @foreach (['squares-2x2', 'calendar-days', 'chart-bar', 'building-office-2', 'home-modern', 'users', 'clipboard-document-list', 'beaker', 'wrench-screwdriver', 'shield-check', 'document-text', 'banknotes', 'receipt-percent', 'user-circle', 'paper-airplane', 'chat-bubble-left-ellipsis', 'funnel', 'clock', 'inbox-arrow-down', 'queue-list', 'star', 'globe-alt', 'building-office', 'clipboard-document-check', 'puzzle-piece', 'key', 'adjustments-horizontal', 'user-group', 'lock-closed', 'cog-6-tooth', 'magnifying-glass'] as $ic)
+            <span data-icon="{{ $ic }}"><x-icon :name="$ic" class="h-4 w-4" /></span>
+          @endforeach
+        </template>
       </div>
     </div>
 

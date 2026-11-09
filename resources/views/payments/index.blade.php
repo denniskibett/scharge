@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@include('partials.card.payments')
 <!-- Include all modal partials from the correct path -->
 @include('partials.modal.payments-create-modal')
 @include('partials.modal.payments-delete-modal')

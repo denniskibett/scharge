@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@include('partials.card.crm-waitlist')
 @php
     use App\Modules\CRM\Models\WaitlistEntry;
     use App\Modules\CRM\Support\Countries;

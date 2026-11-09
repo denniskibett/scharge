@@ -1,0 +1,16 @@
+# Countries shown on sign-up and onboarding.  Name | ISO code | currency
+Kenya | KE | KES
+Tanzania | TZ | TZS
+Uganda | UG | UGX
+Rwanda | RW | RWF
+Ethiopia | ET | ETB
+Nigeria | NG | NGN
+Ghana | GH | GHS
+South Africa | ZA | ZAR
+Senegal | SN | XOF
+Côte d'Ivoire | CI | XOF
+Cameroon | CM | XAF
+Egypt | EG | EGP
+Morocco | MA | MAD
+Zambia | ZM | ZMW
+Other African market | XX | USD

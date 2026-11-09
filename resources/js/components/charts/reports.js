@@ -34,7 +34,7 @@ export default function reportCharts() {
 
   const d = readData("reports-data");
   if (d) {
-    draw("report-monthly", {
+    if (d.monthly) draw("report-monthly", {
       chart: { type: "bar", height: 300 },
       series: [
         { name: "Billed", data: d.monthly.map((m) => m.billed) },
@@ -47,7 +47,7 @@ export default function reportCharts() {
       yaxis: { labels: { formatter: compact } },
       tooltip: { y: { formatter: kes } },
     });
-    draw("report-methods", {
+    if (d.methods) draw("report-methods", {
       chart: { type: "donut", height: 300 },
       series: d.methods.map((m) => m.total),
       labels: d.methods.map((m) => m.method),
@@ -57,7 +57,7 @@ export default function reportCharts() {
       tooltip: { y: { formatter: kes } },
       noData: { text: "No payments in this period" },
     });
-    draw("report-occupancy", {
+    if (d.properties) draw("report-occupancy", {
       chart: { type: "bar", height: Math.max(220, 60 + d.properties.length * 42), stacked: true },
       series: [
         { name: "Occupied", data: d.properties.map((p) => p.occupied) },
@@ -68,7 +68,7 @@ export default function reportCharts() {
       xaxis: { categories: d.properties.map((p) => p.name) },
       tooltip: { y: { formatter: (v) => v + " units" } },
     });
-    draw("report-aging", {
+    if (d.aging) draw("report-aging", {
       chart: { type: "bar", height: 280 },
       series: [{ name: "Owed", data: d.aging.map((a) => a.total) }],
       colors: ["#f04438"],
@@ -76,6 +76,22 @@ export default function reportCharts() {
       xaxis: { categories: d.aging.map((a) => a.bucket), axisBorder: { show: false }, axisTicks: { show: false } },
       yaxis: { labels: { formatter: compact } },
       tooltip: { y: { formatter: (v, o) => kes(v) + " · " + d.aging[o.dataPointIndex].count + " bills" } },
+    });
+    if (d.water) draw("report-water", {
+      chart: { type: "line", height: 300 },
+      series: [
+        { name: "Units used", type: "column", data: d.water.map((m) => m.consumption) },
+        { name: "Charged (KES)", type: "line", data: d.water.map((m) => m.charge) },
+      ],
+      colors: ["#0ba5ec", "#465fff"],
+      stroke: { width: [0, 3], curve: "monotoneCubic" },
+      plotOptions: { bar: { columnWidth: "50%", borderRadius: 4, borderRadiusApplication: "end" } },
+      xaxis: { categories: d.water.map((m) => m.month), axisBorder: { show: false }, axisTicks: { show: false } },
+      yaxis: [
+        { title: { text: "Units" }, labels: { formatter: compact } },
+        { opposite: true, title: { text: "KES" }, labels: { formatter: compact } },
+      ],
+      tooltip: { shared: true, y: { formatter: (v, o) => (o.seriesIndex === 1 ? kes(v) : Math.round(v).toLocaleString() + " units") } },
     });
   }
 

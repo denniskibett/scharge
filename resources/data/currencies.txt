@@ -1,0 +1,17 @@
+# Currencies Breve can invoice in.  Code | name | symbol
+KES | Kenyan shilling | KSh
+UGX | Ugandan shilling | USh
+TZS | Tanzanian shilling | TSh
+RWF | Rwandan franc | FRw
+ETB | Ethiopian birr | Br
+NGN | Nigerian naira | ₦
+GHS | Ghanaian cedi | GH₵
+ZAR | South African rand | R
+XOF | West African CFA franc | CFA
+XAF | Central African CFA franc | FCFA
+EGP | Egyptian pound | E£
+MAD | Moroccan dirham | DH
+ZMW | Zambian kwacha | ZK
+USD | US dollar | $
+EUR | Euro | €
+GBP | British pound | £

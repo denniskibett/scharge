@@ -2,6 +2,7 @@
 @section('title', 'Building claims')
 
 @section('content')
+@include('partials.card.property-claims')
 <div>
   <div class="mb-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Building claims</h1>

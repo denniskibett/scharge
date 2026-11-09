@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@include('partials.card.tenants')
 <!-- Include modal partials -->
 @include('partials.modal.tenants-create-modal')
 @include('partials.modal.tenants-edit-modal')

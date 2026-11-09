@@ -1,0 +1,63 @@
+# Kenyan cities and counties, for addresses, CRM territories and reports.
+# Format:   Name | county | tier
+#   tier 1 = the five cities Breve sells into first (Nairobi, Mombasa, Kisumu, Nakuru, Eldoret)
+#   tier 2 = other county headquarters / large towns
+# Lines starting with # are ignored.
+#
+Nairobi | Nairobi | 1
+Mombasa | Mombasa | 1
+Kisumu | Kisumu | 1
+Nakuru | Nakuru | 1
+Eldoret | Uasin Gishu | 1
+Thika | Kiambu | 2
+Kiambu | Kiambu | 2
+Ruiru | Kiambu | 2
+Machakos | Machakos | 2
+Athi River | Machakos | 2
+Kajiado | Kajiado | 2
+Kitengela | Kajiado | 2
+Ngong | Kajiado | 2
+Nyeri | Nyeri | 2
+Murang'a | Murang'a | 2
+Kerugoya | Kirinyaga | 2
+Embu | Embu | 2
+Meru | Meru | 2
+Chuka | Tharaka-Nithi | 2
+Nanyuki | Laikipia | 2
+Nyahururu | Laikipia | 2
+Naivasha | Nakuru | 2
+Narok | Narok | 2
+Kericho | Kericho | 2
+Bomet | Bomet | 2
+Kisii | Kisii | 2
+Nyamira | Nyamira | 2
+Migori | Migori | 2
+Homa Bay | Homa Bay | 2
+Siaya | Siaya | 2
+Bungoma | Bungoma | 2
+Kakamega | Kakamega | 2
+Vihiga | Vihiga | 2
+Busia | Busia | 2
+Kitale | Trans Nzoia | 2
+Kapsabet | Nandi | 2
+Iten | Elgeyo-Marakwet | 2
+Kabarnet | Baringo | 2
+Lodwar | Turkana | 2
+Kapenguria | West Pokot | 2
+Maralal | Samburu | 2
+Isiolo | Isiolo | 2
+Marsabit | Marsabit | 2
+Moyale | Marsabit | 2
+Garissa | Garissa | 2
+Wajir | Wajir | 2
+Mandera | Mandera | 2
+Kitui | Kitui | 2
+Wote | Makueni | 2
+Voi | Taita-Taveta | 2
+Malindi | Kilifi | 2
+Kilifi | Kilifi | 2
+Kwale | Kwale | 2
+Diani | Kwale | 2
+Lamu | Lamu | 2
+Hola | Tana River | 2
+Ol Kalou | Nyandarua | 2

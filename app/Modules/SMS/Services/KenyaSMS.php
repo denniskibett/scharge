@@ -68,6 +68,18 @@ class KenyaSMS
     public function sendOne($phone, $message, $type = null, $campaignId = null, $scheduleAt = null)
     {
         $type = $type ?? $this->defaultType;
+
+        // KenyaSMS only reaches Kenyan numbers; foreign ones go by WhatsApp or email instead.
+        if (\App\Helpers\PhoneHelper::isForeign($phone)) {
+            // Send it on WhatsApp instead when a WhatsApp number is set up (company's own, else scharge's).
+            $wa = \App\Services\WhatsApp::forCompany(auth()->user()?->company_id);
+            if ($wa->canSend()) {
+                return $wa->send($phone, $message) + ['channel' => 'whatsapp', 'foreign' => true];
+            }
+
+            return ['success' => false, 'status' => 'skipped', 'foreign' => true, 'whatsapp_link' => \App\Services\WhatsApp::link($phone, $message),
+                'message' => 'International number ('.\App\Helpers\PhoneHelper::foreignCountry($phone).'): SMS is for Kenyan numbers. Set up WhatsApp under Integrations, or use the WhatsApp link.'];
+        }
         
         Log::info('KenyaSMS: Sending SMS', [
             'phone' => $phone,

@@ -540,7 +540,9 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // Meter Reader specific routes
     Route::middleware(['access:water'])->group(function () {
         Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
-        Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
+        // Water reports: the Reports tab on the Water page (and the Water section of /reports).
+        Route::redirect('/meter-readings/reports', '/water?tab=reports')->name('meter-readings.reports');
+        Route::redirect('/water/reports', '/water?tab=reports')->name('water.reports');
     });
 
     // ============================================
@@ -572,6 +574,9 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     Route::resource('staff', StaffController::class)->middleware('access:team')->middleware('role:sysadmin|admin|accountant');
 
     // ============================================
+    // Header search (Breve-style quick switcher)
+    Route::get('/search', \App\Http\Controllers\SearchController::class)->middleware('throttle:120,1')->name('search');
+
     // REPORT ROUTES
     // ============================================
     Route::prefix('reports')->name('reports.')->middleware('role:sysadmin|admin|accountant|property_manager|account_manager')->middleware('access:reports')->group(function () {

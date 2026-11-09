@@ -3,6 +3,7 @@
 @section('title', 'Security Logs')
 
 @section('content')
+@include('partials.card.security')
 <div class="flex flex-col gap-5">
     <!-- Header -->
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">

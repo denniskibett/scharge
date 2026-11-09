@@ -3,6 +3,7 @@
 @section('title', 'SMS Settings')
 
 @section('content')
+@include('partials.card.sms-settings')
 <div>
     <div class="mb-6">
         <h1 class="text-3xl font-bold text-gray-800 dark:text-white"><x-icon name="cog-6-tooth" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SMS Settings</h1>

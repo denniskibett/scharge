@@ -3,6 +3,7 @@
 @section('title', 'Integrations')
 
 @section('content')
+@include('partials.card.integrations')
 @php
     $scopeParam = $scope?->id ?? 'platform';
     $base = url('integrations');

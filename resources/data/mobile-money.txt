@@ -1,0 +1,33 @@
+# Mobile money services scharge can collect from or pay out to.
+# One per line:   Name | country code (ISO 3166-1 alpha-2) | collect methods
+#   collect methods: paybill, till, send, wallet (comma-separated)
+# scharge collects through Sharet Africa; what is live depends on Sharet's coverage (docs/PAYMENTS.md).
+#
+# Kenya
+M-Pesa (Safaricom) | KE | paybill,till,send
+Airtel Money | KE | paybill,send
+T-Kash (Telkom) | KE | send
+# Tanzania
+M-Pesa (Vodacom Tanzania) | TZ | paybill,send
+Mixx by Yas (formerly Tigo Pesa) | TZ | paybill,send
+Airtel Money Tanzania | TZ | send
+HaloPesa | TZ | send
+# Uganda
+MTN Mobile Money Uganda | UG | paybill,send
+Airtel Money Uganda | UG | paybill,send
+# Rwanda
+MTN MoMo Rwanda | RW | paybill,send
+Airtel Money Rwanda | RW | send
+# Ghana
+MTN MoMo Ghana | GH | wallet,send
+Telecel Cash | GH | wallet,send
+AT Money | GH | wallet,send
+# Nigeria
+OPay | NG | wallet,send
+PalmPay | NG | wallet,send
+# Ethiopia
+telebirr | ET | wallet,send
+M-Pesa Ethiopia | ET | wallet,send
+# West Africa (francophone)
+Orange Money | SN | wallet,send
+Wave | SN | wallet,send

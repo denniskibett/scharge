@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@include('partials.card.expenses')
 @include('partials.modal.expenses-create-modal')
 @include('partials.modal.categories-create-modal')
 
