@@ -130,7 +130,7 @@ class BusinessBooks
     }
 
     /** Expenses of the user's business(es): by the expense's company, else its property's. */
-    public static function scopeExpenses(Builder $q, $user): Builder
+    public static function scopeExpenses($q, $user) // an Eloquent builder or a relation (eager-load constraint)
     {
         $ids = self::companyIds($user);
         if ($ids === null) {
