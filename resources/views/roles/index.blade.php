@@ -4,7 +4,7 @@
 @section('title', 'Roles & permissions')
 
 @section('content')
-<div x-data="rolesPage('{{ route('roles.index') }}')" class="p-4 md:p-6">
+<div x-data="rolesPage('{{ route('roles.index') }}')">
   <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Roles & permissions</h1>

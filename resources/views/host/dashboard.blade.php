@@ -2,7 +2,7 @@
 @section('title', 'My BnB units')
 
 @section('content')
-<div class="p-4 md:p-6">
+<div>
   <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">My BnB units</h1>

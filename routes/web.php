@@ -575,9 +575,11 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // REPORT ROUTES
     // ============================================
     Route::prefix('reports')->name('reports.')->middleware('role:sysadmin|admin|accountant|property_manager|account_manager')->middleware('access:reports')->group(function () {
-        Route::get('/financial', [ReportController::class, 'financial'])->name('financial');
-        Route::get('/invoices', [ReportController::class, 'invoices'])->name('invoices');
-        Route::get('/payments', [ReportController::class, 'payments'])->name('payments');
+        Route::get('/', [ReportController::class, 'index'])->name('index');
+        Route::get('/export', [ReportController::class, 'export'])->name('export');
+        Route::get('/financial', [ReportController::class, 'legacy'])->name('financial');
+        Route::get('/invoices', [ReportController::class, 'legacy'])->name('invoices');
+        Route::get('/payments', [ReportController::class, 'legacy'])->name('payments');
     });
 
     // ============================================

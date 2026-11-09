@@ -3,7 +3,7 @@
 @section('title', 'Edit Account Manager')
 
 @section('content')
-<div class="flex flex-col gap-5 p-6">
+<div class="flex flex-col gap-5">
     <!-- Card -->
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
         <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">

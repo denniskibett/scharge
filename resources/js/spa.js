@@ -100,7 +100,13 @@ if (document.querySelector(CONTENT)) {
     event.preventDefault();
     visit(url.href);
   });
-  window.addEventListener("popstate", () => visit(location.href, { push: false }));
+  // Back/forward. A change of only the #fragment (e.g. a href="#" toggle) is not a new page.
+  let shown = location.pathname + location.search;
+  window.addEventListener("spa:navigated", () => (shown = location.pathname + location.search));
+  window.addEventListener("popstate", () => {
+    if (location.pathname + location.search === shown) return;
+    visit(location.href, { push: false });
+  });
 }
 
 /** Run a page initialiser now and after every background navigation. */

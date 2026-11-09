@@ -8,7 +8,7 @@
     $th = 'px-3 py-2 font-medium';
     $td = 'px-3 py-2';
 @endphp
-<div class="p-4 md:p-6">
+<div>
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Website analytics</h1>

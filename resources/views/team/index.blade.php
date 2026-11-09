@@ -3,7 +3,7 @@
 @section('title', 'Team & access')
 
 @section('content')
-<div class="p-4 md:p-6 space-y-6" x-data="teamPage('{{ route('team.index') }}', '{{ $scopeParam }}')">
+<div class="space-y-6" x-data="teamPage('{{ route('team.index') }}', '{{ $scopeParam }}')">
   <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Team & access</h1>

@@ -53,6 +53,7 @@
 
         <!-- Stats Cards -->
         @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'property_manager'])])
+        @include('partials.dashboard.analytics-summary')
 
         <!-- Tabs -->
         <div class="mt-6">

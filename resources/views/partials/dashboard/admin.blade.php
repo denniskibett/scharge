@@ -53,6 +53,7 @@
 
         <!-- Stats Cards (6 cards as before, but company-specific) -->
         @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'admin'])])
+        @include('partials.dashboard.analytics-summary')
 
 
         <!-- Tab Content -->

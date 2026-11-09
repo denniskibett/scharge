@@ -2,7 +2,7 @@
 @section('title', 'Building claims')
 
 @section('content')
-<div class="p-4 md:p-6">
+<div>
   <div class="mb-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Building claims</h1>
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Management companies asking to manage a building already on scharge (often one a BnB host registered first). Approving moves the building's books to them; host units stay with their hosts and are billed service charge and water.</p>

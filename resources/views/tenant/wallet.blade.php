@@ -2,7 +2,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="py-6">
+<div>
     <div>
         {{-- Wallet Component --}}
         <div x-data="tenantWalletComponent()" x-init="init()" class="space-y-6">

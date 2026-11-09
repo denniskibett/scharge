@@ -4,7 +4,7 @@
 
 @section('content')
 @php $widths = ['desktop' => 1280, 'tablet' => 820, 'mobile' => 390]; @endphp
-<div class="p-4 md:p-6">
+<div>
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
       <a href="{{ route('site-analytics.index', ['days' => $days]) }}" class="text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">← Website analytics</a>

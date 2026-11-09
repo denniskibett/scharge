@@ -9,7 +9,7 @@
     $input = 'h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30';
 @endphp
 
-<div x-data="integrationsPage('{{ $base }}', '{{ $scopeParam }}')" class="p-4 md:p-6">
+<div x-data="integrationsPage('{{ $base }}', '{{ $scopeParam }}')">
   <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Integrations</h1>

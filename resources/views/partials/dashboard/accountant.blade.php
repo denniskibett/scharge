@@ -54,6 +54,7 @@
 
         <!-- Stats Cards -->
         @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'accountant'])])
+        @include('partials.dashboard.analytics-summary')
 
         <!-- CHARTS SECTION - SHOW IMMEDIATELY AFTER STATS CARDS -->
         <div class="mt-6">

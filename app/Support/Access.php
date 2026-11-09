@@ -120,7 +120,7 @@ class Access
         'companies' => 'companies.view', 'property_claims' => 'companies.manage',
         'settings' => ['settings.view', 'team.view', 'system.view'], 'integrations' => 'settings.view', 'api_keys' => 'settings.view',
         'users' => 'team.view', 'staff' => 'team.view', 'team' => 'team.view', 'roles' => 'system.view', 'system_settings' => 'system.view',
-        'analytics' => 'reports.view',
+        'analytics' => 'reports.view', 'reports' => 'reports.view',
     ];
 
     /**

@@ -9,7 +9,7 @@
     $scopes = ['collect' => 'Create pay links', 'meters' => 'Meter readings'];
 @endphp
 
-<div x-data="apiKeysPage('{{ url('api-keys') }}')" class="p-4 md:p-6">
+<div x-data="apiKeysPage('{{ url('api-keys') }}')">
   <div class="mb-6">
     <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">API keys</h1>
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
