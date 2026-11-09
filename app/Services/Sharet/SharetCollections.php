@@ -119,10 +119,12 @@ class SharetCollections
                 $payment = app(InvoicePaymentService::class)->apply($invoice, (float) $row->amount, [
                     'method' => 'sharet',
                     'source' => $row->mode === 'connected' ? 'sharet_connected' : 'sharet_rail',
-                    'transaction_reference' => $row->sharet_id,
+                    // Sharet's own transaction ID (e.g. SHD1CCFAF6) is what staff and landlords see; the pay-link
+                    // ID stays as the external reference for matching. Older Sharet versions send no transaction_id.
+                    'transaction_reference' => $object['transaction_id'] ?? $row->sharet_id,
                     'external_reference' => $row->sharet_id,
                     'label' => 'Sharet '.($row->paid_via ?? 'payment'),
-                    'meta' => ['sharet_request' => $row->sharet_id, 'mode' => $row->mode, 'paid_via' => $row->paid_via, 'environment' => $row->environment],
+                    'meta' => ['sharet_request' => $row->sharet_id, 'sharet_transaction' => $object['transaction_id'] ?? null, 'mode' => $row->mode, 'paid_via' => $row->paid_via, 'environment' => $row->environment],
                 ]);
                 $row->settled_payment_id = $payment->id;
             } else {
