@@ -476,7 +476,7 @@ public function getCompanyExpenses($id)
     $expenses = Expense::whereHas('property', function($q) use ($company) {
         $q->where('company_id', $company->id);
     })
-    ->with(['property', 'payee', 'category'])
+    ->with(['company', 'property.company', 'payee', 'category'])
     ->orderBy('expense_date', 'desc')
     ->get()
     ->map(function($expense) {
@@ -484,6 +484,7 @@ public function getCompanyExpenses($id)
             'id' => $expense->id,
             'property_name' => $expense->property->name ?? 'N/A',
             'payee_name' => $expense->payee->name ?? 'N/A',
+            'label' => $expense->label,
             'category_name' => $expense->category->name ?? 'Uncategorized',
             'amount' => (float) $expense->amount,
             'description' => $expense->description ?? '-',

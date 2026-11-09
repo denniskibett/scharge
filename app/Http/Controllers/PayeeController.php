@@ -7,7 +7,7 @@ use App\Services\Expenses\BusinessBooks;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
-/** A business's payees (App\Services\Expenses\BusinessBooks): each company sees and manages only its own. */
+/** Payees (App\Services\Expenses\BusinessBooks): unique, shared ones for everyone plus a business's own named payees. */
 class PayeeController extends Controller
 {
     private const RULES = [
@@ -30,6 +30,14 @@ class PayeeController extends Controller
     private function fields(array $data): array
     {
         return array_filter($data, fn ($k) => Schema::hasColumn('payees', $k), ARRAY_FILTER_USE_KEY);
+    }
+
+    /** Payees are unique: no name this business can already see (shared or its own). */
+    private function unique(string $name, ?int $companyId, ?int $exceptId = null): void
+    {
+        if (BusinessBooks::payeeNameTaken($name, $companyId, $exceptId)) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['name' => "A payee called \"{$name}\" already exists. Pick it from the list instead."]);
+        }
     }
 
     private function mine(Request $request, Payee $payee): void
@@ -58,6 +66,7 @@ class PayeeController extends Controller
         try {
             $data = $this->fields($request->validate(self::RULES));
             $data['company_id'] = BusinessBooks::companyId($request->user());
+            $this->unique($data['name'], $data['company_id']);
             $payee = Payee::forceCreate($data);
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($this->wantsJson($request)) {
@@ -80,7 +89,9 @@ class PayeeController extends Controller
     {
         $this->mine($request, $payee);
         try {
-            $payee->update($this->fields($request->validate(self::RULES)));
+            $data = $this->fields($request->validate(self::RULES));
+            $this->unique($data['name'], $payee->company_id ?? BusinessBooks::companyId($request->user()), $payee->id);
+            $payee->update($data);
         } catch (\Illuminate\Validation\ValidationException $e) {
             if ($this->wantsJson($request)) {
                 return response()->json(['success' => false, 'errors' => $e->errors()], 422);

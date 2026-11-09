@@ -82,7 +82,7 @@
           <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
             <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(expense.expense_date)"></td>
             <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90" x-text="expense.property_name"></td>
-            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="expense.payee_name"></td>
+            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><div x-text="expense.payee_name"></div><div class="text-xs" x-show="expense.label" x-text="(expense.label || '').split(' · ').slice(1).join(' · ')"></div></td>
             <td class="p-4 whitespace-nowrap">
               <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" x-text="expense.category_name"></span>
             </td>

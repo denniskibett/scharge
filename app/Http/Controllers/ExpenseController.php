@@ -50,7 +50,7 @@ class ExpenseController extends Controller
     {
         $user = $request->user();
         BusinessBooks::ensureDefaults(BusinessBooks::companyId($user));
-        $expenses = BusinessBooks::scopeExpenses(Expense::query(), $user)->with(['property', 'payee', 'category'])->latest('expense_date')->get();
+        $expenses = BusinessBooks::scopeExpenses(Expense::query(), $user)->with(['company', 'property.company', 'payee', 'category'])->latest('expense_date')->get();
         $properties = BusinessBooks::scope(Property::query(), $user)->orderBy('name')->get();
         $payees = BusinessBooks::scopePayees(Payee::query(), $user)->orderBy('name')->get();
         $categories = BusinessBooks::scope(ExpenseCategory::query(), $user)->orderBy('name')->get();

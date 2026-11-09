@@ -21,6 +21,25 @@ class Expense extends Model
         'status'
     ];
 
+    /** Shown with the expense: "Cleaning company · Danaff Kenya · November 2026" (payee · client · month). */
+    protected $appends = ['label'];
+
+    public function getLabelAttribute(): string
+    {
+        $client = $this->company?->name ?? $this->property?->company?->name;
+
+        return collect([
+            $this->payee?->name,
+            $client ? \App\Services\Expenses\BusinessBooks::shortName($client) : null,
+            $this->expense_date ? \Carbon\Carbon::parse($this->expense_date)->format('F Y') : null,
+        ])->filter()->implode(' · ');
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(\App\Models\Company::class);
+    }
+
     public function property()
     {
         return $this->belongsTo(Property::class);

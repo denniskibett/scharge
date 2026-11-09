@@ -56,7 +56,10 @@
           <template x-for="expense in filteredExpenses" :key="expense.id">
             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
               <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90" x-text="expense.property?.name || 'N/A'"></td>
-              <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="expense.payee?.name || 'N/A'"></td>
+              <td class="p-4 whitespace-nowrap text-sm">
+                <div class="text-gray-800 dark:text-white/90" x-text="expense.payee?.name || 'N/A'"></div>
+                <div class="text-xs text-gray-500 dark:text-gray-400" x-text="(expense.label || '').split(' · ').slice(1).join(' · ')"></div>
+              </td>
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="expense.category?.name || 'N/A'"></td>
               <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90" x-text="formatCurrency(expense.amount)"></td>
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="formatDate(expense.expense_date)"></td>
@@ -115,6 +118,7 @@ document.addEventListener('alpine:init', () => {
       this.filteredExpenses = this.expenses.filter(expense => {
         return (expense.property?.name?.toLowerCase().includes(term) ||
                 expense.payee?.name?.toLowerCase().includes(term) ||
+                expense.label?.toLowerCase().includes(term) ||
                 expense.category?.name?.toLowerCase().includes(term) ||
                 expense.status?.toLowerCase().includes(term) ||
                 expense.amount?.toString().includes(term));

@@ -51,7 +51,8 @@
           
           <div>
             <p class="mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-400">Payee</p>
-            <p class="text-sm text-gray-800 dark:text-white/90" x-text="currentExpense?.payee_name || 'N/A'"></p>
+            <p class="text-sm text-gray-800 dark:text-white/90" x-text="currentExpense?.payee_name || currentExpense?.payee?.name || 'N/A'"></p>
+            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" x-show="currentExpense?.label" x-text="currentExpense?.label"></p>
           </div>
           
           <div>
