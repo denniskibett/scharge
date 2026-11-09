@@ -321,6 +321,10 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar');
     Route::get('/calendar/events', [App\Http\Controllers\CalendarController::class, 'events'])->name('calendar.events');
+    Route::get('/calendar/people', [App\Http\Controllers\CalendarController::class, 'people'])->name('calendar.people');
+    Route::post('/calendar/meetings', [App\Http\Controllers\CalendarController::class, 'storeMeeting'])->name('calendar.meetings.store');
+    Route::put('/calendar/meetings/{event}', [App\Http\Controllers\CalendarController::class, 'updateMeeting'])->name('calendar.meetings.update');
+    Route::delete('/calendar/meetings/{event}', [App\Http\Controllers\CalendarController::class, 'destroyMeeting'])->name('calendar.meetings.destroy');
 
     // ============================================
     // SYSTEM ROUTES

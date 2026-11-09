@@ -29,9 +29,17 @@ function initFeedCalendar(el) {
     },
     eventClassNames: ({ event }) => ["event-fc-color", `fc-bg-${levels[event.extendedProps.calendar] || "primary"}`],
     eventDidMount: ({ event, el: node }) => { node.title = event.title; },
+    // Meetings open the meeting form; other events open their page (in the background when possible).
+    eventClick: (info) => {
+      const meeting = info.event.extendedProps.meeting;
+      if (meeting) { info.jsEvent.preventDefault(); window.dispatchEvent(new CustomEvent("meeting-open", { detail: meeting })); return; }
+      if (info.event.url) { info.jsEvent.preventDefault(); window.spaVisit ? window.spaVisit(info.event.url) : (location.href = info.event.url); }
+    },
+    dateClick: (info) => window.dispatchEvent(new CustomEvent("meeting-new", { detail: { date: info.dateStr } })),
   });
   calendar.render();
   window.schargeCalendarTypes = (off) => { hidden = off; calendar.refetchEvents(); };
+  window.schargeCalendarRefresh = () => calendar.refetchEvents();
 }
 
 onPageLoad(function () {

@@ -18,10 +18,12 @@ class CalendarController extends Controller
 {
     /** key => [label, colour level used by the TailAdmin calendar styles] */
     public const TYPES = [
+        'meetings' => ['Meetings', 'Primary'],
         'rent' => ['Rent due', 'Warning'],
-        'payments' => ['Collections', 'Success'],
+        'payments' => ['Payments', 'Success'],
         'readings' => ['Meter readings', 'Primary'],
-        'repairs' => ['Repairs', 'Danger'],
+        'repairs' => ['Maintenance requests', 'Danger'],
+        'gate' => ['Gate & visitors', 'Primary'],
         'moves' => ['Move-ins & move-outs', 'Primary'],
         'payouts' => ['Payouts to landlords', 'Success'],
         'followups' => ['CRM follow-ups', 'Primary'],
@@ -30,16 +32,17 @@ class CalendarController extends Controller
 
     /** Which event types each role sees. */
     private const ROLE_TYPES = [
-        'sysadmin' => ['rent', 'payments', 'readings', 'repairs', 'moves', 'payouts', 'followups', 'renewals'],
-        'account_manager' => ['followups', 'renewals', 'payouts', 'payments'],
-        'admin' => ['rent', 'payments', 'readings', 'repairs', 'moves', 'payouts', 'renewals'],
-        'accountant' => ['rent', 'payments', 'payouts'],
-        'property_manager' => ['rent', 'payments', 'readings', 'repairs', 'moves'],
-        'meter_reader' => ['readings'],
-        'maintenance' => ['repairs'],
-        'cleaning_staff' => ['repairs', 'moves'],
-        'security' => ['moves'],
-        'tenant' => ['rent', 'payments', 'repairs', 'moves'],
+        'sysadmin' => ['meetings', 'rent', 'payments', 'readings', 'repairs', 'gate', 'moves', 'payouts', 'followups', 'renewals'],
+        'account_manager' => ['meetings', 'followups', 'renewals', 'payouts', 'payments'],
+        'admin' => ['meetings', 'rent', 'payments', 'readings', 'repairs', 'gate', 'moves', 'payouts', 'renewals'],
+        'accountant' => ['meetings', 'rent', 'payments', 'payouts'],
+        'property_manager' => ['meetings', 'rent', 'payments', 'readings', 'repairs', 'gate', 'moves'],
+        'meter_reader' => ['meetings', 'readings'],
+        'maintenance' => ['meetings', 'repairs'],
+        'cleaning_staff' => ['meetings', 'repairs', 'moves'],
+        'security' => ['meetings', 'gate', 'moves'],
+        'tenant' => ['rent', 'payments', 'repairs', 'gate', 'moves'],
+        'bnb_host' => ['meetings'],
     ];
 
     public function index(Request $request)
@@ -211,20 +214,26 @@ class CalendarController extends Controller
     /** Repairs: scheduled visits, else the day they were reported (open ones). */
     private function eventsRepairs(Carbon $start, Carbon $end, array $ctx, $user): Collection
     {
+        // Every request: reported (open), scheduled visits, and completed ones.
         $q = DB::table('maintenances as m')->leftJoin('units as u', 'u.id', '=', 'm.unit_id')
-            ->whereNotIn('m.status', ['completed', 'closed', 'cancelled'])
             ->where(fn ($w) => $w->whereBetween('m.scheduled_date', [$start, $end])
+                ->orWhereBetween('m.completed_date', [$start, $end])
                 ->orWhere(fn ($x) => $x->whereNull('m.scheduled_date')->whereBetween('m.created_at', [$start, $end])));
         $this->scope($q, $ctx, 'm.company_id', 'm.tenant_id');
         if ($user->hasAnyRole(['maintenance', 'cleaning_staff']) && ! $user->hasAnyRole(['sysadmin', 'admin', 'property_manager'])) {
             $q->where('m.assigned_to', $user->id);
         }
 
-        return $q->get(['m.id', 'm.name', 'm.priority', 'm.status', 'm.scheduled_date', 'm.created_at', 'u.unit_number'])
-            ->map(fn ($r) => $this->event('repairs', (string) $r->id,
-                ($r->scheduled_date ? 'Visit: ' : 'Reported: ').($r->name ?: 'Repair').($r->unit_number ? ' · '.$r->unit_number : ''),
-                $r->scheduled_date ?? $r->created_at,
-                ['url' => url('/maintenance'), 'extendedProps' => ['calendar' => in_array($r->priority, ['high', 'urgent']) ? 'Danger' : 'Warning', 'type' => 'repairs']]));
+        return $q->get(['m.id', 'm.name', 'm.priority', 'm.status', 'm.scheduled_date', 'm.completed_date', 'm.created_at', 'u.unit_number'])
+            ->map(function ($r) {
+                $done = in_array($r->status, ['completed', 'closed'], true) && $r->completed_date;
+                $what = ($r->name ?: 'Repair').($r->unit_number ? ' · '.$r->unit_number : '');
+
+                return $this->event('repairs', (string) $r->id,
+                    ($done ? 'Fixed: ' : ($r->scheduled_date ? 'Visit: ' : 'Requested: ')).$what,
+                    $done ? $r->completed_date : ($r->scheduled_date ?? $r->created_at),
+                    ['url' => url('/maintenance'), 'extendedProps' => ['calendar' => $done ? 'Success' : (in_array($r->priority, ['high', 'urgent']) ? 'Danger' : 'Warning'), 'type' => 'repairs']]);
+            });
     }
 
     /** Move-ins and move-outs. */
@@ -289,5 +298,115 @@ class CalendarController extends Controller
             return $this->event('renewals', (string) $r->id, ($trial ? 'Trial ends' : 'Renews').($ctx['company'] ? '' : ': '.$r->name),
                 $trial ? $r->trial_ends_at : $r->ends_at, ['url' => $ctx['company'] ? null : url('/admin/subscriptions/plans')]);
         });
+    }
+
+    /** Gate log: visitors per property per day (tenants: their own visitors). */
+    private function eventsGate(Carbon $start, Carbon $end, array $ctx): Collection
+    {
+        $q = DB::table('security as g')->leftJoin('properties as p', 'p.id', '=', 'g.property_id')->whereBetween('g.access_time', [$start, $end]);
+        $this->scope($q, $ctx, 'g.company_id', 'g.tenant_id');
+
+        if ($ctx['tenant'] !== null) {
+            return $q->get(['g.id', 'g.visitor_name_snapshot', 'g.access_time', 'g.purpose'])
+                ->map(fn ($r) => $this->event('gate', (string) $r->id, 'Visitor: '.($r->visitor_name_snapshot ?: 'guest').($r->purpose ? ' · '.$r->purpose : ''), $r->access_time, ['allDay' => false]));
+        }
+
+        return $q->selectRaw('p.id as pid, p.name as pname, DATE(g.access_time) as d, COUNT(*) as n')->groupBy('p.id', 'p.name', DB::raw('DATE(g.access_time)'))->get()
+            ->map(fn ($r) => $this->event('gate', ($r->pid ?? 0).'-'.$r->d, 'Gate: '.$r->n.' visitor'.($r->n > 1 ? 's' : '').' · '.($r->pname ?? 'property'), $r->d, ['url' => url('/security/logs')]));
+    }
+
+    /** Internal meetings and reminders (calendar_events). */
+    private function eventsMeetings(Carbon $start, Carbon $end, array $ctx, $user): Collection
+    {
+        if (! Schema::hasTable('calendar_events')) {
+            return collect();
+        }
+
+        return \App\Models\CalendarEvent::visibleTo($user)->with('attendees:id,name')
+            ->where('starts_at', '<=', $end)->where(fn ($q) => $q->where('starts_at', '>=', $start)->orWhere('ends_at', '>=', $start))
+            ->get()->map(fn ($e) => [
+                'id' => 'meetings-'.$e->id,
+                'title' => ($e->kind === 'reminder' ? '⏰ ' : '').$e->title,
+                'start' => $e->starts_at->toIso8601String(),
+                'end' => $e->ends_at?->toIso8601String(),
+                'allDay' => $e->all_day,
+                'extendedProps' => ['calendar' => 'Primary', 'type' => 'meetings', 'meeting' => [
+                    'id' => $e->id, 'title' => $e->title, 'description' => $e->description, 'location' => $e->location, 'kind' => $e->kind,
+                    'visibility' => $e->visibility, 'starts_at' => $e->starts_at->format('Y-m-d\TH:i'), 'ends_at' => $e->ends_at?->format('Y-m-d\TH:i'),
+                    'all_day' => $e->all_day, 'attendees' => $e->attendees->pluck('id'), 'attendee_names' => $e->attendees->pluck('name'),
+                    'mine' => (int) $e->created_by === (int) $user->id,
+                ]],
+            ]);
+    }
+
+    // ---- meetings: create / update / delete ----------------------------------------------------
+
+    public function storeMeeting(Request $request)
+    {
+        abort_unless(Schema::hasTable('calendar_events'), 503, 'Apply database/schema/2026_11_09_calendar_events.sql first.');
+        abort_if($request->user()->hasRole('tenant') && ! $request->user()->hasAnyRole(['admin', 'property_manager', 'sysadmin']), 403);
+        $data = $this->validateMeeting($request);
+        $event = \App\Models\CalendarEvent::create($data + ['company_id' => $request->user()->hasAnyRole(['sysadmin', 'account_manager']) && ! $request->user()->company_id ? null : $request->user()->company_id, 'created_by' => $request->user()->id]);
+        $event->attendees()->sync($this->allowedAttendees($request, $data['attendees'] ?? []));
+
+        return response()->json(['message' => 'Meeting saved.', 'id' => $event->id], 201);
+    }
+
+    public function updateMeeting(Request $request, \App\Models\CalendarEvent $event)
+    {
+        abort_unless((int) $event->created_by === (int) $request->user()->id || $request->user()->hasRole('sysadmin'), 403, 'Only the organiser can change this meeting.');
+        $data = $this->validateMeeting($request);
+        $event->update($data);
+        $event->attendees()->sync($this->allowedAttendees($request, $data['attendees'] ?? []));
+
+        return response()->json(['message' => 'Meeting updated.']);
+    }
+
+    public function destroyMeeting(Request $request, \App\Models\CalendarEvent $event)
+    {
+        abort_unless((int) $event->created_by === (int) $request->user()->id || $request->user()->hasRole('sysadmin'), 403, 'Only the organiser can cancel this meeting.');
+        $event->delete();
+
+        return response()->json(['message' => 'Meeting cancelled.']);
+    }
+
+    /** People this user can invite: their own company's team (staff: the scharge team). */
+    public function people(Request $request)
+    {
+        $u = $request->user();
+        $people = \App\Models\User::query()->where(fn ($q) => $q->whereNull('status')->orWhere('status', '!=', 1))
+            ->when($u->company_id, fn ($q) => $q->where('company_id', $u->company_id)->whereDoesntHave('roles', fn ($r) => $r->where('name', 'tenant')),
+                fn ($q) => $q->whereHas('roles', fn ($r) => $r->whereIn('name', ['sysadmin', 'account_manager'])))
+            ->orderBy('name')->limit(300)->get(['id', 'name']);
+
+        return response()->json(['people' => $people]);
+    }
+
+    private function validateMeeting(Request $request): array
+    {
+        $data = $request->validate([
+            'title' => 'required|string|max:160',
+            'description' => 'nullable|string|max:5000',
+            'location' => 'nullable|string|max:255',
+            'kind' => 'nullable|in:meeting,reminder',
+            'visibility' => 'nullable|in:attendees,company,staff',
+            'starts_at' => 'required|date',
+            'ends_at' => 'nullable|date|after_or_equal:starts_at',
+            'all_day' => 'nullable|boolean',
+            'attendees' => 'nullable|array|max:100',
+            'attendees.*' => 'integer',
+        ]);
+        $data['kind'] ??= 'meeting';
+        $data['visibility'] ??= 'attendees';
+        $data['all_day'] = (bool) ($data['all_day'] ?? false);
+
+        return $data;
+    }
+
+    private function allowedAttendees(Request $request, array $ids): array
+    {
+        $allowed = collect($this->people($request)->getData(true)['people'])->pluck('id')->all();
+
+        return array_values(array_intersect(array_map('intval', $ids), $allowed));
     }
 }
