@@ -72,7 +72,7 @@ class StaffController extends Controller
 
     public function payments(Request $request)
     {
-        $q = Payment::with('tenant.user', 'user')->where('status', 'completed')->latest('id');
+        $q = Payment::with('tenant.user', 'user', 'invoice.tenancy.unit.property')->where('status', 'completed')->latest('id');
 
         return response()->json($this->page($q, fn ($p) => $this->payment($p), $request));
     }
@@ -148,6 +148,18 @@ class StaffController extends Controller
         $paybill->assign($row, $tenancy, $request->user()->id);
 
         return response()->json(['assigned' => true, 'status' => $row->fresh()->status]);
+    }
+
+    /** The suggestion box for this company's admins. Opening the list marks them read. */
+    public function suggestions(Request $request)
+    {
+        $ids = CompanyAccess::ids();
+        $q = \App\Models\TenantSuggestion::query()->when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))->latest('id');
+        $out = $this->page($q, fn ($s) => ['id' => $s->id, 'topic' => \App\Models\TenantSuggestion::TOPICS[$s->topic] ?? $s->topic,
+            'body' => $s->body, 'new' => $s->read_at === null, 'sent_at' => $s->created_at?->toIso8601String()], $request);
+        (clone $q)->whereNull('read_at')->update(['read_at' => now(), 'read_by' => $request->user()->id]);
+
+        return response()->json($out);
     }
 
     private function page($query, callable $map, Request $request): array

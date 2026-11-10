@@ -67,6 +67,27 @@ class MobileAccess
             ->map(fn ($id) => (int) $id)->all());
     }
 
+    /**
+     * The flat a tenant lives in: their active tenancy with the latest move-in. Gate passes they send straight to a
+     * guest are for this unit only; for any other unit they hold they can only suggest a pass, and whoever lives
+     * there approves it (FieldController::issue / act).
+     */
+    public static function homeUnitId(User $user): ?int
+    {
+        return CompanyAccess::bypass(function () use ($user) {
+            $id = Tenancy::withoutGlobalScope('company')->whereIn('tenant_id', self::tenantIds($user) ?: [0])->where('status', 'active')
+                ->orderByDesc('move_in_date')->orderByDesc('id')->value('unit_id');
+
+            return $id ? (int) $id : null;
+        });
+    }
+
+    /** A tenant acting as a tenant at the gate (not also a guard, manager, host or sysadmin). */
+    public static function gateAsTenant(User $user): bool
+    {
+        return $user->hasRole('tenant') && ! $user->hasAnyRole(['sysadmin', 'bnb_host']) && ! Gate::staff($user, 'manage');
+    }
+
     /** The landlord company whose label the person sees: their own company, or a tenant's landlord. */
     public static function companyFor(User $user): ?int
     {
@@ -90,7 +111,7 @@ class MobileAccess
     {
         $companyId = self::companyFor($user);
         $brand = $companyId && class_exists(\App\Support\Brand::class) ? \App\Support\Brand::forCompany($companyId) : null;
-        $color = $brand && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $brand->primary_color) ? strtoupper($brand->primary_color) : '#465FFF';
+        $color = $brand && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $brand->primary_color) ? strtoupper($brand->primary_color) : '#DC2626'; // scharge red
 
         return [
             'white_label' => (bool) $brand,
@@ -126,7 +147,8 @@ class MobileAccess
             $can('invoices.view') && $add('tenant_bills', 'My bills', ['pay' => true]);
             $can('payments.view') && $add('tenant_payments', 'Receipts');
             $can('maintenance.view') && $add('tenant_repairs', 'Repairs', ['create' => $can('maintenance.manage')]);
-            $gate && $add('gate', 'Visitors', ['issue' => $gateManage, 'cancel' => $gateManage]);
+            $gate && $add('gate', 'Visitors', ['issue' => $gateManage, 'cancel' => $gateManage, 'approve' => $gateManage]);
+            $can('tenants.view') && $add('tenant_suggest', 'Suggestion box');
 
             return $out;
         }
@@ -139,11 +161,12 @@ class MobileAccess
         $can('payments.view') && $add('payments', 'Payments');
         $can('water.view') && $add('readings', 'Readings', ['record' => $can('water.manage')]);
         $can('maintenance.view') && $add('repairs', 'Repairs', ['update' => $can('maintenance.manage')]);
-        $gate && $add('gate', $user->hasRole('security') ? 'Gate' : 'Visitors', ['verify' => $gate, 'issue' => $gateManage, 'check_in' => $gateManage]);
+        $gate && $add('gate', $user->hasRole('security') ? 'Gate' : 'Visitors', ['verify' => $gate, 'issue' => $gateManage, 'check_in' => $gateManage, 'approve' => $gateManage]);
         if ($can('properties.view') && ($user->hasRole('bnb_host') || Unit::whereIn('stay_type', self::SHORT_STAY)->exists())) {
             $add('bookings', 'Bookings');
         }
         $can('tenants.view') && $add('tenants', 'Tenants');
+        $can('tenants.manage') && $user->company_id && $add('suggestions', 'Suggestions');
         $can('properties.view') && $add('units', 'Units');
         $can('companies.view') && $add('companies', 'Companies');
 
