@@ -48,3 +48,16 @@ Schedule::command('meters:post-water')
 // SubscriptionService::processMonthlyBilling() charges through a stub gateway
 // that always reports success, so running it would extend subscriptions for
 // free. Re-enable once subscription invoices are paid via M-Pesa (P1).
+
+// Rent automation (Integrations › Rent automation, docs/RENT_AUTOMATION.md). Only companies that switched it on.
+// Monthly invoices: daily, so a company is billed on its invoice day (or the first run after it), never twice.
+Schedule::command('rent:invoice')
+    ->dailyAt('07:00')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Arrears reminders at the company's reminder days; 10:00 is outside SMS quiet hours.
+Schedule::command('rent:remind')
+    ->dailyAt('10:00')
+    ->withoutOverlapping()
+    ->onOneServer();

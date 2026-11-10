@@ -1060,53 +1060,26 @@ class InvoiceController extends Controller
         }
     }
 
-    public function generateAllInvoices(Request $request)
+    /**
+     * Invoices › Generate all: this month's invoices for the signed-in user's company only, through the same rent run
+     * as the scheduler (all charges, metered water, never twice for a month). It used to bill every company's tenants.
+     */
+    public function generateAllInvoices(Request $request, \App\Services\Rent\RentRun $run)
     {
-        $activeTenancies = Tenancy::where('status', 'active')->get();
-        $generatedCount = 0;
-        $alreadyGenerated = 0;
-        $generatedInvoices = [];
-        $currentMonth = Carbon::now()->format('Y-m');
-        
-        foreach ($activeTenancies as $tenancy) {
-            if (empty($tenancy->unit->rent_amount) || $tenancy->unit->rent_amount <= 0) {
-                continue;
-            }
-            
-            $existingInvoice = Invoice::where('tenancy_id', $tenancy->id)
-                ->where('invoice_type', 'monthly')
-                ->where('billing_month', $currentMonth . '-01')
-                ->first();
-                
-            if ($existingInvoice) {
-                $alreadyGenerated++;
-                continue;
-            }
-            
-            $invoice = Invoice::create([
-                'tenancy_id' => $tenancy->id,
-                'invoice_type' => 'monthly',
-                'billing_month' => $currentMonth . '-01',
-                'total_amount' => $tenancy->unit->rent_amount,
-                'status' => 'unpaid',
-            ]);
-            
-            $invoice->items()->create([
-                'item_type' => 'rent',
-                'description' => 'Monthly Rent',
-                'amount' => $tenancy->unit->rent_amount,
-            ]);
-            
-            $generatedCount++;
-            $generatedInvoices[] = $invoice->load('tenancy.tenant', 'tenancy.unit');
+        $companyId = (int) $request->user()?->company_id;
+        if (! $companyId) {
+            return response()->json(['success' => false, 'message' => 'Sign in as a company user to generate its invoices.'], 422);
         }
-        
+
+        $result = $run->run($companyId, \Carbon\CarbonImmutable::now(\App\Services\Rent\RentSettings::TZ)->startOfMonth(),
+            notify: (bool) \App\Services\Rent\RentSettings::for($companyId));
+
         return response()->json([
             'success' => true,
-            'generated_count' => $generatedCount,
-            'already_generated' => $alreadyGenerated,
-            'invoices' => $generatedInvoices,
-            'message' => "Generated $generatedCount invoices. $alreadyGenerated already existed."
+            'generated_count' => $result['created'],
+            'already_generated' => $result['skipped'],
+            'invoices' => collect($result['invoices'])->map->load('tenancy.tenant', 'tenancy.unit'),
+            'message' => "Generated {$result['created']} invoices. {$result['skipped']} already existed or had nothing to bill.",
         ]);
     }
 

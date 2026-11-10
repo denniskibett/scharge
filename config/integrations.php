@@ -115,6 +115,21 @@ return [
         ],
     ],
 
+    'rent_automation' => [
+        'name' => 'Rent automation',
+        'scope' => 'company',
+        'category' => 'Automation',
+        'description' => 'Bill every active tenancy each month (rent, service charge, garbage, security and water) and remind tenants who are late. Switch it on to start; "Test" shows what the next run would bill without sending anything.',
+        'color' => '#0F766E',
+        'fields' => [
+            'invoice_day' => ['label' => 'Bill on day of the month', 'type' => 'select', 'required' => true, 'options' => array_combine(array_map('strval', range(1, 28)), array_map('strval', range(1, 28))), 'help' => 'Invoices are created on this day (or the first run after it). A month is never billed twice.'],
+            'due_day' => ['label' => 'Rent due on day', 'type' => 'select', 'required' => true, 'options' => array_combine(array_map('strval', range(1, 28)), array_map('strval', range(1, 28))), 'help' => 'Most landlords use the 5th. Reminders count the days late from this day.'],
+            'send_bill' => ['label' => 'Send the bill to tenants', 'type' => 'select', 'required' => true, 'options' => ['yes' => 'Yes, by SMS with a pay link', 'no' => 'No, only create the invoices']],
+            'reminder_days' => ['label' => 'Remind when this many days late', 'placeholder' => '1, 7, 14', 'help' => 'Comma-separated, up to 6. Leave blank for 1, 7, 14. Write 0 to remind on the due day. One message per tenant per stage, with the total owed.'],
+            'channel' => ['label' => 'Send reminders by', 'type' => 'select', 'required' => true, 'options' => ['sms' => 'SMS', 'whatsapp' => 'WhatsApp (your number, else SMS)']],
+        ],
+    ],
+
     'africastalking' => [
         'name' => "Africa's Talking",
         'scope' => 'platform',

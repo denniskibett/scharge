@@ -140,6 +140,7 @@ class Integrations
             'africastalking' => self::testAfricasTalking($row),
             'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),
+            'rent_automation' => \App\Services\Rent\RentPreview::test($row),
             default => [false, 'No test available for this provider.'],
         };
 
