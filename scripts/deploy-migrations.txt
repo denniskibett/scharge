@@ -6,3 +6,4 @@
 2026_11_11_000300_create_company_brands.php
 2026_11_11_000400_create_kyc_tables.php
 2026_11_11_000500_create_company_pages_and_agreements.php
+2026_11_11_000600_create_mobile_sessions.php

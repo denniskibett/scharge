@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Models\MobileSession;
+use App\Support\CompanyAccess;
+use Closure;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
+/**
+ * scharge app: "Authorization: Bearer mob_…" (one per phone, App\Models\MobileSession). Signs the person in for this
+ * request only, so the same rules as the dashboard apply: the company scopes (CompanyAccess) and Spatie permissions.
+ */
+class AuthenticateMobile
+{
+    public function handle(Request $request, Closure $next)
+    {
+        $session = MobileSession::findByPlain($request->bearerToken());
+        $user = $session?->user;
+
+        if (! $session || ! $user) {
+            return response()->json(['error' => 'signed_out', 'message' => 'Please sign in again.'], 401);
+        }
+        if ((int) $user->status === 1) { // 1 = inactive
+            $session->delete();
+
+            return response()->json(['error' => 'account_inactive', 'message' => 'This account is switched off. Contact your admin.'], 401);
+        }
+
+        Auth::setUser($user);
+        CompanyAccess::flush();
+        $request->setUserResolver(fn () => $user);
+        $request->attributes->set('mobile_session', $session);
+
+        if (! $session->last_used_at || $session->last_used_at->lt(now()->subMinute())) {
+            $session->forceFill(['last_used_at' => now(), 'last_ip' => $request->ip()])->saveQuietly();
+        }
+
+        return $next($request);
+    }
+}

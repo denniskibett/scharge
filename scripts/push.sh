@@ -16,7 +16,7 @@ APP_PATH="${APP_PATH:-/home/${DEPLOY_SITE}/laravel}"
 WEB_PATH="${WEB_PATH:-/home/${DEPLOY_SITE}/public_html}"
 DEPLOY_PORT="${DEPLOY_PORT:-22}"
 # Test suites that pass today (the rest fail until the migrations are rebuilt: SYSTEM_AUDIT.md §2).
-TESTS="${TESTS:-RentAutomationTest|CompanyIsolationTest|RentCollectionTest|BookingsTest|WhiteLabelTest|OnboardingTest|CompanyWebsiteTest|KycLogTest}"
+TESTS="${TESTS:-RentAutomationTest|CompanyIsolationTest|RentCollectionTest|BookingsTest|WhiteLabelTest|OnboardingTest|CompanyWebsiteTest|MobileAppTest|KycLogTest}"
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -40,7 +40,7 @@ npm run build
 
 if [ "$skip_tests" -eq 0 ]; then
   echo "==> Tests (${TESTS})"
-  php artisan test --filter="${TESTS}"
+  php -d memory_limit=1G vendor/bin/phpunit --no-progress --filter="${TESTS}"
 fi
 
 echo "==> Checking the server"

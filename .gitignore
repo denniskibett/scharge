@@ -29,3 +29,6 @@ Thumbs.db
 # Editor swap files
 *.swp
 !database/schema/*.sql
+
+# The Android app build (scharge-app repo, docs/MOBILE_APP.md): copied here to deploy, not kept in git
+/public/downloads/*.apk
