@@ -41,6 +41,11 @@
 {!! \App\Support\Seo::script(\App\Support\Seo::siteGraph()) !!}
 @stack('jsonld')
 @include('home.partials.analytics')
+@if (app()->environment('production') && config('services.sharet_analytics.url'))
+{{-- Sharet growth hub tracker (cross-site; no cookies, honours DNT/GPC). Website forms report conversions via the sc:conversion event (public/assets/js/site-forms.js). --}}
+<script defer src="{{ rtrim(config('services.sharet_analytics.url'), '/') }}/js/sharet-analytics.js" data-site="scharge"></script>
+<script>(function(){var M={'/book-a-demo':'lead','/waitlist':'lead','/listings/alert':'lead','/listings/request':'booking','/sandbox-keys':'api_keys'};document.addEventListener('sc:conversion',function(e){var n=M[(e.detail||{}).form];if(n)(window.sa=window.sa||[]).push(['conversion',n]);});})();</script>
+@endif
 <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
 <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
@@ -52,6 +57,7 @@
 {{-- Log in / Register are real links here (not the demo modal buttons), so centre them like the buttons they replace. --}}
 <style>.nav-auth a.nav-login,.nav-auth form{display:inline-flex;align-items:center;justify-content:center;margin:0}
 .footer-brand{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:22rem}.footer-brand p{margin:0;color:var(--on-dark);font-size:.95rem;line-height:1.5}.site-footer .footer-brand .btn{color:var(--white);min-height:44px}
+.footer-links{display:flex;flex-direction:column;gap:6px}.footer-links b{color:var(--white)}
 .hp{position:absolute!important;left:-10000px;width:1px;height:1px;overflow:hidden}
 /* Long option text (e.g. full country names) must not widen the page on phones */
 .waitlist select,.waitlist input,.form select,.form input,.form textarea{min-width:0;max-width:100%}

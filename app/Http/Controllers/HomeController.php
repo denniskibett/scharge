@@ -51,6 +51,24 @@ class HomeController extends Controller
         return view('home.listing', ['item' => $item]);
     }
 
+    /** Landing pages for Kenyan search intent (App\Support\SeoLandings). */
+    public function landing(string $page): View
+    {
+        $landing = \App\Support\SeoLandings::get($page);
+        abort_if(! $landing, 404);
+
+        $listingItems = [];
+        if (! empty($landing['listings'])) {
+            try {
+                $listingItems = app(\App\Services\ListingCatalog::class)->items();
+            } catch (\Throwable) {
+                $listingItems = []; // the page still explains how to rent and links to the full listings
+            }
+        }
+
+        return view('home.landing', ['slug' => $page, 'landing' => $landing, 'listingItems' => $listingItems]);
+    }
+
     public function api(): View
     {
         return view('home.api');

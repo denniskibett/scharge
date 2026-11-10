@@ -190,6 +190,11 @@ Route::controller(App\Http\Controllers\HomeController::class)->group(function ()
     Route::get('/credits', 'credits')->name('home.credits');
 });
 
+// Landing pages for Kenyan search intent (content in App\Support\SeoLandings; routes "landing.<slug>")
+foreach (array_keys(App\Support\SeoLandings::PAGES) as $landing) {
+    Route::get('/'.$landing, [App\Http\Controllers\HomeController::class, 'landing'])->defaults('page', $landing)->name('landing.'.$landing);
+}
+
 // One public listing's own page (shareable, indexed; built from ListingCatalog)
 Route::get('/listings/{slug}', [App\Http\Controllers\HomeController::class, 'listing'])->where('slug', '[a-z0-9-]+')->name('home.listing');
 

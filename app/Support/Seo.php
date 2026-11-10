@@ -17,6 +17,19 @@ class Seo
 
     public const EMAIL = 'hello@scharge.com';
 
+    /** scharge is a Sharet Africa Ltd product (Organization.parentOrganization). */
+    public const PARENT = ['@type' => 'Organization', 'name' => 'Sharet Africa Ltd', 'url' => 'https://sharet.africa'];
+
+    /** Sister products, linked from the footer ("More from Sharet"). [name, what it is, url] */
+    public const SISTER_SITES = [
+        ['Sharet', 'payments API for Kenya', 'https://sharet.africa'],
+        ['Breve', 'invoicing and M-Pesa payments for SMEs', 'https://breve.sharet.africa'],
+        ['Aiyotickets', 'events and tickets in Nairobi', 'https://aiyotickets.com'],
+        ['eServiz', 'home services in Nairobi', 'https://eserviz.aiyotickets.com'],
+        ['Sharet Loans', 'boda boda and e-bike loans', 'https://loans.sharet.africa'],
+        ['Shoope', 'safe payments for online shops', 'https://shoope.africa'],
+    ];
+
     /** Indexed pages: route => [summary for llms.txt, sitemap priority, change frequency] */
     public const PAGES = [
         'home' => ['Property management software for Kenya: rent, service charge and water billing collected on M-Pesa, with repairs, payouts and reports. Priced per unit, from KES 40 a month.', '1.0', 'weekly'],
@@ -25,6 +38,11 @@ class Seo
         'home.developers' => ['For developers and landowners: buyer instalments, snag lists, service charge and handover set up before buyers move in.', '0.8', 'monthly'],
         'home.api' => ['scharge API and white label: vacancies and booking calendars on your own website, or a tenant/buyer app in your brand.', '0.6', 'monthly'],
         'host.register' => ['Register a short-stay (BnB) unit on scharge in a few minutes.', '0.6', 'monthly'],
+        'landing.property-management-software-kenya' => ['What property management software does for a Kenyan landlord or agent, what it costs per unit, and how scharge sets you up.', '0.9', 'monthly'],
+        'landing.rent-collection-mpesa' => ['Collecting rent on M-Pesa Paybill, Till or STK push straight into your own account, matched to the right unit with receipts.', '0.9', 'monthly'],
+        'landing.landlord-app-kenya' => ['A landlord app for Kenya: who has paid, arrears, water bills, repairs and payouts on your phone.', '0.8', 'monthly'],
+        'landing.tenant-management-software' => ['Tenant management and rent reminders: tenant records, invoices by SMS, reminders, receipts, deposits and move-outs.', '0.8', 'monthly'],
+        'landing.houses-to-let-nairobi' => ['Houses and apartments to let in Nairobi and nearby towns, from owners on scharge, with every cost shown up front.', '0.8', 'daily'],
         'home.credits' => ['Photo credits for the scharge website.', '0.2', 'yearly'],
     ];
 
@@ -49,6 +67,7 @@ class Seo
                     'areaServed' => ['@type' => 'Country', 'name' => 'Kenya'],
                     'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Nairobi', 'addressCountry' => 'KE'],
                     'contactPoint' => [['@type' => 'ContactPoint', 'contactType' => 'sales', 'email' => self::EMAIL, 'areaServed' => 'KE', 'availableLanguage' => ['en', 'sw']]],
+                    'parentOrganization' => self::PARENT,
                 ],
                 [
                     '@type' => 'WebSite',
@@ -80,6 +99,23 @@ class Seo
             'offers' => ['@type' => 'AggregateOffer', 'priceCurrency' => 'KES', 'lowPrice' => '40', 'offerCount' => '3',
                 'description' => 'Priced per unit per month by property type and area. Vacant units billed at half price.'],
             'publisher' => ['@id' => url('/').'#organization'],
+        ];
+    }
+
+    /** A landing page's own WebPage node, tied to the site graph (about the product, in Kenya). */
+    public static function webPage(string $url, string $name, string $description): array
+    {
+        return [
+            '@context' => 'https://schema.org',
+            '@type' => 'WebPage',
+            '@id' => $url.'#webpage',
+            'url' => $url,
+            'name' => $name,
+            'description' => $description,
+            'inLanguage' => 'en-KE',
+            'isPartOf' => ['@id' => url('/').'#website'],
+            'about' => ['@type' => 'SoftwareApplication', 'name' => 'scharge', 'applicationCategory' => 'BusinessApplication', 'url' => url('/')],
+            'spatialCoverage' => ['@type' => 'Country', 'name' => 'Kenya'],
         ];
     }
 

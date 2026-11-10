@@ -16,7 +16,7 @@ class SeoController extends Controller
 
         $urls = collect(Seo::PAGES)->map(function ($page, $route) use ($views) {
             [, $priority, $freq] = $page;
-            $file = resource_path('views/'.($views[$route] ?? 'welcome').'.blade.php');
+            $file = str_starts_with($route, 'landing.') ? app_path('Support/SeoLandings.php') : resource_path('views/'.($views[$route] ?? 'welcome').'.blade.php');
 
             return ['loc' => route($route), 'lastmod' => Carbon::createFromTimestamp(is_file($file) ? filemtime($file) : time())->toDateString(), 'priority' => $priority, 'freq' => $freq];
         })->values();
@@ -27,7 +27,7 @@ class SeoController extends Controller
             $listings = []; // never let a database hiccup break the sitemap
         }
         foreach ($listings as $item) {
-            $urls->push(['loc' => $item['url'], 'lastmod' => now()->toDateString(), 'priority' => '0.7', 'freq' => 'daily', 'image' => $item['photos'][0] ?? null]);
+            $urls->push(['loc' => $item['url'], 'lastmod' => $item['updated'] ?? now()->toDateString(), 'priority' => '0.7', 'freq' => 'daily', 'image' => $item['photos'][0] ?? null]);
         }
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>'."\n"
@@ -63,11 +63,12 @@ class SeoController extends Controller
     /** https://llmstxt.org: a plain summary AI assistants can read to describe scharge correctly. */
     public function llms()
     {
-        $lines = ['# scharge', '', '> '.Seo::DESCRIPTION.' Based in Nairobi, Kenya; live in Kenya, with Uganda, Tanzania and Rwanda next.', '', '## Pages', ''];
+        $lines = ['# scharge', '', '> '.Seo::DESCRIPTION.' A Sharet Africa Ltd product, based in Nairobi, Kenya; live in Kenya, with Uganda, Tanzania and Rwanda next.', '', '## Pages', ''];
         foreach (Seo::PAGES as $route => [$summary]) {
             $lines[] = '- ['.match ($route) {
                 'home' => 'Overview and pricing', 'home.listings' => 'Open listings', 'home.airbnb' => 'Airbnb and short-stay hosts',
-                'home.developers' => 'Developers and landowners', 'home.api' => 'API and white label', 'host.register' => 'List a BnB', default => 'Photo credits',
+                'home.developers' => 'Developers and landowners', 'home.api' => 'API and white label', 'host.register' => 'List a BnB', 'home.credits' => 'Photo credits',
+                default => \App\Support\SeoLandings::LINK_TEXT[substr($route, 8)] ?? $route,
             }.']('.route($route).'): '.$summary;
         }
         array_push($lines, '', '## Contact', '', '- Sales and support: '.Seo::EMAIL, '', '## Optional', '', '- [Sitemap]('.route('sitemap').')', '');

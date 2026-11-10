@@ -2,8 +2,6 @@
 
 @section('title', 'Photo credits | scharge')
 @section('description', 'Credits and licences for the photographs used on the scharge website.')
-@section('og_title', 'scharge | Property management priced by location')
-@section('og_description', 'Collect rent, service charge and water on M-Pesa. Repairs, payouts and reports in one app. From KES 40 per unit a month.')
 
 @push('styles')
 <style>.credits{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr))}.credit{flex-direction:row;align-items:center;gap:14px}.credit-photo{flex:0 0 96px;height:72px;border-radius:12px;background-size:cover;background-position:center}</style>

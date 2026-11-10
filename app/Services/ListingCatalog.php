@@ -21,7 +21,7 @@ class ListingCatalog
 
     public function items(): array
     {
-        return Cache::remember('public-listings-v2', now()->addMinutes(5), fn () => $this->build());
+        return Cache::remember('public-listings-v3', now()->addMinutes(5), fn () => $this->build());
     }
 
     /** One listing by its page address (home.listing), or null when it is let / no longer advertised. */
@@ -32,7 +32,7 @@ class ListingCatalog
 
     public static function forget(): void
     {
-        Cache::forget('public-listings-v2');
+        Cache::forget('public-listings-v3');
     }
 
     private function build(): array
@@ -44,7 +44,7 @@ class ListingCatalog
             ->selectRaw("p.id as pid, p.name as pname, p.location, p.water_rate, u.unit_type, u.stay_type,
                 COALESCE(NULLIF(u.rent_amount, 0), 0) as rent, u.bnb_nightly_rate, MAX(u.service_charge) as service,
                 MAX(u.security_deposit_amount) as deposit, MAX(u.furnishing_status) as furnishing, MAX(u.custom_water_rate) as custom_rate,
-                COUNT(*) as n, MIN(u.id) as first_unit")
+                COUNT(*) as n, MIN(u.id) as first_unit, MAX(u.updated_at) as updated")
             ->groupBy('p.id', 'p.name', 'p.location', 'p.water_rate', 'u.unit_type', 'u.stay_type', 'rent', 'u.bnb_nightly_rate')
             ->orderBy('p.name')->get();
 
@@ -66,7 +66,7 @@ class ListingCatalog
 
             $water = $r->custom_rate ?? $r->water_rate;
             $costs = collect([
-                $water ? 'Water KES '.number_format((float) $water).'/m³' : null,
+                (float) $water > 0 ? 'Water KES '.number_format((float) $water).'/m³' : null,
                 (float) $r->service > 0 ? 'service KES '.number_format((float) $r->service) : null,
                 (float) $r->deposit > 0 ? 'deposit KES '.number_format((float) $r->deposit) : null,
             ])->filter()->join(' · ') ?: 'Ask the caretaker for other costs';
@@ -90,6 +90,7 @@ class ListingCatalog
                 'tags' => array_values(array_filter([$r->furnishing ? ucfirst((string) $r->furnishing) : null, $r->n > 1 ? $r->n.' identical units' : null])),
                 'photo' => $urls[0] ?? $this->placeholder($r->unit_type, $r->pname),
                 'photos' => $urls,
+                'updated' => $r->updated ? substr((string) $r->updated, 0, 10) : null, // sitemap lastmod
             ];
         })->filter()->values()->all();
     }

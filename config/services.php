@@ -39,6 +39,11 @@ return [
         'analytics_id' => env('GOOGLE_ANALYTICS_ID'),
     ],
 
+    // Cross-site growth tracker hosted by Sharet Africa (public pages only, production only).
+    'sharet_analytics' => [
+        'url' => env('SHARET_ANALYTICS_URL', 'https://sharet.africa'),
+    ],
+
     'kenyasms' => [
         'key' => env('KENYASMS_KEY'),
         'url' => env('KENYASMS_URL', 'https://kenyasms.com/api/v1'),
