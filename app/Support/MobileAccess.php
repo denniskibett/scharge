@@ -146,6 +146,7 @@ class MobileAccess
         if (self::isTenant($user) && ! self::isStaff($user)) {
             $can('invoices.view') && $add('tenant_bills', 'My bills', ['pay' => true]);
             $can('payments.view') && $add('tenant_payments', 'Receipts');
+            $can('tenants.view') && $add('tenant_water', 'Water', ['query' => $can('maintenance.manage')]);
             $can('maintenance.view') && $add('tenant_repairs', 'Repairs', ['create' => $can('maintenance.manage')]);
             $gate && $add('gate', 'Visitors', ['issue' => $gateManage, 'cancel' => $gateManage, 'approve' => $gateManage]);
             $can('tenants.view') && $add('tenant_suggest', 'Suggestion box');

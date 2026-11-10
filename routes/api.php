@@ -51,6 +51,11 @@ Route::prefix('v1/app')->group(function () {
             Route::get('/summary', [Mobile\TenantController::class, 'summary'])->middleware(MobileCan::class.':tenant,invoices.view');
             Route::get('/bills', [Mobile\TenantController::class, 'bills'])->middleware(MobileCan::class.':tenant,invoices.view');
             Route::get('/bills/{id}', [Mobile\TenantController::class, 'bill'])->whereNumber('id')->middleware(MobileCan::class.':tenant,invoices.view');
+            Route::get('/bills/{id}/pay', [Mobile\TenantController::class, 'payOptions'])->whereNumber('id')->middleware(MobileCan::class.':tenant,invoices.view');
+            Route::post('/bills/{id}/pay-credit', [Mobile\TenantController::class, 'payFromCredit'])->whereNumber('id')->middleware([MobileCan::class.':tenant,invoices.view', 'throttle:10,1,app-credit']);
+            Route::post('/bills/{id}/sharet', [Mobile\TenantController::class, 'sharet'])->whereNumber('id')->middleware([MobileCan::class.':tenant,invoices.view', 'throttle:10,1,app-sharet']);
+            Route::get('/water', [Mobile\TenantController::class, 'water'])->middleware(MobileCan::class.':tenant,tenants.view');
+            Route::post('/water/query', [Mobile\TenantController::class, 'waterQuery'])->middleware([MobileCan::class.':tenant,maintenance.manage', 'throttle:5,60,app-water']);
             Route::get('/payments', [Mobile\TenantController::class, 'payments'])->middleware(MobileCan::class.':tenant,payments.view');
             Route::get('/repairs', [Mobile\TenantController::class, 'repairs'])->middleware(MobileCan::class.':tenant,maintenance.view');
             Route::post('/repairs', [Mobile\TenantController::class, 'reportRepair'])->middleware(MobileCan::class.':tenant,maintenance.manage');

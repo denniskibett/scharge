@@ -149,7 +149,7 @@ class MobileAppTest extends RentSchemaTestCase
         $this->assertContains($tenantUser, array_column($choices, 'id'));
         $res = $this->postJson('/api/v1/app/auth/verify', ['phone' => $phone, 'code' => $code, 'device_name' => 'Pixel', 'account_id' => $tenantUser])->assertCreated()
             ->assertJsonPath('user.id', $tenantUser)->assertJsonPath('session.has_pin', false);
-        $this->assertSame(['tenant_bills', 'tenant_payments', 'tenant_repairs', 'gate', 'tenant_suggest'], array_column($res->json('screens'), 'key'));
+        $this->assertSame(['tenant_bills', 'tenant_payments', 'tenant_water', 'tenant_repairs', 'gate', 'tenant_suggest'], array_column($res->json('screens'), 'key'));
         $token = $res->json('token');
 
         // The code works once.
@@ -193,6 +193,10 @@ class MobileAppTest extends RentSchemaTestCase
         $this->postJson('/api/v1/app/auth/password', ['email' => $user->email, 'password' => 'wrong', 'device_name' => 'x'])->assertStatus(401);
         $this->postJson('/api/v1/app/auth/password', ['email' => $user->email, 'password' => 'secret-pass', 'device_name' => 'x'])->assertCreated()
             ->assertJsonPath('screens.0.key', 'rent');
+        // The same password with the phone number instead of the email.
+        DB::table('users')->where('id', $user->id)->update(['phone' => '0733000111']);
+        $this->postJson('/api/v1/app/auth/password', ['login' => '+254 733 000 111', 'password' => 'secret-pass', 'device_name' => 'x'])->assertCreated();
+        $this->postJson('/api/v1/app/auth/password', ['login' => $user->email, 'password' => 'secret-pass', 'device_name' => 'x'])->assertCreated();
     }
 
     // ---- Screens per role -----------------------------------------------------------------------------------------
@@ -243,7 +247,8 @@ class MobileAppTest extends RentSchemaTestCase
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$mine)->assertOk()->assertJsonPath('balance', '1000.00');
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->a['tenancies'][1]))->assertNotFound(); // neighbour
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->b['tenancies'][0]))->assertNotFound(); // other company
-        $this->api($token)->getJson('/api/v1/app/tenant/summary')->assertOk()->assertJsonPath('balance', '1000.00')->assertJsonPath('unit', 'A1');
+        $this->api($token)->getJson('/api/v1/app/tenant/summary')->assertOk()->assertJsonPath('balance', '1000.00')->assertJsonPath('unit', 'A1')
+            ->assertJsonPath('next_bill.due_label', now()->startOfMonth()->setDay(5)->format('j M'))->assertJsonStructure(['next_bill' => ['items', 'days_left']]);
 
         // Tenants hold invoices.view, but the company screens are for staff only.
         $this->api($token)->getJson('/api/v1/app/bills')->assertForbidden();
@@ -253,9 +258,11 @@ class MobileAppTest extends RentSchemaTestCase
 
     public function test_a_tenant_reports_a_repair_for_their_own_unit(): void
     {
+        \Illuminate\Support\Facades\Storage::fake('public');
         [, $token] = $this->tenantOf($this->a['tenancies'][0]);
-        $this->api($token)->postJson('/api/v1/app/tenant/repairs', ['title' => 'Leaking tap', 'description' => 'Kitchen tap drips.', 'category' => 'plumbing'])
-            ->assertCreated()->assertJsonPath('unit', 'A1')->assertJsonPath('status', 'open');
+        $this->api($token)->post('/api/v1/app/tenant/repairs', ['title' => 'Leaking tap', 'description' => 'Kitchen tap drips.', 'category' => 'plumbing',
+            'photos' => [\Illuminate\Http\UploadedFile::fake()->image('sink.jpg')], 'caretaker_can_let_in' => 1])
+            ->assertCreated()->assertJsonPath('unit', 'A1')->assertJsonPath('status', 'open')->assertJsonCount(1, 'photos');
         $this->assertSame((int) $this->a['company'], (int) DB::table('maintenances')->value('company_id'));
         $this->assertCount(1, $this->api($token)->getJson('/api/v1/app/tenant/repairs')->json('data'));
     }
@@ -501,5 +508,76 @@ class MobileAppTest extends RentSchemaTestCase
             ->assertJsonPath('data.0.issued_by', 'Sunrise')->assertJsonPath('data.0.receipt_no', fn ($v) => str_starts_with($v, 'RCT-'));
         [, $adminB] = $this->person($this->b['company'], 'admin');
         $this->assertSame(['900.00'], array_column($this->api($adminB)->getJson('/api/v1/app/payments')->json('data'), 'amount'));
+    }
+
+    public function test_pay_options_show_only_what_the_landlord_has_set_up(): void
+    {
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $mine = $this->billOf($this->a['tenancies'][0]);
+
+        $this->assertSame(['mpesa'], array_column($this->api($token)->getJson("/api/v1/app/tenant/bills/$mine/pay")->assertOk()->json('methods'), 'key'));
+        $this->api($token)->postJson("/api/v1/app/tenant/bills/$mine/sharet")->assertStatus(422); // Sharet not switched on
+
+        \App\Models\CompanyIntegration::create(['company_id' => $this->a['company'], 'provider' => 'bank_standing_order', 'enabled' => true,
+            'credentials' => ['bank' => 'Equity Bank', 'account_name' => 'Sunrise Ltd', 'account_number' => '0123456789']]);
+        \App\Models\CompanyIntegration::create(['provider' => 'sharet', 'enabled' => true, 'credentials' => ['api_key' => 'sk_test_x']]);
+        \Illuminate\Support\Facades\Cache::flush();
+        $res = $this->api($token)->getJson("/api/v1/app/tenant/bills/$mine/pay")->assertOk();
+        $this->assertSame(['mpesa', 'sharet', 'bank'], array_column($res->json('methods'), 'key'));
+        $this->assertSame('A1', $res->json('methods.2.reference'));
+        $this->assertStringContainsString('from=app', $res->json('methods.0.url'));
+
+        // Another tenant's or company's bill: nothing.
+        $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->a['tenancies'][1]).'/pay')->assertNotFound();
+        $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->b['tenancies'][0]).'/pay')->assertNotFound();
+    }
+
+    public function test_the_water_dashboard_shows_only_the_tenants_home_and_queries_reach_the_manager(): void
+    {
+        $a1 = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('unit_id');
+        $a2 = DB::table('tenancies')->where('id', $this->a['tenancies'][1])->value('unit_id');
+        foreach ([['2026-08-28', 4], ['2026-09-28', 6], ['2026-10-28', 9]] as [$d, $c]) {
+            DB::table('water_readings')->insert(['unit_id' => $a1, 'previous_reading' => 100, 'current_reading' => 100 + $c, 'consumption' => $c, 'reading_date' => $d]);
+        }
+        DB::table('water_readings')->insert(['unit_id' => $a2, 'previous_reading' => 0, 'current_reading' => 50, 'consumption' => 50, 'reading_date' => '2026-10-28']);
+        $meter = DB::table('meters')->insertGetId(['company_id' => $this->a['company'], 'unit_id' => $a1, 'utility' => 'water', 'serial_number' => 'W-1', 'unit_of_measure' => 'm3', 'created_at' => now()]);
+        [$reader] = $this->person($this->a['company'], 'meter_reader');
+        DB::table('meter_readings')->insert(['meter_id' => $meter, 'company_id' => $this->a['company'], 'unit_id' => $a1, 'utility' => 'water', 'reading' => 109, 'previous_reading' => 106,
+            'consumption' => 3, 'read_at' => now(), 'source' => 'reader_app', 'recorded_by' => $reader->id, 'status' => 'accepted']);
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+
+        $w = $this->api($token)->getJson('/api/v1/app/tenant/water')->assertOk();
+        $this->assertSame([4, 6, 9], array_map('intval', array_column($w->json('history'), 'consumption'))); // only A1, oldest first
+        $w->assertJsonPath('rate', '100.00')->assertJsonPath('this_month.charge', '900.00')->assertJsonPath('last_reading.read_by', $reader->name)->assertJsonPath('unit', 'A1');
+
+        $this->api($token)->postJson('/api/v1/app/tenant/water/query', ['note' => 'My bill looks too high this month.'])->assertCreated();
+        $this->assertSame('Water reading query', DB::table('maintenances')->value('name'));
+        [, $maint] = $this->person($this->a['company'], 'maintenance');
+        $this->assertCount(1, $this->api($maint)->getJson('/api/v1/app/repairs')->json('data'));
+        [, $staff] = $this->person($this->a['company'], 'admin');
+        $this->api($staff)->getJson('/api/v1/app/tenant/water')->assertForbidden();
+    }
+
+    public function test_six_digit_pins_and_paying_a_bill_from_credit_paid_ahead(): void
+    {
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($token)->postJson('/api/v1/app/auth/pin', ['pin' => '111111'])->assertStatus(422); // too easy
+        $this->api($token)->postJson('/api/v1/app/auth/pin', ['pin' => '48261'])->assertStatus(422); // 5 digits
+        $this->api($token)->postJson('/api/v1/app/auth/pin', ['pin' => '482617'])->assertOk()->assertJsonPath('pin_length', 6);
+        $this->api($token)->postJson('/api/v1/app/auth/unlock', ['pin' => '482617'])->assertOk();
+
+        $tenant = \App\Models\Tenant::withoutGlobalScope('company')->find(DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id'));
+        $tenant->deposit(1500); // paid ahead
+        $bill = $this->billOf($this->a['tenancies'][0]); // KES 1,000 owed
+        $this->api($token)->getJson('/api/v1/app/tenant/summary')->assertJsonPath('credit', '1500.00');
+        $this->assertSame('credit', $this->api($token)->getJson("/api/v1/app/tenant/bills/$bill/pay")->json('methods.0.key'));
+
+        $this->api($token)->postJson("/api/v1/app/tenant/bills/$bill/pay-credit", ['pin' => '000001'])->assertStatus(422)->assertJsonPath('error', 'wrong_pin');
+        $this->api($token)->postJson("/api/v1/app/tenant/bills/$bill/pay-credit", ['pin' => '482617'])->assertCreated()
+            ->assertJsonPath('paid', '1000.00')->assertJsonPath('credit', '500.00')->assertJsonPath('bill.status', 'paid');
+        $this->api($token)->postJson("/api/v1/app/tenant/bills/$bill/pay-credit", ['confirmed_with' => 'device'])->assertStatus(422); // nothing left
+
+        // Not someone else's bill.
+        $this->api($token)->postJson('/api/v1/app/tenant/bills/'.$this->billOf($this->a['tenancies'][1]).'/pay-credit', ['confirmed_with' => 'device'])->assertNotFound();
     }
 }

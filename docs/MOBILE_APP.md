@@ -70,6 +70,17 @@ summary cards and the selected tab: tenants red only, owners and landlord staff 
   when there is no email. The app also shares the pass as a QR "ticket" image or on WhatsApp; the QR opens
   `/gate/verify?code=…` on the guard's phone.
 
+## Paying
+
+- Every payment in the app is confirmed first: fingerprint / face / phone lock when switched on, otherwise the PIN
+  (4 or 6 digits, the same PIN that opens the app; wrong PINs count towards the 5-try sign-out).
+- Methods per landlord: M-Pesa (the bill link page sends the prompt), credit (money paid ahead), Sharet Pay (scharge's
+  Sharet account), the landlord's own paybill (unit as the account), bank standing order (Integrations ›
+  "Bank standing order (for tenants)": bank, account name and number shown with the unit as the reference).
+- Paying ahead: paying more than the bill by M-Pesa, Sharet or paybill keeps the extra as wallet credit
+  (MpesaSettlementService, PaybillPayments); the next bill can be paid from it.
+- Password sign-in takes the phone number or the email with the same password.
+
 ## The bell and the suggestion box
 
 - `GET /notifications` works out what needs the person now (bills to pay, passes to approve, repairs done,
@@ -88,6 +99,10 @@ summary cards and the selected tab: tenants red only, owners and landlord staff 
 | POST | `/auth/pin`, `/auth/unlock`, `/auth/logout` | signed in |
 | GET | `/tenant/summary`, `/tenant/bills`, `/tenant/bills/{id}` | tenant · `invoices.view` |
 | GET | `/tenant/payments` | tenant · `payments.view` |
+| GET | `/tenant/bills/{id}/pay` | tenant · `invoices.view`: the landlord's pay methods (M-Pesa, credit, Sharet Pay, paybill, bank standing order) |
+| POST | `/tenant/bills/{id}/sharet` | tenant · `invoices.view`: a Sharet Pay page (SharetCollections) |
+| POST | `/tenant/bills/{id}/pay-credit` | tenant · `invoices.view`: pay from credit paid ahead (WalletService), confirmed with the PIN or the phone's lock |
+| GET / POST | `/tenant/water`, `/tenant/water/query` | tenant: their home unit's water; a reading dispute becomes a repair ticket |
 | GET / POST | `/tenant/repairs` | tenant · `maintenance.view` / `maintenance.manage` |
 | GET | `/rent`, `/payments`, `/paybill/unmatched` | staff · `payments.view` |
 | POST | `/paybill/{id}/assign` | staff · `payments.manage` (money moves through `PaybillPayments`) |

@@ -93,10 +93,14 @@ class AuthController extends Controller
 
     public function password(Request $request)
     {
-        $data = $request->validate(['email' => 'required|email', 'password' => 'required|string', 'device_name' => 'required|string|max:60']);
-        $user = User::where('email', $data['email'])->first();
+        // One password, either identifier: the phone number or the email.
+        $data = $request->validate(['login' => 'required_without:email|nullable|string|max:191', 'email' => 'nullable|string|max:191',
+            'password' => 'required|string', 'device_name' => 'required|string|max:60']);
+        $login = trim((string) ($data['login'] ?? $data['email']));
+        $user = str_contains($login, '@') ? User::where('email', $login)->first()
+            : (($key = self::phoneKey($login)) ? $this->accountsFor($key)->first() : null);
         if (! $user || ! $user->password || ! Hash::check($data['password'], $user->password) || (int) $user->status === 1) {
-            return response()->json(['error' => 'invalid_credentials', 'message' => 'Wrong email or password.'], 401);
+            return response()->json(['error' => 'invalid_credentials', 'message' => 'Wrong phone, email or password.'], 401);
         }
 
         return $this->signIn($request, $user, $data['device_name'], 'password');
@@ -168,23 +172,24 @@ class AuthController extends Controller
     public function setPin(Request $request)
     {
         $session = $request->attributes->get('mobile_session');
-        $data = $request->validate(['pin' => 'required|digits:4', 'current_pin' => 'nullable|digits:4']);
+        $data = $request->validate(['pin' => ['required', 'regex:/^(\d{4}|\d{6})$/'], 'current_pin' => ['nullable', 'regex:/^(\d{4}|\d{6})$/']],
+            ['pin.regex' => 'Use 4 or 6 digits.']);
         if ($session->pin_hash && ! Hash::check((string) ($data['current_pin'] ?? ''), $session->pin_hash)) {
             return response()->json(['error' => 'wrong_pin', 'message' => 'Your current PIN is wrong.'], 422);
         }
-        if (in_array($data['pin'], ['0000', '1111', '1234', '4321', '2222', '9999'], true)) {
+        if (preg_match('/^(\d)\1+$/', $data['pin']) || in_array($data['pin'], ['1234', '4321', '123456', '654321', '121212'], true)) {
             return response()->json(['error' => 'weak_pin', 'message' => 'Pick a PIN that is harder to guess.'], 422);
         }
         $session->forceFill(['pin_hash' => Hash::make($data['pin']), 'pin_failures' => 0])->save();
 
-        return response()->json(['pin_set' => true]);
+        return response()->json(['pin_set' => true, 'pin_length' => strlen($data['pin'])]);
     }
 
     /** Opening the app with the PIN (fingerprint / phone lock is checked on the phone). Five wrong PINs sign the phone out. */
     public function unlock(Request $request)
     {
         $session = $request->attributes->get('mobile_session');
-        $data = $request->validate(['pin' => 'required|digits:4']);
+        $data = $request->validate(['pin' => ['required', 'regex:/^(\d{4}|\d{6})$/']]);
         if (! $session->pin_hash) {
             return response()->json(['error' => 'no_pin', 'message' => 'Create a PIN first.'], 422);
         }
@@ -203,6 +208,28 @@ class AuthController extends Controller
         $session->forceFill(['pin_failures' => 0])->save();
 
         return response()->json(['unlocked' => true] + $this->profile($request->user(), $session));
+    }
+
+    /**
+     * Check the session's PIN for a payment. Wrong PINs count towards the same 5-try lockout as unlocking.
+     * Returns null when right, else the error response.
+     */
+    public static function checkPin(MobileSession $session, ?string $pin)
+    {
+        if (! $session->pin_hash || ! $pin || ! Hash::check($pin, $session->pin_hash)) {
+            $session->increment('pin_failures');
+            $left = MobileSession::MAX_PIN_FAILURES - $session->pin_failures;
+            if ($left <= 0) {
+                $session->delete();
+
+                return response()->json(['error' => 'signed_out', 'message' => 'Too many wrong PINs. Sign in again with an SMS code.'], 401);
+            }
+
+            return response()->json(['error' => 'wrong_pin', 'attempts_left' => $left, 'message' => "Wrong PIN. {$left} ".($left === 1 ? 'try' : 'tries').' left.'], 422);
+        }
+        $session->forceFill(['pin_failures' => 0])->save();
+
+        return null;
     }
 
     public function logout(Request $request)

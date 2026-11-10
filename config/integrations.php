@@ -244,4 +244,22 @@ return [
             'passkey' => ['label' => 'Lipa na M-Pesa passkey', 'secret' => true, 'required' => true, 'sandbox' => 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919'],
         ],
     ],
+
+    // Shown to tenants in the app's Pay screen (docs/MOBILE_APP.md). Standing-order payments arrive at the bank, not
+    // through scharge: the landlord records them (or they come in through the bank integration when it is connected).
+    'bank_standing_order' => [
+        'name' => 'Bank standing order (for tenants)',
+        'scope' => 'company',
+        'category' => 'Payments',
+        'description' => 'Your bank account for tenants who pay rent by standing order. The scharge app shows these details on the Pay screen, with the unit as the reference.',
+        'color' => '#0F766E',
+        'logo' => null,
+        'fields' => [
+            'bank' => ['label' => 'Bank', 'type' => 'select', 'options_from' => 'banks', 'required' => true],
+            'account_name' => ['label' => 'Account name', 'required' => true],
+            'account_number' => ['label' => 'Account number', 'required' => true],
+            'branch' => ['label' => 'Branch'],
+            'note' => ['label' => 'Note for tenants', 'placeholder' => 'Set it for the 1st of each month.'],
+        ],
+    ],
 ];
