@@ -80,3 +80,8 @@ Schedule::command('listings:match')
     ->between('9:00', '19:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Sign-in locations (docs/SIGN_IN_LOCATIONS.md): refresh the free city database monthly; keep sign-ins 180 days.
+Schedule::command('geo:update')->monthlyOn(3, '04:00')->withoutOverlapping()->onOneServer();
+Schedule::call(fn () => \Illuminate\Support\Facades\Schema::hasTable('login_events')
+    && \Illuminate\Support\Facades\DB::table('login_events')->where('created_at', '<', now()->subDays(180))->delete())->dailyAt('04:30')->name('prune-login-events')->onOneServer();

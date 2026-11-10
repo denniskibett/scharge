@@ -19,6 +19,7 @@
         "league/flysystem-aws-s3-v3": "^3.0",
         "league/flysystem-sftp-v3": "^3.0",
         "league/iso3166": "^4.3",
+        "maxmind-db/reader": "^1.12",
         "moneyphp/money": "^4.8",
         "pragmarx/countries": "^1.0",
         "spatie/laravel-backup": "^9.3",

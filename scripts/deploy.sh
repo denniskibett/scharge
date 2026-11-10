@@ -61,6 +61,9 @@ if [ "${ACCESS_SYNC:-0}" = "1" ]; then
   "$PHP" artisan access:sync
 fi
 
+echo "==> Sign-in locations database (first time only; refreshed monthly by the scheduler)"
+[ -f storage/app/geo/dbip-city-lite.mmdb ] || "$PHP" artisan geo:update || echo "    could not download it now: the scheduler tries again monthly" >&2
+
 echo "==> Caches"
 "$PHP" artisan optimize:clear
 "$PHP" artisan config:cache

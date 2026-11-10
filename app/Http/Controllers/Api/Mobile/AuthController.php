@@ -96,6 +96,8 @@ class AuthController extends Controller
         $data = $request->validate(['email' => 'required|email', 'password' => 'required|string', 'device_name' => 'required|string|max:60']);
         $user = User::where('email', $data['email'])->first();
         if (! $user || ! $user->password || ! Hash::check($data['password'], $user->password) || (int) $user->status === 1) {
+            app(\App\Services\Analytics\SignIns::class)->record($user, $request, 'app', 'password', false);
+
             return response()->json(['error' => 'invalid_credentials', 'message' => 'Wrong email or password.'], 401);
         }
 
@@ -166,6 +168,7 @@ class AuthController extends Controller
             'platform' => in_array($request->input('platform'), ['android', 'ios'], true) ? $request->input('platform') : 'android', 'signed_in_with' => $via]);
         $token = $session->issue();
         $session->forceFill(['last_used_at' => now(), 'last_ip' => $request->ip()])->save();
+        app(\App\Services\Analytics\SignIns::class)->record($user, $request, 'app', $via);
 
         return response()->json(['token' => $token] + $this->profile($user, $session), 201);
     }

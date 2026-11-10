@@ -23,6 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Sign-in locations (docs/SIGN_IN_LOCATIONS.md): website sign-ins and failed attempts.
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, fn ($e) => app(\App\Services\Analytics\SignIns::class)
+            ->record($e->user, request(), 'web', $e->remember ? 'remember' : 'password'));
+        \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Failed::class, fn ($e) => app(\App\Services\Analytics\SignIns::class)
+            ->record($e->user, request(), 'web', 'password', false));
+
         // Bill emails: the tenant gets a receipt the moment an invoice turns fully paid (any payment route).
         foreach ([\App\Modules\Payments\Models\Invoice::class, \App\Models\Invoice::class] as $invoiceModel) {
             $invoiceModel::updated(function ($invoice) {

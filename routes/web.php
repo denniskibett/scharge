@@ -202,6 +202,9 @@ Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->na
 Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1')->name('track');
 
 // Sales CRM > Website analytics (traffic, UTM campaigns, conversions, heatmap) for scharge staff
+// scharge staff › Sign-in locations (docs/SIGN_IN_LOCATIONS.md)
+Route::middleware(['auth', 'role:sysadmin|account_manager'])->get('/admin/sign-ins', [App\Http\Controllers\Admin\SignInController::class, 'index'])->name('sign-ins.index');
+
 Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('admin/website-analytics')->name('site-analytics.')
     ->controller(App\Http\Controllers\Admin\SiteAnalyticsController::class)->group(function () {
         Route::get('/', 'index')->name('index');

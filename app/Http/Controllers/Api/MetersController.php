@@ -39,6 +39,8 @@ class MetersController extends Controller
         $user = User::where('email', $data['email'])->first();
 
         if (! $user || ! Hash::check($data['password'], $user->password)) {
+            app(\App\Services\Analytics\SignIns::class)->record($user, $request, 'reader_app', 'password', false);
+
             return response()->json(['error' => 'invalid_credentials', 'message' => 'Wrong email or password.'], 401);
         }
         if (! $user->company_id || ! $user->hasAnyRole(['meter_reader', 'property_manager', 'admin', 'maintenance', 'security'])) {
@@ -48,6 +50,7 @@ class MetersController extends Controller
         $key = new ApiKey(['company_id' => $user->company_id, 'user_id' => $user->id, 'name' => 'Reader app · '.$data['device_name'],
             'environment' => 'live', 'scopes' => ['read', 'meters'], 'enabled' => true, 'allowed_ips' => []]);
         $plain = $key->issue();
+        app(\App\Services\Analytics\SignIns::class)->record($user, $request, 'reader_app', 'password');
         $key->save();
 
         return response()->json(['token' => $plain, 'user' => ['id' => $user->id, 'name' => $user->name], 'company' => $user->company?->name, 'scopes' => $key->scopes], 201);
