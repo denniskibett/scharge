@@ -1,0 +1,4 @@
+# Migrations deploy.sh runs on live, one file name per line, in order. Add new ones here; never list old ones
+# (production's schema was not built by this repo's migrations: SYSTEM_AUDIT.md §2).
+2026_11_10_120000_create_rent_messages_table.php
+2026_11_11_000100_create_paybill_payments_and_rent_holds.php
