@@ -37,6 +37,7 @@ class TenantController extends Controller
                 'open_bills' => $open->count(),
                 'next_bill' => ($n = $open->sortBy('billing_month')->first()) ? $this->invoice($n->load('items'), true) + self::due($n) : null,
                 'credit' => self::money(self::credit($ids)),
+                'notices' => self::notices($ids, $tenancy),
                 'last_payment' => $last ? $this->payment($last) : null,
             ]);
         });
@@ -124,7 +125,7 @@ class TenantController extends Controller
         $ids = MobileAccess::tenantIds($request->user());
 
         return CompanyAccess::bypass(function () use ($ids, $id) {
-            $invoice = $this->invoices($ids)->with('tenancy.unit.property')->find($id);
+            $invoice = $this->invoices($ids)->with('tenancy.unit.property', 'tenancy.tenant.user')->find($id);
             abort_unless($invoice, 404, 'No such bill.');
             $company = $invoice->owningCompanyId();
             $unit = $invoice->tenancy?->unit;
@@ -133,17 +134,18 @@ class TenantController extends Controller
             $daraja = $daraja && filled($daraja->get('shortcode')) && filled($daraja->get('passkey')) ? $daraja : null;
             $bank = $company ? self::setting($company, 'bank_standing_order') : null;
             $methods = [
-                ['key' => 'mpesa', 'title' => 'M-Pesa', 'subtitle' => 'Prompt on your phone', 'url' => \App\Support\InvoiceLink::url($invoice).'&from=app'],
+                ['key' => 'mpesa', 'title' => 'M-Pesa', 'subtitle' => 'Prompt on your phone', 'url' => \App\Support\InvoiceLink::url($invoice).'&from=app',
+                    'phone' => ($ph = preg_replace('/\D/', '', (string) $invoice->tenancy?->tenant?->user?->phone)) ? '0'.substr($ph, -9, 3).' ••• '.substr($ph, -3) : null],
             ];
             if (filled(self::setting(null, 'sharet')?->get('api_key'))) {
                 $methods[] = ['key' => 'sharet', 'title' => 'Sharet Pay', 'subtitle' => 'M-Pesa or your Sharet wallet'];
             }
             if ($daraja && ($daraja->get('kind', 'paybill') === 'paybill')) {
-                $methods[] = ['key' => 'paybill', 'title' => 'Paybill '.$daraja->get('shortcode'), 'subtitle' => 'Account: '.$reference,
+                $methods[] = ['key' => 'paybill', 'title' => 'Paybill '.$daraja->get('shortcode'), 'subtitle' => 'Account: '.strtoupper($reference),
                     'paybill' => (string) $daraja->get('shortcode'), 'account' => $reference];
             }
             if ($bank && filled($bank->get('account_number'))) {
-                $methods[] = ['key' => 'bank', 'title' => 'Bank standing order', 'subtitle' => 'Set up once, paid every month',
+                $methods[] = ['key' => 'bank', 'title' => 'Bank standing order', 'subtitle' => 'Set up once, every 1st',
                     'bank' => $bank->get('bank'), 'account_name' => $bank->get('account_name'), 'account_number' => $bank->get('account_number'),
                     'branch' => $bank->get('branch'), 'reference' => $reference, 'note' => $bank->get('note'),
                     'monthly' => $unit ? self::money($unit->total_monthly_charges ?? $unit->rent_amount) : null];
@@ -195,6 +197,35 @@ class TenantController extends Controller
         }));
     }
 
+    /**
+     * Building notices on the home screen (canvas: "Building notices"), from live data: the lease ending soon, repairs
+     * with a fundi on them or done, and guests waiting for this tenant's approval. alert = the dark bar.
+     */
+    private static function notices(array $tenantIds, $tenancy): array
+    {
+        $out = [];
+        if ($tenancy?->move_out_date && $tenancy->move_out_date->isFuture() && $tenancy->move_out_date->lte(now()->addDays(60))) {
+            $out[] = ['title' => 'Your lease ends '.$tenancy->move_out_date->format('j M'), 'text' => 'Talk to your manager about renewing before then.', 'alert' => false, 'screen' => null];
+        }
+        foreach (Maintenance::with('assignedStaff')->whereIn('tenant_id', $tenantIds ?: [0])->whereIn('status', ['open', 'in_progress', 'pending_parts', 'completed'])
+            ->where('updated_at', '>=', now()->subDays(7))->latest('updated_at')->limit(2)->get() as $m) {
+            $out[] = match (true) {
+                $m->status === 'completed' => ['title' => $m->name.': done', 'text' => 'Marked done. Tell your manager if it is not fixed.', 'alert' => false, 'screen' => 'tenant_repairs'],
+                $m->status === 'pending_parts' => ['title' => $m->name, 'text' => 'Waiting for parts.', 'alert' => false, 'screen' => 'tenant_repairs'],
+                (bool) $m->assignedStaff => ['title' => $m->name, 'text' => 'Fundi assigned: '.$m->assignedStaff->name.'.', 'alert' => false, 'screen' => 'tenant_repairs'],
+                default => ['title' => $m->name, 'text' => 'Reported. Your manager will assign a fundi.', 'alert' => false, 'screen' => 'tenant_repairs'],
+            };
+        }
+        if ($tenancy?->unit_id) {
+            $n = \App\Modules\Security\Models\GatePass::where('status', 'suggested')->where('unit_id', $tenancy->unit_id)->count();
+            if ($n) {
+                $out[] = ['title' => $n === 1 ? 'A guest is waiting for your OK' : "$n guests are waiting for your OK", 'text' => 'Suggested for your home. Approve or decline.', 'alert' => true, 'screen' => 'gate'];
+            }
+        }
+
+        return $out;
+    }
+
     /** When a bill is due (rent automation's due day, else the 5th) and how many days are left, for the home card. */
     private static function due($invoice): array
     {
@@ -207,6 +238,41 @@ class TenantController extends Controller
         $days = (int) now(\App\Services\Rent\RentSettings::TZ)->startOfDay()->diffInDays($due->startOfDay(), false);
 
         return ['due_date' => $due->toDateString(), 'due_label' => $due->format('j M'), 'days_left' => $days];
+    }
+
+    /**
+     * The wallet: money paid ahead (credit), its history, and how to add money. Adding money = paying the landlord's
+     * paybill with the unit as the account (credit when nothing is owed), or paying more than a bill.
+     */
+    public function wallet(Request $request)
+    {
+        $ids = MobileAccess::tenantIds($request->user());
+        $home = MobileAccess::homeUnitId($request->user());
+
+        return CompanyAccess::bypass(function () use ($ids, $home) {
+            $tenants = \App\Models\Tenant::withoutGlobalScope('company')->whereIn('id', $ids ?: [0])->get();
+            $tx = $tenants->flatMap(fn ($t) => rescue(fn () => $t->transactions()->where('confirmed', true)->latest('id')->limit(40)->get(), collect(), false))
+                ->sortByDesc('id')->take(40)->map(fn ($t) => [
+                    'id' => $t->id,
+                    'type' => $t->type, // deposit | withdraw
+                    'amount' => self::money(abs((float) $t->amount)), // stored in shillings, like the balance
+                    'description' => $t->meta['description'] ?? ($t->type === 'deposit' ? 'Money in' : 'Paid a bill'),
+                    'at' => $t->created_at?->toIso8601String(),
+                ])->values();
+            $unit = $home ? \App\Models\Unit::withoutGlobalScope('company')->with('property')->find($home) : null;
+            $company = $unit ? ($unit->company_id ?? $unit->property?->company_id) : null;
+            $daraja = $company ? self::setting((int) $company, 'mpesa_daraja') : null;
+
+            return response()->json([
+                'balance' => self::money(self::credit($ids)),
+                'transactions' => $tx,
+                'add_money' => array_values(array_filter([
+                    $daraja && filled($daraja->get('shortcode')) ? ['key' => 'paybill', 'title' => 'M-Pesa Paybill', 'paybill' => (string) $daraja->get('shortcode'),
+                        'account' => $unit->unit_number, 'note' => 'Pay any amount. Anything not owed is kept here as credit.'] : null,
+                    ['key' => 'overpay', 'title' => 'Pay more than your bill', 'note' => 'On the Pay screen, type more than you owe. The extra comes here.'],
+                ])),
+            ]);
+        });
     }
 
     /** Money paid ahead: the tenant's wallet balances (one wallet per landlord company's tenant record). */

@@ -31,7 +31,10 @@ reader, BnB host, Sign in, Security guard).
 2. Create a 4-digit PIN (`POST /auth/pin`) and turn on fingerprint / face / phone lock.
 3. Every day: fingerprint, face or the phone's own lock opens the app (checked on the phone; the token sits in the
    phone's keystore). Or the PIN (`POST /auth/unlock`, checked on the server). 5 wrong PINs delete that phone's session.
-4. Staff without a phone: `POST /auth/password` (email + password).
+4. Password sign-in: `POST /auth/password` with the phone number or the email, the same password.
+5. Create my account (`POST /auth/register`): for tenants their landlord has already added by phone. With the SMS
+   code they set their name, ID number, email and password, then the PIN. A number nobody added gets "Ask your
+   landlord to add you" (404 `not_added`), never a new empty account.
 
 Each phone is its own row in `mobile_sessions` (token stored as a SHA-256 hash). Sign out (`POST /auth/logout`) ends
 only that phone. Sessions unused for 90 days stop working. A switched-off user (`users.status = 1`) is refused.
@@ -94,7 +97,7 @@ summary cards and the selected tab: tenants red only, owners and landlord staff 
 
 | Method | Path | Who / permission |
 |---|---|---|
-| POST | `/auth/code`, `/auth/verify`, `/auth/password` | public (throttled) |
+| POST | `/auth/code`, `/auth/verify`, `/auth/password`, `/auth/register` | public (throttled) |
 | GET | `/me` | signed in |
 | POST | `/auth/pin`, `/auth/unlock`, `/auth/logout` | signed in |
 | GET | `/tenant/summary`, `/tenant/bills`, `/tenant/bills/{id}` | tenant · `invoices.view` |
@@ -102,6 +105,7 @@ summary cards and the selected tab: tenants red only, owners and landlord staff 
 | GET | `/tenant/bills/{id}/pay` | tenant · `invoices.view`: the landlord's pay methods (M-Pesa, credit, Sharet Pay, paybill, bank standing order) |
 | POST | `/tenant/bills/{id}/sharet` | tenant · `invoices.view`: a Sharet Pay page (SharetCollections) |
 | POST | `/tenant/bills/{id}/pay-credit` | tenant · `invoices.view`: pay from credit paid ahead (WalletService), confirmed with the PIN or the phone's lock |
+| GET | `/tenant/wallet` | tenant · `payments.view`: credit paid ahead, its history, how to add money |
 | GET / POST | `/tenant/water`, `/tenant/water/query` | tenant: their home unit's water; a reading dispute becomes a repair ticket |
 | GET / POST | `/tenant/repairs` | tenant · `maintenance.view` / `maintenance.manage` |
 | GET | `/rent`, `/payments`, `/paybill/unmatched` | staff · `payments.view` |

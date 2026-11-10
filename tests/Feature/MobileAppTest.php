@@ -250,6 +250,7 @@ class MobileAppTest extends RentSchemaTestCase
         $bills = $this->api($token)->getJson('/api/v1/app/tenant/bills')->assertOk()->json('data');
         $this->assertSame([$mine], array_column($bills, 'id'));
         $this->assertStringContainsString('?t=', $bills[0]['pay_url']);
+        $this->assertSame('INV-'.str_pad((string) $mine, 4, '0', STR_PAD_LEFT), $bills[0]['number']); // one width: INV-0001
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$mine)->assertOk()->assertJsonPath('balance', '1000.00');
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->a['tenancies'][1]))->assertNotFound(); // neighbour
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->b['tenancies'][0]))->assertNotFound(); // other company
@@ -270,6 +271,7 @@ class MobileAppTest extends RentSchemaTestCase
             'photos' => [\Illuminate\Http\UploadedFile::fake()->image('sink.jpg')], 'caretaker_can_let_in' => 1])
             ->assertCreated()->assertJsonPath('unit', 'A1')->assertJsonPath('status', 'open')->assertJsonCount(1, 'photos');
         $this->assertSame((int) $this->a['company'], (int) DB::table('maintenances')->value('company_id'));
+        $this->api($token)->getJson('/api/v1/app/tenant/summary')->assertJsonPath('notices.0.screen', 'tenant_repairs'); // shows under Building notices
         $this->assertCount(1, $this->api($token)->getJson('/api/v1/app/tenant/repairs')->json('data'));
     }
 
@@ -720,5 +722,70 @@ class MobileAppTest extends RentSchemaTestCase
 
         // Not someone else's bill.
         $this->api($token)->postJson('/api/v1/app/tenant/bills/'.$this->billOf($this->a['tenancies'][1]).'/pay-credit', ['confirmed_with' => 'device'])->assertNotFound();
+    }
+
+    public function test_a_tenant_creates_their_account_with_the_sms_code_and_one_password(): void
+    {
+        [$tenant] = $this->tenantOf($this->a['tenancies'][0]); // added by the landlord with 0712000001
+        DB::table('mobile_sessions')->delete();
+        Schema::table('tenants', fn (Blueprint $t) => $t->string('id_number')->nullable());
+        $this->postJson('/api/v1/app/auth/code', ['phone' => '0712000001'])->assertOk();
+        $code = $this->sentCode();
+        $form = ['phone' => '0712000001', 'code' => $code, 'name' => 'Achieng Otieno', 'email' => 'achieng@example.test', 'id_number' => '12345678',
+            'password' => 'nyumba-2026', 'password_confirmation' => 'nyumba-2026', 'device_name' => 'Pixel', 'account_id' => $tenant->id];
+
+        $this->postJson('/api/v1/app/auth/register', ['code' => '000000'] + $form)->assertStatus(422);
+        $this->postJson('/api/v1/app/auth/register', $form)->assertCreated()->assertJsonPath('user.name', 'Achieng Otieno');
+        $this->assertSame('12345678', DB::table('tenants')->where('user_id', $tenant->id)->value('id_number'));
+
+        // One password, phone or email.
+        $this->postJson('/api/v1/app/auth/password', ['login' => 'achieng@example.test', 'password' => 'nyumba-2026', 'device_name' => 'x'])->assertCreated();
+        $this->postJson('/api/v1/app/auth/password', ['login' => '0712000001', 'password' => 'nyumba-2026', 'device_name' => 'x'])->assertCreated();
+
+        // A number no landlord has added.
+        RateLimiter::clear('app-otp-send:799999999');
+        $this->postJson('/api/v1/app/auth/register', ['phone' => '0799999999'] + $form)->assertStatus(422); // no code was ever sent
+    }
+
+    public function test_the_wallet_shows_credit_and_its_history(): void
+    {
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $tenant = \App\Models\Tenant::withoutGlobalScope('company')->find(DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id'));
+        $tenant->deposit(2500, ['description' => 'M-Pesa paybill payment QX1 received (credit)']);
+        $w = $this->api($token)->getJson('/api/v1/app/tenant/wallet')->assertOk()->assertJsonPath('balance', '2500.00');
+        $this->assertSame('2500.00', $w->json('transactions.0.amount'));
+        $this->assertSame('deposit', $w->json('transactions.0.type'));
+        [, $other] = $this->tenantOf($this->a['tenancies'][1]);
+        $this->api($other)->getJson('/api/v1/app/tenant/wallet')->assertJsonPath('balance', '0.00')->assertJsonCount(0, 'transactions');
+    }
+
+    public function test_payment_references_are_short_and_readable(): void
+    {
+        $bill = $this->billOf($this->a['tenancies'][0]);
+        $tenantId = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id');
+        DB::table('payments')->insert([
+            ['invoice_id' => $bill, 'tenant_id' => $tenantId, 'amount' => 100, 'payment_method' => 'sharet', 'source' => 'sharet_rail', 'transaction_reference' => 'SHD1CCFAF6',
+                'external_reference' => 'pr_9f8e7d6c5b4a39281706f5e4', 'meta' => json_encode(['sharet_transaction' => 'SHD1CCFAF6']), 'status' => 'completed', 'created_at' => now()],
+            ['invoice_id' => $bill, 'tenant_id' => $tenantId, 'amount' => 100, 'payment_method' => 'mpesa', 'source' => 'stk', 'transaction_reference' => null,
+                'external_reference' => 'SJK3H2X1PQ', 'meta' => null, 'status' => 'completed', 'created_at' => now()],
+            ['invoice_id' => $bill, 'tenant_id' => $tenantId, 'amount' => 100, 'payment_method' => 'wallet', 'source' => 'web', 'transaction_reference' => '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+                'external_reference' => null, 'meta' => null, 'status' => 'completed', 'created_at' => now()],
+        ]);
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $refs = array_column($this->api($token)->getJson('/api/v1/app/tenant/payments')->json('data'), 'reference');
+        sort($refs);
+        $this->assertSame(['7C9E6679', 'SHD1CCFAF6', 'SJK3H2X1PQ'], $refs);
+    }
+
+    public function test_tenant_sign_up_never_sets_a_password_on_a_staff_account(): void
+    {
+        [$admin] = $this->person($this->a['company'], 'admin', '0712555444');
+        $before = DB::table('users')->where('id', $admin->id)->value('password');
+        \Illuminate\Support\Facades\Cache::put('app-otp:712555444', ['hash' => \Illuminate\Support\Facades\Hash::make('123456'), 'tries' => 0], now()->addMinutes(10));
+
+        $this->postJson('/api/v1/app/auth/register', ['phone' => '0712555444', 'code' => '123456', 'name' => 'Intruder', 'password' => 'new-pass-123',
+            'password_confirmation' => 'new-pass-123', 'device_name' => 'Phone'])->assertStatus(422)->assertJson(['error' => 'staff_account']);
+        $this->assertSame($before, DB::table('users')->where('id', $admin->id)->value('password'));
+        $this->assertNotSame('Intruder', DB::table('users')->where('id', $admin->id)->value('name'));
     }
 }

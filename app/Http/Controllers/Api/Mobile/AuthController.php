@@ -58,6 +58,72 @@ class AuthController extends Controller
             'message' => 'If this number has an account, we have sent it a 6-digit code.']);
     }
 
+    /** Checks (and counts) an SMS code; true when right. The code is used up by the caller on success. */
+    private function codeOk(string $key, string $code): bool
+    {
+        $entry = Cache::get('app-otp:'.$key);
+        if (! $entry || $entry['tries'] >= self::CODE_TRIES) {
+            return false;
+        }
+        if (! Hash::check($code, $entry['hash'])) {
+            $entry['tries']++;
+            Cache::put('app-otp:'.$key, $entry, now()->addMinutes(self::CODE_MINUTES));
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Create my account (tenants): the landlord has already added them with this phone number. With the SMS code
+     * they set their name, email, ID number and one password (for signing in by phone or email), then a PIN.
+     */
+    public function register(Request $request)
+    {
+        $data = $request->validate([
+            'phone' => 'required|string|max:20',
+            'code' => 'required|digits:6',
+            'name' => 'required|string|min:3|max:120',
+            'email' => 'nullable|email|max:191',
+            'id_number' => 'nullable|string|min:5|max:20',
+            'password' => 'required|string|min:8|confirmed',
+            'device_name' => 'required|string|max:60',
+            'account_id' => 'nullable|integer',
+        ]);
+        $key = self::phoneKey($data['phone']);
+        if (! $key || ! $this->codeOk($key, $data['code'])) {
+            return response()->json(['error' => 'wrong_code', 'message' => 'That code is wrong or has expired. Ask for a new one.'], 422);
+        }
+        // Tenant accounts only: sign-up sets a password that also works on the website, so it must never reach a
+        // landlord's staff or a scharge account that shares the number (they sign in with their own password).
+        $all = $this->accountsFor($key);
+        $users = $all->filter(fn ($u) => $u->hasRole('tenant') && ! $u->hasAnyRole(['sysadmin', 'account_manager', 'admin', 'property_manager',
+            'accountant', 'meter_reader', 'maintenance', 'cleaning_staff', 'security', 'bnb_host']))->values();
+        if ($users->isEmpty()) {
+            return $all->isNotEmpty()
+                ? response()->json(['error' => 'staff_account', 'message' => 'This number belongs to a staff account. Sign in with your password or an SMS code instead.'], 422)
+                : response()->json(['error' => 'not_added', 'message' => 'Your landlord has not added this number yet. Ask them to add you, then try again.'], 404);
+        }
+        if ($users->count() > 1 && empty($data['account_id'])) {
+            return response()->json(['choose_account' => $users->map(fn ($u) => ['id' => $u->id, 'name' => $u->name,
+                'role' => $u->getRoleNames()->first(), 'company' => MobileAccess::brand($u)['name']])->values()]);
+        }
+        $user = empty($data['account_id']) ? $users->first() : $users->firstWhere('id', (int) $data['account_id']);
+        abort_unless($user, 422, 'Pick one of your accounts.');
+        if (! empty($data['email']) && User::where('email', $data['email'])->where('id', '!=', $user->id)->exists()) {
+            return response()->json(['error' => 'email_taken', 'message' => 'That email belongs to another account.', 'errors' => ['email' => ['That email belongs to another account.']]], 422);
+        }
+        Cache::forget('app-otp:'.$key);
+
+        $user->forceFill(['name' => $data['name'], 'password' => Hash::make($data['password'])] + (! empty($data['email']) ? ['email' => $data['email']] : []))->save();
+        if (! empty($data['id_number'])) {
+            CompanyAccess::bypass(fn () => \App\Models\Tenant::withoutGlobalScope('company')->where('user_id', $user->id)->update(['id_number' => $data['id_number']]));
+        }
+
+        return $this->signIn($request, $user->fresh(), $data['device_name'], 'otp');
+    }
+
     public function verifyCode(Request $request)
     {
         $data = $request->validate(['phone' => 'required|string|max:20', 'code' => 'required|digits:6',
