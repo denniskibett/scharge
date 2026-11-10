@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'sms/webhook/*',
             'webhooks/sharet',
             't', // website analytics beacon: no cookies needed, always answers 204
+            't/x', // cross-site analytics collector (Growth hub): origin allow-list, always answers 204
         ]);
 
         $middleware->alias([

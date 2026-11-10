@@ -201,6 +201,30 @@ Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->na
 // First-party website analytics beacon (public/assets/js/track.js; CSRF exempt in bootstrap/app.php)
 Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1')->name('track');
 
+// Cross-site collector for the six Sharet-family sites (public/js/sharet-analytics.js): no session, no cookies,
+// no CSRF; origin allow-list + its own rate limit inside the controller, always 204.
+Route::withoutMiddleware([
+    Illuminate\Session\Middleware\StartSession::class,
+    Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+    Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
+    Illuminate\Cookie\Middleware\EncryptCookies::class,
+    App\Http\Middleware\EnsureEmailConfirmed::class,
+])->group(function () {
+    Route::post('/t/x', App\Http\Controllers\CollectController::class)->name('track.collect');
+    Route::options('/t/x', [App\Http\Controllers\CollectController::class, 'preflight'])->name('track.collect.preflight');
+});
+
+// Sales CRM > Growth: all six sites' traffic, conversions, SEO findings and the Ad center
+Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('admin/growth')->name('growth.')
+    ->controller(App\Http\Controllers\Admin\GrowthController::class)->group(function () {
+        Route::get('/', 'overview')->name('overview');
+        Route::get('/conversions', 'conversions')->name('conversions');
+        Route::get('/seo', 'seo')->name('seo');
+        Route::get('/ads', 'ads')->name('ads');
+        Route::post('/todos', 'todo')->name('todo');
+    });
+
 // Sales CRM > Website analytics (traffic, UTM campaigns, conversions, heatmap) for scharge staff
 Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('admin/website-analytics')->name('site-analytics.')
     ->controller(App\Http\Controllers\Admin\SiteAnalyticsController::class)->group(function () {

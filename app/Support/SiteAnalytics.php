@@ -44,6 +44,49 @@ class SiteAnalytics
         });
     }
 
+    /** Has database/schema/2026_11_10_growth_hub.sql been applied (the `site` column on the analytics tables)? */
+    public static function multiSite(): bool
+    {
+        if (! self::ready()) {
+            return false;
+        }
+
+        return Cache::remember('site-analytics-multisite', now()->addMinutes(10), function () {
+            try {
+                return Schema::hasColumn('site_page_views', 'site') && Schema::hasColumn('site_events', 'site') && Schema::hasColumn('site_clicks', 'site');
+            } catch (\Throwable) {
+                return false;
+            }
+        });
+    }
+
+    /** Columns that tag a row as scharge's own (empty until the growth hub SQL is applied). */
+    public static function own(): array
+    {
+        return self::multiSite() ? ['site' => 'scharge'] : [];
+    }
+
+    /**
+     * Marketing channel for a source/medium pair (utm tags, else the referring host):
+     * paid | organic | social | email | sms | referral | direct.
+     */
+    public static function channel(?string $source, ?string $medium): string
+    {
+        $source = strtolower((string) $source);
+        $medium = strtolower((string) $medium);
+
+        return match (true) {
+            (bool) preg_match('/cpc|ppc|paid|cpm|display|^ads?$|sponsored|boost/', $medium) => 'paid',
+            in_array($medium, ['email', 'newsletter', 'e-mail'], true) => 'email',
+            $medium === 'sms' || $source === 'sms' => 'sms',
+            $medium === 'organic' || ($source !== '' && self::isSearch($source.'.')) || self::isSearch($source) => 'organic',
+            (bool) preg_match('/(^|\.)(facebook|fb|instagram|ig|whatsapp|wa|tiktok|twitter|t|x|linkedin|lnkd|youtube|threads|telegram|snapchat|pinterest)(\.|$)/', $source)
+                || in_array($medium, ['social', 'social_media', 'paid_social'], true) => $medium === 'paid_social' ? 'paid' : 'social',
+            $source === '' || $source === 'direct' || $source === '(direct)' => 'direct',
+            default => 'referral',
+        };
+    }
+
     /** Should this request be left out entirely? (bots, Do-Not-Track, Global Privacy Control, staff) */
     public static function skip(Request $request): bool
     {
@@ -89,7 +132,7 @@ class SiteAnalytics
             }
             $attr = $request->hasSession() ? (array) $request->session()->get(self::SESSION_KEY, []) : [];
 
-            DB::table('site_events')->insert([
+            DB::table('site_events')->insert(self::own() + [
                 'name' => Str::limit($name, 40, ''),
                 'label' => self::clean($label, 190),
                 'path' => $path,

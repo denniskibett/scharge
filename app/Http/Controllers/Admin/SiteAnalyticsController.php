@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Sales CRM › Website analytics: traffic, sources, UTM campaigns, form conversions, listing views and a
+ * Sales CRM › Website analytics (scharge's own site; all six sites are in Growth): traffic, sources, UTM campaigns, form conversions, listing views and a
  * click heatmap, all from our own tables (no third party). "Visitors" are counted per day, because the
  * anonymous visitor id changes daily by design. Signed-in users are left out.
  */
@@ -24,8 +24,8 @@ class SiteAnalyticsController extends Controller
         }
 
         $from = now()->subDays($days - 1)->startOfDay();
-        $views = DB::table('site_page_views')->where('created_at', '>=', $from)->where('is_staff', 0);
-        $events = DB::table('site_events')->where('created_at', '>=', $from);
+        $views = DB::table('site_page_views')->where(SiteAnalytics::own())->where('created_at', '>=', $from)->where('is_staff', 0);
+        $events = DB::table('site_events')->where(SiteAnalytics::own())->where('created_at', '>=', $from);
         $conversions = (clone $events)->where('name', 'conversion');
 
         $totals = (clone $views)->selectRaw('count(*) as views, avg(case when duration_ms between 1000 and 1800000 then duration_ms end) as avg_ms, avg(scroll_pct) as avg_scroll')->first();
@@ -99,7 +99,7 @@ class SiteAnalyticsController extends Controller
             'devices' => $top('device', 3),
             'browsers' => $top('browser', 6),
             'countries' => $top('country', 8),
-            'clicks' => DB::table('site_clicks')->where('created_at', '>=', $from)->whereNotNull('target')->where('target', '!=', '')
+            'clicks' => DB::table('site_clicks')->where(SiteAnalytics::own())->where('created_at', '>=', $from)->whereNotNull('target')->where('target', '!=', '')
                 ->selectRaw('target, path, count(*) as clicks')->groupBy('target', 'path')->orderByDesc('clicks')->limit(10)->get(),
             'duration' => fn ($ms) => $ms ? $this->duration((int) $ms) : '—',
             'formLabels' => SiteAnalytics::FORMS,
@@ -110,7 +110,7 @@ class SiteAnalyticsController extends Controller
     {
         $days = $this->days($request);
         $paths = SiteAnalytics::ready()
-            ? DB::table('site_clicks')->where('created_at', '>=', now()->subDays($days))
+            ? DB::table('site_clicks')->where(SiteAnalytics::own())->where('created_at', '>=', now()->subDays($days))
                 ->selectRaw('path, count(*) as clicks')->groupBy('path')->orderByDesc('clicks')->limit(50)->get()
             : collect();
         $path = (string) $request->query('path', $paths->first()->path ?? '/');
@@ -131,7 +131,7 @@ class SiteAnalyticsController extends Controller
         if (! SiteAnalytics::ready()) {
             return response()->json(['count' => 0, 'points' => []]);
         }
-        $rows = DB::table('site_clicks')
+        $rows = DB::table('site_clicks')->where(SiteAnalytics::own())
             ->where('path', (string) $request->query('path', '/'))
             ->where('device', (string) $request->query('device', 'desktop'))
             ->where('created_at', '>=', now()->subDays($this->days($request)))

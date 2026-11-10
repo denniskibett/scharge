@@ -55,7 +55,7 @@ class TrackController extends Controller
         $refHost = $refHost && $refHost !== $request->getHost() ? Str::limit(preg_replace('/^(www|m|l|lm)\./', '', strtolower($refHost)), 120, '') : null;
         $utm = array_map(fn ($v) => SiteAnalytics::clean($v, 120), array_intersect_key((array) ($d['utm'] ?? []), array_flip(['source', 'medium', 'campaign'])));
 
-        DB::table('site_page_views')->insertOrIgnore([
+        DB::table('site_page_views')->insertOrIgnore(SiteAnalytics::own() + [
             'visitor' => SiteAnalytics::visitor($request),
             'view_key' => $key,
             'path' => $path,
@@ -91,7 +91,7 @@ class TrackController extends Controller
             return;
         }
 
-        DB::table('site_clicks')->insert([
+        DB::table('site_clicks')->insert(SiteAnalytics::own() + [
             'path' => $path,
             'device' => $device,
             'x_permille' => $x,
