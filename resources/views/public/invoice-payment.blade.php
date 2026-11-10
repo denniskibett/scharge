@@ -106,6 +106,7 @@ document.addEventListener('alpine:init', () => {
     loading: false,
     errorMessage: '',
     invoiceId: {{ (int) $invoice->id }},
+    linkToken: @js(\App\Support\InvoiceLink::token($invoice->id)),
     checkoutId: null,
     status: { show: false, status: 'pending', title: '', message: '', loading: false, progress: 0 },
     pollInterval: null,
@@ -125,7 +126,7 @@ document.addEventListener('alpine:init', () => {
       if (amount > max) { this.errorMessage = `The most you can pay is KES ${max.toFixed(2)}.`; return; }
       this.loading = true;
       try {
-        const res = await fetch(`/public/invoice/${this.invoiceId}/pay`, {
+        const res = await fetch(`/public/invoice/${this.invoiceId}/pay?t=${encodeURIComponent(this.linkToken)}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
           body: JSON.stringify({ phone: this.phone, amount }),
@@ -172,7 +173,7 @@ document.addEventListener('alpine:init', () => {
     async checkStatus() {
       if (!this.checkoutId) return;
       try {
-        const res = await fetch(`/public/invoice/${this.invoiceId}/status/${encodeURIComponent(this.checkoutId)}`, { headers: { 'Accept': 'application/json' } });
+        const res = await fetch(`/public/invoice/${this.invoiceId}/status/${encodeURIComponent(this.checkoutId)}?t=${encodeURIComponent(this.linkToken)}`, { headers: { 'Accept': 'application/json' } });
         const data = await res.json();
         if (data.success && data.status === 'completed') {
           clearInterval(this.pollInterval);

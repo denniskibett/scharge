@@ -9,6 +9,7 @@ use App\Modules\Tenants\Models\Tenant;
 use App\Services\Integrations;
 use App\Services\MpesaService;
 use App\Services\Sharet\SharetCollections;
+use App\Support\InvoiceLink;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,9 +19,12 @@ class PublicInvoiceController extends Controller
     /**
      * Show the public invoice payment page
      */
-    public function show($invoiceId)
+    public function show(Request $request, $invoiceId)
     {
-        $invoice = Invoice::with(['tenancy.tenant.user', 'tenancy.unit.property', 'items'])
+        if (! InvoiceLink::valid($invoiceId, $request->query('t'))) {
+            return response()->view('public.invoice-link-invalid', [], 403);
+        }
+        $invoice = Invoice::withoutGlobalScope('company')->with(['tenancy' => fn ($q) => $q->withoutGlobalScope('company'), 'tenancy.tenant.user', 'tenancy.unit.property', 'items'])
             ->findOrFail($invoiceId);
         
         // Calculate paid amount
@@ -48,7 +52,10 @@ class PublicInvoiceController extends Controller
             'amount' => 'required|numeric|min:0.01',
         ]);
 
-        $invoice = Invoice::with(['tenancy.tenant.user'])->findOrFail($invoiceId);
+        if (! InvoiceLink::valid($invoiceId, $request->query('t'))) {
+            return response()->json(['success' => false, 'message' => 'This payment link is not valid. Ask your landlord for a new one.'], 403);
+        }
+        $invoice = Invoice::withoutGlobalScope('company')->with(['tenancy' => fn ($q) => $q->withoutGlobalScope('company'), 'tenancy.tenant.user'])->findOrFail($invoiceId);
         
         if ($invoice->status === 'paid') {
             return response()->json([
@@ -201,6 +208,9 @@ class PublicInvoiceController extends Controller
      */
     public function checkStatus(Request $request, $invoiceId, $checkoutId)
     {
+        if (! InvoiceLink::valid($invoiceId, $request->query('t'))) {
+            return response()->json(['success' => false, 'message' => 'This payment link is not valid.'], 403);
+        }
         try {
             $mpesa = MpesaService::forCheckout($checkoutId);
             $result = $mpesa->queryStatus($checkoutId);

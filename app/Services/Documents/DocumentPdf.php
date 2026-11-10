@@ -99,7 +99,7 @@ class DocumentPdf
     /** How to pay: Sharet pay link if routed there, else the company's paybill / till / bank on file. */
     private function payNotes(Invoice $invoice, ?Company $company): array
     {
-        $notes = ['Pay online: '.route('public.invoice.show', $invoice)];
+        $notes = ['Pay online: '.\App\Support\InvoiceLink::url($invoice)];
         if (Schema::hasTable('company_payment_methods') && $company) {
             $methods = \Illuminate\Support\Facades\DB::table('company_payment_methods')->where('company_id', $company->id)->where('is_active', 1)->orderByDesc('is_default')->get();
             foreach ($methods->take(3) as $m) {

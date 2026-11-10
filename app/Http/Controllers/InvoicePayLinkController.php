@@ -29,7 +29,7 @@ class InvoicePayLinkController extends Controller
         try {
             $url = $viaSharet
                 ? $collections->payLink($invoice, null, $phone)->pay_url
-                : route('public.invoice.show', $invoice);
+                : \App\Support\InvoiceLink::url($invoice);
         } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }

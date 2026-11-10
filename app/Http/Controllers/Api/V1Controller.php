@@ -40,7 +40,7 @@ class V1Controller extends Controller
         $platformEnv = $platform ? SharetClient::fromIntegration($platform)->environment : null;
         if (! $platform || Integrations::daraja($invoice->owningCompanyId())) {
             // Not routed through Sharet: hand back scharge's own invoice page (M-Pesa prompt).
-            return response()->json(['object' => 'pay_link', 'provider' => 'mpesa', 'url' => route('public.invoice.show', $invoice), 'invoice' => $this->present($invoice)]);
+            return response()->json(['object' => 'pay_link', 'provider' => 'mpesa', 'url' => \App\Support\InvoiceLink::url($invoice), 'invoice' => $this->present($invoice)]);
         }
         if ($platformEnv !== $key->environment) {
             return response()->json(['error' => 'environment_mismatch', 'message' => "This is a {$key->environment} key but payments are running in {$platformEnv} mode."], 409);

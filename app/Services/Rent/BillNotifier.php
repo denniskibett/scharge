@@ -127,7 +127,7 @@ class BillNotifier
             Log::info('Rent message: Sharet pay link not made, using the invoice page', ['invoice_id' => $invoice->id, 'error' => $e->getMessage()]);
         }
 
-        return route('public.invoice.show', $invoice);
+        return \App\Support\InvoiceLink::url($invoice);
     }
 
     private function firstName($tenancy): string

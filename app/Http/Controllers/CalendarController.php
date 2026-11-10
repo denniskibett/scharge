@@ -142,7 +142,7 @@ class CalendarController extends Controller
                 $due = Carbon::parse($r->billing_month)->startOfMonth()->addDays($day - 1);
 
                 return $this->event('rent', (string) $r->id, 'Due '.$this->money($r->total_amount - $r->total_paid), $due, [
-                    'url' => route('public.invoice.show', $r->id),
+                    'url' => \App\Support\InvoiceLink::url($r->id),
                     'extendedProps' => ['calendar' => $due->isPast() ? 'Danger' : 'Warning', 'type' => 'rent'],
                 ]);
             })->filter(fn ($e) => Carbon::parse($e['start'])->between(Carbon::parse(request('start', now()->startOfMonth())), Carbon::parse(request('end', now()->endOfMonth()))));

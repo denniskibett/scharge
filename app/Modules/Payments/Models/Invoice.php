@@ -12,6 +12,21 @@ class Invoice extends Model
     use HasFactory;
 
     /**
+     * Signed-in company users only find their own company's invoices (App\Support\CompanyAccess): by invoices.company_id,
+     * or through the tenancy when it is empty (most older invoices). The public pay page skips this (withoutGlobalScope).
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function ($query) {
+            $ids = \App\Support\CompanyAccess::ids();
+            if ($ids !== null) {
+                $query->where(fn ($q) => $q->whereIn('invoices.company_id', $ids)
+                    ->orWhere(fn ($q) => $q->whereNull('invoices.company_id')->whereHas('tenancy')));
+            }
+        });
+    }
+
+    /**
      * Mass assignable attributes
      */
     protected $fillable = [

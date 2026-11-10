@@ -73,9 +73,20 @@ The server cron must run `php artisan schedule:run` every minute (already needed
 
 Before switching it on for a company, press **Test**. It shows how many invoices the next run would create and how many tenants are due a reminder, without sending anything. Or run `php artisan rent:invoice --company=ID --dry-run`.
 
-## Found while building (not fixed here)
+## Fixed alongside
 
-- **Generate all billed every company.** `generateAllInvoices` used to bill every company's active tenancies, not just the signed-in company's. Fixed here.
-- **Invoices page lists every company's invoices.** `InvoiceController::index` loads `Invoice::with(...)->get()` with no company filter, so one company can see another's invoices. `App\Traits\CompanyScoped` exists but no model uses it.
-- **Public invoice links can be guessed.** `/public/invoice/{id}` is reachable by numeric id with no signature, so anyone can step through ids and see other tenants' bills. Reminders send these links when Sharet isn't used. A signed or random-token link would close this.
-- **The test suite can't build the database.** 23 of the existing tests fail on `wallets` already existing (duplicate wallet migrations).
+- **Generate all** used to bill every company's active tenancies. It now bills only the signed-in user's company.
+- **Companies could see each other's invoices and tenancies.**
+  - A `company` global scope on `Invoice` and `Tenancy` (`App\Support\CompanyAccess`) now limits every list, search and `{invoice}`/`{tenancy}` URL to the user's own company. It uses `company_id`, or the tenancy's unit or property for older rows.
+  - Account managers without a company see the companies they own.
+  - Sysadmins, the scheduler, queues, payment callbacks and tenants without a company are not filtered, so they behave as before.
+  - `withoutGlobalScope('company')` opts out where a cross-company read is intended (the public bill page).
+- **Public bill links could be guessed.**
+  - `/public/invoice/{id}` and its pay and status calls now need `?t=` plus a secret code: an HMAC of the id with `APP_KEY` (`App\Support\InvoiceLink`).
+  - Every link (SMS, email, PDF, calendar, API, pay-link button) is built with `InvoiceLink::url()`.
+  - Links sent before this change show "This link is not valid", and the tenant asks for the bill again. Changing `APP_KEY` would also invalidate all links.
+
+## Still open
+
+- **Payments, tenants and units** are not yet scoped the same way. Check `PaymentController` and `TenantController` lists.
+- **Existing tests:** 23 still fail on `wallets` already existing (duplicate wallet migrations).

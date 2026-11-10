@@ -14,7 +14,7 @@
   $figure = $isPaid ? (float) ($amount ?? $invoice->total_amount) : (float) ($amount ?? $due);
   $now = now()->timezone('Africa/Nairobi');
   $base = rtrim(preg_replace('#^http://#', 'https://', (string) config('app.url')), '/');
-  $billUrl = $base.'/public/invoice/'.$invoice->id;
+  $billUrl = $base.'/public/invoice/'.$invoice->id.'?t='.\App\Support\InvoiceLink::token($invoice->id);
   $logoSrc = isset($message) ? $message->embed(public_path('images/email/scharge-logo-white.png')) : asset('images/email/scharge-logo-white.png');
   $sans = "'DM Sans','Helvetica Neue',Helvetica,Arial,sans-serif";
   $display = "'Unbounded','Arial Black',Arial,sans-serif";

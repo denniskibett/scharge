@@ -9,99 +9,14 @@ use App\Services\Rent\ArrearsReminders;
 use App\Services\Rent\RentRun;
 use App\Services\Rent\RentSettings;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Schema;
-use Tests\TestCase;
 
-/**
- * Rent automation (docs/RENT_AUTOMATION.md). The repo's migrations cannot build the schema yet (SYSTEM_AUDIT.md §2),
- * so this test creates just the tables it needs, matching the live columns.
- */
-class RentAutomationTest extends TestCase
+/** Rent automation (docs/RENT_AUTOMATION.md). */
+class RentAutomationTest extends RentSchemaTestCase
 {
-    private int $sent = 0;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        Cache::flush();
-        $this->schema();
-        config(['sms.kenyasms.api_key' => 'test', 'sms.kenyasms.base_url' => 'https://sms.example.test/api/v1', 'sms.kenyasms.sandbox' => true]);
-        Http::fake(['sms.example.test/*' => function () {
-            $this->sent++;
-
-            return Http::response(['data' => ['message_id' => 'm'.$this->sent, 'status' => 'queued']]);
-        }]);
-    }
-
-    private function schema(): void
-    {
-        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs'] as $t) {
-            Schema::dropIfExists($t);
-        }
-        Schema::create('companies', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->timestamps()]);
-        Schema::create('users', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('email')->nullable(), $t->string('phone')->nullable(), $t->unsignedBigInteger('company_id')->nullable(), $t->string('password')->nullable(), $t->timestamps()]);
-        Schema::create('tenants', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('user_id'), $t->unsignedBigInteger('company_id')->nullable(), $t->timestamps()]);
-        Schema::create('properties', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->unsignedBigInteger('company_id')->nullable(), $t->decimal('water_rate', 12, 2)->nullable(), $t->timestamps()]);
-        Schema::create('units', function (Blueprint $t) {
-            $t->id();
-            $t->unsignedBigInteger('property_id');
-            $t->unsignedBigInteger('company_id')->nullable();
-            $t->string('unit_number');
-            $t->string('unit_type')->default('1br');
-            $t->decimal('rent_amount', 12, 2);
-            $t->decimal('water_charge', 12, 2)->default(0);
-            $t->decimal('service_charge', 12, 2)->default(0);
-            $t->decimal('garbage_charge', 12, 2)->default(0);
-            $t->decimal('security_charge', 12, 2)->default(0);
-            $t->string('water_billing_type')->default('consumption');
-            $t->decimal('custom_water_rate', 12, 2)->nullable();
-            $t->string('status')->default('occupied');
-            $t->timestamps();
-        });
-        Schema::create('tenancies', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('tenant_id'), $t->unsignedBigInteger('unit_id'),
-            $t->date('move_in_date'), $t->date('move_out_date')->nullable(), $t->text('notes')->nullable(), $t->string('status')->default('active'), $t->timestamps()]);
-        Schema::create('invoices', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('tenancy_id'), $t->string('invoice_type'), $t->date('billing_month')->nullable(),
-            $t->decimal('total_amount', 12, 2), $t->decimal('total_paid', 12, 2)->default(0), $t->string('status')->default('draft'), $t->unsignedBigInteger('company_id')->nullable(), $t->timestamps()]);
-        Schema::create('invoice_items', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('invoice_id'), $t->string('item_type'), $t->string('description'), $t->decimal('amount', 12, 2),
-            $t->decimal('paid_amount', 12, 2)->default(0), $t->unsignedBigInteger('payment_id')->nullable(), $t->decimal('water_units_used', 12, 2)->nullable(), $t->unsignedBigInteger('company_id')->nullable(), $t->timestamps(), $t->softDeletes()]);
-        Schema::create('water_readings', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('unit_id'), $t->decimal('previous_reading', 12, 2), $t->decimal('current_reading', 12, 2),
-            $t->decimal('consumption', 12, 2)->nullable(), $t->date('reading_date'), $t->timestamps()]);
-        Schema::create('company_integrations', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->string('provider'), $t->text('credentials')->nullable(),
-            $t->boolean('enabled')->default(false), $t->unsignedBigInteger('updated_by')->nullable(), $t->timestamp('last_tested_at')->nullable(), $t->boolean('last_test_ok')->nullable(), $t->string('last_test_message')->nullable(), $t->timestamps()]);
-        Schema::create('sms_logs', fn (Blueprint $t) => [$t->id(), $t->string('recipient_phone'), $t->text('message'), $t->string('status')->default('pending'), $t->timestamps()]);
-        (require base_path('database/migrations/2026_11_10_120000_create_rent_messages_table.php'))->up();
-    }
-
-    /** A company with one property and occupied units; returns tenancy ids. */
-    private function company(string $name, array $units, bool $automation = true, array $settings = []): array
-    {
-        $companyId = DB::table('companies')->insertGetId(['name' => $name]);
-        $propertyId = DB::table('properties')->insertGetId(['name' => $name.' Court', 'company_id' => $companyId, 'water_rate' => 100]);
-        $ids = [];
-        foreach ($units as $i => $u) {
-            $unitId = DB::table('units')->insertGetId($u + ['property_id' => $propertyId, 'unit_number' => 'A'.($i + 1), 'rent_amount' => 10000]);
-            $userId = DB::table('users')->insertGetId(['name' => 'Tenant '.$name.' '.($i + 1), 'phone' => '07120000'.str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT)]);
-            $tenantId = DB::table('tenants')->insertGetId(['user_id' => $userId, 'company_id' => $companyId]);
-            $ids[] = DB::table('tenancies')->insertGetId(['company_id' => $companyId, 'tenant_id' => $tenantId, 'unit_id' => $unitId, 'move_in_date' => '2026-01-15', 'status' => 'active']);
-        }
-        if ($automation) {
-            CompanyIntegration::create(['company_id' => $companyId, 'provider' => RentSettings::PROVIDER, 'enabled' => true,
-                'credentials' => $settings + ['invoice_day' => '1', 'due_day' => '5', 'send_bill' => 'yes', 'reminder_days' => '1, 7, 14', 'channel' => 'sms']]);
-        }
-
-        return ['company' => $companyId, 'tenancies' => $ids];
-    }
-
-    private function month(string $ym): CarbonImmutable
-    {
-        return CarbonImmutable::parse($ym.'-01', RentSettings::TZ);
-    }
-
     public function test_bills_every_active_tenancy_once_with_all_fixed_charges_and_last_months_water(): void
     {
         $a = $this->company('Sunrise', [

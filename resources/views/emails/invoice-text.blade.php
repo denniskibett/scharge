@@ -20,6 +20,6 @@ This bill is fully paid. Keep this email as your receipt.@if ($reference) Transa
 Pay securely: {{ $payUrl }}
 
 @endif
-View this bill: {{ $base }}/public/invoice/{{ $invoice->id }}
+View this bill: {{ $base }}/public/invoice/{{ $invoice->id }}?t={{ \App\Support\InvoiceLink::token($invoice->id) }}
 
 scharge · Sharet Africa · Nairobi, Kenya

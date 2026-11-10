@@ -15,6 +15,17 @@ class Tenancy extends Model
 {
     use HasFactory;
 
+    /** Signed-in company users only find their own company's tenancies (App\Support\CompanyAccess). */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function ($query) {
+            $ids = \App\Support\CompanyAccess::ids();
+            if ($ids !== null) {
+                \App\Support\CompanyAccess::tenancyFilter($query, $ids);
+            }
+        });
+    }
+
     protected $fillable = [
         'tenant_id', 
         'unit_id', 
