@@ -213,6 +213,9 @@ Route::middleware(['auth', 'role:sysadmin|account_manager'])->prefix('admin/webs
         Route::get('/heatmap', 'heatmap')->name('heatmap');
         Route::get('/clicks', 'clicks')->name('clicks');
     });
+// Same section, second tab: the Sharet Africa growth hub's numbers for scharge (App\Services\Sharet\GrowthHub)
+Route::get('/admin/website-analytics/growth', [App\Http\Controllers\Admin\GrowthController::class, 'index'])
+    ->middleware(['auth', 'role:sysadmin|account_manager'])->name('site-analytics.growth');
 
 // Setup > Server security: VPS defense agent report (ops/defense-agent) for scharge sysadmins
 Route::get('/admin/security', [App\Http\Controllers\Admin\ServerSecurityController::class, 'index'])

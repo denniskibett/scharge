@@ -11,6 +11,10 @@
 <div>
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
+      <div class="mb-3 flex gap-1 text-sm font-medium">
+        <span class="rounded-md bg-gray-900 px-3 py-1.5 text-white dark:bg-white dark:text-gray-900" aria-current="page">Our website report</span>
+        <a href="{{ route('site-analytics.growth', ['days' => in_array($days, [7, 30, 90], true) ? $days : 30]) }}" class="rounded-md px-3 py-1.5 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Sharet growth hub</a>
+      </div>
       <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Website analytics</h1>
       <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">What visitors to the scharge website read, where they came from and which forms they sent. Stored in our own database: no cookies, no IP addresses, no third parties, and visitors who ask not to be tracked are skipped. Signed-in users are not counted. Tag links you share with <code>?utm_source=…&amp;utm_medium=…&amp;utm_campaign=…</code> (docs/MARKETING_DISTRIBUTION.md).</p>
     </div>
