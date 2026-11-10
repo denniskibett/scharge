@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /*
 | Tenant suggestion box (scharge app): anonymous on purpose. Only the landlord company and the text are kept, never
 | the tenant, unit or phone, so admins can read honest suggestions.
-|   php artisan migrate --path=database/migrations/2026_11_11_000700_create_tenant_suggestions.php --force
+|   php artisan migrate --path=database/migrations/2026_11_11_001000_create_tenant_suggestions.php --force
 */
 return new class extends Migration
 {

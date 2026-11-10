@@ -44,7 +44,7 @@ class MobileAppTest extends RentSchemaTestCase
         }
         Schema::table('users', fn (Blueprint $t) => $t->tinyInteger('status')->default(0));
         (require base_path('database/migrations/2026_11_11_000600_create_mobile_sessions.php'))->up();
-        (require base_path('database/migrations/2026_11_11_000700_create_tenant_suggestions.php'))->up();
+        (require base_path('database/migrations/2026_11_11_001000_create_tenant_suggestions.php'))->up();
         if (file_exists($brands = base_path('database/migrations/2026_11_11_000300_create_company_brands.php'))) {
             (require $brands)->up();
         }

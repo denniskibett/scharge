@@ -108,7 +108,7 @@ cross-company / cross-tenant checks for bills, rent, tenants, units, meters, rep
 
 ## Deploying
 
-- Migrations: `2026_11_11_000600_create_mobile_sessions.php` and `2026_11_11_000700_create_tenant_suggestions.php`
+- Migrations: `2026_11_11_000600_create_mobile_sessions.php` and `2026_11_11_001000_create_tenant_suggestions.php`
   (both listed in `scripts/deploy-migrations.txt`).
 - The APKs for the website: build them in `scharge-app` (see its README) and copy them to `public/downloads/` here
   before `scripts/push.sh`: `scharge-app.apk` (any phone), `scharge-app-arm64.apk` (newer phones),
