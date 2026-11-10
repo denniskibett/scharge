@@ -52,8 +52,12 @@
             <h2 class="text-2xl font-bold text-gray-800 dark:text-white/90 text-center mb-3">
                 @if($user->hasRole('sysadmin') && $status === 'no_company')
                     System Administrator Access
+                @elseif($status === 'no_company')
+                    Activate your account
+                @elseif($status === 'inactive')
+                    Account deactivated
                 @else
-                    Account Pending Verification
+                    Confirm your email
                 @endif
             </h2>
             
@@ -148,6 +152,53 @@
                 @endif
             </div>
             
+            @if (session('status') || session('error') || $errors->any())
+                <div class="mb-6 rounded-xl px-4 py-3 text-sm {{ session('error') || $errors->any() ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300' : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300' }}">
+                    {{ session('error') ?? session('status') ?? $errors->first() }}
+                </div>
+            @endif
+
+            {{-- Step 1: confirm the email with a code (send / resend / enter it) --}}
+            @if (in_array($status, ['pending_verification', 'unverified'], true))
+                <div class="mb-6 rounded-2xl border border-gray-200 p-6 dark:border-gray-800">
+                    <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">We'll email a {{ (int) config('kyc.email_otp.digits', 6) }}-digit code to <strong class="text-gray-800 dark:text-white/90">{{ $user->email }}</strong>. Didn't get it? Send another one, and check your spam folder.</p>
+                    <div class="flex flex-col gap-3 sm:flex-row">
+                        <form method="POST" action="{{ route('email-code.resend') }}" class="sm:flex-1">
+                            @csrf
+                            <button type="submit" class="w-full rounded-lg bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700">Email me a code</button>
+                        </form>
+                        <a href="{{ route('email-code.show') }}" class="w-full rounded-lg border border-gray-300 px-5 py-3 text-center text-sm font-medium text-gray-700 hover:bg-gray-50 sm:flex-1 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800">I have a code</a>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Step 2: activate by setting up their business (App\Http\Controllers\Auth\AccountActivationController) --}}
+            @if ($status === 'no_company' && ! $user->hasAnyRole(['sysadmin', 'account_manager']))
+                <form method="POST" action="{{ route('account.activate') }}" class="mb-6 rounded-2xl border border-gray-200 p-6 text-left dark:border-gray-800">
+                    @csrf
+                    <div class="space-y-4">
+                        <div>
+                            <label for="business_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Business name</label>
+                            <input id="business_name" name="business_name" value="{{ old('business_name', $user->name) }}" required maxlength="120" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
+                        </div>
+                        <div>
+                            <label for="kind" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">What do you do?</label>
+                            <select id="kind" name="kind" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
+                                @foreach (\App\Http\Controllers\Auth\AccountActivationController::KINDS as $k => $label)
+                                    <option value="{{ $k }}" @selected(old('kind', 'manager') === $k)>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label for="phone" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Business phone (M-PESA)</label>
+                            <input id="phone" name="phone" type="tel" value="{{ old('phone', $user->phone) }}" required placeholder="0712 345 678" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
+                        </div>
+                    </div>
+                    <button type="submit" class="mt-5 w-full rounded-lg bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700">Activate my account</button>
+                    <p class="mt-3 text-center text-xs text-gray-500 dark:text-gray-400">Joining an existing business instead? Ask its admin to add you under Team.</p>
+                </form>
+            @endif
+
             <!-- Action Buttons -->
             <div class="flex justify-center gap-4">
                 <!-- For sysadmin with no company - give option to access dashboard -->

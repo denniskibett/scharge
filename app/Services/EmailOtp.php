@@ -106,7 +106,7 @@ class EmailOtp
         }
 
         Cache::forget(self::key($user));
-        $user->forceFill(['email_confirmed_at' => now()])->save();
+        $user->forceFill(['email_confirmed_at' => now(), 'email_verified_at' => $user->email_verified_at ?? now()])->save(); // the code also verifies the email
         KycLog::record('otp.ok', $user, ['attempt' => $s['attempts'] + 1, 'seconds_since_sent' => time() - $s['sent_at']]);
 
         return ['ok' => true, 'message' => 'Email confirmed. Thank you.'];

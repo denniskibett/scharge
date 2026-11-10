@@ -374,6 +374,11 @@ class UserController extends Controller
             // Set email_verified_at to now
             $user->email_verified_at = now();
             $user->status = 0; // 0 = active
+            // Activating also counts as verifying the email, so they don't land on the pending page.
+            $user->email_verified_at ??= now();
+            if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'email_confirmed_at') && empty($user->email_confirmed_at)) {
+                $user->email_confirmed_at = now();
+            }
             $user->save();
 
             return response()->json([

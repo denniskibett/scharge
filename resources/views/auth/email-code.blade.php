@@ -24,8 +24,19 @@
 
 <form class="auth-view" method="POST" action="{{ route('email-code.resend') }}" style="margin-top:12px">
 @csrf
-<p class="auth-foot">No email? <button class="link-btn" type="submit" @disabled($wait > 0)>{{ $wait > 0 ? "Send another in {$wait}s" : 'Send another code' }}</button></p>
+<p class="auth-foot">No email? <button class="link-btn" type="submit" id="resend-code" data-wait="{{ $wait }}" @disabled($wait > 0)>{{ $wait > 0 ? "Send another in {$wait}s" : 'Send another code' }}</button></p>
 </form>
+<script>
+(function () { // count down, then let them ask for another code without reloading
+  var b = document.getElementById('resend-code'); if (!b) return;
+  var left = parseInt(b.dataset.wait || '0', 10); if (left <= 0) return;
+  var t = setInterval(function () {
+    left--;
+    if (left <= 0) { clearInterval(t); b.disabled = false; b.textContent = 'Send another code'; }
+    else { b.textContent = 'Send another in ' + left + 's'; }
+  }, 1000);
+})();
+</script>
 
 <details class="auth-view" style="margin-top:8px" @if ($errors->has('email')) open @endif>
 <summary class="link-btn" style="cursor:pointer">Wrong email address?</summary>

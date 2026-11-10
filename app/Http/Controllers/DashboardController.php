@@ -67,9 +67,15 @@ class DashboardController extends Controller
         }
     }
         
+    /** Email counts as verified by the old link or by the emailed code (KYC). */
+    private function emailVerified($user): bool
+    {
+        return ! is_null($user->email_verified_at) || ! empty($user->email_confirmed_at);
+    }
+
     private function isUserReady($user)
     {
-        if (is_null($user->email_verified_at)) {
+        if (! $this->emailVerified($user)) {
             return false;
         }
         
@@ -87,8 +93,8 @@ class DashboardController extends Controller
 
     private function getUserNotReadyReason($user)
     {
-        if (is_null($user->email_verified_at)) {
-            return ['message' => 'Please verify your email address to access the dashboard. Check your inbox for the verification link.', 'status' => 'unverified'];
+        if (! $this->emailVerified($user)) {
+            return ['message' => 'Confirm your email to activate your account. We\'ll email you a code.', 'status' => 'unverified'];
         }
         
         if ($user->status == 1) {
@@ -100,7 +106,7 @@ class DashboardController extends Controller
         }
         
         if (!$user->hasRole('sysadmin') && is_null($user->company_id)) {
-            return ['message' => 'Your account is not assigned to any company. Please contact your system administrator.', 'status' => 'no_company'];
+            return ['message' => 'Your email is confirmed. Set up your business to activate your account, or ask your business admin to add you to their team.', 'status' => 'no_company'];
         }
         
         return ['message' => 'Your account requires further configuration. Please contact support.', 'status' => 'unknown'];

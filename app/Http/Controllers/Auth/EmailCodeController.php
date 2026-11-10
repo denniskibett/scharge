@@ -15,7 +15,11 @@ class EmailCodeController extends Controller
     public function show(Request $request)
     {
         $user = $request->user();
-        if (! EmailOtp::needs($user)) {
+        if (filled($user->email_confirmed_at) || blank($user->email)) {   // already confirmed (needs() is also false while mail is off)
+            if (filled($user->email_confirmed_at) && ! $user->email_verified_at) {
+                $user->forceFill(['email_verified_at' => $user->email_confirmed_at])->save();
+            }
+
             return redirect()->intended(route('dashboard'));
         }
         // First visit: send a code straight away.

@@ -592,6 +592,9 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::post('/change', 'change')->middleware('throttle:5,1')->name('change');
     });
 
+    // Self-serve activation: a sign-up with no business sets one up (pending page form).
+    Route::post('/account/activate', [\App\Http\Controllers\Auth\AccountActivationController::class, 'store'])->middleware('throttle:10,1')->name('account.activate');
+
     // Header search (Breve-style quick switcher)
     Route::get('/search', \App\Http\Controllers\SearchController::class)->middleware('throttle:120,1')->name('search');
 
