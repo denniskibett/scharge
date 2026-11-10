@@ -3,3 +3,4 @@
 2026_11_10_120000_create_rent_messages_table.php
 2026_11_11_000100_create_paybill_payments_and_rent_holds.php
 2026_11_11_000200_create_bookings_and_unit_channels.php
+2026_11_11_000600_create_mobile_sessions.php
