@@ -476,6 +476,16 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::post('/settings/white-label', [App\Http\Controllers\BrandController::class, 'update'])->name('brand.update');
         Route::post('/settings/white-label/remove', [App\Http\Controllers\BrandController::class, 'destroy'])->name('brand.destroy');
         Route::get('/settings/white-label/export', [App\Http\Controllers\BrandController::class, 'export'])->middleware('throttle:6,1')->name('brand.export');
+        Route::get('/settings/data-agreement', [App\Http\Controllers\AgreementController::class, 'show'])->name('dpa.show');
+        Route::post('/settings/data-agreement', [App\Http\Controllers\AgreementController::class, 'accept'])->name('dpa.accept');
+        // Hosted company website (docs/COMPANY_WEBSITE.md)
+        Route::get('/settings/website', [App\Http\Controllers\WebsiteController::class, 'index'])->name('website.index');
+        Route::post('/settings/website/start', [App\Http\Controllers\WebsiteController::class, 'start'])->name('website.start');
+        Route::post('/settings/website/pages', [App\Http\Controllers\WebsiteController::class, 'store'])->name('website.store');
+        Route::get('/settings/website/pages/{page}', [App\Http\Controllers\WebsiteController::class, 'edit'])->name('website.edit');
+        Route::post('/settings/website/pages/{page}', [App\Http\Controllers\WebsiteController::class, 'update'])->name('website.update');
+        Route::get('/settings/website/pages/{page}/preview', [App\Http\Controllers\WebsiteController::class, 'preview'])->name('website.preview');
+        Route::post('/settings/website/pages/{page}/delete', [App\Http\Controllers\WebsiteController::class, 'destroy'])->name('website.destroy');
         Route::get('/integrations/sharet/connected', [App\Http\Controllers\IntegrationController::class, 'connected'])->name('integrations.connected');
         Route::post('/integrations/sharet_payouts/connect', [App\Http\Controllers\IntegrationController::class, 'connect'])->name('integrations.connect');
         Route::put('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'update'])->name('integrations.update');
@@ -537,6 +547,8 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::post('/documents/{document}/read', [App\Http\Controllers\KycController::class, 'reread'])->middleware('throttle:10,1')->name('reread');
         Route::post('/documents/{document}/remove', [App\Http\Controllers\KycController::class, 'destroy'])->name('destroy');
     });
+    Route::get('/admin/website-approvals', [App\Http\Controllers\WebsiteReviewController::class, 'index'])->name('website.review.index');
+    Route::post('/admin/website-approvals/{page}', [App\Http\Controllers\WebsiteReviewController::class, 'decide'])->name('website.review.decide');
     Route::prefix('admin/kyc')->name('kyc.review.')->group(function () {
         Route::get('/', [App\Http\Controllers\KycReviewController::class, 'index'])->name('index');
         Route::get('/{kyc}', [App\Http\Controllers\KycReviewController::class, 'show'])->name('show');
@@ -847,3 +859,7 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
     Route::post('/approve-deposit/{transactionId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiApproveDeposit'])->name('api.wallet.approve-deposit');
     Route::post('/reject-deposit/{transactionId}', [App\Modules\Payments\Controllers\WalletController::class, 'apiRejectDeposit'])->name('api.wallet.reject-deposit');
 });
+
+// A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
+Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1')->name('site.contact');
+Route::fallback([App\Http\Controllers\SiteController::class, 'fallback']);

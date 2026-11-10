@@ -126,7 +126,8 @@ class CompanyExport
             $t['tenant_wallet_transactions'] = DB::table('transactions')->whereIn('wallet_id', (clone $walletIds));
         }
         foreach (['expenses', 'expense_categories', 'payees', 'maintenances', 'meters', 'meter_readings', 'gate_passes', 'visitors', 'visitor_places', 'security',
-            'sms_templates', 'calendar_events', 'company_payment_methods', 'rent_messages', 'paybill_payments', 'bookings', 'unit_channels', 'unit_photos', 'unit_managements'] as $table) {
+            'sms_templates', 'calendar_events', 'company_payment_methods', 'rent_messages', 'paybill_payments', 'bookings', 'unit_channels', 'unit_photos', 'unit_managements',
+            'company_pages', 'company_agreements'] as $table) {
             if ($has($table) && $col($table, 'company_id')) {
                 $t[$table] = $byCompany($table);
             }

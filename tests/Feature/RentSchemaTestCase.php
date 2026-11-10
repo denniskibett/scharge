@@ -50,7 +50,7 @@ abstract class RentSchemaTestCase extends TestCase
 
     protected function schema(): void
     {
-        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements', 'paybill_payments', 'rent_holds', 'transfers', 'transactions', 'wallets', 'permissions', 'role_has_permissions', 'model_has_permissions', 'bookings', 'unit_channels', 'company_brands', 'api_keys', 'crm_follow_ups', 'company_kyc', 'kyc_documents', 'unit_photos'] as $t) {
+        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements', 'paybill_payments', 'rent_holds', 'transfers', 'transactions', 'wallets', 'permissions', 'role_has_permissions', 'model_has_permissions', 'bookings', 'unit_channels', 'company_brands', 'api_keys', 'crm_follow_ups', 'company_kyc', 'kyc_documents', 'unit_photos', 'company_pages', 'company_agreements'] as $t) {
             Schema::dropIfExists($t);
         }
         Schema::create('companies', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('lifecycle')->nullable(), $t->unsignedBigInteger('owner_id')->nullable(), $t->timestamps()]);
@@ -103,6 +103,7 @@ abstract class RentSchemaTestCase extends TestCase
         (require base_path('database/migrations/2026_11_11_000200_create_bookings_and_unit_channels.php'))->up();
         (require base_path('database/migrations/2026_11_11_000300_create_company_brands.php'))->up();
         (require base_path('database/migrations/2026_11_11_000400_create_kyc_tables.php'))->up();
+        (require base_path('database/migrations/2026_11_11_000500_create_company_pages_and_agreements.php'))->up();
         Schema::create('crm_follow_ups', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('user_id')->nullable(), $t->unsignedBigInteger('assigned_to')->nullable(),
             $t->unsignedBigInteger('created_by')->nullable(), $t->string('type'), $t->string('status')->default('open'), $t->string('title')->nullable(), $t->text('notes')->nullable(),
             $t->timestamp('due_at')->nullable(), $t->timestamp('done_at')->nullable(), $t->string('outcome')->nullable(), $t->integer('score')->nullable(), $t->string('token')->nullable(), $t->json('details')->nullable(), $t->timestamps()]);

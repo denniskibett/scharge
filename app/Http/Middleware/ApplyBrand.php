@@ -32,7 +32,10 @@ class ApplyBrand
                 return redirect()->route('login')->withErrors(['email' => 'This account is not part of '.$own->display_name.'. Sign in at scharge.sharet.africa instead.']);
             }
             if ($request->is('/')) {
-                return redirect()->route($user ? 'dashboard' : 'login');
+                // The company's own website home page once scharge approved it (docs/COMPANY_WEBSITE.md); else the portal.
+                $live = \App\Models\CompanyPage::where('company_id', $own->company_id)->where('slug', '')->whereNotNull('published_at')->exists();
+
+                return $live ? response(app(\App\Http\Controllers\SiteController::class)->page($request, '')) : redirect()->route($user ? 'dashboard' : 'login');
             }
             if ($request->routeIs('register', 'register.*')) {
                 return redirect()->route('login');

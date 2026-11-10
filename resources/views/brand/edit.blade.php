@@ -80,6 +80,7 @@
           @endforeach
         </dl>
         <a href="{{ route('brand.export', $q) }}" class="{{ $outline }} mt-4 w-full">Download all data</a>
+        <a href="{{ route('dpa.show', $q) }}" class="mt-2 block text-center text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">{{ \App\Models\CompanyAgreement::dpaAccepted($company->id) ? 'Data-processing agreement: accepted' : 'Read and accept the data-processing agreement' }}</a>
       </div>
 
       <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
