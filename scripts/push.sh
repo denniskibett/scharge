@@ -37,7 +37,6 @@ trap finish EXIT
 
 echo "==> Front-end build"
 npm run build
-rm -f public/hot   # a running 'npm run dev' leaves this; on the server it would point every page at your Mac
 
 if [ "$skip_tests" -eq 0 ]; then
   echo "==> Tests (${TESTS})"
