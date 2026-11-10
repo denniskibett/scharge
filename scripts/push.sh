@@ -62,7 +62,8 @@ else
 fi
 
 # The app (no --delete: the server keeps files the repo does not have).
-rsync -az --human-readable "${mode[@]}" -e "ssh ${SSH_OPTS[*]}" \
+# --checksum: only files whose content differs travel (timestamps differ on almost everything).
+rsync -az --checksum --human-readable "${mode[@]}" -e "ssh ${SSH_OPTS[*]}" \
   --exclude='.env' --exclude='.env.*' --exclude='.git/' --exclude='.DS_Store' --exclude='.phpunit.result.cache' \
   --exclude='node_modules/' --exclude='vendor/' --exclude='tests/' --exclude='.claude/' --exclude='ops/' \
   --exclude='*.sql' --exclude='*.sql.gz' --exclude='database/*.sqlite' \
@@ -72,8 +73,8 @@ rsync -az --human-readable "${mode[@]}" -e "ssh ${SSH_OPTS[*]}" \
 
 # Public assets to the web root too (built CSS/JS, images), never its index.php or .htaccess.
 if [ "$web_ok" -eq 1 ]; then
-  rsync -az --human-readable "${mode[@]}" -e "ssh ${SSH_OPTS[*]}" \
-    --exclude='index.php' --exclude='.htaccess' --exclude='hot' --exclude='storage' --exclude='uploads/' --exclude='.well-known/' \
+  rsync -az --checksum --human-readable "${mode[@]}" -e "ssh ${SSH_OPTS[*]}" \
+    --exclude='.DS_Store' --exclude='index.php' --exclude='.htaccess' --exclude='hot' --exclude='storage' --exclude='uploads/' --exclude='.well-known/' \
     public/ "${DEPLOY_HOST}:${WEB_PATH}/"
 fi
 
