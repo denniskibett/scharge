@@ -42,8 +42,11 @@ Route::prefix('v1/app')->group(function () {
     Route::post('/auth/verify', [Mobile\AuthController::class, 'verifyCode'])->middleware('throttle:10,1,app-verify');
     Route::post('/auth/password', [Mobile\AuthController::class, 'password'])->middleware('throttle:5,1,app-password');
 
+    Route::post('/errors', [Mobile\DeviceController::class, 'error'])->middleware('throttle:30,1,app-errors'); // crash reports, signed in or not
+
     Route::middleware(['throttle:180,1,app', AuthenticateMobile::class])->group(function () {
         Route::get('/me', [Mobile\AuthController::class, 'me']);
+        Route::post('/device', [Mobile\DeviceController::class, 'update']); // push address and versions (docs/APP_DATA.md)
         Route::post('/auth/pin', [Mobile\AuthController::class, 'setPin']);
         Route::post('/auth/unlock', [Mobile\AuthController::class, 'unlock'])->middleware('throttle:10,1,app-unlock');
         Route::post('/auth/logout', [Mobile\AuthController::class, 'logout']);
@@ -74,6 +77,7 @@ Route::prefix('v1/app')->group(function () {
         Route::post('/meters/{id}/readings', [Mobile\FieldController::class, 'record'])->whereNumber('id')->middleware(MobileCan::class.':staff,water.manage');
         Route::get('/repairs', [Mobile\FieldController::class, 'repairs'])->middleware(MobileCan::class.':staff,maintenance.view');
         Route::post('/repairs/{id}', [Mobile\FieldController::class, 'updateRepair'])->whereNumber('id')->middleware(MobileCan::class.':staff,maintenance.manage');
+        Route::post('/repairs/{id}/visit', [Mobile\FieldController::class, 'visit'])->whereNumber('id')->middleware(MobileCan::class.':staff,maintenance.manage');
 
         // Gate & visitors: guards, managers, BnB hosts and tenants, each on their own units (Gate service).
         Route::get('/gate/passes', [Mobile\FieldController::class, 'passes']);

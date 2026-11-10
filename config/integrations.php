@@ -155,6 +155,18 @@ return [
         ],
     ],
 
+    'mobile_app' => [
+        'name' => 'scharge app',
+        'scope' => 'platform',
+        'category' => 'App',
+        'description' => 'Push notifications for the scharge app (Firebase Cloud Messaging, free per message): bills, reminders and receipts go to the phone first, SMS only when the app is not installed. Also the oldest app version still allowed.',
+        'color' => '#FFA000',
+        'fields' => [
+            'firebase_service_account' => ['label' => 'Firebase service account (JSON)', 'secret' => true, 'help' => 'Firebase console › Project settings › Service accounts › Generate new private key. Paste the whole file content on one line.'],
+            'min_version' => ['label' => 'Oldest app version allowed', 'placeholder' => '1.0.0', 'help' => 'Older apps are asked to update. Leave blank to allow all.'],
+        ],
+    ],
+
     'document_reader' => [
         'name' => 'Document reading (KYC)',
         'scope' => 'platform',

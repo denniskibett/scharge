@@ -31,7 +31,7 @@ trait Presents
             'unit' => $tenancy?->unit?->unit_number,
             'property' => $tenancy?->unit?->property?->name,
             // The secret bill link: M-Pesa prompt or Sharet, the same page tenants get by SMS.
-            'pay_url' => InvoiceLink::url($i),
+            'pay_url' => InvoiceLink::url($i).'&from=app', // Pay presses from the app are counted as app (PaymentAttempts)
             'created_at' => $i->created_at?->toIso8601String(),
         ];
         if ($withItems) {

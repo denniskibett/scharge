@@ -15,9 +15,9 @@ class MobileSession extends Model
 
     protected $fillable = ['user_id', 'device_name', 'platform', 'signed_in_with'];
 
-    protected $hidden = ['token_hash', 'pin_hash'];
+    protected $hidden = ['token_hash', 'pin_hash', 'push_token'];
 
-    protected $casts = ['last_used_at' => 'datetime', 'pin_failures' => 'integer'];
+    protected $casts = ['last_used_at' => 'datetime', 'pin_failures' => 'integer', 'push_token_at' => 'datetime'];
 
     public function user()
     {

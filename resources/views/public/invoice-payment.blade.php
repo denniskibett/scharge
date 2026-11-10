@@ -126,7 +126,7 @@ document.addEventListener('alpine:init', () => {
       if (amount > max) { this.errorMessage = `The most you can pay is KES ${max.toFixed(2)}.`; return; }
       this.loading = true;
       try {
-        const res = await fetch(`/public/invoice/${this.invoiceId}/pay?t=${encodeURIComponent(this.linkToken)}`, {
+        const res = await fetch(`/public/invoice/${this.invoiceId}/pay?t=${encodeURIComponent(this.linkToken)}${new URLSearchParams(location.search).get('from') === 'app' ? '&from=app' : ''}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
           body: JSON.stringify({ phone: this.phone, amount }),

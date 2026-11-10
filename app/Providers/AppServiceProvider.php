@@ -23,6 +23,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Payment attempts (docs/APP_DATA.md): how each M-Pesa prompt and Sharet pay page ended.
+        \App\Models\MpesaStk::updated(fn ($stk) => $stk->wasChanged('response_code')
+            && \App\Services\Payments\PaymentAttempts::stkResult($stk->checkout_request_id, $stk->response_code, $stk->response_description));
+        \App\Models\SharetPaymentRequest::updated(fn ($r) => $r->wasChanged('status') && \App\Services\Payments\PaymentAttempts::sharetResult((int) $r->id, (string) $r->status));
+
+        // Receipts on the phone: a push to the tenant when a payment lands (free; docs/APP_DATA.md).
+        \App\Modules\Payments\Models\Payment::created(function ($payment) {
+            if ($payment->status !== 'completed' || ! \App\Services\App\PushService::enabled()) {
+                return;
+            }
+            $userId = \App\Support\CompanyAccess::bypass(fn () => \App\Models\Tenant::find($payment->tenant_id)?->user_id);
+            if ($userId) {
+                dispatch(fn () => app(\App\Services\App\PushService::class)->toUser((int) $userId, 'Payment received',
+                    'KES '.number_format((float) $payment->amount).' received. Thank you.', ['type' => 'receipt', 'invoice_id' => (string) $payment->invoice_id]))->afterResponse();
+            }
+        });
+
         // Sign-in locations (docs/SIGN_IN_LOCATIONS.md): website sign-ins and failed attempts.
         \Illuminate\Support\Facades\Event::listen(\Illuminate\Auth\Events\Login::class, fn ($e) => app(\App\Services\Analytics\SignIns::class)
             ->record($e->user, request(), 'web', $e->remember ? 'remember' : 'password'));

@@ -202,6 +202,12 @@ Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->na
 Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1')->name('track');
 
 // Sales CRM > Website analytics (traffic, UTM campaigns, conversions, heatmap) for scharge staff
+// scharge staff › App health (docs/APP_DATA.md)
+Route::middleware(['auth', 'role:sysadmin'])->group(function () {
+    Route::get('/admin/app', [App\Http\Controllers\Admin\AppHealthController::class, 'index'])->name('app-health.index');
+    Route::post('/admin/app/errors/{id}/fixed', [App\Http\Controllers\Admin\AppHealthController::class, 'resolve'])->whereNumber('id')->name('app-health.resolve');
+});
+
 // scharge staff › Sign-in locations (docs/SIGN_IN_LOCATIONS.md)
 Route::middleware(['auth', 'role:sysadmin|account_manager'])->get('/admin/sign-ins', [App\Http\Controllers\Admin\SignInController::class, 'index'])->name('sign-ins.index');
 
@@ -557,6 +563,10 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::get('/{kyc}', [App\Http\Controllers\KycReviewController::class, 'show'])->name('show');
         Route::post('/{kyc}', [App\Http\Controllers\KycReviewController::class, 'decide'])->name('decide');
     });
+
+    // Renter demand heatmaps: free for every landlord; scharge staff see the same at /admin/demand (docs/RENTER_DEMAND.md).
+    Route::get('/demand', [App\Http\Controllers\DemandController::class, 'index'])->middleware('access:properties')->name('demand.index');
+    Route::get('/admin/demand', [App\Http\Controllers\DemandController::class, 'index'])->middleware('role:sysadmin|account_manager')->name('demand.admin');
 
     // Enquiries for this landlord's listings (docs/ONBOARDING.md).
     Route::middleware('access:properties')->group(function () {

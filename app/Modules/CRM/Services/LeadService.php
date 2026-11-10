@@ -150,6 +150,8 @@ class LeadService
             $action = $listing['action'] ?? 'Viewing request';
             // The landlord's (a scharge customer) or an onboarding lead for scharge's sales team (EnquiryRouter).
             $route = app(\App\Services\Listings\EnquiryRouter::class)->route($listing['slug'] ?? null);
+            $item = ! empty($listing['slug']) ? app(\App\Services\ListingCatalog::class)->find($listing['slug']) : null;
+            app(\App\Services\Listings\ListingDemand::class)->record(request(), 'viewing', $listing['kind'] ?? null, $item['area'] ?? ($listing['area'] ?? null), isset($item['price']) ? (int) $item['price'] : null, null);
             $listing += array_filter(['property_id' => $route['property_id'], 'route' => $route['route']]);
 
             $open = CrmFollowUp::where('type', 'viewing')->where('user_id', $user->id)->whereIn('status', ['open', 'scheduled'])
@@ -195,6 +197,7 @@ class LeadService
                 .(! empty($search['area']) && $search['area'] !== 'All' ? " in {$search['area']}" : '')
                 .(! empty($search['max']) ? ' up to KES '.number_format((int) $search['max']) : '');
 
+            app(\App\Services\Listings\ListingDemand::class)->record(request(), 'alert', $search['kind'] ?? null, $search['area'] ?? null, isset($search['max']) ? (int) $search['max'] : null, null);
             CrmFollowUp::updateOrCreate(
                 ['type' => 'listing_alert', 'user_id' => $user->id, 'status' => 'open'],
                 ['title' => $title, 'details' => $search]

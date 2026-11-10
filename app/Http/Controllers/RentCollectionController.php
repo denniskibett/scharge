@@ -26,7 +26,7 @@ class RentCollectionController extends Controller
     public function index(Request $request): View
     {
         $companyIds = $this->companyIds($request);
-        $tab = in_array($request->query('tab'), ['paybill', 'messages', 'paused'], true) ? $request->query('tab') : 'paybill';
+        $tab = in_array($request->query('tab'), ['paybill', 'messages', 'paused', 'attempts'], true) ? $request->query('tab') : 'paybill';
         $scope = fn ($q) => $companyIds === null ? $q : $q->whereIn('company_id', $companyIds ?: [0]);
 
         $paybill = $scope(PaybillPayment::query()->with('tenancy.tenant.user', 'tenancy.unit.property'))
@@ -40,8 +40,17 @@ class RentCollectionController extends Controller
         $holds = $scope(RentHold::query()->with('tenancy.tenant.user', 'tenancy.unit.property'))->latest('id')->get();
         $company = $companyIds && count($companyIds) === 1 ? $companyIds[0] : null;
 
+        // Payment attempts (docs/APP_DATA.md): every Pay press in the last 30 days and how it ended.
+        $attemptsQ = fn () => $scope(\Illuminate\Support\Facades\DB::table('payment_attempts'))->where('created_at', '>=', now()->subDays(30));
+        $attempts = \App\Services\Payments\PaymentAttempts::ready() ? [
+            'by_status' => $attemptsQ()->selectRaw('status, COUNT(*) n, SUM(amount) amount')->groupBy('status')->get()->keyBy('status'),
+            'by_channel' => $attemptsQ()->selectRaw('channel, COUNT(*) n, SUM(CASE WHEN status = \'paid\' THEN 1 ELSE 0 END) paid')->groupBy('channel')->get()->keyBy('channel'),
+            'recent' => $tab === 'attempts' ? $attemptsQ()->orderByDesc('id')->limit(40)->get() : collect(),
+        ] : null;
+
         return view('rent.index', [
             'tab' => $tab,
+            'attempts' => $attempts,
             'paybill' => $paybill,
             'messages' => $messages,
             'holds' => $holds,

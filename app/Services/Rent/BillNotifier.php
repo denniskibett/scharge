@@ -109,6 +109,18 @@ class BillNotifier
 
     private function deliver(RentSettings $settings, Invoice $invoice, RentMessage $row, string $text): RentMessage
     {
+        // The scharge app first: a push is free; SMS only for people without the app (docs/APP_DATA.md).
+        $userId = $invoice->tenancy?->tenant?->user?->id;
+        if ($userId && \App\Services\App\PushService::reachable($userId)) {
+            $title = ['bill' => 'Your bill is ready', 'reminder' => 'Rent reminder', 'link' => 'Your bill'][$row->kind] ?? 'scharge';
+            $sent = app(\App\Services\App\PushService::class)->toUser($userId, $title, $text, ['type' => $row->kind, 'invoice_id' => $invoice->id]);
+            if ($sent > 0) {
+                $row->update(['channel' => 'push', 'status' => 'sent', 'error' => null]);
+
+                return $row;
+            }
+        }
+
         $phone = $invoice->tenancy?->tenant?->user?->phone;
         if (blank($phone)) {
             $row->update(['status' => 'no_phone', 'error' => 'The tenant has no phone number.']);

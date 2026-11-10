@@ -33,8 +33,16 @@ class AuthenticateMobile
         $request->setUserResolver(fn () => $user);
         $request->attributes->set('mobile_session', $session);
 
-        if (! $session->last_used_at || $session->last_used_at->lt(now()->subMinute())) {
-            $session->forceFill(['last_used_at' => now(), 'last_ip' => $request->ip()])->saveQuietly();
+        // The app sends its version, Android/iOS version and phone model on every call (docs/APP_DATA.md).
+        $device = array_filter(['app_version' => mb_substr((string) $request->header('X-App-Version'), 0, 20),
+            'os_version' => mb_substr((string) $request->header('X-OS-Version'), 0, 40), 'device_model' => mb_substr((string) $request->header('X-Device-Model'), 0, 80)]);
+        $changed = collect($device)->contains(fn ($v, $k) => $session->{$k} !== $v);
+        if ($changed || ! $session->last_used_at || $session->last_used_at->lt(now()->subMinute())) {
+            $session->forceFill(['last_used_at' => now(), 'last_ip' => $request->ip()] + $device)->saveQuietly();
+        }
+        if (\App\Services\App\AppSettings::tooOld($device['app_version'] ?? null)) {
+            return response()->json(['error' => 'update_required', 'message' => 'Please update the scharge app to keep using it.',
+                'min_version' => \App\Services\App\AppSettings::minVersion(), 'download_url' => url('/downloads/scharge-app.apk')], 426);
         }
 
         return $next($request);

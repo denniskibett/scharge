@@ -33,6 +33,9 @@ class TrackController extends Controller
                 'view' => $this->view($request, $data, $path, $device),
                 'leave' => $this->leave($data),
                 'click' => $this->click($data, $path, $device),
+                // Open listings search (renter demand heatmap, docs/RENTER_DEMAND.md)
+                'search' => app(\App\Services\Listings\ListingDemand::class)->record($request, 'search', mb_substr((string) ($data['kind'] ?? ''), 0, 40) ?: null,
+                    (string) ($data['area'] ?? ''), is_numeric($data['max'] ?? null) ? (int) $data['max'] : null, is_numeric($data['results'] ?? null) ? (int) $data['results'] : null),
                 'event' => in_array($data['name'] ?? null, self::BROWSER_EVENTS, true)
                     ? SiteAnalytics::event($request, $data['name'], $data['label'] ?? null, $path) : null,
                 default => null,

@@ -52,7 +52,12 @@ class PublicInvoiceController extends Controller
 
     public function pay(Request $request, $invoiceId)
     {
-        return \App\Support\CompanyAccess::bypass(fn () => $this->payNow($request, $invoiceId));
+        // Every press is recorded with how it ended (App\Services\Payments\PaymentAttempts, docs/APP_DATA.md).
+        $invoice = InvoiceLink::valid($invoiceId, $request->query('t'))
+            ? \App\Support\CompanyAccess::bypass(fn () => Invoice::withoutGlobalScope('company')->with('tenancy')->find($invoiceId)) : null;
+        $channel = $request->query('from') === 'app' || $request->hasHeader('X-Scharge-App') ? 'app' : 'web';
+
+        return app(\App\Services\Payments\PaymentAttempts::class)->around($invoice, (float) $request->input('amount'), $channel, fn () => \App\Support\CompanyAccess::bypass(fn () => $this->payNow($request, $invoiceId)));
     }
 
     private function payNow(Request $request, $invoiceId)

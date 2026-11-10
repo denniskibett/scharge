@@ -44,12 +44,19 @@ class FieldController extends Controller
         $meter = $this->meterQuery()->find($id);
         abort_unless($meter, 404, 'No such meter.');
         $data = $request->validate(['reading' => 'required|numeric|min:0', 'read_at' => 'nullable|date', 'client_ref' => 'nullable|string|max:80',
-            'note' => 'nullable|string|max:255', 'photo' => 'nullable|image|max:6144']);
+            'note' => 'nullable|string|max:255', 'photo' => 'nullable|image|max:6144',
+            // Proof of being there (docs/APP_DATA.md): the phone's position and clock when the reading was taken.
+            'lat' => 'nullable|numeric|between:-90,90', 'lng' => 'nullable|numeric|between:-180,180', 'accuracy_m' => 'nullable|integer|min:0|max:100000',
+            'captured_at' => 'nullable|date']);
 
         [$row, $created] = $readings->record($meter, (float) $data['reading'], [
             'source' => 'reader_app', 'read_at' => $data['read_at'] ?? null, 'client_ref' => $data['client_ref'] ?? null,
             'recorded_by' => $request->user()->id, 'note' => $data['note'] ?? null, 'photo' => $request->file('photo'),
         ]);
+        if ($created && \Illuminate\Support\Facades\Schema::hasColumn('meter_readings', 'lat')) {
+            $row->forceFill(['lat' => $data['lat'] ?? null, 'lng' => $data['lng'] ?? null, 'accuracy_m' => $data['accuracy_m'] ?? null,
+                'captured_at' => isset($data['captured_at']) ? \Carbon\Carbon::parse($data['captured_at']) : null])->saveQuietly();
+        }
 
         return response()->json($this->reading($row), $created ? 201 : 200);
     }
@@ -94,6 +101,40 @@ class FieldController extends Controller
         $repair->save();
 
         return response()->json($this->repair($repair->load('unit.property', 'tenant.user', 'assignedStaff')));
+    }
+
+    /**
+     * POST /api/v1/app/repairs/{id}/visit: the fundi checks in on arrival and out when leaving, with the phone's
+     * position, so repair times are real and visits can be shown (docs/APP_DATA.md).
+     */
+    public function visit(Request $request, int $id)
+    {
+        $repair = Maintenance::whereHas('unit')->find($id);
+        abort_unless($repair, 404, 'No such repair.');
+        $data = $request->validate(['kind' => 'required|in:checkin,checkout', 'lat' => 'nullable|numeric|between:-90,90', 'lng' => 'nullable|numeric|between:-180,180',
+            'accuracy_m' => 'nullable|integer|min:0|max:100000', 'note' => 'nullable|string|max:255']);
+        $now = now();
+        \Illuminate\Support\Facades\DB::table('maintenance_visits')->insert(['maintenance_id' => $repair->id, 'company_id' => $repair->company_id, 'user_id' => $request->user()->id,
+            'kind' => $data['kind'], 'lat' => $data['lat'] ?? null, 'lng' => $data['lng'] ?? null, 'accuracy_m' => $data['accuracy_m'] ?? null,
+            'note' => $data['note'] ?? null, 'at' => $now, 'created_at' => $now, 'updated_at' => $now]);
+        if ($data['kind'] === 'checkin' && $repair->status === 'open') {
+            $repair->forceFill(['status' => 'in_progress', 'assigned_to' => $repair->assigned_to ?: $request->user()->id])->save();
+        }
+        $visits = \Illuminate\Support\Facades\DB::table('maintenance_visits')->where('maintenance_id', $repair->id)->orderBy('at')->get();
+        $minutes = 0;
+        $in = null;
+        foreach ($visits as $v) { // time on site: each check-in to the next check-out
+            if ($v->kind === 'checkin') {
+                $in = \Carbon\Carbon::parse($v->at);
+            } elseif ($in) {
+                $minutes += $in->diffInMinutes(\Carbon\Carbon::parse($v->at));
+                $in = null;
+            }
+        }
+
+        return response()->json(['repair_id' => $repair->id, 'on_site' => $in !== null, 'minutes_on_site' => (int) $minutes,
+            'visits' => $visits->map(fn ($v) => ['kind' => $v->kind, 'at' => \Carbon\Carbon::parse($v->at)->toIso8601String(),
+                'location' => $v->lat !== null ? ['lat' => (float) $v->lat, 'lng' => (float) $v->lng] : null])->values()], 201);
     }
 
     public function passes(Request $request)
@@ -193,6 +234,7 @@ class FieldController extends Controller
     {
         return ['id' => $r->id, 'meter_id' => $r->meter_id, 'reading' => $r->reading, 'previous_reading' => $r->previous_reading,
             'consumption' => $r->consumption, 'charge' => $r->charge !== null ? self::money($r->charge) : null, 'status' => $r->status,
-            'flag_reason' => $r->flag_reason, 'read_at' => $r->read_at?->toIso8601String(), 'photo_url' => $r->photo_path ? asset('storage/'.$r->photo_path) : null];
+            'flag_reason' => $r->flag_reason, 'read_at' => $r->read_at?->toIso8601String(), 'photo_url' => $r->photo_path ? asset('storage/'.$r->photo_path) : null,
+            'location' => $r->lat !== null ? ['lat' => (float) $r->lat, 'lng' => (float) $r->lng, 'accuracy_m' => $r->accuracy_m] : null];
     }
 }

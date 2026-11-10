@@ -225,6 +225,11 @@
           '<button type="button" class="btn ' + (on ? 'btn--ink' : 'btn--primary') + '" style="margin-top:10px" data-open="' + h.id + '">' + (on ? 'Selected' : K.btn) + '</button></div></article>';
       }).join('');
       $('#none').hidden = list.length > 0;
+      // Renter demand (docs/RENTER_DEMAND.md): what was searched and how many matched, once the person stops changing filters.
+      clearTimeout(lrender.demandTimer);
+      lrender.demandTimer = setTimeout(function () {
+        try { navigator.sendBeacon('/t', JSON.stringify({ type: 'search', path: location.pathname, kind: K.name, area: ls.area, max: ls.max, results: list.length })); } catch (e) {}
+      }, 1500);
       $$('[data-open]', grid).forEach(function (b) { b.addEventListener('click', function () { ls.sel = +b.dataset.open; lastOpen = ls.sel; lrender(); $('#d-close').focus(); listingViewed($('#d-title').textContent); }); });
       var S = L.items.filter(function (h) { return h.id === ls.sel && h.k === ls.kind; })[0];
       var wasOpen = !detail.hidden;

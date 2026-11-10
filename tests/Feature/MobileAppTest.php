@@ -76,6 +76,12 @@ class MobileAppTest extends RentSchemaTestCase
             $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedInteger('visit_count')->default(0), $t->timestamp('first_visit_at')->nullable(), $t->timestamp('last_check_in_at')->nullable(),
             $t->timestamp('last_check_out_at')->nullable(), $t->unsignedBigInteger('last_pass_id')->nullable(), $t->string('last_vehicle_plate')->nullable(), $t->boolean('is_blocked')->default(false),
             $t->string('notes')->nullable(), $t->timestamps()]);
+        // App data (docs/APP_DATA.md) and renter demand (docs/RENTER_DEMAND.md), on top of the tables above.
+        foreach (['payment_attempts', 'maintenance_visits', 'app_errors', 'listing_searches'] as $t) {
+            Schema::dropIfExists($t);
+        }
+        (require base_path('database/migrations/2026_11_11_000800_app_push_payments_proof_errors.php'))->up();
+        (require base_path('database/migrations/2026_11_11_000900_create_listing_demand.php'))->up();
     }
 
     /** A user with a role, signed in on a phone; returns [user, bearer token]. */
@@ -399,5 +405,141 @@ class MobileAppTest extends RentSchemaTestCase
         foreach (['/api', '/developers'] as $page) {
             $this->get($page)->assertOk()->assertSee('The scharge app, for every role')->assertSee('In development');
         }
+    }
+
+    // ---------------------------------------------------------------- app data (docs/APP_DATA.md)
+
+    private function firebaseOn(): void
+    {
+        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        openssl_pkey_export($key, $pem);
+        \App\Models\CompanyIntegration::create(['company_id' => null, 'provider' => 'mobile_app', 'enabled' => true, 'credentials' => [
+            'firebase_service_account' => json_encode(['project_id' => 'scharge-test', 'client_email' => 'push@scharge-test.iam.gserviceaccount.com', 'private_key' => $pem])]]);
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
+    private function rentAutomationOn(): void
+    {
+        \App\Models\CompanyIntegration::create(['company_id' => $this->a['company'], 'provider' => 'rent_automation', 'enabled' => true,
+            'credentials' => ['invoice_day' => '1', 'due_day' => '5', 'send_bill' => 'yes', 'reminder_days' => '1', 'channel' => 'sms']]);
+    }
+
+    public function test_the_phone_registers_its_push_address_and_versions_and_old_apps_must_update(): void
+    {
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($token)->postJson('/api/v1/app/device', ['push_token' => 'fcm-abc', 'app_version' => '1.0.0', 'os_version' => 'Android 14', 'device_model' => 'TECNO KI5'])->assertOk();
+        $session = MobileSession::latest('id')->first();
+        $this->assertSame(['fcm-abc', '1.0.0', 'Android 14', 'TECNO KI5'], [$session->push_token, $session->app_version, $session->os_version, $session->device_model]);
+
+        [, $token2] = $this->tenantOf($this->a['tenancies'][0]); // the same phone signs in again: the address moves
+        $this->api($token2)->postJson('/api/v1/app/device', ['push_token' => 'fcm-abc'])->assertOk();
+        $this->assertSame(1, MobileSession::where('push_token', 'fcm-abc')->count());
+
+        \App\Models\CompanyIntegration::create(['company_id' => null, 'provider' => 'mobile_app', 'enabled' => true, 'credentials' => ['min_version' => '1.2.0']]);
+        $this->api($token2)->withHeaders(['X-App-Version' => '1.1.9'])->getJson('/api/v1/app/me')->assertStatus(426)->assertJson(['error' => 'update_required']);
+        $this->api($token2)->withHeaders(['X-App-Version' => '1.2.0'])->getJson('/api/v1/app/me')->assertOk();
+    }
+
+    public function test_bills_go_by_push_instead_of_sms_when_the_tenant_has_the_app(): void
+    {
+        $this->firebaseOn();
+        Http::fake(['oauth2.googleapis.com/*' => Http::response(['access_token' => 'g-token']), 'fcm.googleapis.com/*' => Http::response(['name' => 'msg-1'])]);
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($token)->postJson('/api/v1/app/device', ['push_token' => 'fcm-tenant'])->assertOk()->assertJson(['push' => true]);
+        $this->rentAutomationOn();
+
+        $message = app(\App\Services\Rent\BillNotifier::class)->billReady(\App\Models\Invoice::find($this->billOf($this->a['tenancies'][0])));
+
+        $this->assertSame(['push', 'sent'], [$message->channel, $message->status]);
+        Http::assertSent(fn ($r) => str_contains($r->url(), 'fcm.googleapis.com/v1/projects/scharge-test/messages:send') && $r['message']['token'] === 'fcm-tenant');
+        Http::assertNotSent(fn ($r) => str_contains($r->url(), '/sms/send'));
+    }
+
+    public function test_a_dead_push_address_falls_back_to_sms(): void
+    {
+        $this->firebaseOn();
+        Http::fake(['oauth2.googleapis.com/*' => Http::response(['access_token' => 'g-token']),
+            'fcm.googleapis.com/*' => Http::response(['error' => ['status' => 'NOT_FOUND']], 404), '*' => Http::response(['data' => ['message_id' => 'm1']])]);
+        [$tenant, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($token)->postJson('/api/v1/app/device', ['push_token' => 'fcm-gone'])->assertOk();
+        DB::table('users')->where('id', $tenant->id)->update(['phone' => '0712999888']);
+        $this->rentAutomationOn();
+
+        $message = app(\App\Services\Rent\BillNotifier::class)->billReady(\App\Models\Invoice::find($this->billOf($this->a['tenancies'][0])));
+
+        $this->assertSame('sms', $message->channel);
+        $this->assertNull(MobileSession::where('push_token', 'fcm-gone')->first()); // removed
+    }
+
+    public function test_pay_presses_are_tracked_to_their_mpesa_result(): void
+    {
+        $invoice = \App\Models\Invoice::find($this->billOf($this->a['tenancies'][0]));
+        $attempts = app(\App\Services\Payments\PaymentAttempts::class);
+        $attempts->around($invoice, 1000, 'app', fn () => response()->json(['success' => true, 'checkout_request_id' => 'ws_CO_1']));
+        $attempts->around($invoice, 1000, 'web', fn () => response()->json(['success' => false, 'message' => 'Safaricom is busy']));
+        \App\Services\Payments\PaymentAttempts::stkResult('ws_CO_1', '2001', 'The initiator information is invalid.');
+
+        $rows = DB::table('payment_attempts')->orderBy('id')->get();
+        $this->assertSame([['app', 'stk', 'wrong_pin'], ['web', null, 'failed']], $rows->map(fn ($r) => [$r->channel, $r->method, $r->status])->all());
+        $this->assertSame((int) $this->a['company'], (int) $rows[0]->company_id);
+
+        $this->bareLayout();
+        $this->actingAs($this->person($this->a['company'], 'admin')[0])->get('/rent?tab=attempts')->assertOk()->assertSee('Wrong M-Pesa PIN')->assertSee('Could not start');
+    }
+
+    public function test_readings_and_repair_visits_carry_the_phones_position(): void
+    {
+        [, $token] = $this->person($this->a['company'], 'admin');
+        $unit = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('unit_id');
+        $meter = DB::table('meters')->insertGetId(['company_id' => $this->a['company'], 'unit_id' => $unit, 'utility' => 'electricity', 'serial_number' => 'GPS-1', 'status' => 'active']);
+        $this->api($token)->postJson('/api/v1/app/meters/'.$meter.'/readings', ['reading' => 120, 'lat' => -1.2921, 'lng' => 36.8219, 'accuracy_m' => 12,
+            'captured_at' => now()->toIso8601String()])->assertCreated()->assertJsonPath('location.lat', -1.2921);
+
+        $repair = DB::table('maintenances')->insertGetId(['company_id' => $this->a['company'], 'unit_id' => $unit,
+            'tenant_id' => DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id'), 'request_number' => 'MR-GPS-1', 'name' => 'Leak', 'description' => 'Kitchen tap leaking', 'category' => 'plumbing', 'status' => 'open', 'priority' => 'medium']);
+        $this->api($token)->postJson('/api/v1/app/repairs/'.$repair.'/visit', ['kind' => 'checkin', 'lat' => -1.29, 'lng' => 36.82])->assertCreated()->assertJson(['on_site' => true]);
+        $this->travel(45)->minutes();
+        $this->api($token)->postJson('/api/v1/app/repairs/'.$repair.'/visit', ['kind' => 'checkout'])->assertCreated()->assertJson(['on_site' => false, 'minutes_on_site' => 45]);
+        $this->assertSame('in_progress', DB::table('maintenances')->where('id', $repair)->value('status'));
+    }
+
+    public function test_crash_reports_are_grouped_and_shown_to_staff(): void
+    {
+        foreach ([1, 2] as $n) {
+            $this->postJson('/api/v1/app/errors', ['message' => "Null check operator used on a null value (line {$n})", 'stack' => "#0 BillsScreen.build (package:scharge/bills.dart:4{$n}:7)\n#1 ...",
+                'screen' => 'Bills', 'app_version' => '1.0.0', 'os_version' => 'Android 13', 'device_model' => 'itel A70'])->assertStatus(202);
+        }
+        $this->assertSame([1, 2], [DB::table('app_errors')->count(), (int) DB::table('app_errors')->value('count')]);
+
+        $this->bareLayout();
+        $this->actingAs($this->person(null, 'sysadmin')[0])->get('/admin/app')->assertOk()->assertSee('Null check operator')->assertSee('itel A70');
+    }
+
+    // ---------------------------------------------------------------- renter demand (docs/RENTER_DEMAND.md)
+
+    public function test_searches_alerts_and_viewings_feed_the_demand_heatmap(): void
+    {
+        // Website analytics on (the beacon ignores everything without its tables, as on a fresh install).
+        foreach (['site_page_views', 'site_events', 'site_clicks'] as $t) {
+            Schema::dropIfExists($t);
+            Schema::create($t, fn (Blueprint $b) => [$b->id(), $b->timestamps()]);
+        }
+        config(['analytics.first_party' => true]);
+        \Illuminate\Support\Facades\Cache::forget('site-analytics-ready');
+        foreach ([['Kilimani', 30000, 0], ['Kilimani', 30000, 0], ['Rongai', 15000, 2]] as $i => [$area, $max, $results]) {
+            $this->withServerVariables(['REMOTE_ADDR' => '41.90.1.'.$i, 'HTTP_USER_AGENT' => 'Mozilla/5.0 Test '.$i])->call('POST', '/t', [], [], [], ['CONTENT_TYPE' => 'text/plain'],
+                json_encode(['type' => 'search', 'path' => '/listings', 'kind' => 'Homes to rent', 'area' => $area, 'max' => $max, 'results' => $results]))->assertNoContent();
+        }
+        app(\App\Services\Listings\ListingDemand::class)->record(request(), 'viewing', 'Homes to rent', 'Kilimani', 28000, null);
+        $this->assertSame(4, DB::table('listing_searches')->count());
+
+        $r = app(\App\Services\Listings\DemandReport::class)->build(30, 'Homes to rent');
+        $this->assertSame('Kilimani', $r['areas'][0]); // 1 + 1 + 5 (viewing) beats Rongai's 1
+        $this->assertSame(7, $r['grid']['Kilimani']['20k–35k']);
+        $this->assertSame(['Kilimani' => 2], $r['unmet']->all()); // searched, nothing found
+
+        $this->bareLayout();
+        $this->actingAs($this->person($this->a['company'], 'admin')[0])->get('/demand')->assertOk()->assertSee('Heatmap')->assertSee('Kilimani');
+        $this->actingAs($this->person(null, 'sysadmin')[0])->get('/admin/demand')->assertOk()->assertSee('Rongai');
     }
 }
