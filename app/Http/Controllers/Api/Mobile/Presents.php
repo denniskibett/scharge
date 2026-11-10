@@ -7,6 +7,41 @@ use App\Support\InvoiceLink;
 /** How the scharge app sees invoices, payments, repairs, passes. Amounts are strings with 2 decimals, in KES. */
 trait Presents
 {
+    /** Document numbers at one width: INV-0001, INV-0098, INV-1929 (longer once past 9999). Named numbers stay as they are. */
+    protected static function docNumber(string $prefix, $value, $fallbackId): string
+    {
+        $v = trim((string) ($value ?? ''));
+        if ($v === '' || ctype_digit($v)) {
+            return $prefix.'-'.str_pad($v === '' ? (string) $fallbackId : (ltrim($v, '0') ?: '0'), 4, '0', STR_PAD_LEFT);
+        }
+        if (preg_match('/^([A-Za-z]+)[-#\s]*0*(\d+)$/', $v, $m)) {
+            return strtoupper($m[1]).'-'.str_pad($m[2], 4, '0', STR_PAD_LEFT);
+        }
+
+        return $v;
+    }
+
+    /**
+     * The reference people read: Sharet's own transaction ID (SHD1CCFAF6), not the long pay-link ID; the M-Pesa
+     * receipt (10 characters); anything longer (system UUIDs) cut to 8 characters.
+     */
+    protected static function shortRef($p): ?string
+    {
+        $meta = is_array($p->meta) ? $p->meta : (json_decode((string) $p->meta, true) ?: []);
+        $ref = $p->payment_method === 'sharet' || str_starts_with((string) $p->source, 'sharet')
+            ? ($meta['sharet_transaction'] ?? $p->transaction_reference ?? $p->external_reference)
+            : ($p->external_reference ?: $p->transaction_reference);
+        $ref = trim((string) $ref);
+        if ($ref === '') {
+            return null;
+        }
+        if (strlen($ref) <= 10 && ! str_contains($ref, '_')) {
+            return strtoupper($ref);
+        }
+
+        return strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', preg_replace('/^[a-z]+_/', '', $ref)), 0, 8));
+    }
+
     protected static function money($v): string
     {
         return number_format((float) $v, 2, '.', '');
@@ -17,7 +52,7 @@ trait Presents
         $tenancy = $i->relationLoaded('tenancy') ? $i->tenancy : null;
         $out = [
             'id' => $i->id,
-            'number' => $i->invoice_number ?: 'INV-'.$i->id,
+            'number' => self::docNumber('INV', $i->invoice_number, $i->id),
             'type' => $i->invoice_type,
             'month' => $i->billing_month?->format('Y-m'),
             'month_label' => $i->billing_month?->format('F Y'),
@@ -61,8 +96,8 @@ trait Presents
 
         return [
             'id' => $p->id,
-            'receipt_no' => 'RCT-'.str_pad((string) $p->id, 6, '0', STR_PAD_LEFT),
-            'invoice_number' => $inv ? ($inv->invoice_number ?: 'INV-'.$inv->id) : null,
+            'receipt_no' => self::docNumber('RCT', null, $p->id),
+            'invoice_number' => $inv ? self::docNumber('INV', $inv->invoice_number, $inv->id) : null,
             'invoice_month' => $inv?->billing_month?->format('F Y'),
             'unit' => $tenancy?->unit?->unit_number,
             'property' => $tenancy?->unit?->property?->name,
@@ -70,7 +105,8 @@ trait Presents
             'phone' => $p->tenant?->user?->phone ?? $p->user?->phone,
             'amount' => self::money($p->amount),
             'method' => $p->payment_method,
-            'reference' => $p->external_reference ?: $p->transaction_reference,
+            'reference' => self::shortRef($p),
+            'reference_full' => $p->external_reference ?: $p->transaction_reference,
             'status' => $p->status,
             'invoice_id' => $p->invoice_id,
             'payer' => $p->tenant?->user?->name ?? $p->user?->name,

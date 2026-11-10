@@ -244,6 +244,7 @@ class MobileAppTest extends RentSchemaTestCase
         $bills = $this->api($token)->getJson('/api/v1/app/tenant/bills')->assertOk()->json('data');
         $this->assertSame([$mine], array_column($bills, 'id'));
         $this->assertStringContainsString('?t=', $bills[0]['pay_url']);
+        $this->assertSame('INV-'.str_pad((string) $mine, 4, '0', STR_PAD_LEFT), $bills[0]['number']); // one width: INV-0001
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$mine)->assertOk()->assertJsonPath('balance', '1000.00');
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->a['tenancies'][1]))->assertNotFound(); // neighbour
         $this->api($token)->getJson('/api/v1/app/tenant/bills/'.$this->billOf($this->b['tenancies'][0]))->assertNotFound(); // other company
@@ -615,5 +616,23 @@ class MobileAppTest extends RentSchemaTestCase
         $this->assertSame('deposit', $w->json('transactions.0.type'));
         [, $other] = $this->tenantOf($this->a['tenancies'][1]);
         $this->api($other)->getJson('/api/v1/app/tenant/wallet')->assertJsonPath('balance', '0.00')->assertJsonCount(0, 'transactions');
+    }
+
+    public function test_payment_references_are_short_and_readable(): void
+    {
+        $bill = $this->billOf($this->a['tenancies'][0]);
+        $tenantId = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id');
+        DB::table('payments')->insert([
+            ['invoice_id' => $bill, 'tenant_id' => $tenantId, 'amount' => 100, 'payment_method' => 'sharet', 'source' => 'sharet_rail', 'transaction_reference' => 'SHD1CCFAF6',
+                'external_reference' => 'pr_9f8e7d6c5b4a39281706f5e4', 'meta' => json_encode(['sharet_transaction' => 'SHD1CCFAF6']), 'status' => 'completed', 'created_at' => now()],
+            ['invoice_id' => $bill, 'tenant_id' => $tenantId, 'amount' => 100, 'payment_method' => 'mpesa', 'source' => 'stk', 'transaction_reference' => null,
+                'external_reference' => 'SJK3H2X1PQ', 'meta' => null, 'status' => 'completed', 'created_at' => now()],
+            ['invoice_id' => $bill, 'tenant_id' => $tenantId, 'amount' => 100, 'payment_method' => 'wallet', 'source' => 'web', 'transaction_reference' => '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+                'external_reference' => null, 'meta' => null, 'status' => 'completed', 'created_at' => now()],
+        ]);
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $refs = array_column($this->api($token)->getJson('/api/v1/app/tenant/payments')->json('data'), 'reference');
+        sort($refs);
+        $this->assertSame(['7C9E6679', 'SHD1CCFAF6', 'SJK3H2X1PQ'], $refs);
     }
 }
