@@ -63,7 +63,7 @@ return new class extends Migration
                 $table->decimal('lng', 10, 7)->nullable();
                 $table->unsignedInteger('accuracy_m')->nullable();
                 $table->string('note', 255)->nullable();
-                $table->timestamp('at');
+                $table->timestamp('at')->nullable(); // set by the app; nullable so MariaDB adds no ON UPDATE default
                 $table->timestamps();
             });
         }
@@ -80,8 +80,8 @@ return new class extends Migration
                 $table->unsignedBigInteger('last_user_id')->nullable();
                 $table->unsignedInteger('count')->default(1);
                 $table->unsignedInteger('users')->default(1);
-                $table->timestamp('first_seen_at');
-                $table->timestamp('last_seen_at')->index();
+                $table->timestamp('first_seen_at')->nullable(); // nullable: MariaDB refuses a second NOT NULL timestamp without a default
+                $table->timestamp('last_seen_at')->nullable()->index();
                 $table->boolean('resolved')->default(false);
                 $table->timestamps();
             });
