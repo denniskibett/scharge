@@ -133,6 +133,28 @@ return [
         ],
     ],
 
+    'data_backup' => [
+        'name' => 'Nightly data copy',
+        'scope' => 'company',
+        'category' => 'Your data',
+        'description' => 'Every night at 02:30 scharge puts a full copy of your data (all properties, tenants, bills and payments, as spreadsheets) on storage you control: your own SFTP server or an S3-compatible bucket (Amazon S3, Google Cloud Storage, Wasabi, Backblaze, DigitalOcean Spaces). Test writes and deletes a small file.',
+        'color' => '#0F172A',
+        'fields' => [
+            'method' => ['label' => 'Send copies to', 'type' => 'select', 'required' => true, 'options' => ['sftp' => 'SFTP server', 's3' => 'S3-compatible bucket']],
+            'path' => ['label' => 'Folder', 'placeholder' => 'scharge-backups', 'help' => 'Created if missing.'],
+            'keep_days' => ['label' => 'Keep copies for (days)', 'placeholder' => '30'],
+            'host' => ['label' => 'SFTP host', 'placeholder' => 'backup.example.co.ke', 'help' => 'SFTP only.'],
+            'port' => ['label' => 'SFTP port', 'placeholder' => '22'],
+            'username' => ['label' => 'SFTP username'],
+            'password' => ['label' => 'SFTP password', 'secret' => true],
+            's3_bucket' => ['label' => 'Bucket', 'help' => 'S3 only.'],
+            's3_region' => ['label' => 'Region', 'placeholder' => 'us-east-1'],
+            's3_endpoint' => ['label' => 'Endpoint (not Amazon)', 'type' => 'url', 'placeholder' => 'https://storage.googleapis.com', 'help' => 'Leave blank for Amazon S3.'],
+            's3_key' => ['label' => 'Access key', 'secret' => true],
+            's3_secret' => ['label' => 'Secret key', 'secret' => true],
+        ],
+    ],
+
     'channel_sync' => [
         'name' => 'Channel sync (Airbnb, Booking.com)',
         'scope' => 'platform',

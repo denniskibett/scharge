@@ -141,6 +141,7 @@ class Integrations
             'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),
             'rent_automation' => \App\Services\Rent\RentPreview::test($row),
+            'data_backup' => \App\Services\Data\CompanyBackup::test($row),
             'channel_sync' => [true, \App\Models\UnitChannel::whereNotNull('import_url')->count().' unit calendars connected. They sync every 30 minutes while this is on.'],
             default => [false, 'No test available for this provider.'],
         };

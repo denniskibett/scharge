@@ -16,7 +16,7 @@ APP_PATH="${APP_PATH:-/home/${DEPLOY_SITE}/laravel}"
 WEB_PATH="${WEB_PATH:-/home/${DEPLOY_SITE}/public_html}"
 DEPLOY_PORT="${DEPLOY_PORT:-22}"
 # Test suites that pass today (the rest fail until the migrations are rebuilt: SYSTEM_AUDIT.md §2).
-TESTS="${TESTS:-RentAutomationTest|CompanyIsolationTest|RentCollectionTest|BookingsTest|KycLogTest}"
+TESTS="${TESTS:-RentAutomationTest|CompanyIsolationTest|RentCollectionTest|BookingsTest|WhiteLabelTest|KycLogTest}"
 set -euo pipefail
 cd "$(dirname "$0")/.."
 

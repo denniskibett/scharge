@@ -5,7 +5,7 @@
   $property = $unit?->property;
   $month = $invoice->billing_month ? \Carbon\Carbon::parse($invoice->billing_month)->format('F Y') : null;
 @endphp
-@component('public.partials.invoice-shell', ['title' => 'Invoice #'.$invoice->id.' paid'])
+@component('public.partials.invoice-shell', ['title' => 'Invoice #'.$invoice->id.' paid', 'brand' => \App\Support\Brand::forCompany($invoice->owningCompanyId())])
 <section class="pay-card">
   <header class="pay-head">
     <div class="pay-head-row">

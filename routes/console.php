@@ -67,3 +67,9 @@ Schedule::command('bookings:sync')
     ->everyThirtyMinutes()
     ->withoutOverlapping()
     ->onOneServer();
+
+// White label: each company's data copied to its own storage, nightly (Integrations › Nightly data copy).
+Schedule::command('company:backup-offsite')
+    ->dailyAt('02:30')
+    ->withoutOverlapping()
+    ->onOneServer();

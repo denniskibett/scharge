@@ -123,7 +123,7 @@ class Access
         'sms' => 'sms.view', 'sms_send' => 'sms.manage', 'sms_history' => 'sms.view', 'sms_templates' => 'sms.manage', 'sms_settings' => 'settings.manage',
         'crm' => 'crm.view', 'crm_pipeline' => 'crm.view', 'crm_follow_ups' => 'crm.view', 'crm_demos' => 'crm.view', 'crm_waitlist' => 'crm.view', 'crm_feedback' => 'crm.view',
         'companies' => 'companies.view', 'property_claims' => 'companies.manage',
-        'settings' => ['settings.view', 'team.view', 'system.view'], 'integrations' => 'settings.view', 'api_keys' => 'settings.view',
+        'settings' => ['settings.view', 'team.view', 'system.view'], 'integrations' => 'settings.view', 'white_label' => 'settings.manage', 'api_keys' => 'settings.view',
         'users' => 'team.view', 'staff' => 'team.view', 'team' => 'team.view', 'roles' => 'system.view', 'system_settings' => 'system.view', 'server_security' => 'system.view',
         'analytics' => 'reports.view', 'reports' => 'reports.view',
     ];

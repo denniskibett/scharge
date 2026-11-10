@@ -14,8 +14,17 @@
   $figure = $isPaid ? (float) ($amount ?? $invoice->total_amount) : (float) ($amount ?? $due);
   $now = now()->timezone('Africa/Nairobi');
   $base = rtrim(preg_replace('#^http://#', 'https://', (string) config('app.url')), '/');
-  $billUrl = $base.'/public/invoice/'.$invoice->id.'?t='.\App\Support\InvoiceLink::token($invoice->id);
+  $billUrl = \App\Support\InvoiceLink::url($invoice);
   $logoSrc = isset($message) ? $message->embed(public_path('images/email/scharge-logo-white.png')) : asset('images/email/scharge-logo-white.png');
+  // White label (docs/WHITE_LABEL.md): the company's logo (light version for the dark header), colour and name.
+  $brand = \App\Support\Brand::forCompany($cid ?? null);
+  $brandLogo = $brand ? ($brand->logo_dark_path ?: $brand->logo_path) : null;
+  if ($brandLogo && is_file(storage_path('app/public/'.$brandLogo))) {
+      $logoSrc = isset($message) ? $message->embed(storage_path('app/public/'.$brandLogo)) : \Illuminate\Support\Facades\Storage::disk('public')->url($brandLogo);
+  }
+  $headBg = $brand?->primary_color ?? '#1A1214';
+  $fromName = $brand?->display_name ?? 'scharge';
+  $homeUrl = $brand?->baseUrl() ?? $base;
   $sans = "'DM Sans','Helvetica Neue',Helvetica,Arial,sans-serif";
   $display = "'Unbounded','Arial Black',Arial,sans-serif";
   $items = $invoice->items->filter(fn ($i) => (float) $i->amount != 0);
@@ -37,10 +46,10 @@
 <tr><td align="center" style="padding:32px 12px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:552px;background:#FFFFFF;border-radius:6px;overflow:hidden;">
 
-    <tr><td style="background:#1A1214;padding:28px 32px 34px;color:#FFFFFF;font-family:{!! $sans !!};">
+    <tr><td style="background:{{ $headBg }};padding:28px 32px 34px;color:#FFFFFF;font-family:{!! $sans !!};">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td align="left" valign="middle"><img src="{{ $logoSrc }}" alt="scharge" width="104" style="display:block;width:104px;height:auto;border:0;"></td>
+          <td align="left" valign="middle"><img src="{{ $logoSrc }}" alt="{{ $fromName }}" width="104" style="display:block;width:104px;height:auto;border:0;"></td>
           <td align="right" valign="middle"><span style="display:inline-block;padding:6px 12px;border-radius:999px;background:{{ $isPaid ? '#F3FFD0' : '#DC2626' }};color:{{ $isPaid ? '#3B5200' : '#FFFFFF' }};font-size:12px;font-weight:600;letter-spacing:.04em;">{{ $isPaid ? 'Paid in full' : 'Bill ready' }}</span></td>
         </tr>
       </table>
@@ -97,10 +106,11 @@
       </p>
     </td></tr>
 
-    <tr><td style="background:#1A1214;padding:22px 32px;font-family:{!! $sans !!};font-size:12px;line-height:1.55;color:#CDBFC2;">
-      <strong style="color:#FFFFFF;">scharge</strong> · Sharet Africa · Nairobi, Kenya<br>
+    <tr><td style="background:{{ $headBg }};padding:22px 32px;font-family:{!! $sans !!};font-size:12px;line-height:1.55;color:#E7DDDF;">
+      @if ($brand)<strong style="color:#FFFFFF;">{{ $brand->display_name }}</strong>{{ $brand->support_phone ? ' · '.$brand->support_phone : '' }}{{ $brand->support_email ? ' · '.$brand->support_email : '' }}<br>
+      @else<strong style="color:#FFFFFF;">scharge</strong> · Sharet Africa · Nairobi, Kenya<br>@endif
       You're receiving this because you rent {{ $unit?->unit_number ? 'unit '.$unit->unit_number : 'a unit' }}{{ $property ? ' at '.$property->name : '' }}.<br>
-      Sent with scharge · Property management, simplified. <a href="{{ $base }}" style="color:#FCA5A5;">{{ preg_replace('#^https?://#', '', $base) }}</a>
+      @if (! $brand || $brand->show_powered_by)Sent with scharge · Property management, simplified. @endif<a href="{{ $homeUrl }}" style="color:#FFFFFF;">{{ preg_replace('#^https?://#', '', $homeUrl) }}</a>
     </td></tr>
   </table>
 </td></tr>

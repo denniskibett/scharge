@@ -20,6 +20,6 @@ This bill is fully paid. Keep this email as your receipt.@if ($reference) Transa
 Pay securely: {{ $payUrl }}
 
 @endif
-View this bill: {{ $base }}/public/invoice/{{ $invoice->id }}?t={{ \App\Support\InvoiceLink::token($invoice->id) }}
+View this bill: {{ \App\Support\InvoiceLink::url($invoice) }}
 
-scharge · Sharet Africa · Nairobi, Kenya
+{{ ($b = \App\Support\Brand::forCompany($invoice->owningCompanyId())) ? $b->display_name.($b->show_powered_by ? ' · powered by scharge' : '') : 'scharge · Sharet Africa · Nairobi, Kenya' }}

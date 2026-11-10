@@ -23,7 +23,16 @@ class InvoiceLink
     public static function url($invoice): string
     {
         $id = is_object($invoice) ? $invoice->getKey() : (int) $invoice;
+        $path = route('public.invoice.show', ['invoice' => $id, 't' => self::token($id)], false);
 
-        return route('public.invoice.show', ['invoice' => $id, 't' => self::token($id)]);
+        return rtrim(self::baseFor($invoice) ?? url('/'), '/').$path;
+    }
+
+    /** The company's own address (white label) when it has one, so tenants see the landlord's domain. */
+    private static function baseFor($invoice): ?string
+    {
+        $model = is_object($invoice) ? $invoice : CompanyAccess::bypass(fn () => \App\Models\Invoice::find((int) $invoice));
+
+        return $model ? Brand::forCompany($model->owningCompanyId())?->baseUrl() : null;
     }
 }

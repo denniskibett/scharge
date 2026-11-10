@@ -15,6 +15,9 @@ use Illuminate\Http\Request;
  *   GET  /api/v1/me
  *   GET  /api/v1/invoices/{id}
  *   POST /api/v1/invoices/{id}/pay-link   (scope: collect)
+ *   GET  /api/v1/{collection}            properties, units, people, tenants, tenancies, invoices, invoice_items,
+ *                                         payments, water_readings; ?after={id}&limit=1..500&updated_since=ISO-date
+ *                                         (read API for white-label clients: docs/WHITE_LABEL.md)
  */
 class V1Controller extends Controller
 {
@@ -57,6 +60,27 @@ class V1Controller extends Controller
             'amount' => number_format((float) $link->amount, 2, '.', ''), 'currency' => 'KES',
             'url' => $link->pay_url, 'expires_at' => $link->expires_at?->toIso8601String(), 'invoice' => $this->present($invoice),
         ], 201);
+    }
+
+    public const COLLECTIONS = ['properties', 'units', 'people', 'tenants', 'tenancies', 'invoices', 'invoice_items', 'payments', 'water_readings'];
+
+    /** A page of one kind of record, oldest id first. Same ownership rules and secret filtering as the data export. */
+    public function collection(Request $request, string $collection, \App\Services\Data\CompanyExport $export)
+    {
+        abort_unless(in_array($collection, self::COLLECTIONS, true), 404, 'Unknown collection.');
+        $data = $request->validate(['after' => 'nullable|integer|min:0', 'limit' => 'nullable|integer|min:1|max:500', 'updated_since' => 'nullable|date']);
+        $query = $export->tables((int) $this->key($request)->company_id)[$collection] ?? null;
+        abort_unless($query, 404, 'Not available.');
+        $from = $query->from;
+        $limit = (int) ($data['limit'] ?? 100);
+        $rows = (clone $query)->where($from.'.id', '>', (int) ($data['after'] ?? 0))
+            ->when($data['updated_since'] ?? null, fn ($q, $d) => \Illuminate\Support\Facades\Schema::hasColumn($from, 'updated_at') ? $q->where($from.'.updated_at', '>=', \Carbon\Carbon::parse($d)) : $q)
+            ->orderBy($from.'.id')->limit($limit + 1)->get();
+        $more = $rows->count() > $limit;
+        $rows = $rows->take($limit)->map(fn ($r) => array_filter((array) $r, fn ($k) => ! preg_match('/password|remember_token|token|secret|hash|credentials|two_factor|import_url|api_key|passkey/i', (string) $k), ARRAY_FILTER_USE_KEY))->values();
+
+        return response()->json(['object' => 'list', 'collection' => $collection, 'data' => $rows,
+            'has_more' => $more, 'next_after' => $more ? $rows->last()['id'] : null]);
     }
 
     private function key(Request $request): ApiKey

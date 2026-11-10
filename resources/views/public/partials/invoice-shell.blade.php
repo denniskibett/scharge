@@ -8,9 +8,14 @@
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#1A1214">
-<title>{{ $title }} · scharge</title>
+@php($brand = $brand ?? null)
+<title>{{ $title }} · {{ $brand?->display_name ?? 'scharge' }}</title>
+@if ($brand?->iconUrl())
+<link rel="icon" href="{{ $brand->iconUrl() }}">
+@else
 <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+@endif
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&family=DM+Sans:wght@400;500;600&display=swap">
@@ -80,16 +85,27 @@ body { background: var(--blush); }
 .pay-foot a { color: var(--red-deep); font-weight: 600; text-decoration: none; }
 @media (max-width: 420px) { .pay-secure span { display: none; } }
 @media (prefers-reduced-motion: reduce) { .spin { animation-duration: 2s; } .pay-bar i { transition: none; } }
+@if ($brand)
+:root { --red: {{ $brand->primary_color }}; --red-deep: {{ $brand->primary_color }}; }
+@endif
 </style>
 </head>
 <body>
 <main class="pay-page">
   <div class="pay-top">
-    <a href="{{ route('home') }}" aria-label="scharge home"><img src="{{ asset('assets/images/brand/scharge-logo.svg') }}" alt="scharge" width="116" height="28"></a>
+    @if ($brand)
+      @if ($brand->logoUrl())<img src="{{ $brand->logoUrl() }}" alt="{{ $brand->display_name }}" style="max-height:36px;width:auto">@else<strong>{{ $brand->display_name }}</strong>@endif
+    @else
+      <a href="{{ route('home') }}" aria-label="scharge home"><img src="{{ asset('assets/images/brand/scharge-logo.svg') }}" alt="scharge" width="116" height="28"></a>
+    @endif
     <span class="pay-secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg><span>{{ $badge ?? 'Secure payment' }}</span></span>
   </div>
   {{ $slot }}
+  @if ($brand)
+  <p class="pay-foot">{{ $brand->display_name }}@if ($brand->support_phone || $brand->support_email) · {{ collect([$brand->support_phone, $brand->support_email])->filter()->implode(' · ') }}@endif<br>{{ $footNote ?? 'Questions about this bill? Contact us.' }}@if ($brand->show_powered_by) <span style="opacity:.7">Powered by scharge</span>@endif</p>
+  @else
   <p class="pay-foot">Sent with scharge · Property management, simplified.<br>{{ $footNote ?? 'Questions about this bill? Contact your property manager.' }} <a href="{{ route('home') }}">scharge.sharet.africa</a></p>
+  @endif
 </main>
 {{ $scripts ?? '' }}
 </body>

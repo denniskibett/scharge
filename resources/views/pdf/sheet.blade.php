@@ -49,7 +49,7 @@
         $curX = min(521.5, 580.9 - max(array_map($width, $amounts)) - 19.5);
         $split = ! empty($t['due']) || ! empty($t['small']);
     }
-    $generated = implode(' · ', array_filter([$title.' '.$number, $s['id'] ? 'scharge ID '.$s['id'] : null,
+    $generated = implode(' · ', array_filter([$title.' '.$number, $s['id'] ? (($letterhead['hide_powered_by'] ?? false) ? 'Ref ' : 'scharge ID ').$s['id'] : null,
         'Generated '.now()->timezone('Africa/Nairobi')->format('d/m/Y H:i')]));
 @endphp
 <!doctype html>

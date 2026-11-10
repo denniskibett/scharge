@@ -51,7 +51,9 @@ class InvoiceEmail extends Mailable
     {
         $company = ($id = $this->invoice->owningCompanyId()) ? \App\Models\Company::find($id) : null;
         $from = config('mail.from.address');
-        $name = $company?->name ? $company->name.' via scharge' : 'scharge';
+        $brand = \App\Support\Brand::forCompany($id ?: null);
+        // White label: the company's own name, without "via scharge" (docs/WHITE_LABEL.md).
+        $name = $brand ? $brand->display_name : ($company?->name ? $company->name.' via scharge' : 'scharge');
         $replyTo = $company?->email && filter_var($company->email, FILTER_VALIDATE_EMAIL) ? [new Address($company->email, $company->name)] : [];
 
         return new Envelope(from: new Address($from, $name), replyTo: $replyTo, subject: self::subjectFor($this->invoice));

@@ -50,7 +50,7 @@ abstract class RentSchemaTestCase extends TestCase
 
     protected function schema(): void
     {
-        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements', 'paybill_payments', 'rent_holds', 'transfers', 'transactions', 'wallets', 'permissions', 'role_has_permissions', 'model_has_permissions', 'bookings', 'unit_channels'] as $t) {
+        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements', 'paybill_payments', 'rent_holds', 'transfers', 'transactions', 'wallets', 'permissions', 'role_has_permissions', 'model_has_permissions', 'bookings', 'unit_channels', 'company_brands', 'api_keys'] as $t) {
             Schema::dropIfExists($t);
         }
         Schema::create('companies', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->timestamps()]);
@@ -95,6 +95,11 @@ abstract class RentSchemaTestCase extends TestCase
         (require base_path('database/migrations/2026_11_10_120000_create_rent_messages_table.php'))->up();
         (require base_path('database/migrations/2026_11_11_000100_create_paybill_payments_and_rent_holds.php'))->up();
         (require base_path('database/migrations/2026_11_11_000200_create_bookings_and_unit_channels.php'))->up();
+        (require base_path('database/migrations/2026_11_11_000300_create_company_brands.php'))->up();
+        Schema::create('api_keys', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('user_id')->nullable(), $t->string('name'),
+            $t->string('environment')->default('live'), $t->json('scopes')->nullable(), $t->json('allowed_ips')->nullable(), $t->string('prefix')->nullable(), $t->string('last_four')->nullable(),
+            $t->string('hash')->nullable(), $t->boolean('enabled')->default(true), $t->timestamp('last_used_at')->nullable(), $t->timestamps()]);
+        \App\Support\Brand::forget();
         // bavix wallet (tenant credit), the package's own tables
         foreach (['2026_06_10_124230_create_wallets_table.php', '2026_06_10_182923_create_transactions_table.php', '2026_06_10_192923_create_transfers_table.php'] as $m) {
             (require base_path('database/migrations/'.$m))->up();

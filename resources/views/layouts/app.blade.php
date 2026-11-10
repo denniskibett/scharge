@@ -6,7 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@hasSection('title')@yield('title') | {{ SystemHelper::appName() }}@else{{ SystemHelper::appName() }} | {{ ucfirst(request()->segment(1) ?? 'Dashboard') }}@endif</title>
+    @php($brand = $brand ?? null)
+    @php($appName = $brand?->display_name ?? SystemHelper::appName())
+    <title>@hasSection('title')@yield('title') | {{ $appName }}@else{{ $appName }} | {{ ucfirst(request()->segment(1) ?? 'Dashboard') }}@endif</title>
 
     {{-- Dynamic Meta --}}
     @if(SystemHelper::metaDescription())
@@ -18,9 +20,9 @@
     @endif
 
     {{-- Dynamic Favicon --}}
-    <link rel="icon" type="image/x-icon" href="{{ SystemHelper::faviconUrl() }}">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ SystemHelper::faviconUrl() }}">
-    <link rel="apple-touch-icon" href="{{ SystemHelper::faviconUrl() }}">
+    <link rel="icon" type="image/x-icon" href="{{ $brand?->iconUrl() ?? SystemHelper::faviconUrl() }}">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ $brand?->iconUrl() ?? SystemHelper::faviconUrl() }}">
+    <link rel="apple-touch-icon" href="{{ $brand?->iconUrl() ?? SystemHelper::faviconUrl() }}">
 
     {{-- Fonts --}}
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -33,6 +35,10 @@
         'resources/js/bootstrap.js',
         'resources/js/index.js',
     ])
+    @if ($brand)
+    {{-- White label: the company's colour on scharge's brand classes (App\Support\Brand::css). --}}
+    <style>{!! \App\Support\Brand::css($brand) !!}</style>
+    @endif
 
 
     <style>    

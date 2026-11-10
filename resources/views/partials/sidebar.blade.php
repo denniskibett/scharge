@@ -11,15 +11,15 @@
       <span class="logo" :class="sidebarToggle ? 'hidden' : ''">
         <img
           class="dark:hidden"
-          src="{{ asset('assets/images/brand/scharge-logo.svg') }}"
-          alt="{{ SystemHelper::appName() }}"
+          src="{{ ($brand ?? null)?->logoUrl() ?? asset('assets/images/brand/scharge-logo.svg') }}"
+          alt="{{ ($brand ?? null)?->display_name ?? SystemHelper::appName() }}"
           width="150"
           height="36"
         />
         <img
           class="hidden dark:block"
-          src="{{ asset('assets/images/brand/scharge-logo-white.svg') }}"
-          alt="{{ SystemHelper::appName() }}"
+          src="{{ ($brand ?? null)?->logoDarkUrl() ?? asset('assets/images/brand/scharge-logo-white.svg') }}"
+          alt="{{ ($brand ?? null)?->display_name ?? SystemHelper::appName() }}"
           width="150"
           height="36"
         />
@@ -28,8 +28,8 @@
       <img
         class="logo-icon"
         :class="sidebarToggle ? 'lg:block' : 'hidden'"
-        src="{{ asset('assets/images/brand/scharge-icon.svg') }}"
-        alt="{{ SystemHelper::appName() }}"
+        src="{{ ($brand ?? null)?->iconUrl() ?? ($brand ?? null)?->logoUrl() ?? asset('assets/images/brand/scharge-icon.svg') }}"
+        alt="{{ ($brand ?? null)?->display_name ?? SystemHelper::appName() }}"
         width="32"
         height="32"
       />
@@ -200,7 +200,7 @@ document.addEventListener('alpine:init', () => {
         'sms', 'sms_send', 'sms_history', 'sms_templates', 'sms_settings',
         'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
         'administration', 'companies', 'users', 'staff', 'team', 'roles', 'system_settings', 'clear_cache',
-        'settings', 'integrations', 'api_keys', 'property_claims', 'server_security',
+        'settings', 'integrations', 'white_label', 'api_keys', 'property_claims', 'server_security',
       ],
       // scharge staff: manages a book of companies, their leads and revenue.
       'account_manager': [
@@ -217,7 +217,7 @@ document.addEventListener('alpine:init', () => {
         'gate', 'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
         'users', 'staff', 'team',
-        'settings', 'integrations', 'api_keys',
+        'settings', 'integrations', 'white_label', 'api_keys',
       ],
       'property_manager': [
         'dashboard', 'calendar', 'profile',
@@ -358,6 +358,8 @@ document.addEventListener('alpine:init', () => {
       {
         title: 'SETUP',
         items: [
+          { name: 'whiteLabel', label: 'White label & data', link: '/settings/white-label', page: 'whiteLabel', permission: 'white_label',
+            stroke: true, icon: 'M9.53 16.122a3 3 0 0 0-5.78 1.128 2.25 2.25 0 0 1-2.4 2.245 4.5 4.5 0 0 0 8.4-2.245c0-.399-.078-.78-.22-1.128Zm0 0a15.998 15.998 0 0 0 3.388-1.62m-5.043-.025a15.994 15.994 0 0 1 1.622-3.395m3.42 3.42a15.995 15.995 0 0 0 4.764-4.648l3.876-5.814a1.151 1.151 0 0 0-1.597-1.597L14.146 6.32a15.996 15.996 0 0 0-4.649 4.763m3.42 3.42a6.776 6.776 0 0 0-3.42-3.42' },
           { name: 'integrations', label: 'Integrations', link: '/integrations', page: 'integrations', permission: 'integrations',
             stroke: true, icon: 'M14.25 6.087c0-.355.186-.676.401-.959.221-.29.349-.634.349-1.003 0-1.036-1.007-1.875-2.25-1.875s-2.25.84-2.25 1.875c0 .369.128.713.349 1.003.215.283.401.604.401.959v0a.64.64 0 0 1-.657.643 48.39 48.39 0 0 1-4.163-.3c.186 1.613.293 3.25.315 4.907a.656.656 0 0 1-.658.663v0c-.355 0-.676-.186-.959-.401a1.647 1.647 0 0 0-1.003-.349c-1.036 0-1.875 1.007-1.875 2.25s.84 2.25 1.875 2.25c.369 0 .713-.128 1.003-.349.283-.215.604-.401.959-.401v0c.31 0 .555.26.532.57a48.039 48.039 0 0 1-.642 5.056c1.518.19 3.058.309 4.616.354a.64.64 0 0 0 .657-.643v0c0-.355-.186-.676-.401-.959a1.647 1.647 0 0 1-.349-1.003c0-1.035 1.008-1.875 2.25-1.875 1.243 0 2.25.84 2.25 1.875 0 .369-.128.713-.349 1.003-.215.283-.4.604-.4.959v0c0 .333.277.599.61.58a48.1 48.1 0 0 0 5.427-.63 48.05 48.05 0 0 0 .582-4.717.532.532 0 0 0-.533-.57v0c-.355 0-.676.186-.959.401-.29.221-.634.349-1.003.349-1.035 0-1.875-1.007-1.875-2.25s.84-2.25 1.875-2.25c.37 0 .713.128 1.003.349.283.215.604.401.96.401v0a.656.656 0 0 0 .658-.663 48.422 48.422 0 0 0-.37-5.36c-1.886.342-3.81.574-5.766.689a.578.578 0 0 1-.61-.58v0Z' },
           { name: 'serverSecurity', label: 'Server security', link: '/admin/security', page: 'serverSecurity', permission: 'server_security',

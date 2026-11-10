@@ -22,6 +22,9 @@ return Application::configure(basePath: dirname(__DIR__))
             't', // website analytics beacon: no cookies needed, always answers 204
         ]);
 
+        // White label: the company's brand on its own address and for its people (docs/WHITE_LABEL.md).
+        $middleware->web(append: [\App\Http\Middleware\ApplyBrand::class]);
+
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,

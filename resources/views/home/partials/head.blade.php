@@ -8,6 +8,10 @@
     $seoCanonical = trim($__env->yieldContent('canonical')) ?: e(url()->current()); // never the query string (utm tags, filters)
     $seoRobots = trim($__env->yieldContent('robots')) ?: 'index,follow,max-image-preview:large';
     $seoImage = trim($__env->yieldContent('og_image')) ?: e(asset('assets/images/og-image.png'));
+    if (($brandOwnDomain ?? false) && ($brand ?? null)) { // a company's own address: its name, never indexed
+        $seoTitle = e($brand->display_name);
+        $seoRobots = 'noindex,nofollow';
+    }
 @endphp
 <title>{!! $seoTitle !!}</title>
 <meta name="description" content="{!! $seoDesc !!}">
@@ -41,8 +45,12 @@
 {!! \App\Support\Seo::script(\App\Support\Seo::siteGraph()) !!}
 @stack('jsonld')
 @include('home.partials.analytics')
+@if (($brandOwnDomain ?? false) && ($brand ?? null)?->iconUrl())
+<link rel="icon" href="{{ $brand->iconUrl() }}">
+@else
 <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
 <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
+@endif
 <link rel="apple-touch-icon" href="{{ asset('apple-touch-icon.png') }}">
 <link rel="manifest" href="{{ asset('site.webmanifest') }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">

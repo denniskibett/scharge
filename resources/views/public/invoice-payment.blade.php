@@ -11,7 +11,7 @@
   $items = $invoice->items->filter(fn ($i) => (float) $i->amount != 0);
   $balanceJs = (float) $balanceDue;
 @endphp
-@component('public.partials.invoice-shell', ['title' => 'Pay invoice #'.$invoice->id])
+@component('public.partials.invoice-shell', ['title' => 'Pay invoice #'.$invoice->id, 'brand' => \App\Support\Brand::forCompany($invoice->owningCompanyId())])
 
 <section class="pay-card" x-data="publicInvoicePayment()" x-init="init()">
   <header class="pay-head">

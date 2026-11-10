@@ -69,12 +69,13 @@ class DocumentPdf
 
     private function render(?Company $company, string $view, array $data): DomPdf
     {
+        $brand = \App\Support\Brand::forCompany($company?->id);
         $letterhead = [
-            'name' => $company?->name ?? 'scharge',
+            'name' => $brand?->display_name ?? $company?->name ?? 'scharge',
             'address' => $company?->address ?: $company?->location,
             'phone' => $company?->phone,
             'header_lines' => array_values(array_filter([$company?->address ?: $company?->location, $company?->phone, $company?->email])),
-            'hide_powered_by' => false,
+            'hide_powered_by' => $brand ? ! $brand->show_powered_by : false, // white label (docs/WHITE_LABEL.md)
         ];
         $fromRows = array_values(array_filter([$letterhead['name'], $company?->address ?: $company?->location, $company?->phone, $company?->email,
             $company?->tax_id ? 'KRA PIN: '.$company->tax_id : null]));
@@ -119,6 +120,11 @@ class DocumentPdf
     /** A PNG logo for the letterhead (DomPDF draws PNG reliably, SVG poorly): the system logo if it is a PNG, else the app icon. */
     private function logo(?Company $company): ?string
     {
+        // White label: the company's own logo when it is a PNG or JPEG (DomPDF draws those reliably).
+        $brand = \App\Support\Brand::forCompany($company?->id);
+        if ($brand?->logo_path && is_file($f = storage_path('app/public/'.$brand->logo_path)) && preg_match('/\.(png|jpe?g)$/i', $f)) {
+            return $f;
+        }
         $system = \App\Helpers\SystemHelper::get('logo');
         foreach ([$system ? public_path($system) : null, public_path('icon-512.png'), public_path('icon-192.png'), public_path('apple-touch-icon.png')] as $file) {
             if ($file && is_file($file) && str_ends_with(strtolower($file), '.png')) {

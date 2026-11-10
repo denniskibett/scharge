@@ -17,6 +17,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/invoices/{id}', [V1Controller::class, 'invoice'])->whereNumber('id');
         Route::post('/invoices/{id}/pay-link', [V1Controller::class, 'payLink'])->whereNumber('id')->middleware('api.key:collect');
 
+        // Read API for white-label clients (docs/WHITE_LABEL.md): all of the key's company's records, page by page.
+        Route::get('/{collection}', [V1Controller::class, 'collection'])->whereIn('collection', V1Controller::COLLECTIONS);
+
         Route::get('/meters', [MetersController::class, 'index']);
         Route::get('/meters/{id}', [MetersController::class, 'show'])->whereNumber('id');
         Route::get('/meters/{id}/readings', [MetersController::class, 'readingsIndex'])->whereNumber('id');

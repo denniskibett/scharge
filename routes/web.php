@@ -471,6 +471,11 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // ============================================
     Route::middleware('access:settings')->group(function () {
         Route::get('/integrations', [App\Http\Controllers\IntegrationController::class, 'index'])->name('integrations.index');
+        // White label & data (docs/WHITE_LABEL.md)
+        Route::get('/settings/white-label', [App\Http\Controllers\BrandController::class, 'edit'])->name('brand.edit');
+        Route::post('/settings/white-label', [App\Http\Controllers\BrandController::class, 'update'])->name('brand.update');
+        Route::post('/settings/white-label/remove', [App\Http\Controllers\BrandController::class, 'destroy'])->name('brand.destroy');
+        Route::get('/settings/white-label/export', [App\Http\Controllers\BrandController::class, 'export'])->middleware('throttle:6,1')->name('brand.export');
         Route::get('/integrations/sharet/connected', [App\Http\Controllers\IntegrationController::class, 'connected'])->name('integrations.connected');
         Route::post('/integrations/sharet_payouts/connect', [App\Http\Controllers\IntegrationController::class, 'connect'])->name('integrations.connect');
         Route::put('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'update'])->name('integrations.update');

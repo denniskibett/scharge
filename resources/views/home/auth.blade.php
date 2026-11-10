@@ -19,6 +19,11 @@ body { background: var(--blush); }
 .auth-status { padding: 12px 14px; border-radius: 12px; background: var(--ok-bg); color: var(--ok-ink); font-size: .9rem; font-weight: 600; }
 @media (max-width: 760px) { .auth--page .auth-side { display: none; } }
 @media (max-width: 380px) { .auth-line { flex-wrap: wrap; } .auth-switch a { padding: 0 14px; } }
+@if ($brand ?? null)
+{{-- White label sign-in: the company's colour (website accent variables). --}}
+:root { --red: {{ $brand->primary_color }}; --red-deep: {{ $brand->primary_color }}; }
+.auth--page .auth-side { background: {{ $brand->primary_color }}; }
+@endif
 </style>
 </head>
 <body>
@@ -26,11 +31,13 @@ body { background: var(--blush); }
 <div class="auth auth--page">
 @include('home.partials.auth-side')
 <div class="auth-main">
+@unless ($brandOwnDomain ?? false)
 <a class="auth-close" href="{{ route('home') }}" aria-label="Back to home" title="Back to home">×</a>
 <nav class="toggle-group auth-switch" aria-label="Account">
 <a href="{{ route('login') }}"@if (request()->routeIs('login')) aria-current="page"@endif>Log in</a>
 <a href="{{ route('register') }}"@if (request()->routeIs('register')) aria-current="page"@endif>Register</a>
 </nav>
+@endunless
 @if (session('status'))
 <p class="auth-status" role="status">{{ session('status') }}</p>
 @endif

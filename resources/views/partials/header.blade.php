@@ -101,15 +101,15 @@
       <a href="{{ route('dashboard') }}" class="lg:hidden">
         <img
           class="dark:hidden"
-          src="{{ asset('assets/images/brand/scharge-logo.svg') }}"
-          alt="{{ SystemHelper::appName() }}"
+          src="{{ ($brand ?? null)?->logoUrl() ?? asset('assets/images/brand/scharge-logo.svg') }}"
+          alt="{{ ($brand ?? null)?->display_name ?? SystemHelper::appName() }}"
           width="130"
           height="31"
         />
         <img
           class="hidden dark:block"
-          src="{{ asset('assets/images/brand/scharge-logo-white.svg') }}"
-          alt="{{ SystemHelper::appName() }}"
+          src="{{ ($brand ?? null)?->logoDarkUrl() ?? asset('assets/images/brand/scharge-logo-white.svg') }}"
+          alt="{{ ($brand ?? null)?->display_name ?? SystemHelper::appName() }}"
           width="130"
           height="31"
         />
