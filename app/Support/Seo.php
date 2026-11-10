@@ -25,7 +25,7 @@ class Seo
         ['Sharet', 'payments API for Kenya', 'https://sharet.africa'],
         ['Breve', 'invoicing and M-Pesa payments for SMEs', 'https://breve.sharet.africa'],
         ['Aiyotickets', 'events and tickets in Nairobi', 'https://aiyotickets.com'],
-        ['eServiz', 'home services in Nairobi', 'https://eserviz.aiyotickets.com'],
+        ['eServiz', 'government errands done for you (NTSA, Lands, KRA)', 'https://eserviz.aiyotickets.com'],
         ['Sharet Loans', 'boda boda and e-bike loans', 'https://loans.sharet.africa'],
         ['Shoope', 'safe payments for online shops', 'https://shoope.africa'],
     ];
