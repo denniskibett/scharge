@@ -61,17 +61,58 @@ Every bill and reminder is a row in `rent_messages`, unique per invoice, kind (`
 | Table | `database/migrations/2026_11_10_120000_create_rent_messages_table.php` |
 | Tests | `tests/Feature/RentAutomationTest.php` (builds its own tables; see below) |
 
+## Paybill payments (tenants paying straight to the paybill)
+
+When a company has its own M-Pesa Daraja paybill (Integrations › M-Pesa Daraja), **Test** also registers scharge's address with Safaricom (C2B v2). `php artisan mpesa:register-paybill` does the same for every company. From then on, every payment to that paybill arrives at `/webhooks/mpesa/c2b/{secret}/confirmation`.
+
+**Matching, within that company:**
+1. The account number is a unit number of exactly one active tenancy. Case, spaces and punctuation don't matter (`a-1` = `A1`), and building plus unit works too (`SUNRISEA1`).
+2. The account number is a bill number (`INV-123`).
+3. The payer's phone is exactly one active tenant's phone (only when Safaricom sends the number unmasked).
+
+**Applying:**
+- Money pays off the tenancy's unpaid bills oldest first, through `InvoicePaymentService`.
+- Anything left over is wallet credit. If nothing is owed, the whole amount is credit.
+- One row per M-Pesa receipt in `paybill_payments`, so Safaricom repeating a payment never records it twice. A receipt that's already in `payments` (e.g. it also came through an STK callback) isn't recorded again.
+
+Unmatched payments wait on **Money › Rent collection**, where the landlord picks the tenant or marks the payment **Not rent**. scharge's own platform paybill only matches bill numbers, because unit numbers repeat across companies.
+
+## Rent collection page (Money › Rent collection, `/rent`)
+
+- **Paybill payments:** what came in, how it matched, and a tenant picker for unmatched ones.
+- **Messages:**
+  - every bill, reminder, bill link and penalty, filterable;
+  - failed or no-phone messages have **Send again**.
+- **Paused tenants:** pause reminders and penalties for one tenancy, optionally until a date, with a reason (payment plan, dispute). Bills still go out.
+- **Send fresh bill links:** one SMS per tenant who owes, linking their oldest unpaid bill, at most once a day each. Use it after deploying the secret-link change.
+
+## Late payment penalties (owner's choice)
+
+- **Off by default.** The owner switches them on in Integrations › Rent automation:
+  - **percentage** of the unpaid amount, or a **fixed** KES amount;
+  - charged once a bill is a set number of days late.
+- **Once per monthly bill**, as an "other" line on the same bill. Recorded in `rent_messages` (kind `penalty`), so it's never added twice.
+- **Never** for a paused tenant or a move-in bill.
+- **Runs inside `rent:remind`,** before the reminders, so the reminder shows the new total.
+- **Test** on the settings shows how many penalties would be added today.
+
 ## Deploying
 
-The repo's migrations don't match production yet (SYSTEM_AUDIT.md §2), so **don't run a plain `php artisan migrate`**. Run only the new one:
+Use `bash scripts/push.sh`. On its own it only **previews**: it builds, runs the passing test suites and lists what would change on the server. `bash scripts/push.sh --go` deploys:
+- **Upload:** rsync to `/home/scharge.sharet.africa/laravel`, never deleting anything on the server; public assets also go to `public_html`, but never its `index.php` or `.htaccess`.
+- **Then `scripts/deploy.sh` on the server:**
+  - database backup first, with a copy kept in `/var/backups/scharge`;
+  - `composer install`;
+  - **only** the migrations listed in `scripts/deploy-migrations.txt`;
+  - caches, then the site is back up.
+- `ACCESS_SYNC=1` also runs `access:sync`, which resets built-in roles to their default access.
 
-```bash
-php artisan migrate --path=database/migrations/2026_11_10_120000_create_rent_messages_table.php --force
-```
+The server cron must run `php artisan schedule:run` every minute. It does for `schar5452` since 8 Nov.
 
-The server cron must run `php artisan schedule:run` every minute (already needed for M-Pesa reconcile and the sweeps).
-
-Before switching it on for a company, press **Test**. It shows how many invoices the next run would create and how many tenants are due a reminder, without sending anything. Or run `php artisan rent:invoice --company=ID --dry-run`.
+After the first deploy:
+1. **Rent collection › Send fresh bill links**, because old links stopped working.
+2. **Integrations › M-Pesa Daraja › Test** for each company with its own paybill, so direct payments reach scharge.
+3. **Tell tenants to use their unit number** (e.g. A1) as the account number.
 
 ## Fixed alongside
 

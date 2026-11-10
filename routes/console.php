@@ -61,3 +61,9 @@ Schedule::command('rent:remind')
     ->dailyAt('10:00')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Channel sync (Airbnb, Booking.com calendars). Does nothing until Integrations › Channel sync is switched on.
+Schedule::command('bookings:sync')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping()
+    ->onOneServer();

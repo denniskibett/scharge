@@ -236,6 +236,9 @@ Route::middleware('guest')->group(function () {
 Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1')->name('host.properties.search');
 
 // Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
+// A unit's private calendar link for Airbnb / Booking.com to import (dates only; token in the path).
+Route::get('/calendar/units/{unit}/{token}', [App\Http\Controllers\BookingController::class, 'calendar'])->whereNumber('unit')->middleware('throttle:60,1')->name('bookings.calendar');
+
 // Safaricom C2B: payments made straight to a company's paybill (App\Services\Rent\PaybillPayments).
 Route::post('/webhooks/mpesa/c2b/{token}/validation', [App\Http\Controllers\PaybillWebhookController::class, 'validation'])->name('webhooks.c2b.validation');
 Route::post('/webhooks/mpesa/c2b/{token}/confirmation', [App\Http\Controllers\PaybillWebhookController::class, 'confirmation'])->name('webhooks.c2b.confirmation');
@@ -519,6 +522,15 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // PAYMENT ROUTES
     // ============================================
     Route::resource('payments', PaymentController::class)->middleware('access:payments');
+
+    // Bookings for short-stay units, and channel sync (docs/BOOKINGS.md).
+    Route::middleware('access:properties')->prefix('bookings')->name('bookings.')->group(function () {
+        Route::get('/', [App\Http\Controllers\BookingController::class, 'index'])->name('index');
+        Route::post('/', [App\Http\Controllers\BookingController::class, 'store'])->name('store');
+        Route::post('/{booking}/cancel', [App\Http\Controllers\BookingController::class, 'cancel'])->name('cancel');
+        Route::post('/units/{unit}/channels', [App\Http\Controllers\BookingController::class, 'saveChannel'])->name('channels.save');
+        Route::post('/channels/{channel}/remove', [App\Http\Controllers\BookingController::class, 'removeChannel'])->name('channels.remove');
+    });
 
     // Rent collection: paybill payments to match, bill/reminder messages, paused tenants (docs/RENT_AUTOMATION.md).
     Route::middleware('access:payments')->prefix('rent')->name('rent.')->group(function () {

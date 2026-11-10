@@ -113,7 +113,7 @@ class Access
 
     /** Sidebar entry keys => the permission that shows them (see partials/sidebar.blade.php). */
     public const MENU = [
-        'property' => 'properties.view', 'properties' => 'properties.view', 'units' => 'properties.view',
+        'property' => 'properties.view', 'properties' => 'properties.view', 'units' => 'properties.view', 'bookings' => 'properties.view',
         'tenants' => 'tenants.view', 'tenancies' => 'tenants.view',
         'water' => 'water.view', 'water_readings' => 'water.view', 'water_reports' => 'water.view',
         'maintenance' => 'maintenance.view',

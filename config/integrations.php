@@ -133,6 +133,17 @@ return [
         ],
     ],
 
+    'channel_sync' => [
+        'name' => 'Channel sync (Airbnb, Booking.com)',
+        'scope' => 'platform',
+        'category' => 'Bookings',
+        'description' => 'Two-way calendar sync for short-stay units: stays booked on Airbnb, Booking.com or Vrbo appear on scharge, and nights booked on scharge are blocked on those channels, so a unit is never booked twice. Built and ready; switch it on when we launch it. Until then hosts see "Coming soon" and nothing is fetched.',
+        'color' => '#FF5A5F',
+        'fields' => [
+            'note' => ['label' => 'Note', 'placeholder' => 'Launched to all hosts', 'help' => 'Optional. Switching this on starts the 30-minute calendar sync for every unit with a channel link.'],
+        ],
+    ],
+
     'africastalking' => [
         'name' => "Africa's Talking",
         'scope' => 'platform',
