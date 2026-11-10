@@ -21,6 +21,11 @@ class PublicInvoiceController extends Controller
      */
     public function show(Request $request, $invoiceId)
     {
+        return \App\Support\CompanyAccess::bypass(fn () => $this->showPage($request, $invoiceId));
+    }
+
+    private function showPage(Request $request, $invoiceId)
+    {
         if (! InvoiceLink::valid($invoiceId, $request->query('t'))) {
             return response()->view('public.invoice-link-invalid', [], 403);
         }
@@ -46,6 +51,11 @@ class PublicInvoiceController extends Controller
     }
 
     public function pay(Request $request, $invoiceId)
+    {
+        return \App\Support\CompanyAccess::bypass(fn () => $this->payNow($request, $invoiceId));
+    }
+
+    private function payNow(Request $request, $invoiceId)
     {
         $request->validate([
             'phone' => 'required|string|min:10|max:15',
@@ -207,6 +217,11 @@ class PublicInvoiceController extends Controller
      * Check payment status
      */
     public function checkStatus(Request $request, $invoiceId, $checkoutId)
+    {
+        return \App\Support\CompanyAccess::bypass(fn () => $this->statusNow($request, $invoiceId, $checkoutId));
+    }
+
+    private function statusNow(Request $request, $invoiceId, $checkoutId)
     {
         if (! InvoiceLink::valid($invoiceId, $request->query('t'))) {
             return response()->json(['success' => false, 'message' => 'This payment link is not valid.'], 403);

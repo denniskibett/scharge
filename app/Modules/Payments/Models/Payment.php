@@ -15,6 +15,16 @@ class Payment extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /** Signed-in company users only find payments on their own company's invoices (App\Support\CompanyAccess). */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function ($query) {
+            if (\App\Support\CompanyAccess::ids() !== null) {
+                $query->whereHas('invoice');
+            }
+        });
+    }
+
     protected $table = 'payments';
 
     protected $fillable = [

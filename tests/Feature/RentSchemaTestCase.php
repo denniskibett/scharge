@@ -40,7 +40,7 @@ abstract class RentSchemaTestCase extends TestCase
 
     protected function schema(): void
     {
-        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles'] as $t) {
+        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements'] as $t) {
             Schema::dropIfExists($t);
         }
         Schema::create('companies', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->timestamps()]);
@@ -74,7 +74,8 @@ abstract class RentSchemaTestCase extends TestCase
         Schema::create('company_integrations', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->string('provider'), $t->text('credentials')->nullable(),
             $t->boolean('enabled')->default(false), $t->unsignedBigInteger('updated_by')->nullable(), $t->timestamp('last_tested_at')->nullable(), $t->boolean('last_test_ok')->nullable(), $t->string('last_test_message')->nullable(), $t->timestamps()]);
         Schema::create('sms_logs', fn (Blueprint $t) => [$t->id(), $t->string('recipient_phone'), $t->text('message'), $t->string('status')->default('pending'), $t->timestamps()]);
-        Schema::create('payments', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('invoice_id')->nullable(), $t->decimal('amount', 12, 2)->default(0), $t->string('status')->default('completed'), $t->timestamps(), $t->softDeletes()]);
+        Schema::create('payments', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('invoice_id')->nullable(), $t->unsignedBigInteger('tenant_id')->nullable(), $t->decimal('amount', 12, 2)->default(0), $t->string('status')->default('completed'), $t->timestamps(), $t->softDeletes()]);
+        Schema::create('unit_managements', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('unit_id'), $t->unsignedBigInteger('company_id'), $t->string('role')->default('bnb_host'), $t->string('status')->default('active'), $t->timestamps()]);
         Schema::create('roles', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('guard_name')->default('web'), $t->timestamps()]);
         Schema::create('model_has_roles', fn (Blueprint $t) => [$t->unsignedBigInteger('role_id'), $t->string('model_type'), $t->unsignedBigInteger('model_id')]);
         (require base_path('database/migrations/2026_11_10_120000_create_rent_messages_table.php'))->up();

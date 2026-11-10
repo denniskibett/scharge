@@ -85,7 +85,7 @@ class PropertyRegistry
         return [
             'id' => $p->id, 'name' => $p->name, 'location' => $p->location, 'score' => $score,
             'managed' => (bool) $p->company_id && ($p->claim_status ?? 'managed') === 'managed',
-            'units' => $p->units()->count(),
+            'units' => \App\Support\CompanyAccess::bypass(fn () => $p->units()->count()), // the real size, whoever asks
         ];
     }
 }

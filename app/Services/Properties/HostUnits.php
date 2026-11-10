@@ -27,6 +27,11 @@ class HostUnits
     /** @param array{property_id?: ?int, property_name?: ?string, location?: ?string, unit_number: string, unit_type?: ?string, nightly_rate?: ?float} $d */
     public function registerUnit(Company $host, User $by, array $d): Unit
     {
+        return \App\Support\CompanyAccess::bypass(fn () => $this->registerUnitUnscoped($host, $by, $d));
+    }
+
+    private function registerUnitUnscoped(Company $host, User $by, array $d): Unit
+    {
         return DB::transaction(function () use ($host, $by, $d) {
             $property = ! empty($d['property_id'])
                 ? Property::lockForUpdate()->findOrFail($d['property_id'])
@@ -78,6 +83,11 @@ class HostUnits
     /** Staff approve a claim: the company now manages the building; host units stay with their hosts. */
     public function approve(PropertyClaim $claim, User $reviewer, ?string $note = null): void
     {
+        \App\Support\CompanyAccess::bypass(fn () => $this->approveUnscoped($claim, $reviewer, $note));
+    }
+
+    private function approveUnscoped(PropertyClaim $claim, User $reviewer, ?string $note = null): void
+    {
         DB::transaction(function () use ($claim, $reviewer, $note) {
             $claim = PropertyClaim::whereKey($claim->id)->lockForUpdate()->firstOrFail();
             abort_unless($claim->status === 'pending', 422, 'This claim was already reviewed.');
@@ -118,10 +128,10 @@ class HostUnits
     private function ownerTenancy(Unit $unit, UnitManagement $host, int $managerCompanyId): void
     {
         $hostUser = User::where('company_id', $host->company_id)->orderBy('id')->first();
-        if (! $hostUser || Tenancy::where('unit_id', $unit->id)->where('status', 'active')->exists()) {
+        if (! $hostUser || Tenancy::withoutGlobalScope('company')->where('unit_id', $unit->id)->where('status', 'active')->exists()) {
             return;
         }
-        $tenant = Tenant::where('user_id', $hostUser->id)->where('company_id', $managerCompanyId)->first()
+        $tenant = Tenant::withoutGlobalScope('company')->where('user_id', $hostUser->id)->where('company_id', $managerCompanyId)->first()
             ?? Tenant::forceCreate(['user_id' => $hostUser->id, 'company_id' => $managerCompanyId, 'property_id' => $unit->property_id, 'notes' => 'BnB host (unit owner)']);
         Tenancy::forceCreate([
             'company_id' => $managerCompanyId, 'property_id' => $unit->property_id, 'unit_id' => $unit->id, 'tenant_id' => $tenant->id,

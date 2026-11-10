@@ -92,6 +92,11 @@ class SharetCollections
     /** Apply a Sharet payment-request object (from a webhook or a poll) to our records. */
     public function apply(array $object): ?SharetPaymentRequest
     {
+        return \App\Support\CompanyAccess::bypass(fn () => $this->applyUnscoped($object));
+    }
+
+    private function applyUnscoped(array $object): ?SharetPaymentRequest
+    {
         $row = SharetPaymentRequest::where('sharet_id', $object['id'] ?? '')->first();
         if (! $row) {
             return null;
@@ -113,7 +118,7 @@ class SharetCollections
             }
 
             $row->fill(['status' => 'paid', 'paid_via' => $object['paid_via'] ?? null, 'paid_at' => $object['paid_at'] ?? now(), 'raw' => $object]);
-            $invoice = $row->invoice_id ? Invoice::whereKey($row->invoice_id)->lockForUpdate()->first() : null;
+            $invoice = $row->invoice_id ? Invoice::withoutGlobalScope('company')->whereKey($row->invoice_id)->lockForUpdate()->first() : null;
 
             if ($invoice?->tenancy?->tenant) {
                 $payment = app(InvoicePaymentService::class)->apply($invoice, (float) $row->amount, [

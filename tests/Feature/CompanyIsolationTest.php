@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Tenant;
+use App\Models\Unit;
 use App\Models\Tenancy;
 use App\Models\User;
 use App\Support\CompanyAccess;
@@ -87,5 +90,40 @@ class CompanyIsolationTest extends RentSchemaTestCase
         $this->actingAs($this->user($this->b['company']));
 
         $this->get(InvoiceLink::url($id))->assertOk();
+    }
+
+    public function test_payments_tenants_and_units_follow_the_same_rule(): void
+    {
+        foreach (Invoice::withoutGlobalScope('company')->get() as $invoice) {
+            DB::table('payments')->insert(['invoice_id' => $invoice->id, 'amount' => 500, 'status' => 'completed']);
+        }
+        DB::table('tenants')->where('id', DB::table('tenancies')->where('id', $this->a['tenancies'][1])->value('tenant_id'))->update(['company_id' => null]);
+        $bUnit = DB::table('tenancies')->where('id', $this->b['tenancies'][0])->value('unit_id');
+
+        $this->actingAs($this->user($this->a['company']));
+        $this->assertSame(2, Payment::count());
+        $this->assertSame(2, Tenant::count()); // one only through its tenancy
+        $this->assertSame(2, Unit::count());
+        $this->assertNull(Unit::find($bUnit));
+
+        // A unit A manages in B's building (a BnB host unit) is visible to A.
+        DB::table('unit_managements')->insert(['unit_id' => $bUnit, 'company_id' => $this->a['company']]);
+        $this->assertNotNull(Unit::find($bUnit));
+
+        // System work (payment settlement, host units) sees everything, whoever is signed in.
+        $this->assertSame(3, CompanyAccess::bypass(fn () => Payment::count()));
+        $this->assertSame(3, CompanyAccess::bypass(fn () => Invoice::with('tenancy.tenant')->get()->filter(fn ($i) => $i->tenancy?->tenant)->count()));
+        $this->assertSame(2, Payment::count()); // and the filter is back afterwards
+    }
+
+    public function test_a_tenant_added_by_a_company_user_stays_in_their_list(): void
+    {
+        $this->actingAs($this->user($this->a['company']));
+        $userId = DB::table('users')->insertGetId(['name' => 'New Tenant', 'email' => 'new@example.test']);
+
+        $tenant = Tenant::create(['user_id' => $userId]);
+
+        $this->assertSame((int) $this->a['company'], (int) $tenant->company_id);
+        $this->assertNotNull(Tenant::find($tenant->id));
     }
 }

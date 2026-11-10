@@ -10,6 +10,23 @@ class Unit extends Model
 {
     use HasFactory;
 
+    /**
+     * Signed-in company users only find units of their company (App\Support\CompanyAccess): units.company_id, or the
+     * unit's property, or a unit they manage (unit_managements, e.g. a BnB host's unit in a managed building).
+     * Public listings and system work use CompanyAccess::bypass().
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function ($query) {
+            $ids = \App\Support\CompanyAccess::ids();
+            if ($ids !== null) {
+                $query->where(fn ($q) => $q->whereIn('units.company_id', $ids)
+                    ->orWhereIn('units.property_id', \Illuminate\Support\Facades\DB::table('properties')->whereIn('company_id', $ids)->select('id'))
+                    ->orWhereIn('units.id', \Illuminate\Support\Facades\DB::table('unit_managements')->whereIn('company_id', $ids)->where('status', 'active')->select('unit_id')));
+            }
+        });
+    }
+
     // Constants for classification fields
     const OWNERSHIP_HOMEOWNER = 'homeowner';
     const OWNERSHIP_TENANT = 'tenant';

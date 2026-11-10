@@ -86,7 +86,19 @@ Before switching it on for a company, press **Test**. It shows how many invoices
   - Every link (SMS, email, PDF, calendar, API, pay-link button) is built with `InvoiceLink::url()`.
   - Links sent before this change show "This link is not valid", and the tenant asks for the bill again. Changing `APP_KEY` would also invalidate all links.
 
+- **Payments, tenants and units** follow the same rule (10 Nov, same branch):
+  - **payments:** through their invoice;
+  - **tenants:** `company_id`, or one of the company's tenancies for older rows;
+  - **units:** `company_id`, or their property's company, or a unit the company manages in `unit_managements` (a BnB host's unit in a managed building).
+- **New tenants get the creator's company.** The forms never saved a company on new tenants, so they would have vanished from the list of the company that added them.
+- **System work runs through `CompanyAccess::bypass()`,** so it sees everything whoever is signed in:
+  - M-Pesa and Sharet payment settlement, so a payment is never missed or recorded twice;
+  - BnB host units and property claims;
+  - the public bill page;
+  - the property register's unit count.
+- **Properties are not filtered by this rule.** Their screens already check the company, and the shared property register must see every property to prevent duplicates.
+
 ## Still open
 
-- **Payments, tenants and units** are not yet scoped the same way. Check `PaymentController` and `TenantController` lists.
+- **Old rows with no company:** the 16 local tenant records with no company and no tenancy are now visible only to sysadmins. On live, check them and assign a company or remove them.
 - **Existing tests:** 23 still fail on `wallets` already existing (duplicate wallet migrations).

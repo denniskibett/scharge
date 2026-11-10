@@ -26,6 +26,11 @@ class MpesaSettlementService
 {
     public function settle(MpesaStk $stk): array
     {
+        return \App\Support\CompanyAccess::bypass(fn () => $this->settleUnscoped($stk));
+    }
+
+    private function settleUnscoped(MpesaStk $stk): array
+    {
         if (! $stk->isSuccessful() || ! $stk->invoice_id) {
             return ['success' => false, 'message' => 'Nothing to settle'];
         }
@@ -35,7 +40,7 @@ class MpesaSettlementService
                 /** @var MpesaStk $stk */
                 $stk = MpesaStk::whereKey($stk->id)->lockForUpdate()->firstOrFail();
 
-                $alreadySettled = Payment::where('transaction_reference', $stk->checkout_request_id)
+                $alreadySettled = Payment::withoutGlobalScope('company')->where('transaction_reference', $stk->checkout_request_id)
                     ->when($stk->mpesa_receipt_number, fn ($q) => $q->orWhere('external_reference', $stk->mpesa_receipt_number))
                     ->exists();
 
@@ -43,7 +48,7 @@ class MpesaSettlementService
                     return ['success' => false, 'message' => 'Payment already processed'];
                 }
 
-                $invoice = Invoice::whereKey($stk->invoice_id)->lockForUpdate()->first();
+                $invoice = Invoice::withoutGlobalScope('company')->whereKey($stk->invoice_id)->lockForUpdate()->first();
                 $tenant = $invoice?->tenancy?->tenant;
 
                 if (! $invoice || ! $tenant) {

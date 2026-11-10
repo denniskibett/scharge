@@ -17,6 +17,29 @@ class Tenant extends Model implements Wallet
 {
     use HasFactory, HasWallet;
 
+    /**
+     * Signed-in company users only find their own company's tenants (App\Support\CompanyAccess): by tenants.company_id,
+     * or, when it is empty, through a tenancy of theirs.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function ($query) {
+            $ids = \App\Support\CompanyAccess::ids();
+            if ($ids !== null) {
+                $query->where(fn ($q) => $q->whereIn('tenants.company_id', $ids)
+                    ->orWhere(fn ($q) => $q->whereNull('tenants.company_id')->whereHas('tenancies')));
+            }
+        });
+
+        // A tenant added by a company user belongs to that company (the forms never set it, so they disappeared
+        // from the company's list until a tenancy existed).
+        static::creating(function ($tenant) {
+            if (! $tenant->company_id && ($companyId = auth()->user()?->company_id)) {
+                $tenant->company_id = $companyId;
+            }
+        });
+    }
+
     protected $fillable = [
         'user_id', 
         'id_number', 

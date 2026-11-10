@@ -19,10 +19,26 @@ class CompanyAccess
     /** @var array<int, array<int>|null> per user id, for this request */
     private static array $memo = [];
 
+    private static int $bypass = 0;
+
+    /**
+     * Run system work without the company filter, whoever is signed in: payment settlement, host units, the public
+     * bill page. Relations loaded inside (invoice -> tenancy -> tenant) are unfiltered too.
+     */
+    public static function bypass(callable $callback): mixed
+    {
+        self::$bypass++;
+        try {
+            return $callback();
+        } finally {
+            self::$bypass--;
+        }
+    }
+
     /** @return array<int>|null */
     public static function ids(): ?array
     {
-        $user = auth()->user();
+        $user = self::$bypass > 0 ? null : auth()->user();
         if (! $user) {
             return null;
         }
