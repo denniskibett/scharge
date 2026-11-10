@@ -50,13 +50,15 @@ abstract class RentSchemaTestCase extends TestCase
 
     protected function schema(): void
     {
-        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements', 'paybill_payments', 'rent_holds', 'transfers', 'transactions', 'wallets', 'permissions', 'role_has_permissions', 'model_has_permissions', 'bookings', 'unit_channels', 'company_brands', 'api_keys'] as $t) {
+        foreach (['companies', 'users', 'tenants', 'properties', 'units', 'tenancies', 'invoices', 'invoice_items', 'water_readings', 'company_integrations', 'rent_messages', 'sms_logs', 'payments', 'roles', 'model_has_roles', 'unit_managements', 'paybill_payments', 'rent_holds', 'transfers', 'transactions', 'wallets', 'permissions', 'role_has_permissions', 'model_has_permissions', 'bookings', 'unit_channels', 'company_brands', 'api_keys', 'crm_follow_ups', 'company_kyc', 'kyc_documents', 'unit_photos'] as $t) {
             Schema::dropIfExists($t);
         }
-        Schema::create('companies', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->timestamps()]);
-        Schema::create('users', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('email')->nullable(), $t->string('phone')->nullable(), $t->unsignedBigInteger('company_id')->nullable(), $t->string('password')->nullable(), $t->timestamps()]);
+        Schema::create('companies', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('lifecycle')->nullable(), $t->unsignedBigInteger('owner_id')->nullable(), $t->timestamps()]);
+        Schema::create('users', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('first_name')->nullable(), $t->string('last_name')->nullable(), $t->string('email')->nullable(),
+            $t->string('phone')->nullable(), $t->string('country')->nullable(), $t->string('country_code')->nullable(), $t->string('lead_source')->nullable(),
+            $t->unsignedBigInteger('company_id')->nullable(), $t->string('password')->nullable(), $t->timestamps()]);
         Schema::create('tenants', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('user_id'), $t->unsignedBigInteger('company_id')->nullable(), $t->timestamps()]);
-        Schema::create('properties', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->unsignedBigInteger('company_id')->nullable(), $t->decimal('water_rate', 12, 2)->nullable(), $t->timestamps()]);
+        Schema::create('properties', fn (Blueprint $t) => [$t->id(), $t->string('name'), $t->string('location')->nullable(), $t->unsignedBigInteger('company_id')->nullable(), $t->decimal('water_rate', 12, 2)->nullable(), $t->timestamps()]);
         Schema::create('units', function (Blueprint $t) {
             $t->id();
             $t->unsignedBigInteger('property_id');
@@ -72,6 +74,10 @@ abstract class RentSchemaTestCase extends TestCase
             $t->decimal('custom_water_rate', 12, 2)->nullable();
             $t->string('status')->default('occupied');
             $t->string('stay_type')->default('long_stay');
+            $t->boolean('is_active')->nullable();
+            $t->decimal('bnb_nightly_rate', 12, 2)->nullable();
+            $t->decimal('security_deposit_amount', 12, 2)->nullable();
+            $t->string('furnishing_status')->nullable();
             $t->timestamps();
         });
         Schema::create('tenancies', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('tenant_id'), $t->unsignedBigInteger('unit_id'),
@@ -96,6 +102,10 @@ abstract class RentSchemaTestCase extends TestCase
         (require base_path('database/migrations/2026_11_11_000100_create_paybill_payments_and_rent_holds.php'))->up();
         (require base_path('database/migrations/2026_11_11_000200_create_bookings_and_unit_channels.php'))->up();
         (require base_path('database/migrations/2026_11_11_000300_create_company_brands.php'))->up();
+        (require base_path('database/migrations/2026_11_11_000400_create_kyc_tables.php'))->up();
+        Schema::create('crm_follow_ups', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('user_id')->nullable(), $t->unsignedBigInteger('assigned_to')->nullable(),
+            $t->unsignedBigInteger('created_by')->nullable(), $t->string('type'), $t->string('status')->default('open'), $t->string('title')->nullable(), $t->text('notes')->nullable(),
+            $t->timestamp('due_at')->nullable(), $t->timestamp('done_at')->nullable(), $t->string('outcome')->nullable(), $t->integer('score')->nullable(), $t->string('token')->nullable(), $t->json('details')->nullable(), $t->timestamps()]);
         Schema::create('api_keys', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('user_id')->nullable(), $t->string('name'),
             $t->string('environment')->default('live'), $t->json('scopes')->nullable(), $t->json('allowed_ips')->nullable(), $t->string('prefix')->nullable(), $t->string('last_four')->nullable(),
             $t->string('hash')->nullable(), $t->boolean('enabled')->default(true), $t->timestamp('last_used_at')->nullable(), $t->timestamps()]);

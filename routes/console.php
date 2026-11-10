@@ -73,3 +73,10 @@ Schedule::command('company:backup-offsite')
     ->dailyAt('02:30')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Open listings alerts: renters get new matching listings by SMS (at most one a day each), daytime only.
+Schedule::command('listings:match')
+    ->hourly()
+    ->between('9:00', '19:00')
+    ->withoutOverlapping()
+    ->onOneServer();

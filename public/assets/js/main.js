@@ -232,7 +232,7 @@
       document.body.classList.toggle('modal-open', !!S);
       if (wasOpen && !S && lastOpen !== null) { var back = $('[data-open="' + lastOpen + '"]', grid); if (back) back.focus(); }
       if (S) {
-        $('#d-title').textContent = S.title; $('#d-sub').textContent = S.area + ', ' + S.owner;
+        $('#d-title').textContent = S.title; $('#d-sub').textContent = S.area + ', ' + S.owner; $('#detail').dataset.slug = S.slug || '';
         $('#d-lines').innerHTML = [[ls.kind === 2 ? 'Price' : ls.kind === 1 ? 'Per night' : 'Rent', 'KES ' + fmt(S.price)], ['Other costs', S.costs], ['Availability', S.avail], ['Inspected by scharge', S.verified ? 'Yes' : 'Listed by owner']].map(function (r) { return '<div class="kv"><span class="muted">' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
         if (S.photos && S.photos.length) {
           $('#d-lines').insertAdjacentHTML('afterbegin', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px">' +

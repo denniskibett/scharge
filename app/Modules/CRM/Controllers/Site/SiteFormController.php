@@ -173,6 +173,7 @@ class SiteFormController extends Controller
             'listing_owner' => ['nullable', 'string', 'max:190'],
             'listing_kind' => ['nullable', 'string', 'max:60'],
             'listing_action' => ['nullable', 'string', 'max:60'],
+            'listing_slug' => ['nullable', 'string', 'max:191'],
         ], ['listing_title.required' => 'Choose a listing first.'], ['phone' => 'phone (WhatsApp)']);
         $this->assertPhone($input['phone'], 'phone');
 
@@ -187,6 +188,7 @@ class SiteFormController extends Controller
                     'owner' => $input['listing_owner'] ?? null,
                     'kind' => $input['listing_kind'] ?? null,
                     'action' => $input['listing_action'] ?? null,
+                    'slug' => $input['listing_slug'] ?? null,
                 ],
             ]);
         } catch (\Throwable $e) {

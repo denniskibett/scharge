@@ -66,7 +66,7 @@
           <label for="v-when">{{ $stay ? 'Check-in and check-out' : 'Preferred day' }}</label><input id="v-when" name="when" maxlength="120" placeholder="{{ $stay ? 'e.g. 17–18 Oct' : 'e.g. Saturday morning' }}">
           <input type="hidden" name="listing_title" value="{{ $item['title'] }}"><input type="hidden" name="listing_area" value="{{ $item['area'] }}">
           <input type="hidden" name="listing_owner" value="{{ $item['owner'] }}"><input type="hidden" name="listing_kind" value="{{ $stay ? 'Short stays' : 'Homes to rent' }}">
-          <input type="hidden" name="listing_action" value="{{ $action }}">
+          <input type="hidden" name="listing_action" value="{{ $action }}"><input type="hidden" name="listing_slug" value="{{ $item['slug'] }}">
           <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
           <button class="btn btn--primary" type="submit">{{ $stay ? 'Request booking' : 'Request viewing' }}</button>
           <p class="small muted">Free. The owner or caretaker replies on WhatsApp.</p>

@@ -148,6 +148,9 @@ class LeadService
             [$user] = $this->contacts->upsertPerson(['name' => $data['name'], 'phone' => $data['phone'], 'country_code' => 'KE'], 'website_listings');
             $listing = array_filter($data['listing']);
             $action = $listing['action'] ?? 'Viewing request';
+            // The landlord's (a scharge customer) or an onboarding lead for scharge's sales team (EnquiryRouter).
+            $route = app(\App\Services\Listings\EnquiryRouter::class)->route($listing['slug'] ?? null);
+            $listing += array_filter(['property_id' => $route['property_id'], 'route' => $route['route']]);
 
             $open = CrmFollowUp::where('type', 'viewing')->where('user_id', $user->id)->whereIn('status', ['open', 'scheduled'])
                 ->where('details->title', $listing['title'] ?? '')->first();
@@ -158,14 +161,21 @@ class LeadService
             }
 
             CrmFollowUp::create([
+                'company_id' => $route['company_id'],
                 'user_id' => $user->id,
                 'type' => 'viewing',
                 'status' => 'open',
-                'title' => "{$action}: ".($listing['title'] ?? 'listing').(isset($listing['area']) ? " ({$listing['area']})" : ''),
-                'notes' => isset($data['when']) ? 'Preferred: '.$data['when'] : null,
+                'title' => ($route['route'] === 'onboarding' ? 'Onboarding lead · ' : '')."{$action}: ".($listing['title'] ?? 'listing').(isset($listing['area']) ? " ({$listing['area']})" : ''),
+                'notes' => trim((isset($data['when']) ? 'Preferred: '.$data['when'].'. ' : '').($route['route'] === 'onboarding'
+                    ? 'This building is not managed on scharge yet: a renter wants it. Call the owner and offer scharge.' : '')) ?: null,
                 'due_at' => now()->addHours(4),
                 'details' => $listing + array_filter(['when' => $data['when'] ?? null]),
             ]);
+
+            if ($route['company_id']) {
+                DB::afterCommit(fn () => app(\App\Services\Listings\EnquiryRouter::class)->notifyLandlord($route['company_id'], $data['name'], $data['phone'],
+                    $listing['title'] ?? 'a listing', $data['when'] ?? null));
+            }
 
             return ['already' => false];
         });

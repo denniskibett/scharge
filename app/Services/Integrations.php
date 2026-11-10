@@ -141,6 +141,7 @@ class Integrations
             'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),
             'rent_automation' => \App\Services\Rent\RentPreview::test($row),
+            'document_reader' => self::testDocumentReader($row),
             'data_backup' => \App\Services\Data\CompanyBackup::test($row),
             'channel_sync' => [true, \App\Models\UnitChannel::whereNotNull('import_url')->count().' unit calendars connected. They sync every 30 minutes while this is on.'],
             default => [false, 'No test available for this provider.'],
@@ -190,6 +191,22 @@ class Integrations
         [$ok, $message] = \App\Services\Rent\PaybillRegistration::register($row, (string) $res->json('access_token'));
 
         return [$ok, 'Safaricom accepted the consumer key and secret. '.$message];
+    }
+
+    private static function testDocumentReader(CompanyIntegration $row): array
+    {
+        try {
+            $message = (new \Anthropic\Client(apiKey: (string) $row->get('api_key')))->messages->create(
+                maxTokens: 50, model: \App\Services\Kyc\DocumentReader::MODEL,
+                messages: [['role' => 'user', 'content' => 'Reply with the word OK.']],
+            );
+
+            return [true, 'Anthropic accepted the key ('.$message->model.'). Uploaded KYC documents will be read automatically.'];
+        } catch (\Anthropic\Core\Exceptions\APIStatusException $e) {
+            return [false, 'Anthropic rejected the request: '.($e->type?->value ?? 'error').'.'];
+        } catch (\Throwable $e) {
+            return [false, 'Could not reach Anthropic: '.mb_substr($e->getMessage(), 0, 150)];
+        }
     }
 
     private static function testAirtel(CompanyIntegration $row): array

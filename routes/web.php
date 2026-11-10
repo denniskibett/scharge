@@ -528,6 +528,27 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // ============================================
     Route::resource('payments', PaymentController::class)->middleware('access:payments');
 
+    // KYC: verify a landlord business (docs/ONBOARDING.md). Company admins; scharge staff with ?company=ID.
+    Route::prefix('settings/verify')->name('kyc.')->group(function () {
+        Route::get('/', [App\Http\Controllers\KycController::class, 'show'])->name('show');
+        Route::post('/upload', [App\Http\Controllers\KycController::class, 'upload'])->middleware('throttle:20,1')->name('upload');
+        Route::post('/', [App\Http\Controllers\KycController::class, 'update'])->name('update');
+        Route::get('/documents/{document}', [App\Http\Controllers\KycController::class, 'file'])->name('file');
+        Route::post('/documents/{document}/read', [App\Http\Controllers\KycController::class, 'reread'])->middleware('throttle:10,1')->name('reread');
+        Route::post('/documents/{document}/remove', [App\Http\Controllers\KycController::class, 'destroy'])->name('destroy');
+    });
+    Route::prefix('admin/kyc')->name('kyc.review.')->group(function () {
+        Route::get('/', [App\Http\Controllers\KycReviewController::class, 'index'])->name('index');
+        Route::get('/{kyc}', [App\Http\Controllers\KycReviewController::class, 'show'])->name('show');
+        Route::post('/{kyc}', [App\Http\Controllers\KycReviewController::class, 'decide'])->name('decide');
+    });
+
+    // Enquiries for this landlord's listings (docs/ONBOARDING.md).
+    Route::middleware('access:properties')->group(function () {
+        Route::get('/enquiries', [App\Http\Controllers\EnquiryController::class, 'index'])->name('enquiries.index');
+        Route::post('/enquiries/{enquiry}', [App\Http\Controllers\EnquiryController::class, 'update'])->name('enquiries.update');
+    });
+
     // Bookings for short-stay units, and channel sync (docs/BOOKINGS.md).
     Route::middleware('access:properties')->prefix('bookings')->name('bookings.')->group(function () {
         Route::get('/', [App\Http\Controllers\BookingController::class, 'index'])->name('index');

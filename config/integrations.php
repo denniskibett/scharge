@@ -155,6 +155,17 @@ return [
         ],
     ],
 
+    'document_reader' => [
+        'name' => 'Document reading (KYC)',
+        'scope' => 'platform',
+        'category' => 'Verification',
+        'description' => 'Reads uploaded IDs, KRA PIN certificates, business registrations, CR12s and title deeds with Claude (Anthropic), fills in the details and flags mismatches for review. Documents are sent to Anthropic\'s API only while this is on.',
+        'color' => '#D97757',
+        'fields' => [
+            'api_key' => ['label' => 'Anthropic API key', 'secret' => true, 'required' => true, 'help' => 'From console.anthropic.com › API keys.'],
+        ],
+    ],
+
     'channel_sync' => [
         'name' => 'Channel sync (Airbnb, Booking.com)',
         'scope' => 'platform',

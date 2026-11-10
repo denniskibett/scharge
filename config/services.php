@@ -47,4 +47,9 @@ return [
         'sandbox' => env('KENYASMS_SANDBOX', false),
     ],
 
+    // KYC document reading (App\Services\Kyc\DocumentReader). Integrations › Document reading wins over this.
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+    ],
+
 ];

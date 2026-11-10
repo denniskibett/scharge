@@ -77,6 +77,8 @@
       setField(form, 'listing_owner', comma > -1 ? sub.slice(comma + 2) : '');
       setField(form, 'listing_kind', kind);
       setField(form, 'listing_action', text('#d-form-title'));
+      var detail = $('#detail');
+      setField(form, 'listing_slug', detail ? detail.dataset.slug : ''); // which listing: routes the request to its landlord
     } else if (form.dataset.context === 'listing-search') {
       var max = $('#lmax');
       setField(form, 'search_kind', kind);
