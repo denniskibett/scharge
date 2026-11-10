@@ -38,6 +38,7 @@ Route::prefix('v1/app')->group(function () {
     Route::post('/auth/code', [Mobile\AuthController::class, 'sendCode'])->middleware('throttle:6,1,app-code');
     Route::post('/auth/verify', [Mobile\AuthController::class, 'verifyCode'])->middleware('throttle:10,1,app-verify');
     Route::post('/auth/password', [Mobile\AuthController::class, 'password'])->middleware('throttle:5,1,app-password');
+    Route::post('/auth/register', [Mobile\AuthController::class, 'register'])->middleware('throttle:10,1,app-register');
 
     Route::middleware(['throttle:180,1,app', AuthenticateMobile::class])->group(function () {
         Route::get('/me', [Mobile\AuthController::class, 'me']);
@@ -54,6 +55,7 @@ Route::prefix('v1/app')->group(function () {
             Route::get('/bills/{id}/pay', [Mobile\TenantController::class, 'payOptions'])->whereNumber('id')->middleware(MobileCan::class.':tenant,invoices.view');
             Route::post('/bills/{id}/pay-credit', [Mobile\TenantController::class, 'payFromCredit'])->whereNumber('id')->middleware([MobileCan::class.':tenant,invoices.view', 'throttle:10,1,app-credit']);
             Route::post('/bills/{id}/sharet', [Mobile\TenantController::class, 'sharet'])->whereNumber('id')->middleware([MobileCan::class.':tenant,invoices.view', 'throttle:10,1,app-sharet']);
+            Route::get('/wallet', [Mobile\TenantController::class, 'wallet'])->middleware(MobileCan::class.':tenant,payments.view');
             Route::get('/water', [Mobile\TenantController::class, 'water'])->middleware(MobileCan::class.':tenant,tenants.view');
             Route::post('/water/query', [Mobile\TenantController::class, 'waterQuery'])->middleware([MobileCan::class.':tenant,maintenance.manage', 'throttle:5,60,app-water']);
             Route::get('/payments', [Mobile\TenantController::class, 'payments'])->middleware(MobileCan::class.':tenant,payments.view');
