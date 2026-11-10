@@ -11,6 +11,7 @@ use App\Services\Gate\Gate;
 use App\Services\Gate\GateNotify;
 use App\Services\Meters\MeterReadings;
 use App\Support\CompanyAccess;
+use App\Support\MobileAccess;
 use Illuminate\Http\Request;
 
 /**
@@ -140,16 +141,23 @@ class FieldController extends Controller
     public function passes(Request $request)
     {
         $this->gateAllowed($request);
-        $tab = in_array($request->query('tab'), ['inside', 'expected', 'history'], true) ? $request->query('tab') : 'expected';
+        $tab = in_array($request->query('tab'), ['inside', 'expected', 'history', 'approve'], true) ? $request->query('tab') : 'expected';
+        $user = $request->user();
+        $home = MobileAccess::gateAsTenant($user) ? MobileAccess::homeUnitId($user) : null;
         $q = Gate::scopePasses(GatePass::query(), $request->user())->with('unit:id,unit_number,property_id', 'property:id,name');
         match ($tab) {
             'inside' => $q->where('status', 'checked_in')->orderByDesc('checked_in_at'),
             'expected' => $q->where('status', 'issued')->where(fn ($w) => $w->whereNull('valid_until')->orWhere('valid_until', '>=', now()))->orderBy('valid_from'),
             'history' => $q->whereIn('status', ['checked_out', 'cancelled'])->orderByDesc('updated_at'),
+            // Suggested by someone else for a unit: the person living there (or the gate manager) approves.
+            'approve' => $q->where('status', 'suggested')->when(MobileAccess::gateAsTenant($user), fn ($w) => $w->where('unit_id', $home ?? 0)
+                ->where('created_by', '!=', $user->id))->orderBy('valid_from'),
         };
 
         return response()->json(['data' => $q->limit(100)->get()->map(fn ($p) => $this->pass($p))->values(),
-            'units' => Gate::units($request->user())->map(fn ($u) => ['id' => $u->id, 'number' => $u->unit_number, 'property' => $u->property?->name])->values()]);
+            'home_unit_id' => $home,
+            'units' => Gate::units($user)->map(fn ($u) => ['id' => $u->id, 'number' => $u->unit_number, 'property' => $u->property?->name,
+                'home' => $home === null || (int) $u->id === $home])->values()]);
     }
 
     /** Guard types the 6-digit code from the guest's SMS. */
@@ -171,11 +179,14 @@ class FieldController extends Controller
             'unit_id' => 'required|integer',
             'kind' => 'required|in:'.implode(',', array_keys(GatePass::KINDS)),
             'guest_name' => 'required|string|max:160',
-            'guest_phone' => ['required', 'string', 'max:32', function ($a, $v, $fail) {
-                if (! \App\Helpers\PhoneHelper::e164($v)) {
+            'guest_phone' => ['nullable', 'required_without:guest_email', 'string', 'max:32', function ($a, $v, $fail) {
+                if (filled($v) && ! \App\Helpers\PhoneHelper::e164($v)) {
                     $fail('Enter a mobile number like 0712 345 678.');
                 }
             }],
+            'guest_email' => 'nullable|email|max:191',
+            'send_email' => 'nullable|boolean',
+            'send_sms' => 'nullable|boolean',
             'guests_count' => 'nullable|integer|min:1|max:50',
             'vehicle_plate' => 'nullable|string|max:20',
             'valid_from' => 'nullable|date',
@@ -188,10 +199,17 @@ class FieldController extends Controller
         $data['valid_until'] = filled($data['valid_until'] ?? null) ? \Carbon\Carbon::parse($data['valid_until'], 'Africa/Nairobi')->utc()
             : ($data['kind'] === 'stay' ? $data['valid_from']->copy()->addDay() : $data['valid_from']->copy()->timezone('Africa/Nairobi')->endOfDay()->utc());
 
-        $pass = CompanyAccess::bypass(fn () => Gate::issue($data, $request->user()));
-        GateNotify::sendToGuest($pass, true, false);
+        // A tenant sends codes for the flat they live in; for another unit they hold, the pass waits for its resident.
+        $user = $request->user();
+        $suggest = MobileAccess::gateAsTenant($user) && (int) $data['unit_id'] !== MobileAccess::homeUnitId($user);
+        $pass = CompanyAccess::bypass(fn () => Gate::issue($data, $user));
+        if ($suggest) {
+            $pass->forceFill(['status' => 'suggested'])->save();
+        } else {
+            $this->notifyGuest($pass, $request->boolean('send_email', true), $request->boolean('send_sms'));
+        }
 
-        return response()->json($this->pass($pass->load('unit', 'property')), 201);
+        return response()->json($this->pass($pass->load('unit', 'property')) + ['needs_approval' => $suggest], 201);
     }
 
     public function act(Request $request, int $id)
@@ -199,21 +217,46 @@ class FieldController extends Controller
         $this->gateAllowed($request, manage: true);
         $pass = Gate::scopePasses(GatePass::query(), $request->user())->find($id);
         abort_unless($pass, 404, 'No such pass.');
-        $action = $request->validate(['action' => 'required|in:checkin,stepout,checkout,cancel', 'vehicle_plate' => 'nullable|string|max:20'])['action'];
+        $action = $request->validate(['action' => 'required|in:checkin,stepout,checkout,cancel,approve,decline', 'vehicle_plate' => 'nullable|string|max:20'])['action'];
         $user = $request->user();
-        if ($user->hasRole('tenant') && ! $user->hasAnyRole(['security', 'admin', 'property_manager', 'sysadmin'])) {
-            abort_unless($action === 'cancel', 403, 'The guard checks guests in and out.');
+        $asTenant = MobileAccess::gateAsTenant($user);
+        if ($asTenant) {
+            abort_unless(in_array($action, ['cancel', 'approve', 'decline'], true), 403, 'The guard checks guests in and out.');
         }
+        if (in_array($action, ['approve', 'decline'], true)) {
+            abort_unless($pass->status === 'suggested', 422, 'This pass is not waiting for approval.');
+            // Only the person living there (or the gate manager): never the one who suggested it.
+            abort_if($asTenant && ((int) $pass->unit_id !== MobileAccess::homeUnitId($user) || (int) $pass->created_by === (int) $user->id), 403,
+                'Only the person living in that unit can approve this pass.');
+            $pass->forceFill(['status' => $action === 'approve' ? 'issued' : 'cancelled'])->save();
+            if ($action === 'approve') {
+                $this->notifyGuest($pass, true, false);
+            }
+
+            return response()->json($this->pass($pass->fresh()->load('unit', 'property')));
+        }
+        abort_if($action === 'cancel' && $pass->status === 'suggested' && $asTenant && (int) $pass->created_by !== (int) $user->id
+            && (int) $pass->unit_id !== MobileAccess::homeUnitId($user), 403, 'You cannot cancel this pass.');
         $method = $user->hasAnyRole(['bnb_host', 'tenant']) && ! $user->hasRole('security') ? 'host' : 'guard';
         $err = match ($action) {
             'checkin' => Gate::checkIn($pass, $user, $method, $request->input('vehicle_plate')),
             'stepout' => Gate::stepOut($pass, $user),
             'checkout' => Gate::checkOut($pass, $user, $method),
-            'cancel' => Gate::cancel($pass),
+            'cancel' => $pass->status === 'suggested' ? ($pass->forceFill(['status' => 'cancelled'])->save() ? null : null) : Gate::cancel($pass),
         };
         abort_if($err, 422, (string) $err);
 
         return response()->json($this->pass($pass->fresh()->load('unit', 'property')));
+    }
+
+    /** The guest's code goes by email by default, by SMS when asked, and always by SMS when there is no email. */
+    private function notifyGuest(GatePass $pass, bool $email, bool $sms): void
+    {
+        $email = $email && filled($pass->guest_email);
+        $sms = ($sms || ! $email) && filled($pass->guest_phone);
+        if ($email || $sms) {
+            GateNotify::sendToGuest($pass->load('unit', 'property'), $sms, $email);
+        }
     }
 
     private function gateAllowed(Request $request, bool $manage = false): void

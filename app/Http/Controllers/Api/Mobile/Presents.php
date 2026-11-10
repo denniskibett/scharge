@@ -32,6 +32,7 @@ trait Presents
             'property' => $tenancy?->unit?->property?->name,
             // The secret bill link: M-Pesa prompt or Sharet, the same page tenants get by SMS.
             'pay_url' => InvoiceLink::url($i).'&from=app', // Pay presses from the app are counted as app (PaymentAttempts)
+            'issued_by' => self::issuer($i->owningCompanyId()),
             'created_at' => $i->created_at?->toIso8601String(),
         ];
         if ($withItems) {
@@ -42,10 +43,31 @@ trait Presents
         return $out;
     }
 
+    /** The landlord's name as tenants should see it: the white label's name, else the company's. */
+    protected static function issuer(?int $companyId): ?string
+    {
+        if (! $companyId) {
+            return null;
+        }
+        $brand = class_exists(\App\Support\Brand::class) ? \App\Support\Brand::forCompany($companyId) : null;
+
+        return $brand?->display_name ?? \App\Models\Company::whereKey($companyId)->value('name');
+    }
+
     protected function payment($p): array
     {
+        $inv = $p->relationLoaded('invoice') ? $p->invoice : null;
+        $tenancy = $inv?->relationLoaded('tenancy') ? $inv->tenancy : null;
+
         return [
             'id' => $p->id,
+            'receipt_no' => 'RCT-'.str_pad((string) $p->id, 6, '0', STR_PAD_LEFT),
+            'invoice_number' => $inv ? ($inv->invoice_number ?: 'INV-'.$inv->id) : null,
+            'invoice_month' => $inv?->billing_month?->format('F Y'),
+            'unit' => $tenancy?->unit?->unit_number,
+            'property' => $tenancy?->unit?->property?->name,
+            'issued_by' => $inv ? self::issuer($inv->owningCompanyId()) : null,
+            'phone' => $p->tenant?->user?->phone ?? $p->user?->phone,
             'amount' => self::money($p->amount),
             'method' => $p->payment_method,
             'reference' => $p->external_reference ?: $p->transaction_reference,
@@ -86,6 +108,9 @@ trait Presents
             'is_inside' => (bool) $p->is_inside,
             'guest_name' => $p->guest_name,
             'guest_phone' => $p->guest_phone,
+            'guest_email' => $p->guest_email,
+            'sent_by_email' => (bool) $p->email_sent_at,
+            'sent_by_sms' => (bool) $p->sms_sent_at,
             'guests_count' => (int) $p->guests_count,
             'vehicle_plate' => $p->vehicle_plate,
             'unit' => $p->unit?->unit_number,
@@ -94,6 +119,10 @@ trait Presents
             'valid_until' => $p->valid_until?->toIso8601String(),
             'checked_in_at' => $p->checked_in_at?->toIso8601String(),
             'checked_out_at' => $p->checked_out_at?->toIso8601String(),
+            'created_by' => $p->created_by,
+            // The guest's own pass page, and what the QR "ticket" holds: the guard's phone opens the pass from it.
+            'pass_url' => $p->token ? $p->publicUrl() : null,
+            'qr' => url('/gate/verify?code='.$p->code),
         ];
     }
 }

@@ -35,7 +35,7 @@ Route::prefix('v1')->group(function () {
     });
 });
 
-// scharge app (Android now, iOS later; docs/MOBILE_APP.md). One app for every role: the server lists each person's
+// scharge app (Android; docs/MOBILE_APP.md). One app for every role: the server lists each person's
 // screens (MobileAccess::screens) and checks every call again. Sign in: SMS code once per phone, then phone lock / PIN.
 Route::prefix('v1/app')->group(function () {
     Route::post('/auth/code', [Mobile\AuthController::class, 'sendCode'])->middleware('throttle:6,1,app-code');
@@ -47,6 +47,7 @@ Route::prefix('v1/app')->group(function () {
     Route::middleware(['throttle:180,1,app', AuthenticateMobile::class])->group(function () {
         Route::get('/me', [Mobile\AuthController::class, 'me']);
         Route::post('/device', [Mobile\DeviceController::class, 'update']); // push address and versions (docs/APP_DATA.md)
+        Route::get('/notifications', [Mobile\AuthController::class, 'notifications']);
         Route::post('/auth/pin', [Mobile\AuthController::class, 'setPin']);
         Route::post('/auth/unlock', [Mobile\AuthController::class, 'unlock'])->middleware('throttle:10,1,app-unlock');
         Route::post('/auth/logout', [Mobile\AuthController::class, 'logout']);
@@ -59,6 +60,7 @@ Route::prefix('v1/app')->group(function () {
             Route::get('/payments', [Mobile\TenantController::class, 'payments'])->middleware(MobileCan::class.':tenant,payments.view');
             Route::get('/repairs', [Mobile\TenantController::class, 'repairs'])->middleware(MobileCan::class.':tenant,maintenance.view');
             Route::post('/repairs', [Mobile\TenantController::class, 'reportRepair'])->middleware(MobileCan::class.':tenant,maintenance.manage');
+            Route::post('/suggestions', [Mobile\TenantController::class, 'suggest'])->middleware([MobileCan::class.':tenant,tenants.view', 'throttle:5,60,app-suggest']);
         });
 
         // Owners, landlord staff, field staff, BnB hosts, scharge staff: company-scoped.
@@ -71,6 +73,7 @@ Route::prefix('v1/app')->group(function () {
         Route::get('/tenants', [Mobile\StaffController::class, 'tenants'])->middleware(MobileCan::class.':staff,tenants.view');
         Route::get('/units', [Mobile\StaffController::class, 'units'])->middleware(MobileCan::class.':staff,properties.view');
         Route::get('/bookings', [Mobile\StaffController::class, 'bookings'])->middleware(MobileCan::class.':staff,properties.view');
+        Route::get('/suggestions', [Mobile\StaffController::class, 'suggestions'])->middleware(MobileCan::class.':staff,tenants.manage');
         Route::get('/companies', [Mobile\StaffController::class, 'companies'])->middleware(MobileCan::class.':staff,companies.view');
         Route::get('/meters', [Mobile\FieldController::class, 'meters'])->middleware(MobileCan::class.':staff,water.view');
         Route::get('/meters/{id}/readings', [Mobile\FieldController::class, 'readings'])->whereNumber('id')->middleware(MobileCan::class.':staff,water.view');

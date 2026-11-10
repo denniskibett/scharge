@@ -1,4 +1,4 @@
-# scharge app (Android now, iOS later)
+# scharge app (Android)
 
 One app for every role. The app lives in its own repo, `scharge-app` (Flutter), next to this one. This repo holds the
 API it talks to (`routes/api.php`, prefix `/api/v1/app`) and this document.
@@ -42,9 +42,9 @@ Default grants from `Access::ROLES`. The Roles page can add or remove any of the
 
 | Role | Screens (tabs, in order) | Can do |
 |---|---|---|
-| Tenant | Home (balance, bills), Receipts, Repairs, Visitors | Pay a bill (opens the secret bill link: M-Pesa prompt or Sharet), report a repair, send / cancel a gate pass for their unit |
-| Admin (company) | Rent, Unpaid bills, Payments, Readings, Repairs, Visitors, Tenants, Units | Match paybill payments to tenants, remind on WhatsApp with the bill link, record readings, update repairs, issue passes, let guests in/out |
-| Property manager | Rent, Unpaid bills, Payments, Readings, Repairs, Visitors, Tenants, Units | As admin, except matching paybill payments (needs `payments.manage`) and changing the gate (`security.manage`) |
+| Tenant | Home (balance, bills), Receipts, Repairs, Visitors (+ Suggestion box from Home and Account) | Pay a bill (opens the secret bill link: M-Pesa prompt or Sharet), share invoices and receipts, report a repair, gate passes for their home, suggest passes for other units they hold and approve ones suggested for their home, send anonymous suggestions |
+| Admin (company) | Rent, Unpaid bills, Payments, Readings, Repairs, Visitors, Tenants, Suggestions, Units | Match paybill payments to tenants, remind on WhatsApp with the bill link, record readings, update repairs, issue passes, let guests in/out |
+| Property manager | Rent, Unpaid bills, Payments, Readings, Repairs, Visitors, Tenants, Suggestions, Units | As admin, except matching paybill payments (needs `payments.manage`) and changing the gate (`security.manage`) |
 | Accountant | Rent, Unpaid bills, Payments, Readings, Tenants, Units | Match paybill payments; readings are view only |
 | Meter reader | Readings, Units | Record water and electricity readings with a photo (safe to retry) |
 | Maintenance | Repairs, Units | Start, "waiting for parts", done with notes and cost |
@@ -55,6 +55,29 @@ Default grants from `Access::ROLES`. The Roles page can add or remove any of the
 | sysadmin (scharge) | Everything, all companies | |
 
 With more than 5 screens the app shows 4 tabs and "More".
+
+Colours follow the brand canvas: red leads (logo, main buttons, prices) and each audience gets one secondary for
+summary cards and the selected tab: tenants red only, owners and landlord staff Lake Teal, field staff Savanna Gold
+(ink text), BnB hosts Jacaranda, scharge staff ink. A white label replaces the red with the company's colour.
+
+## Gate passes
+
+- A tenant's pass goes straight to the guest only for the flat they live in (their active tenancy with the latest
+  move-in, `MobileAccess::homeUnitId`). For any other unit they hold, the pass is saved as `suggested`: the guard
+  cannot use it, and only the person living there (or a gate manager) can approve it. The one who suggested it
+  cannot approve it.
+- Guests: email and phone are both kept. The code goes by email by default, by SMS when asked, and always by SMS
+  when there is no email. The app also shares the pass as a QR "ticket" image or on WhatsApp; the QR opens
+  `/gate/verify?code=…` on the guard's phone.
+
+## The bell and the suggestion box
+
+- `GET /notifications` works out what needs the person now (bills to pay, passes to approve, repairs done,
+  unmatched paybill, flagged readings, open repairs, new suggestions), only for screens they have. The bell shows
+  only when the count is above zero.
+- Suggestion box: tenants send anonymous suggestions (`tenant_suggestions` keeps only the company, topic and text,
+  never the tenant, unit or phone). People with `tenants.manage` in that company read them; opening the list marks
+  them read.
 
 ## Endpoints (`/api/v1/app`, "Authorization: Bearer mob_…")
 
@@ -75,6 +98,9 @@ With more than 5 screens the app shows 4 tabs and "More".
 | GET | `/meters`, `/meters/{id}/readings` | staff · `water.view` |
 | POST | `/meters/{id}/readings` | staff · `water.manage` (multipart, `photo`, `client_ref`) |
 | GET / POST | `/repairs`, `/repairs/{id}` | staff · `maintenance.view` / `maintenance.manage` |
+| GET | `/notifications` | signed in (the bell) |
+| POST | `/tenant/suggestions` | tenant · `tenants.view` (anonymous) |
+| GET | `/suggestions` | staff · `tenants.manage` |
 | GET / POST | `/gate/passes`, `/gate/verify`, `/gate/passes/{id}` | Gate service rules (guards, managers, hosts, tenants) |
 
 Tests: `tests/Feature/MobileAppTest.php` (sign-in, PIN lockout, screens per role, Roles-page changes, and
@@ -82,13 +108,16 @@ cross-company / cross-tenant checks for bills, rent, tenants, units, meters, rep
 
 ## Deploying
 
-- Migration: `2026_11_11_000600_create_mobile_sessions.php` (listed in `scripts/deploy-migrations.txt`).
-- The APK for the website: build it in `scharge-app` (see its README) and copy it to `public/downloads/scharge-app.apk`
-  here before `scripts/push.sh`. It is not kept in git. Without the file the pages show "coming soon" instead of the link.
+- Migrations: `2026_11_11_000600_create_mobile_sessions.php` and `2026_11_11_001000_create_tenant_suggestions.php`
+  (both listed in `scripts/deploy-migrations.txt`).
+- The APKs for the website: build them in `scharge-app` (see its README) and copy them to `public/downloads/` here
+  before `scripts/push.sh`: `scharge-app.apk` (any phone), `scharge-app-arm64.apk` (newer phones),
+  `scharge-app-arm32.apk` (older phones). They are not kept in git. Without `scharge-app.apk` the pages show
+  "coming soon" instead of the link.
 
 ## Not built yet
 
 - Paying inside the app with a native STK screen (Pay opens the bill link page, which sends the prompt).
 - An offline queue for readings in basements without signal (readings retry safely with `client_ref`).
-- Push notifications, Play Store and App Store listings, iOS build (needs a Mac signing setup and Apple account).
+- Push notifications and a Play Store listing. The app is Android only for now (no iOS project).
 - Self sign-up from the app: an SMS code only opens an account that a landlord, company or host signup created.

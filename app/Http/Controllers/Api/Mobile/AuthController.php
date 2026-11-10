@@ -109,6 +109,63 @@ class AuthController extends Controller
         return response()->json($this->profile($request->user(), $request->attributes->get('mobile_session')));
     }
 
+    /**
+     * What needs this person's attention now (the bell): worked out from live data, nothing stored. Each item names
+     * the screen the app opens. Only for screens the person has, so it follows the same access rules.
+     */
+    public function notifications(Request $request)
+    {
+        $user = $request->user();
+        $keys = array_column(MobileAccess::screens($user), null, 'key');
+        $items = [];
+        $add = function (string $screen, string $title, string $text, int $count = 1) use (&$items, $keys) {
+            if (isset($keys[$screen]) && $count > 0) {
+                $items[] = ['screen' => $screen, 'title' => $title, 'text' => $text, 'count' => $count];
+            }
+        };
+        $home = MobileAccess::gateAsTenant($user) ? MobileAccess::homeUnitId($user) : null;
+        $gateIds = \App\Services\Gate\Gate::allowed($user) ? \App\Services\Gate\Gate::scopeUnitIds($user) : [];
+        $toApprove = \App\Modules\Security\Models\GatePass::where('status', 'suggested')
+            ->when($home !== null, fn ($q) => $q->where('unit_id', $home)->where('created_by', '!=', $user->id))
+            ->when($home === null && $gateIds !== null, fn ($q) => $q->whereIn('unit_id', $gateIds ?: [0]))->count();
+        $add('gate', 'Gate passes to approve', $toApprove === 1 ? 'Someone suggested a guest for your unit.' : "$toApprove guests are waiting for your OK.", $toApprove);
+
+        if (isset($keys['tenant_bills'])) {
+            $ids = MobileAccess::tenantIds($user);
+            $open = CompanyAccess::bypass(fn () => \App\Models\Invoice::withoutGlobalScope('company')->whereIn('status', ['unpaid', 'partial', 'overdue'])
+                ->whereColumn('total_paid', '<', 'total_amount')
+                ->whereIn('tenancy_id', \App\Models\Tenancy::withoutGlobalScope('company')->whereIn('tenant_id', $ids ?: [0])->select('id'))->count());
+            $add('tenant_bills', 'Bill to pay', $open === 1 ? 'You have a bill to pay.' : "You have $open bills to pay.", $open);
+            $fixed = CompanyAccess::bypass(fn () => \App\Models\Maintenance::whereIn('tenant_id', $ids ?: [0])->where('status', 'completed')
+                ->where('updated_at', '>=', now()->subDays(3))->count());
+            $add('tenant_repairs', 'Repair done', 'A repair you reported was marked done.', $fixed);
+        }
+        if (isset($keys['rent'])) {
+            $ids = CompanyAccess::ids();
+            $n = \App\Models\PaybillPayment::where('status', 'unmatched')->when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))->count();
+            $add('rent', 'Paybill payments to match', "$n paid without a unit we know.", $n);
+        }
+        if (isset($keys['readings']) && MobileAccess::can($user, 'water.manage')) {
+            $ids = CompanyAccess::ids();
+            $n = \App\Models\MeterReading::where('status', 'flagged')->when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))
+                ->where('created_at', '>=', now()->subDays(30))->count();
+            $add('readings', 'Unusual readings', "$n readings wait for a check before billing.", $n);
+        }
+        if (isset($keys['repairs'])) {
+            $n = \App\Models\Maintenance::whereHas('unit')->where('status', 'open')
+                ->where(fn ($q) => $q->whereNull('assigned_to')->orWhere('assigned_to', $user->id))->count();
+            $add('repairs', 'Open repairs', "$n repairs need someone.", $n);
+        }
+
+        if (isset($keys['suggestions'])) {
+            $ids = CompanyAccess::ids();
+            $n = \App\Models\TenantSuggestion::whereNull('read_at')->when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))->count();
+            $add('suggestions', 'New suggestions', "$n new from tenants (anonymous).", $n);
+        }
+
+        return response()->json(['count' => array_sum(array_column($items, 'count')), 'data' => $items]);
+    }
+
     /** Create or change the app PIN (4 digits). Changing it needs the old PIN. */
     public function setPin(Request $request)
     {

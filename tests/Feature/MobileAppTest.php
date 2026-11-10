@@ -39,11 +39,12 @@ class MobileAppTest extends RentSchemaTestCase
 
     private function extraSchema(): void
     {
-        foreach (['mobile_sessions', 'maintenances', 'meters', 'meter_readings', 'gate_passes', 'visitors', 'visitor_places', 'security', 'company_brands'] as $t) {
+        foreach (['tenant_suggestions', 'mobile_sessions', 'maintenances', 'meters', 'meter_readings', 'gate_passes', 'visitors', 'visitor_places', 'security', 'company_brands'] as $t) {
             Schema::dropIfExists($t);
         }
         Schema::table('users', fn (Blueprint $t) => $t->tinyInteger('status')->default(0));
         (require base_path('database/migrations/2026_11_11_000600_create_mobile_sessions.php'))->up();
+        (require base_path('database/migrations/2026_11_11_001000_create_tenant_suggestions.php'))->up();
         if (file_exists($brands = base_path('database/migrations/2026_11_11_000300_create_company_brands.php'))) {
             (require $brands)->up();
         }
@@ -154,7 +155,7 @@ class MobileAppTest extends RentSchemaTestCase
         $this->assertContains($tenantUser, array_column($choices, 'id'));
         $res = $this->postJson('/api/v1/app/auth/verify', ['phone' => $phone, 'code' => $code, 'device_name' => 'Pixel', 'account_id' => $tenantUser])->assertCreated()
             ->assertJsonPath('user.id', $tenantUser)->assertJsonPath('session.has_pin', false);
-        $this->assertSame(['tenant_bills', 'tenant_payments', 'tenant_repairs', 'gate'], array_column($res->json('screens'), 'key'));
+        $this->assertSame(['tenant_bills', 'tenant_payments', 'tenant_repairs', 'gate', 'tenant_suggest'], array_column($res->json('screens'), 'key'));
         $token = $res->json('token');
 
         // The code works once.
@@ -207,7 +208,7 @@ class MobileAppTest extends RentSchemaTestCase
         $keys = fn (string $role, ?int $company) => array_column($this->api($this->person($company, $role)[1])->getJson('/api/v1/app/me')->assertOk()->json('screens'), 'key');
         $c = $this->a['company'];
 
-        $this->assertSame(['rent', 'bills', 'payments', 'readings', 'repairs', 'gate', 'tenants', 'units'], $keys('admin', $c));
+        $this->assertSame(['rent', 'bills', 'payments', 'readings', 'repairs', 'gate', 'tenants', 'suggestions', 'units'], $keys('admin', $c));
         $this->assertSame(['rent', 'bills', 'payments', 'readings', 'tenants', 'units'], $keys('accountant', $c));
         $this->assertSame(['readings', 'units'], $keys('meter_reader', $c));
         $this->assertSame(['repairs', 'units'], $keys('maintenance', $c));
@@ -541,5 +542,105 @@ class MobileAppTest extends RentSchemaTestCase
         $this->bareLayout();
         $this->actingAs($this->person($this->a['company'], 'admin')[0])->get('/demand')->assertOk()->assertSee('Heatmap')->assertSee('Kilimani');
         $this->actingAs($this->person(null, 'sysadmin')[0])->get('/admin/demand')->assertOk()->assertSee('Rongai');
+    }
+
+    public function test_a_tenant_sends_passes_for_the_flat_they_live_in_and_only_suggests_for_others(): void
+    {
+        // Tenant 1 of A lives in A1 and also rents A2 (moved into A1 later, so A1 is home). Tenant 2 lives in A2.
+        [$owner, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $tenant1 = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id');
+        $a1 = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('unit_id');
+        $a2 = DB::table('tenancies')->where('id', $this->a['tenancies'][1])->value('unit_id');
+        DB::table('tenancies')->where('id', $this->a['tenancies'][0])->update(['move_in_date' => '2026-06-01']);
+        DB::table('tenancies')->insert(['company_id' => $this->a['company'], 'tenant_id' => $tenant1, 'unit_id' => $a2, 'move_in_date' => '2026-02-01', 'status' => 'active']);
+        [, $resident] = $this->tenantOf($this->a['tenancies'][1]);
+        [, $guard] = $this->person($this->a['company'], 'security');
+        $guest = ['kind' => 'visitor', 'guest_name' => 'Mercy Wambui', 'guest_phone' => '0712000099', 'guest_email' => 'mercy@example.test'];
+
+        $home = $this->api($token)->postJson('/api/v1/app/gate/passes', $guest + ['unit_id' => $a1])->assertCreated()
+            ->assertJsonPath('status', 'issued')->assertJsonPath('needs_approval', false);
+        $other = $this->api($token)->postJson('/api/v1/app/gate/passes', $guest + ['unit_id' => $a2])->assertCreated()
+            ->assertJsonPath('status', 'suggested')->assertJsonPath('needs_approval', true);
+
+        // The guard can use the home pass, not the suggestion.
+        $this->api($guard)->postJson('/api/v1/app/gate/verify', ['code' => $home->json('code')])->assertOk();
+        $this->api($guard)->postJson('/api/v1/app/gate/verify', ['code' => $other->json('code')])->assertNotFound();
+
+        // The one who suggested it cannot approve it; the resident of A2 sees it and approves.
+        $this->api($token)->postJson('/api/v1/app/gate/passes/'.$other->json('id'), ['action' => 'approve'])->assertForbidden();
+        $this->assertSame([$other->json('id')], array_column($this->api($resident)->getJson('/api/v1/app/gate/passes?tab=approve')->json('data'), 'id'));
+        $this->assertSame([], $this->api($token)->getJson('/api/v1/app/gate/passes?tab=approve')->json('data'));
+        $this->api($resident)->postJson('/api/v1/app/gate/passes/'.$other->json('id'), ['action' => 'approve'])->assertOk()->assertJsonPath('status', 'issued');
+        $this->api($guard)->postJson('/api/v1/app/gate/verify', ['code' => $other->json('code')])->assertOk();
+    }
+
+    public function test_guest_codes_go_by_email_by_default_and_by_sms_when_asked(): void
+    {
+        \Illuminate\Support\Facades\Mail::fake();
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $a1 = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('unit_id');
+        $smsBefore = $this->sent;
+
+        $this->api($token)->postJson('/api/v1/app/gate/passes', ['unit_id' => $a1, 'kind' => 'visitor', 'guest_name' => 'Email Only', 'guest_email' => 'guest@example.test'])
+            ->assertCreated()->assertJsonPath('guest_email', 'guest@example.test');
+        $this->assertSame($smsBefore, $this->sent); // email only, no SMS
+
+        $this->api($token)->postJson('/api/v1/app/gate/passes', ['unit_id' => $a1, 'kind' => 'visitor', 'guest_name' => 'Both', 'guest_email' => 'both@example.test',
+            'guest_phone' => '0712000098', 'send_sms' => true])->assertCreated();
+        $this->assertSame($smsBefore + 1, $this->sent);
+
+        $this->api($token)->postJson('/api/v1/app/gate/passes', ['unit_id' => $a1, 'kind' => 'visitor', 'guest_name' => 'Nothing'])->assertStatus(422);
+    }
+
+    public function test_the_bell_counts_only_what_this_person_should_act_on(): void
+    {
+        [, $tenant] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($tenant)->getJson('/api/v1/app/notifications')->assertOk()
+            ->assertJsonPath('count', 1)->assertJsonPath('data.0.screen', 'tenant_bills');
+
+        DB::table('invoices')->update(['total_paid' => DB::raw('total_amount'), 'status' => 'paid']);
+        $this->api($tenant)->getJson('/api/v1/app/notifications')->assertJsonPath('count', 0); // nothing: the bell hides
+
+        DB::table('paybill_payments')->insert(['trans_id' => 'QX1', 'company_id' => $this->b['company'], 'amount' => 500, 'status' => 'unmatched', 'paid_at' => now()]);
+        [, $adminA] = $this->person($this->a['company'], 'admin');
+        [, $adminB] = $this->person($this->b['company'], 'admin');
+        $this->api($adminA)->getJson('/api/v1/app/notifications')->assertJsonPath('count', 0); // B's payment is not A's business
+        $this->api($adminB)->getJson('/api/v1/app/notifications')->assertJsonPath('data.0.screen', 'rent');
+    }
+
+    public function test_the_suggestion_box_is_anonymous_and_reaches_only_the_landlords_admins(): void
+    {
+        [, $tenant] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($tenant)->postJson('/api/v1/app/tenant/suggestions', ['topic' => 'security', 'body' => 'Please fix the light at the back gate.'])->assertCreated();
+
+        $row = (array) DB::table('tenant_suggestions')->first();
+        $this->assertSame((int) $this->a['company'], (int) $row['company_id']);
+        $this->assertSame(['id', 'company_id', 'topic', 'body', 'read_at', 'read_by', 'created_at', 'updated_at'], array_keys($row)); // no tenant, unit or phone
+
+        [, $adminA] = $this->person($this->a['company'], 'admin');
+        [, $adminB] = $this->person($this->b['company'], 'admin');
+        [, $reader] = $this->person($this->a['company'], 'meter_reader');
+        $this->api($adminA)->getJson('/api/v1/app/notifications')->assertJsonPath('data.0.screen', 'suggestions');
+        $this->api($adminA)->getJson('/api/v1/app/suggestions')->assertOk()->assertJsonPath('data.0.body', 'Please fix the light at the back gate.')
+            ->assertJsonPath('data.0.new', true)->assertJsonMissingPath('data.0.unit');
+        $this->api($adminA)->getJson('/api/v1/app/notifications')->assertJsonPath('count', 0); // read now
+        $this->assertSame([], $this->api($adminB)->getJson('/api/v1/app/suggestions')->json('data'));
+        $this->api($reader)->getJson('/api/v1/app/suggestions')->assertForbidden();
+        $this->api($tenant)->getJson('/api/v1/app/suggestions')->assertForbidden();
+    }
+
+    public function test_receipts_carry_what_a_shared_receipt_needs_and_stay_private(): void
+    {
+        $mine = $this->billOf($this->a['tenancies'][0]);
+        $tenantId = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id');
+        DB::table('payments')->insert(['invoice_id' => $mine, 'tenant_id' => $tenantId, 'amount' => 600, 'payment_method' => 'mpesa', 'external_reference' => 'SJK3H2X1PQ', 'status' => 'completed', 'created_at' => now()]);
+        DB::table('payments')->insert(['invoice_id' => $this->billOf($this->b['tenancies'][0]), 'amount' => 900, 'status' => 'completed', 'created_at' => now()]);
+        [, $tenant] = $this->tenantOf($this->a['tenancies'][0]);
+
+        $this->api($tenant)->getJson('/api/v1/app/tenant/payments')->assertOk()->assertJsonCount(1, 'data')
+            ->assertJsonPath('data.0.reference', 'SJK3H2X1PQ')->assertJsonPath('data.0.unit', 'A1')
+            ->assertJsonPath('data.0.issued_by', 'Sunrise')->assertJsonPath('data.0.receipt_no', fn ($v) => str_starts_with($v, 'RCT-'));
+        [, $adminB] = $this->person($this->b['company'], 'admin');
+        $this->assertSame(['900.00'], array_column($this->api($adminB)->getJson('/api/v1/app/payments')->json('data'), 'amount'));
     }
 }

@@ -69,6 +69,8 @@ class TenantController extends Controller
 
         return CompanyAccess::bypass(fn () => response()->json(['data' => Payment::withoutGlobalScope('company')
             ->where(fn ($q) => $q->whereIn('tenant_id', $ids ?: [0])->orWhereIn('invoice_id', $this->invoices($ids)->select('invoices.id')))
+            ->with(['tenant.user', 'invoice' => fn ($q) => $q->withoutGlobalScope('company'), 'invoice.tenancy' => fn ($q) => $q->withoutGlobalScope('company'),
+                'invoice.tenancy.unit' => fn ($q) => $q->withoutGlobalScope('company'), 'invoice.tenancy.unit.property'])
             ->where('status', 'completed')->latest('id')->limit(60)->get()->map(fn ($p) => $this->payment($p))->values()]));
     }
 
@@ -99,6 +101,18 @@ class TenantController extends Controller
 
             return response()->json($this->repair($repair->load('unit.property')), 201);
         });
+    }
+
+    /** Anonymous suggestion to the landlord: only the company and the text are saved (no tenant, unit or phone). */
+    public function suggest(Request $request)
+    {
+        $data = $request->validate(['body' => 'required|string|min:5|max:2000',
+            'topic' => 'nullable|in:'.implode(',', array_keys(\App\Models\TenantSuggestion::TOPICS))]);
+        $company = MobileAccess::companyFor($request->user());
+        abort_unless($company, 422, 'You need an active tenancy to send a suggestion.');
+        \App\Models\TenantSuggestion::create(['company_id' => $company, 'topic' => $data['topic'] ?? 'general', 'body' => $data['body']]);
+
+        return response()->json(['sent' => true, 'message' => 'Thank you. Your suggestion went to management without your name or unit.'], 201);
     }
 
     /** The person's own invoices, through their tenancies (no company scope: tenants have no company). */
