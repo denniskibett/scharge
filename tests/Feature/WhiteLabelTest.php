@@ -58,6 +58,14 @@ class WhiteLabelTest extends RentSchemaTestCase
         $this->assertStringContainsString('.bg-brand-500,.hover\:bg-brand-500:hover,.focus\:bg-brand-500:focus{background-color:#0f766e}', $css);
     }
 
+    public function test_scharge_staff_linked_to_a_company_still_see_scharge(): void
+    {
+        $this->actingAs($this->staff($this->a['company'], 'sysadmin'));
+        $this->assertNull(Brand::current());
+        $this->actingAs($this->staff($this->a['company'], 'admin'));
+        $this->assertSame('Danaff Homes', Brand::current()?->display_name);
+    }
+
     public function test_only_the_companys_people_stay_signed_in_on_its_address(): void
     {
         $other = $this->staff($this->b['company'], 'admin');

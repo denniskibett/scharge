@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Which white label (if any) a page wears (docs/WHITE_LABEL.md):
  *  1. the web address: a request to a company's own domain (portal.danaff.co.ke) is that company's;
- *  2. otherwise the signed-in user's company, if it has a brand;
+ *  2. otherwise the signed-in user's company, if it has a brand (never for scharge staff: they always see scharge);
  *  3. otherwise scharge.
  * Views read it as $brand (shared by App\Http\Middleware\ApplyBrand); null = scharge's own look.
  */
@@ -23,9 +23,13 @@ class Brand
         if ($host !== '' && ($byHost = self::forDomain($host))) {
             return $byHost;
         }
-        $companyId = auth()->user()?->company_id;
+        $user = auth()->user();
+        // scharge's own staff always see scharge on scharge's address, even when their account is linked to a company.
+        if (! $user?->company_id || (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['sysadmin', 'account_manager']))) {
+            return null;
+        }
 
-        return $companyId ? self::forCompany((int) $companyId) : null;
+        return self::forCompany((int) $user->company_id);
     }
 
     /** The brand whose own address this host is (only an exact, configured domain). */
