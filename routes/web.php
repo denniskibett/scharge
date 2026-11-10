@@ -236,6 +236,9 @@ Route::middleware('guest')->group(function () {
 Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1')->name('host.properties.search');
 
 // Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
+// Safaricom C2B: payments made straight to a company's paybill (App\Services\Rent\PaybillPayments).
+Route::post('/webhooks/mpesa/c2b/{token}/validation', [App\Http\Controllers\PaybillWebhookController::class, 'validation'])->name('webhooks.c2b.validation');
+Route::post('/webhooks/mpesa/c2b/{token}/confirmation', [App\Http\Controllers\PaybillWebhookController::class, 'confirmation'])->name('webhooks.c2b.confirmation');
 Route::post('/webhooks/sharet', App\Http\Controllers\SharetWebhookController::class)->name('webhooks.sharet');
 
 // Email Verification Routes
@@ -516,6 +519,17 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // PAYMENT ROUTES
     // ============================================
     Route::resource('payments', PaymentController::class)->middleware('access:payments');
+
+    // Rent collection: paybill payments to match, bill/reminder messages, paused tenants (docs/RENT_AUTOMATION.md).
+    Route::middleware('access:payments')->prefix('rent')->name('rent.')->group(function () {
+        Route::get('/', [App\Http\Controllers\RentCollectionController::class, 'index'])->name('index');
+        Route::post('/paybill/{payment}/assign', [App\Http\Controllers\RentCollectionController::class, 'assign'])->name('paybill.assign');
+        Route::post('/paybill/{payment}/ignore', [App\Http\Controllers\RentCollectionController::class, 'ignore'])->name('paybill.ignore');
+        Route::post('/messages/{message}/retry', [App\Http\Controllers\RentCollectionController::class, 'retry'])->name('messages.retry');
+        Route::post('/pause', [App\Http\Controllers\RentCollectionController::class, 'pause'])->name('pause');
+        Route::post('/paused/{hold}/resume', [App\Http\Controllers\RentCollectionController::class, 'resume'])->name('resume');
+        Route::post('/resend-links', [App\Http\Controllers\RentCollectionController::class, 'resendLinks'])->name('resend-links');
+    });
     Route::post('/payments/bulk', [PaymentController::class, 'bulkStore'])->name('payments.bulk.store')->middleware('access:payments');
     Route::get('/payments/create-data', [PaymentController::class, 'getCreateData'])->name('payments.create-data')->middleware('access:payments');
     Route::get('/payments/tenant/{tenantId}/invoices', [PaymentController::class, 'getTenantInvoices'])->name('payments.tenant.invoices')->middleware('access:payments');

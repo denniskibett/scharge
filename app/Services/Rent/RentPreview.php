@@ -19,9 +19,12 @@ class RentPreview
         $month = $today->startOfMonth();
         $bill = app(RentRun::class)->run($settings->companyId, $month, dryRun: true);
         $remind = app(ArrearsReminders::class)->run($settings, $today, dryRun: true);
+        $penalty = app(LatePenalties::class)->run($settings, $today, dryRun: true);
 
-        return [true, sprintf('%s: %d %s to create (KES %s), %d already billed. %d %s due a reminder today (KES %s owed). Nothing was sent.',
+        return [true, sprintf('%s: %d %s to create (KES %s), %d already billed. %d %s due a reminder today (KES %s owed).',
             $month->format('F Y'), $bill['created'], $bill['created'] === 1 ? 'invoice' : 'invoices', number_format($bill['total']), $bill['skipped'],
-            count($remind['due']), count($remind['due']) === 1 ? 'tenant' : 'tenants', number_format(array_sum(array_column($remind['due'], 'owed'))))];
+            count($remind['due']), count($remind['due']) === 1 ? 'tenant' : 'tenants', number_format(array_sum(array_column($remind['due'], 'owed'))))
+            .($settings->penaltyType === 'off' ? ' Late penalties: off.' : sprintf(' Late penalties today: %d (KES %s).', count($penalty['due']), number_format($penalty['total'])))
+            .' Nothing was sent or changed.'];
     }
 }

@@ -127,6 +127,9 @@ return [
             'send_bill' => ['label' => 'Send the bill to tenants', 'type' => 'select', 'required' => true, 'options' => ['yes' => 'Yes, by SMS with a pay link', 'no' => 'No, only create the invoices']],
             'reminder_days' => ['label' => 'Remind when this many days late', 'placeholder' => '1, 7, 14', 'help' => 'Comma-separated, up to 6. Leave blank for 1, 7, 14. Write 0 to remind on the due day. One message per tenant per stage, with the total owed.'],
             'channel' => ['label' => 'Send reminders by', 'type' => 'select', 'required' => true, 'options' => ['sms' => 'SMS', 'whatsapp' => 'WhatsApp (your number, else SMS)']],
+            'penalty' => ['label' => 'Late payment penalty', 'type' => 'select', 'required' => true, 'options' => ['off' => 'Off', 'percent' => 'A percentage of the unpaid amount', 'fixed' => 'A fixed amount (KES)'], 'help' => 'Your choice: scharge never charges a penalty unless you switch it on here. Added once per bill, and never for a tenant whose reminders you paused.'],
+            'penalty_amount' => ['label' => 'Penalty (percent or KES)', 'placeholder' => '5', 'help' => 'E.g. 5 for 5%, or 500 for KES 500.'],
+            'penalty_after_days' => ['label' => 'Charge the penalty when this many days late', 'placeholder' => '5'],
         ],
     ],
 
@@ -217,7 +220,7 @@ return [
         'name' => 'M-Pesa Daraja (your own paybill)',
         'scope' => 'company',
         'category' => 'Payments',
-        'description' => 'Already have a Daraja app? Tenants are prompted on their phone and pay straight into your own paybill or till. scharge only records the payment.',
+        'description' => 'Already have a Daraja app? Tenants are prompted on their phone and pay straight into your own paybill or till. scharge only records the payment. "Test" also connects your paybill, so rent paid straight to it (with the unit as the account number) is recorded automatically.',
         'color' => '#00A651',
         'logo' => 'mpesa.svg', // public/images/integrations
         'fields' => [

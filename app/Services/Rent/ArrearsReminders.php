@@ -34,6 +34,7 @@ class ArrearsReminders
             ->whereIn('status', ['unpaid', 'partial'])
             ->whereColumn('total_paid', '<', 'total_amount')
             ->whereHas('tenancy', fn ($t) => $t->where('status', 'active')->where(fn ($q) => RentRun::ownedBy($q, $settings->companyId)))
+            ->whereNotIn('tenancy_id', \App\Models\RentHold::activeTenancyIds($settings->companyId) ?: [0]) // paused by the landlord
             ->orderBy('billing_month')->orderBy('id')
             ->get()
             ->filter(fn (Invoice $i) => $i->billing_month && $this->dueDate($settings, $i)->lte($today))

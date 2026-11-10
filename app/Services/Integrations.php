@@ -178,9 +178,16 @@ class Integrations
         $res = Http::withBasicAuth((string) $row->get('consumer_key'), (string) $row->get('consumer_secret'))
             ->timeout(20)->get($base.'/oauth/v1/generate?grant_type=client_credentials');
 
-        return $res->successful() && $res->json('access_token')
-            ? [true, 'Safaricom accepted the consumer key and secret.']
-            : [false, 'Safaricom rejected the consumer key/secret (HTTP '.$res->status().').'];
+        if (! ($res->successful() && $res->json('access_token'))) {
+            return [false, 'Safaricom rejected the consumer key/secret (HTTP '.$res->status().').'];
+        }
+        if (! $row->company_id) {
+            return [true, 'Safaricom accepted the consumer key and secret.'];
+        }
+        // A company's own paybill: also have tenants' direct paybill payments sent to scharge (Rent collection).
+        [$ok, $message] = \App\Services\Rent\PaybillRegistration::register($row, (string) $res->json('access_token'));
+
+        return [$ok, 'Safaricom accepted the consumer key and secret. '.$message];
     }
 
     private static function testAirtel(CompanyIntegration $row): array

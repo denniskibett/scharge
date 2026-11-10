@@ -23,6 +23,10 @@ class RentSettings
         /** @var int[] days after the due date, ascending */
         public readonly array $reminderDays,
         public readonly string $channel,
+        /** Late penalty, switched on by the owner: off | percent | fixed */
+        public readonly string $penaltyType = 'off',
+        public readonly float $penaltyAmount = 0,
+        public readonly int $penaltyAfterDays = 5,
     ) {
     }
 
@@ -47,6 +51,9 @@ class RentSettings
             sendBill: $row->get('send_bill', 'yes') === 'yes',
             reminderDays: array_slice($days, 0, 6),
             channel: in_array($row->get('channel'), ['sms', 'whatsapp'], true) ? $row->get('channel') : 'sms',
+            penaltyType: in_array($row->get('penalty'), ['percent', 'fixed'], true) && (float) $row->get('penalty_amount') > 0 ? $row->get('penalty') : 'off',
+            penaltyAmount: max(0, min($row->get('penalty') === 'percent' ? 50 : 1000000, (float) $row->get('penalty_amount'))),
+            penaltyAfterDays: max(1, min(90, (int) ($row->get('penalty_after_days') ?: 5))),
         );
     }
 

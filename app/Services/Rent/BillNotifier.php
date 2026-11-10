@@ -66,6 +66,37 @@ class BillNotifier
         return $message;
     }
 
+    /**
+     * A fresh link to a bill (e.g. after old links stopped working). At most once a day per bill. Works whether or not
+     * rent automation is on; uses the company's SMS sender.
+     */
+    public function resendLink(Invoice $invoice): ?RentMessage
+    {
+        $tenancy = $invoice->tenancy;
+        $companyId = (int) $invoice->owningCompanyId();
+        if (! $tenancy || ! $companyId) {
+            return null;
+        }
+        $settings = RentSettings::for($companyId) ?? new RentSettings($companyId, 1, 5, false, [], 'sms');
+        $today = RentSettings::today();
+        $text = sprintf('Hi %s, here is your bill for %s: KES %s to pay. View and pay here: %s',
+            $this->firstName($tenancy), $this->place($tenancy), number_format($this->balance($invoice)), $this->payLink($invoice));
+
+        return $this->send($settings, $invoice, 'link', ($today->year % 100) * 1000 + $today->dayOfYear, $this->balance($invoice), $text);
+    }
+
+    /** Send a failed bill or reminder again (same text, fresh attempt). */
+    public function retry(RentMessage $message): RentMessage
+    {
+        abort_unless(in_array($message->status, ['failed', 'no_phone'], true), 422, 'Only failed messages can be sent again.');
+        $invoice = Invoice::with('tenancy.tenant.user')->findOrFail($message->invoice_id);
+        $settings = RentSettings::for((int) $message->company_id) ?? new RentSettings((int) $message->company_id, 1, 5, true, [], 'sms');
+        $message->update(['status' => 'sending', 'error' => null]);
+        $this->deliver($settings, $invoice, $message, (string) $message->message);
+
+        return $message->fresh();
+    }
+
     private function send(RentSettings $settings, Invoice $invoice, string $kind, int $stage, float $balance, string $text): ?RentMessage
     {
         $row = $this->claim($settings, $invoice, $kind, $stage, $balance, $text, 'sending');
@@ -73,6 +104,11 @@ class BillNotifier
             return null; // already sent
         }
 
+        return $this->deliver($settings, $invoice, $row, $text);
+    }
+
+    private function deliver(RentSettings $settings, Invoice $invoice, RentMessage $row, string $text): RentMessage
+    {
         $phone = $invoice->tenancy?->tenant?->user?->phone;
         if (blank($phone)) {
             $row->update(['status' => 'no_phone', 'error' => 'The tenant has no phone number.']);
@@ -93,7 +129,7 @@ class BillNotifier
             $row->update(['phone' => $phone, 'channel' => $channel, 'status' => $ok ? 'sent' : 'failed',
                 'error' => $ok ? null : mb_substr((string) ($res['message'] ?? $res['error'] ?? 'Not sent.'), 0, 250)]);
         } catch (\Throwable $e) {
-            Log::warning('Rent message failed', ['invoice_id' => $invoice->id, 'kind' => $kind, 'error' => $e->getMessage()]);
+            Log::warning('Rent message failed', ['invoice_id' => $invoice->id, 'kind' => $row->kind, 'error' => $e->getMessage()]);
             $row->update(['phone' => $phone, 'status' => 'failed', 'error' => mb_substr($e->getMessage(), 0, 250)]);
         }
 

@@ -122,6 +122,20 @@ class RentRun
                 ->orWhere(fn ($u) => $u->whereNull('company_id')->whereHas('property', fn ($p) => $p->where('company_id', $companyId)))));
     }
 
+    /** Tenancies of a company (any status). */
+    public static function ownedByQuery(int $companyId): Builder
+    {
+        return Tenancy::query()->where(fn ($q) => self::ownedBy($q, $companyId));
+    }
+
+    /** The landlord company of a tenancy: its own company_id, else the unit's, else the property's. */
+    public static function companyOf(\App\Modules\Properties\Models\Tenancy $tenancy): ?int
+    {
+        $id = $tenancy->company_id ?? $tenancy->unit?->company_id ?? $tenancy->unit?->property?->company_id;
+
+        return $id ? (int) $id : null;
+    }
+
     private function alreadyBilled(int $tenancyId, CarbonImmutable $month): bool
     {
         return Invoice::where('tenancy_id', $tenancyId)
