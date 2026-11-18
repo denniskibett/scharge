@@ -93,3 +93,14 @@ Schedule::command('crm:pull-nairobi --enrich=80')
     ->withoutOverlapping(180)
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/crm-pull-nairobi.log'));
+
+// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): every weekday morning, prospects added since
+// (with a business email, never emailed, not opted out) get their property type's email. Capped per type so a new
+// sender builds reputation slowly; tracking: /crm/campaigns.
+foreach (['BNB' => '09:00', 'RESIDENTIAL' => '09:20', 'COMMERCIAL' => '09:40', 'UTILITIES' => '10:00'] as $type => $at) {
+    Schedule::command("crm:campaign {$type} --send --limit=40 --per-minute=6")
+        ->weekdays()->at($at)
+        ->withoutOverlapping(60)
+        ->onOneServer()
+        ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+}

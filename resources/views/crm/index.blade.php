@@ -134,12 +134,23 @@
     </div>
 
     {{-- Add prospect --}}
-    <div x-show="adding" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center p-4 bg-gray-400/50 backdrop-blur-[32px]" @keydown.escape.window="adding = false">
-        <form method="POST" action="{{ route('crm.companies.store') }}" @click.outside="adding = false" class="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 dark:bg-gray-900">
+    {{-- Add a prospect: right-side slide-over --}}
+    <div x-show="adding" x-cloak x-transition:leave="duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-100" class="fixed inset-0 z-99999" role="dialog" aria-modal="true" aria-labelledby="add-prospect-title" @keydown.escape.window="adding = false">
+        <div x-show="adding" x-transition.opacity.duration.200ms class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="adding = false"></div>
+        <form method="POST" action="{{ route('crm.companies.store') }}" x-show="adding"
+              x-transition:enter="transform transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+              x-transition:leave="transform transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+              class="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-2xl dark:bg-gray-900">
             @csrf
             <input type="hidden" name="_form" value="add">
-            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Add a prospect</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">If the company is already in the system (same website or name, prospect or customer), we open it instead of creating a copy.</p>
+            <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
+                <div>
+                    <h3 id="add-prospect-title" class="text-lg font-semibold text-gray-800 dark:text-white/90">Add a prospect</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">If the company is already in the system (same website or name, prospect or customer), we open it instead of creating a copy.</p>
+                </div>
+                <button type="button" @click="adding = false" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-white/5" aria-label="Close"><x-icon name="x-mark" class="h-5 w-5" /></button>
+            </div>
+            <div class="flex-1 space-y-4 overflow-y-auto p-5">
             <div><label class="{{ $label }}" for="p-name">Company name</label><input id="p-name" name="name" required value="{{ old('name') }}" class="{{ $field }}"></div>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="{{ $label }}" for="p-tier">Tier</label><select id="p-tier" name="tier" class="{{ $field }}">@foreach ([1, 2, 3] as $t)<option value="{{ $t }}" @selected(old('tier', 2) == $t)>Tier {{ $t }}</option>@endforeach</select></div>
@@ -154,7 +165,9 @@
                 <div><label class="{{ $label }}" for="p-type">Business type</label><input id="p-type" name="business_type" value="{{ old('business_type') }}" placeholder="Developer, property manager…" class="{{ $field }}"></div>
                 <div><label class="{{ $label }}" for="p-country">Country</label><select id="p-country" name="country_code" class="{{ $field }}">@foreach (\App\Modules\CRM\Support\Countries::ordered() as $code => $c)<option value="{{ $code }}" @selected(old('country_code', 'KE') === $code)>{{ $c['name'] }}</option>@endforeach</select></div>
             </div>
-            <div class="flex justify-end gap-2 pt-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400">With a business email, the prospect gets its property type's cold email in the next weekday-morning campaign.</p>
+            </div>
+            <div class="flex justify-end gap-2 border-t border-gray-200 p-5 dark:border-gray-800">
                 <button type="button" @click="adding = false" class="h-11 rounded-lg border border-gray-300 px-4 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300">Cancel</button>
                 <button class="h-11 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Add prospect</button>
             </div>
