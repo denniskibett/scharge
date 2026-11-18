@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Modules\CRM\Mail\CrmOutreachEmail;
 use App\Modules\CRM\Services\ContactService;
 use App\Modules\CRM\Support\CrmAccess;
+use App\Modules\CRM\Support\EmailBody;
 use App\Modules\CRM\Support\Playbook;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,7 +87,7 @@ class CrmOutreachController extends Controller
 
             return back()->with('success', 'Email reset to the playbook template.')->with('open_playbook', route('crm.companies.playbook', $crmCompany));
         }
-        $input = $request->validate(['subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:10000']]);
+        $input = $this->validateBody($request, ['subject' => ['required', 'string', 'max:200']]);
         $this->setProfile($crmCompany, ['email_subject' => $input['subject'], 'email_body' => $input['body']]);
 
         return back()->with('success', 'Email draft saved for '.$crmCompany->name.'.')->with('open_playbook', route('crm.companies.playbook', $crmCompany));
@@ -98,10 +99,9 @@ class CrmOutreachController extends Controller
         $company = $crmCompany;
         $user = $request->user();
         CrmAccess::authorizeCompany($company, $user);
-        $input = $request->validate([
+        $input = $this->validateBody($request, [
             'to' => ['required', 'email:rfc', 'max:190'],
             'subject' => ['required', 'string', 'max:200'],
-            'body' => ['required', 'string', 'max:10000'],
             'follow_up_days' => ['required', 'integer', 'between:1,30'],
         ]);
         if ($company->profile('do_not_email')) {
@@ -125,7 +125,7 @@ class CrmOutreachController extends Controller
 
         $company->followUps()->create([
             'assigned_to' => $manager->id, 'created_by' => $user->id, 'type' => 'email', 'status' => 'done',
-            'title' => 'Cold email: '.$input['subject'], 'notes' => $input['body'], 'done_at' => now(),
+            'title' => 'Cold email: '.$input['subject'], 'notes' => EmailBody::toText($input['body']), 'done_at' => now(),
             'details' => ['to' => $input['to'], 'sent_by' => $user->id, 'playbook' => Playbook::segmentOf($company)],
         ]);
         $due = now()->addWeekdays((int) $input['follow_up_days'])->setTime(10, 0);
@@ -145,6 +145,18 @@ class CrmOutreachController extends Controller
         $this->setProfile($company, $profile);
 
         return back()->with('success', 'Email sent to '.$input['to'].'. '.$manager->name.' has a follow-up on '.$due->format('D j M').'.');
+    }
+
+    /** Validate the rest, plus the rich-text body: cleaned to the allowed HTML, and not empty once cleaned. */
+    private function validateBody(Request $request, array $rules): array
+    {
+        $input = $request->validate($rules + ['body' => ['required', 'string', 'max:30000']]);
+        $input['body'] = EmailBody::toHtml($input['body']);
+        if (trim(EmailBody::toText($input['body'])) === '') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['body' => 'Write the email before saving or sending it.']);
+        }
+
+        return $input;
     }
 
     private function setProfile(Company $company, array $values): void

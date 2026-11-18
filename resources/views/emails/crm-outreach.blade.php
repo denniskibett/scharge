@@ -1,4 +1,4 @@
-{{-- CRM cold email (App\Modules\CRM\Mail\CrmOutreachEmail), "Ink" direction: account-manager emails (design decision 9 Nov 2026).
+{{-- CRM cold email (App\Modules\CRM\Mail\CrmOutreachEmail); $body is rich text (EmailBody), plain text still works., "Ink" direction: account-manager emails (design decision 9 Nov 2026).
      $body is the account manager's own (editable) text; the offers list comes from the segment playbook. Table layout + inline styles. --}}
 @php
   $base = 'https://scharge.sharet.africa';
@@ -8,7 +8,8 @@
   $offers = array_values(array_filter($book['offers'] ?? [], fn ($o) => ! str_starts_with($o, 'Pricing')));
   $offers = array_slice($offers, 0, 4);
   $demoHref = $company ? \App\Modules\CRM\Support\Playbook::demoUrl($company) : $base;
-  $paragraphs = preg_split("/\n{2,}/", trim($body));
+  $plain = \App\Modules\CRM\Support\EmailBody::toText($body);
+  $paragraphs = preg_split("/\n{2,}/", $plain);
 @endphp
 <!doctype html>
 <html lang="en">
@@ -35,9 +36,7 @@
     </td></tr>
 
     <tr><td style="padding:30px 32px 32px;font-family:{!! $sans !!};color:#1A1214;">
-      @foreach ($paragraphs as $p)
-        <p style="margin:0 0 16px;font-size:15px;line-height:1.65;">{!! nl2br(e($p)) !!}</p>
-      @endforeach
+      {!! \App\Modules\CRM\Support\EmailBody::forEmail($body) !!}
 
       @if ($offers)
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;font-size:14px;">

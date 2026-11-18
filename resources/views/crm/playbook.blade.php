@@ -11,6 +11,17 @@
     $item = 'flex w-full items-center gap-2 px-3 py-2 text-left text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5';
     $dots = 'inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-white/5';
 @endphp
+<style>
+.pb-editor { min-height: 16rem; }
+.pb-editor-wrap:focus-within { border-color: var(--color-brand-300, #a4bcfd); }
+.pb-editor p { margin: 0 0 .85em; }
+.pb-editor ul { list-style: disc; padding-left: 1.4em; margin: 0 0 .85em; }
+.pb-editor ol { list-style: decimal; padding-left: 1.4em; margin: 0 0 .85em; }
+.pb-editor li { margin: 0 0 .3em; }
+.pb-editor h3 { font-size: 1rem; font-weight: 600; margin: .4em 0 .6em; }
+.pb-editor a { color: #DC2626; text-decoration: underline; }
+.pb-editor blockquote { border-left: 3px solid #e5e7eb; padding-left: .8em; color: #6b7280; }
+</style>
 <div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}', copied: '' }" class="flex h-full flex-col overflow-hidden">
     {{-- Header --}}
     <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
@@ -105,8 +116,34 @@
                         <select id="pb-days" name="follow_up_days" class="{{ $field }}">@foreach ([2 => '2 working days', 3 => '3 working days', 5 => '1 week', 10 => '2 weeks'] as $d => $t)<option value="{{ $d }}" @selected($d === 3)>{{ $t }}</option>@endforeach</select></div>
                 </div>
                 <div><label class="{{ $label }}" for="pb-subject">Subject</label><input id="pb-subject" name="subject" required maxlength="200" value="{{ old('subject', $draft['subject']) }}" class="{{ $field }}"></div>
-                <div><label class="{{ $label }}" for="pb-body">Message @if ($hasSavedDraft)<span class="font-normal text-gray-400">(saved draft for this company)</span>@else<span class="font-normal text-gray-400">(playbook template; edit freely)</span>@endif</label>
-                    <textarea id="pb-body" name="body" rows="12" required class="{{ $area }}">{{ old('body', $draft['body']) }}</textarea></div>
+                <div x-data="{
+                        sync() { this.$refs.body.value = this.$refs.ed.innerHTML },
+                        cmd(c, v = null) { this.$refs.ed.focus(); document.execCommand(c, false, v); this.sync() },
+                        link() { const u = prompt('Link address', 'https://'); if (u && u !== 'https://') this.cmd('createLink', u) },
+                        paste(e) { document.execCommand('insertText', false, e.clipboardData.getData('text/plain')); this.sync() },
+                    }" x-init="$refs.ed.innerHTML = $refs.body.value; document.execCommand('defaultParagraphSeparator', false, 'p')">
+                    <span id="pb-body-label" class="{{ $label }}">Message @if ($hasSavedDraft)<span class="font-normal text-gray-400">(saved draft for this company)</span>@else<span class="font-normal text-gray-400">(playbook template; edit freely)</span>@endif</span>
+                    <div class="overflow-hidden rounded-lg border border-gray-300 pb-editor-wrap dark:border-gray-700">
+                        <div class="flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-gray-50 px-1.5 py-1 dark:border-gray-800 dark:bg-white/[0.03]" role="toolbar" aria-label="Formatting">
+                            <button type="button" @mousedown.prevent="cmd('bold')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 font-bold" title="Bold (Ctrl+B)" aria-label="Bold">B</button>
+                            <button type="button" @mousedown.prevent="cmd('italic')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 italic" title="Italic (Ctrl+I)" aria-label="Italic">I</button>
+                            <button type="button" @mousedown.prevent="cmd('underline')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 underline" title="Underline (Ctrl+U)" aria-label="Underline">U</button>
+                            <span class="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700"></span>
+                            <button type="button" @mousedown.prevent="cmd('formatBlock', 'h3')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 font-semibold" title="Heading" aria-label="Heading">H</button>
+                            <button type="button" @mousedown.prevent="cmd('formatBlock', 'p')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10" title="Normal text" aria-label="Normal text">¶</button>
+                            <button type="button" @mousedown.prevent="cmd('insertUnorderedList')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10" title="Bulleted list" aria-label="Bulleted list">• List</button>
+                            <button type="button" @mousedown.prevent="cmd('insertOrderedList')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10" title="Numbered list" aria-label="Numbered list">1. List</button>
+                            <span class="mx-1 h-5 w-px bg-gray-200 dark:bg-gray-700"></span>
+                            <button type="button" @mousedown.prevent="link()" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10" title="Add a link" aria-label="Add a link">Link</button>
+                            <button type="button" @mousedown.prevent="cmd('unlink')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10" title="Remove link" aria-label="Remove link">Unlink</button>
+                            <button type="button" @mousedown.prevent="cmd('removeFormat')" class="inline-flex h-8 items-center justify-center rounded-md px-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10" title="Clear formatting" aria-label="Clear formatting">Clear</button>
+                        </div>
+                        <div x-ref="ed" id="pb-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-labelledby="pb-body-label"
+                             @input="sync()" @blur="sync()" @paste.prevent="paste($event)"
+                             class="pb-editor max-h-96 overflow-y-auto px-3 py-2 text-sm leading-relaxed text-gray-800 focus:outline-none dark:text-white/90"></div>
+                    </div>
+                    <textarea x-ref="body" name="body" class="hidden" aria-hidden="true">{{ \App\Modules\CRM\Support\EmailBody::toHtml(old('body', $draft['body'])) }}</textarea>
+                </div>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Their demo form: <a href="{{ $demoUrl }}" target="_blank" rel="noopener" class="text-brand-500 hover:underline">{{ $demoUrl }}</a> (the email's button goes there; what they fill in comes back to this company as a PDF).</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Sent from scharge as <strong>{{ $manager->name }} · scharge</strong>; replies go to {{ $manager->email }}. An opt-out line is added at the bottom. A call follow-up is booked for {{ $manager->name }} and the email is logged on the timeline.</p>
                 <div class="sticky bottom-0 flex items-center gap-2 border-t border-gray-200 bg-white py-3 dark:border-gray-800 dark:bg-gray-900">
@@ -116,7 +153,7 @@
                         <button type="button" @click="menu = !menu" class="{{ $dots }}" aria-label="More email actions" :aria-expanded="menu"><x-icon name="ellipsis-horizontal" class="h-5 w-5" /></button>
                         <div x-show="menu" x-cloak x-transition.origin.bottom.right class="{{ $menu }} mt-0" style="bottom:2.75rem" @click="menu = false">
                             <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="{{ $item }}" title="Shows the saved draft; save first to preview your edits">Preview email</a>
-                            <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-body').value); copied = 'Email text copied'; setTimeout(() => copied = '', 1500)">Copy subject and text</button>
+                            <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-editor').innerText); copied = 'Email text copied'; setTimeout(() => copied = '', 1500)">Copy subject and text</button>
                             <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(@js($demoUrl)); copied = 'Demo link copied'; setTimeout(() => copied = '', 1500)">Copy demo link</button>
                             <button type="button" class="{{ $item }}" @click="tab = 'research'">Rewrite from research</button>
                             @if ($hasSavedDraft)
