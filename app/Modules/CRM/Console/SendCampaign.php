@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Modules\CRM\Mail\CrmOutreachEmail;
 use App\Modules\CRM\Services\OutreachService;
 use App\Modules\CRM\Support\EmailBody;
+use App\Modules\CRM\Support\EmailFinder;
 use App\Modules\CRM\Support\EmailTracking;
 use App\Modules\CRM\Support\Playbook;
 use App\Modules\CRM\Support\PropertyClass;
@@ -34,7 +35,8 @@ class SendCampaign extends Command
         {--limit=100 : Most emails in one run}
         {--per-minute=10 : Sending pace}
         {--manager= : User id that takes unowned prospects (default: account managers in turn)}
-        {--follow-up=3 : Working days until the call follow-up}';
+        {--follow-up=3 : Working days until the call follow-up}
+        {--cc=all : Copy the company\'s other published addresses (crm_profile.emails): all, or none}';
 
     protected $description = 'Cold-email one property type from sales@sharet.africa (test first, then send)';
 
@@ -49,7 +51,8 @@ class SendCampaign extends Command
         }
         $campaign = $type.' '.now()->format('Y-m');
         $base = fn () => $this->audience($classes);
-        $this->line(sprintf('%s audience: %s prospects with a business email, not emailed before, not opted out.', $type, number_format($base()->count())));
+        $this->line(sprintf('%s audience: %s prospects with a business email, not emailed before, not opted out (%s with extra addresses to CC).', $type,
+            number_format($base()->count()), number_format($base()->whereNotNull('crm_profile->emails')->where('crm_profile->emails', '!=', '[]')->count())));
 
         $managers = $this->managers();
         if (! $managers) {
@@ -92,12 +95,17 @@ class SendCampaign extends Command
                 continue; // one email per address, even when several branches share it
             }
             $seen[$email] = true;
+            // Still one email per company: its other published addresses are copied, unless another company already got them.
+            $cc = $this->option('cc') === 'none' ? [] : array_values(array_filter(EmailFinder::ccFor($company), fn ($e) => ! isset($seen[$e])));
+            foreach ($cc as $e) {
+                $seen[$e] = true;
+            }
             $manager = $pick($company);
             $mail = Playbook::compose($company, $manager, [], null);
             try {
-                $outreach->send($company, $manager, $email, $mail['subject'], $mail['body'], (int) $this->option('follow-up'), $campaign);
+                $outreach->send($company, $manager, $email, $mail['subject'], $mail['body'], (int) $this->option('follow-up'), $campaign, $cc);
                 $sent++;
-                $this->line('Sent '.$sent.': '.$company->name.' <'.$email.'> ('.Playbook::demoRef($company).', '.$manager->name.')');
+                $this->line('Sent '.$sent.': '.$company->name.' <'.$email.'>'.($cc ? ' cc '.implode(', ', $cc) : '').' ('.Playbook::demoRef($company).', '.$manager->name.')');
             } catch (\Throwable $e) {
                 $failed++;
                 $this->warn('Failed: '.$company->name.' <'.$email.'>: '.$e->getMessage());

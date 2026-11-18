@@ -104,20 +104,22 @@ class CrmOutreachController extends Controller
             'to' => ['required', 'email:rfc', 'max:190'],
             'subject' => ['required', 'string', 'max:200'],
             'follow_up_days' => ['required', 'integer', 'between:1,30'],
+            'cc' => ['nullable', 'array', 'max:2'],
+            'cc.*' => ['email:rfc', 'max:190'],
         ]);
         if ($company->profile('do_not_email')) {
             return back()->withErrors(['to' => $company->name.' asked not to be emailed. Untick "Do not email" under Verify details only if that has changed.']);
         }
 
         try {
-            ['manager' => $manager, 'due' => $due] = app(OutreachService::class)->send($company, $user, $input['to'], $input['subject'], $input['body'], (int) $input['follow_up_days']);
+            ['manager' => $manager, 'due' => $due] = app(OutreachService::class)->send($company, $user, $input['to'], $input['subject'], $input['body'], (int) $input['follow_up_days'], null, $input['cc'] ?? []);
         } catch (\Throwable $e) {
             Log::warning('CRM outreach email failed', ['company_id' => $company->id, 'error' => $e->getMessage()]);
 
             return back()->withErrors(['to' => 'The email could not be sent: '.$e->getMessage()]);
         }
 
-        return back()->with('success', 'Email sent to '.$input['to'].'. '.$manager->name.' has a follow-up on '.$due->format('D j M').'.');
+        return back()->with('success', 'Email sent to '.$input['to'].(empty($input['cc']) ? '' : ' (cc '.implode(', ', $input['cc']).')').'. '.$manager->name.' has a follow-up on '.$due->format('D j M').'.');
     }
 
     /** Validate the rest, plus the rich-text body: cleaned to the allowed HTML, and not empty once cleaned. */

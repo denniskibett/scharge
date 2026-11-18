@@ -115,6 +115,16 @@
                     <div><label class="{{ $label }}" for="pb-days">Follow up in</label>
                         <select id="pb-days" name="follow_up_days" class="{{ $field }}">@foreach ([2 => '2 working days', 3 => '3 working days', 5 => '1 week', 10 => '2 weeks'] as $d => $t)<option value="{{ $d }}" @selected($d === 3)>{{ $t }}</option>@endforeach</select></div>
                 </div>
+                @php($ccOptions = \App\Modules\CRM\Support\EmailFinder::ccFor($company))
+                @if ($ccOptions)
+                    <fieldset><legend class="{{ $label }}">Copy (CC) their other published addresses</legend>
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700 dark:text-gray-300">
+                            @foreach ($ccOptions as $cc)
+                                <label class="inline-flex items-center gap-1.5"><input type="checkbox" name="cc[]" value="{{ $cc }}" @checked(in_array($cc, old('cc', $ccOptions), true)) class="rounded border-gray-300 dark:border-gray-600"> {{ $cc }}</label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                @endif
                 <div><label class="{{ $label }}" for="pb-subject">Subject</label><input id="pb-subject" name="subject" required maxlength="200" value="{{ old('subject', $draft['subject']) }}" class="{{ $field }}"></div>
                 <div x-data="{
                         sync() { this.$refs.body.value = this.$refs.ed.innerHTML },

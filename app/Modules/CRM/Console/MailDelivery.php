@@ -34,10 +34,11 @@ class MailDelivery extends Command
             if (preg_match('/postfix\/cleanup\[\d+\]: ([0-9A-F]+): message-id=<([^>]+)>/', $line, $m)) {
                 $queue[$m[1]] = $m[2];
             } elseif (preg_match('/^(\w{3}\s+\d+ [\d:]+) .*postfix\/(?:smtp|error|local|virtual)\[\d+\]: ([0-9A-F]+): to=<([^>]+)>.*status=(sent|deferred|bounced) \((.*)\)\s*$/', $line, $m)) {
-                if (isset($queue[$m[2]])) {
-                    $prev = $result[$queue[$m[2]]][0] ?? null;
+                if (isset($queue[$m[2]])) { // per recipient: a CC'd address has its own result
+                    $rcpt = strtolower($m[3]);
+                    $prev = $result[$queue[$m[2]]][$rcpt][0] ?? null;
                     if ($prev !== 'sent' && $prev !== 'bounced') { // final results win over "deferred"
-                        $result[$queue[$m[2]]] = [$m[4], $m[3], mb_substr($m[5], 0, 300), $m[1]];
+                        $result[$queue[$m[2]]][$rcpt] = [$m[4], $m[3], mb_substr($m[5], 0, 300), $m[1]];
                     }
                 }
             }
@@ -53,11 +54,25 @@ class MailDelivery extends Command
                     if (! isset($result[$id])) {
                         continue;
                     }
-                    [$status, $to, $reply, $at] = $result[$id];
-                    $email->forceFill(['details' => array_merge($email->details ?? [], [
-                        'delivery' => $status, 'delivery_reply' => $reply, 'delivery_at' => $at,
-                    ])])->saveQuietly();
+                    $byRcpt = $result[$id];
+                    $primary = strtolower((string) $email->detail('to'));
+                    [$status, $to, $reply, $at] = $byRcpt[$primary] ?? reset($byRcpt);
+                    $ccStatus = array_map(fn ($r) => $r[0], array_diff_key($byRcpt, [$primary => 1]));
+                    $email->forceFill(['details' => array_merge($email->details ?? [], array_filter([
+                        'delivery' => $status, 'delivery_reply' => $reply, 'delivery_at' => $at, 'cc_delivery' => $ccStatus ?: null,
+                    ]))])->saveQuietly();
                     $updated++;
+                    // A copied address that bounced leaves the company's list; the email itself counts by the main recipient.
+                    foreach ($byRcpt as $rcpt => [$st, $addr, $why]) {
+                        if ($rcpt !== $primary && $st === 'bounced' && $email->company) {
+                            $c = $email->company->fresh();
+                            $p = $c->crm_profile ?? [];
+                            $p['emails'] = array_values(array_filter($p['emails'] ?? [], fn ($e) => strtolower($e['email'] ?? '') !== $rcpt));
+                            $p['bounced_emails'] = array_values(array_unique(array_merge($p['bounced_emails'] ?? [], [$rcpt])));
+                            $c->forceFill(['crm_profile' => $p])->saveQuietly();
+                            $contacts->log($c, 'note', 'Copy to '.$addr.' bounced', 'Their mail server refused it: '.$why.' The address was removed from the company\'s extra emails.');
+                        }
+                    }
                     if ($status === 'bounced' && $email->company) {
                         $c = $email->company;
                         $c->forceFill(['crm_profile' => array_merge($c->crm_profile ?? [], ['email_bounced' => true])])->saveQuietly();

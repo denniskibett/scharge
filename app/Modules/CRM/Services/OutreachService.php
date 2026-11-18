@@ -27,13 +27,20 @@ class OutreachService
      *
      * @throws \Throwable when the mail could not be sent (nothing is logged then)
      */
-    public function send(Company $company, User $sender, string $to, string $subject, string $body, int $followUpDays, ?string $campaign = null): array
+    public function send(Company $company, User $sender, string $to, string $subject, string $body, int $followUpDays, ?string $campaign = null, array $cc = []): array
     {
+        // One email per company: the other published addresses are copied (CC), never sent separately.
+        $cc = array_values(array_unique(array_filter(array_map(fn ($e) => strtolower(trim((string) $e)), $cc),
+            fn ($e) => $e !== strtolower(trim($to)) && filter_var($e, FILTER_VALIDATE_EMAIL))));
         $manager = $company->owner_id ? ($company->fresh('owner')->owner ?? $sender) : $sender;
         $body = EmailBody::toHtml($body);
 
         $track = Str::random(24);
-        $sent = Mail::to($to)->send(new CrmOutreachEmail($subject, $body, $manager, $company, $track));
+        $mailer = Mail::to($to);
+        if ($cc) {
+            $mailer->cc($cc);
+        }
+        $sent = $mailer->send(new CrmOutreachEmail($subject, $body, $manager, $company, $track));
 
         // Whoever sends the first email takes an unowned prospect: the follow-up is theirs.
         if (! $company->owner_id) {
@@ -44,14 +51,14 @@ class OutreachService
         $company->followUps()->create([
             'assigned_to' => $manager->id, 'created_by' => $sender->id, 'type' => 'email', 'status' => 'done',
             'title' => 'Cold email: '.$subject, 'notes' => EmailBody::toText($body), 'done_at' => now(),
-            'details' => array_filter(['to' => $to, 'from' => Playbook::SALES_FROM, 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company),
+            'details' => array_filter(['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::SALES_FROM, 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company),
                 'track' => $track, 'message_id' => $sent?->getMessageId(), 'type' => PropertyClass::of($company)]),
         ]);
         $due = now()->addWeekdays($followUpDays)->setTime(10, 0);
         $company->followUps()->create([
             'assigned_to' => $manager->id, 'created_by' => $sender->id, 'type' => 'call', 'status' => 'open',
             'title' => 'Follow up on the cold email to '.$company->name, 'due_at' => $due,
-            'notes' => 'Emailed '.$to.' on '.now()->format('j M').($campaign ? ' ('.$campaign.' campaign)' : '').'. Call to book a demo; if no answer, send a short follow-up email.',
+            'notes' => 'Emailed '.$to.($cc ? ' (cc '.implode(', ', $cc).')' : '').' on '.now()->format('j M').($campaign ? ' ('.$campaign.' campaign)' : '').'. Call to book a demo; if no answer, send a short follow-up email.',
         ]);
         if ($company->crm_stage === 'new' || $company->crm_stage === null) {
             $this->contacts->setStage($company, 'contacted', $sender->id);
