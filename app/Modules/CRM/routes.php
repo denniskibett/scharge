@@ -43,6 +43,7 @@ Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->pref
     Route::get('/companies/{crmCompany}', [CrmCompanyController::class, 'show'])->name('companies.show');
     Route::put('/companies/{crmCompany}', [CrmCompanyController::class, 'update'])->name('companies.update');
     Route::get('/companies/{crmCompany}/playbook', [CrmOutreachController::class, 'show'])->name('companies.playbook');
+    Route::get('/companies/{crmCompany}/playbook/preview', [CrmOutreachController::class, 'preview'])->name('companies.playbook.preview');
     Route::put('/companies/{crmCompany}/playbook/draft', [CrmOutreachController::class, 'saveDraft'])->name('companies.playbook.draft');
     Route::post('/companies/{crmCompany}/playbook/send', [CrmOutreachController::class, 'send'])->name('companies.playbook.send');
     Route::post('/companies/{crmCompany}/contacts', [CrmCompanyController::class, 'addContact'])->name('companies.contacts.store');

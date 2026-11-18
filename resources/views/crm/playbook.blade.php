@@ -54,7 +54,8 @@
                     <button class="{{ $btn }}" :disabled="sending" @disabled($doNotEmail)><span x-text="sending ? 'Sending…' : 'Send email'"></span></button>
                     <button type="submit" formaction="{{ route('crm.companies.playbook.draft', $company) }}" formnovalidate name="_method" value="PUT" class="{{ $ghost }}">Save draft</button>
                     @if ($hasSavedDraft)<button type="submit" formaction="{{ route('crm.companies.playbook.draft', $company) }}" formnovalidate name="reset" value="1" class="text-sm text-gray-500 hover:text-gray-800" onclick="this.form.insertAdjacentHTML('beforeend','<input type=hidden name=_method value=PUT>')">Reset to template</button>@endif
-                    <button type="button" class="ml-auto text-sm text-brand-500 hover:underline" x-data="{ copied: false }" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-body').value); copied = true; setTimeout(() => copied = false, 1500)" x-text="copied ? 'Copied' : 'Copy text'"></button>
+                    <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="ml-auto text-sm text-brand-500 hover:underline" title="Shows the saved draft; save first to preview your edits">Preview email</a>
+                    <button type="button" class="text-sm text-brand-500 hover:underline" x-data="{ copied: false }" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-body').value); copied = true; setTimeout(() => copied = false, 1500)" x-text="copied ? 'Copied' : 'Copy text'"></button>
                 </div>
             </form>
         </div>

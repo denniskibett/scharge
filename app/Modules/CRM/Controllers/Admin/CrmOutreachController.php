@@ -41,6 +41,16 @@ class CrmOutreachController extends Controller
         ]);
     }
 
+    /** The email exactly as it will arrive (scharge "Ink" design), using the saved draft or the playbook template. */
+    public function preview(Request $request, Company $crmCompany): string
+    {
+        CrmAccess::authorizeCompany($crmCompany, $request->user());
+        $manager = $crmCompany->owner ?? $request->user();
+        $draft = Playbook::draft($crmCompany, $manager);
+
+        return (new CrmOutreachEmail($draft['subject'], $draft['body'], $manager, $crmCompany))->render();
+    }
+
     /** Save (or reset) this company's email draft. */
     public function saveDraft(Request $request, Company $crmCompany): RedirectResponse
     {
@@ -80,7 +90,7 @@ class CrmOutreachController extends Controller
         $manager = $company->fresh('owner')->owner ?? $user;
 
         try {
-            Mail::to($input['to'])->send(new CrmOutreachEmail($input['subject'], $input['body'], $manager));
+            Mail::to($input['to'])->send(new CrmOutreachEmail($input['subject'], $input['body'], $manager, $company));
         } catch (\Throwable $e) {
             Log::warning('CRM outreach email failed', ['company_id' => $company->id, 'error' => $e->getMessage()]);
 

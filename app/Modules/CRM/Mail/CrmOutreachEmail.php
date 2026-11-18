@@ -2,6 +2,7 @@
 
 namespace App\Modules\CRM\Mail;
 
+use App\Models\Company;
 use App\Modules\Users\Models\User;
 use App\Modules\CRM\Support\Playbook;
 use Illuminate\Mail\Mailable;
@@ -9,10 +10,10 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
-/** A plain, personal cold email from an account manager: sent by scharge, replies go to the manager. */
+/** A cold email from an account manager in the scharge "Ink" design: sent by scharge, replies go to the manager. */
 class CrmOutreachEmail extends Mailable
 {
-    public function __construct(public string $subjectLine, public string $body, public User $manager)
+    public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null)
     {
     }
 
@@ -32,7 +33,11 @@ class CrmOutreachEmail extends Mailable
         return new Content(
             view: 'emails.crm-outreach',
             text: 'emails.crm-outreach-text',
-            with: ['body' => $this->body, 'optOut' => Playbook::OPT_OUT],
+            with: [
+                'optOut' => Playbook::OPT_OUT,
+                'book' => $this->company ? Playbook::for($this->company) : [],
+                'companyName' => $this->company ? preg_replace('/\s*\([^()]*\)\s*$/', '', $this->company->name) : 'your company',
+            ],
         );
     }
 }
