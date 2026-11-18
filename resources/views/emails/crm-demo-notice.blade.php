@@ -9,7 +9,7 @@
     'Contact' => trim(($demo->contact?->name ?? '').' · '.($demo->contact?->phone ?? ''), ' ·'),
     'Email' => $demo->contact?->email,
     'Who' => Demo::ROLES[$demo->detail('role')] ?? null,
-    'Call them' => $when.' by '.strtolower((string) $demo->detail('contact.channel')),
+    'Call them' => $when.' by '.($demo->detail('contact.channel') === 'WhatsApp' ? 'WhatsApp' : lcfirst((string) $demo->detail('contact.channel'))),
     'Properties' => count($demo->detail('properties', [])).' · '.number_format((int) $demo->detail('units')).' units',
     'Bills today' => $demo->detail('billing_now'),
     'Wants to see' => collect($demo->detail('interests', []))->map(fn ($i) => Demo::INTERESTS[$i] ?? $i)->join(', '),

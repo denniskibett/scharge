@@ -40,7 +40,7 @@
     <h1 style="font-size:1.6rem">Thank you. We have your details.</h1>
     <p class="lead">
         {{ $manager?->name ?? 'Your scharge account manager' }} will contact you
-        @if ($done?->detail('contact.date')) on {{ \Illuminate\Support\Carbon::parse($done->detail('contact.date'))->format('l j F') }}, {{ $done->detail('contact.window') }}, by {{ strtolower($done->detail('contact.channel')) }}@endif
+        @if ($done?->detail('contact.date')) on {{ \Illuminate\Support\Carbon::parse($done->detail('contact.date'))->format('l j F') }}, {{ $done->detail('contact.window') }}, by {{ $done->detail('contact.channel') === 'WhatsApp' ? 'WhatsApp' : lcfirst($done->detail('contact.channel')) }}@endif
         to set up your demo for {{ $companyName }}.
     </p>
     <p class="muted">Keep your reference <strong class="dr-ref">{{ $ref }}</strong>. If anything changes, reply to our email or use this page again.</p>
