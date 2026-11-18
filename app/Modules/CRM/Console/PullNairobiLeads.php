@@ -37,6 +37,9 @@ class PullNairobiLeads extends Command
         {--areas= : Comma-separated area names to pull (default: all)}
         {--enrich=60 : Prospects whose website to check for a role email (0 = off)}
         {--no-seed : Skip the curated database/data/crm/nairobi sheets}
+        {--elements= : OSM elements JSON (Overpass format) to use for areas Overpass cannot answer; default storage/app/private/osm/nairobi_elements.json}
+        {--source=overpass : overpass (fallback to the .pbf extract for failed areas) or pbf (extract only)}
+        {--prune : Remove OSM-pulled prospects that fail the current name filter (untouched rows only)}
         {--dry-run : Fetch and match everything, then roll back (nothing saved, no backup)}';
 
     protected $description = 'Pull new prospects in Nairobi\'s upmarket apartment areas (and Ruaka, Ruiru) from OpenStreetMap, dedupe and import';
@@ -78,7 +81,13 @@ class PullNairobiLeads extends Command
     private const GENERIC = '/^(the )?(apartments?|flats?|estate|residential|residence|houses?|homes?|guest ?house|bnb|airbnb|block [a-z0-9]+|court|towers?|villas?|maisonettes?|townhouses?|staff quarters|quarters|[0-9 \-\/]+)$/i';
 
     /** Not a property business even when mapped as one. */
-    private const NOT_TARGET = '/\b(school|church|mosque|temple|hospital|clinic|police|barracks|prison|university|college|embassy|high commission|ministry|county government|slum|informal|swimming pool|playground|park|cemetery)\b/i';
+    private const NOT_TARGET = '/\b(school|primary|secondary|academy|kindergarten|daycare|church|ack|a\.c\.k|catholic|parish|chapel|cathedral|pcea|sda|adventist|pentecostal|gospel|ministr(y|ies)|fellowship|jumuiya|four ?square|mosque|masjid|madrasa|temple|gurdwara|hospital|clinic|dispensary|health|police|barracks|prison|university|college|polytechnic|embassy|high commission|county government|slum|informal|swimming pool|playground|cemetery|restaurant|cafe|cafeteria|eatery|hotel kibanda|kibanda|chapati|nyama choma|butchery|bar|pub|club|lounge|kinyozi|salon|shop|supermarket|market|stage|matatu|garage|car ?wash|petrol|depot|godown|warehouse|factory|plot|farm|shamba)\b|\b(centre|center|area|park|grounds?|stadium)$/i';
+
+    /** Named after a person ("Mama Tina", "Kwa Mzee …"): a home or a kiosk, and personal data either way. */
+    private const PERSONAL = '/^(mama|baba|mzee|kwa|cucu|shosh|mr\.?|mrs\.?|dr\.?|hon\.?)\b|\'s (home|house|place|residence)\b|\b(homestead|home of|residence of|family)\b/i';
+
+    /** A named estate / residential landuse must look like one (not a place name or a landmark). */
+    private const ESTATE_WORDS = '/\b(estates?|court|gardens?|park ?view|villas?|residen\w*|heights|springs|apartments?|homes|ridge|views?|meadows|village|flats|towers?|phase|block|close|crescent|grove|place|terrace|mansions?|manor|haven|enclave|suites|maisonettes?|town ?houses|annex|condos?|cottages)\b/i';
 
     private const ROLE_EMAILS = ['info', 'sales', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'hello', 'contact', 'contactus', 'admin', 'office',
         'lettings', 'letting', 'rentals', 'rent', 'leasing', 'reservations', 'reservation', 'bookings', 'booking', 'stay', 'property', 'properties',
@@ -103,9 +112,9 @@ class PullNairobiLeads extends Command
 
         // 1. Fetch.
         $elements = [];
-        $failed = [];
         // Overpass is often busy: areas that get no answer are tried once more at the end, after a pause.
-        foreach ([array_keys($areas), null] as $pass => $names) {
+        $failed = $this->option('source') === 'pbf' ? array_keys($areas) : [];
+        foreach ($this->option('source') === 'pbf' ? [] : [array_keys($areas), null] as $pass => $names) {
             $names ??= $failed;
             if ($pass === 1) {
                 if (! $failed) {
@@ -130,6 +139,20 @@ class PullNairobiLeads extends Command
             }
         }
 
+        // Areas Overpass could not answer (or --source=pbf): the .pbf extract.
+        if ($failed && ($extract = $this->pbfElements())) {
+            [$fromPbf, $base] = $extract;
+            foreach ($failed as $area) {
+                [$lat, $lng, $radius] = $areas[$area];
+                $found = array_filter($fromPbf, fn ($el) => ($p = $this->point($el)) && $this->metres($p[0], $p[1], $lat, $lng) <= $radius);
+                foreach ($found as $el) {
+                    $elements[$el['type'].'/'.$el['id']] = $el;
+                }
+                $this->line(sprintf('%-14s %4d OSM features (from the .pbf extract, %s)', $area, count($found), $base));
+            }
+            $failed = [];
+        }
+
         // 2. Classify, assign areas, dedupe.
         [$rows, $skips] = $this->rows($elements, $areas);
         $this->table(['Dropped because', 'Count'], collect($skips)->map(fn ($n, $why) => [$why, $n])->values()->all());
@@ -151,6 +174,7 @@ class PullNairobiLeads extends Command
                 $results[] = [basename($file), ...$this->statRow($importer->import($file))];
             }
             $enriched = $this->enrich((int) $this->option('enrich'), $contacts, $dry);
+            $pruned = $this->option('prune') ? $this->prune() : [];
             $created = Company::withoutGlobalScope('customers')->where('created_at', '>=', $started)
                 ->where('lifecycle', 'prospect')->get(['id', 'name', 'email', 'phone', 'source', 'crm_profile']);
             $dry ? DB::rollBack() : DB::commit();
@@ -161,13 +185,17 @@ class PullNairobiLeads extends Command
 
         $this->table(['File', 'Rows', 'New', 'Merged', 'Skipped', 'Need verifying'], array_map(fn ($r) => array_values($r), $results));
         $this->report($created, $enriched);
+        if ($this->option('prune')) {
+            $this->info(($dry ? 'Would remove ' : 'Removed ').count($pruned).' OSM-pulled prospects that fail the name filter.');
+            $pruned && $this->table(['Removed', 'Area', 'Segment'], array_slice($pruned, 0, 60));
+        }
         if ($failed) {
             $this->warn('Areas without an Overpass answer: '.implode(', ', $failed));
         }
 
         $summary = [
             'ran_at' => $started->toIso8601String(), 'dry_run' => $dry, 'failed_areas' => $failed, 'skips' => $skips,
-            'imports' => $results, 'created' => $created->count(), 'enriched' => count($enriched),
+            'imports' => $results, 'created' => $created->count(), 'enriched' => count($enriched), 'pruned' => $pruned ?? [],
             'by_area_segment' => $created->groupBy(fn ($c) => ($c->crm_profile['area'] ?? '—').' | '.($c->crm_profile['segment'] ?? '—'))->map->count(),
         ];
         Storage::disk('local')->put('crm-pulls/last-run'.($dry ? '-dry' : '').'.json', json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -190,6 +218,133 @@ class PullNairobiLeads extends Command
         $wanted = array_map(fn ($a) => Str::lower(trim($a)), explode(',', $only));
 
         return array_filter(self::AREAS, fn ($k) => in_array(Str::lower($k), $wanted, true), ARRAY_FILTER_USE_KEY);
+    }
+
+    /** @return array{0: float, 1: float}|null */
+    private function point(array $el): ?array
+    {
+        $lat = $el['lat'] ?? $el['center']['lat'] ?? null;
+        $lng = $el['lon'] ?? $el['center']['lon'] ?? null;
+
+        return $lat === null || $lng === null ? null : [(float) $lat, (float) $lng];
+    }
+
+    /**
+     * OSM features from a Geofabrik Kenya .pbf, for areas Overpass can't answer. With the osmium CLI installed the
+     * extract is rebuilt from a fresh kenya-latest.osm.pbf once it is 6 days old; without it the last extract shipped
+     * to the server is used while it is under 45 days old (scripts/crm-sites/pbf_elements.py builds one with pyosmium).
+     *
+     * @return array{0: array<int, array>, 1: string}|null elements and their date
+     */
+    private function pbfElements(): ?array
+    {
+        $disk = Storage::disk('local');
+        $path = $this->option('elements') ?: $disk->path('osm/nairobi_elements.json');
+        $age = fn () => is_file($path) ? (time() - filemtime($path)) / 86400 : INF;
+
+        if ($age() > 6 && ! $this->option('elements') && $this->osmium()) {
+            try {
+                $this->buildExtract($path);
+            } catch (\Throwable $e) {
+                $this->warn('Could not rebuild the .pbf extract: '.$e->getMessage());
+            }
+        }
+        if (! is_file($path) || $age() > 45) {
+            $this->warn(is_file($path) ? 'The .pbf extract is over 45 days old; not used.' : 'No .pbf extract at '.$path.'.');
+
+            return null;
+        }
+        $elements = json_decode((string) file_get_contents($path), true)['elements'] ?? [];
+
+        return [$elements, date('Y-m-d', filemtime($path))];
+    }
+
+    private function osmium(): ?string
+    {
+        foreach (['/usr/bin/osmium', '/usr/local/bin/osmium'] as $bin) {
+            if (is_executable($bin)) {
+                return $bin;
+            }
+        }
+
+        return null;
+    }
+
+    /** Download kenya-latest.osm.pbf (Geofabrik, ODbL) and cut the pull's features for the Nairobi metro with osmium. */
+    private function buildExtract(string $path): void
+    {
+        $osmium = $this->osmium();
+        $dir = dirname($path);
+        @mkdir($dir, 0775, true);
+        $pbf = $dir.'/kenya-latest.osm.pbf';
+        if (! is_file($pbf) || time() - filemtime($pbf) > 6 * 86400) {
+            $this->line('Downloading kenya-latest.osm.pbf from Geofabrik …');
+            Http::withHeaders(['User-Agent' => self::UA])->timeout(900)->sink($pbf.'.part')
+                ->get('https://download.geofabrik.de/africa/kenya-latest.osm.pbf')->throw();
+            rename($pbf.'.part', $pbf);
+        }
+        $run = function (array $cmd) {
+            exec(implode(' ', array_map('escapeshellarg', $cmd)).' 2>&1', $out, $code);
+            if ($code !== 0) {
+                throw new \RuntimeException(implode("\n", array_slice($out, -3)));
+            }
+        };
+        $box = "{$dir}/metro.osm.pbf";
+        $tagged = "{$dir}/metro-tagged.osm.pbf";
+        $seq = "{$dir}/metro.geojsonseq";
+        $run([$osmium, 'extract', '-b', '36.60,-1.52,37.02,-1.08', '-s', 'smart', '--overwrite', '-o', $box, $pbf]);
+        $run([$osmium, 'tags-filter', '--overwrite', '-o', $tagged, $box, 'nwr/building=apartments,residential,flats,dormitory', 'nwr/landuse=residential',
+            'nwr/residential', 'nwr/office', 'nwr/shop=estate_agent', 'nwr/tourism=apartment,guest_house,chalet,hotel']);
+        $run([$osmium, 'export', '--overwrite', '-f', 'geojsonseq', '-a', 'type,id', '-o', $seq, $tagged]);
+
+        $elements = [];
+        foreach (new \SplFileObject($seq) as $line) {
+            $f = json_decode(ltrim((string) $line, "\x1e"), true);
+            if (! $f || empty($f['geometry']['coordinates'])) {
+                continue;
+            }
+            $props = $f['properties'];
+            [$type, $id] = [$props['@type'] ?? 'way', $props['@id'] ?? 0];
+            unset($props['@type'], $props['@id']);
+            $coords = [];
+            array_walk_recursive($f['geometry']['coordinates'], function ($v) use (&$coords) {
+                $coords[] = $v;
+            });
+            $lngs = array_values(array_filter($coords, fn ($k) => $k % 2 === 0, ARRAY_FILTER_USE_KEY));
+            $lats = array_values(array_filter($coords, fn ($k) => $k % 2 === 1, ARRAY_FILTER_USE_KEY));
+            $elements[] = ['type' => $type, 'id' => $id, 'center' => ['lat' => array_sum($lats) / count($lats), 'lon' => array_sum($lngs) / count($lngs)], 'tags' => $props];
+        }
+        file_put_contents($path, json_encode(['generator' => 'crm:pull-nairobi (osmium)', 'elements' => $elements]));
+        @unlink($box);
+        @unlink($tagged);
+        @unlink($seq);
+    }
+
+    /**
+     * Removes prospects this command pulled from OSM whose names fail today's filter (churches, eateries, place names,
+     * people's names). Only rows nobody has worked on: still stage "new", owner-less, nothing logged except the import.
+     *
+     * @return array<int, array{0: string, 1: string, 2: string}>
+     */
+    private function prune(): array
+    {
+        $removed = [];
+        Company::withoutGlobalScope('customers')->where('lifecycle', 'prospect')->where('crm_stage', 'new')->whereNull('owner_id')
+            ->where('source', 'like', '%'.self::LABEL_FILE.'%')->whereNull('email')
+            ->each(function (Company $c) use (&$removed) {
+                $type = (string) $c->profile('business_type');
+                $estate = str_starts_with($type, 'Named estate') || str_starts_with($type, 'Named apartment building');
+                $bad = preg_match(self::NOT_TARGET, $c->name) || preg_match(self::PERSONAL, $c->name)
+                    || ($estate && str_starts_with($type, 'Named estate') && ! preg_match(self::ESTATE_WORDS, $c->name));
+                if (! $bad || $c->followUps()->where('type', '!=', 'import')->exists()) {
+                    return;
+                }
+                $removed[] = [$c->name, (string) $c->profile('area'), (string) $c->profile('segment')];
+                $c->followUps()->delete();
+                $c->delete();
+            });
+
+        return $removed;
     }
 
     /** JSON dump of the whole companies table (mysqldump is not available on the live server). */
@@ -249,7 +404,7 @@ class PullNairobiLeads extends Command
     /** @return array{0: array<int, array>, 1: array<string, int>} CSV rows and the counts of dropped features */
     private function rows(array $elements, array $areas): array
     {
-        $skips = ['no usable name' => 0, 'not a property business' => 0, 'outside the areas' => 0, 'same OSM object in CRM' => 0,
+        $skips = ['no usable name' => 0, 'not a property business' => 0, 'estate/building name not a property' => 0, 'outside the areas' => 0, 'same OSM object in CRM' => 0,
             'same name/domain in CRM' => 0, 'repeat within this pull' => 0];
         $known = $this->knownInCrm();
         $rows = [];
@@ -273,12 +428,17 @@ class PullNairobiLeads extends Command
                     continue;
                 }
             }
-            if (preg_match(self::NOT_TARGET, $name) || isset($t['amenity']) || ($t['office'] ?? '') === 'government') {
+            if (preg_match(self::NOT_TARGET, $name) || preg_match(self::PERSONAL, $name) || isset($t['amenity']) || isset($t['shop']) && $t['shop'] !== 'estate_agent'
+                || ($t['office'] ?? '') === 'government' || isset($t['religion'])) {
                 $skips['not a property business']++;
                 continue;
             }
-            $lat = $el['lat'] ?? $el['center']['lat'] ?? null;
-            $lng = $el['lon'] ?? $el['center']['lon'] ?? null;
+            $flats = in_array($t['building'] ?? '', ['apartments', 'flats'], true);
+            if (! isset($t['office']) && ! isset($t['shop']) && ! isset($t['tourism']) && ! $flats && ! preg_match(self::ESTATE_WORDS, $name)) {
+                $skips['estate/building name not a property']++;
+                continue;
+            }
+            [$lat, $lng] = $this->point($el) ?? [null, null];
             $area = $lat === null ? null : $this->nearestArea($lat, $lng, $areas);
             if (! $area) {
                 $skips['outside the areas']++;
