@@ -27,7 +27,7 @@ class Company extends Model
     public const OPEN_CRM_STAGES = ['new', 'contacted', 'qualified', 'demo_booked', 'proposal', 'negotiation'];
 
     protected $fillable = [
-        'name', 'registration_number', 'tax_id', 'email', 'phone', 'address',
+        'name', 'kind', 'registration_number', 'tax_id', 'email', 'phone', 'address',
         'location', 'is_active',
         'lifecycle', 'crm_stage', 'tier', 'owner_id', 'country_code', 'domain', 'name_key', 'source', 'crm_profile',
     ];

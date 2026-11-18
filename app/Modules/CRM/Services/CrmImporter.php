@@ -45,6 +45,7 @@ class CrmImporter
         'city' => 'city',
         'area' => 'area',
         'clientele focus' => 'clientele',
+        'kind' => 'kind',
         'verified' => 'verified',
         'needs verification' => 'needs_verification',
     ];
@@ -144,6 +145,8 @@ class CrmImporter
             'city' => $row['city'] ?? null,
             'area' => $row['area'] ?? null,
             'clientele' => $row['clientele'] ?? null,
+            // companies.kind (manager / bnb_host / developer); set only when the import creates the company.
+            'kind' => in_array(Str::lower($row['kind'] ?? ''), ['manager', 'bnb_host', 'developer'], true) ? Str::lower($row['kind']) : null,
             'needs_verification' => $verify($row['phone'] ?? null) || $verify($row['email'] ?? null) || $verify($row['website'] ?? null)
                 // "Verified: No" / "Needs verification: Yes" columns flag the row too.
                 || in_array(Str::lower($row['verified'] ?? ''), ['no', 'n', 'false', '0'], true)

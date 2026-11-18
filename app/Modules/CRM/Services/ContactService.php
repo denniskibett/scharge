@@ -143,6 +143,7 @@ class ContactService
                 'domain' => $domain,
                 'name_key' => $key,
                 'source' => $source,
+                'kind' => $data['kind'] ?? null,
                 'crm_profile' => $profile ?: null,
             ], fn ($v) => $v !== null));
 
