@@ -13,7 +13,7 @@ use Illuminate\Console\Command;
  *   geo_precision  exact (OSM pin) | area | town | county (approximate centroids)
  *   sub_county_id  the ward's row in subcounties (matched by ward polygon, then name); county_id = that row's county
  *   county, sub_county (= constituency), ward  names derived from those ids
- *   sub_county_match  ward | ward_in_county | constituency | none
+ *   sub_county_match  ward | ward_in_county | ward_unique | constituency | none
  *   geo_at         when this ran (rows that have it are skipped unless --force)
  *
  * Properties prospects listed on the demo form (crm_profile.prospect_properties[]) get the same keys
@@ -107,7 +107,7 @@ class GeocodeProspects extends Command
                 [[$props['exact'], $props['area'], $props['town'], $props['county'], $props['none'], $props['skipped']]]);
         }
         // How the located ones matched the subcounties / counties tables.
-        $kinds = ['ward' => 'Ward row (polygon)', 'ward_in_county' => 'Ward row (name, same county)', 'constituency' => 'Constituency only (first row)', 'county_only' => 'County id only (town/county centre)', 'none' => 'No match'];
+        $kinds = ['ward' => 'Ward row (polygon)', 'ward_in_county' => 'Ward row (name, same county)', 'ward_unique' => 'Ward row (unique name, nearby county)', 'constituency' => 'Constituency only (first row)', 'county_only' => 'County id only (town/county centre)', 'none' => 'No match'];
         foreach ($matches as $what => $counts) {
             $this->line(ucfirst($what).' matches to subcounties / counties:');
             $this->table(array_values(array_intersect_key($kinds, $counts)), [array_values(array_intersect_key(array_replace($kinds, $counts), $counts))]);

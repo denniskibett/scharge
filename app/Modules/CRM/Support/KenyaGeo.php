@@ -179,28 +179,37 @@ class KenyaGeo
 
     /**
      * Best subcounties row: the ward inside the constituency; else the ward by name in the same county
-     * (the two boundary sets differ slightly at edges); else the constituency's first row.
+     * (the two boundary sets differ slightly at edges); else a ward name found only once in Kenya (the
+     * ward outlines are finer than the constituency ones); else the constituency's first row.
      *
-     * @return array{0: int|null, 1: string} [row id, how it matched: ward | ward_in_county | constituency]
+     * @return array{0: int|null, 1: string} [row id, how it matched: ward | ward_in_county | ward_unique | constituency]
      */
     private function subCountyRow(string $constituency, ?string $ward, ?int $countyId): array
     {
         $c = self::key($constituency);
-        $w = $ward ? self::key(preg_replace('/\s*\(.*?\)/', '', $ward)) : null; // "Township (Thika)" -> township
+        $w = $ward ? self::wardKey(preg_replace('/\s*\(.*?\)/', '', $ward)) : null; // "Township (Thika)" -> township
         $first = null;
         $inCounty = null;
+        $elsewhere = [];
         foreach ($this->rows() as $id => [$county, $ck, $wk]) {
             if ($ck === $c) {
                 if ($w && $wk === $w) {
                     return [$id, 'ward'];
                 }
                 $first ??= $id;
-            } elseif ($w && $wk === $w && $county === $countyId) {
-                $inCounty ??= $id;
+            } elseif ($w && $wk === $w) {
+                $elsewhere[] = $id;
+                if ($county === $countyId) {
+                    $inCounty ??= $id;
+                }
             }
         }
 
-        return $inCounty ? [$inCounty, 'ward_in_county'] : [$first, 'constituency'];
+        return match (true) {
+            $inCounty !== null => [$inCounty, 'ward_in_county'],
+            count($elsewhere) === 1 => [$elsewhere[0], 'ward_unique'],
+            default => [$first, 'constituency'],
+        };
     }
 
     /** Ward polygon containing the point (name only); else the nearest ward edge within ~3 km (shorelines, borders). */
@@ -242,7 +251,7 @@ class KenyaGeo
                 if (str_starts_with(strtolower($ward), 'default charset')) {
                     $ward = self::BROKEN_WARDS[$ck][$broken[$ck] = ($broken[$ck] ?? -1) + 1] ?? $ward;
                 }
-                $this->rows[(int) $r->id] = [(int) $r->county_id, $ck, self::key($ward), self::title((string) $r->constituency_name), self::title($ward)];
+                $this->rows[(int) $r->id] = [(int) $r->county_id, $ck, self::wardKey($ward), self::title((string) $r->constituency_name), self::title(preg_replace(['/\s+ward\s*$/i', '/\s+/'], ['', ' '], $ward))];
             }
         }
 
@@ -283,6 +292,12 @@ class KenyaGeo
         }
 
         return $this->countyNames;
+    }
+
+    /** "Central  Ward" and "Central" are the same ward. */
+    private static function wardKey(string $name): string
+    {
+        return preg_replace('/ward$/', '', self::key($name)) ?: self::key($name);
     }
 
     private static function title(string $name): string
@@ -361,28 +376,36 @@ class KenyaGeo
         return ! in_array(self::key(self::clean($city)), self::MULTI_CONSTITUENCY_TOWNS, true);
     }
 
-    /** @return array{county: string, constituency: string}|null */
+    /**
+     * Constituency containing the point; else the one whose edge is nearest within ~2 km (beach hotels
+     * just outside the simplified coastline). Points further out, e.g. across the border, get nothing.
+     *
+     * @return array{county: string, constituency: string}|null
+     */
     public function locate(float $lat, float $lng): ?array
     {
+        $pad = 0.02;
         $nearest = null;
-        $best = INF;
+        $best = $pad * $pad;
         foreach ($this->constituencies() as $f) {
             [$x1, $y1, $x2, $y2] = $f['b'];
-            if ($lng >= $x1 && $lng <= $x2 && $lat >= $y1 && $lat <= $y2) {
-                foreach ($f['p'] as $polygon) {
-                    if (self::inPolygon($lng, $lat, $polygon)) {
-                        return ['county' => $f['c'], 'constituency' => $f['n']];
+            if ($lng < $x1 - $pad || $lng > $x2 + $pad || $lat < $y1 - $pad || $lat > $y2 + $pad) {
+                continue;
+            }
+            foreach ($f['p'] as $polygon) {
+                if ($lng >= $x1 && $lng <= $x2 && $lat >= $y1 && $lat <= $y2 && self::inPolygon($lng, $lat, $polygon)) {
+                    return ['county' => $f['c'], 'constituency' => $f['n']];
+                }
+                foreach ($polygon[0] as [$x, $y]) {
+                    $d = ($x - $lng) ** 2 + ($y - $lat) ** 2;
+                    if ($d < $best) {
+                        [$best, $nearest] = [$d, $f];
                     }
                 }
             }
-            $d = ($f['ctr'][0] - $lng) ** 2 + ($f['ctr'][1] - $lat) ** 2;
-            if ($d < $best) {
-                [$best, $nearest] = [$d, $f];
-            }
         }
 
-        // Just outside a (simplified) boundary, e.g. on the shoreline: take the nearest one within ~15 km.
-        return $nearest && sqrt($best) < 0.15 ? ['county' => $nearest['c'], 'constituency' => $nearest['n']] : null;
+        return $nearest ? ['county' => $nearest['c'], 'constituency' => $nearest['n']] : null;
     }
 
     /** Ray casting over the outer ring, minus holes. */
