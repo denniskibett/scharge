@@ -3,6 +3,7 @@
 use App\Models\Company;
 use App\Modules\CRM\Controllers\Admin\CrmCompanyController;
 use App\Modules\CRM\Controllers\Admin\CrmFollowUpController;
+use App\Modules\CRM\Controllers\Admin\CrmOutreachController;
 use App\Modules\CRM\Controllers\Admin\CrmMapController;
 use App\Modules\CRM\Controllers\Admin\CrmSalesController;
 use App\Modules\CRM\Controllers\Admin\CrmWaitlistController;
@@ -41,6 +42,9 @@ Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->pref
     Route::post('/companies', [CrmCompanyController::class, 'store'])->name('companies.store');
     Route::get('/companies/{crmCompany}', [CrmCompanyController::class, 'show'])->name('companies.show');
     Route::put('/companies/{crmCompany}', [CrmCompanyController::class, 'update'])->name('companies.update');
+    Route::get('/companies/{crmCompany}/playbook', [CrmOutreachController::class, 'show'])->name('companies.playbook');
+    Route::put('/companies/{crmCompany}/playbook/draft', [CrmOutreachController::class, 'saveDraft'])->name('companies.playbook.draft');
+    Route::post('/companies/{crmCompany}/playbook/send', [CrmOutreachController::class, 'send'])->name('companies.playbook.send');
     Route::post('/companies/{crmCompany}/contacts', [CrmCompanyController::class, 'addContact'])->name('companies.contacts.store');
     Route::post('/companies/{crmCompany}/follow-ups', [CrmFollowUpController::class, 'store'])->name('companies.follow-ups.store');
     Route::post('/companies/{crmCompany}/feedback', [CrmFollowUpController::class, 'requestFeedback'])->name('companies.feedback.store');

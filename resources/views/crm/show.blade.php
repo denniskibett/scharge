@@ -36,6 +36,7 @@
         @if ($company->email)<a href="mailto:{{ $company->email }}" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300"><x-icon name="envelope" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> {{ $company->email }}</a>@endif
         @if ($website)<a href="{{ $website }}" target="_blank" rel="noopener" class="text-sm text-gray-700 hover:text-brand-500 dark:text-gray-300"><x-icon name="globe-alt" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> {{ $company->domain ?? $website }}</a>@endif
         <span class="ml-auto text-sm text-gray-500 dark:text-gray-400">Owner: {{ $company->owner?->name ?? 'nobody' }}</span>
+        <button type="button" x-data x-init="if (new URLSearchParams(location.search).has('playbook')) $nextTick(() => $dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' }))" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-500 px-3 text-sm font-medium text-white hover:bg-brand-600"><x-icon name="light-bulb" class="h-4 w-4" /> Playbook &amp; email</button>
     </div>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
@@ -220,4 +221,5 @@
         </div>
     </div>
 </div>
+@include('crm.partials.playbook-modal')
 @endsection

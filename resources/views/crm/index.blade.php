@@ -88,6 +88,7 @@
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('crm.companies.show', $company) }}" class="text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90">{{ $company->name }}</a>
                                             @include('crm.partials.tier-badge', ['tier' => $company->tier])
+                                            <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="rounded-md border border-brand-200 px-2 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title="How to approach, what to sell, cold email, verify">Playbook</button>
                                             @if ($company->profile('needs_verification'))<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                         </div>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
@@ -151,4 +152,5 @@
         </form>
     </div>
 </div>
+@include('crm.partials.playbook-modal')
 @endsection
