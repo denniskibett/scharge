@@ -47,6 +47,7 @@
                             <td class="p-4 align-top">
                                 <div class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $p['name'] }}</div>
                                 <div class="text-xs text-gray-500 dark:text-gray-400">{{ collect([$p['type'] ?? null, $p['location'] ?? null])->filter()->join(' · ') ?: '-' }}</div>
+                                <div class="text-xs"><a href="{{ \App\Modules\CRM\Support\KenyaGeo::googleMapsUrl($p, $c->profile('city')) }}" target="_blank" rel="noopener" class="font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">Google Maps ↗</a>@if (! empty($p['county']))<span class="text-gray-400"> · {{ collect([$p['sub_county'] ?? null, $p['county']])->filter()->join(', ') }}</span>@endif</div>
                                 <div class="text-xs text-gray-400">{{ $p['ref'] ?? '' }} · added {{ \Illuminate\Support\Carbon::parse($p['added_at'])->diffForHumans() }}</div>
                             </td>
                             <td class="p-4 align-top">

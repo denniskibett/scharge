@@ -91,6 +91,26 @@
                 </form>
             </div>
 
+            {{-- Listed properties (demo form) with where they are --}}
+            @php($listed = collect($company->profile('prospect_properties') ?? [])->filter(fn ($p) => is_array($p)))
+            @if ($listed->isNotEmpty())
+                <div class="{{ $card }} space-y-3">
+                    <div class="flex items-center justify-between"><h3 class="{{ $h }}">Properties</h3><a href="{{ route('crm.properties.index', ['status' => 'all']) }}" class="text-sm font-medium text-brand-500">Open properties</a></div>
+                    <ul class="divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach ($listed as $p)
+                            <li class="flex items-start justify-between gap-3 py-2 text-sm">
+                                <div>
+                                    <div class="font-medium text-gray-800 dark:text-white/90">{{ $p['name'] ?? 'Property' }}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">{{ collect([$p['type'] ?? null, $p['location'] ?? null, ! empty($p['units']) ? number_format((int) $p['units']).' units' : null, \App\Modules\CRM\Services\DemoRequestService::PROPERTY_STATUSES[$p['status'] ?? 'open'] ?? null])->filter()->join(' · ') }}</div>
+                                    @if (! empty($p['sub_county']) || ! empty($p['county']))<div class="text-xs text-gray-400">{{ collect([! empty($p['sub_county']) ? $p['sub_county'].' sub-county' : null, ! empty($p['county']) ? $p['county'].' County' : null])->filter()->join(', ') }}{{ ($p['geo_precision'] ?? null) === 'exact' ? '' : ' (approx.)' }}</div>@endif
+                                </div>
+                                <a href="{{ \App\Modules\CRM\Support\KenyaGeo::googleMapsUrl($p, $company->profile('city')) }}" target="_blank" rel="noopener" class="whitespace-nowrap text-xs font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">Google Maps ↗</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             {{-- Details --}}
             <form method="POST" action="{{ route('crm.companies.update', $company) }}" class="{{ $card }} space-y-3" x-data="{ open: false }">
                 @csrf @method('PUT')

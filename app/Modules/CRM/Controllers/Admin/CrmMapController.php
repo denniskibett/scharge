@@ -4,7 +4,10 @@ namespace App\Modules\CRM\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Modules\CRM\Services\DemoRequestService;
 use App\Modules\CRM\Support\CrmAccess;
+use App\Modules\CRM\Support\KenyaGeo;
+use App\Modules\CRM\Support\Normalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -26,7 +29,7 @@ class CrmMapController extends Controller
      * Rows: [id, name, lat, lng, segment#, stage#, precision#, county#, sub_county#, owner_id, verified]
      * where # indexes into the lookup lists sent alongside (keeps ~14k rows small).
      */
-    public function data(Request $request): JsonResponse
+    public function data(Request $request, KenyaGeo $geo): JsonResponse
     {
         $p = fn (string $key) => "JSON_UNQUOTE(JSON_EXTRACT(companies.crm_profile, '$.{$key}'))";
         $rows = CrmAccess::companies(Company::crm(), $request->user())
@@ -70,11 +73,53 @@ class CrmMapController extends Controller
             ];
         }
 
+        // Before 'lists' is copied below: properties can add county / sub-county names.
+        $properties = $this->properties($request, $geo, $index);
+
         return response()->json([
             'lists' => $lists,
             'stages' => Company::CRM_STAGES,
             'rows' => $out,
             'unlocated' => $unlocated,
+            'properties' => $properties,
+            'property_statuses' => DemoRequestService::PROPERTY_STATUSES,
         ])->header('Cache-Control', 'private, max-age=300');
+    }
+
+    /**
+     * Properties prospects listed on the demo form, as their own layer:
+     * [company_id, property_id, name, lat, lng, status, precision, county#, sub_county#, units, location, maps_url, owner_id]
+     * Ones crm:geocode has not reached yet are placed on the fly (same rules, not saved).
+     */
+    private function properties(Request $request, KenyaGeo $geo, callable $index): array
+    {
+        $companies = CrmAccess::companies(Company::crm(), $request->user())
+            ->whereNotNull('crm_profile->prospect_properties')
+            ->get(['id', 'owner_id', 'crm_profile']);
+
+        $todo = $companies->flatMap(fn ($c) => collect($c->crm_profile['prospect_properties'] ?? [])->filter(fn ($p) => is_array($p) && empty($p['geo_at'])));
+        $pins = KenyaGeo::exactPins($todo->map(fn ($p) => Normalizer::companyKey($p['name'] ?? ''))->filter()->unique()->values()->all());
+
+        $out = [];
+        foreach ($companies as $c) {
+            foreach ($c->crm_profile['prospect_properties'] ?? [] as $p) {
+                if (! is_array($p)) {
+                    continue;
+                }
+                if (empty($p['geo_at'])) {
+                    $p = array_merge($p, $geo->property($p, $c->crm_profile, $pins));
+                }
+                $hasPin = is_numeric($p['lat'] ?? null);
+                $out[] = [
+                    (int) $c->id, $p['id'] ?? null, $p['name'] ?? 'Property',
+                    $hasPin ? (float) $p['lat'] : null, $hasPin ? (float) $p['lng'] : null,
+                    $p['status'] ?? 'open', $hasPin ? ($p['geo_precision'] ?? '') : '',
+                    $index('county', $p['county'] ?? null), $index('sub_county', $p['sub_county'] ?? null),
+                    (int) ($p['units'] ?? 0), $p['location'] ?? null, KenyaGeo::googleMapsUrl($p, $c->crm_profile['city'] ?? null), (int) $c->owner_id,
+                ];
+            }
+        }
+
+        return $out;
     }
 }

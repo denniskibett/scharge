@@ -64,6 +64,126 @@ class KenyaGeo
         return null;
     }
 
+    /**
+     * Locate a property a prospect listed on the demo form (crm_profile.prospect_properties[]).
+     *
+     * In order: a CRM prospect with the same name and an exact OSM pin ($pins: name_key => [lat, lng]);
+     * the location text (suburb/town, Nairobi assumed when only a suburb is given); a place named in the
+     * property name ("Westlands Heights"); the company's own location. Offline only — nothing is sent anywhere.
+     *
+     * @param  array<string, array{0: float, 1: float}>  $pins
+     * @return array<string, mixed> lat, lng, geo_source, geo_precision, county, sub_county, constituency (empty if unknown)
+     */
+    public function property(array $property, array $companyProfile, array $pins): array
+    {
+        $point = null;
+        $key = Normalizer::companyKey($property['name'] ?? '');
+        if ($key !== '' && strlen($key) >= 5 && isset($pins[$key])) {
+            $point = ['lat' => $pins[$key][0], 'lng' => $pins[$key][1], 'precision' => 'exact', 'source' => 'osm_match'];
+        }
+
+        $location = trim((string) ($property['location'] ?? ''));
+        if (! $point && $location !== '') {
+            $parts = array_values(array_filter(array_map('trim', explode(',', $location))));
+            $town = count($parts) > 1 ? end($parts) : null;
+            // A bare suburb name: Nairobi first (most demo-form properties are there), then anywhere in Kenya.
+            $near = $town ? null : $this->geocode('Nairobi', $parts[0]);
+            $found = ($near && $near['precision'] === 'area') ? $near : $this->geocode($town, $parts[0] ?? $location);
+            if ($found) {
+                $point = $found + ['source' => 'location'];
+            }
+        }
+
+        $anchor = $this->place($companyProfile['city'] ?? null) ?? $this->place('Nairobi');
+        if (! $point && ($spot = $this->placeInText((string) ($property['name'] ?? ''), $anchor))) {
+            $point = ['lat' => $spot[0], 'lng' => $spot[1], 'precision' => $spot[2] === 'area' ? 'area' : 'town', 'source' => 'name'];
+        }
+
+        if (! $point && ($company = $this->geocode($companyProfile['city'] ?? null, $companyProfile['area'] ?? null))) {
+            // The company's suburb or town: a fair guess, not the building.
+            $point = $company + ['source' => 'company'];
+        }
+
+        if (! $point) {
+            return [];
+        }
+
+        $out = ['lat' => round($point['lat'], 5), 'lng' => round($point['lng'], 5), 'geo_precision' => $point['precision'], 'geo_source' => $point['source']];
+        if ($admin = $this->locate($point['lat'], $point['lng'])) {
+            $out['county'] = $admin['county'];
+            if (in_array($point['precision'], ['exact', 'area'], true)) {
+                $out['sub_county'] = $out['constituency'] = $admin['constituency'];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * name_key => [lat, lng] of CRM companies with an exact OSM pin, to place a listed property that is itself a
+     * known building. Pass $keys to look up only those names.
+     *
+     * @return array<string, array{0: float, 1: float}>
+     */
+    public static function exactPins(?array $keys = null): array
+    {
+        if ($keys === []) {
+            return [];
+        }
+        $j = fn (string $k) => "JSON_UNQUOTE(JSON_EXTRACT(crm_profile, '$.{$k}'))";
+
+        return \App\Models\Company::crm()
+            ->whereNotNull('name_key')->where('name_key', '!=', '')
+            ->whereRaw($j('geo_precision')." = 'exact'")
+            ->when($keys, fn ($q) => $q->whereIn('name_key', $keys))
+            ->selectRaw("name_key, {$j('lat')} AS lat, {$j('lng')} AS lng")
+            ->toBase()->get()
+            ->mapWithKeys(fn ($r) => [$r->name_key => [(float) $r->lat, (float) $r->lng]])
+            ->all();
+    }
+
+    /**
+     * Google Maps: the pin when it is exact, otherwise a search for name + location in Kenya (Google finds the building).
+     * $near (the company's city) is added when the property has no location of its own.
+     */
+    public static function googleMapsUrl(array $property, ?string $near = null): string
+    {
+        if (($property['geo_precision'] ?? null) === 'exact' && is_numeric($property['lat'] ?? null)) {
+            return 'https://www.google.com/maps/search/?api=1&query='.$property['lat'].','.$property['lng'];
+        }
+        $q = collect([$property['name'] ?? null, trim((string) ($property['location'] ?? '')) ?: $near])->filter()->join(', ');
+        if (! str_contains(strtolower($q), 'kenya')) {
+            $q .= ($q === '' ? '' : ', ').'Kenya';
+        }
+
+        return 'https://www.google.com/maps/search/?api=1&query='.rawurlencode($q);
+    }
+
+    /** A suburb or town named inside free text, within 60 km of $anchor (stops "Park" matching a far-off village). */
+    private function placeInText(string $text, ?array $anchor): ?array
+    {
+        $words = preg_split('/[^A-Za-z\']+/', $text, -1, PREG_SPLIT_NO_EMPTY);
+        $candidates = [];
+        for ($i = 0; $i < count($words); $i++) {
+            if (isset($words[$i + 1])) {
+                $candidates[] = $words[$i].' '.$words[$i + 1];
+            }
+        }
+        foreach ($words as $w) {
+            if (strlen($w) >= 5) {
+                $candidates[] = $w;
+            }
+        }
+        foreach ($candidates as $c) {
+            $spot = $this->places()[self::key($c)] ?? null;
+            if ($spot && $spot[2] !== 'county' && (! $anchor || $this->km($spot, $anchor) <= 60)) {
+                return $spot;
+            }
+        }
+
+        return null;
+    }
+
     /** Whether a town-level pin is good enough to name the constituency. */
     public function townIsOneConstituency(?string $city): bool
     {

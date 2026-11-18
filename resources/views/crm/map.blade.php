@@ -20,6 +20,9 @@
     .crm-area-row:hover, .crm-area-row.is-active { background: rgba(70, 95, 255, .08); }
     .crm-area-row .n { margin-left: auto; font-variant-numeric: tabular-nums; color: #667085; }
     .crm-sub .crm-area-row { padding-left: 1.6rem; font-size: .8125rem; }
+    .crm-prop { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 3px; transform: rotate(45deg); box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
+    .crm-prop.approx { border-style: dashed; border-color: #344054; }
+    .crm-pcount { font-size: .7rem; padding: 0 .35rem; border-radius: 9999px; background: #fef0c7; color: #93370d; }
     .leaflet-popup-content { font-size: 13px; line-height: 1.45; }
     .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(70, 95, 255, .18); }
     .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: rgba(70, 95, 255, .75); color: #fff; font-weight: 600; }
@@ -69,6 +72,18 @@
                         </select>
                     </label>
                 </div>
+                <div class="mt-3 grid grid-cols-2 items-end gap-3">
+                    <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" id="f-props" class="rounded border-gray-300" checked> <span id="f-props-label">Listed properties</span>
+                    </label>
+                    <label class="text-xs font-medium text-gray-600 dark:text-gray-400">Property status
+                        <select id="f-pstatus" class="{{ $select }} mt-1">
+                            <option value="">Not closed</option>
+                            <option value="all">All</option>
+                            @foreach (\App\Modules\CRM\Services\DemoRequestService::PROPERTY_STATUSES as $key => $name)<option value="{{ $key }}">{{ $name }}</option>@endforeach
+                        </select>
+                    </label>
+                </div>
                 <label class="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <input type="checkbox" id="f-bounds" class="rounded border-gray-300"> Show sub-county boundaries
                 </label>
@@ -99,6 +114,8 @@
     const PIPELINE_URL = @json(route('crm.index'));
     const COMPANY_URL = @json(url('/crm/companies')) + '/';
     const OPEN_STAGES = @json(\App\Models\Company::OPEN_CRM_STAGES);
+    const PROPERTIES_URL = @json(route('crm.properties.index'));
+    const PSTATUS_COLORS = { open: '#2e90fa', demo_done: '#f79009', proposal: '#ee46bc', won: '#12b76a', lost: '#98a2b3' };
     const PALETTE = ['#465fff', '#f04438', '#12b76a', '#f79009', '#7a5af8', '#06aed4', '#ee46bc', '#84cc16', '#a15c07', '#0e9384', '#667085', '#dd2590', '#2e90fa', '#fb6514', '#344054'];
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 
@@ -108,6 +125,8 @@
     }).addTo(map);
     const cluster = L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 45, spiderfyOnMaxZoom: true });
     map.addLayer(cluster);
+    const propLayer = L.layerGroup().addTo(map);
+    let propMarkers = [];
 
     let D, markers = [], countyShapes = {}, subLayer = null, subShapes = {}, area = null; // area = {county, sub}
     const el = id => document.getElementById(id);
@@ -129,6 +148,40 @@
             if (area.sub !== undefined && L_.sub_county[r[8]] !== area.sub) return false;
         }
         return true;
+    };
+
+    // Property: [company_id, id, name, lat, lng, status, precision, county#, sub#, units, location, maps_url, owner]
+    const propPasses = (p, q, ignoreArea) => {
+        const ps = el('f-pstatus').value;
+        if (ps === '' ? ['won', 'lost'].includes(p[5]) : (ps !== 'all' && p[5] !== ps)) return false;
+        if (q.owner === 'none' ? p[12] !== 0 : (q.owner && p[12] !== +q.owner)) return false;
+        if (q.precision === 'exact' && p[6] !== 'exact') return false;
+        if (q.precision === 'approx' && (p[6] === 'exact' || !p[6])) return false;
+        if (!ignoreArea && area) {
+            if (D.lists.county[p[7]] !== area.county) return false;
+            if (area.sub !== undefined && D.lists.sub_county[p[8]] !== area.sub) return false;
+        }
+        return true;
+    };
+    const propMarkerFor = i => {
+        if (propMarkers[i] !== undefined) return propMarkers[i];
+        const p = D.properties[i];
+        if (p[3] === null) return propMarkers[i] = null;
+        const exact = p[6] === 'exact';
+        const icon = L.divIcon({ className: '', iconSize: [18, 18], iconAnchor: [9, 9],
+            html: `<div class="crm-prop${exact ? '' : ' approx'}" style="background:${PSTATUS_COLORS[p[5]] || '#2e90fa'}"></div>` });
+        const m = L.marker([p[3], p[4]], { icon, zIndexOffset: 1000, title: p[2] });
+        m.bindPopup(() => {
+            const sub = D.lists.sub_county[p[8]], county = D.lists.county[p[7]];
+            const company = D.rows.find(r => r[0] === p[0]);
+            return `<strong>${esc(p[2])}</strong> <span style="color:#667085">(listed property)</span>`
+                + `<br>${esc(D.property_statuses[p[5]] || p[5])}${p[9] ? ' · ' + p[9].toLocaleString() + ' units' : ''}${p[10] ? ' · ' + esc(p[10]) : ''}`
+                + `<br><span style="color:#667085">${esc([sub && sub + ' sub-county', county && county + ' County'].filter(Boolean).join(', ') || 'Area unknown')}`
+                + ` · ${exact ? 'exact pin' : 'approx. (' + esc(p[6]) + ' centre)'}</span>`
+                + `<br><a href="${COMPANY_URL}${p[0]}">${esc(company ? company[1] : 'Open company')} →</a>`
+                + `<br><a href="${esc(p[11])}" target="_blank" rel="noopener">Google Maps ↗</a> · <a href="${PROPERTIES_URL}">Open properties</a>`;
+        });
+        return propMarkers[i] = m;
     };
 
     const markerFor = i => {
@@ -175,9 +228,22 @@
         cluster.clearLayers();
         cluster.addLayers(shown);
 
+        propLayer.clearLayers();
+        let propsShown = 0;
+        (D.properties || []).forEach((p, i) => {
+            if (!propPasses(p, q, true)) return;
+            const county = D.lists.county[p[7]] || '', sub = D.lists.sub_county[p[8]] || '';
+            const c = tree[county] ??= { n: 0, subs: {} };
+            c.p = (c.p || 0) + 1; c.ps ??= {}; c.ps[sub] = (c.ps[sub] || 0) + 1; c.subs[sub] ??= 0;
+            if (!propPasses(p, q, false) || !el('f-props').checked) return;
+            const m = propMarkerFor(i);
+            if (m) { propLayer.addLayer(m); propsShown++; }
+        });
+
         el('crm-total').innerHTML = `<strong>${total.toLocaleString()}</strong> prospects${area ? ' in ' + esc(area.sub ? area.sub + ' (' + area.county + ')' : area.county + (area.sub === '' ? ' — sub-county unknown' : ' County')) : ''}`
             + ` · ${(placed - approx).toLocaleString()} exact, ${approx.toLocaleString()} approximate`
-            + (total - placed ? `, ${(total - placed).toLocaleString()} not on the map` : '');
+            + (total - placed ? `, ${(total - placed).toLocaleString()} not on the map` : '')
+            + ((D.properties || []).length ? ` · <strong>${propsShown}</strong> listed propert${propsShown === 1 ? 'y' : 'ies'} shown` : '');
         el('crm-pipeline-link').href = pipelineUrl(q);
         el('crm-area-clear').classList.toggle('hidden', !area);
         renderAreas(tree);
@@ -190,9 +256,9 @@
             const name = county || 'No county (no location found)';
             const subs = open ? Object.entries(c.subs).sort((a, b) => b[1] - a[1]).map(([sub, n]) =>
                 `<button type="button" class="crm-area-row${area.sub === sub ? ' is-active' : ''}" data-county="${esc(county)}" data-sub="${esc(sub)}">
-                    <span>${esc(sub || 'Town-level only (sub-county unknown)')}</span><span class="n">${n.toLocaleString()}</span></button>`).join('') : '';
+                    <span>${esc(sub || 'Town-level only (sub-county unknown)')}</span>${c.ps && c.ps[sub] ? `<span class="crm-pcount" title="Listed properties">${c.ps[sub]} prop.</span>` : ''}<span class="n">${n.toLocaleString()}</span></button>`).join('') : '';
             return `<button type="button" class="crm-area-row${open && area.sub === undefined ? ' is-active' : ''}" data-county="${esc(county)}" ${county ? '' : 'disabled'}>
-                    <span style="width:12px">${county ? (open ? '▾' : '▸') : ''}</span><span class="font-medium">${esc(name)}</span><span class="n">${c.n.toLocaleString()}</span></button>
+                    <span style="width:12px">${county ? (open ? '▾' : '▸') : ''}</span><span class="font-medium">${esc(name)}</span>${c.p ? `<span class="crm-pcount" title="Listed properties">${c.p} prop.</span>` : ''}<span class="n">${c.n.toLocaleString()}</span></button>
                 <div class="crm-sub">${subs}</div>`;
         }).join('') || '<p class="p-3 text-sm text-gray-500">No prospects match these filters.</p>';
     }
@@ -213,7 +279,7 @@
         selectArea(county, sub);
     });
     el('crm-area-clear').addEventListener('click', () => selectArea(null));
-    ['f-segment', 'f-stage', 'f-owner', 'f-verified', 'f-precision'].forEach(id => el(id).addEventListener('change', render));
+    ['f-segment', 'f-stage', 'f-owner', 'f-verified', 'f-precision', 'f-props', 'f-pstatus'].forEach(id => el(id).addEventListener('change', render));
 
     const areaPopup = (county, sub) => {
         const q = f(); const saved = area; area = { county, sub };
@@ -255,7 +321,9 @@
         const segs = D.lists.segment.map((s, i) => [i, s || 'No segment', counts[i] || 0]).sort((a, b) => b[2] - a[2]);
         el('f-segment').insertAdjacentHTML('beforeend', segs.map(([i, s, n]) => `<option value="${i}">${esc(s)} (${n.toLocaleString()})</option>`).join(''));
         el('crm-legend').innerHTML = segs.map(([i, s]) => `<span class="inline-flex items-center gap-1.5"><span class="crm-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>${esc(s)}</span>`).join('')
-            + '<span class="inline-flex items-center gap-1.5"><span class="crm-dot" style="border:2px solid #667085;background:#fff"></span>approximate</span>';
+            + '<span class="inline-flex items-center gap-1.5"><span class="crm-dot" style="border:2px solid #667085;background:#fff"></span>approximate</span>'
+            + Object.entries(D.property_statuses || {}).map(([k, l]) => `<span class="inline-flex items-center gap-1.5"><span class="crm-prop" style="width:9px;height:9px;border-width:1px;background:${PSTATUS_COLORS[k]}"></span>Property: ${esc(l)}</span>`).join('');
+        el('f-props-label').textContent = `Listed properties (${(D.properties || []).length})`;
         render();
     }).catch(() => { el('crm-total').textContent = 'Could not load the map data. Refresh to try again.'; });
 })();
