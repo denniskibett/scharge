@@ -25,7 +25,7 @@ class ContactService
         'website', 'phone_alt', 'business_type', 'portfolio', 'scale_signal', 'opportunity', 'target_role', 'route',
         'linkedin', 'decision_maker', 'current_system', 'estimated_units', 'next_action', 'needs_verification', 'notes', 'lost_reason',
         'segment', 'city', 'area', 'clientele', 'deal_value', 'expected_close',
-        'email_subject', 'email_body', 'do_not_email', 'last_emailed_at',
+        'email_subject', 'email_body', 'do_not_email', 'last_emailed_at', 'demo_ref', 'research', 'pains', 'requester_role',
     ];
 
     /**

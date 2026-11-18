@@ -8,7 +8,7 @@
     $tab = fn ($t) => "tab === '{$t}'";
     $verify = (bool) $company->profile('needs_verification');
 @endphp
-<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : 'email' }}' }" class="flex max-h-[85vh] flex-col">
+<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}' }" class="flex max-h-[85vh] flex-col">
     {{-- Header --}}
     <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
         <div class="min-w-0">
@@ -24,7 +24,7 @@
     </div>
 
     <nav class="flex gap-1 border-b border-gray-200 px-5 pt-2 dark:border-gray-800" aria-label="Playbook sections">
-        @foreach (['email' => 'Cold email', 'approach' => 'How to approach', 'offers' => 'What to sell', 'verify' => 'Verify details'] as $key => $name)
+        @foreach (['research' => '1 · Research', 'email' => '2 · Cold email', 'approach' => 'How to approach', 'offers' => 'What to sell', 'verify' => 'Verify details'] as $key => $name)
             <button type="button" @click="tab = '{{ $key }}'" :class="{{ $tab($key) }} ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400'" class="-mb-px border-b-2 px-3 py-2 text-sm font-medium">
                 {{ $name }}@if ($key === 'verify' && $verify)<span class="ml-1 inline-block h-2 w-2 rounded-full bg-amber-500"></span>@endif
             </button>
@@ -32,6 +32,39 @@
     </nav>
 
     <div class="overflow-y-auto p-5">
+        {{-- Research: their problems, what we know, what you found --}}
+        <div x-show="{{ $tab('research') }}" x-cloak>
+            <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">Emails that open with <em>their</em> problem get far more replies than a product pitch. Tick what's likely true for {{ $company->name }}, add one thing you found (their website, listings, reviews), and we'll write the email around it.</p>
+            <form method="POST" action="{{ route('crm.companies.playbook.compose', $company) }}" class="space-y-4">
+                @csrf
+                <fieldset>
+                    <legend class="{{ $label }}">Likely problems (pick 2 or 3)</legend>
+                    <div class="space-y-2">
+                        @foreach ($pains as $key => [$problem, $fix])
+                            <label class="flex cursor-pointer gap-3 rounded-lg border border-gray-200 p-3 text-sm hover:bg-gray-50 has-[:checked]:border-brand-300 has-[:checked]:bg-brand-50/50 dark:border-gray-800 dark:hover:bg-white/[0.03] dark:has-[:checked]:bg-brand-500/10">
+                                <input type="checkbox" name="pains[]" value="{{ $key }}" class="mt-0.5" @checked(in_array($key, $chosenPains ?: array_slice(array_keys($pains), 0, 2), true))>
+                                <span><span class="font-medium text-gray-800 dark:text-white/90">{{ $problem }}</span><span class="block text-gray-500 dark:text-gray-400">→ {{ $fix }}</span></span>
+                            </label>
+                        @endforeach
+                    </div>
+                </fieldset>
+                @if ($signals)
+                    <div class="rounded-xl bg-gray-50 p-3 text-sm dark:bg-white/[0.03]">
+                        <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">What we already know</p>
+                        <ul class="list-disc space-y-0.5 pl-5 text-gray-700 dark:text-gray-300">@foreach ($signals as $s)<li>{{ $s }}</li>@endforeach</ul>
+                    </div>
+                @endif
+                <div>
+                    <label class="{{ $label }}" for="pb-research">What you found about them <span class="font-normal text-gray-400">(one or two sentences; opens the email)</span></label>
+                    <textarea id="pb-research" name="research" rows="3" maxlength="600" class="{{ $area }}" placeholder="e.g. I saw you list 23 rentals in Kilimani and Westlands on Property24, and several tenants mention water billing in your reviews.">{{ $company->profile('research') }}</textarea>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button class="{{ $btn }}">Write my email</button>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Replaces the current draft. You can still edit it before sending.</span>
+                </div>
+            </form>
+        </div>
+
         {{-- Cold email --}}
         <div x-show="{{ $tab('email') }}">
             @if ($doNotEmail)
@@ -49,6 +82,7 @@
                 <div><label class="{{ $label }}" for="pb-subject">Subject</label><input id="pb-subject" name="subject" required maxlength="200" value="{{ old('subject', $draft['subject']) }}" class="{{ $field }}"></div>
                 <div><label class="{{ $label }}" for="pb-body">Message @if ($hasSavedDraft)<span class="font-normal text-gray-400">(saved draft for this company)</span>@else<span class="font-normal text-gray-400">(playbook template; edit freely)</span>@endif</label>
                     <textarea id="pb-body" name="body" rows="12" required class="{{ $area }}">{{ old('body', $draft['body']) }}</textarea></div>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Their demo form: <a href="{{ $demoUrl }}" target="_blank" rel="noopener" class="text-brand-500 hover:underline">{{ $demoUrl }}</a> (the email's button goes there; what they fill in comes back to this company as a PDF).</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Sent from scharge as <strong>{{ $manager->name }} · scharge</strong>; replies go to {{ $manager->email }}. An opt-out line is added at the bottom. A call follow-up is booked for {{ $manager->name }} and the email is logged on the timeline.</p>
                 <div class="flex flex-wrap items-center gap-2">
                     <button class="{{ $btn }}" :disabled="sending" @disabled($doNotEmail)><span x-text="sending ? 'Sending…' : 'Send email'"></span></button>

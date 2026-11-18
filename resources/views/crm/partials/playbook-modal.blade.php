@@ -11,6 +11,7 @@
         },
     }"
     @open-playbook.window="load($event.detail.url)"
+    @if (session('open_playbook')) x-init="load(@js(session('open_playbook')))" @endif
     @close-playbook.window="open = false"
     @keydown.escape.window="open = false">
     <div x-show="open" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center bg-gray-400/50 p-4 backdrop-blur-[32px]" @click.self="open = false" role="dialog" aria-modal="true" aria-label="Sales playbook">

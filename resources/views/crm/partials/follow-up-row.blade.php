@@ -20,7 +20,13 @@
             </div>
             @php
                 $facts = match ($followUp->type) {
-                    'demo' => [$followUp->detail('project_type'), $followUp->detail('units') ? number_format($followUp->detail('units')).' units' : null],
+                    'demo' => [
+                        $followUp->detail('project_type'),
+                        $followUp->detail('properties') ? count($followUp->detail('properties')).' properties' : null,
+                        $followUp->detail('units') ? number_format($followUp->detail('units')).' units' : null,
+                        $followUp->detail('contact.channel') ? 'Wants: '.$followUp->detail('contact.channel').' '.$followUp->detail('contact.window') : null,
+                        $followUp->detail('ref'),
+                    ],
                     'api_keys' => [$followUp->detail('use') ? 'Wants: '.$followUp->detail('use') : null],
                     'viewing' => [$followUp->detail('kind'), $followUp->detail('owner') ? 'Owner: '.$followUp->detail('owner') : null, $followUp->detail('when') ? 'When: '.$followUp->detail('when') : null],
                     default => [],
@@ -35,6 +41,7 @@
                 </div>
             @endif
             @if ($followUp->notes)<div class="mt-1 text-xs text-gray-600 dark:text-gray-300">{{ $followUp->notes }}</div>@endif
+            @if ($followUp->detail('pdf'))<a href="{{ route('crm.follow-ups.pdf', $followUp) }}" class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:underline"><x-icon name="document-text" class="h-3.5 w-3.5" /> Demo request PDF</a>@endif
         </div>
         <button type="button" @click="open = !open" class="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5" x-text="open ? 'Cancel' : '{{ $isDemo ? 'Update' : 'Mark done' }}'"></button>
     </div>

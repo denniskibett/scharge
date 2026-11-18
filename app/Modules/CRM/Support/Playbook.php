@@ -77,12 +77,140 @@ class Playbook
             '{manager}' => $manager?->name ?? 'The scharge team',
             '{manager_email}' => $manager?->email ?? config('mail.from.address'),
             '{manager_phone}' => $manager?->phone ?: '',
+            '{demo_link}' => self::demoUrl($company),
         ]);
     }
 
+    /** The company's private demo-form reference (created once, kept in crm_profile.demo_ref). */
+    public static function demoRef(Company $company): string
+    {
+        if ($ref = $company->profile('demo_ref')) {
+            return $ref;
+        }
+        do {
+            $ref = 'SC-'.strtoupper(Str::random(6));
+        } while (Company::withoutGlobalScope('customers')->where('crm_profile->demo_ref', $ref)->exists());
+        $company->forceFill(['crm_profile' => array_merge($company->crm_profile ?? [], ['demo_ref' => $ref])])->saveQuietly();
+
+        return $ref;
+    }
+
+    public static function demoUrl(Company $company): string
+    {
+        return rtrim(preg_replace('#^http://(?!localhost|127\.)#', 'https://', (string) config('app.url')), '/').'/demo/'.self::demoRef($company);
+    }
+
+    /** Likely problems for this company's segment: key => [problem, how scharge fixes it]. */
+    public static function pains(Company $company): array
+    {
+        return self::PAINS[self::segmentOf($company)] ?? self::PAINS['manager'];
+    }
+
+    /** What we already know about them from the CRM (facts to open with). @return array<string> */
+    public static function signals(Company $company): array
+    {
+        $p = fn ($k) => trim((string) $company->profile($k));
+        $where = collect([$p('area'), $p('city')])->filter()->unique()->join(', ');
+
+        return array_values(array_filter([
+            $p('portfolio') ? 'Portfolio / listings: '.$p('portfolio') : null,
+            $p('estimated_units') ? 'About '.number_format((int) $p('estimated_units')).' units' : null,
+            $where ? 'Based in '.$where : null,
+            $p('business_type') ? 'Registered as: '.$p('business_type') : null,
+            $p('clientele') ? 'Clientele they state: '.$p('clientele') : null,
+            $p('scale_signal') ? 'Scale: '.$p('scale_signal') : null,
+            $p('website') ? 'Website: '.$p('website') : null,
+        ]));
+    }
+
+    /**
+     * A researched email: what we noticed about them, the problems that come with it, how scharge fixes each, and the
+     * demo link. $research is the account manager's own finding (one or two sentences).
+     */
+    public static function compose(Company $company, ?User $manager, array $painKeys, ?string $research): array
+    {
+        $pains = array_intersect_key(self::pains($company), array_flip($painKeys)) ?: array_slice(self::pains($company), 0, 2, true);
+        $name = preg_replace('/\s*\([^()]*\)\s*$/', '', $company->name);
+        $city = $company->profile('city') ?: 'Kenya';
+        $noticed = trim((string) $research) !== ''
+            ? rtrim(trim($research), '.').'.'
+            : 'I was looking at '.$name.' and the properties you handle in '.$city.'.';
+
+        $lines = ["Hello {$name} team,", "I'm {manager} from scharge. {$noticed}"];
+        $lines[] = 'Teams in your position usually tell us about '.(count($pains) > 1 ? 'a few headaches' : 'one headache').":\n"
+            .collect($pains)->map(fn ($x) => '• '.$x[0].' → '.$x[1])->join("\n");
+        $lines[] = 'If any of that sounds familiar, I can show you how it would work on one of your properties in 20 minutes.';
+        $first = array_values($pains)[0][0] ?? 'Month-end billing';
+        $hook = preg_split('/ (and|until|that|by|on|in) /', rtrim($first, '.'))[0];
+        $subject = $name.': '.lcfirst($hook).'?';
+
+        return [
+            'subject' => self::fill(\Illuminate\Support\Str::limit($subject, 110, '…'), $company, $manager),
+            'body' => self::fill(implode("\n\n", $lines).self::SIGN, $company, $manager),
+        ];
+    }
+
+    private const PAINS = [
+        'manager' => [
+            'chase' => ['Chasing tenants for rent every month and confirming M-Pesa messages by hand', 'invoices go out automatically by SMS/email and every M-Pesa or bank payment is matched to the tenant'],
+            'statements' => ['Landlords asking for statements and wondering where their money is', 'each landlord gets a live statement and payouts are recorded'],
+            'water' => ['Water and service charge worked out on spreadsheets', 'meter readings turn into bills on the same invoice'],
+            'arrears' => ['Arrears that pile up unnoticed until a tenant moves out', 'an arrears list with automatic reminders'],
+            'vacancy' => ['Vacant units that take too long to fill', 'vacant units are listed publicly with photos, straight from the system'],
+        ],
+        'shortstay' => [
+            'commission' => ['Paying 15–18% platform commission on every booking', 'repeat and local guests book on your own page with no commission'],
+            'calendar' => ['Double bookings and calendars kept in several places', 'one calendar with minimum stays, rates and cleaning fees'],
+            'utilities' => ['Electricity and water eating into each unit\'s margin', 'per-unit utility tracking so you know what each stay really earned'],
+            'owners' => ['Owners of co-hosted units asking for payouts and statements', 'owner statements and payouts are generated for you'],
+        ],
+        'hotel' => [
+            'longstay' => ['Long-stay guests and serviced units billed by hand every month', 'monthly billing for long stays, paid by M-Pesa'],
+            'subm' => ['No clear view of power and water used per unit', 'sub-metering with readings turned into bills'],
+            'staff' => ['Staff housing rent and utilities tracked on paper', 'staff housing billed like any other unit'],
+        ],
+        'developer' => [
+            'handover' => ['Service charge collections that fall apart after hand-over', 'the estate is set up on scharge before hand-over, so residents pay from day one'],
+            'utilities' => ['Disputes over water and electricity in new estates', 'metered billing per unit, with readings residents can see'],
+            'instalments' => ['Off-plan or tenant-purchase instalments tracked in Excel', 'instalments are tracked per buyer with M-Pesa matching and SMS statements'],
+            'unsold' => ['Unsold or rental units that need marketing', 'units are listed publicly from the system'],
+        ],
+        'affordable' => [
+            'scale' => ['Thousands of small monthly payments to reconcile', 'every M-Pesa payment is matched to its unit automatically'],
+            'arrears' => ['Arrears that are hard to see across a large scheme', 'arrears per unit with SMS reminders and statements'],
+            'utilities' => ['Water, power and service charge billed separately', 'one bill per unit covering all of them'],
+        ],
+        'building' => [
+            'chase' => ['Collecting rent door to door or from M-Pesa messages', 'bills go out by SMS and payments are matched to each unit'],
+            'water' => ['Water bills worked out by hand from meter readings', 'the caretaker enters readings on a phone and bills are sent'],
+            'visibility' => ['Not knowing who has paid without calling the caretaker', 'a live view of paid and unpaid units'],
+        ],
+        'commercial' => [
+            'recharges' => ['Power and water recharges to tenants done on spreadsheets', 'sub-meter readings become recharge invoices automatically'],
+            'servicecharge' => ['Service charge invoices and reconciliations taking days', 'service charge is invoiced and reconciled with rent'],
+            'tickets' => ['Tenant maintenance requests lost in WhatsApp groups', 'requests become tracked tickets'],
+        ],
+        'industrial' => [
+            'allocation' => ['No clear split of power and water costs across units or tenants', 'sub-metering with a cost split per unit'],
+            'housing' => ['Staff housing rent and utilities deducted by hand', 'staff housing billed automatically'],
+        ],
+        'water_utility' => [
+            'bulk' => ['Estates on bulk meters paying late or disputing bills', 'scharge bills each unit behind the bulk meter so the estate pays on time'],
+            'reading' => ['Meter reading capture that is slow and error-prone', 'a reading app and API with photos and checks'],
+        ],
+        'water_private' => [
+            'tracking' => ['Deliveries and meter readings tracked in a book', 'customer accounts with delivery and meter billing'],
+            'collections' => ['Chasing customers for payment', 'bills by SMS with M-Pesa payment matched to each customer'],
+        ],
+        'power' => [
+            'billing' => ['Clients who install meters but still bill tenants by hand', 'scharge turns your meter data into tenant bills'],
+            'referrals' => ['Every installation ends at the hardware sale', 'a referral arrangement that earns on the billing'],
+        ],
+    ];
+
     public const OPT_OUT = "If you'd rather not hear from us, reply \"stop\" and we won't email you again.";
 
-    private const SIGN = "\n\nKind regards,\n{manager}\nAccount Manager, scharge\n{manager_email}  {manager_phone}\nhttps://scharge.sharet.africa";
+    private const SIGN = "\n\nYou can pick a time and tell us about your properties here (2 minutes): {demo_link}\n\nKind regards,\n{manager}\nAccount Manager, scharge\n{manager_email}  {manager_phone}\nhttps://scharge.sharet.africa";
 
     private const BOOKS = [
         'manager' => [

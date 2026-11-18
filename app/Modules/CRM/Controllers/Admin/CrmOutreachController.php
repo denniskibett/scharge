@@ -38,6 +38,10 @@ class CrmOutreachController extends Controller
             'manager' => $manager,
             'hasSavedDraft' => (bool) $company->profile('email_body'),
             'doNotEmail' => (bool) $company->profile('do_not_email'),
+            'pains' => Playbook::pains($company),
+            'chosenPains' => array_filter(explode(',', (string) $company->profile('pains'))),
+            'signals' => Playbook::signals($company),
+            'demoUrl' => Playbook::demoUrl($company),
         ]);
     }
 
@@ -51,6 +55,28 @@ class CrmOutreachController extends Controller
         return (new CrmOutreachEmail($draft['subject'], $draft['body'], $manager, $crmCompany))->render();
     }
 
+    /** Research step: chosen pain points + what the account manager found -> a researched email draft. */
+    public function compose(Request $request, Company $crmCompany): RedirectResponse
+    {
+        CrmAccess::authorizeCompany($crmCompany, $request->user());
+        $input = $request->validate([
+            'pains' => ['nullable', 'array'],
+            'pains.*' => [\Illuminate\Validation\Rule::in(array_keys(Playbook::pains($crmCompany)))],
+            'research' => ['nullable', 'string', 'max:600'],
+        ]);
+        $manager = $crmCompany->owner ?? $request->user();
+        $draft = Playbook::compose($crmCompany, $manager, $input['pains'] ?? [], $input['research'] ?? null);
+        $this->setProfile($crmCompany, [
+            'research' => $input['research'] ?? null,
+            'pains' => implode(',', $input['pains'] ?? []),
+            'email_subject' => $draft['subject'],
+            'email_body' => $draft['body'],
+        ]);
+
+        return back()->with('success', 'Email rewritten around their problems. Check it, then send.')
+            ->with('open_playbook', route('crm.companies.playbook', $crmCompany));
+    }
+
     /** Save (or reset) this company's email draft. */
     public function saveDraft(Request $request, Company $crmCompany): RedirectResponse
     {
@@ -58,12 +84,12 @@ class CrmOutreachController extends Controller
         if ($request->boolean('reset')) {
             $this->setProfile($crmCompany, ['email_subject' => null, 'email_body' => null]);
 
-            return back()->with('success', 'Email reset to the playbook template.');
+            return back()->with('success', 'Email reset to the playbook template.')->with('open_playbook', route('crm.companies.playbook', $crmCompany));
         }
         $input = $request->validate(['subject' => ['required', 'string', 'max:200'], 'body' => ['required', 'string', 'max:10000']]);
         $this->setProfile($crmCompany, ['email_subject' => $input['subject'], 'email_body' => $input['body']]);
 
-        return back()->with('success', 'Email draft saved for '.$crmCompany->name.'.');
+        return back()->with('success', 'Email draft saved for '.$crmCompany->name.'.')->with('open_playbook', route('crm.companies.playbook', $crmCompany));
     }
 
     /** Send the cold email, log it, and book the account manager's follow-up. */

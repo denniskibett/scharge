@@ -7,7 +7,7 @@
   $display = "'Unbounded','Arial Black',Arial,sans-serif";
   $offers = array_values(array_filter($book['offers'] ?? [], fn ($o) => ! str_starts_with($o, 'Pricing')));
   $offers = array_slice($offers, 0, 4);
-  $replyHref = 'mailto:'.$manager->email.'?subject='.rawurlencode('Re: '.$subjectLine);
+  $demoHref = $company ? \App\Modules\CRM\Support\Playbook::demoUrl($company) : $base;
   $paragraphs = preg_split("/\n{2,}/", trim($body));
 @endphp
 <!doctype html>
@@ -54,9 +54,9 @@
 
       <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;"><tr>
         <td style="border-radius:12px;background:#DC2626;">
-          <a href="{{ $replyHref }}" style="display:inline-block;padding:14px 26px;font-family:{!! $sans !!};font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:12px;">Reply to book a demo</a>
+          <a href="{{ $demoHref }}" style="display:inline-block;padding:14px 26px;font-family:{!! $sans !!};font-size:15px;font-weight:600;color:#FFFFFF;text-decoration:none;border-radius:12px;">Book your demo</a>
         </td>
-        <td style="padding-left:16px;font-family:{!! $sans !!};font-size:14px;"><a href="{{ $base }}" style="color:#1A1214;font-weight:600;">See scharge →</a></td>
+        <td style="padding-left:16px;font-family:{!! $sans !!};font-size:13px;color:#5C4A4E;">2 minutes: your properties<br>and a time that suits you</td>
       </tr></table>
     </td></tr>
 
