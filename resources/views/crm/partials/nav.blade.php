@@ -8,6 +8,7 @@
         'crm.sales.index' => ['Sales tracker', null],
         'crm.campaigns.index' => ['Campaigns', null],
         'crm.properties.index' => ['Open properties', null],
+        'crm.inbox.index' => ['Inbox', null],
         'crm.follow-ups.index' => ['Follow-ups', \App\Modules\CRM\Models\CrmFollowUp::overdue()->count()],
         'crm.requests.index' => ['Requests', \App\Modules\CRM\Models\CrmFollowUp::whereIn('type', ['demo', 'api_keys', 'viewing'])->where('status', 'open')->count()],
         'crm.waitlist.index' => ['Waitlist', null],

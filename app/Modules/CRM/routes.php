@@ -3,6 +3,7 @@
 use App\Models\Company;
 use App\Modules\CRM\Controllers\Admin\CrmCompanyController;
 use App\Modules\CRM\Controllers\Admin\CrmFollowUpController;
+use App\Modules\CRM\Controllers\Admin\CrmInboxController;
 use App\Modules\CRM\Controllers\Admin\CrmOutreachController;
 use App\Modules\CRM\Controllers\Admin\CrmMapController;
 use App\Modules\CRM\Controllers\Admin\CrmCampaignController;
@@ -68,6 +69,18 @@ Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->pref
     Route::get('/requests', [CrmFollowUpController::class, 'requests'])->name('requests.index');
     Route::redirect('/demos', '/crm/requests');
     Route::get('/feedback', [CrmFollowUpController::class, 'feedback'])->name('feedback.index');
+
+    // Inbox: the sharet.africa work mailboxes (own + shared), read and answered here.
+    Route::get('/inbox', [CrmInboxController::class, 'index'])->name('inbox.index');
+    Route::get('/inbox/counts', [CrmInboxController::class, 'counts'])->name('inbox.counts');
+    Route::post('/inbox/mailboxes', [CrmInboxController::class, 'store'])->name('inbox.mailboxes.store');
+    Route::put('/inbox/{mailbox}', [CrmInboxController::class, 'update'])->name('inbox.mailboxes.update');
+    Route::post('/inbox/{mailbox}/connect', [CrmInboxController::class, 'connect'])->middleware('throttle:10,1')->name('inbox.connect');
+    Route::delete('/inbox/{mailbox}/connect', [CrmInboxController::class, 'disconnect'])->name('inbox.disconnect');
+    Route::post('/inbox/{mailbox}/send', [CrmInboxController::class, 'send'])->middleware('throttle:30,1')->name('inbox.send');
+    Route::post('/inbox/{mailbox}/messages/{uid}/trash', [CrmInboxController::class, 'trash'])->whereNumber('uid')->name('inbox.trash');
+    Route::post('/inbox/{mailbox}/messages/{uid}/unread', [CrmInboxController::class, 'unread'])->whereNumber('uid')->name('inbox.unread');
+    Route::get('/inbox/{mailbox}/messages/{uid}/attachment', [CrmInboxController::class, 'attachment'])->whereNumber('uid')->name('inbox.attachment');
 
     Route::get('/waitlist', [CrmWaitlistController::class, 'index'])->name('waitlist.index');
     Route::get('/waitlist/export', [CrmWaitlistController::class, 'export'])->name('waitlist.export');
