@@ -25,7 +25,7 @@
 <div class="fb-card">
 @if ($feedback->status === 'done')
     <h1 style="font-size:1.6rem">Thank you{{ $feedback->contact ? ', '.strtok($feedback->contact->name, ' ') : '' }}.</h1>
-    <p class="lead">We have your answer ({{ $feedback->score }}/10). It goes straight to the team looking after {{ $feedback->company?->name ?? 'your account' }}.</p>
+    <p class="lead">We have your answer ({{ $feedback->score }}/10). It goes straight to the team looking after {{ $feedback->company?->name ?? 'your account' }}.@if ($feedback->detail('ref')) Your reference is <strong>{{ $feedback->detail('ref') }}</strong>.@endif</p>
     <a class="btn btn--primary" href="{{ route('home') }}" style="align-self:flex-start">Back to scharge</a>
 @else
     <span class="label">Feedback{{ $feedback->company ? ' · '.$feedback->company->name : '' }}</span>
@@ -44,6 +44,7 @@
         </fieldset>
         <label for="fb-comment" style="font-weight:600;font-size:.9rem">What is the main reason for your score? <span class="muted" style="font-weight:400">(optional)</span></label>
         <textarea id="fb-comment" name="comment" maxlength="2000">{{ old('comment') }}</textarea>
+        <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
         <button class="btn btn--primary" type="submit" style="align-self:flex-start">Send feedback</button>
     </form>
 @endif

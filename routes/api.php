@@ -10,10 +10,10 @@ use Illuminate\Support\Facades\Route;
 // scharge API v1. Keys: Settings › API keys. Docs: docs/SHARET_PAYMENTS.md, docs/METERS_API.md.
 Route::prefix('v1')->group(function () {
     // Reader app sign-in (email + password -> personal key) and smart meters (device token).
-    Route::post('/auth/token', [MetersController::class, 'token'])->middleware('throttle:5,1');
-    Route::post('/smart/readings', [MetersController::class, 'smart'])->middleware('throttle:240,1');
+    Route::post('/auth/token', [MetersController::class, 'token'])->middleware('throttle:5,1,api-token');
+    Route::post('/smart/readings', [MetersController::class, 'smart'])->middleware('throttle:240,1,api-smart');
 
-    Route::middleware(['throttle:120,1', 'api.key'])->group(function () {
+    Route::middleware(['throttle:120,1,api', 'api.key'])->group(function () {
         Route::get('/me', [V1Controller::class, 'me']);
         Route::delete('/auth/token', [MetersController::class, 'revoke']);
 

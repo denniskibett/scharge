@@ -78,11 +78,14 @@ class DemoRequestController extends Controller
         return view('home.demo-request', ['company' => $company, 'ref' => strtoupper($ref), 'manager' => $company->owner, 'done' => $demo]);
     }
 
-    /** Staff: the PDF of a demo-form submission, from the company thread. */
+    /** Staff: the PDF of a website-form submission (demo form, FormSubmissionService), from the thread. */
     public function pdf(Request $request, CrmFollowUp $followUp): StreamedResponse
     {
-        abort_unless($followUp->company, 404);
-        CrmAccess::authorizeCompany($followUp->company, $request->user());
+        // Website forms without a company yet (viewings, alerts, waitlist): whoever may see the row may download it.
+        abort_unless(CrmAccess::followUps(CrmFollowUp::whereKey($followUp->id), $request->user())->exists(), 403);
+        if ($followUp->company) {
+            CrmAccess::authorizeCompany($followUp->company, $request->user());
+        }
         $path = $followUp->detail('pdf');
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 

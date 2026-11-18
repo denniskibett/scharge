@@ -5,6 +5,8 @@ namespace App\Modules\CRM\Controllers\Site;
 use App\Http\Controllers\Controller;
 use App\Modules\CRM\Support\Countries;
 use App\Modules\CRM\Support\Normalizer;
+use App\Modules\CRM\Models\CrmFollowUp;
+use App\Modules\CRM\Services\FormSubmissionService;
 use App\Modules\CRM\Services\LeadService;
 use App\Support\SiteAnalytics;
 use Illuminate\Http\JsonResponse;
@@ -26,7 +28,7 @@ class SiteFormController extends Controller
         'Property management portfolio',
     ];
 
-    public function __construct(private LeadService $leads)
+    public function __construct(private LeadService $leads, private FormSubmissionService $submissions)
     {
     }
 
@@ -60,6 +62,10 @@ class SiteFormController extends Controller
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
+            $ref = $this->record($result['follow_up'], 'waitlist', [
+                'Country' => Countries::name($code), 'Company' => $input['company'] ?? null, 'Contact given' => $input['contact'],
+            ]);
+            $result['entry']->update(['details' => array_merge($result['entry']->details ?? [], ['ref' => $ref])]);
         } catch (\Throwable $e) {
             return $this->failed($request, $e, 'waitlist');
         }
@@ -67,9 +73,9 @@ class SiteFormController extends Controller
         $where = Countries::name($code);
 
         return $result['already']
-            ? $this->alert($request, "You're already on the {$where} list.", "We've updated your details and will message you as soon as scharge opens in {$where}.")
+            ? $this->alert($request, "You're already on the {$where} list.", "We've updated your details and will message you as soon as scharge opens in {$where}.", ref: $ref)
             // Greet with the name they typed, never the stored one: an email must not reveal who owns it.
-            : $this->alert($request, 'You are on the list.', "Thanks {$this->firstName(Normalizer::personName($input['name']))}. We will message you as soon as scharge opens in {$where}.");
+            : $this->alert($request, 'You are on the list.', "Thanks {$this->firstName(Normalizer::personName($input['name']))}. We will message you as soon as scharge opens in {$where}.", ref: $ref);
     }
 
     public function demo(Request $request): JsonResponse|RedirectResponse
@@ -111,6 +117,10 @@ class SiteFormController extends Controller
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
+            $ref = $this->record($result['follow_up'], 'demo', [
+                'Company' => $input['company'], 'Country' => Countries::name($code), 'Project' => $input['project_type'] ?? null,
+                'Units or plots' => number_format((int) $input['units']), 'Page' => $request->headers->get('referer'),
+            ], $input['message'] ?? null);
         } catch (\Throwable $e) {
             return $this->failed($request, $e, 'demo');
         }
@@ -118,12 +128,12 @@ class SiteFormController extends Controller
         if ($result['waitlisted']) {
             $where = Countries::name($code);
 
-            return $this->alert($request, "Thanks, we have your request for {$where}.", "scharge isn't live in {$where} yet. You're on our list there with your project details, and we'll set up your demo as soon as we launch.");
+            return $this->alert($request, "Thanks, we have your request for {$where}.", "scharge isn't live in {$where} yet. You're on our list there with your project details, and we'll set up your demo as soon as we launch.", ref: $ref);
         }
 
         return $result['already']
-            ? $this->alert($request, 'We already have your request.', "We've added the new details. Our projects team will call to confirm a time within one working day.")
-            : $this->alert($request, 'Thank you, your meeting is booked.', "We'll call {$this->firstName(Normalizer::personName($input['name']))} to confirm a time within one working day.");
+            ? $this->alert($request, 'We already have your request.', "We've added the new details. Our projects team will call to confirm a time within one working day.", ref: $ref)
+            : $this->alert($request, 'Thank you, your meeting is booked.', "We'll call {$this->firstName(Normalizer::personName($input['name']))} to confirm a time within one working day.", ref: $ref);
     }
 
     public const API_USES = [
@@ -148,13 +158,14 @@ class SiteFormController extends Controller
 
         try {
             $result = $this->leads->requestApiKeys($input + ['source_page' => $request->headers->get('referer')]);
+            $ref = $this->record($result['follow_up'], 'api_keys', ['Company' => $input['company'], 'Will build' => $input['use'] ?? null]);
         } catch (\Throwable $e) {
             return $this->failed($request, $e, 'API keys');
         }
 
         return $result['already']
-            ? $this->alert($request, 'We already have your request.', 'Our team will email your sandbox keys within one working day.')
-            : $this->alert($request, 'Request received.', 'Our team will email your sandbox keys and a link to the docs within one working day.');
+            ? $this->alert($request, 'We already have your request.', 'Our team will email your sandbox keys within one working day.', ref: $ref)
+            : $this->alert($request, 'Request received.', 'Our team will email your sandbox keys and a link to the docs within one working day.', ref: $ref);
     }
 
     /** Viewing / booking / site-visit request from the Open listings detail panel. */
@@ -191,13 +202,18 @@ class SiteFormController extends Controller
                     'slug' => $input['listing_slug'] ?? null,
                 ],
             ]);
+            $ref = $this->record($result['follow_up'], 'listing_request', [
+                'Listing' => $input['listing_title'], 'Area' => $input['listing_area'] ?? null, 'Owner' => $input['listing_owner'] ?? null,
+                'Kind' => $input['listing_kind'] ?? null, 'Asked for' => $input['listing_action'] ?? null, 'When' => $input['when'] ?? null,
+                'Routed to' => ($result['route']['route'] ?? null) === 'landlord' ? 'The landlord (scharge customer), by SMS' : 'scharge sales (onboarding lead)',
+            ]);
         } catch (\Throwable $e) {
             return $this->failed($request, $e, 'listing request');
         }
 
         return $result['already']
-            ? $this->alert($request, 'We already have your request.', "We've updated it. The owner or caretaker will reply on WhatsApp.")
-            : $this->alert($request, 'Request sent.', 'The owner or caretaker will reply on WhatsApp, usually the same day.');
+            ? $this->alert($request, 'We already have your request.', "We've updated it. The owner or caretaker will reply on WhatsApp.", ref: $ref)
+            : $this->alert($request, 'Request sent.', 'The owner or caretaker will reply on WhatsApp, usually the same day.', ref: $ref);
     }
 
     /** "SMS me new matches" on Open listings. */
@@ -216,15 +232,25 @@ class SiteFormController extends Controller
         $this->assertPhone($input['phone'], 'phone');
 
         try {
-            $this->leads->listingAlert([
+            $alert = $this->leads->listingAlert([
                 'phone' => $input['phone'],
                 'search' => ['kind' => $input['search_kind'] ?? null, 'area' => $input['search_area'] ?? null, 'max' => $input['search_max'] ?? null],
+            ]);
+            $ref = $this->record($alert, 'listing_alert', [
+                'Kind' => $input['search_kind'] ?? null, 'Area' => $input['search_area'] ?? null,
+                'Max rent' => ! empty($input['search_max']) ? 'KES '.number_format((int) $input['search_max']) : null,
             ]);
         } catch (\Throwable $e) {
             return $this->failed($request, $e, 'listing alert');
         }
 
-        return $this->alert($request, 'Alert set.', "We'll SMS you when a new match is listed. Reply STOP to any message to cancel.");
+        return $this->alert($request, 'Alert set.', "We'll SMS you when a new match is listed. Reply STOP to any message to cancel.", ref: $ref);
+    }
+
+    /** PDF on the thread, owner + email (FormSubmissionService); returns the reference shown on the thank-you. */
+    private function record(CrmFollowUp $followUp, string $form, array $rows, ?string $message = null): string
+    {
+        return $this->submissions->record($followUp, $form, $rows, $message)->detail('ref');
     }
 
     private function assertPhone(string $phone, string $field): void
@@ -270,18 +296,21 @@ class SiteFormController extends Controller
         'site.listings.alert' => 'listing_alert',
     ];
 
-    private function alert(Request $request, string $title, string $message, string $type = 'success', int $status = 200): JsonResponse|RedirectResponse
+    private function alert(Request $request, string $title, string $message, string $type = 'success', int $status = 200, ?string $ref = null): JsonResponse|RedirectResponse
     {
+        if ($ref) {
+            $message .= " Your reference is {$ref}.";
+        }
         // Every accepted form answers through here: count it (bots that fill the hidden field are not counted).
         if ($type === 'success' && ! $this->isBot($request) && ($form = self::CONVERSIONS[$request->route()?->getName()] ?? null)) {
             SiteAnalytics::conversion($request, $form);
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['type' => $type, 'title' => $title, 'message' => $message], $status);
+            return response()->json(['type' => $type, 'title' => $title, 'message' => $message, 'reference' => $ref], $status);
         }
 
-        return back()->with('site_alert', compact('type', 'title', 'message'));
+        return back()->with('site_alert', compact('type', 'title', 'message') + ['reference' => $ref]);
     }
 
     private function failed(Request $request, \Throwable $e, string $form): JsonResponse|RedirectResponse

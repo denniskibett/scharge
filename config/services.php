@@ -52,4 +52,9 @@ return [
         'key' => env('ANTHROPIC_API_KEY'),
     ],
 
+    // Inbound website forms with no owning account manager go to this person (an email address).
+    'crm' => [
+        'default_account_manager' => env('CRM_DEFAULT_ACCOUNT_MANAGER'),
+    ],
+
 ];

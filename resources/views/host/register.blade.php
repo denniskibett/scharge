@@ -46,6 +46,7 @@
 @error('password')<p class="auth-error">{{ $message }}</p>@enderror
 </fieldset>
 
+<input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 <label class="auth-check" for="terms"><input id="terms" type="checkbox" name="terms" required> I agree to the scharge terms and privacy policy.</label>
 <button class="btn btn--primary" type="submit">List my BnB</button>
 <p class="auth-foot">Already on scharge? <a class="link-btn" href="{{ route('login') }}">Log in</a></p>

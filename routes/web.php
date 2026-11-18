@@ -242,11 +242,11 @@ Route::middleware('guest')->group(function () {
     Route::get('/host/register', [App\Http\Controllers\HostController::class, 'create'])->name('host.register');
     Route::post('/host/register', [App\Http\Controllers\HostController::class, 'store'])->middleware('throttle:6,1,host-register')->name('host.store');
 });
-Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1')->name('host.properties.search');
+Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1,host-search')->name('host.properties.search');
 
 // Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
 // A unit's private calendar link for Airbnb / Booking.com to import (dates only; token in the path).
-Route::get('/calendar/units/{unit}/{token}', [App\Http\Controllers\BookingController::class, 'calendar'])->whereNumber('unit')->middleware('throttle:60,1')->name('bookings.calendar');
+Route::get('/calendar/units/{unit}/{token}', [App\Http\Controllers\BookingController::class, 'calendar'])->whereNumber('unit')->middleware('throttle:60,1,ical')->name('bookings.calendar');
 
 // Safaricom C2B: payments made straight to a company's paybill (App\Services\Rent\PaybillPayments).
 Route::post('/webhooks/mpesa/c2b/{token}/validation', [App\Http\Controllers\PaybillWebhookController::class, 'validation'])->name('webhooks.c2b.validation');
@@ -278,7 +278,7 @@ Route::middleware(['auth'])->group(function () {
     // Team & access: invite employees, give roles, switch logins off (Brevemaster pattern)
     Route::middleware('access:team')->group(function () {
         Route::get('/team', [App\Http\Controllers\TeamController::class, 'index'])->name('team.index');
-        Route::post('/team', [App\Http\Controllers\TeamController::class, 'store'])->middleware('throttle:20,1')->name('team.store');
+        Route::post('/team', [App\Http\Controllers\TeamController::class, 'store'])->middleware('throttle:20,1,team-invite')->name('team.store');
         Route::put('/team/{user}', [App\Http\Controllers\TeamController::class, 'update'])->name('team.update');
         Route::delete('/team/{user}', [App\Http\Controllers\TeamController::class, 'destroy'])->name('team.destroy');
     });
@@ -299,7 +299,7 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // Sidebar / header counts of what is waiting for this person (App\Support\SidebarBadges), re-read after page changes.
     Route::get('/sidebar/badges', fn () => response()->json(['badges' => \App\Support\SidebarBadges::for(auth()->user()), 'total' => \App\Support\SidebarBadges::total(auth()->user())]))
-        ->middleware('throttle:120,1')->name('sidebar.badges');
+        ->middleware('throttle:120,1,sidebar-badges')->name('sidebar.badges');
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware(['verified'])
         ->name('dashboard');
@@ -484,7 +484,7 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::get('/settings/white-label', [App\Http\Controllers\BrandController::class, 'edit'])->name('brand.edit');
         Route::post('/settings/white-label', [App\Http\Controllers\BrandController::class, 'update'])->name('brand.update');
         Route::post('/settings/white-label/remove', [App\Http\Controllers\BrandController::class, 'destroy'])->name('brand.destroy');
-        Route::get('/settings/white-label/export', [App\Http\Controllers\BrandController::class, 'export'])->middleware('throttle:6,1')->name('brand.export');
+        Route::get('/settings/white-label/export', [App\Http\Controllers\BrandController::class, 'export'])->middleware('throttle:6,1,brand-export')->name('brand.export');
         Route::get('/settings/data-agreement', [App\Http\Controllers\AgreementController::class, 'show'])->name('dpa.show');
         Route::post('/settings/data-agreement', [App\Http\Controllers\AgreementController::class, 'accept'])->name('dpa.accept');
         // Hosted company website (docs/COMPANY_WEBSITE.md)
@@ -550,10 +550,10 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
     // KYC: verify a landlord business (docs/ONBOARDING.md). Company admins; scharge staff with ?company=ID.
     Route::prefix('settings/verify')->name('kyc.')->group(function () {
         Route::get('/', [App\Http\Controllers\KycController::class, 'show'])->name('show');
-        Route::post('/upload', [App\Http\Controllers\KycController::class, 'upload'])->middleware('throttle:20,1')->name('upload');
+        Route::post('/upload', [App\Http\Controllers\KycController::class, 'upload'])->middleware('throttle:20,1,kyc-upload')->name('upload');
         Route::post('/', [App\Http\Controllers\KycController::class, 'update'])->name('update');
         Route::get('/documents/{document}', [App\Http\Controllers\KycController::class, 'file'])->name('file');
-        Route::post('/documents/{document}/read', [App\Http\Controllers\KycController::class, 'reread'])->middleware('throttle:10,1')->name('reread');
+        Route::post('/documents/{document}/read', [App\Http\Controllers\KycController::class, 'reread'])->middleware('throttle:10,1,kyc-reread')->name('reread');
         Route::post('/documents/{document}/remove', [App\Http\Controllers\KycController::class, 'destroy'])->name('destroy');
     });
     Route::get('/admin/website-approvals', [App\Http\Controllers\WebsiteReviewController::class, 'index'])->name('website.review.index');
@@ -659,21 +659,21 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
 
     // ============================================
     // Staff can make someone confirm their email again (KYC done badly before).
-    Route::post('/users/{user}/reverify-email', App\Http\Controllers\EmailReverifyController::class)->middleware('throttle:30,1')->name('users.reverify-email');
+    Route::post('/users/{user}/reverify-email', App\Http\Controllers\EmailReverifyController::class)->middleware('throttle:30,1,email-reverify')->name('users.reverify-email');
 
     // Confirm email with a one-time code (KYC). App\Http\Middleware\EnsureEmailConfirmed sends people here.
     Route::prefix('confirm-email')->name('email-code.')->controller(\App\Http\Controllers\Auth\EmailCodeController::class)->group(function () {
         Route::get('/', 'show')->name('show');
-        Route::post('/', 'verify')->middleware('throttle:10,1')->name('verify');
-        Route::post('/resend', 'resend')->middleware('throttle:5,1')->name('resend');
-        Route::post('/change', 'change')->middleware('throttle:5,1')->name('change');
+        Route::post('/', 'verify')->middleware('throttle:10,1,otp-verify')->name('verify');
+        Route::post('/resend', 'resend')->middleware('throttle:5,1,otp-resend')->name('resend');
+        Route::post('/change', 'change')->middleware('throttle:5,1,otp-change')->name('change');
     });
 
     // Self-serve activation: a sign-up with no business sets one up (pending page form).
-    Route::post('/account/activate', [\App\Http\Controllers\Auth\AccountActivationController::class, 'store'])->middleware('throttle:10,1')->name('account.activate');
+    Route::post('/account/activate', [\App\Http\Controllers\Auth\AccountActivationController::class, 'store'])->middleware('throttle:10,1,account-activate')->name('account.activate');
 
     // Header search (Breve-style quick switcher)
-    Route::get('/search', \App\Http\Controllers\SearchController::class)->middleware('throttle:120,1')->name('search');
+    Route::get('/search', \App\Http\Controllers\SearchController::class)->middleware('throttle:120,1,search')->name('search');
 
     // REPORT ROUTES
     // ============================================

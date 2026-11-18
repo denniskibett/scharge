@@ -37,7 +37,18 @@ class LeadService
             $entry->details = array_merge($entry->details ?? [], array_filter(['ip' => $data['ip'] ?? null, 'user_agent' => Str::limit((string) ($data['user_agent'] ?? ''), 250, '')]));
             $entry->save();
 
-            return ['entry' => $entry, 'already' => $already];
+            // The thread entry (and PDF / owner email, FormSubmissionService): a logged note, not a to-do, until we launch there.
+            $followUp = CrmFollowUp::create([
+                'company_id' => $company?->id,
+                'user_id' => $user->id,
+                'type' => 'note',
+                'status' => 'done',
+                'done_at' => now(),
+                'title' => ($already ? 'Updated their ' : 'Joined the ').Countries::name($data['country_code']).' waitlist',
+                'details' => ['waitlist_id' => $entry->id],
+            ]);
+
+            return ['entry' => $entry, 'already' => $already, 'follow_up' => $followUp];
         });
     }
 
@@ -66,8 +77,18 @@ class LeadService
                 $entry->fill(['status' => 'demo_requested', 'company_id' => $entry->company_id ?? $company?->id]);
                 $entry->details = array_merge($entry->details ?? [], $demo, ['requested_at' => now()->toDateTimeString()]);
                 $entry->save();
+                $followUp = CrmFollowUp::create([
+                    'company_id' => $company?->id,
+                    'user_id' => $user->id,
+                    'type' => 'note',
+                    'status' => 'done',
+                    'done_at' => now(),
+                    'title' => 'Asked for a demo in '.Countries::name($data['country_code']).' (not live yet: on the waitlist)',
+                    'notes' => $data['message'] ?? null,
+                    'details' => $demo + ['waitlist_id' => $entry->id],
+                ]);
 
-                return ['already' => $already, 'waitlisted' => true];
+                return ['already' => $already, 'waitlisted' => true, 'follow_up' => $followUp];
             }
 
             $company = $this->companyFor($data, $user, 'Website demo request', 'demo_booked');
@@ -79,7 +100,7 @@ class LeadService
                 $recent->update(['details' => array_merge($recent->details ?? [], $demo)]);
                 $this->contacts->log($company, 'note', "{$user->name} sent the demo form again", $data['message'] ?? null, [], $user);
 
-                return ['already' => true, 'waitlisted' => false];
+                return ['already' => true, 'waitlisted' => false, 'follow_up' => $recent];
             }
 
             if (in_array($company->crm_stage, self::EARLY_STAGES, true)) {
@@ -87,7 +108,7 @@ class LeadService
             }
 
             // One row is both the request and the call-back: the website promises a call within one working day.
-            $company->followUps()->create([
+            $followUp = $company->followUps()->create([
                 'user_id' => $user->id,
                 'assigned_to' => $company->owner_id,
                 'type' => 'demo',
@@ -98,7 +119,7 @@ class LeadService
                 'details' => $demo,
             ]);
 
-            return ['already' => false, 'waitlisted' => false];
+            return ['already' => false, 'waitlisted' => false, 'follow_up' => $followUp];
         });
     }
 
@@ -118,10 +139,10 @@ class LeadService
             if ($open) {
                 $open->update(['details' => array_merge($open->details ?? [], array_filter(['use' => $data['use'] ?? null]))]);
 
-                return ['already' => true];
+                return ['already' => true, 'follow_up' => $open];
             }
 
-            $company->followUps()->create([
+            $followUp = $company->followUps()->create([
                 'user_id' => $user->id,
                 'assigned_to' => $company->owner_id,
                 'type' => 'api_keys',
@@ -131,7 +152,7 @@ class LeadService
                 'details' => array_filter(['use' => $data['use'] ?? null, 'source_page' => $data['source_page'] ?? null]),
             ]);
 
-            return ['already' => false];
+            return ['already' => false, 'follow_up' => $followUp];
         });
     }
 
@@ -159,10 +180,10 @@ class LeadService
             if ($open) {
                 $open->update(['details' => array_merge($open->details ?? [], $listing, array_filter(['when' => $data['when'] ?? null]))]);
 
-                return ['already' => true];
+                return ['already' => true, 'follow_up' => $open, 'route' => $route];
             }
 
-            CrmFollowUp::create([
+            $followUp = CrmFollowUp::create([
                 'company_id' => $route['company_id'],
                 'user_id' => $user->id,
                 'type' => 'viewing',
@@ -179,7 +200,7 @@ class LeadService
                     $listing['title'] ?? 'a listing', $data['when'] ?? null));
             }
 
-            return ['already' => false];
+            return ['already' => false, 'follow_up' => $followUp, 'route' => $route];
         });
     }
 
@@ -188,9 +209,9 @@ class LeadService
      *
      * @param  array{phone: string, search: array<string, mixed>}  $data
      */
-    public function listingAlert(array $data): void
+    public function listingAlert(array $data): CrmFollowUp
     {
-        DB::transaction(function () use ($data) {
+        return DB::transaction(function () use ($data) {
             [$user] = $this->contacts->upsertPerson(['phone' => $data['phone'], 'country_code' => 'KE'], 'website_listings');
             $search = array_filter($data['search'], fn ($v) => $v !== null && $v !== '');
             $title = 'SMS new '.strtolower($search['kind'] ?? 'listings')
@@ -198,7 +219,7 @@ class LeadService
                 .(! empty($search['max']) ? ' up to KES '.number_format((int) $search['max']) : '');
 
             app(\App\Services\Listings\ListingDemand::class)->record(request(), 'alert', $search['kind'] ?? null, $search['area'] ?? null, isset($search['max']) ? (int) $search['max'] : null, null);
-            CrmFollowUp::updateOrCreate(
+            return CrmFollowUp::updateOrCreate(
                 ['type' => 'listing_alert', 'user_id' => $user->id, 'status' => 'open'],
                 ['title' => $title, 'details' => $search]
             );

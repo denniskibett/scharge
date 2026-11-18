@@ -60,10 +60,10 @@ Route::middleware(['auth', 'access:security'])->prefix('security')->name('securi
 // ============================================
 Route::middleware('auth')->prefix('gate')->name('gate.')->group(function () {
     Route::get('/', [App\Http\Controllers\GateController::class, 'index'])->name('index');
-    Route::get('/verify', [App\Http\Controllers\GateController::class, 'verify'])->middleware('throttle:60,1')->name('verify');
+    Route::get('/verify', [App\Http\Controllers\GateController::class, 'verify'])->middleware('throttle:60,1,gate-verify')->name('verify');
     Route::get('/visitors', [App\Http\Controllers\GateController::class, 'visitors'])->name('visitors');
     Route::post('/visitors/{place}/block', [App\Http\Controllers\GateController::class, 'block'])->name('visitors.block');
-    Route::get('/lookup', [App\Http\Controllers\GateController::class, 'lookup'])->middleware('throttle:60,1')->name('lookup');
+    Route::get('/lookup', [App\Http\Controllers\GateController::class, 'lookup'])->middleware('throttle:60,1,gate-lookup')->name('lookup');
     Route::get('/passes/create', [App\Http\Controllers\GateController::class, 'create'])->name('passes.create');
     Route::post('/passes', [App\Http\Controllers\GateController::class, 'store'])->name('passes.store');
     Route::get('/passes/{pass}', [App\Http\Controllers\GateController::class, 'show'])->name('passes.show');
@@ -71,5 +71,5 @@ Route::middleware('auth')->prefix('gate')->name('gate.')->group(function () {
 });
 
 // The guest's own pass page: no login, the 40-character token is the key.
-Route::get('/pass/{token}', [App\Http\Controllers\PublicPassController::class, 'show'])->middleware('throttle:30,1')->name('pass.show');
-Route::post('/pass/{token}', [App\Http\Controllers\PublicPassController::class, 'act'])->middleware('throttle:10,1')->name('pass.act');
+Route::get('/pass/{token}', [App\Http\Controllers\PublicPassController::class, 'show'])->middleware('throttle:30,1,pass-show')->name('pass.show');
+Route::post('/pass/{token}', [App\Http\Controllers\PublicPassController::class, 'act'])->middleware('throttle:10,1,pass-act')->name('pass.act');
