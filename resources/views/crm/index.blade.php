@@ -50,20 +50,22 @@
             @if ($att)<input type="hidden" name="attention" value="{{ $att }}">@endif
             @include('partials.table.tabs', ['tabs' => $tabs])
             <div class="flex flex-wrap items-center gap-3 lg:justify-end">
-                @include('partials.table.select', ['name' => 'stage', 'aria' => 'Stage', 'min' => 'min-w-[110px]', 'selected' => $filters['stage'] ?? '',
+                @include('partials.table.select', ['name' => 'stage', 'size' => 'sm', 'aria' => 'Stage', 'min' => 'min-w-[110px]', 'selected' => $filters['stage'] ?? '',
                     'options' => ['' => 'All stages', 'open' => 'Open'] + \App\Models\Company::CRM_STAGES])
-                @include('partials.table.select', ['name' => 'tier', 'aria' => 'Tier', 'min' => 'min-w-[80px]', 'selected' => $filters['tier'] ?? '',
+                @include('partials.table.select', ['name' => 'tier', 'size' => 'sm', 'aria' => 'Tier', 'min' => 'min-w-[80px]', 'selected' => $filters['tier'] ?? '',
                     'options' => ['' => 'All tiers', 1 => 'Tier 1', 2 => 'Tier 2', 3 => 'Tier 3']])
-                @include('partials.table.select', ['name' => 'owner', 'aria' => 'Owner', 'min' => 'min-w-[110px]', 'selected' => $filters['owner'] ?? '',
+                @include('partials.table.select', ['name' => 'ptype', 'aria' => 'Property type', 'size' => 'sm', 'min' => 'min-w-[130px]', 'selected' => $filters['ptype'] ?? '',
+                    'options' => ['' => 'All property types'] + array_combine(\App\Modules\CRM\Support\PropertyClass::CLASSES, \App\Modules\CRM\Support\PropertyClass::CLASSES) + ['none' => 'Not classified']])
+                @include('partials.table.select', ['name' => 'owner', 'size' => 'sm', 'aria' => 'Owner', 'min' => 'min-w-[110px]', 'selected' => $filters['owner'] ?? '',
                     'options' => ['' => 'Any owner', 'none' => 'No owner'] + $owners->pluck('name', 'id')->all()])
                 @if (array_filter(\Illuminate\Support\Arr::except($filters, ['attention'])))
-                    <a href="{{ route('crm.index', array_filter(['attention' => $att])) }}" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
+                    <a href="{{ route('crm.index', array_filter(['attention' => $att])) }}" class="shadow-theme-xs flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         Clear
                     </a>
                 @endif
-                @include('partials.table.search', ['value' => $filters['q'] ?? '', 'min' => 'min-w-[140px]', 'placeholder' => 'Search…'])
-                <button type="button" @click="adding = true" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition">
+                @include('partials.table.search', ['size' => 'sm', 'value' => $filters['q'] ?? '', 'min' => 'min-w-[140px]', 'placeholder' => 'Search…'])
+                <button type="button" @click="adding = true" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     Prospect
                 </button>
@@ -91,7 +93,7 @@
                                             <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="rounded-md border border-brand-200 px-2 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title="How to approach, what to sell, cold email, verify">Playbook</button>
                                             @if ($company->profile('needs_verification'))<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                         </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([\App\Modules\CRM\Support\PropertyClass::of($company), $company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
                                     </div>
                                 </div>
                             </td>

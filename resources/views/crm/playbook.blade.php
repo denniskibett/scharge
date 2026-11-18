@@ -7,11 +7,11 @@
     $ghost = 'inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5';
     $tab = fn ($t) => "tab === '{$t}'";
     $verify = (bool) $company->profile('needs_verification');
-    $menu = 'absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-800 dark:bg-gray-900';
+    $menu = 'absolute right-0 z-10 mt-1 w-64 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-800 dark:bg-gray-900';
     $item = 'flex w-full items-center gap-2 px-3 py-2 text-left text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5';
     $dots = 'inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-white/5';
 @endphp
-<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}', copied: '' }" class="flex h-full min-h-0 flex-col">
+<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}', copied: '' }" class="flex h-full flex-col overflow-hidden">
     {{-- Header --}}
     <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
         <div class="min-w-0">
@@ -34,7 +34,7 @@
                         <a href="https://wa.me/{{ preg_replace('/\D/', '', $company->phone) }}" target="_blank" rel="noopener" class="{{ $item }}">WhatsApp</a>
                     @endif
                     @if ($company->email)<a href="mailto:{{ $company->email }}" class="{{ $item }}">Email from my mailbox</a>@endif
-                    <div class="my-1 border-t border-gray-100 dark:border-gray-800"></div>
+                    <div class="mt-1 mb-1 border-t border-gray-100 dark:border-gray-800"></div>
                     <a href="{{ $demoUrl }}" target="_blank" rel="noopener" class="{{ $item }}">Open their demo form</a>
                     <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(@js($demoUrl)); copied = 'Demo link copied'; setTimeout(() => copied = '', 1500)">Copy demo link</button>
                     <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="{{ $item }}">Preview saved email</a>
@@ -56,7 +56,7 @@
     </nav>
     <div x-show="copied" x-cloak x-text="copied" class="mx-5 mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-300"></div>
 
-    <div class="min-h-0 flex-1 overflow-y-auto p-5">
+    <div class="flex-1 overflow-y-auto p-5">
         {{-- Research: their problems, what we know, what you found --}}
         <div x-show="{{ $tab('research') }}" x-cloak>
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">Emails that open with <em>their</em> problem get far more replies than a product pitch. Tick what's likely true for {{ $company->name }}, add one thing you found (their website, listings, reviews), and we'll write the email around it.</p>
@@ -109,12 +109,12 @@
                     <textarea id="pb-body" name="body" rows="12" required class="{{ $area }}">{{ old('body', $draft['body']) }}</textarea></div>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Their demo form: <a href="{{ $demoUrl }}" target="_blank" rel="noopener" class="text-brand-500 hover:underline">{{ $demoUrl }}</a> (the email's button goes there; what they fill in comes back to this company as a PDF).</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Sent from scharge as <strong>{{ $manager->name }} · scharge</strong>; replies go to {{ $manager->email }}. An opt-out line is added at the bottom. A call follow-up is booked for {{ $manager->name }} and the email is logged on the timeline.</p>
-                <div class="sticky bottom-0 -mx-5 -mb-5 flex items-center gap-2 border-t border-gray-200 bg-white px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
+                <div class="sticky bottom-0 flex items-center gap-2 border-t border-gray-200 bg-white py-3 dark:border-gray-800 dark:bg-gray-900">
                     <button class="{{ $btn }}" :disabled="sending" @disabled($doNotEmail)><span x-text="sending ? 'Sending…' : 'Send email'"></span></button>
                     <button type="submit" formaction="{{ route('crm.companies.playbook.draft', $company) }}" formnovalidate name="_method" value="PUT" class="{{ $ghost }}">Save draft</button>
                     <div class="relative ml-auto" x-data="{ menu: false }" @click.outside="menu = false" @keydown.escape.stop="menu = false">
                         <button type="button" @click="menu = !menu" class="{{ $dots }}" aria-label="More email actions" :aria-expanded="menu"><x-icon name="ellipsis-horizontal" class="h-5 w-5" /></button>
-                        <div x-show="menu" x-cloak x-transition.origin.bottom.right class="{{ $menu }} bottom-full mb-1 mt-0" @click="menu = false">
+                        <div x-show="menu" x-cloak x-transition.origin.bottom.right class="{{ $menu }} mt-0" style="bottom:2.75rem" @click="menu = false">
                             <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="{{ $item }}" title="Shows the saved draft; save first to preview your edits">Preview email</a>
                             <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-body').value); copied = 'Email text copied'; setTimeout(() => copied = '', 1500)">Copy subject and text</button>
                             <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(@js($demoUrl)); copied = 'Demo link copied'; setTimeout(() => copied = '', 1500)">Copy demo link</button>

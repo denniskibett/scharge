@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Modules\CRM\Support;
+
+use App\Models\Company;
+use Illuminate\Database\Eloquent\Builder;
+
+/**
+ * The property class of a CRM company: what they own or manage. A demo-form submission sets it exactly
+ * (crm_profile.property_class, from the properties they listed); until then it follows from the lead's segment.
+ */
+class PropertyClass
+{
+    public const CLASSES = ['Residential', 'Short-stay', 'Commercial', 'Mixed use', 'Mixed portfolio', 'Land & other', 'Utilities'];
+
+    /** Lead segments (import sheets) → class. */
+    public const SEGMENTS = [
+        'Residential' => ['Property Manager / Agency', 'Residential Property (named building/estate)', 'Developer', 'Affordable Housing', 'High-end Residential', 'Gated Community', 'Upmarket Agency'],
+        'Short-stay' => ['Short-stay / Airbnb Manager', 'Short-stay / Airbnb', 'Hotel / Serviced Accommodation', 'Serviced Apartments'],
+        'Commercial' => ['Commercial Property / Mall', 'Office / Commercial', 'Retail / Mall', 'Industrial / Warehouse Park', 'Industrial / Factory (utility & metering)', 'Industrial / Logistics'],
+        'Utilities' => ['Water Company', 'Private Water Supplier', 'Electricity / KPLC & Metering'],
+    ];
+
+    public static function of(Company $company): ?string
+    {
+        if ($class = $company->profile('property_class')) {
+            return $class;
+        }
+        $segment = (string) $company->profile('segment');
+        foreach (self::SEGMENTS as $class => $segments) {
+            if (in_array($segment, $segments, true)) {
+                return $class;
+            }
+        }
+
+        return $company->kind === 'bnb_host' ? 'Short-stay' : null;
+    }
+
+    /** Filter companies by class: the exact class when known, else the segment's class. */
+    public static function scope(Builder $query, string $class): Builder
+    {
+        if ($class === 'none') {
+            return $query->whereNull('crm_profile->property_class')
+                ->where(fn ($q) => $q->whereNull('crm_profile->segment')->orWhereNotIn('crm_profile->segment', array_merge(...array_values(self::SEGMENTS))));
+        }
+
+        return $query->where(function ($q) use ($class) {
+            $q->where('crm_profile->property_class', $class);
+            if ($segments = self::SEGMENTS[$class] ?? null) {
+                $q->orWhere(fn ($w) => $w->whereNull('crm_profile->property_class')->whereIn('crm_profile->segment', $segments));
+            }
+            if ($class === 'Short-stay') {
+                $q->orWhere(fn ($w) => $w->whereNull('crm_profile->property_class')->where('kind', 'bnb_host'));
+            }
+        });
+    }
+}

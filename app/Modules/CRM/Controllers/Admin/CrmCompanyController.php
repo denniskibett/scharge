@@ -24,7 +24,7 @@ class CrmCompanyController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention', 'county', 'sub_county', 'segment', 'verified']);
+        $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention', 'county', 'sub_county', 'segment', 'verified', 'ptype']);
         $user = $request->user();
         $mine = fn () => CrmAccess::companies(Company::crm(), $user);
         $myFollowUps = fn () => CrmAccess::followUps(CrmFollowUp::query(), $user);
@@ -47,6 +47,7 @@ class CrmCompanyController extends Controller
             ->when($filters['county'] ?? null, fn ($q, $v) => $q->where('crm_profile->county', $v))
             ->when($filters['sub_county'] ?? null, fn ($q, $v) => $v === 'none' ? $q->whereNull('crm_profile->sub_county') : $q->where('crm_profile->sub_county', $v))
             ->when($filters['segment'] ?? null, fn ($q, $v) => $q->where('crm_profile->segment', $v))
+            ->when($filters['ptype'] ?? null, fn ($q, $v) => \App\Modules\CRM\Support\PropertyClass::scope($q, $v))
             ->when(isset($filters['verified']) && $filters['verified'] !== '', fn ($q) => $filters['verified'] === '1'
                 ? $q->where(fn ($w) => $w->whereNull('crm_profile->needs_verification')->orWhere('crm_profile->needs_verification', false))
                 : $q->where('crm_profile->needs_verification', true))
