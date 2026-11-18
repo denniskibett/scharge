@@ -56,8 +56,8 @@
         @csrf
         <input type="text" name="website_url" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
 
-        <fieldset class="stack" style="gap:10px;border:0;padding:0;margin:0">
-            <legend><h2>1. Who are you?</h2></legend>
+        <div class="stack" style="gap:10px" role="group" aria-labelledby="dr-h1">
+            <h2 id="dr-h1">1. Who are you?</h2>
             <div class="dr-chips">
                 @foreach (Demo::ROLES as $key => $label)
                     <label class="dr-chip"><input type="radio" name="role" value="{{ $key }}" required @checked(old('role') === $key)> {{ $label }}</label>
@@ -69,19 +69,19 @@
                 <label class="dr-field">Phone<input name="phone" required maxlength="40" value="{{ old('phone') }}" inputmode="tel" autocomplete="tel" placeholder="0712 345 678"></label>
                 <label class="dr-field">Email <span class="muted" style="font-weight:400">(optional)</span><input name="email" type="email" maxlength="190" value="{{ old('email', $company->email) }}" autocomplete="email"></label>
             </div>
-        </fieldset>
+        </div>
 
-        <fieldset class="stack" style="gap:10px;border:0;padding:0;margin:0">
-            <legend><h2>2. What would you like to see?</h2></legend>
+        <div class="stack" style="gap:10px" role="group" aria-labelledby="dr-h2">
+            <h2 id="dr-h2">2. What would you like to see?</h2>
             <div class="dr-chips">
                 @foreach (Demo::INTERESTS as $key => $label)
                     <label class="dr-chip"><input type="checkbox" name="interests[]" value="{{ $key }}" @checked(in_array($key, old('interests', []), true))> {{ $label }}</label>
                 @endforeach
             </div>
-        </fieldset>
+        </div>
 
-        <fieldset class="stack" style="gap:10px;border:0;padding:0;margin:0">
-            <legend><h2>3. Your properties</h2></legend>
+        <div class="stack" style="gap:10px" role="group" aria-labelledby="dr-h3">
+            <h2 id="dr-h3">3. Your properties</h2>
             <p class="muted" style="margin:0">One row per building or estate. A rough number of units is fine.</p>
             <div class="dr-props" id="dr-props">
                 @foreach (array_values($oldProps) as $i => $pr)
@@ -96,15 +96,15 @@
             </div>
             <div class="dr-total">
                 <button type="button" class="btn btn--ghost" id="dr-add">+ Add a property</button>
-                <span><span id="dr-count">0</span> properties · <strong id="dr-sum">0</strong> units</span>
+                <span><span id="dr-count">0</span> · <strong id="dr-sum">0</strong> units</span>
             </div>
             <label class="dr-field">How do you bill and collect today?
                 <select name="billing_now"><option value="">Choose…</option>@foreach (Demo::BILLING_NOW as $b)<option value="{{ $b }}" @selected(old('billing_now') === $b)>{{ $b }}</option>@endforeach</select>
             </label>
-        </fieldset>
+        </div>
 
-        <fieldset class="stack" style="gap:10px;border:0;padding:0;margin:0">
-            <legend><h2>4. When should we contact you?</h2></legend>
+        <div class="stack" style="gap:10px" role="group" aria-labelledby="dr-h4">
+            <h2 id="dr-h4">4. When should we contact you?</h2>
             <div class="dr-grid">
                 <label class="dr-field">Day<input type="date" name="contact_date" required min="{{ now('Africa/Nairobi')->toDateString() }}" max="{{ now('Africa/Nairobi')->addDays(59)->toDateString() }}" value="{{ old('contact_date', now('Africa/Nairobi')->addWeekday()->toDateString()) }}"></label>
                 <label class="dr-field">Time (Nairobi)<select name="contact_window" required>@foreach (Demo::WINDOWS as $w)<option value="{{ $w }}" @selected(old('contact_window', '10:00–12:00') === $w)>{{ $w }}</option>@endforeach</select></label>
@@ -115,7 +115,7 @@
                 @endforeach
             </div>
             <label class="dr-field">Anything we should know? <span class="muted" style="font-weight:400">(optional)</span><textarea name="message" maxlength="2000">{{ old('message') }}</textarea></label>
-        </fieldset>
+        </div>
 
         <label class="dr-chip" style="font-weight:400"><input type="checkbox" name="consent" value="1" required @checked(old('consent'))> I agree that scharge may use these details to contact me about this demo. We don't share them.</label>
         <button class="btn btn--primary" type="submit" style="align-self:flex-start">Book my demo</button>
@@ -137,7 +137,7 @@
       row.querySelectorAll('[name]').forEach(function (el) { el.name = el.name.replace(/properties\[\d+\]/, 'properties[' + i + ']'); });
       sum += parseInt(row.querySelector('.dr-units').value, 10) || 0;
     });
-    document.getElementById('dr-count').textContent = rows().length;
+    document.getElementById('dr-count').textContent = rows().length + (rows().length === 1 ? ' property' : ' properties');
     document.getElementById('dr-sum').textContent = sum.toLocaleString();
   }
   document.getElementById('dr-add').addEventListener('click', function () {
