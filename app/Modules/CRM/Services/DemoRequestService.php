@@ -187,6 +187,7 @@ class DemoRequestService
             return $demo;
         });
 
+        \App\Modules\CRM\Support\EmailTracking::mark(\App\Modules\CRM\Support\EmailTracking::latestFor($company), 'booked');
         $followUp->load('company', 'contact', 'assignee');
         $pdf = $this->pdf($followUp);
         $followUp->update(['details' => array_merge($followUp->details, ['pdf' => $pdf])]);

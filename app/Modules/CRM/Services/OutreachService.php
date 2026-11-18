@@ -6,9 +6,11 @@ use App\Models\Company;
 use App\Modules\CRM\Mail\CrmOutreachEmail;
 use App\Modules\CRM\Support\EmailBody;
 use App\Modules\CRM\Support\Playbook;
+use App\Modules\CRM\Support\PropertyClass;
 use App\Modules\Users\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 /**
  * Sends one cold email (Playbook or campaign) from sales@sharet.africa, signed by the account manager,
@@ -30,7 +32,8 @@ class OutreachService
         $manager = $company->owner_id ? ($company->fresh('owner')->owner ?? $sender) : $sender;
         $body = EmailBody::toHtml($body);
 
-        Mail::to($to)->send(new CrmOutreachEmail($subject, $body, $manager, $company));
+        $track = Str::random(24);
+        $sent = Mail::to($to)->send(new CrmOutreachEmail($subject, $body, $manager, $company, $track));
 
         // Whoever sends the first email takes an unowned prospect: the follow-up is theirs.
         if (! $company->owner_id) {
@@ -41,7 +44,8 @@ class OutreachService
         $company->followUps()->create([
             'assigned_to' => $manager->id, 'created_by' => $sender->id, 'type' => 'email', 'status' => 'done',
             'title' => 'Cold email: '.$subject, 'notes' => EmailBody::toText($body), 'done_at' => now(),
-            'details' => array_filter(['to' => $to, 'from' => Playbook::SALES_FROM, 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company)]),
+            'details' => array_filter(['to' => $to, 'from' => Playbook::SALES_FROM, 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company),
+                'track' => $track, 'message_id' => $sent?->getMessageId(), 'type' => PropertyClass::of($company)]),
         ]);
         $due = now()->addWeekdays($followUpDays)->setTime(10, 0);
         $company->followUps()->create([
@@ -54,6 +58,7 @@ class OutreachService
         }
 
         $profile = array_filter(['email_subject' => $subject, 'email_body' => $body, 'last_emailed_at' => now()->toDateTimeString(), 'campaign' => $campaign]);
+        $profile['email_bounced'] = false; // a new attempt clears an old bounce
         if (! $company->email) {
             $company->update(['email' => $to]);
         }

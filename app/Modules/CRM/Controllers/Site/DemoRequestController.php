@@ -5,6 +5,7 @@ namespace App\Modules\CRM\Controllers\Site;
 use App\Http\Controllers\Controller;
 use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Services\DemoRequestService as Demo;
+use App\Modules\CRM\Support\EmailTracking;
 use App\Modules\CRM\Support\CrmAccess;
 use App\Modules\CRM\Support\Normalizer;
 use Illuminate\Http\RedirectResponse;
@@ -22,12 +23,24 @@ class DemoRequestController extends Controller
     {
     }
 
-    public function show(string $ref): View
+    public function show(Request $request, string $ref): View
     {
         $company = Demo::findByRef($ref);
         abort_unless($company, 404);
+        // Opened from a cold email (?t=…): they clicked.
+        EmailTracking::mark(EmailTracking::find($request->query('t')), 'clicked');
 
         return view('home.demo-request', ['company' => $company, 'ref' => strtoupper($ref), 'manager' => $company->owner]);
+    }
+
+    /** 1×1 image in cold emails: records that the email was opened. */
+    public function opened(string $token): \Illuminate\Http\Response
+    {
+        EmailTracking::mark(EmailTracking::find($token), 'opened');
+
+        return response(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), 200, [
+            'Content-Type' => 'image/gif', 'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0', 'Pragma' => 'no-cache',
+        ]);
     }
 
     public function store(Request $request, string $ref): RedirectResponse

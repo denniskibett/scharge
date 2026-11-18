@@ -43,6 +43,7 @@ class CrmCompanyController extends Controller
             ->when(($filters['attention'] ?? null) === 'overdue', fn ($q) => $q->whereHas('followUps', fn ($f) => $f->overdue()))
             ->when(($filters['attention'] ?? null) === 'unattended', fn ($q) => $q->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo))
             ->when(($filters['attention'] ?? null) === 'verify', fn ($q) => $q->where('crm_profile->needs_verification', true))
+            ->when(($filters['attention'] ?? null) === 'unsent', fn ($q) => \App\Modules\CRM\Support\EmailTracking::unsent($q))
             // From the Kenya map (crm:geocode fills these in crm_profile).
             ->when($filters['county'] ?? null, fn ($q, $v) => $q->where('crm_profile->county', $v))
             ->when($filters['sub_county'] ?? null, fn ($q, $v) => $v === 'none' ? $q->whereNull('crm_profile->sub_county') : $q->where('crm_profile->sub_county', $v))

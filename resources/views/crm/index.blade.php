@@ -41,6 +41,7 @@
             ['label' => 'Overdue', 'url' => $tabUrl('overdue'), 'active' => $att === 'overdue', 'count' => $att === 'overdue' ? $companies->total() : null, 'tone' => 'red'],
             ['label' => 'No next step', 'url' => $tabUrl('unattended'), 'active' => $att === 'unattended', 'count' => $stats['unattended'], 'tone' => 'amber'],
             ['label' => 'To verify', 'url' => $tabUrl('verify'), 'active' => $att === 'verify', 'count' => $att === 'verify' ? $companies->total() : null],
+            ['label' => 'Unsent', 'url' => $tabUrl('unsent'), 'active' => $att === 'unsent', 'count' => $att === 'unsent' ? $companies->total() : null, 'tone' => 'amber'],
         ];
         $initials = fn ($n) => collect(preg_split('/\s+/', trim((string) $n)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') ?: '?';
         $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';

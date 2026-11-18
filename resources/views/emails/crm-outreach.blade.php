@@ -7,7 +7,7 @@
   $display = "'Unbounded','Arial Black',Arial,sans-serif";
   $offers = array_values(array_filter($book['offers'] ?? [], fn ($o) => ! str_starts_with($o, 'Pricing')));
   $offers = array_slice($offers, 0, 4);
-  $demoHref = $company ? \App\Modules\CRM\Support\Playbook::demoUrl($company) : $base;
+  $demoHref = $company ? \App\Modules\CRM\Support\Playbook::demoUrl($company).(! empty($track) ? '?t='.$track : '') : $base;
   $plain = \App\Modules\CRM\Support\EmailBody::toText($body);
   $paragraphs = preg_split("/\n{2,}/", $plain);
 @endphp
@@ -67,5 +67,6 @@
   </table>
 </td></tr>
 </table>
+@if (! empty($track))<img src="{{ $base }}/e/{{ $track }}.gif" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;">@endif
 </body>
 </html>

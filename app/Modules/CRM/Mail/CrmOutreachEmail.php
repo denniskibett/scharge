@@ -13,7 +13,7 @@ use Illuminate\Mail\Mailables\Envelope;
 /** A cold email from an account manager in the scharge "Ink" design: sent from sales@sharet.africa, replies go to the manager. */
 class CrmOutreachEmail extends Mailable
 {
-    public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null)
+    public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null, public ?string $track = null)
     {
     }
 

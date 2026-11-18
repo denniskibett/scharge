@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Modules\CRM\Mail\CrmOutreachEmail;
 use App\Modules\CRM\Services\OutreachService;
 use App\Modules\CRM\Support\EmailBody;
+use App\Modules\CRM\Support\EmailTracking;
 use App\Modules\CRM\Support\Playbook;
 use App\Modules\CRM\Support\PropertyClass;
 use App\Modules\Users\Models\User;
@@ -111,14 +112,8 @@ class SendCampaign extends Command
     /** Prospects of these classes we may cold-email; $withEmail=false lists them all (test samples). */
     private function audience(array $classes, bool $withEmail = true): Builder
     {
-        $q = Company::withoutGlobalScope('customers')->where('lifecycle', 'prospect')
-            ->where(fn ($w) => $w->whereNull('crm_stage')->orWhere('crm_stage', 'new'))
-            ->where(fn ($w) => $w->whereNull('crm_profile->do_not_email')->orWhere('crm_profile->do_not_email', false))
-            ->whereNull('crm_profile->last_emailed_at')
+        $q = EmailTracking::ready(Company::withoutGlobalScope('customers'), $withEmail)
             ->where(fn ($w) => collect($classes)->each(fn ($c) => $w->orWhere(fn ($x) => PropertyClass::scope($x, $c))));
-        if ($withEmail) {
-            $q->whereNotNull('email')->where('email', 'like', '%_@_%._%');
-        }
 
         return $q;
     }
