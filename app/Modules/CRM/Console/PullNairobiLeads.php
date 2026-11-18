@@ -102,18 +102,30 @@ class PullNairobiLeads extends Command
         // 1. Fetch.
         $elements = [];
         $failed = [];
-        foreach ($areas as $area => [$lat, $lng, $radius]) {
-            $found = $this->overpass($lat, $lng, $radius);
-            if ($found === null) {
-                $failed[] = $area;
-                $this->warn("Overpass gave no answer for {$area}; it is retried next run.");
-                continue;
+        // Overpass is often busy: areas that get no answer are tried once more at the end, after a pause.
+        foreach ([array_keys($areas), null] as $pass => $names) {
+            $names ??= $failed;
+            if ($pass === 1) {
+                if (! $failed) {
+                    break;
+                }
+                $failed = [];
+                sleep(30);
             }
-            foreach ($found as $el) {
-                $elements[$el['type'].'/'.$el['id']] = $el;
+            foreach ($names as $area) {
+                [$lat, $lng, $radius] = $areas[$area];
+                $found = $this->overpass($lat, $lng, $radius);
+                if ($found === null) {
+                    $failed[] = $area;
+                    $this->warn("Overpass gave no answer for {$area}".($pass ? '; it is retried next run.' : '; trying again at the end.'));
+                    continue;
+                }
+                foreach ($found as $el) {
+                    $elements[$el['type'].'/'.$el['id']] = $el;
+                }
+                $this->line(sprintf('%-14s %4d OSM features', $area, count($found)));
+                usleep(1_500_000);
             }
-            $this->line(sprintf('%-14s %4d OSM features', $area, count($found)));
-            usleep(1_500_000);
         }
 
         // 2. Classify, assign areas, dedupe.
@@ -206,7 +218,7 @@ class PullNairobiLeads extends Command
     private function overpass(float $lat, float $lng, int $radius): ?array
     {
         $a = "(around:{$radius},{$lat},{$lng})";
-        $query = '[out:json][timeout:90];('
+        $query = '[out:json][timeout:60];('
             .'nwr[name][building~"^(apartments|residential|flats|dormitory)$"]'.$a.';'
             .'nwr[name][landuse=residential]'.$a.';'
             .'nwr[name][residential]'.$a.';'
@@ -219,14 +231,14 @@ class PullNairobiLeads extends Command
 
         foreach (self::ENDPOINTS as $attempt => $url) {
             try {
-                $response = Http::withHeaders(['User-Agent' => self::UA])->asForm()->timeout(120)->post($url, ['data' => $query]);
+                $response = Http::withHeaders(['User-Agent' => self::UA])->asForm()->connectTimeout(10)->timeout(75)->post($url, ['data' => $query]);
                 if ($response->successful() && is_array($elements = $response->json('elements'))) {
                     return $elements;
                 }
             } catch (\Throwable) {
                 // next endpoint
             }
-            sleep(5 * ($attempt + 1));
+            sleep(3 * ($attempt + 1));
         }
 
         return null;
