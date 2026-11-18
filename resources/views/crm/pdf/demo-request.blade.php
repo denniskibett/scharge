@@ -40,10 +40,11 @@
   <table>
     <tr><th>Property</th><th>Type</th><th>Location</th><th class="num">Units</th></tr>
     @foreach ($props as $pr)
-      <tr><td>{{ $pr['name'] ?? '' ?: '-' }}</td><td>{{ $pr['type'] ?? '' ?: '-' }}</td><td>{{ $pr['location'] ?? '' ?: '-' }}</td><td class="num">{{ isset($pr['units']) && $pr['units'] !== '' ? number_format((int) $pr['units']) : '-' }}</td></tr>
+      <tr><td>{{ $pr['name'] ?? '' ?: '-' }}</td><td>{{ $pr['type'] ?? '' ?: '-' }}@if (Demo::typeGroup($pr['type'] ?? null))<br><span style="color:#5C4A4E;font-size:10px">{{ Demo::typeGroup($pr['type']) }}</span>@endif</td><td>{{ $pr['location'] ?? '' ?: '-' }}</td><td class="num">{{ isset($pr['units']) && $pr['units'] !== '' ? number_format((int) $pr['units']) : '-' }}</td></tr>
     @endforeach
     <tr><td colspan="3"><strong>Total</strong></td><td class="num"><strong>{{ number_format((int) $f->detail('units')) }}</strong></td></tr>
   </table>
+  @if ($f->detail('mix'))<p><strong>Property type:</strong> {{ $f->detail('property_class') }} · {{ Demo::mixLabel($f->detail('mix')) }}</p>@endif
 
   <h2>Wants to see</h2>
   <table>

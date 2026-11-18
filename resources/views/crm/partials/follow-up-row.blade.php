@@ -24,6 +24,7 @@
                         $followUp->detail('project_type'),
                         $followUp->detail('properties') ? count($followUp->detail('properties')).' properties' : null,
                         $followUp->detail('units') ? number_format($followUp->detail('units')).' units' : null,
+                        $followUp->detail('mix') ? \App\Modules\CRM\Services\DemoRequestService::mixLabel($followUp->detail('mix')) : null,
                         $followUp->detail('contact.channel') ? 'Wants: '.$followUp->detail('contact.channel').' '.$followUp->detail('contact.window') : null,
                         $followUp->detail('ref'),
                     ],

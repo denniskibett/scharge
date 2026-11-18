@@ -1,4 +1,4 @@
-{{-- Playbook modal body (fragment): loaded into crm.partials.playbook-modal. --}}
+{{-- Playbook slide-over body (fragment): loaded into crm.partials.playbook-modal. Pills switch sections; ⋯ menus hold the secondary actions. --}}
 @php
     $field = 'h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 focus:border-brand-300 focus:outline-none focus:ring focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
     $area = 'w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm leading-relaxed text-gray-800 focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
@@ -7,8 +7,11 @@
     $ghost = 'inline-flex h-10 items-center justify-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5';
     $tab = fn ($t) => "tab === '{$t}'";
     $verify = (bool) $company->profile('needs_verification');
+    $menu = 'absolute right-0 z-10 mt-1 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-800 dark:bg-gray-900';
+    $item = 'flex w-full items-center gap-2 px-3 py-2 text-left text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5';
+    $dots = 'inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-white/5';
 @endphp
-<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}' }" class="flex max-h-[85vh] flex-col">
+<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}', copied: '' }" class="flex h-full min-h-0 flex-col">
     {{-- Header --}}
     <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
         <div class="min-w-0">
@@ -17,21 +20,43 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') ?: 'Location not set' }}
                 · Account manager: <span class="font-medium text-gray-700 dark:text-gray-300">{{ $company->owner?->name ?? 'none yet ('.$manager->name.' if you send)' }}</span>
+                @if ($company->profile('property_class')) · {{ $company->profile('property_class') }}@endif
                 @if ($company->profile('last_emailed_at')) · last emailed {{ \Illuminate\Support\Carbon::parse($company->profile('last_emailed_at'))->diffForHumans() }}@endif
             </p>
         </div>
-        <button type="button" @click="$dispatch('close-playbook')" class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/5" aria-label="Close"><x-icon name="x-mark" class="h-5 w-5" /></button>
+        <div class="flex shrink-0 items-center gap-1">
+            <div class="relative" x-data="{ menu: false }" @click.outside="menu = false" @keydown.escape.stop="menu = false">
+                <button type="button" @click="menu = !menu" class="{{ $dots }}" aria-label="More actions" :aria-expanded="menu"><x-icon name="ellipsis-horizontal" class="h-5 w-5" /></button>
+                <div x-show="menu" x-cloak x-transition.origin.top.right class="{{ $menu }}" @click="menu = false">
+                    <a href="{{ route('crm.companies.show', $company) }}" class="{{ $item }}">Open company page</a>
+                    @if ($company->phone)
+                        <a href="tel:{{ preg_replace('/[^\d+]/', '', $company->phone) }}" class="{{ $item }}">Call {{ $company->phone }}</a>
+                        <a href="https://wa.me/{{ preg_replace('/\D/', '', $company->phone) }}" target="_blank" rel="noopener" class="{{ $item }}">WhatsApp</a>
+                    @endif
+                    @if ($company->email)<a href="mailto:{{ $company->email }}" class="{{ $item }}">Email from my mailbox</a>@endif
+                    <div class="my-1 border-t border-gray-100 dark:border-gray-800"></div>
+                    <a href="{{ $demoUrl }}" target="_blank" rel="noopener" class="{{ $item }}">Open their demo form</a>
+                    <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(@js($demoUrl)); copied = 'Demo link copied'; setTimeout(() => copied = '', 1500)">Copy demo link</button>
+                    <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="{{ $item }}">Preview saved email</a>
+                    <button type="button" class="{{ $item }}" @click="tab = 'verify'">Verify details</button>
+                </div>
+            </div>
+            <button type="button" @click="$dispatch('close-playbook')" class="{{ $dots }}" aria-label="Close"><x-icon name="x-mark" class="h-5 w-5" /></button>
+        </div>
     </div>
 
-    <nav class="flex gap-1 border-b border-gray-200 px-5 pt-2 dark:border-gray-800" aria-label="Playbook sections">
+    <nav class="flex gap-2 overflow-x-auto border-b border-gray-200 px-5 py-3 dark:border-gray-800" aria-label="Playbook sections">
         @foreach (['research' => '1 · Research', 'email' => '2 · Cold email', 'approach' => 'How to approach', 'offers' => 'What to sell', 'verify' => 'Verify details'] as $key => $name)
-            <button type="button" @click="tab = '{{ $key }}'" :class="{{ $tab($key) }} ? 'border-brand-500 text-brand-600 dark:text-brand-400' : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400'" class="-mb-px border-b-2 px-3 py-2 text-sm font-medium">
-                {{ $name }}@if ($key === 'verify' && $verify)<span class="ml-1 inline-block h-2 w-2 rounded-full bg-amber-500"></span>@endif
+            <button type="button" @click="tab = '{{ $key }}'" :aria-current="{{ $tab($key) }} ? 'page' : null"
+                :class="{{ $tab($key) }} ? 'bg-brand-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10'"
+                class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition">
+                {{ $name }}@if ($key === 'verify' && $verify)<span class="inline-block h-2 w-2 rounded-full bg-amber-500"></span>@endif
             </button>
         @endforeach
     </nav>
+    <div x-show="copied" x-cloak x-text="copied" class="mx-5 mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-300"></div>
 
-    <div class="overflow-y-auto p-5">
+    <div class="min-h-0 flex-1 overflow-y-auto p-5">
         {{-- Research: their problems, what we know, what you found --}}
         <div x-show="{{ $tab('research') }}" x-cloak>
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">Emails that open with <em>their</em> problem get far more replies than a product pitch. Tick what's likely true for {{ $company->name }}, add one thing you found (their website, listings, reviews), and we'll write the email around it.</p>
@@ -84,12 +109,21 @@
                     <textarea id="pb-body" name="body" rows="12" required class="{{ $area }}">{{ old('body', $draft['body']) }}</textarea></div>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Their demo form: <a href="{{ $demoUrl }}" target="_blank" rel="noopener" class="text-brand-500 hover:underline">{{ $demoUrl }}</a> (the email's button goes there; what they fill in comes back to this company as a PDF).</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">Sent from scharge as <strong>{{ $manager->name }} · scharge</strong>; replies go to {{ $manager->email }}. An opt-out line is added at the bottom. A call follow-up is booked for {{ $manager->name }} and the email is logged on the timeline.</p>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="sticky bottom-0 -mx-5 -mb-5 flex items-center gap-2 border-t border-gray-200 bg-white px-5 py-3 dark:border-gray-800 dark:bg-gray-900">
                     <button class="{{ $btn }}" :disabled="sending" @disabled($doNotEmail)><span x-text="sending ? 'Sending…' : 'Send email'"></span></button>
                     <button type="submit" formaction="{{ route('crm.companies.playbook.draft', $company) }}" formnovalidate name="_method" value="PUT" class="{{ $ghost }}">Save draft</button>
-                    @if ($hasSavedDraft)<button type="submit" formaction="{{ route('crm.companies.playbook.draft', $company) }}" formnovalidate name="reset" value="1" class="text-sm text-gray-500 hover:text-gray-800" onclick="this.form.insertAdjacentHTML('beforeend','<input type=hidden name=_method value=PUT>')">Reset to template</button>@endif
-                    <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="ml-auto text-sm text-brand-500 hover:underline" title="Shows the saved draft; save first to preview your edits">Preview email</a>
-                    <button type="button" class="text-sm text-brand-500 hover:underline" x-data="{ copied: false }" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-body').value); copied = true; setTimeout(() => copied = false, 1500)" x-text="copied ? 'Copied' : 'Copy text'"></button>
+                    <div class="relative ml-auto" x-data="{ menu: false }" @click.outside="menu = false" @keydown.escape.stop="menu = false">
+                        <button type="button" @click="menu = !menu" class="{{ $dots }}" aria-label="More email actions" :aria-expanded="menu"><x-icon name="ellipsis-horizontal" class="h-5 w-5" /></button>
+                        <div x-show="menu" x-cloak x-transition.origin.bottom.right class="{{ $menu }} bottom-full mb-1 mt-0" @click="menu = false">
+                            <a href="{{ route('crm.companies.playbook.preview', $company) }}" target="_blank" rel="noopener" class="{{ $item }}" title="Shows the saved draft; save first to preview your edits">Preview email</a>
+                            <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(document.getElementById('pb-subject').value + '\n\n' + document.getElementById('pb-body').value); copied = 'Email text copied'; setTimeout(() => copied = '', 1500)">Copy subject and text</button>
+                            <button type="button" class="{{ $item }}" @click="navigator.clipboard.writeText(@js($demoUrl)); copied = 'Demo link copied'; setTimeout(() => copied = '', 1500)">Copy demo link</button>
+                            <button type="button" class="{{ $item }}" @click="tab = 'research'">Rewrite from research</button>
+                            @if ($hasSavedDraft)
+                                <button type="submit" formaction="{{ route('crm.companies.playbook.draft', $company) }}" formnovalidate name="reset" value="1" class="{{ $item }} text-red-600 dark:text-red-400" onclick="this.form.insertAdjacentHTML('beforeend','<input type=hidden name=_method value=PUT>')">Reset to template</button>
+                            @endif
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -112,11 +146,6 @@
                         <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"><dt class="font-medium text-gray-800 dark:text-white/90">“{{ $q }}”</dt><dd class="mt-0.5 text-gray-600 dark:text-gray-400">{{ $a }}</dd></div>
                     @endforeach
                 </dl>
-            </div>
-            <div class="flex flex-wrap gap-2 text-sm">
-                @if ($company->phone)<a href="tel:{{ preg_replace('/[^\d+]/', '', $company->phone) }}" class="{{ $ghost }}">Call {{ $company->phone }}</a>
-                    <a href="https://wa.me/{{ preg_replace('/\D/', '', $company->phone) }}" target="_blank" rel="noopener" class="{{ $ghost }}">WhatsApp</a>@endif
-                <a href="{{ route('crm.companies.show', $company) }}" class="{{ $ghost }}">Open company page</a>
             </div>
         </div>
 

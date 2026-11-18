@@ -47,7 +47,7 @@ class DemoRequestController extends Controller
             'interests.*' => [Rule::in(array_keys(Demo::INTERESTS))],
             'properties' => ['required', 'array', 'min:1', 'max:50'],
             'properties.*.name' => ['nullable', 'string', 'max:120'],
-            'properties.*.type' => ['nullable', Rule::in(Demo::PROPERTY_TYPES)],
+            'properties.*.type' => ['nullable', 'required_with:properties.*.name,properties.*.units', Rule::in(Demo::PROPERTY_TYPES)],
             'properties.*.location' => ['nullable', 'string', 'max:120'],
             'properties.*.units' => ['nullable', 'integer', 'min:0', 'max:100000'],
             'billing_now' => ['nullable', Rule::in(Demo::BILLING_NOW)],
@@ -56,7 +56,7 @@ class DemoRequestController extends Controller
             'channel' => ['required', Rule::in(Demo::CHANNELS)],
             'message' => ['nullable', 'string', 'max:2000'],
             'consent' => ['accepted'],
-        ], ['consent.accepted' => 'Please agree to be contacted about the demo.'], ['properties.*.units' => 'units']);
+        ], ['consent.accepted' => 'Please agree to be contacted about the demo.', 'properties.*.type.required_with' => 'Pick a property type for each property (apartments, offices, Airbnb…).'], ['properties.*.units' => 'units', 'properties.*.type' => 'property type']);
         if (! Normalizer::phone($data['phone'], '254')) {
             throw ValidationException::withMessages(['phone' => 'Enter a phone number we can call, e.g. 0712 345 678.']);
         }

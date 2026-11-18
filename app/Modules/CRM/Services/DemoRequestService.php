@@ -41,7 +41,78 @@ class DemoRequestService
         'migration' => 'Moving our data from Excel or another system',
     ];
 
-    public const PROPERTY_TYPES = ['Apartments', 'Gated estate / maisonettes', 'Commercial / offices', 'Mall / retail', 'Short-stay / serviced', 'Student hostel', 'Warehouse / industrial', 'Mixed use', 'Plots / land', 'Other'];
+    /** Property types, grouped into the class we sell to (each class has its own playbook pitch). */
+    public const TYPE_GROUPS = [
+        'Residential' => ['Apartments / flats', 'Bedsitters / single rooms', 'Gated estate / maisonettes', 'Standalone houses / villas', 'Student hostel'],
+        'Short-stay' => ['Airbnb / serviced apartments', 'Hotel / guest house'],
+        'Commercial' => ['Offices', 'Mall / shops / retail', 'Warehouse / industrial'],
+        'Mixed use' => ['Mixed use (shops + homes)'],
+        'Land & other' => ['Plots / land', 'Other'],
+    ];
+
+    public const PROPERTY_TYPES = [
+        'Apartments / flats', 'Bedsitters / single rooms', 'Gated estate / maisonettes', 'Standalone houses / villas', 'Student hostel',
+        'Airbnb / serviced apartments', 'Hotel / guest house', 'Offices', 'Mall / shops / retail', 'Warehouse / industrial',
+        'Mixed use (shops + homes)', 'Plots / land', 'Other',
+    ];
+
+    /** Types used by submissions made before the grouped list (18 Nov 2026). */
+    private const LEGACY_TYPES = [
+        'Apartments' => 'Residential', 'Short-stay / serviced' => 'Short-stay', 'Commercial / offices' => 'Commercial',
+        'Mall / retail' => 'Commercial', 'Mixed use' => 'Mixed use',
+    ];
+
+    public static function typeGroup(?string $type): ?string
+    {
+        if (! $type) {
+            return null;
+        }
+        foreach (self::TYPE_GROUPS as $group => $types) {
+            if (in_array($type, $types, true)) {
+                return $group;
+            }
+        }
+
+        return self::LEGACY_TYPES[$type] ?? 'Land & other';
+    }
+
+    /**
+     * Units per property class, largest first, e.g. ['Residential' => 30, 'Commercial' => 6].
+     * A typed row with no units still counts its class (0 units).
+     *
+     * @param  array<int,array<string,mixed>>  $properties
+     * @return array<string,int>
+     */
+    public static function mix(array $properties): array
+    {
+        $mix = [];
+        foreach ($properties as $p) {
+            if ($group = self::typeGroup($p['type'] ?? null)) {
+                $mix[$group] = ($mix[$group] ?? 0) + (int) ($p['units'] ?? 0);
+            }
+        }
+        arsort($mix);
+
+        return $mix;
+    }
+
+    /** The one class for the company: the class with most units, or "Mixed portfolio" when none has 70%. */
+    public static function propertyClass(array $mix): ?string
+    {
+        if (! $mix) {
+            return null;
+        }
+        $total = array_sum($mix);
+        $top = array_key_first($mix);
+
+        return count($mix) === 1 || ($total > 0 && $mix[$top] / $total >= 0.7) ? $top : 'Mixed portfolio';
+    }
+
+    /** "Residential 30 units · Commercial 6 units" */
+    public static function mixLabel(array $mix): string
+    {
+        return collect($mix)->map(fn ($u, $g) => $g.($u ? ' '.number_format($u).' '.($u === 1 ? 'unit' : 'units') : ''))->join(' · ');
+    }
 
     public const BILLING_NOW = ['Excel / by hand', 'Paybill only', 'Another system', 'New building, nothing yet'];
 
@@ -66,9 +137,10 @@ class DemoRequestService
             ->filter(fn ($p) => ($p['name'] ?? '') !== '' || (int) ($p['units'] ?? 0) > 0)
             ->values()->all();
         $totalUnits = array_sum(array_map(fn ($p) => (int) ($p['units'] ?? 0), $properties));
+        $mix = self::mix($properties);
         $when = Carbon::parse($data['contact_date'].' '.substr($data['contact_window'], 0, 5), 'Africa/Nairobi');
 
-        $followUp = DB::transaction(function () use ($company, $data, $properties, $totalUnits, $when, $ref) {
+        $followUp = DB::transaction(function () use ($company, $data, $properties, $totalUnits, $mix, $when, $ref) {
             [$person] = $this->contacts->upsertPerson([
                 'name' => $data['name'], 'phone' => $data['phone'], 'email' => $data['email'] ?? null, 'country_code' => 'KE',
             ], 'website_demo');
@@ -80,6 +152,9 @@ class DemoRequestService
             $profile = array_merge($company->crm_profile ?? [], array_filter([
                 'estimated_units' => $totalUnits ?: ($company->profile('estimated_units') ?: null),
                 'requester_role' => self::ROLES[$data['role']] ?? null,
+                'property_class' => self::propertyClass($mix),
+                'property_mix' => $mix ? self::mixLabel($mix) : null,
+                'property_types' => implode(', ', array_values(array_unique(array_filter(array_column($properties, 'type'))))) ?: null,
                 'needs_verification' => false,
             ], fn ($v) => $v !== null));
             $company->update(['crm_profile' => $profile]);
@@ -98,6 +173,8 @@ class DemoRequestService
                     'interests' => array_values(array_intersect(array_keys(self::INTERESTS), $data['interests'] ?? [])),
                     'properties' => $properties,
                     'units' => $totalUnits,
+                    'mix' => $mix,
+                    'property_class' => self::propertyClass($mix),
                     'billing_now' => $data['billing_now'] ?? null,
                     'contact' => ['date' => $data['contact_date'], 'window' => $data['contact_window'], 'channel' => $data['channel']],
                     'project_type' => self::ROLES[$data['role']] ?? null,

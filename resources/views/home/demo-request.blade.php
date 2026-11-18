@@ -82,12 +82,12 @@
 
         <div class="stack" style="gap:10px" role="group" aria-labelledby="dr-h3">
             <h2 id="dr-h3">3. Your properties</h2>
-            <p class="muted" style="margin:0">One row per building or estate. A rough number of units is fine.</p>
+            <p class="muted" style="margin:0">One row per building or estate: pick its type and give a rough number of units.</p>
             <div class="dr-props" id="dr-props">
                 @foreach (array_values($oldProps) as $i => $pr)
                     <div class="dr-prop">
                         <input class="dr-name" name="properties[{{ $i }}][name]" value="{{ $pr['name'] ?? '' }}" maxlength="120" placeholder="Property name" aria-label="Property name">
-                        <select name="properties[{{ $i }}][type]" aria-label="Type"><option value="">Type</option>@foreach (Demo::PROPERTY_TYPES as $t)<option value="{{ $t }}" @selected(($pr['type'] ?? '') === $t)>{{ $t }}</option>@endforeach</select>
+                        <select name="properties[{{ $i }}][type]" aria-label="Property type" class="dr-type"><option value="">Property type…</option>@foreach (Demo::TYPE_GROUPS as $group => $types)<optgroup label="{{ $group }}">@foreach ($types as $t)<option value="{{ $t }}" @selected(($pr['type'] ?? '') === $t)>{{ $t }}</option>@endforeach</optgroup>@endforeach</select>
                         <input name="properties[{{ $i }}][location]" value="{{ $pr['location'] ?? '' }}" maxlength="120" placeholder="Area / town" aria-label="Location">
                         <input name="properties[{{ $i }}][units]" value="{{ $pr['units'] ?? '' }}" type="number" min="0" max="100000" inputmode="numeric" placeholder="Units" aria-label="Units" class="dr-units">
                         <button type="button" class="dr-remove" aria-label="Remove property">×</button>
@@ -136,6 +136,8 @@
     rows().forEach(function (row, i) {
       row.querySelectorAll('[name]').forEach(function (el) { el.name = el.name.replace(/properties\[\d+\]/, 'properties[' + i + ']'); });
       sum += parseInt(row.querySelector('.dr-units').value, 10) || 0;
+      var filled = row.querySelector('.dr-name').value.trim() !== '' || row.querySelector('.dr-units').value !== '';
+      row.querySelector('.dr-type').required = filled || i === 0;
     });
     document.getElementById('dr-count').textContent = rows().length + (rows().length === 1 ? ' property' : ' properties');
     document.getElementById('dr-sum').textContent = sum.toLocaleString();
