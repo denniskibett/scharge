@@ -20,7 +20,7 @@ Route::bind('crmCompany', fn ($id) => Company::withoutGlobalScope('customers')->
 // ---------------------------------------------------------------------------
 // Public website forms
 // ---------------------------------------------------------------------------
-Route::middleware('throttle:6,1')->group(function () {
+Route::middleware('throttle:6,1,site-forms')->group(function () {
     Route::post('/waitlist', [SiteFormController::class, 'waitlist'])->name('site.waitlist.store');
     Route::post('/book-a-demo', [SiteFormController::class, 'demo'])->name('site.demo.store');
     Route::post('/sandbox-keys', [SiteFormController::class, 'apiKeys'])->name('site.api-keys.store');
@@ -29,10 +29,10 @@ Route::middleware('throttle:6,1')->group(function () {
 });
 // Private demo form linked from each cold email: /demo/SC-XXXXXX
 Route::get('/demo/{ref}', [DemoRequestController::class, 'show'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->name('site.demo-request');
-Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->middleware('throttle:6,1')->name('site.demo-request.store');
+Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->middleware('throttle:6,1,demo-form')->name('site.demo-request.store');
 Route::get('/demo/{ref}/thanks', [DemoRequestController::class, 'thanks'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->name('site.demo-request.thanks');
 Route::get('/feedback/{token}', [SiteFeedbackController::class, 'show'])->name('site.feedback.show');
-Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->middleware('throttle:10,1')->name('site.feedback.store');
+Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->middleware('throttle:10,1,feedback')->name('site.feedback.store');
 
 // ---------------------------------------------------------------------------
 // CRM (scharge staff only)

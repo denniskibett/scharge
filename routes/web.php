@@ -199,7 +199,7 @@ Route::get('/robots.txt', [App\Http\Controllers\SeoController::class, 'robots'])
 Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->name('llms');
 
 // First-party website analytics beacon (public/assets/js/track.js; CSRF exempt in bootstrap/app.php)
-Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1')->name('track');
+Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1,track')->name('track');
 
 // Sales CRM > Website analytics (traffic, UTM campaigns, conversions, heatmap) for scharge staff
 // scharge staff › App health (docs/APP_DATA.md)
@@ -240,7 +240,7 @@ Route::prefix('public')->name('public.')->group(function () {
 // BnB hosts: public sign-up with their unit (website "Add my listing")
 Route::middleware('guest')->group(function () {
     Route::get('/host/register', [App\Http\Controllers\HostController::class, 'create'])->name('host.register');
-    Route::post('/host/register', [App\Http\Controllers\HostController::class, 'store'])->middleware('throttle:6,1')->name('host.store');
+    Route::post('/host/register', [App\Http\Controllers\HostController::class, 'store'])->middleware('throttle:6,1,host-register')->name('host.store');
 });
 Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1')->name('host.properties.search');
 
@@ -874,5 +874,5 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
 });
 
 // A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
-Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1')->name('site.contact');
+Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1,site-contact')->name('site.contact');
 Route::fallback([App\Http\Controllers\SiteController::class, 'fallback']);
