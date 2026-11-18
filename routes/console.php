@@ -85,3 +85,11 @@ Schedule::command('listings:match')
 Schedule::command('geo:update')->monthlyOn(3, '04:00')->withoutOverlapping()->onOneServer();
 Schedule::call(fn () => \Illuminate\Support\Facades\Schema::hasTable('login_events')
     && \Illuminate\Support\Facades\DB::table('login_events')->where('created_at', '<', now()->subDays(180))->delete())->dailyAt('04:30')->name('prune-login-events')->onOneServer();
+
+// CRM: new prospects in Nairobi's upmarket apartment areas (OSM + the curated agents' sheet), deduped against the
+// CRM, imported as prospects; backs up the companies table first (storage/app/crm-backups). Mondays, early.
+Schedule::command('crm:pull-nairobi --enrich=80')
+    ->weeklyOn(1, '05:30')
+    ->withoutOverlapping(180)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-pull-nairobi.log'));
