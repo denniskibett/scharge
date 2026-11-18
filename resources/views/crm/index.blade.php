@@ -76,7 +76,7 @@
             <table class="data-table w-full table-auto">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-800">
-                        <th class="{{ $th }}">Company</th><th class="{{ $th }}">Stage</th><th class="{{ $th }}">Owner</th><th class="{{ $th }}">Next step</th><th class="{{ $th }}">Last contact</th>
+                        <th class="{{ $th }}">Company</th><th class="{{ $th }}">Stage</th><th class="{{ $th }}">Owner</th><th class="{{ $th }}">Next step</th><th class="{{ $th }}">Last contact</th><th class="{{ $th }} text-right"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
@@ -90,7 +90,6 @@
                                         <div class="flex items-center gap-2">
                                             <a href="{{ route('crm.companies.show', $company) }}" class="text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90">{{ $company->name }}</a>
                                             @include('crm.partials.tier-badge', ['tier' => $company->tier])
-                                            <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="rounded-md border border-brand-200 px-2 py-0.5 text-xs font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-500/30 dark:text-brand-400 dark:hover:bg-brand-500/10" title="How to approach, what to sell, cold email, verify">Playbook</button>
                                             @if ($company->profile('needs_verification'))<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                         </div>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([\App\Modules\CRM\Support\PropertyClass::of($company), $company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
@@ -110,10 +109,17 @@
                                 @endif
                             </td>
                             <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $company->last_contact_at ? \Illuminate\Support\Carbon::parse($company->last_contact_at)->diffForHumans() : 'Never' }}</td>
+                            <td class="p-4 whitespace-nowrap">
+                                <div class="flex items-center justify-end gap-1">
+                                    <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white text-brand-500 hover:text-brand-600" title="Playbook: approach, what to sell, cold email, verify" aria-label="Open playbook for {{ $company->name }}"><x-icon name="light-bulb" class="h-5 w-5" /></button>
+                                    @if ($company->phone)<a href="tel:{{ preg_replace('/[^\d+]/', '', $company->phone) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white" title="Call {{ $company->phone }}" aria-label="Call {{ $company->name }}"><x-icon name="phone" class="h-4 w-4" /></a>@endif
+                                    <a href="{{ route('crm.companies.show', $company) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white" title="Open company" aria-label="Open {{ $company->name }}"><x-icon name="eye" class="h-4 w-4" /></a>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="p-4 text-center">
+                            <td colspan="6" class="p-4 text-center">
                                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No prospects found</h3>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your filters, or add a prospect.</p>
