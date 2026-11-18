@@ -85,6 +85,38 @@ class Playbook
     /** Cold emails go out from this address (replies go to the account manager). */
     public const SALES_FROM = 'sales@sharet.africa';
 
+    /** Once a prospect has filled the demo form (demo booked onwards), their emails come from onboarding instead. */
+    public const ONBOARDING_FROM = 'onboarding@sharet.africa';
+
+    public const ONBOARDING_STAGES = ['demo_booked', 'proposal', 'negotiation', 'won'];
+
+    public static function onboarding(?\App\Models\Company $company): bool
+    {
+        return $company && in_array($company->crm_stage, self::ONBOARDING_STAGES, true);
+    }
+
+    /** The From address for an email to this company: sales@ while cold, onboarding@ once they want to onboard. */
+    public static function fromFor(?\App\Models\Company $company): string
+    {
+        return self::onboarding($company) ? self::ONBOARDING_FROM : self::SALES_FROM;
+    }
+
+    /**
+     * Reply-To for an email to this company: the account manager's inboxes (login and work copy) and, once the
+     * prospect is onboarding, the onboarding inbox too.
+     *
+     * @return \Illuminate\Mail\Mailables\Address[]
+     */
+    public static function replyTo(?\App\Modules\Users\Models\User $manager, bool $onboarding): array
+    {
+        $to = $manager ? $manager->mailboxes() : [];
+        if ($onboarding) {
+            $to[] = self::ONBOARDING_FROM;
+        }
+
+        return array_map(fn ($e) => new \Illuminate\Mail\Mailables\Address($e, $e === self::ONBOARDING_FROM ? 'scharge onboarding' : $manager->name), array_values(array_unique($to)));
+    }
+
     /** Demo refs start with the property type in full, e.g. BNB-7KQ2MA, RESIDENTIAL-4HD8PQ; older refs start SC-. */
     public const REF_PREFIX = ['Short-stay' => 'BNB', 'Residential' => 'RESIDENTIAL', 'Commercial' => 'COMMERCIAL', 'Utilities' => 'UTILITIES', 'Mixed use' => 'MIXED', 'Mixed portfolio' => 'MIXED', 'Land & other' => 'LAND'];
 

@@ -20,10 +20,11 @@ class DemoRequestCopy extends Mailable
     public function envelope(): Envelope
     {
         $am = $this->demo->assignee;
-        $replyTo = $am?->email && filter_var($am->email, FILTER_VALIDATE_EMAIL) ? [new Address($am->email, $am->name)] : [];
+        // They filled the demo form, so they are onboarding: from onboarding@, replies to it and the manager.
+        $replyTo = Playbook::replyTo($am, true);
 
         return new Envelope(
-            from: new Address(Playbook::SALES_FROM, ($am?->name ? $am->name.' · ' : '').'scharge'),
+            from: new Address(Playbook::ONBOARDING_FROM, ($am?->name ? $am->name.' · ' : '').'scharge onboarding'),
             replyTo: $replyTo,
             subject: 'Your scharge demo request '.$this->demo->detail('ref'),
         );

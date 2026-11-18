@@ -51,7 +51,7 @@ class OutreachService
         $company->followUps()->create([
             'assigned_to' => $manager->id, 'created_by' => $sender->id, 'type' => 'email', 'status' => 'done',
             'title' => 'Cold email: '.$subject, 'notes' => EmailBody::toText($body), 'done_at' => now(),
-            'details' => array_filter(['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::SALES_FROM, 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company),
+            'details' => array_filter(['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::fromFor($company), 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company),
                 'track' => $track, 'message_id' => $sent?->getMessageId(), 'type' => PropertyClass::of($company)]),
         ]);
         $due = now()->addWeekdays($followUpDays)->setTime(10, 0);

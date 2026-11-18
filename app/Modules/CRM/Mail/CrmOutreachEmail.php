@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
-/** A cold email from an account manager in the scharge "Ink" design: sent from sales@sharet.africa, replies go to the manager. */
+/** An account manager's email in the scharge "Ink" design: from sales@sharet.africa (onboarding@ once the prospect is onboarding), replies go to the manager. */
 class CrmOutreachEmail extends Mailable
 {
     public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null, public ?string $track = null)
@@ -19,11 +19,11 @@ class CrmOutreachEmail extends Mailable
 
     public function envelope(): Envelope
     {
-        // Replies reach the manager's login inbox and their sharet.africa work copy.
-        $replyTo = array_map(fn ($e) => new Address($e, $this->manager->name), $this->manager->mailboxes());
+        // Replies reach the manager's login inbox and work copy (and onboarding@ once the prospect is onboarding).
+        $replyTo = Playbook::replyTo($this->manager, Playbook::onboarding($this->company));
 
         return new Envelope(
-            from: new Address(Playbook::SALES_FROM, $this->manager->name.' · scharge'),
+            from: new Address(Playbook::fromFor($this->company), $this->manager->name.' · scharge'),
             replyTo: $replyTo,
             subject: $this->subjectLine,
         );
