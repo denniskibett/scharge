@@ -39,11 +39,11 @@ class PullNairobiLeads extends Command
         {--no-seed : Skip the curated database/data/crm/nairobi sheets}
         {--dry-run : Fetch and match everything, then roll back (nothing saved, no backup)}';
 
-    protected $description = 'Pull new prospects in Nairobi\'s upmarket apartment areas from OpenStreetMap, dedupe and import';
+    protected $description = 'Pull new prospects in Nairobi\'s upmarket apartment areas (and Ruaka, Ruiru) from OpenStreetMap, dedupe and import';
 
     public const LABEL_FILE = 'nairobi_core_osm.csv';
 
-    /** Area => [lat, lng, radius m, tier]. Tier 3 = lower tier (Syokimau, Kitengela). */
+    /** Area => [lat, lng, radius m, tier, city]. Tier 3 = lower tier (Syokimau, Kitengela). City defaults to Nairobi. */
     public const AREAS = [
         'Kilimani' => [-1.2910, 36.7860, 1400, 2],
         'Kileleshwa' => [-1.2802, 36.7852, 1300, 2],
@@ -62,6 +62,8 @@ class PullNairobiLeads extends Command
         "Lang'ata" => [-1.3450, 36.7650, 2400, 2],
         'South B' => [-1.3099, 36.8338, 1100, 2],
         'South C' => [-1.3170, 36.8240, 1100, 2],
+        'Ruaka' => [-1.2085, 36.7775, 1800, 2, 'Kiambu'],
+        'Ruiru' => [-1.1460, 36.9600, 3500, 2, 'Kiambu'],
         'Syokimau' => [-1.3667, 36.9333, 2500, 3],
         'Kitengela' => [-1.4761, 36.9614, 3500, 3],
     ];
@@ -353,7 +355,7 @@ class PullNairobiLeads extends Command
             'Company' => $name,
             'Kind' => $kind,
             'Segment' => $segment,
-            'City' => 'Nairobi',
+            'City' => self::AREAS[$area][4] ?? 'Nairobi',
             'Area' => $area,
             'Business Type' => $type,
             'Known Project / Portfolio' => $kind === 'manager' && ! $office ? $name.', '.$area : '',
