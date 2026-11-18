@@ -5,6 +5,7 @@ use App\Modules\CRM\Controllers\Admin\CrmCompanyController;
 use App\Modules\CRM\Controllers\Admin\CrmFollowUpController;
 use App\Modules\CRM\Controllers\Admin\CrmOutreachController;
 use App\Modules\CRM\Controllers\Admin\CrmMapController;
+use App\Modules\CRM\Controllers\Admin\CrmPropertyController;
 use App\Modules\CRM\Controllers\Admin\CrmSalesController;
 use App\Modules\CRM\Controllers\Admin\CrmWaitlistController;
 use App\Modules\CRM\Controllers\Site\DemoRequestController;
@@ -28,9 +29,9 @@ Route::middleware('throttle:6,1,site-forms')->group(function () {
     Route::post('/listings/alert', [SiteFormController::class, 'listingAlert'])->name('site.listings.alert');
 });
 // Private demo form linked from each cold email: /demo/SC-XXXXXX
-Route::get('/demo/{ref}', [DemoRequestController::class, 'show'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->name('site.demo-request');
-Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->middleware('throttle:6,1,demo-form')->name('site.demo-request.store');
-Route::get('/demo/{ref}/thanks', [DemoRequestController::class, 'thanks'])->where('ref', '[sS][cC]-[A-Za-z0-9]{6}')->name('site.demo-request.thanks');
+Route::get('/demo/{ref}', [DemoRequestController::class, 'show'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->name('site.demo-request');
+Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->middleware('throttle:6,1,demo-form')->name('site.demo-request.store');
+Route::get('/demo/{ref}/thanks', [DemoRequestController::class, 'thanks'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->name('site.demo-request.thanks');
 Route::get('/feedback/{token}', [SiteFeedbackController::class, 'show'])->name('site.feedback.show');
 Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->middleware('throttle:10,1,feedback')->name('site.feedback.store');
 
@@ -42,6 +43,8 @@ Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->pref
     Route::get('/map', [CrmMapController::class, 'index'])->name('map.index');
     Route::get('/map/data.json', [CrmMapController::class, 'data'])->name('map.data');
     Route::get('/sales', [CrmSalesController::class, 'index'])->name('sales.index');
+    Route::get('/properties', [CrmPropertyController::class, 'index'])->name('properties.index');
+    Route::patch('/companies/{crmCompany}/properties/{property}', [CrmPropertyController::class, 'update'])->where('property', '[a-z0-9]{8}')->name('properties.update');
     Route::get('/sales/commission.csv', [CrmSalesController::class, 'export'])->name('sales.export');
     Route::put('/sales/commission', [CrmSalesController::class, 'updateCommission'])->name('sales.commission.update');
     Route::post('/companies', [CrmCompanyController::class, 'store'])->name('companies.store');

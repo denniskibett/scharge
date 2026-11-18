@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Modules\CRM\Mail\CrmOutreachEmail;
 use App\Modules\CRM\Services\ContactService;
+use App\Modules\CRM\Services\OutreachService;
 use App\Modules\CRM\Support\CrmAccess;
 use App\Modules\CRM\Support\EmailBody;
 use App\Modules\CRM\Support\Playbook;
@@ -108,41 +109,13 @@ class CrmOutreachController extends Controller
             return back()->withErrors(['to' => $company->name.' asked not to be emailed. Untick "Do not email" under Verify details only if that has changed.']);
         }
 
-        // Whoever sends the first email takes an unowned prospect: the follow-up is theirs.
-        if (! $company->owner_id) {
-            $company->update(['owner_id' => $user->id]);
-            $this->contacts->log($company, 'note', 'Owner: nobody → '.$user->name, 'Took the account when sending the first email.', [], null, $user->id);
-        }
-        $manager = $company->fresh('owner')->owner ?? $user;
-
         try {
-            Mail::to($input['to'])->send(new CrmOutreachEmail($input['subject'], $input['body'], $manager, $company));
+            ['manager' => $manager, 'due' => $due] = app(OutreachService::class)->send($company, $user, $input['to'], $input['subject'], $input['body'], (int) $input['follow_up_days']);
         } catch (\Throwable $e) {
             Log::warning('CRM outreach email failed', ['company_id' => $company->id, 'error' => $e->getMessage()]);
 
             return back()->withErrors(['to' => 'The email could not be sent: '.$e->getMessage()]);
         }
-
-        $company->followUps()->create([
-            'assigned_to' => $manager->id, 'created_by' => $user->id, 'type' => 'email', 'status' => 'done',
-            'title' => 'Cold email: '.$input['subject'], 'notes' => EmailBody::toText($input['body']), 'done_at' => now(),
-            'details' => ['to' => $input['to'], 'sent_by' => $user->id, 'playbook' => Playbook::segmentOf($company)],
-        ]);
-        $due = now()->addWeekdays((int) $input['follow_up_days'])->setTime(10, 0);
-        $company->followUps()->create([
-            'assigned_to' => $manager->id, 'created_by' => $user->id, 'type' => 'call', 'status' => 'open',
-            'title' => 'Follow up on the cold email to '.$company->name, 'due_at' => $due,
-            'notes' => 'Emailed '.$input['to'].' on '.now()->format('j M').'. Call to book a demo; if no answer, send a short follow-up email.',
-        ]);
-        if ($company->crm_stage === 'new') {
-            $this->contacts->setStage($company, 'contacted', $user->id);
-        }
-
-        $profile = ['email_subject' => $input['subject'], 'email_body' => $input['body'], 'last_emailed_at' => now()->toDateTimeString()];
-        if (! $company->email) {
-            $company->update(['email' => $input['to']]);
-        }
-        $this->setProfile($company, $profile);
 
         return back()->with('success', 'Email sent to '.$input['to'].'. '.$manager->name.' has a follow-up on '.$due->format('D j M').'.');
     }

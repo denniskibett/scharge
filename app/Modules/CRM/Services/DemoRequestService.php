@@ -3,6 +3,7 @@
 namespace App\Modules\CRM\Services;
 
 use App\Models\Company;
+use App\Modules\CRM\Mail\DemoRequestCopy;
 use App\Modules\CRM\Mail\DemoRequestNotice;
 use App\Modules\CRM\Models\CrmFollowUp;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -159,7 +160,7 @@ class DemoRequestService
             ], fn ($v) => $v !== null));
             $company->update(['crm_profile' => $profile]);
 
-            return $company->followUps()->create([
+            $demo = $company->followUps()->create([
                 'user_id' => $person->id,
                 'assigned_to' => $company->owner_id,
                 'type' => 'demo',
@@ -181,6 +182,9 @@ class DemoRequestService
                     'consent_at' => now()->toDateTimeString(),
                 ],
             ]);
+            $this->addOpenProperties($company, $properties, $ref, $demo->id, $demo->details['interests'] ?? []);
+
+            return $demo;
         });
 
         $followUp->load('company', 'contact', 'assignee');
@@ -196,8 +200,43 @@ class DemoRequestService
                 Log::warning('Demo request notice failed', ['follow_up' => $followUp->id, 'error' => $e->getMessage()]);
             }
         }
+        // The prospect's own copy, with the same PDF.
+        $mine = $followUp->contact?->email;
+        if ($mine && filter_var($mine, FILTER_VALIDATE_EMAIL)) {
+            try {
+                Mail::to($mine)->send(new DemoRequestCopy($followUp->fresh(['company', 'contact', 'assignee'])));
+            } catch (\Throwable $e) {
+                Log::warning('Demo request copy failed', ['follow_up' => $followUp->id, 'error' => $e->getMessage()]);
+            }
+        }
 
         return $followUp;
+    }
+
+    public const PROPERTY_STATUSES = ['open' => 'Open', 'demo_done' => 'Demo done', 'proposal' => 'Proposal sent', 'won' => 'Won', 'lost' => 'Lost'];
+
+    /**
+     * Each property they listed becomes an open property on the company (crm_profile.prospect_properties),
+     * which account managers work on the Open properties page until it is won or lost.
+     */
+    private function addOpenProperties(Company $company, array $properties, string $ref, int $demoId, array $interests): void
+    {
+        $list = $company->fresh()->crm_profile['prospect_properties'] ?? [];
+        foreach ($properties as $p) {
+            $name = trim((string) ($p['name'] ?? '')) ?: 'Unnamed property';
+            $key = strtolower($name).'|'.strtolower((string) ($p['location'] ?? ''));
+            if (collect($list)->contains(fn ($x) => strtolower($x['name']).'|'.strtolower((string) ($x['location'] ?? '')) === $key)) {
+                continue;
+            }
+            $list[] = [
+                'id' => strtolower(\Illuminate\Support\Str::random(8)),
+                'name' => $name, 'type' => $p['type'] ?? null, 'class' => self::typeGroup($p['type'] ?? null),
+                'location' => $p['location'] ?? null, 'units' => (int) ($p['units'] ?? 0),
+                'ref' => $ref, 'demo_id' => $demoId, 'status' => 'open', 'offerings' => array_values($interests),
+                'added_at' => now()->toDateTimeString(),
+            ];
+        }
+        $company->forceFill(['crm_profile' => array_merge($company->fresh()->crm_profile ?? [], ['prospect_properties' => $list])])->saveQuietly();
     }
 
     /** Render the submission as a PDF on the private disk; returns its storage path. */

@@ -82,13 +82,26 @@ class Playbook
     }
 
     /** The company's private demo-form reference (created once, kept in crm_profile.demo_ref). */
+    /** Cold emails go out from this address (replies go to the account manager). */
+    public const SALES_FROM = 'sales@sharet.africa';
+
+    /** Demo refs start with the property type in full, e.g. BNB-7KQ2MA, RESIDENTIAL-4HD8PQ; older refs start SC-. */
+    public const REF_PREFIX = ['Short-stay' => 'BNB', 'Residential' => 'RESIDENTIAL', 'Commercial' => 'COMMERCIAL', 'Utilities' => 'UTILITIES', 'Mixed use' => 'MIXED', 'Mixed portfolio' => 'MIXED', 'Land & other' => 'LAND'];
+
+    public const REF_PATTERN = '[A-Za-z]{2,12}-[A-Za-z0-9]{6}';
+
+    public static function refPrefix(Company $company): string
+    {
+        return self::REF_PREFIX[PropertyClass::of($company)] ?? 'SC';
+    }
+
     public static function demoRef(Company $company): string
     {
         if ($ref = $company->profile('demo_ref')) {
             return $ref;
         }
         do {
-            $ref = 'SC-'.strtoupper(Str::random(6));
+            $ref = self::refPrefix($company).'-'.strtoupper(Str::random(6));
         } while (Company::withoutGlobalScope('customers')->where('crm_profile->demo_ref', $ref)->exists());
         $company->forceFill(['crm_profile' => array_merge($company->crm_profile ?? [], ['demo_ref' => $ref])])->saveQuietly();
 

@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
-/** A cold email from an account manager in the scharge "Ink" design: sent by scharge, replies go to the manager. */
+/** A cold email from an account manager in the scharge "Ink" design: sent from sales@sharet.africa, replies go to the manager. */
 class CrmOutreachEmail extends Mailable
 {
     public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null)
@@ -22,7 +22,7 @@ class CrmOutreachEmail extends Mailable
         $replyTo = filter_var($this->manager->email, FILTER_VALIDATE_EMAIL) ? [new Address($this->manager->email, $this->manager->name)] : [];
 
         return new Envelope(
-            from: new Address(config('mail.from.address'), $this->manager->name.' · scharge'),
+            from: new Address(Playbook::SALES_FROM, $this->manager->name.' · scharge'),
             replyTo: $replyTo,
             subject: $this->subjectLine,
         );

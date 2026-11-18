@@ -27,7 +27,7 @@ class EmailBody
         }
         if (! self::isHtml($body)) {
             $paragraphs = preg_split("/\n{2,}/", str_replace("\r\n", "\n", $body));
-            $body = collect($paragraphs)->map(fn ($p) => '<p>'.self::linkify(nl2br(e(trim($p)), false)).'</p>')->join('');
+            $body = collect($paragraphs)->map(fn ($p) => self::paragraph(trim($p)))->join('');
         }
 
         return self::sanitize($body);
@@ -85,6 +85,34 @@ class EmailBody
             '<blockquote>' => '<blockquote style="margin:0 0 16px;padding:4px 0 4px 14px;border-left:3px solid #EDE6E7;color:#5C4A4E;">',
             '<a href=' => '<a style="color:#DC2626;" href=',
         ]);
+    }
+
+    /** One plain-text paragraph; lines starting with "•" or "-" become a bulleted list. */
+    private static function paragraph(string $p): string
+    {
+        $lines = explode("\n", $p);
+        $bullets = array_filter($lines, fn ($l) => preg_match('/^\s*[•\-]\s+/u', $l));
+        if (! $bullets) {
+            return '<p>'.self::linkify(nl2br(e($p), false)).'</p>';
+        }
+        $out = ''; $list = [];
+        $flush = function () use (&$out, &$list) {
+            if ($list) {
+                $out .= '<ul>'.implode('', array_map(fn ($l) => '<li>'.self::linkify(e($l)).'</li>', $list)).'</ul>';
+                $list = [];
+            }
+        };
+        foreach ($lines as $l) {
+            if (preg_match('/^\s*[•\-]\s+(.*)$/u', $l, $m)) {
+                $list[] = $m[1];
+            } elseif (trim($l) !== '') {
+                $flush();
+                $out .= '<p>'.self::linkify(e(trim($l))).'</p>';
+            }
+        }
+        $flush();
+
+        return $out;
     }
 
     private static function linkify(string $escaped): string
