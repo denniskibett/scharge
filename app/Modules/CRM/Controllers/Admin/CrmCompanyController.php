@@ -24,7 +24,7 @@ class CrmCompanyController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention']);
+        $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention', 'county', 'sub_county', 'segment', 'verified']);
         $user = $request->user();
         $mine = fn () => CrmAccess::companies(Company::crm(), $user);
         $myFollowUps = fn () => CrmAccess::followUps(CrmFollowUp::query(), $user);
@@ -43,6 +43,13 @@ class CrmCompanyController extends Controller
             ->when(($filters['attention'] ?? null) === 'overdue', fn ($q) => $q->whereHas('followUps', fn ($f) => $f->overdue()))
             ->when(($filters['attention'] ?? null) === 'unattended', fn ($q) => $q->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo))
             ->when(($filters['attention'] ?? null) === 'verify', fn ($q) => $q->where('crm_profile->needs_verification', true))
+            // From the Kenya map (crm:geocode fills these in crm_profile).
+            ->when($filters['county'] ?? null, fn ($q, $v) => $q->where('crm_profile->county', $v))
+            ->when($filters['sub_county'] ?? null, fn ($q, $v) => $v === 'none' ? $q->whereNull('crm_profile->sub_county') : $q->where('crm_profile->sub_county', $v))
+            ->when($filters['segment'] ?? null, fn ($q, $v) => $q->where('crm_profile->segment', $v))
+            ->when(isset($filters['verified']) && $filters['verified'] !== '', fn ($q) => $filters['verified'] === '1'
+                ? $q->where(fn ($w) => $w->whereNull('crm_profile->needs_verification')->orWhere('crm_profile->needs_verification', false))
+                : $q->where('crm_profile->needs_verification', true))
             ->orderBy('tier')
             ->orderByRaw('next_due_at IS NULL, next_due_at')
             ->orderBy('name')

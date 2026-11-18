@@ -3,6 +3,7 @@
 use App\Models\Company;
 use App\Modules\CRM\Controllers\Admin\CrmCompanyController;
 use App\Modules\CRM\Controllers\Admin\CrmFollowUpController;
+use App\Modules\CRM\Controllers\Admin\CrmMapController;
 use App\Modules\CRM\Controllers\Admin\CrmSalesController;
 use App\Modules\CRM\Controllers\Admin\CrmWaitlistController;
 use App\Modules\CRM\Controllers\Site\SiteFeedbackController;
@@ -32,6 +33,8 @@ Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->midd
 // ---------------------------------------------------------------------------
 Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->prefix('crm')->name('crm.')->group(function () {
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
+    Route::get('/map', [CrmMapController::class, 'index'])->name('map.index');
+    Route::get('/map/data.json', [CrmMapController::class, 'data'])->name('map.data');
     Route::get('/sales', [CrmSalesController::class, 'index'])->name('sales.index');
     Route::get('/sales/commission.csv', [CrmSalesController::class, 'export'])->name('sales.export');
     Route::put('/sales/commission', [CrmSalesController::class, 'updateCommission'])->name('sales.commission.update');
