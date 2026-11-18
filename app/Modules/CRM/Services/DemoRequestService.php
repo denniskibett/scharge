@@ -193,7 +193,7 @@ class DemoRequestService
         $followUp->update(['details' => array_merge($followUp->details, ['pdf' => $pdf])]);
         $this->contacts->log($company, 'note', 'Demo form submitted ('.$ref.')', 'PDF saved with the demo request.', ['pdf' => $pdf, 'demo_id' => $followUp->id], $followUp->contact);
 
-        $to = $followUp->assignee?->email;
+        $to = $followUp->assignee?->mailboxes() ?? [];   // their login email plus any sharet.africa work copy
         if ($to) {
             try {
                 Mail::to($to)->send(new DemoRequestNotice($followUp->fresh(['company', 'contact', 'assignee'])));

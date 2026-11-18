@@ -645,4 +645,13 @@ class User extends Authenticatable implements Wallet
     {
         return 'KES ' . number_format($this->getWalletBalance(), 2);
     }
+
+    /** Every address this user's mail goes to: their login email plus any work copy (config/crm.php). */
+    public function mailboxes(): array
+    {
+        $email = strtolower(trim((string) $this->email));
+        $all = array_merge([$email], (array) (config('crm.work_copies')[$email] ?? []));
+
+        return array_values(array_unique(array_filter($all, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL))));
+    }
 }

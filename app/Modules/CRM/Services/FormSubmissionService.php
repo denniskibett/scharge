@@ -63,7 +63,7 @@ class FormSubmissionService
             Log::warning('Form submission PDF failed', ['follow_up' => $followUp->id, 'form' => $form, 'error' => $e->getMessage()]);
         }
 
-        $to = array_values(array_unique(array_filter($notify ?? [$followUp->assignee?->email], fn ($e) => $e && filter_var($e, FILTER_VALIDATE_EMAIL))));
+        $to = array_values(array_unique(array_filter($notify ?? ($followUp->assignee?->mailboxes() ?? []), fn ($e) => $e && filter_var($e, FILTER_VALIDATE_EMAIL))));
         if ($to) {
             // Never inside the caller's transaction: a rollback must not leave an email about a row that isn't there.
             DB::afterCommit(function () use ($followUp, $to, $form) {

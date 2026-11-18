@@ -19,7 +19,8 @@ class CrmOutreachEmail extends Mailable
 
     public function envelope(): Envelope
     {
-        $replyTo = filter_var($this->manager->email, FILTER_VALIDATE_EMAIL) ? [new Address($this->manager->email, $this->manager->name)] : [];
+        // Replies reach the manager's login inbox and their sharet.africa work copy.
+        $replyTo = array_map(fn ($e) => new Address($e, $this->manager->name), $this->manager->mailboxes());
 
         return new Envelope(
             from: new Address(Playbook::SALES_FROM, $this->manager->name.' · scharge'),
