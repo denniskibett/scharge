@@ -10,8 +10,10 @@ namespace App\Modules\CRM\Support;
  *   city/area fields (GeoNames populated places, CC BY 4.0). Approximate — never a street address.
  *
  * Admin areas come from OCHA COD-AB Kenya (HDX cod-ab-ken, CC BY-IGO): the 290 IEBC constituencies
- * with their county. In this app a "sub-county" is a constituency (see the subcounties table), so
- * both names are stored the same.
+ * with their county, and geoBoundaries KEN ADM3 (CC BY 4.0) for the 1,450 wards. In this app a
+ * "sub-county" is a constituency, and the subcounties table has one row per ward of it — so a point is
+ * matched to its ward's row (sub_county_id), and the county is that row's county_id. Names shown are
+ * derived from those ids, so county and sub-county always agree.
  */
 class KenyaGeo
 {
@@ -21,9 +23,23 @@ class KenyaGeo
         'nyeri', 'kitale', 'kericho', 'malindi', 'kilifi', 'naivasha', 'ruiru', 'kitengela', 'athiriver', 'kiambu',
     ];
 
+    /** subcounties rows seeded without a ward name, in id order per constituency (IEBC ward order). */
+    private const BROKEN_WARDS = ['starehe' => ['Nairobi Central', 'Nairobi South'], 'langata' => ['Nairobi West']];
+
     private ?array $constituencies = null;
 
     private ?array $places = null;
+
+    private ?array $wards = null;
+
+    /** subcounties rows: id => [county_id, constituency key, ward key, constituency, ward] */
+    private ?array $rows = null;
+
+    /** county_id => display name (the boundary file's spelling; some counties rows are mis-seeded) */
+    private ?array $countyNames = null;
+
+    /** boundary county key => county_id */
+    private ?array $countyIds = null;
 
     /** @return array{0: float, 1: float}|null lat/lng of the OSM pin in the notes. */
     public static function osmPin(?string $text): ?array
@@ -109,14 +125,169 @@ class KenyaGeo
         }
 
         $out = ['lat' => round($point['lat'], 5), 'lng' => round($point['lng'], 5), 'geo_precision' => $point['precision'], 'geo_source' => $point['source']];
-        if ($admin = $this->locate($point['lat'], $point['lng'])) {
-            $out['county'] = $admin['county'];
-            if (in_array($point['precision'], ['exact', 'area'], true)) {
-                $out['sub_county'] = $out['constituency'] = $admin['constituency'];
+        return $out + $this->admin($point['lat'], $point['lng'], in_array($point['precision'], ['exact', 'area'], true));
+    }
+
+    /**
+     * The ids for a point: sub_county_id (the ward's row in subcounties) and county_id (that row's county),
+     * plus the names derived from them. With $named false (a town or county centre) only the county is set.
+     *
+     * @return array<string, mixed> county_id, county[, sub_county_id, sub_county, constituency, ward, sub_county_match]
+     */
+    public function admin(float $lat, float $lng, bool $named): array
+    {
+        $area = $this->locate($lat, $lng);
+        if (! $area) {
+            return [];
+        }
+        $countyId = $this->countyIds()[self::key($area['county'])] ?? null;
+        $out = $countyId ? ['county_id' => $countyId, 'county' => $this->countyName($countyId)] : ['county' => $area['county']];
+        if (! $named) {
+            return $out;
+        }
+
+        [$rowId, $match] = $this->subCountyRow($area['constituency'], $this->ward($lat, $lng), $countyId);
+        if (! $rowId) {
+            return $out + ['sub_county' => $area['constituency'], 'constituency' => $area['constituency'], 'sub_county_match' => 'none'];
+        }
+        [$rowCounty, , , $constituency, $ward] = $this->rows()[$rowId];
+
+        return [
+            'county_id' => $rowCounty,
+            'county' => $this->countyName($rowCounty),
+            'sub_county_id' => $rowId,
+            'sub_county' => $constituency,
+            'constituency' => $constituency,
+            'ward' => $ward,
+            'sub_county_match' => $match,
+        ];
+    }
+
+    /** Display name of a counties row. */
+    public function countyName(?int $id): ?string
+    {
+        return $id ? ($this->countyNames()[$id] ?? null) : null;
+    }
+
+    /** @return array{0: string, 1: string, 2: int}|null [constituency, ward, county_id] of a subcounties row */
+    public function subCounty(?int $id): ?array
+    {
+        $row = $id ? ($this->rows()[$id] ?? null) : null;
+
+        return $row ? [$row[3], $row[4], $row[0]] : null;
+    }
+
+    /**
+     * Best subcounties row: the ward inside the constituency; else the ward by name in the same county
+     * (the two boundary sets differ slightly at edges); else the constituency's first row.
+     *
+     * @return array{0: int|null, 1: string} [row id, how it matched: ward | ward_in_county | constituency]
+     */
+    private function subCountyRow(string $constituency, ?string $ward, ?int $countyId): array
+    {
+        $c = self::key($constituency);
+        $w = $ward ? self::key(preg_replace('/\s*\(.*?\)/', '', $ward)) : null; // "Township (Thika)" -> township
+        $first = null;
+        $inCounty = null;
+        foreach ($this->rows() as $id => [$county, $ck, $wk]) {
+            if ($ck === $c) {
+                if ($w && $wk === $w) {
+                    return [$id, 'ward'];
+                }
+                $first ??= $id;
+            } elseif ($w && $wk === $w && $county === $countyId) {
+                $inCounty ??= $id;
             }
         }
 
-        return $out;
+        return $inCounty ? [$inCounty, 'ward_in_county'] : [$first, 'constituency'];
+    }
+
+    /** Ward polygon containing the point (name only); else the nearest ward edge within ~3 km (shorelines, borders). */
+    private function ward(float $lat, float $lng): ?string
+    {
+        $pad = 0.03;
+        $nearest = null;
+        $best = $pad * $pad;
+        foreach ($this->wards() as $f) {
+            [$x1, $y1, $x2, $y2] = $f['b'];
+            if ($lng < $x1 - $pad || $lng > $x2 + $pad || $lat < $y1 - $pad || $lat > $y2 + $pad) {
+                continue;
+            }
+            foreach ($f['p'] as $polygon) {
+                if ($lng >= $x1 && $lng <= $x2 && $lat >= $y1 && $lat <= $y2 && self::inPolygon($lng, $lat, $polygon)) {
+                    return $f['n'];
+                }
+                foreach ($polygon[0] as [$x, $y]) {
+                    $d = ($x - $lng) ** 2 + ($y - $lat) ** 2;
+                    if ($d < $best) {
+                        [$best, $nearest] = [$d, $f['n']];
+                    }
+                }
+            }
+        }
+
+        return $nearest;
+    }
+
+    private function rows(): array
+    {
+        if ($this->rows === null) {
+            $this->rows = [];
+            $broken = [];
+            foreach (\Illuminate\Support\Facades\DB::table('subcounties')->orderBy('id')->get(['id', 'county_id', 'constituency_name', 'ward']) as $r) {
+                $ward = (string) $r->ward;
+                $ck = self::key((string) $r->constituency_name);
+                // A few seeded rows lost their ward name ("DEFAULT CHARSET=…"); name them by IEBC ward order.
+                if (str_starts_with(strtolower($ward), 'default charset')) {
+                    $ward = self::BROKEN_WARDS[$ck][$broken[$ck] = ($broken[$ck] ?? -1) + 1] ?? $ward;
+                }
+                $this->rows[(int) $r->id] = [(int) $r->county_id, $ck, self::key($ward), self::title((string) $r->constituency_name), self::title($ward)];
+            }
+        }
+
+        return $this->rows;
+    }
+
+    /** Boundary county name => counties.id, learnt from which county the boundary's constituencies belong to in subcounties. */
+    private function countyIds(): array
+    {
+        if ($this->countyIds === null) {
+            $byConstituency = [];
+            foreach ($this->rows() as [$county, $ck]) {
+                $byConstituency[$ck] ??= $county;
+            }
+            $votes = [];
+            foreach ($this->constituencies() as $f) {
+                if (isset($byConstituency[self::key($f['n'])])) {
+                    $votes[self::key($f['c'])][$byConstituency[self::key($f['n'])]] = ($votes[self::key($f['c'])][$byConstituency[self::key($f['n'])]] ?? 0) + 1;
+                }
+            }
+            $this->countyIds = array_map(fn ($v) => (int) array_search(max($v), $v, true), $votes);
+        }
+
+        return $this->countyIds;
+    }
+
+    private function countyNames(): array
+    {
+        if ($this->countyNames === null) {
+            $names = [];
+            foreach ($this->constituencies() as $f) {
+                $names[self::key($f['c'])] = $f['c'];
+            }
+            $this->countyNames = [];
+            foreach ($this->countyIds() as $key => $id) {
+                $this->countyNames[$id] = $names[$key];
+            }
+        }
+
+        return $this->countyNames;
+    }
+
+    private static function title(string $name): string
+    {
+        return preg_replace_callback("/(^|[\s\/\-'(])([a-z])/", fn ($m) => $m[1].strtoupper($m[2]), strtolower(trim($name)));
     }
 
     /**
@@ -283,6 +454,11 @@ class KenyaGeo
     private function constituencies(): array
     {
         return $this->constituencies ??= json_decode(file_get_contents(database_path('data/geo/ke_constituencies.json')), true)['features'];
+    }
+
+    private function wards(): array
+    {
+        return $this->wards ??= json_decode(file_get_contents(database_path('data/geo/ke_wards.json')), true)['features'];
     }
 
     private function places(): array

@@ -33,17 +33,21 @@
         @endforeach
     </nav>
 </div>
-@php($mapFilter = request()->routeIs('crm.index') ? array_filter(request()->only(['county', 'sub_county', 'segment', 'verified']), fn ($v) => $v !== null && $v !== '') : [])
+@php($mapFilter = request()->routeIs('crm.index') ? array_filter(request()->only(['county', 'county_id', 'sub_county', 'sub_county_id', 'segment', 'verified']), fn ($v) => $v !== null && $v !== '') : [])
 @if ($mapFilter)
+    @php($geoNames = app(\App\Modules\CRM\Support\KenyaGeo::class))
+    @php($ward = $geoNames->subCounty(isset($mapFilter['sub_county_id']) ? (int) $mapFilter['sub_county_id'] : null))
     <div class="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
         <span class="font-medium">From the map:</span>
         <span>{{ collect([
+            $ward ? $ward[1].' ward, '.$ward[0].' sub-county' : null,
             $mapFilter['sub_county'] ?? null ? (($mapFilter['sub_county'] === 'none' ? 'no sub-county' : $mapFilter['sub_county'].' sub-county')) : null,
             $mapFilter['county'] ?? null ? $mapFilter['county'].' County' : null,
+            isset($mapFilter['county_id']) ? ($geoNames->countyName((int) $mapFilter['county_id']) ?? 'county #'.$mapFilter['county_id']).' County' : null,
             $mapFilter['segment'] ?? null,
             isset($mapFilter['verified']) ? ($mapFilter['verified'] === '1' ? 'verified' : 'to verify') : null,
         ])->filter()->join(' · ') }}</span>
-        <a href="{{ route('crm.index', request()->except(['county', 'sub_county', 'segment', 'verified', 'page'])) }}" class="ml-auto font-medium underline">Clear</a>
+        <a href="{{ route('crm.index', request()->except(['county', 'county_id', 'sub_county', 'sub_county_id', 'segment', 'verified', 'page'])) }}" class="ml-auto font-medium underline">Clear</a>
         <a href="{{ route('crm.map.index') }}" class="font-medium underline">Back to map</a>
     </div>
 @endif

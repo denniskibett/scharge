@@ -24,7 +24,7 @@ class CrmCompanyController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention', 'county', 'sub_county', 'segment', 'verified', 'ptype']);
+        $filters = $request->only(['q', 'stage', 'tier', 'owner', 'attention', 'county', 'county_id', 'sub_county', 'sub_county_id', 'segment', 'verified', 'ptype']);
         $user = $request->user();
         $mine = fn () => CrmAccess::companies(Company::crm(), $user);
         $myFollowUps = fn () => CrmAccess::followUps(CrmFollowUp::query(), $user);
@@ -46,6 +46,8 @@ class CrmCompanyController extends Controller
             ->when(($filters['attention'] ?? null) === 'unsent', fn ($q) => \App\Modules\CRM\Support\EmailTracking::unsent($q))
             // From the Kenya map (crm:geocode fills these in crm_profile).
             ->when($filters['county'] ?? null, fn ($q, $v) => $q->where('crm_profile->county', $v))
+            ->when($filters['county_id'] ?? null, fn ($q, $v) => $q->where('crm_profile->county_id', (int) $v))
+            ->when($filters['sub_county_id'] ?? null, fn ($q, $v) => $q->where('crm_profile->sub_county_id', (int) $v))
             ->when($filters['sub_county'] ?? null, fn ($q, $v) => $v === 'none' ? $q->whereNull('crm_profile->sub_county') : $q->where('crm_profile->sub_county', $v))
             ->when($filters['segment'] ?? null, fn ($q, $v) => $q->where('crm_profile->segment', $v))
             ->when($filters['ptype'] ?? null, fn ($q, $v) => \App\Modules\CRM\Support\PropertyClass::scope($q, $v))

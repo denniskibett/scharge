@@ -128,11 +128,14 @@
     const propLayer = L.layerGroup().addTo(map);
     let propMarkers = [];
 
-    let D, markers = [], countyShapes = {}, subLayer = null, subShapes = {}, area = null; // area = {county, sub}
+    let D, markers = [], countyShapes = {}, subLayer = null, subShapes = {}, area = null; // area = {county, sub, ward}; names come from the stored ids (county_id, sub_county_id)
+    const nk = s => String(s || '').toLowerCase().replace(/[^a-z]/g, '');
+    // Boundary spelling -> the subcounties table's (e.g. "Chuka/Igambang'ombe" vs "Chuka/Igambang'om").
+    const subName = name => (D?.lists.sub_county || []).find(s => s && (nk(s) === nk(name) || nk(name).startsWith(nk(s)) || nk(s).startsWith(nk(name)))) || name;
     const el = id => document.getElementById(id);
     const f = () => ({ segment: el('f-segment').value, stage: el('f-stage').value, owner: el('f-owner').value, verified: el('f-verified').value, precision: el('f-precision').value });
 
-    // Row: [id, name, lat, lng, seg#, stage#, prec#, county#, sub#, owner, verified]
+    // Row: [id, name, lat, lng, seg#, stage#, prec#, county#, sub#, owner, verified, sub_county_id]
     const passes = (r, q, ignoreArea) => {
         const L_ = D.lists;
         if (q.segment !== '' && r[4] !== +q.segment) return false;
@@ -146,11 +149,12 @@
         if (!ignoreArea && area) {
             if (L_.county[r[7]] !== area.county) return false;
             if (area.sub !== undefined && L_.sub_county[r[8]] !== area.sub) return false;
+            if (area.ward !== undefined && r[11] !== area.ward) return false;
         }
         return true;
     };
 
-    // Property: [company_id, id, name, lat, lng, status, precision, county#, sub#, units, location, maps_url, owner]
+    // Property: [company_id, id, name, lat, lng, status, precision, county#, sub#, units, location, maps_url, owner, sub_county_id]
     const propPasses = (p, q, ignoreArea) => {
         const ps = el('f-pstatus').value;
         if (ps === '' ? ['won', 'lost'].includes(p[5]) : (ps !== 'all' && p[5] !== ps)) return false;
@@ -160,6 +164,7 @@
         if (!ignoreArea && area) {
             if (D.lists.county[p[7]] !== area.county) return false;
             if (area.sub !== undefined && D.lists.sub_county[p[8]] !== area.sub) return false;
+            if (area.ward !== undefined && p[13] !== area.ward) return false;
         }
         return true;
     };
@@ -172,11 +177,11 @@
             html: `<div class="crm-prop${exact ? '' : ' approx'}" style="background:${PSTATUS_COLORS[p[5]] || '#2e90fa'}"></div>` });
         const m = L.marker([p[3], p[4]], { icon, zIndexOffset: 1000, title: p[2] });
         m.bindPopup(() => {
-            const sub = D.lists.sub_county[p[8]], county = D.lists.county[p[7]];
+            const sub = D.lists.sub_county[p[8]], county = D.lists.county[p[7]], ward = D.wards[p[13]];
             const company = D.rows.find(r => r[0] === p[0]);
             return `<strong>${esc(p[2])}</strong> <span style="color:#667085">(listed property)</span>`
                 + `<br>${esc(D.property_statuses[p[5]] || p[5])}${p[9] ? ' · ' + p[9].toLocaleString() + ' units' : ''}${p[10] ? ' · ' + esc(p[10]) : ''}`
-                + `<br><span style="color:#667085">${esc([sub && sub + ' sub-county', county && county + ' County'].filter(Boolean).join(', ') || 'Area unknown')}`
+                + `<br><span style="color:#667085">${esc([ward && ward + ' ward', sub && sub + ' sub-county', county && county + ' County'].filter(Boolean).join(', ') || 'Area unknown')}`
                 + ` · ${exact ? 'exact pin' : 'approx. (' + esc(p[6]) + ' centre)'}</span>`
                 + `<br><a href="${COMPANY_URL}${p[0]}">${esc(company ? company[1] : 'Open company')} →</a>`
                 + `<br><a href="${esc(p[11])}" target="_blank" rel="noopener">Google Maps ↗</a> · <a href="${PROPERTIES_URL}">Open properties</a>`;
@@ -191,9 +196,9 @@
         const color = PALETTE[r[4] % PALETTE.length], exact = D.lists.precision[r[6]] === 'exact';
         const m = L.circleMarker([r[2], r[3]], { radius: exact ? 6 : 5, color, weight: 2, fillColor: exact ? color : '#fff', fillOpacity: exact ? .85 : .9 });
         m.bindPopup(() => {
-            const sub = D.lists.sub_county[r[8]], county = D.lists.county[r[7]], prec = D.lists.precision[r[6]];
+            const sub = D.lists.sub_county[r[8]], county = D.lists.county[r[7]], prec = D.lists.precision[r[6]], ward = D.wards[r[11]];
             return `<strong>${esc(r[1])}</strong><br>${esc(D.lists.segment[r[4]] || 'No segment')} · ${esc(D.stages[D.lists.stage[r[5]]] || '')}`
-                + `<br><span style="color:#667085">${esc([sub && sub + ' sub-county', county && county + ' County'].filter(Boolean).join(', ') || 'Area unknown')}`
+                + `<br><span style="color:#667085">${esc([ward && ward + ' ward', sub && sub + ' sub-county', county && county + ' County'].filter(Boolean).join(', ') || 'Area unknown')}`
                 + ` · ${prec === 'exact' ? 'exact pin' : 'approx. (' + esc(prec) + ' centre)'}</span>`
                 + `<br><a href="${COMPANY_URL}${r[0]}">Open prospect →</a>`;
         });
@@ -206,7 +211,11 @@
         if (q.stage) p.set('stage', q.stage);
         if (q.owner) p.set('owner', q.owner);
         if (q.verified !== '') p.set('verified', q.verified);
-        if (area) { p.set('county', area.county); if (area.sub !== undefined) p.set('sub_county', area.sub || 'none'); }
+        if (area) {
+            if (D.county_ids[area.county]) p.set('county_id', D.county_ids[area.county]); else p.set('county', area.county);
+            if (area.ward !== undefined) p.set('sub_county_id', area.ward);
+            else if (area.sub !== undefined) p.set('sub_county', area.sub || 'none');
+        }
         return PIPELINE_URL + (p.toString() ? '?' + p : '');
     };
 
@@ -218,8 +227,9 @@
         D.rows.forEach((r, i) => {
             if (!passes(r, q, true)) return;
             const county = D.lists.county[r[7]] || '', sub = D.lists.sub_county[r[8]] || '';
-            const c = tree[county] ??= { n: 0, subs: {} };
+            const c = tree[county] ??= { n: 0, subs: {}, wards: {} };
             c.n++; c.subs[sub] = (c.subs[sub] || 0) + 1;
+            if (r[11]) { const w = c.wards[sub] ??= {}; w[r[11]] = (w[r[11]] || 0) + 1; }
             if (!passes(r, q, false)) return;
             total++;
             const m = markerFor(i);
@@ -233,14 +243,15 @@
         (D.properties || []).forEach((p, i) => {
             if (!propPasses(p, q, true)) return;
             const county = D.lists.county[p[7]] || '', sub = D.lists.sub_county[p[8]] || '';
-            const c = tree[county] ??= { n: 0, subs: {} };
+            const c = tree[county] ??= { n: 0, subs: {}, wards: {} };
+            if (p[13]) { const w = c.wards[sub] ??= {}; w[p[13]] ??= 0; }
             c.p = (c.p || 0) + 1; c.ps ??= {}; c.ps[sub] = (c.ps[sub] || 0) + 1; c.subs[sub] ??= 0;
             if (!propPasses(p, q, false) || !el('f-props').checked) return;
             const m = propMarkerFor(i);
             if (m) { propLayer.addLayer(m); propsShown++; }
         });
 
-        el('crm-total').innerHTML = `<strong>${total.toLocaleString()}</strong> prospects${area ? ' in ' + esc(area.sub ? area.sub + ' (' + area.county + ')' : area.county + (area.sub === '' ? ' — sub-county unknown' : ' County')) : ''}`
+        el('crm-total').innerHTML = `<strong>${total.toLocaleString()}</strong> prospects${area ? ' in ' + esc((area.ward !== undefined ? D.wards[area.ward] + ' ward, ' : '') + (area.sub ? area.sub + ' (' + area.county + ')' : area.county + (area.sub === '' ? ' — sub-county unknown' : ' County'))) : ''}`
             + ` · ${(placed - approx).toLocaleString()} exact, ${approx.toLocaleString()} approximate`
             + (total - placed ? `, ${(total - placed).toLocaleString()} not on the map` : '')
             + ((D.properties || []).length ? ` · <strong>${propsShown}</strong> listed propert${propsShown === 1 ? 'y' : 'ies'} shown` : '');
@@ -256,17 +267,21 @@
             const name = county || 'No county (no location found)';
             const subs = open ? Object.entries(c.subs).sort((a, b) => b[1] - a[1]).map(([sub, n]) =>
                 `<button type="button" class="crm-area-row${area.sub === sub ? ' is-active' : ''}" data-county="${esc(county)}" data-sub="${esc(sub)}">
-                    <span>${esc(sub || 'Town-level only (sub-county unknown)')}</span>${c.ps && c.ps[sub] ? `<span class="crm-pcount" title="Listed properties">${c.ps[sub]} prop.</span>` : ''}<span class="n">${n.toLocaleString()}</span></button>`).join('') : '';
+                    <span>${esc(sub || 'Town-level only (sub-county unknown)')}</span>${c.ps && c.ps[sub] ? `<span class="crm-pcount" title="Listed properties">${c.ps[sub]} prop.</span>` : ''}<span class="n">${n.toLocaleString()}</span></button>`
+                + (area.sub === sub && sub && c.wards[sub] ? Object.entries(c.wards[sub]).sort((a, b) => b[1] - a[1]).map(([w, wn]) =>
+                    `<button type="button" class="crm-area-row${area.ward === +w ? ' is-active' : ''}" style="padding-left:2.8rem;font-size:.75rem" data-county="${esc(county)}" data-sub="${esc(sub)}" data-ward="${w}">
+                        <span>${esc(D.wards[w] || 'Ward ' + w)} ward</span><span class="n">${wn.toLocaleString()}</span></button>`).join('') : '')).join('') : '';
             return `<button type="button" class="crm-area-row${open && area.sub === undefined ? ' is-active' : ''}" data-county="${esc(county)}" ${county ? '' : 'disabled'}>
                     <span style="width:12px">${county ? (open ? '▾' : '▸') : ''}</span><span class="font-medium">${esc(name)}</span>${c.p ? `<span class="crm-pcount" title="Listed properties">${c.p} prop.</span>` : ''}<span class="n">${c.n.toLocaleString()}</span></button>
                 <div class="crm-sub">${subs}</div>`;
         }).join('') || '<p class="p-3 text-sm text-gray-500">No prospects match these filters.</p>';
     }
 
-    function selectArea(county, sub) {
-        area = county ? { county, sub } : null;
+    function selectArea(county, sub, ward) {
+        area = county ? { county, sub, ward } : null;
         render();
-        const shape = sub ? subShapes[county + '|' + sub] : countyShapes[county];
+        const key = county + '|' + nk(sub);
+        const shape = sub ? (subShapes[key] ?? Object.entries(subShapes).find(([k]) => k.startsWith(key))?.[1]) : countyShapes[county];
         if (shape) map.fitBounds(shape.getBounds(), { maxZoom: 13 });
         else if (!county) map.setView([0.2, 37.9], 6);
     }
@@ -274,9 +289,9 @@
     el('crm-areas').addEventListener('click', e => {
         const b = e.target.closest('button[data-county]');
         if (!b) return;
-        const county = b.dataset.county, sub = b.dataset.sub;
+        const county = b.dataset.county, sub = b.dataset.sub, ward = b.dataset.ward ? +b.dataset.ward : undefined;
         if (sub === undefined && area && area.county === county && area.sub === undefined) return selectArea(null);
-        selectArea(county, sub);
+        selectArea(county, sub, ward);
     });
     el('crm-area-clear').addEventListener('click', () => selectArea(null));
     ['f-segment', 'f-stage', 'f-owner', 'f-verified', 'f-precision', 'f-props', 'f-pstatus'].forEach(id => el(id).addEventListener('change', render));
@@ -304,14 +319,14 @@
         if (subLayer) return subLayer.addTo(map);
         fetch(@json(asset('geo/ke-constituencies.json'))).then(r => r.json()).then(gj => {
             subLayer = L.geoJSON(gj, { style: { ...style, weight: .8, dashArray: '3' }, onEachFeature: (ft, layer) => {
-                subShapes[ft.properties.county + '|' + ft.properties.name] = layer;
-                layer.on('click', e => L.popup().setLatLng(e.latlng).setContent(areaPopup(ft.properties.county, ft.properties.name)).openOn(map));
+                subShapes[ft.properties.county + '|' + nk(ft.properties.name)] = layer;
+                layer.on('click', e => L.popup().setLatLng(e.latlng).setContent(areaPopup(ft.properties.county, subName(ft.properties.name))).openOn(map));
             } }).addTo(map);
         });
     });
     // Sub-county shapes are needed to zoom to one, so load them quietly in the background too.
     fetch(@json(asset('geo/ke-constituencies.json'))).then(r => r.json()).then(gj => {
-        L.geoJSON(gj, { onEachFeature: (ft, layer) => { subShapes[ft.properties.county + '|' + ft.properties.name] ??= layer; } });
+        L.geoJSON(gj, { onEachFeature: (ft, layer) => { subShapes[ft.properties.county + '|' + nk(ft.properties.name)] ??= layer; } });
     });
 
     fetch(DATA_URL, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(r => r.json()).then(data => {
