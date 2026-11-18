@@ -15,7 +15,7 @@ class PropertyClass
 
     /** Lead segments (import sheets) → class. */
     public const SEGMENTS = [
-        'Residential' => ['Property Manager / Agency', 'Residential Property (named building/estate)', 'Developer', 'Affordable Housing', 'High-end Residential', 'Gated Community', 'Upmarket Agency'],
+        'Residential' => ['Property Manager / Agency', 'Residential Property (named building/estate)', 'Residential Building (site)', 'Developer', 'Affordable Housing', 'High-end Residential', 'Gated Community', 'Upmarket Agency'],
         'Short-stay' => ['Short-stay / Airbnb Manager', 'Short-stay / Airbnb', 'Hotel / Serviced Accommodation', 'Serviced Apartments'],
         'Commercial' => ['Commercial Property / Mall', 'Office / Commercial', 'Retail / Mall', 'Industrial / Warehouse Park', 'Industrial / Factory (utility & metering)', 'Industrial / Logistics'],
         'Utilities' => ['Water Company', 'Private Water Supplier', 'Electricity / KPLC & Metering'],
