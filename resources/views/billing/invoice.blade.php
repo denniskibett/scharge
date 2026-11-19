@@ -92,7 +92,7 @@ td small { display: block; color: var(--muted); }
 .handle { color: var(--red); font-weight: 600; text-decoration: none; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #101828; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 .toast.show { opacity: 1; }
-@media print { .payqr { margin-top: 10px; padding-top: 8px; gap: 12px; } .payqr .qr { width: 84px; height: 84px; } .full-link { font-size: 10px; } }
+@media print { .payqr { margin-top: 10px; padding-top: 8px; gap: 12px; } .payqr .qr { width: 84px; height: 84px; } .full-link { font-size: 10px; } .payqr .muted, .payqr div, .plan-name .muted, .meta dt { font-size: 9.5px !important; } .plan-name { margin-bottom: 4px; } }
 </style>
 </head>
 <body>
