@@ -58,7 +58,7 @@ h1 { margin: 0; font-size: 18pt; }
     </td>
     <td style="vertical-align:top;text-align:right">
       <h1>{{ $vat['mode'] === 'exclusive' ? 'Tax invoice' : 'Invoice' }}</h1>
-      <div style="font-weight:bold;margin:3pt 0 5pt">{{ \App\Support\InvoiceNo::of($inv->id) }}</div>
+      <div style="font-weight:bold;margin:3pt 0 5pt">{{ \App\Support\InvoiceNo::label($inv->id) }}</div>
       <span class="pill {{ $paid ? 'paid' : ($late ? 'due' : 'open') }}">{{ $paid ? 'Paid' : ($late ? 'Overdue' : 'Unpaid') }}</span>
       <span class="pill grey">{{ $vat['mode'] === 'exclusive' ? 'VAT '.$rateTxt.'% exclusive' : 'Non-VAT' }}</span>
     </td>

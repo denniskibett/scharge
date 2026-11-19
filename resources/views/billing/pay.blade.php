@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>Pay {{ \App\Support\InvoiceNo::of($inv->id) }} · Sharet Pay</title>
+<title>Pay {{ \App\Support\InvoiceNo::label($inv->id) }} · Sharet Pay</title>
 <link rel="icon" href="{{ asset('assets/images/brand/favicon.svg') }}">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -62,7 +62,7 @@ html.embed .sp-frame { height: calc(100vh - 250px); min-height: 440px; }
   <div class="card">
     <div class="head">
       <img src="{{ asset('images/integrations/sharet.svg') }}" alt="">
-      <div><b>Sharet Pay</b><span>Invoice {{ \App\Support\InvoiceNo::of($inv->id) }} · {{ $inv->company_name }}</span></div>
+      <div><b>Sharet Pay</b><span>Invoice {{ \App\Support\InvoiceNo::label($inv->id) }} · {{ $inv->company_name }}</span></div>
     </div>
 
     @if ($error)<div class="err">{{ $error }}</div>@endif
@@ -100,7 +100,7 @@ html.embed .sp-frame { height: calc(100vh - 250px); min-height: 440px; }
       @endif
     @endif
   </div>
-  <div class="foot"><a href="{{ $invoiceUrl }}">View invoice {{ \App\Support\InvoiceNo::of($inv->id) }}</a></div>
+  <div class="foot"><a href="{{ $invoiceUrl }}">View invoice {{ \App\Support\InvoiceNo::label($inv->id) }}</a></div>
 </div>
 @if ($status === 'open' && $statusJson)
 <script>

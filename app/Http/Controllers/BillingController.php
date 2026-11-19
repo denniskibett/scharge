@@ -70,7 +70,7 @@ class BillingController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
-        $number = \App\Support\InvoiceNo::of($row->subscription_invoice_id);
+        $number = \App\Support\InvoiceNo::label($row->subscription_invoice_id);
 
         return redirect()->route('billing.index')->with('success', "Bill {$number} paid from your scharge wallet: KES ".number_format((float) $row->amount).'. Thank you.');
     }
