@@ -56,6 +56,11 @@ class InvoicePayController extends Controller
             return $this->page($inv, null, $e->getMessage());
         }
 
+        // Opened in the invoice's pay modal (an iframe): the Sharet Africa payment gateway itself, nothing around it.
+        if (config('billing.sharet_embed') && request()->header('Sec-Fetch-Dest') === 'iframe' && $row->isOpen() && $row->pay_url) {
+            return redirect()->away($row->pay_url);
+        }
+
         return redirect()->to(self::statusUrl($inv->id, $row->sharet_id));
     }
 
