@@ -49,13 +49,16 @@ Rent collection
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">{{ session('error') ?? $errors->first() }}</div>
   @endif
 
-  <nav class="flex gap-1 overflow-x-auto border-b border-gray-200 dark:border-gray-800">
+  {{-- Tabs as a line inside the card; each tab's note and table sit below it in the same card. --}}
+  <div class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+  <nav class="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800">
     @foreach (['paybill' => ['Paybill payments', $counts['unmatched'], 'to match'], 'messages' => ['Messages', $counts['failed'], 'failed'], 'paused' => ['Paused tenants', $counts['paused'], null], 'attempts' => ['Payment attempts', null, null]] as $key => [$label, $count, $hint])
       <a href="{{ route('rent.index', ['tab' => $key]) }}" @class(['-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium', 'border-brand-500 text-brand-600 dark:text-brand-400' => $tab === $key, 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400' => $tab !== $key])>
         {{ $label }}@if ($count) <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-gray-200">{{ $count }}{{ $hint ? ' '.$hint : '' }}</span>@endif
       </a>
     @endforeach
   </nav>
+  <div class="min-w-0 space-y-4 p-3 sm:p-5">
 
   @if ($tab === 'paybill')
     <p class="text-sm text-gray-500 dark:text-gray-400">Rent paid straight to your paybill. scharge matches the account number to a unit (e.g. <strong>A1</strong>), a bill number (INV-123) or the tenant's phone, and pays off the oldest bills first. Pick the tenant for the ones it could not match.</p>
@@ -198,5 +201,7 @@ Rent collection
       </table>
     </div>
   @endif
+  </div>
+  </div>
 </div>
 @endsection
