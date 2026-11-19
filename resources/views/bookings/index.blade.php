@@ -16,7 +16,9 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Bookings</h1>
+      @section('page_title')
+Bookings
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">One calendar per short-stay unit. scharge refuses a booking on nights already taken, so a unit is never booked twice. {{ $tonight }} {{ $tonight === 1 ? 'unit is' : 'units are' }} occupied tonight.</p>
     </div>
   </div>

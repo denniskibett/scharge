@@ -13,7 +13,9 @@
 
 <div class="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
   <div>
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Reports &amp; analytics</h1>
+    @section('page_title')
+Reports &amp; analytics
+@endsection
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
       {{ $scopeLabel }} · {{ \Carbon\Carbon::parse($data['from'])->format('j M Y') }} – {{ \Carbon\Carbon::parse($data['to'])->format('j M Y') }}.
       Billing is by billing month, collections by payment date; arrears and occupancy are as of today.

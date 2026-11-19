@@ -13,7 +13,9 @@
 @section('content')
 <div class="space-y-6">
   <div>
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Enquiries</h1>
+    @section('page_title')
+Enquiries
+@endsection
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">People who asked to view or book your vacant units on scharge's Open listings. You get an SMS for each new one; reply on WhatsApp and keep track here.</p>
   </div>
 

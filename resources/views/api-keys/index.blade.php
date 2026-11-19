@@ -12,7 +12,9 @@
 
 <div x-data="apiKeysPage('{{ url('api-keys') }}')">
   <div class="mb-6">
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">API keys</h1>
+    @section('page_title')
+API keys
+@endsection
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
       Keys let your own systems (your website, app or back office) call scharge. Send one as
       <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs dark:bg-white/10">Authorization: Bearer sk_…</code>.

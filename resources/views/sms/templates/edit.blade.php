@@ -2,7 +2,9 @@
 
 @section('content')
 <div>
-    <h1 class="text-2xl font-bold mb-4">Edit SMS Template</h1>
+    @section('page_title')
+Edit SMS Template
+@endsection
 
     <form action="{{ route('sms.templates.update', $template) }}" method="POST" class="bg-white p-6 rounded shadow">
         @csrf @method('PUT')

@@ -19,7 +19,9 @@
     <!-- Header -->
     <div class="mb-6 flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-            <h1 class="text-2xl font-bold text-black dark:text-white">Create Campaign</h1>
+            @section('page_title')
+Create Campaign
+@endsection
             <p class="text-sm text-gray-500 dark:text-gray-400">Create a new water bill SMS campaign</p>
         </div>
         <div class="flex gap-2">

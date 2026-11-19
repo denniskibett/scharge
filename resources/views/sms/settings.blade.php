@@ -6,7 +6,9 @@
 @include('partials.card.sms-settings')
 <div>
     <div class="mb-6">
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">SMS settings</h1>
+        @section('page_title')
+SMS settings
+@endsection
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure and test your KenyaSMS integration.</p>
     </div>
 

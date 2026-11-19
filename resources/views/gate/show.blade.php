@@ -19,7 +19,9 @@
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <div class="text-xs text-gray-500 dark:text-gray-400">{{ $pass->kindLabel() }} · code <span class="font-mono">{{ $pass->code }}</span></div>
-          <h1 class="mt-1 truncate text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $pass->guest_name }}@if ($pass->guests_count > 1)<span class="text-gray-400"> +{{ $pass->guests_count - 1 }}</span>@endif</h1>
+          @section('page_title')
+{{ $pass->guest_name }}@if ($pass->guests_count > 1)<span class="text-gray-400"> +{{ $pass->guests_count - 1 }}</span>@endif
+@endsection
           <div class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ $pass->placeLabel() }}</div>
         </div>
         @include('gate._pill', ['pass' => $pass])

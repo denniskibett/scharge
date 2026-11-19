@@ -21,7 +21,9 @@
 @endphp
 
 <div class="mb-6">
-  <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Import properties and units</h1>
+  @section('page_title')
+Import properties and units
+@endsection
   <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">One row per unit, with the building's details repeated on each row. Every building and unit is checked against scharge first: one already here is matched (blank details filled, nothing overwritten) and linked to you in your role, never copied. You see the result before anything is saved.</p>
 </div>
 

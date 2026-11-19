@@ -13,7 +13,9 @@
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white px-6 pb-6 pt-6 dark:border-gray-800 dark:bg-white/[0.03] mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90 mb-2">{{ $property->name }}</h1>
+                @section('page_title')
+{{ $property->name }}
+@endsection
                 <div class="flex flex-wrap items-center gap-4">
                     <div class="flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

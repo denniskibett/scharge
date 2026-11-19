@@ -17,7 +17,9 @@
                     
                     <div class="relative flex flex-col md:flex-row md:items-center md:justify-between">
                         <div class="flex-1">
-                            <h1 class="text-2xl font-bold text-white">Water Meter Readings</h1>
+                            @section('page_title')
+Water Meter Readings
+@endsection
                             <p class="mt-1 text-brand-100">Track and manage all water consumption readings across properties</p>
                         </div>
                         <div class="mt-4 md:mt-0">

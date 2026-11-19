@@ -14,7 +14,9 @@
     <div class="{{ $card }} mb-6 p-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white/90">{{ $property->name }}</h1>
+                @section('page_title')
+{{ $property->name }}
+@endsection
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">{{ $property->location ?: 'No location yet' }} · Landlord: {{ $property->company?->name }}</p>
                 <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
                     {{ $vacant->count() }} vacant of {{ $units->count() }} homes

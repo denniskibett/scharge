@@ -14,7 +14,9 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Website</h1>
+      @section('page_title')
+Website
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{{ $company->name }}'s website, hosted by scharge @if ($brand?->domain)at <a class="font-medium text-brand-600 hover:underline dark:text-brand-400" href="{{ $brand->baseUrl() }}" target="_blank" rel="noopener">{{ $brand->domain }}</a>@else on your own address once it is set up @endif. Your changes go live after scharge approves them. Your tenants' portal is on the same address.</p>
     </div>
   </div>

@@ -11,7 +11,9 @@
 <div>
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Website analytics</h1>
+      @section('page_title')
+Website analytics
+@endsection
       <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">What visitors to the scharge website read, where they came from and which forms they sent. Stored in our own database: no cookies, no IP addresses, no third parties, and visitors who ask not to be tracked are skipped. Signed-in users are not counted. Tag links you share with <code>?utm_source=…&amp;utm_medium=…&amp;utm_campaign=…</code> (docs/MARKETING_DISTRIBUTION.md).</p>
     </div>
     <div class="flex flex-wrap items-center gap-2">

@@ -15,7 +15,9 @@
     'verified' => 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300', 'rejected' => 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300'];
 @endphp
 <div class="space-y-6">
-  <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">KYC reviews</h1>
+  @section('page_title')
+KYC reviews
+@endsection
   @if (session('success'))<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">{{ session('success') }}</div>@endif
   <div class="flex flex-wrap gap-2 text-sm">
     @foreach (\App\Models\CompanyKyc::STATUSES as $k => $l)<a href="{{ route('kyc.review.index', ['status' => $k]) }}" class="{{ $status === $k ? $primary : $outline }}">{{ $l }} <span class="ml-1 opacity-70">{{ $counts[$k] }}</span></a>@endforeach

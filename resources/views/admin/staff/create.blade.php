@@ -9,7 +9,9 @@
 
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 class="text-xl font-semibold text-gray-800 dark:text-white">Add New Staff Member</h2>
+            @section('page_title')
+Add New Staff Member
+@endsection
             <p class="text-sm text-gray-500 dark:text-gray-400">Create a new staff account with role and company assignment.</p>
         </div>
 

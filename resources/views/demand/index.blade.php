@@ -12,7 +12,9 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Renter demand</h1>
+      @section('page_title')
+Renter demand
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Where people look for homes on scharge's Open listings, and at what budget. Searches, SMS alerts and viewing requests (a viewing request counts 5, an alert 3, a search 1). Anonymous.@unless ($isStaff) Free for every landlord on scharge.@endunless</p>
     </div>
     <form method="GET" class="flex flex-wrap gap-2">

@@ -15,7 +15,9 @@
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
       <a href="{{ route('website.index', $q) }}" class="text-sm text-brand-600 hover:underline dark:text-brand-400">‹ Website</a>
-      <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $page->edit('title') }}</h1>
+      @section('page_title')
+{{ $page->edit('title') }}
+@endsection
       <p class="mt-1 text-sm text-gray-500">/{{ $page->slug }} · {{ \App\Models\CompanyPage::STATUSES[$page->status] ?? $page->status }}</p>
     </div>
     <a href="{{ route('website.preview', [$page] + $q) }}" target="_blank" rel="noopener" class="{{ $outline }}">Preview</a>

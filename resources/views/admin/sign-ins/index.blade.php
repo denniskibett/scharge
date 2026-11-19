@@ -16,7 +16,9 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Sign-in locations</h1>
+      @section('page_title')
+Sign-in locations
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Where people sign in from: the website, the mobile app and the reader app. Locations are approximate (city level) and come from the IP address. Kept 180 days.</p>
     </div>
     <form method="GET" class="flex flex-wrap gap-2">

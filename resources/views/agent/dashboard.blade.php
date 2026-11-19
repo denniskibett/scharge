@@ -11,7 +11,9 @@
 @endphp
 <div>
     <div class="mb-6">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $agency?->name ?? 'My agency' }}</h2>
+        @section('page_title')
+{{ $agency?->name ?? 'My agency' }}
+@endsection
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">The properties landlords gave your agency to market and let. Put vacant homes on Open listings, add photos and answer renters.</p>
     </div>
 

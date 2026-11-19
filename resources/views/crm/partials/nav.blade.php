@@ -17,11 +17,8 @@
         'crm.feedback.index' => ['Feedback', null],
     ];
 @endphp
-<div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-    <div>
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ $title }}</h2>
-        @isset($subtitle)<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ $subtitle }}</p>@endisset
-    </div>
+@include('partials.page-header', ['title' => $title, 'sub' => $subtitle ?? null, 'crumbs' => request()->routeIs('crm.index') ? [] : ['CRM' => route('crm.index')]])
+<div class="mb-6">
     <nav class="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1 dark:bg-gray-900" aria-label="CRM sections">
         @foreach ($crmTabs as $route => [$label, $badge])
             <a href="{{ route($route) }}" @class([

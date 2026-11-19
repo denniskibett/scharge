@@ -7,7 +7,9 @@
 <div>
     <div class="row mb-4">
         <div class="col-12">
-            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Edit Company: {{ $company->name }}</h1>
+            @section('page_title')
+Edit Company: {{ $company->name }}
+@endsection
         </div>
     </div>
 

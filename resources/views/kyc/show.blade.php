@@ -18,7 +18,9 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Verify your business</h1>
+      @section('page_title')
+Verify your business
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{{ $company->name }}. Take photos of your documents with your phone and upload them here.@if ($readerOn) scharge reads them and fills in the details for you.@endif Verified landlords get a <strong>Verified</strong> badge on their listings.</p>
     </div>
     <span class="rounded-full px-3 py-1 text-sm font-medium {{ $statusTone[$kyc->status] }}">{{ \App\Models\CompanyKyc::STATUSES[$kyc->status] }}</span>

@@ -71,7 +71,9 @@
 
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">SMS Manager</h1>
+            @section('page_title')
+SMS Manager
+@endsection
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Send personalized SMS to tenants, a single number, or view history.</p>
             @if($sandbox)
                 <div class="inline-block mt-3 rounded-full bg-yellow-100 px-4 py-1 text-sm text-yellow-800"><x-icon name="exclamation-triangle" class="inline-block h-4 w-4 shrink-0 align-[-0.15em]" /> SANDBOX MODE – No real SMS will be sent</div>

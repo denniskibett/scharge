@@ -7,7 +7,9 @@
 <div>
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800 dark:text-white">Subscription Plans</h1>
+            @section('page_title')
+Subscription Plans
+@endsection
             <p class="text-sm text-gray-500 dark:text-gray-400">Manage region-based subscription plans and pricing</p>
         </div>
     </div>

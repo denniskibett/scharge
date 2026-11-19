@@ -9,7 +9,9 @@
   $outline = $btn.' border border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5';
 @endphp
 <div class="space-y-6">
-  <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Website approvals</h1>
+  @section('page_title')
+Website approvals
+@endsection
   @if (session('success'))<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">{{ session('success') }}</div>@endif
   @if ($errors->any())<div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</div>@endif
   @forelse ($pages as $p)

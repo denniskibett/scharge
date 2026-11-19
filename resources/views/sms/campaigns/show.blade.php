@@ -43,7 +43,9 @@
     <div class="mb-6 rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
         <div class="flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">
             <div class="flex flex-wrap items-center gap-3">
-                <h1 class="text-2xl font-bold text-black dark:text-white">{{ $campaign->name }}</h1>
+                @section('page_title')
+{{ $campaign->name }}
+@endsection
                 @php
                     $statusColors = [
                         'draft' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',

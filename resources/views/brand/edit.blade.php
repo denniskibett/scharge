@@ -15,7 +15,9 @@
 @section('content')
 <div class="space-y-6">
   <div>
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">White label & data</h1>
+    @section('page_title')
+White label & data
+@endsection
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{{ $company->name }}: your name, logo and colour on the dashboard, sign-in, tenant bills, PDFs and emails, and a copy of all your data whenever you want it.</p>
   </div>
 

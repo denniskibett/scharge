@@ -8,7 +8,9 @@
     <div class="mb-8">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-800 dark:text-white">System Settings</h1>
+                @section('page_title')
+System Settings
+@endsection
                 <p class="text-gray-600 dark:text-gray-300 mt-2">Manage your application configuration and preferences</p>
             </div>
             

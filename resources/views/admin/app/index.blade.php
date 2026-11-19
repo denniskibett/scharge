@@ -10,7 +10,9 @@
 @endphp
 <div class="space-y-6">
   <div>
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">App health</h1>
+    @section('page_title')
+App health
+@endsection
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Phones that used the scharge app in the last 30 days, which versions they run, and what crashes.</p>
   </div>
   @if (session('success'))<div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">{{ session('success') }}</div>@endif

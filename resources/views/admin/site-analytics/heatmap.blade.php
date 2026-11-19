@@ -8,7 +8,9 @@
   <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
     <div>
       <a href="{{ route('site-analytics.index', ['days' => $days]) }}" class="text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white">← Website analytics</a>
-      <h1 class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">Click heatmap</h1>
+      @section('page_title')
+Click heatmap
+@endsection
       <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Where people click on each page. Hotter colours mean more clicks. <span id="hm-count"></span></p>
     </div>
     <form method="GET" class="flex flex-wrap gap-2">

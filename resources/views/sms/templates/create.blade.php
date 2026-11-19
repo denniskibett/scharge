@@ -2,7 +2,9 @@
 
 @section('content')
 <div>
-    <h1 class="text-2xl font-bold mb-4">Create SMS Template</h1>
+    @section('page_title')
+Create SMS Template
+@endsection
 
     <form action="{{ route('sms.templates.store') }}" method="POST" class="bg-white p-6 rounded shadow">
         @csrf

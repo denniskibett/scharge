@@ -17,7 +17,9 @@
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-white">{{ $planData['name'] }}</h1>
+                    @section('page_title')
+{{ $planData['name'] }}
+@endsection
                     <div class="flex items-center gap-3 mt-1">
                         <span class="inline-flex px-3 py-1 text-sm rounded-full {{ $planData['is_active'] ? 'bg-green-500/30 text-green-200' : 'bg-red-500/30 text-red-200' }}">
                             {{ $planData['is_active'] ? 'Active' : 'Inactive' }}

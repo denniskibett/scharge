@@ -16,7 +16,9 @@
 @endphp
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
-    <div><h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ $kyc->company?->name }}</h1>
+    <div>@section('page_title')
+{{ $kyc->company?->name }}
+@endsection
       <p class="mt-1 text-sm text-gray-500">Sent {{ $kyc->submitted_at?->timezone('Africa/Nairobi')->format('j M Y, H:i') ?? '–' }}</p></div>
     <span class="rounded-full px-3 py-1 text-sm font-medium {{ $statusTone[$kyc->status] }}">{{ \App\Models\CompanyKyc::STATUSES[$kyc->status] }}</span>
   </div>

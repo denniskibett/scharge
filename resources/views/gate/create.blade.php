@@ -11,7 +11,9 @@
 <div class="flex max-w-3xl flex-col gap-5" x-data="gatePassForm(@js($prefill), @js(route('gate.lookup')))">
   <div>
     <a href="{{ route('gate.index') }}" class="text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400">← Guests & gate</a>
-    <h1 class="mt-2 text-xl font-semibold text-gray-800 dark:text-white/90">Send an entry code</h1>
+    @section('page_title')
+Send an entry code
+@endsection
     <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">The guest gets a 6-digit code by SMS and email to show the guard, and a link to check out from their phone.</p>
   </div>
   @include('gate._flash')

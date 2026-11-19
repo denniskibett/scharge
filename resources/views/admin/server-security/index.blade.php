@@ -16,7 +16,9 @@
 @endphp
 <div>
   <div class="mb-6">
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Server security</h1>
+    @section('page_title')
+Server security
+@endsection
     <p class="mt-1 max-w-3xl text-sm text-gray-500 dark:text-gray-400">Every domain and site on the VPS, checked daily by the defense agent: certificates, SPF / DKIM / DMARC, uptime, security headers, exposed files, Laravel settings, package vulnerabilities, SSH and firewall, mail, updates and file changes. A digest is emailed every morning. How it works: <code>ops/defense-agent/README.md</code>.</p>
   </div>
 

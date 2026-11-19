@@ -9,7 +9,9 @@
     <!-- Header -->
     <div class="mb-6 flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-            <h1 class="text-2xl font-bold text-black dark:text-white">Edit Campaign</h1>
+            @section('page_title')
+Edit Campaign
+@endsection
             <p class="text-sm text-gray-500 dark:text-gray-400">Edit your campaign details</p>
         </div>
         <a href="{{ route('sms.campaigns.show', $campaign) }}" class="inline-flex items-center rounded-md border border-stroke px-4 py-2 text-sm hover:bg-gray-100 dark:border-strokedark dark:hover:bg-gray-800">

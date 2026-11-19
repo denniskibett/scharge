@@ -7,7 +7,9 @@
 @include('partials.card.roles')
 <div x-data="rolesPage('{{ route('roles.index') }}')">
   <div class="mb-6">
-    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Roles & permissions</h1>
+    @section('page_title')
+Roles & permissions
+@endsection
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">Choose what each role can open, change and delete. Changes apply on the person's next page. Invite people and give them a role on <a href="{{ route('team.index') }}" class="underline">Team &amp; access</a>.</p>
   </div>
 

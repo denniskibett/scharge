@@ -5,7 +5,9 @@
 <div>
   <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">My BnB units</h1>
+      @section('page_title')
+My BnB units
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">These units are yours to manage. If your building's management joins scharge, they handle the building's service charge and water; your bookings and earnings stay private to you.</p>
     </div>
     <div class="flex gap-2">

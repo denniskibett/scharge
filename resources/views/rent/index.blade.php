@@ -20,7 +20,9 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Rent collection</h1>
+      @section('page_title')
+Rent collection
+@endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
         @if ($settings)
           Automatic bills on day {{ $settings->invoiceDay }}, due on day {{ $settings->dueDay }}.

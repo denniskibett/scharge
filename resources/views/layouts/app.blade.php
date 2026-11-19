@@ -354,6 +354,10 @@
 
         {{-- Page Content --}}
         <main id="app-content" class="flex-1 p-6">
+            {{-- The page's sections are already captured here, so its title / crumbs are known (App\Support\PageHeader). --}}
+            @if (\App\Support\PageHeader::shows())
+                @include('partials.page-header-bar', ['pageTitle' => $__env->yieldContent('page_title'), 'docTitle' => $__env->yieldContent('title')])
+            @endif
             @yield('content')
         </main>
 
