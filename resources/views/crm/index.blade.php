@@ -100,9 +100,9 @@
                             @php($ptype = \App\Modules\CRM\Support\PropertyClass::of($company))
                             <td class="p-4 whitespace-nowrap text-sm">
                                 @if ($ptype)<a href="{{ request()->fullUrlWithQuery(['ptype' => $ptype, 'page' => null]) }}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300">{{ $ptype }}</a>@else<span class="text-gray-400">-</span>@endif
-                                @if ($company->profile('segment'))<p class="mt-1 max-w-[12rem] truncate text-xs text-gray-500 dark:text-gray-400" title="{{ $company->profile('segment') }}">{{ $company->profile('segment') }}</p>@endif
+                                @if ($company->profile('segment'))<p class="mt-1 max-w-[200px] truncate text-xs text-gray-500 dark:text-gray-400" title="{{ $company->profile('segment') }}">{{ $company->profile('segment') }}</p>@endif
                             </td>
-                            <td class="p-4 text-sm text-gray-700 dark:text-gray-300"><span class="block max-w-[12rem] truncate" title="{{ collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') }}">{{ collect([$company->profile('area'), $company->profile('city')])->filter()->unique()->join(', ') ?: '-' }}</span></td>
+                            <td class="p-4 text-sm text-gray-700 dark:text-gray-300"><span class="block max-w-[200px] truncate" title="{{ collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') }}">{{ collect([$company->profile('area'), $company->profile('city')])->filter()->unique()->join(', ') ?: '-' }}</span></td>
                             <td class="p-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
                                 @if ($company->profile('county_id'))<a href="{{ request()->fullUrlWithQuery(['county_id' => $company->profile('county_id'), 'page' => null]) }}" class="hover:text-blue-600">{{ $company->profile('county') }}</a>@else{{ $company->profile('county') ?: '-' }}@endif
                             </td>
@@ -130,7 +130,7 @@
                                     <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-brand-500 hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-white/5" title="Playbook: approach, what to sell, cold email, verify" aria-label="Open playbook for {{ $company->name }}"><x-icon name="sparkles" class="h-4 w-4" /></button>
                                     <div x-data="{ open: false, top: 0, right: 0 }" class="relative">
                                         <button type="button" @click="const r = $el.getBoundingClientRect(); top = r.bottom + 4; right = window.innerWidth - r.right; open = !open" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white" aria-label="Actions for {{ $company->name }}" :aria-expanded="open"><x-icon name="ellipsis-horizontal" class="h-4 w-4" /></button>
-                                        <div x-show="open" x-cloak @click.outside="open = false" @keydown.escape.window="open = false" @scroll.window="open = false" :style="`top:${top}px; right:${right}px`" class="fixed z-50 w-52 rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-800 dark:bg-gray-900">
+                                        <div x-show="open" x-cloak @click.outside="open = false" @keydown.escape.window="open = false" @scroll.window="open = false" :style="`top:${top}px; right:${right}px`" class="fixed z-50 w-56 rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-800 dark:bg-gray-900">
                                             <a href="{{ route('crm.companies.show', $company) }}" class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="eye" class="h-4 w-4" /> View</a>
                                             <button type="button" @click="open = false; $dispatch('assign-manager', { url: '{{ route('crm.companies.update', $company) }}', name: @js($company->name), owner: '{{ $company->owner_id }}' })" class="flex w-full items-center gap-2 px-3 py-2 text-left text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="user-circle" class="h-4 w-4" /> Assign account manager</button>
                                             <a href="{{ route('crm.companies.show', $company) }}?edit=1#details" class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="pencil-square" class="h-4 w-4" /> Edit</a>
@@ -199,7 +199,7 @@
 {{-- Assign account manager (one dialog, filled by the row's Actions menu) --}}
 <div x-data="{ show: false, url: '', name: '', owner: '' }" @assign-manager.window="url = $event.detail.url; name = $event.detail.name; owner = $event.detail.owner; show = true" x-show="show" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assign-title" @keydown.escape.window="show = false">
     <div class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="show = false"></div>
-    <form method="POST" :action="url" class="relative w-full max-w-sm space-y-4 rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
+    <form method="POST" :action="url" class="relative w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
         @csrf @method('PUT')
         <div>
             <h3 id="assign-title" class="text-lg font-semibold text-gray-800 dark:text-white/90">Assign account manager</h3>
