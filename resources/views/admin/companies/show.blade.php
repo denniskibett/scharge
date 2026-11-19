@@ -111,64 +111,64 @@
         <div class="flex flex-col-reverse gap-2 border-b border-gray-200 px-3 pt-3 sm:px-5 sm:pt-4 lg:flex-row lg:items-end dark:border-gray-800">
             <div class="-mb-px flex min-w-0 flex-1 gap-1 overflow-x-auto whitespace-nowrap">
                 <!-- Info Tab -->
-                <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'info'" :class="activeTab === 'info' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     Info
                 </button>
                 
                 <!-- Subscription Invoices Tab (after Info) -->
-                <button @click="activeTab = 'subscription_invoices'; loadSubscriptionInvoices()" :class="activeTab === 'subscription_invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'subscription_invoices'; loadSubscriptionInvoices()" :class="activeTab === 'subscription_invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     Sub Invoices
                 </button>
                 
                 <!-- Staff Tab -->
-                <button @click="activeTab = 'staff'; loadStaff()" :class="activeTab === 'staff' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'staff'; loadStaff()" :class="activeTab === 'staff' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
                     Staff <span class="ml-1 text-xs" x-text="stats.totalStaff">0</span>
                 </button>
                 
                 <!-- Properties Tab -->
-                <button @click="activeTab = 'properties'; loadProperties()" :class="activeTab === 'properties' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'properties'; loadProperties()" :class="activeTab === 'properties' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
                     Properties <span class="ml-1 text-xs" x-text="stats.totalProperties">0</span>
                 </button>
                 
                 <!-- Tenancies Tab (Active only) -->
-                <button @click="activeTab = 'tenancies'; loadTenancies()" :class="activeTab === 'tenancies' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'tenancies'; loadTenancies()" :class="activeTab === 'tenancies' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
                     Tenancies <span class="ml-1 text-xs" x-text="stats.totalTenants">0</span>
                 </button>
                 
                 <!-- Subscriptions Tab -->
-                <button @click="activeTab = 'subscriptions'; loadSubscriptions()" :class="activeTab === 'subscriptions' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'subscriptions'; loadSubscriptions()" :class="activeTab === 'subscriptions' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
                     Subscriptions
                 </button>
                 
                 <!-- Expenses Tab -->
-                <button @click="activeTab = 'expenses'; loadExpenses()" :class="activeTab === 'expenses' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'expenses'; loadExpenses()" :class="activeTab === 'expenses' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"/>
                     </svg>
                     Expenses
                 </button>
                 
                 <!-- Invoices Tab (standard tenant invoices) -->
-                <button @click="activeTab = 'invoices'; loadInvoices()" :class="activeTab === 'invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-3 py-2 text-xs font-medium transition-colors">
-                    <svg class="inline w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="activeTab = 'invoices'; loadInvoices()" :class="activeTab === 'invoices' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
                     All Invoices
@@ -176,13 +176,13 @@
             </div>
             <!-- Company actions, at the right end of the tab line -->
             <div class="flex shrink-0 justify-end gap-2 lg:ml-auto lg:pb-2">
-                <button @click="openEditModal()" class="inline-flex h-8 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button @click="openEditModal()" class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
                     Edit Company
                 </button>
-                <button @click="toggleStatus()" :class="companyStatus ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'" class="inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium text-white transition">
+                <button @click="toggleStatus()" :class="companyStatus ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'" class="inline-flex h-9 items-center gap-2 rounded-lg px-4 text-sm font-medium text-white transition">
                     <span x-text="companyStatus ? 'Deactivate' : 'Activate'"></span>
                 </button>
             </div>
