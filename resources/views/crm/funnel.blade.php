@@ -12,7 +12,7 @@
     $top = max(1, $steps[0]['reached']);
     // Bar width on a log scale, so a handful of deals still shows next to 100,000 prospects.
     $bar = fn ($n) => $n ? max(2, round(log10($n + 1) / log10($top + 1) * 100)) : 0;
-    $q = fn (array $extra = []) => array_filter(['period' => $period, 'person' => $seesTeam ? $person?->id : null] + $extra);
+    $who = $seesTeam ? ($person?->id ?? 'all') : null;
     $pipe = fn (array $extra = []) => route('crm.index', array_filter(['owner' => $person?->id] + $extra));
     $won = $now['won'] ?? 0;
     $open = collect(\App\Models\Company::OPEN_CRM_STAGES)->sum(fn ($s) => $now[$s] ?? 0);
@@ -22,17 +22,17 @@
 @endphp
 <div>
     @include('crm.partials.nav', ['title' => 'Sales funnel', 'subtitle' => $seesTeam
-        ? ($person ? $person->name.'\'s book: where each prospect stands, what moved, and how the cold emails did.' : 'The whole team: where every prospect stands, what moved, and how the cold emails did.')
+        ? ($person ? ($person->id === auth()->id() ? 'Your book' : $person->name.'\'s book').': where each prospect stands, what moved, and how the cold emails did.' : 'The whole team: where every prospect stands, what moved, and how the cold emails did.')
         : 'Your book: where each of your prospects stands, what moved, and how your cold emails did.'])
 
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        @include('partials.table.tabs', ['tabs' => collect(\App\Modules\CRM\Controllers\Admin\CrmFunnelController::PERIODS)->map(fn ($l, $k) => ['label' => $l, 'url' => route('crm.funnel.index', array_filter(['period' => $k, 'person' => $seesTeam ? $person?->id : null])), 'active' => $period === $k])->values()->all()])
+        @include('partials.table.tabs', ['tabs' => collect(\App\Modules\CRM\Controllers\Admin\CrmFunnelController::PERIODS)->map(fn ($l, $k) => ['label' => $l, 'url' => route('crm.funnel.index', array_filter(['period' => $k, 'person' => $who])), 'active' => $period === $k])->values()->all()])
         @if ($seesTeam)
             <form method="GET" action="{{ route('crm.funnel.index') }}" class="flex items-center gap-2">
                 <input type="hidden" name="period" value="{{ $period }}">
                 <label for="funnel-person" class="text-sm text-gray-500 dark:text-gray-400">Show</label>
                 <select id="funnel-person" name="person" onchange="this.form.submit()" class="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
-                    <option value="">Whole team</option>
+                    <option value="all">Whole team</option>
                     @foreach ($staff as $s)
                         <option value="{{ $s->id }}" @selected($person?->id === $s->id)>{{ $s->name }}</option>
                     @endforeach

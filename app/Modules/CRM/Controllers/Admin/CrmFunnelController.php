@@ -14,8 +14,8 @@ use Illuminate\View\View;
 /**
  * The sales funnel: where every prospect stands now (New → Won, with the step-to-step conversion),
  * how many moved into each stage in the period, and how far the cold emails got.
- * Sysadmins and "crm.all" people see everyone and can pick one person; account managers and
- * sales people see their own book (companies.owner_id) only.
+ * Everyone opens on their own book (companies.owner_id); sysadmins open on the whole team. Sysadmins and
+ * "crm.all" people can switch to the whole team or any one person; others only ever see their own book.
  */
 class CrmFunnelController extends Controller
 {
@@ -29,7 +29,13 @@ class CrmFunnelController extends Controller
         $user = $request->user();
         $seesTeam = CrmAccess::seesPipeline($user);
         $staff = CrmCompanyController::staff();
-        $person = $seesTeam ? $staff->firstWhere('id', (int) $request->query('person')) : $user;
+        // Everyone opens on their own book; sysadmins open on the whole team. ?person=all or a person's id switches.
+        $asked = $request->query('person');
+        $person = ! $seesTeam ? $user : match (true) {
+            $asked === 'all' => null,
+            filled($asked) => $staff->firstWhere('id', (int) $asked),
+            default => CrmAccess::seesAll($user) ? null : $user,
+        };
         $ownerIds = $person ? collect([$person->id]) : null; // null = everyone
 
         $period = array_key_exists($request->query('period'), self::PERIODS) ? $request->query('period') : 'month';
