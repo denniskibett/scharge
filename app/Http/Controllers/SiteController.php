@@ -57,8 +57,11 @@ class SiteController extends Controller
         $rows = DB::table('properties as p')->leftJoin('units as u', 'u.property_id', '=', 'p.id')->where('p.company_id', $companyId)
             ->groupBy('p.id', 'p.name', 'p.location')
             ->selectRaw("p.id, p.name, p.location, COUNT(u.id) as units, SUM(u.status = 'vacant') as vacant,
-                MIN(NULLIF(u.rent_amount, 0)) as rent_from, GROUP_CONCAT(DISTINCT u.unit_type ORDER BY u.unit_type SEPARATOR ', ') as types")
+                MIN(NULLIF(u.rent_amount, 0)) as rent_from")
             ->orderBy('p.name')->get();
+        // Home types per building, gathered in PHP: GROUP_CONCAT ... SEPARATOR is MySQL-only and breaks the SQLite tests.
+        $types = DB::table('units')->whereIn('property_id', $rows->pluck('id'))->whereNotNull('unit_type')
+            ->distinct()->orderBy('unit_type')->get(['property_id', 'unit_type'])->groupBy('property_id');
         $photos = \Illuminate\Support\Facades\Schema::hasTable('unit_photos')
             ? DB::table('unit_photos')->whereIn('property_id', $rows->pluck('id'))->orderBy('sort')->get(['property_id', 'path'])->groupBy('property_id')
             : collect();
@@ -66,8 +69,8 @@ class SiteController extends Controller
         return $rows->map(fn ($r) => [
             'name' => $r->name, 'area' => $r->location, 'units' => (int) $r->units, 'vacant' => (int) $r->vacant,
             'rent_from' => $r->rent_from ? (float) $r->rent_from : null,
-            'types' => collect(explode(', ', (string) $r->types))->filter(fn ($t) => $t && strcasecmp($t, 'Shop') !== 0)->values()->all(),
-            'shops' => str_contains(strtolower((string) $r->types), 'shop'),
+            'types' => ($t = collect($types->get($r->id))->pluck('unit_type'))->filter(fn ($x) => $x && strcasecmp($x, 'Shop') !== 0)->values()->all(),
+            'shops' => $t->contains(fn ($x) => str_contains(strtolower((string) $x), 'shop')),
             'photo' => ($ph = $photos->get($r->id)?->first()) ? \Illuminate\Support\Facades\Storage::disk('public')->url($ph->path) : null,
         ])->all();
     }
