@@ -49,6 +49,8 @@ td small { display: block; color: var(--muted); }
 .vat-form { display: flex; gap: 6px; align-items: center; margin: 0; }
 .pay-top { border-top: 1px solid #F2F4F7; padding-top: 12px; }
 .pay-top h3 { margin: 0 0 10px; font-size: 14px; }
+.btn.icon { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 0; color: #344054; }
+.btn.icon:hover { color: var(--red); border-color: #FECACA; }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
 @media (max-width: 640px) { .link-row { grid-template-columns: 1fr auto auto; } .link-lbl { grid-column: 1 / -1; } }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
@@ -76,10 +78,10 @@ td small { display: block; color: var(--muted); }
 <div class="links">
   @foreach ($links as [$label, $url, $hint])
     <div class="link-row">
-      <div class="link-lbl"><b>{{ $label }}</b><span class="muted">{{ $hint }}</span></div>
+      <div class="link-lbl"><b><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;color:var(--red)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>{{ $label }}</b><span class="muted">{{ $hint }}</span></div>
       <input class="link-url" type="text" readonly value="{{ $url }}" onclick="this.select()" aria-label="{{ $label }}">
-      <button class="btn sm" type="button" onclick="copyLink(@js($url), @js($label.' copied'))">Copy</button>
-      <a class="btn sm" href="{{ $url }}" target="_blank" rel="noopener">Open</a>
+      <button class="btn icon" type="button" title="Copy {{ strtolower($label) }}" aria-label="Copy {{ strtolower($label) }}" onclick="copyLink(@js($url), @js($label.' copied'))"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+      <a class="btn icon" href="{{ $url }}" target="_blank" rel="noopener" title="Open {{ strtolower($label) }}" aria-label="Open {{ strtolower($label) }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a>
     </div>
   @endforeach
   @unless ($paid)
