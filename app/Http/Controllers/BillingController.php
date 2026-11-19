@@ -190,7 +190,14 @@ class BillingController extends Controller
 
         $vat = self::vatOf($json, (float) $row->amount);
 
-        $data = ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public, 'vat' => $vat, 'pay' => config('billing'),
+        // Paid so far: paid Sharet / wallet payments for this bill; a bill marked paid by hand counts as paid in full.
+        $paidAmount = \App\Services\Sharet\BillPayments::installed()
+            ? (float) DB::table('billing_payments')->where('subscription_invoice_id', $row->id)->where('status', 'paid')->sum('amount') : 0.0;
+        if ($row->status === 'paid') {
+            $paidAmount = max($paidAmount, (float) $row->amount);
+        }
+        $paidAmount = min($paidAmount, (float) $row->amount);
+        $data = ['paidAmount' => $paidAmount, 'balance' => round(max(0, (float) $row->amount - $paidAmount), 2), 'inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public, 'vat' => $vat, 'pay' => config('billing'),
             'payUrl' => $payUrl = ($row->status === 'paid' ? null : InvoicePayController::shortUrl((int) $row->id)),
             'payQr' => $payUrl ? self::qr($payUrl) : null,
             'handle' => InvoicePayController::payeeHandle()];

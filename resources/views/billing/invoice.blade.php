@@ -31,6 +31,7 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .pill.paid { background: #ECFDF3; color: #027A48; }
 .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 18px 32px; margin: 28px 0; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .meta .info { text-align: right; }
+.plan-name { margin-bottom: 8px; font-weight: 500; } .plan-name .muted { font-weight: 400; font-size: 13px; }
 .meta dl { margin: 0; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 18px; row-gap: 6px; }
 .meta dt { color: var(--muted); font-size: 13px; } .meta dd { margin: 0; }
 .meta b { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
@@ -42,6 +43,7 @@ td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
 .sub td { color: var(--ink); }
+.bal td { font-weight: 700; } .bal td.amt { color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--ink) !important; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .cards { max-width: 820px; margin: 28px auto -12px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -146,6 +148,7 @@ td small { display: block; color: var(--muted); }
     <div><b>Billed to</b>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</div>
     <div class="info">
       <b>Plan</b>
+      <div class="plan-name">{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
       <dl>
         <dt>Issued:</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }}</dd>
         <dt>Due:</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</dd>
@@ -174,7 +177,8 @@ td small { display: block; color: var(--muted); }
       <tr class="sub"><td></td><td></td><td class="num muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="amt">{{ $money($vat['net']) }}</td></tr>
       <tr class="sub"><td></td><td></td><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
       <tr class="grand"><td></td><td></td><td class="num">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
-      @if ($paid && $inv->paid_at)<tr class="sub"><td></td><td></td><td class="num muted">Paid</td><td class="amt muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
+      <tr class="sub"><td></td><td></td><td class="num muted">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="amt">{{ $money($paidAmount) }}</td></tr>
+      <tr class="sub bal"><td></td><td></td><td class="num">Balance due</td><td class="amt">{{ $money($balance) }}</td></tr>
     </tfoot>
   </table>
 

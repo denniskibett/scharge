@@ -61,6 +61,7 @@ h1 { margin: 0; font-size: 18pt; }
     <td style="width:50%"><span class="lbl">Billed to</span>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</td>
     <td style="text-align:right;padding-right:0">
       <span class="lbl">Plan</span>
+      <div style="margin-bottom:3pt">{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted" style="font-size:8.5pt">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
       <table class="kv">
         <tr><td class="k">Issued:</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }}</td></tr>
         <tr><td class="k">Due:</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</td></tr>
@@ -85,7 +86,8 @@ h1 { margin: 0; font-size: 18pt; }
     <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
     <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
     <tr class="grand"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
-    @if ($paid && $inv->paid_at)<tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Paid</td><td class="r">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
+    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
+    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r" style="font-weight:bold">Balance due</td><td class="r" style="font-weight:bold;color:{{ $balance > 0 ? '#B42318' : '#027A48' }}">{{ $money($balance) }}</td></tr>
   </tfoot>
 </table>
 
