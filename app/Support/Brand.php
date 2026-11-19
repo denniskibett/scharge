@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Which white label (if any) a page wears (docs/WHITE_LABEL.md):
  *  1. the web address: a request to a company's own domain (portal.danaff.co.ke) is that company's;
- *  2. otherwise the signed-in user's company, if it has a brand (never for scharge staff: they always see scharge);
+ *  2. otherwise the signed-in user's company, if it has a brand and its scharge subscription is paid up
+ *     (never for scharge staff: they always see scharge);
  *  3. otherwise scharge.
  * Views read it as $brand (shared by App\Http\Middleware\ApplyBrand); null = scharge's own look.
  */
@@ -29,7 +30,22 @@ class Brand
             return null;
         }
 
-        return self::forCompany((int) $user->company_id);
+        // The company's own look on the dashboard only once its scharge subscription is paid up; until then scharge's.
+        return self::paidUp((int) $user->company_id) ? self::forCompany((int) $user->company_id) : null;
+    }
+
+    /** No unpaid scharge subscription invoice for this company (cached for 5 minutes). */
+    public static function paidUp(int $companyId): bool
+    {
+        return Cache::remember('brand-paid-up-'.$companyId, 300, function () use ($companyId) {
+            if (! Schema::hasTable('subscription_invoices') || ! Schema::hasTable('company_subscriptions')) {
+                return true;
+            }
+
+            return ! \Illuminate\Support\Facades\DB::table('subscription_invoices as i')
+                ->join('company_subscriptions as s', 's.id', '=', 'i.company_subscription_id')
+                ->where('s.company_id', $companyId)->whereIn('i.status', ['pending', 'failed'])->exists();
+        });
     }
 
     /** The brand whose own address this host is (only an exact, configured domain). */
