@@ -58,7 +58,7 @@ td small { display: block; color: var(--muted); }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
 .pm { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: grid; place-items: center; padding: 16px; z-index: 50; animation: fade .15s ease; }
 .pm[hidden] { display: none; }
-.pm-box { position: relative; width: min(520px, 100%); height: min(720px, calc(100vh - 32px)); background: #F2F4F7; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px -20px rgb(0 0 0 / .45); animation: rise .2s cubic-bezier(.2,.7,.2,1); }
+.pm-box { position: relative; width: min(520px, 100%); height: min(760px, calc(100vh - 32px)); background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px -20px rgb(0 0 0 / .45); animation: rise .2s cubic-bezier(.2,.7,.2,1); }
 .pm-box iframe { width: 100%; height: 100%; border: 0; display: block; }
 .pm-x { position: absolute; top: 10px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; font-size: 20px; line-height: 1; cursor: pointer; color: #344054; }
 @keyframes fade { from { opacity: 0; } } @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.98); } }
@@ -189,7 +189,7 @@ td small { display: block; color: var(--muted); }
 <script>
 const payModal = document.getElementById('payModal');
 function openPay(url) { if (!payModal) return true; document.getElementById('payFrame').src = url; payModal.hidden = false; document.body.style.overflow = 'hidden'; return false; }
-function closePay() { payModal.hidden = true; document.getElementById('payFrame').src = 'about:blank'; document.body.style.overflow = ''; }
+function closePay() { payModal.hidden = true; document.getElementById('payFrame').src = 'about:blank'; document.body.style.overflow = ''; location.reload(); }
 document.querySelectorAll('[data-pay]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); openPay(a.href); }));
 if (payModal) { payModal.addEventListener('click', (e) => { if (e.target === payModal) closePay(); }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !payModal.hidden) closePay(); }); }
 function copyLink(url, msg) {
