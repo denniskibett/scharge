@@ -94,24 +94,24 @@ Schedule::command('crm:pull-nairobi --enrich=80')
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/crm-pull-nairobi.log'));
 
-// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): every weekday at 08:00, 10:00, 12:00 and 14:00,
-// prospects added since (with a business email, never emailed, not opted out) get their property type's email.
-// Residential comes first: the other types (hotels / short-stay, commercial, warehouses, utilities) send nothing while
-// residential prospects are still waiting (--after). Capped per run so the sender builds reputation; tracking: /crm/campaigns.
-foreach (['08:00', '10:00', '12:00', '14:00'] as $slot) {
-    [$h] = explode(':', $slot);
-    Schedule::command('crm:campaign RESIDENTIAL --send --limit=60 --per-minute=6')
-        ->weekdays()->at($slot)
-        ->withoutOverlapping(60)
+// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): a batch every 10 minutes on weekdays, 08:00-21:00 Nairobi.
+// Prospects with a business email, never emailed, not opted out get their property type's email. One type at a time:
+// residential first, then hotels / short-stay, commercial, utilities (--after). Each batch is 40 emails at 6 a minute (~7 min).
+// Daily ramp so sales@ keeps its reputation: 800 on 19 Nov, 1,500 on 20 Nov, then 2,500 a day (all types together).
+// A batch also stops for the day when more than 10% of today's emails bounced. Tracking: /crm/campaigns and /crm/funnel.
+$campaignCap = fn () => match (now(config('app.schedule_timezone', 'Africa/Nairobi'))->toDateString()) {
+    '2026-11-19' => 800,
+    '2026-11-20' => 1500,
+    default => 2500,
+};
+$campaignOrder = ['RESIDENTIAL', 'BNB', 'COMMERCIAL', 'UTILITIES'];
+foreach ($campaignOrder as $i => $type) {
+    $after = $i ? ' --after='.implode(',', array_slice($campaignOrder, 0, $i)) : '';
+    Schedule::command("crm:campaign {$type}{$after} --send --limit=40 --per-minute=6 --daily-cap=".$campaignCap())
+        ->weekdays()->everyTenMinutes()->between('08:00', '20:59')
+        ->withoutOverlapping(15)
         ->onOneServer()
         ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
-    foreach (['BNB' => '15', 'COMMERCIAL' => '30', 'UTILITIES' => '45'] as $type => $min) {
-        Schedule::command("crm:campaign {$type} --after=RESIDENTIAL --send --limit=40 --per-minute=6")
-            ->weekdays()->at("{$h}:{$min}")
-            ->withoutOverlapping(60)
-            ->onOneServer()
-            ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
-    }
 }
 
 // CRM recap of the last working day (Monday covers the weekend): sysadmins get the team, each account manager their own day and calls.

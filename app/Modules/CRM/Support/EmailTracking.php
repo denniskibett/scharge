@@ -83,7 +83,9 @@ class EmailTracking
         $query->where('lifecycle', 'prospect')
             ->where(fn ($w) => $w->whereNull('crm_stage')->orWhere('crm_stage', 'new'))
             ->where(fn ($w) => $w->whereNull('crm_profile->do_not_email')->orWhere('crm_profile->do_not_email', false))
-            ->whereNull('crm_profile->last_emailed_at');
+            ->whereNull('crm_profile->last_emailed_at')
+            ->where(fn ($w) => $w->whereNull('crm_profile->email_no_mx')->orWhere('crm_profile->email_no_mx', false))
+            ->where(fn ($w) => $w->whereNull('crm_profile->email_shared')->orWhere('crm_profile->email_shared', false));
 
         return $withEmail ? $query->whereNotNull('email')->where('email', 'like', '%_@_%._%') : $query;
     }
@@ -99,6 +101,7 @@ class EmailTracking
             ->where(fn ($w) => $w->whereNull('crm_profile->do_not_email')->orWhere('crm_profile->do_not_email', false))
             ->where(fn ($w) => $w
                 ->where(fn ($x) => $x->where(fn ($e) => $e->whereNull('email')->orWhere('email', '')->orWhere('email', 'not like', '%_@_%._%'))->whereNull('crm_profile->last_emailed_at'))
-                ->orWhere('crm_profile->email_bounced', true));
+                ->orWhere('crm_profile->email_bounced', true)
+                ->orWhere('crm_profile->email_no_mx', true));
     }
 }
