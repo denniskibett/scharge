@@ -39,7 +39,7 @@ h1 { margin: 0; font-size: 18pt; }
 .lines .foot > td.qr-cell { padding-right: 14pt; }
 .tt { width: 100%; } .tt td { border: 0 !important; padding: 1pt 0 !important; color: #667085; font-size: 8.5pt; text-align: right; white-space: nowrap; }
 .tt td:first-child { width: 47%; }
-.tt .t-grand td { border-top: 2px solid #101828 !important; padding: 4pt 0 0 !important; font-size: 11pt; font-weight: bold; line-height: 1.1; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
+.tt .t-grand td { border-top: 0 !important; padding: 4pt 0 0 !important; font-size: 11pt; font-weight: bold; line-height: 1.1; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .lines td.qr-cell-old { vertical-align: bottom; border: 0; padding: 0 14pt 0 0; color: #101828; line-height: 1.1; }
 .lines .grand td.e { border-top: 0; }
 .qrt { width: auto; } .qrt td { border: 0 !important; padding: 0 6pt 0 0 !important; vertical-align: middle; color: #101828; }

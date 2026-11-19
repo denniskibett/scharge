@@ -46,7 +46,7 @@ td small { display: block; color: var(--muted); }
 .sub td { color: var(--muted) !important; font-size: 13px; padding: 2px 0; border-bottom: 0; }
 
 .bal td { font-weight: 700; color: {{ $balance > 0 ? '#B42318' : '#027A48' }} !important; } .bal td.num { padding-right: 18px; white-space: nowrap; }
-.grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding: 8px 0 0; font-size: 16px; line-height: 1.2; font-weight: 700; color: var(--ink); }
+.grand td { border-top: 0; border-bottom: 0; padding: 8px 0 0; font-size: 16px; line-height: 1.2; font-weight: 700; color: var(--ink); }
 .lines-first td { padding-top: 10px; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .cards { max-width: 820px; margin: 28px auto -12px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
