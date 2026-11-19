@@ -29,7 +29,10 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .pill.due { background: #FEF3F2; color: #B42318; }
 .pill.open { background: #FFFAEB; color: #B54708; }
 .pill.paid { background: #ECFDF3; color: #027A48; }
-.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; margin: 28px 0; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 18px 32px; margin: 28px 0; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.meta .info { text-align: right; }
+.meta dl { margin: 0; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 18px; row-gap: 6px; }
+.meta dt { color: var(--muted); font-size: 13px; } .meta dd { margin: 0; }
 .meta b { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; padding: 10px 0; border-bottom: 1px solid var(--line); }
@@ -61,7 +64,7 @@ td small { display: block; color: var(--muted); }
 .btn.icon { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; color: #344054; flex: none; }
 .btn.icon:hover { color: var(--red); border-color: #FECACA; }
 .btn.xs { padding: 5px 10px; font-size: 12.5px; }
-@media (max-width: 680px) { .cards { grid-template-columns: 1fr; } .top > div:last-child { text-align: left !important; } }
+@media (max-width: 680px) { .meta .info { text-align: left; } .meta dl { justify-content: start; } .cards { grid-template-columns: 1fr; } .top > div:last-child { text-align: left !important; } }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
@@ -70,7 +73,7 @@ td small { display: block; color: var(--muted); }
   body { font-size: 10.5px; line-height: 1.4; }
   .top img { height: 24px; } .top p { margin-top: 6px !important; }
   h1 { font-size: 18px; } .pill { font-size: 9px; padding: 1px 7px; }
-  .meta { margin: 10px 0; padding: 8px 0; gap: 8px; grid-template-columns: repeat(4, 1fr); }
+  .meta { margin: 10px 0; padding: 8px 0; gap: 8px; flex-wrap: nowrap; } .meta dl { row-gap: 2px; } .meta dt { font-size: 9.5px; }
   .meta b { font-size: 8.5px; margin-bottom: 2px; }
   .page > p.muted { margin: -4px 0 6px !important; }
   th { padding: 6px 0; font-size: 8.5px; } td { padding: 5px 0; }
@@ -138,9 +141,14 @@ td small { display: block; color: var(--muted); }
 
   <div class="meta">
     <div><b>Billed to</b>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</div>
-    <div><b>Issued</b>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</div>
-    <div><b>Due</b>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('j M Y') }}</div>
-    <div><b>Plan</b>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
+    <div class="info">
+      <b>Info details</b>
+      <dl>
+        <dt>Plan</dt><dd>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</dd>
+        <dt>Issued</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</dd>
+        <dt>Due</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('j M Y') }}</dd>
+      </dl>
+    </div>
   </div>
 
 
