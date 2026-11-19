@@ -48,6 +48,8 @@ td small { display: block; color: var(--muted); }
 .link-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 6px; border-top: 1px solid #F2F4F7; }
 .vat-form { display: flex; gap: 6px; align-items: center; margin: 0; }
 .pay-top { border-top: 1px solid #F2F4F7; padding-top: 12px; }
+.sp-head { display: inline-flex; align-items: center; gap: 8px; }
+.sp-head img { border-radius: 5px; }
 .pay-top h3 { margin: 0 0 10px; font-size: 14px; }
 .btn.icon { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 0; color: #344054; }
 .btn.icon:hover { color: var(--red); border-color: #FECACA; }
@@ -86,7 +88,7 @@ td small { display: block; color: var(--muted); }
   @endforeach
   @unless ($paid)
     <div class="pay-top">
-      <h3>Payment details · Sharet Pay</h3>
+      <h3 class="sp-head"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="Sharet Pay" width="22" height="22">Payment details · Sharet Pay</h3>
       <div class="pay-grid">
         <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.@if (! empty($pay['sharet_handle']))<br>Sharet to Sharet: <strong>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</strong>@endif</div>
         <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.@if (! empty($pay['stk_number']))<br>STK push number: <strong>{{ $pay['stk_number'] }}</strong>@endif</div>
@@ -160,7 +162,7 @@ td small { display: block; color: var(--muted); }
 
   @unless ($paid)
     <div class="payline">
-      <b>Pay with Sharet Pay</b>
+      <b class="sp-head"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay</b>
       @if (! empty($pay['stk_number']))<span>STK push: <strong>{{ $pay['stk_number'] }}</strong></span>@endif
       @if (! empty($pay['sharet_handle']))<span>Sharet to Sharet: <strong>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</strong></span>@endif
       <span>Reference: <strong>{{ $inv->invoice_number }}</strong></span>
