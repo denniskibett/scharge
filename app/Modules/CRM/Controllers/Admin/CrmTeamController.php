@@ -23,7 +23,7 @@ class CrmTeamController extends Controller
 {
     public const PERIODS = ['yesterday' => 'Yesterday', 'today' => 'Today', 'week' => 'Last 7 days', 'month' => 'Last 30 days'];
 
-    public const SHARED = ['sales', 'onboarding', 'support'];
+    public const SHARED = ['sales', 'onboarding', 'support', 'noreply'];
 
     public function index(Request $request): View
     {
