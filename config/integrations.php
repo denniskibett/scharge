@@ -101,13 +101,16 @@ return [
         'name' => 'WhatsApp (your number)',
         'scope' => 'company',
         'category' => 'Messaging',
-        'description' => "Send bills and reminders from your own WhatsApp Business number instead of scharge's. Tenants with international numbers get WhatsApp instead of SMS.",
+        'description' => "Bills and reminders go out on WhatsApp from your own business number and name, not scharge's. We can set the number up for you inside your plan, or you connect your own Meta app. Tenants with international numbers get WhatsApp instead of SMS.",
         'color' => '#25D366',
         'logo' => 'whatsapp.svg', // public/images/integrations
         'fields' => [
-            'mode' => ['label' => 'Use', 'type' => 'select', 'required' => true, 'options' => ['cloud' => 'Send through the WhatsApp Cloud API', 'links' => 'Share links only (wa.me, no sending)']],
-            'phone_number_id' => ['label' => 'Phone number ID', 'help' => 'Meta Business › WhatsApp Manager › API setup (the ID of the sending number, not the number itself).'],
-            'access_token' => ['label' => 'Access token', 'secret' => true, 'help' => 'A permanent system-user token with whatsapp_business_messaging.'],
+            'mode' => ['label' => 'Use', 'type' => 'select', 'required' => true, 'options' => ['managed' => 'scharge sets up my WhatsApp Business number (included in my plan)', 'cloud' => 'My own Meta app (WhatsApp Cloud API)', 'links' => 'Share links only (wa.me, no sending)']],
+            'display_name' => ['label' => 'Name tenants see', 'placeholder' => 'Greenview Apartments', 'show_if' => ['mode' => ['managed']], 'help' => 'Your business name as it should show in WhatsApp. Meta checks it matches your business.'],
+            'number_to_use' => ['label' => 'Phone number for WhatsApp', 'placeholder' => '0712 345 678', 'show_if' => ['mode' => ['managed']], 'help' => 'A number that is NOT already on the WhatsApp app (or that you will move off it). We send it a code once to verify.'],
+            'phone_number_id' => ['label' => 'Phone number ID', 'show_if' => ['mode' => ['cloud', 'managed']], 'help' => 'Meta Business › WhatsApp Manager › API setup (the ID of the sending number). With scharge set-up, we fill this in.'],
+            'access_token' => ['label' => 'Access token', 'secret' => true, 'show_if' => ['mode' => ['cloud']], 'help' => 'A permanent system-user token with whatsapp_business_messaging.'],
+            'approval' => ['label' => 'Set-up status', 'type' => 'select', 'admin_only' => true, 'show_if' => ['mode' => ['managed']], 'options' => ['requested' => 'Requested', 'verifying' => 'Verifying with Meta', 'approved' => 'Live', 'rejected' => 'Rejected'], 'help' => 'scharge staff only. Messages go from this number once this says Live.'],
             'business_account_id' => ['label' => 'WhatsApp Business account ID', 'help' => 'Optional; shown for reference.'],
             'template' => ['label' => 'Message template', 'placeholder' => 'scharge_notice', 'help' => 'An approved template with one body variable {{1}}. Needed to message people who have not written to you in the last 24 hours.'],
             'language' => ['label' => 'Template language', 'placeholder' => 'en', 'help' => 'Language code of the template, e.g. en or en_US.'],
@@ -224,12 +227,14 @@ return [
         'name' => 'SMS sender ID',
         'scope' => 'company',
         'category' => 'Messaging',
-        'description' => 'Bills, reminders and receipts to your tenants arrive under your own name instead of scharge\'s. Use scharge\'s KenyaSMS account (we register your sender ID there) or your own.',
+        'description' => 'Bills, reminders and receipts reach your tenants under your own name, not scharge\'s. We register the name for you and it is included in your plan, so your tenants only ever see your brand.',
         'color' => '#1D4ED8',
         'logo' => 'kenyasms.png', // public/images/integrations
         'fields' => [
-            'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'MYAPARTMNT', 'help' => 'Up to 11 letters or numbers, exactly as approved by KenyaSMS. Until it is approved, messages may fail; switch this card off to fall back to scharge\'s sender.'],
-            'api_key' => ['label' => 'Your own KenyaSMS API key', 'secret' => true, 'help' => 'Only if you have your own KenyaSMS account (you pay for your SMS there). Leave blank to send through scharge\'s account.'],
+            'setup' => ['label' => 'Who sets it up', 'type' => 'select', 'required' => true, 'options' => ['managed' => 'scharge registers it for me (included in my plan)', 'own' => 'I have my own KenyaSMS account'], 'help' => 'With scharge, we apply for the name with the mobile networks for you (about 5 to 10 working days) and your SMS are part of your per-unit plan. Nothing to sign up for.'],
+            'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'MYAPARTMNT', 'help' => 'Up to 11 letters or numbers: usually your agency or building name. Until it is approved, your tenants keep getting messages from scharge\'s name.'],
+            'api_key' => ['label' => 'Your own KenyaSMS API key', 'secret' => true, 'show_if' => ['setup' => ['own']], 'help' => 'You pay for your SMS on your KenyaSMS account.'],
+            'approval' => ['label' => 'Registration status', 'type' => 'select', 'admin_only' => true, 'options' => ['requested' => 'Requested', 'submitted' => 'Submitted to networks', 'approved' => 'Approved', 'rejected' => 'Rejected'], 'help' => 'scharge staff only. Messages use the name once this says Approved.'],
         ],
     ],
 
@@ -305,6 +310,193 @@ return [
             'account_number' => ['label' => 'Account number', 'required' => true],
             'branch' => ['label' => 'Branch'],
             'note' => ['label' => 'Note for tenants', 'placeholder' => 'Set it for the 1st of each month.'],
+        ],
+    ],
+
+    // ── More integrations (docs/INTEGRATIONS.md) ─────────────────────────────────────────────────────────────
+
+    'webhooks' => [
+        'name' => 'Webhooks',
+        'scope' => 'company',
+        'category' => 'Developers',
+        'description' => 'scharge tells your own systems (or Zapier, Make, n8n) the moment rent is paid, a bill is issued or paid, a tenant moves in or out, or a booking comes in: a signed JSON POST to your URL, retried for 15 hours if it fails. Test sends a signed "ping".',
+        'color' => '#7C3AED',
+        'fields' => [
+            'url' => ['label' => 'Your endpoint (https)', 'type' => 'url', 'required' => true, 'placeholder' => 'https://hooks.zapier.com/hooks/catch/…'],
+            'secret' => ['label' => 'Signing secret', 'secret' => true, 'required' => true, 'help' => 'Any long random text. Put the same text in your receiver and check the X-Scharge-Signature header: t=<time>,v1=HMAC-SHA256(secret, "<time>.<body>").'],
+            'events' => ['label' => 'Events', 'placeholder' => 'payment.received, invoice.paid', 'help' => 'Comma-separated; blank sends all: payment.received, invoice.issued, invoice.paid, tenancy.started, tenancy.ended, booking.created.'],
+        ],
+    ],
+
+    'company_email' => [
+        'name' => 'Email from your address',
+        'scope' => 'company',
+        'category' => 'Messaging',
+        'description' => 'Bills, receipts and gate passes are emailed to your tenants from your own address (e.g. accounts@youragency.co.ke) through your mail provider, so replies come to you. Test signs in and sends you a test email.',
+        'color' => '#DC2626',
+        'fields' => [
+            'provider' => ['label' => 'Mail provider', 'type' => 'select', 'required' => true, 'options' => ['google' => 'Google Workspace / Gmail', 'microsoft' => 'Microsoft 365 / Outlook', 'zoho' => 'Zoho Mail', 'mailgun' => 'Mailgun (API key)', 'smtp' => 'Other mail server (SMTP)']],
+            'from_address' => ['label' => 'Send from', 'required' => true, 'placeholder' => 'accounts@youragency.co.ke'],
+            'from_name' => ['label' => 'Sender name', 'placeholder' => 'Greenview Apartments'],
+            'reply_to' => ['label' => 'Replies go to', 'placeholder' => 'Leave blank for the address above'],
+            'host' => ['label' => 'SMTP server', 'placeholder' => 'mail.youragency.co.ke', 'show_if' => ['provider' => ['smtp']]],
+            'port' => ['label' => 'Port', 'placeholder' => '587', 'show_if' => ['provider' => ['smtp']]],
+            'encryption' => ['label' => 'Encryption', 'type' => 'select', 'show_if' => ['provider' => ['smtp']], 'options' => ['tls' => 'STARTTLS (port 587)', 'ssl' => 'SSL (port 465)']],
+            'username' => ['label' => 'Username', 'placeholder' => 'Usually the full email address', 'show_if' => ['provider' => ['smtp', 'google', 'microsoft', 'zoho']]],
+            'password' => ['label' => 'Password or app password', 'secret' => true, 'show_if' => ['provider' => ['smtp', 'google', 'microsoft', 'zoho']], 'help' => 'Google and Microsoft accounts with 2-step sign-in need an app password, not your normal one.'],
+            'mailgun_domain' => ['label' => 'Mailgun domain', 'placeholder' => 'mg.youragency.co.ke', 'show_if' => ['provider' => ['mailgun']]],
+            'mailgun_key' => ['label' => 'Mailgun API key', 'secret' => true, 'show_if' => ['provider' => ['mailgun']]],
+            'mailgun_region' => ['label' => 'Mailgun region', 'type' => 'select', 'show_if' => ['provider' => ['mailgun']], 'options' => ['us' => 'US (api.mailgun.net)', 'eu' => 'EU (api.eu.mailgun.net)']],
+        ],
+    ],
+
+    'data_feeds' => [
+        'name' => 'Google Sheets & Calendar feeds',
+        'scope' => 'company',
+        'category' => 'Your data',
+        'description' => 'Private live links: paste a CSV link into Google Sheets (=IMPORTDATA) or Excel (Data › From web) for payments, bills and arrears, or tenants, always up to date. The calendar link adds bookings, move-ins and move-outs to Google Calendar, Outlook or your phone. Save to get the links.',
+        'color' => '#0F9D58',
+        'fields' => [
+            'months' => ['label' => 'How far back', 'type' => 'select', 'required' => true, 'options' => ['3' => 'Last 3 months', '12' => 'Last 12 months', '36' => 'Last 3 years']],
+            'reset' => ['label' => 'Make new links', 'type' => 'select', 'options' => ['no' => 'No, keep the links', 'yes' => 'Yes: the old links stop working'], 'help' => 'Anyone with a link can read that list, so make new ones if a link was shared by mistake.'],
+        ],
+    ],
+
+    'bank_import' => [
+        'name' => 'Bank statement import',
+        'scope' => 'company',
+        'category' => 'Banking',
+        'description' => 'Tenants who pay straight into your bank account (Equity, KCB, Co-op, Absa, NCBA, Stanbic, I&M, DTB, Family…): upload the statement as CSV or Excel and scharge matches each deposit to the tenant\'s bill by reference, unit and amount. You confirm, then receipts go out.',
+        'color' => '#0E7490',
+        'link' => ['label' => 'Upload a statement', 'route' => 'bank-import.index'],
+        'fields' => [
+            'bank' => ['label' => 'Your bank', 'type' => 'select', 'options_from' => 'banks'],
+            'auto_post' => ['label' => 'Sure matches', 'type' => 'select', 'required' => true, 'options' => ['review' => 'Let me confirm each one', 'post' => 'Record them at once (bill number or unit + exact amount)']],
+        ],
+    ],
+
+    'jenga' => [
+        'name' => 'Equity Bank (Jenga API)',
+        'scope' => 'company',
+        'category' => 'Banking',
+        'description' => 'Connect your Equity account through Jenga: every morning scharge reads the deposits into your account and matches them to tenants\' bills, with no statement to download. Test signs in and reads your balance.',
+        'color' => '#A32A29',
+        'fields' => [
+            'environment' => ['label' => 'Environment', 'type' => 'select', 'required' => true, 'options' => ['sandbox' => 'Sandbox (testing)', 'production' => 'Live']],
+            'merchant_code' => ['label' => 'Merchant code', 'required' => true, 'help' => 'From jengahq.io › Settings › API keys.'],
+            'api_key' => ['label' => 'API key', 'secret' => true, 'required' => true],
+            'consumer_secret' => ['label' => 'Consumer secret', 'secret' => true, 'required' => true],
+            'account_number' => ['label' => 'Equity account number', 'required' => true],
+            'private_key' => ['label' => 'Private key (PEM)', 'type' => 'textarea', 'secret' => true, 'help' => 'The RSA private key whose public half you uploaded to JengaHQ. Needed to read balances and statements.'],
+        ],
+    ],
+
+    'etims' => [
+        'name' => 'KRA eTIMS',
+        'scope' => 'company',
+        'category' => 'Tax',
+        'description' => 'Every rent or stay bill is sent to KRA through eTIMS (OSCU) and gets a KRA receipt number and QR code on the invoice, so corporate tenants can claim it. Test registers your device with KRA and checks the connection.',
+        'color' => '#B91C1C',
+        'fields' => [
+            'environment' => ['label' => 'Environment', 'type' => 'select', 'required' => true, 'options' => ['sandbox' => 'KRA sandbox (testing)', 'production' => 'Live']],
+            'tin' => ['label' => 'KRA PIN', 'required' => true, 'placeholder' => 'P051234567X'],
+            'bhf_id' => ['label' => 'Branch ID', 'placeholder' => '00', 'help' => '00 for the head office.'],
+            'device_serial' => ['label' => 'Device serial number', 'required' => true, 'help' => 'The OSCU serial KRA gave you when you applied for eTIMS (iTax › eTIMS › Online Sales Control Unit).'],
+            'when' => ['label' => 'Send to KRA when', 'type' => 'select', 'required' => true, 'options' => ['paid' => 'The bill is fully paid', 'issued' => 'The bill is issued']],
+            'tax_type' => ['label' => 'VAT on rent', 'type' => 'select', 'required' => true, 'options' => ['A' => 'Exempt (residential rent)', 'B' => 'VAT 16% (commercial, VAT-registered)', 'C' => 'Zero-rated', 'D' => 'Not VAT-registered', 'E' => 'VAT 8%']],
+            'item_class' => ['label' => 'KRA item class code', 'placeholder' => '80131500', 'help' => 'Leave blank for 80131500 (renting of property).'],
+        ],
+    ],
+
+    'quickbooks' => [
+        'name' => 'QuickBooks Online',
+        'scope' => 'company',
+        'category' => 'Accounting',
+        'description' => 'Each tenant becomes a customer, each bill an invoice and each payment a payment against it in QuickBooks, as they happen. No double entry. Connect, then Test shows your QuickBooks company.',
+        'color' => '#2CA01C',
+        'oauth' => true,
+        'fields' => [
+            'item_name' => ['label' => 'Product/Service for rent', 'placeholder' => 'Rent', 'help' => 'A Service item in QuickBooks (Sales › Products and services). Its income account is where rent is booked.'],
+            'deposit_account' => ['label' => 'Deposit payments to (account ID)', 'placeholder' => 'Blank = Undeposited Funds'],
+            'from_date' => ['label' => 'Copy records from', 'placeholder' => 'YYYY-MM-DD', 'help' => 'Blank: only new bills and payments from now on.'],
+        ],
+    ],
+
+    'xero' => [
+        'name' => 'Xero',
+        'scope' => 'company',
+        'category' => 'Accounting',
+        'description' => 'Each tenant becomes a contact, each bill a sales invoice and each payment a payment in Xero, as they happen. Connect, then Test shows your Xero organisation.',
+        'color' => '#13B5EA',
+        'oauth' => true,
+        'fields' => [
+            'income_account' => ['label' => 'Income account code', 'placeholder' => '200', 'help' => 'Where rent is booked (Accounting › Chart of accounts).'],
+            'bank_account' => ['label' => 'Bank account code for payments', 'placeholder' => '090', 'help' => 'Must be a bank account in Xero with payments enabled.'],
+            'from_date' => ['label' => 'Copy records from', 'placeholder' => 'YYYY-MM-DD', 'help' => 'Blank: only new bills and payments from now on.'],
+        ],
+    ],
+
+    'zoho_books' => [
+        'name' => 'Zoho Books',
+        'scope' => 'company',
+        'category' => 'Accounting',
+        'description' => 'Each tenant becomes a customer, each bill an invoice and each payment a customer payment in Zoho Books, as they happen. Connect, then Test shows your Zoho organisation.',
+        'color' => '#E42527',
+        'oauth' => true,
+        'fields' => [
+            'item_name' => ['label' => 'Line name for rent', 'placeholder' => 'Rent'],
+            'deposit_account' => ['label' => 'Deposit to (account ID)', 'placeholder' => 'Blank = Undeposited Funds'],
+            'from_date' => ['label' => 'Copy records from', 'placeholder' => 'YYYY-MM-DD', 'help' => 'Blank: only new bills and payments from now on.'],
+        ],
+    ],
+
+    'smart_meters' => [
+        'name' => 'Smart meters & IoT',
+        'scope' => 'company',
+        'category' => 'Meters',
+        'description' => 'Smart water and power meters (or a meter vendor\'s cloud) send readings straight to scharge, which bills them with the rent. Each meter gets its own device token on the Meters page; a vendor cloud can post for all your meters by serial number with the gateway key here. Test shows which meters reported in the last day.',
+        'color' => '#0369A1',
+        'fields' => [
+            'vendor' => ['label' => 'Meter make / vendor', 'placeholder' => 'Stron, Hexing, Calin, Kamstrup…', 'help' => 'For our records and support.'],
+            'gateway_key' => ['label' => 'Gateway key', 'secret' => true, 'help' => 'Leave blank and save to get one (shown once in the Test result). The vendor sends it as "Authorization: Bearer …" to POST /api/v1/meter-readings with {serial, reading, read_at}.'],
+        ],
+    ],
+
+    // scharge's own developer apps for the accounting connections above (registered once by scharge; companies just click Connect).
+    'quickbooks_app' => [
+        'name' => 'QuickBooks app (scharge)',
+        'scope' => 'platform',
+        'category' => 'Accounting',
+        'description' => 'scharge\'s Intuit developer app, used when a company clicks Connect on its QuickBooks card. Redirect URI to register: /integrations/oauth/quickbooks/callback.',
+        'color' => '#2CA01C',
+        'fields' => [
+            'environment' => ['label' => 'Environment', 'type' => 'select', 'required' => true, 'options' => ['sandbox' => 'Sandbox (development keys)', 'production' => 'Live (production keys)']],
+            'client_id' => ['label' => 'Client ID', 'required' => true],
+            'client_secret' => ['label' => 'Client secret', 'secret' => true, 'required' => true],
+        ],
+    ],
+    'xero_app' => [
+        'name' => 'Xero app (scharge)',
+        'scope' => 'platform',
+        'category' => 'Accounting',
+        'description' => 'scharge\'s Xero developer app (Web app), used when a company clicks Connect on its Xero card. Redirect URI to register: /integrations/oauth/xero/callback.',
+        'color' => '#13B5EA',
+        'fields' => [
+            'client_id' => ['label' => 'Client ID', 'required' => true],
+            'client_secret' => ['label' => 'Client secret', 'secret' => true, 'required' => true],
+            'scopes' => ['label' => 'Scopes', 'placeholder' => 'offline_access accounting.transactions accounting.contacts accounting.settings.read', 'help' => 'Leave blank for the default. Apps created after March 2026 may need the newer granular scopes (accounting.invoices accounting.payments accounting.contacts).'],
+        ],
+    ],
+    'zoho_app' => [
+        'name' => 'Zoho Books app (scharge)',
+        'scope' => 'platform',
+        'category' => 'Accounting',
+        'description' => 'scharge\'s Zoho API console client (Server-based app), used when a company clicks Connect on its Zoho Books card. Redirect URI to register: /integrations/oauth/zoho_books/callback.',
+        'color' => '#E42527',
+        'fields' => [
+            'client_id' => ['label' => 'Client ID', 'required' => true],
+            'client_secret' => ['label' => 'Client secret', 'secret' => true, 'required' => true],
+            'region' => ['label' => 'Zoho data centre', 'type' => 'select', 'required' => true, 'options' => ['com' => 'Global (zoho.com)', 'eu' => 'Europe (zoho.eu)', 'in' => 'India (zoho.in)', 'com.au' => 'Australia (zoho.com.au)']],
         ],
     ],
 ];

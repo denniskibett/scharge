@@ -90,6 +90,10 @@ class Integrations
         }
         $out = ['api_key' => config('sms.kenyasms.api_key') ?: config('sms.api_key'), 'sender_id' => config('sms.kenyasms.sender_id') ?: config('sms.sender_id'), 'own_account' => false];
         $row = $companyId ? self::for((int) $companyId, 'kenyasms_sender') : null;
+        // A name scharge registers for the company is used only once the networks approved it.
+        if ($row && $row->get('setup') === 'managed' && $row->get('approval') !== 'approved') {
+            $row = null;
+        }
         if ($row && filled($row->get('sender_id'))) {
             $out['sender_id'] = $row->get('sender_id');
             if (filled($row->get('api_key'))) {
@@ -120,11 +124,18 @@ class Integrations
         return $row && filled($row->get('consumer_key')) && filled($row->get('consumer_secret')) && filled($row->get('passkey')) ? $row : null;
     }
 
+    private static ?bool $installed = null;
+
     public static function installed(): bool
     {
-        static $installed;
+        return self::$installed ??= Schema::hasTable('company_integrations');
+    }
 
-        return $installed ??= Schema::hasTable('company_integrations');
+    /** Check the tables again (tests build them after the app boots). */
+    public static function forgetInstalled(): void
+    {
+        self::$installed = null;
+        Connectors\Hub::forgetInstalled();
     }
 
     /** @return array{0: bool, 1: string} */
@@ -136,7 +147,8 @@ class Integrations
             'airtel_money' => self::testAirtel($row),
             'kenyasms' => self::testKenyaSms($row),
             'kenyasms_sender' => self::testSmsSender($row),
-            'whatsapp', 'whatsapp_business' => WhatsApp::test($row),
+            'whatsapp_business' => $row->get('mode') === 'managed' ? self::testManagedWhatsApp($row) : WhatsApp::test($row),
+            'whatsapp' => WhatsApp::test($row),
             'africastalking' => self::testAfricasTalking($row),
             'smtp' => self::testSmtp($row),
             'sharet_payouts' => self::testPayouts($row),
@@ -144,6 +156,15 @@ class Integrations
             'document_reader' => self::testDocumentReader($row),
             'mobile_app' => \App\Services\App\PushService::test(),
             'data_backup' => \App\Services\Data\CompanyBackup::test($row),
+            'webhooks' => Connectors\Webhooks::test($row),
+            'company_email' => Connectors\CompanyMail::test($row),
+            'data_feeds' => [true, 'Your links are live. Paste a CSV link into Google Sheets as =IMPORTDATA("link"), or the calendar link into Google Calendar › Other calendars › From URL.'],
+            'bank_import' => [true, 'Ready. Open the import page and upload a statement (CSV or Excel).'],
+            'jenga' => Connectors\Jenga::test($row),
+            'etims' => Connectors\Hub::installed('integration_links') ? Connectors\Etims::test($row) : [false, 'Not installed yet: scharge support must apply database/schema/2026_11_20_integrations_more.sql.'],
+            'quickbooks', 'xero', 'zoho_books' => Connectors\Accounting::test($row),
+            'quickbooks_app', 'xero_app', 'zoho_app' => [filled($row->get('client_id')) && filled($row->get('client_secret')), 'Saved. Companies can now click Connect. Redirect URI: '.route('integrations.oauth.callback', ['provider' => ['quickbooks_app' => 'quickbooks', 'xero_app' => 'xero', 'zoho_app' => 'zoho_books'][$row->provider]])],
+            'smart_meters' => self::testMeters($row),
             'channel_sync' => [true, \App\Models\UnitChannel::whereNotNull('import_url')->count().' unit calendars connected. They sync every 30 minutes while this is on.'],
             default => [false, 'No test available for this provider.'],
         };
@@ -151,6 +172,57 @@ class Integrations
         $row->forceFill(['last_tested_at' => now(), 'last_test_ok' => $ok, 'last_test_message' => mb_substr($message, 0, 250)])->save();
 
         return [$ok, $message];
+    }
+
+    /** Lines shown on a card under its description (links, counts, status). @return array<int, array{label: string, value: string, copy?: bool}> */
+    public static function extras(CompanyIntegration $row): array
+    {
+        $count = fn (string $table, array $where) => Connectors\Hub::installed($table) ? \Illuminate\Support\Facades\DB::table($table)->where($where) : null;
+        $status = fn ($row) => ['requested' => 'Requested: scharge is on it', 'submitted' => 'Submitted to the networks', 'verifying' => 'Verifying with Meta', 'approved' => 'Approved and in use', 'rejected' => 'Rejected: scharge will contact you'][$row->get('approval')] ?? null;
+
+        return array_values(array_filter(match ($row->provider) {
+            'data_feeds' => \App\Http\Controllers\FeedController::links($row),
+            'webhooks' => ($q = $count('webhook_deliveries', ['company_id' => $row->company_id])) ? [
+                ['label' => 'Last 7 days', 'value' => (clone $q)->where('created_at', '>=', now()->subDays(7))->where('status', 'sent')->count().' delivered, '
+                    .(clone $q)->where('created_at', '>=', now()->subDays(7))->where('status', 'failed')->count().' failed, '
+                    .(clone $q)->where('status', 'pending')->count().' waiting to retry'],
+            ] : [],
+            'etims' => [
+                ['label' => 'KRA device', 'value' => filled($row->get('cmc_key')) ? 'Registered' : 'Not registered yet: press Test'],
+                ($q = $count('integration_links', ['company_id' => $row->company_id, 'provider' => 'etims'])) ? ['label' => 'Bills sent to KRA', 'value' => (clone $q)->where('status', 'synced')->count().' signed, '.(clone $q)->where('status', 'failed')->count().' failed'] : null,
+            ],
+            'quickbooks', 'xero', 'zoho_books' => [
+                ['label' => 'Connected to', 'value' => $row->get('connected_name') ?: (filled($row->get('refresh_token')) ? 'Connected' : 'Not connected: click Connect')],
+                ($q = $count('integration_links', ['company_id' => $row->company_id, 'provider' => $row->provider])) ? ['label' => 'Copied', 'value' => (clone $q)->where('status', 'synced')->whereIn('object_type', ['invoice', 'payment'])->count().' records, '.(clone $q)->where('status', 'failed')->count().' failed'] : null,
+                ($q && ($err = (clone $q)->whereNotNull('error')->where('status', '!=', 'synced')->latest('updated_at')->value('error'))) ? ['label' => 'Last problem', 'value' => $err] : null,
+            ],
+            'jenga' => ($q = $count('bank_statement_lines', ['company_id' => $row->company_id, 'source' => 'jenga'])) ? [['label' => 'Deposits read', 'value' => (clone $q)->count().' ('.(clone $q)->where('status', 'posted')->count().' recorded)']] : [],
+            'smart_meters' => [['label' => 'Vendor endpoint', 'value' => url('/api/v1/meter-readings'), 'copy' => true]],
+            'kenyasms_sender' => $row->get('setup') === 'managed' && $status($row) ? [['label' => 'Registration', 'value' => $status($row)]] : [],
+            'whatsapp_business' => $row->get('mode') === 'managed' && $status($row) ? [['label' => 'Set-up', 'value' => $status($row)]] : [],
+            default => [],
+        }));
+    }
+
+    private static function testManagedWhatsApp(CompanyIntegration $row): array
+    {
+        $platform = self::for(null, 'whatsapp');
+        if ($row->get('approval') !== 'approved' || blank($row->get('phone_number_id')) || ! $platform) {
+            return [true, 'Request received. scharge is setting up your WhatsApp number; until it is live, messages go out as before.'];
+        }
+        $test = clone $row;
+        $test->credentials = array_merge($platform->credentials ?? [], ['phone_number_id' => $row->get('phone_number_id'), 'mode' => 'cloud']);
+
+        return WhatsApp::test($test);
+    }
+
+    private static function testMeters(CompanyIntegration $row): array
+    {
+        $meters = \App\Models\Meter::where('company_id', $row->company_id)->where('status', 'active');
+        $smart = (clone $meters)->whereNotNull('serial_number')->count();
+        $recent = \App\Models\MeterReading::where('company_id', $row->company_id)->where('source', 'smart')->where('read_at', '>=', now()->subDay())->distinct()->count('meter_id');
+
+        return [$smart > 0, $smart ? "{$smart} active meters with a serial number; {$recent} sent a reading in the last 24 hours." : 'Add your meters (with their serial numbers) on the Meters page first.'];
     }
 
     private static function testSharet(CompanyIntegration $row): array
@@ -225,6 +297,9 @@ class Integrations
     private static function testSmsSender(CompanyIntegration $row): array
     {
         $sender = (string) $row->get('sender_id');
+        if ($row->get('setup') === 'managed' && $row->get('approval') !== 'approved') {
+            return [true, "Request received for \"{$sender}\". scharge is registering it with the networks (about 5 to 10 working days); until then your tenants get messages under scharge's name."];
+        }
         if (! preg_match('/^[A-Za-z0-9 ._-]{1,11}$/', $sender)) {
             return [false, 'A sender ID is 1 to 11 letters or numbers ("'.$sender.'" is not).'];
         }

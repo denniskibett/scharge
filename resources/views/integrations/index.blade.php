@@ -18,7 +18,7 @@ Integrations
 @endsection
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
         @if ($scope)
-          Choose how rent reaches you, or connect your own M-Pesa Daraja app. Keys are encrypted when saved and never shown again.
+          Connect scharge to what you already use: how rent reaches you, your bank, KRA eTIMS, your accounting system, your own email, SMS and WhatsApp name, Google Sheets and Calendar, and your own systems through webhooks. Keys are encrypted when saved and never shown again.
         @else
           scharge's own providers. Every company that has not connected its own M-Pesa app is collected through Sharet Africa.
         @endif
@@ -67,6 +67,27 @@ Integrations
             <p x-show="!p.values.sharet_account">Have a Sharet account? Connect it and rent lands in it directly.</p>
             <button type="button" @click="connectSharet()" :disabled="busy" class="mt-2 font-medium text-gray-900 underline disabled:opacity-50 dark:text-white"
                     x-text="p.values.sharet_account ? 'Reconnect Sharet account' : 'Connect my Sharet account'"></button>
+          </div>
+
+          <ul x-show="p.extras && p.extras.length" class="mt-4 space-y-2 rounded-xl bg-gray-50 p-3 text-xs text-gray-600 dark:bg-white/5 dark:text-gray-300">
+            <template x-for="x in p.extras" :key="x.label">
+              <li>
+                <span class="font-medium text-gray-700 dark:text-gray-200" x-text="x.label + ':'"></span>
+                <template x-if="!x.copy"><span x-text="' ' + x.value"></span></template>
+                <template x-if="x.copy">
+                  <span class="mt-1 flex items-center gap-2">
+                    <code class="min-w-0 flex-1 truncate rounded bg-white px-2 py-1 font-mono text-[11px] dark:bg-gray-900" x-text="x.value" :title="x.value"></code>
+                    <button type="button" @click="copy(x.value)" class="shrink-0 font-medium text-gray-900 underline dark:text-white">Copy</button>
+                  </span>
+                </template>
+              </li>
+            </template>
+          </ul>
+
+          <div x-show="p.oauth || p.link" class="mt-4 flex flex-wrap gap-3 text-sm">
+            <a x-show="p.oauth" :href="`${base}/${p.key}/connect?company=${scope}`" class="font-medium text-gray-900 underline dark:text-white"
+               x-text="(p.extras || []).some(x => x.label === 'Connected to' && !x.value.startsWith('Not connected')) ? 'Reconnect ' + p.name : 'Connect ' + p.name"></a>
+            <a x-show="p.link" :href="p.link?.url" class="font-medium text-gray-900 underline dark:text-white" x-text="p.link?.label"></a>
           </div>
 
           <div x-show="p.connected" x-data="{ menu: false }" class="absolute right-4 top-4" @click.outside="menu = false">
@@ -145,7 +166,12 @@ Integrations
                     <template x-for="(label, value) in f.options" :key="value"><option :value="value" x-text="label"></option></template>
                   </select>
                 </template>
-                <template x-if="f.type !== 'select'">
+                <template x-if="f.type === 'textarea'">
+                  <textarea :id="'f-' + f.key" x-model="form[f.key]" rows="5" autocomplete="off" spellcheck="false"
+                            class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 font-mono text-xs text-gray-800 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                            :placeholder="f.secret && editing.saved_secrets.includes(f.key) ? 'Saved • leave blank to keep' : (f.placeholder || '')"></textarea>
+                </template>
+                <template x-if="f.type !== 'select' && f.type !== 'textarea'">
                   <input :id="'f-' + f.key" x-model="form[f.key]" class="{{ $input }}" autocomplete="off"
                          :type="f.secret ? 'password' : (f.type === 'url' ? 'url' : 'text')"
                          :placeholder="f.secret && editing.saved_secrets.includes(f.key) ? 'Saved • leave blank to keep' : (f.placeholder || '')">
@@ -154,6 +180,14 @@ Integrations
                 <p x-show="errors['values.' + f.key]" class="mt-1 text-xs text-red-600 dark:text-red-400" x-text="errors['values.' + f.key]"></p>
               </div>
             </template>
+          </div>
+
+          <div x-show="reveal" x-cloak class="mt-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+            <p class="font-medium" x-text="reveal?.label"></p>
+            <div class="mt-2 flex items-center gap-2">
+              <code class="min-w-0 flex-1 break-all rounded bg-white px-2 py-1 font-mono text-xs dark:bg-gray-900" x-text="reveal?.value"></code>
+              <button type="button" @click="copy(reveal.value)" class="shrink-0 font-medium underline">Copy</button>
+            </div>
           </div>
 
           <div x-show="editing.last_test_message" class="mt-5 rounded-xl px-4 py-3 text-sm"
@@ -206,7 +240,7 @@ Integrations
     <div class="fixed inset-0 modal-overlay" @click="removing = null"></div>
     <div x-show="removing" x-transition class="relative w-full max-w-[460px] rounded-3xl bg-white p-6 text-center dark:bg-gray-900 lg:p-8">
       <h4 class="mb-2 text-xl font-semibold text-gray-800 dark:text-white/90" x-text="'Remove ' + (removing?.name || '') + '?'"></h4>
-      <p class="text-sm text-gray-500 dark:text-gray-400">The saved keys are deleted. Payments fall back to scharge's default route.</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400">The saved settings and keys are deleted, and scharge goes back to its default for this (for payments, scharge's own route).</p>
       <div class="mt-7 flex justify-center gap-3">
         <button type="button" @click="removing = null" class="h-11 rounded-lg border border-gray-300 px-5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">No, keep it</button>
         <button type="button" @click="remove()" :disabled="busy" class="h-11 rounded-lg bg-red-600 px-5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50">Yes, remove</button>
@@ -230,7 +264,7 @@ Integrations
 
   function integrationsPage(base, scope) {
     return {
-      providers: [], editing: null, details: null, removing: null, form: {}, errors: {}, busy: false, notice: '', noticeOk: true,
+      base, scope, providers: [], editing: null, details: null, removing: null, form: {}, errors: {}, busy: false, notice: '', noticeOk: true, reveal: null,
       async init() { this.providers = (await (await fetch(`${base}?company=${scope}`, { headers: { Accept: 'application/json' } })).json()).providers; },
       url(p, tail = '') { return `${base}/${p.key}${tail}?company=${scope}`; },
       say(message, ok = true) { this.notice = message; this.noticeOk = ok; setTimeout(() => { if (this.notice === message) this.notice = ''; }, 6000); },
@@ -244,6 +278,7 @@ Integrations
       },
       // Payout fields only show for the payout type chosen.
       visible(f) {
+        if (f.show_if) return Object.entries(f.show_if).every(([k, vals]) => vals.includes(this.form[k]));
         if (this.editing?.key !== 'sharet_payouts') return true;
         const t = this.form.payout_type, m = this.form.mode;
         const by = { phone: 'mpesa', paybill: 'paybill', account: 'paybill', till: 'till', bank: 'bank', bank_account: 'bank' };
@@ -255,15 +290,16 @@ Integrations
         this.providers = this.providers.map(p => p.key === updated.key ? updated : p);
         if (this.editing?.key === updated.key) this.editing = updated;
       },
+      async copy(text) { try { await navigator.clipboard.writeText(text); this.say('Copied.'); } catch (e) { this.say('Select the text and copy it.', false); } },
       openSettings(p) {
-        this.errors = {};
+        this.errors = {}; this.reveal = null;
         this.form = Object.fromEntries(p.fields.map(f => [f.key, f.secret ? '' : (p.values[f.key] ?? (f.type === 'select' ? Object.keys(f.options)[0] : ''))]));
         this.editing = p;
       },
       useSandbox() { this.editing.fields.forEach(f => { if (f.sandbox !== undefined) this.form[f.key] = f.sandbox; }); if ('environment' in this.form) this.form.environment = 'sandbox'; },
       async save() {
         this.busy = true; this.errors = {};
-        try { const r = await schargeSend('PUT', this.url(this.editing), { values: this.form }); this.replace(r.provider); this.say(r.message); }
+        try { const r = await schargeSend('PUT', this.url(this.editing), { values: this.form }); this.replace(r.provider); this.say(r.message); this.reveal = r.reveal || null; }
         catch (e) { this.errors = Object.fromEntries(Object.entries(e.errors || {}).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])); }
         this.busy = false;
       },

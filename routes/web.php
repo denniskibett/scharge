@@ -251,6 +251,9 @@ Route::get('/host/properties/search', [App\Http\Controllers\HostController::clas
 // Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
 // A unit's private calendar link for Airbnb / Booking.com to import (dates only; token in the path).
 Route::get('/calendar/units/{unit}/{token}', [App\Http\Controllers\BookingController::class, 'calendar'])->whereNumber('unit')->middleware('throttle:60,1,ical')->name('bookings.calendar');
+// Integrations › Google Sheets & Calendar feeds: private read-only CSV / iCal links (token in the path).
+Route::get('/feeds/{company}/{token}/{kind}', [App\Http\Controllers\FeedController::class, 'show'])->whereNumber('company')
+    ->where('kind', 'payments\.csv|bills\.csv|arrears\.csv|tenants\.csv|calendar\.ics')->middleware('throttle:60,1,feeds')->name('feeds.show');
 
 // Safaricom C2B: payments made straight to a company's paybill (App\Services\Rent\PaybillPayments).
 Route::post('/webhooks/mpesa/c2b/{token}/validation', [App\Http\Controllers\PaybillWebhookController::class, 'validation'])->name('webhooks.c2b.validation');
@@ -494,6 +497,13 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     Route::get('/payments/{id}/receipt', [App\Http\Controllers\DocumentController::class, 'receipt'])->whereNumber('id')->name('payments.receipt');
     Route::post('/invoices/{invoice}/pay-link', App\Http\Controllers\InvoicePayLinkController::class)
         ->middleware('role:sysadmin|admin|accountant|property_manager')->name('invoices.pay-link');
+    // Bank statement import (Integrations › Bank statement import; docs/INTEGRATIONS.md).
+    Route::middleware('role:sysadmin|admin|accountant|property_manager')->prefix('bank-import')->name('bank-import.')->controller(App\Http\Controllers\BankImportController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/', 'store')->middleware('throttle:20,1,bank-import')->name('store');
+        Route::post('/{line}/post', 'post')->whereNumber('line')->name('post');
+        Route::post('/{line}/ignore', 'ignore')->whereNumber('line')->name('ignore');
+    });
 
     // ============================================
     // SETTINGS: INTEGRATIONS & API KEYS (Sharet-style pages)
@@ -520,6 +530,8 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::put('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'update'])->name('integrations.update');
         Route::patch('/integrations/{provider}/toggle', [App\Http\Controllers\IntegrationController::class, 'toggle'])->name('integrations.toggle');
         Route::post('/integrations/{provider}/test', [App\Http\Controllers\IntegrationController::class, 'test'])->name('integrations.test');
+        Route::get('/integrations/oauth/{provider}/callback', [App\Http\Controllers\IntegrationController::class, 'oauthCallback'])->whereIn('provider', ['quickbooks', 'xero', 'zoho_books'])->name('integrations.oauth.callback');
+        Route::get('/integrations/{provider}/connect', [App\Http\Controllers\IntegrationController::class, 'oauthStart'])->whereIn('provider', ['quickbooks', 'xero', 'zoho_books'])->name('integrations.oauth.start');
         Route::delete('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'destroy'])->name('integrations.destroy');
 
         Route::get('/api-keys', [App\Http\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');

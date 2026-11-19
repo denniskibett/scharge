@@ -57,7 +57,7 @@ class InvoiceMail
                 return;
             }
             try {
-                Mail::to($to)->send(new InvoiceEmail($invoice, $kind, $url, $amount, $reference));
+                \App\Services\Connectors\CompanyMail::send($invoice->owningCompanyId(), $to, new InvoiceEmail($invoice, $kind, $url, $amount, $reference));
             } catch (\Throwable $e) {
                 Log::warning('Invoice email failed', ['invoice_id' => $id, 'kind' => $kind, 'error' => $e->getMessage()]);
             }

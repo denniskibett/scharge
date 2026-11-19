@@ -24,6 +24,13 @@ class WhatsApp
     public static function forCompany(?int $companyId): self
     {
         $own = $companyId ? Integrations::for($companyId, 'whatsapp_business') : null;
+        // A number scharge set up for the company lives in scharge's WhatsApp Business account: send with scharge's token.
+        if ($own && $own->get('mode') === 'managed') {
+            $platform = Integrations::for(null, 'whatsapp');
+            $own = $own->get('approval') === 'approved' && filled($own->get('phone_number_id')) && $platform
+                ? tap(clone $own, fn ($r) => $r->credentials = array_merge($platform->credentials ?? [], array_filter(['phone_number_id' => $own->get('phone_number_id'), 'mode' => 'cloud'])))
+                : null;
+        }
 
         return new self(self::usable($own) ? $own : Integrations::for(null, 'whatsapp'));
     }

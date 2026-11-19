@@ -52,13 +52,25 @@ class AppServiceProvider extends ServiceProvider
             ->record($e->user, request(), 'web', 'password', false));
 
         // Bill emails: the tenant gets a receipt the moment an invoice turns fully paid (any payment route).
+        // Integrations (webhooks, KRA eTIMS, accounting sync) hear about the same moments (App\Services\Connectors\Hub).
         foreach ([\App\Modules\Payments\Models\Invoice::class, \App\Models\Invoice::class] as $invoiceModel) {
             $invoiceModel::updated(function ($invoice) {
                 if ($invoice->wasChanged('status') && $invoice->status === 'paid') {
                     \App\Services\InvoiceMail::paid($invoice);
+                    \App\Services\Connectors\Hub::invoicePaid($invoice);
                 }
             });
+            $invoiceModel::created(fn ($invoice) => \App\Services\Connectors\Hub::invoiceIssued($invoice));
         }
+        // Model events fire under the class that was saved, so both twins (module class and App\Models subclass) are listened to.
+        foreach ([\App\Modules\Payments\Models\Payment::class, \App\Models\Payment::class] as $paymentModel) {
+            $paymentModel::created(fn ($payment) => \App\Services\Connectors\Hub::paymentReceived($payment));
+        }
+        foreach ([\App\Modules\Properties\Models\Tenancy::class, \App\Models\Tenancy::class] as $tenancyModel) {
+            $tenancyModel::created(fn ($t) => \App\Services\Connectors\Hub::tenancyChanged($t, true));
+            $tenancyModel::updated(fn ($t) => \App\Services\Connectors\Hub::tenancyChanged($t, false));
+        }
+        \App\Models\Booking::created(fn ($b) => \App\Services\Connectors\Hub::bookingCreated($b));
 
         // System model event listener - Check if System model exists
         if (class_exists('App\Modules\System\Models\System')) {

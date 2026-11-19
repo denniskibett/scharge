@@ -12,6 +12,8 @@ Route::prefix('v1')->group(function () {
     // Reader app sign-in (email + password -> personal key) and smart meters (device token).
     Route::post('/auth/token', [MetersController::class, 'token'])->middleware('throttle:5,1,api-token');
     Route::post('/smart/readings', [MetersController::class, 'smart'])->middleware('throttle:240,1,api-smart');
+    // Integrations › Smart meters & IoT: a vendor cloud posts readings for all a company's meters by serial (gateway key).
+    Route::post('/meter-readings', [App\Http\Controllers\Api\MeterGatewayController::class, 'store'])->middleware('throttle:240,1,api-meter-gateway');
 
     Route::middleware(['throttle:120,1,api', 'api.key'])->group(function () {
         Route::get('/me', [V1Controller::class, 'me']);

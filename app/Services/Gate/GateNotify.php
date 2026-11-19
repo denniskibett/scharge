@@ -59,7 +59,7 @@ class GateNotify
                     return;
                 }
                 try {
-                    Mail::to($pass->guest_email)->send(new GatePassEmail($pass, 'pass'));
+                    \App\Services\Connectors\CompanyMail::send($pass->company_id ? (int) $pass->company_id : null, $pass->guest_email, new GatePassEmail($pass, 'pass'));
                     $pass->forceFill(['email_sent_at' => now()])->save();
                 } catch (\Throwable $e) {
                     Log::warning('Gate pass email failed', ['pass' => $id, 'error' => $e->getMessage()]);
@@ -81,7 +81,7 @@ class GateNotify
                 return; // no host email, the guard issued it, mail off, or the email isn't confirmed
             }
             try {
-                Mail::to($user->email)->send(new GatePassEmail($pass, $event === 'in' ? 'arrived' : 'left'));
+                \App\Services\Connectors\CompanyMail::send($pass->company_id ? (int) $pass->company_id : null, $user->email, new GatePassEmail($pass, $event === 'in' ? 'arrived' : 'left'));
             } catch (\Throwable $e) {
                 Log::warning('Gate host email failed', ['pass' => $id, 'error' => $e->getMessage()]);
             }

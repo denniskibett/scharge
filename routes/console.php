@@ -68,6 +68,15 @@ Schedule::command('bookings:sync')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Integrations: retry webhooks, KRA eTIMS and accounting copies that failed (docs/INTEGRATIONS.md).
+Schedule::call(function () {
+    \App\Services\Connectors\Webhooks::retryDue();
+    \App\Services\Connectors\Accounting::retryDue();
+})->everyFiveMinutes()->name('integrations-retry')->withoutOverlapping()->onOneServer();
+
+// Integrations › Equity Bank (Jenga): read yesterday's deposits and match them to tenants' bills.
+Schedule::call(fn () => \App\Services\Connectors\Jenga::pullAll())->dailyAt('06:30')->name('jenga-pull')->withoutOverlapping()->onOneServer();
+
 // White label: each company's data copied to its own storage, nightly (Integrations › Nightly data copy).
 Schedule::command('company:backup-offsite')
     ->dailyAt('02:30')
