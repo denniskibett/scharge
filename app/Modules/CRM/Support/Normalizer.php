@@ -222,6 +222,11 @@ class Normalizer
             $digits = $dialCode.$digits;
         }
 
+        // "+254 0712 …": the trunk 0 typed after the country code is dropped.
+        if (str_starts_with($digits, $dialCode.'0') && strlen($digits) === strlen($dialCode) + 10) {
+            $digits = $dialCode.substr($digits, strlen($dialCode) + 1);
+        }
+
         // E.164 numbers are 8-15 digits long including the country code.
         return (strlen($digits) >= 8 && strlen($digits) <= 15) ? '+'.$digits : null;
     }
@@ -291,7 +296,7 @@ class Normalizer
     {
         // Capitalise after hyphens and apostrophes too: mwangi-otieno, o'brien, d'souza; but not a possessive or
         // contraction ending (andrew's, ma'am, n't), so only after a one-letter prefix like O' or D'.
-        $word = preg_replace_callback("/(^|-)(\p{L})/u", fn ($m) => $m[1].mb_strtoupper($m[2]), $lower);
+        $word = preg_replace_callback("/(^[^\p{L}\p{N}]*|-)(\p{L})/u", fn ($m) => $m[1].mb_strtoupper($m[2]), $lower); // also 'gate -> 'Gate, (nairobi) -> (Nairobi)
         $word = preg_replace_callback("/(^|-)(\p{L})(['’])(\p{L})(?=\p{L})/u", fn ($m) => $m[1].$m[2].$m[3].mb_strtoupper($m[4]), $word);
 
         // Mc prefix: mcdonald -> McDonald.
