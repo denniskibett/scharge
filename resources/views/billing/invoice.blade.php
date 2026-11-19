@@ -71,7 +71,19 @@ td small { display: block; color: var(--muted); }
 @keyframes fade { from { opacity: 0; } } @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.98); } }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
-@page { size: A4 portrait; margin: 14mm 14mm 16mm; }
+@page { size: A4 portrait; margin: 10mm 12mm 10mm; }
+@media print {
+  body { font-size: 10px; line-height: 1.35; }
+  .top img { height: 24px; } .top p { margin-top: 6px !important; }
+  h1 { font-size: 18px; } .pill { font-size: 9px; padding: 1px 7px; }
+  .meta { margin: 10px 0; padding: 8px 0; gap: 8px; grid-template-columns: repeat(4, 1fr); }
+  .meta b { font-size: 8.5px; margin-bottom: 2px; }
+  .page > p.muted { margin: -4px 0 6px !important; }
+  th { padding: 5px 0; font-size: 8.5px; } td { padding: 3.5px 0; }
+  .grand td { font-size: 13px; padding-top: 6px; }
+  .payline { margin-top: 10px; padding-top: 6px; font-size: 10px; }
+  thead { display: table-row-group; }
+}
 @media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast, .pm { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
