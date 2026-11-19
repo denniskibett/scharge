@@ -84,9 +84,18 @@ trait Presents
         if (! $companyId) {
             return null;
         }
+        // Lists show many bills of the same landlord: look each company up once per request, not once per row.
+        static $memo = [];
+        $key = (request() ? spl_object_id(request()) : 0).':'.$companyId;
+        if (array_key_exists($key, $memo)) {
+            return $memo[$key];
+        }
+        if (count($memo) > 500) {
+            $memo = [];
+        }
         $brand = class_exists(\App\Support\Brand::class) ? \App\Support\Brand::forCompany($companyId) : null;
 
-        return $brand?->display_name ?? \App\Models\Company::whereKey($companyId)->value('name');
+        return $memo[$key] = $brand?->display_name ?? \App\Models\Company::whereKey($companyId)->value('name');
     }
 
     protected function payment($p): array

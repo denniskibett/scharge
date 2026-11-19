@@ -67,13 +67,13 @@ class CrmController extends Controller
     {
         $user = $request->user();
         $todo = fn ($q) => $q->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', CrmFollowUp::NOT_TODO);
-        $nextDue = $todo(CrmFollowUp::query())->selectRaw('company_id, MIN(due_at) as next_due_at')->groupBy('company_id');
         $attention = $request->query('attention');
         $term = trim((string) $request->query('q'));
 
+        // Phone-sized and fast: page on indexed columns only (replies first, then tier, then name); the next-due date
+        // is looked up for the rows on this page, not grouped over every follow-up as the web list does for sorting.
         $page = CrmAccess::companies(Company::crm(), $user)
-            ->select('companies.id', 'nd.next_due_at')
-            ->leftJoinSub($nextDue, 'nd', 'nd.company_id', '=', 'companies.id')
+            ->select('companies.id')
             ->when($term !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$term}%")
                 ->orWhere('email', 'like', "%{$term}%")->orWhere('phone', 'like', "%{$term}%")))
             ->when($request->query('stage'), fn ($q, $stage) => $stage === 'open' ? $q->whereIn('crm_stage', Company::OPEN_CRM_STAGES) : $q->where('crm_stage', $stage))
@@ -84,12 +84,14 @@ class CrmController extends Controller
             ->when($attention === 'unattended', fn ($q) => $q->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo))
             ->when($request->query('segment'), fn ($q, $v) => $q->where('crm_profile->segment', $v))
             ->when($request->query('county'), fn ($q, $v) => $q->where('crm_profile->county', $v))
-            ->orderByDesc('companies.reply_pending')->orderBy('companies.tier')
-            ->orderByRaw('nd.next_due_at IS NULL, nd.next_due_at')->orderBy('companies.name')
+            ->orderByDesc('companies.reply_pending')->orderBy('companies.tier')->orderBy('companies.name')->orderBy('companies.id')
             ->paginate(min(50, max(10, (int) $request->query('per_page', 25))));
 
-        $models = Company::withoutGlobalScope('customers')->with('owner:id,name')->findMany(collect($page->items())->pluck('id'))->keyBy('id');
-        $rows = collect($page->items())->map(fn ($r) => isset($models[$r->id]) ? $this->prospectData($models[$r->id], $r->next_due_at) : null)->filter()->values();
+        $ids = collect($page->items())->pluck('id');
+        $models = Company::withoutGlobalScope('customers')->with('owner:id,name')->findMany($ids)->keyBy('id');
+        $due = $todo(CrmFollowUp::query())->whereIn('company_id', $ids->all() ?: [0])->selectRaw('company_id, MIN(due_at) as next_due_at')
+            ->groupBy('company_id')->pluck('next_due_at', 'company_id');
+        $rows = $ids->map(fn ($id) => isset($models[$id]) ? $this->prospectData($models[$id], $due[$id] ?? null) : null)->filter()->values();
 
         return response()->json(['data' => $rows, 'page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(), 'stages' => self::stages()]);
     }

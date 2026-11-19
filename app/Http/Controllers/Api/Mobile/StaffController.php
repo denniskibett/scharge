@@ -85,11 +85,16 @@ class StaffController extends Controller
                 ->orWhereHas('unit', fn ($u) => $u->where('unit_number', 'like', "%$s%"))))
             ->orderBy('unit_id');
 
-        return response()->json($this->page($q, fn ($t) => [
+        // Balances for the whole page in one grouped query (was one query per tenant).
+        $p = $q->paginate(min(50, max(10, (int) $request->query('per_page', 25))));
+        $owed = Invoice::whereIn('tenancy_id', collect($p->items())->pluck('id')->all() ?: [0])->whereIn('status', self::OPEN)
+            ->selectRaw('tenancy_id, COALESCE(SUM(total_amount - total_paid), 0) as owed')->groupBy('tenancy_id')->pluck('owed', 'tenancy_id');
+
+        return response()->json(['data' => collect($p->items())->map(fn ($t) => [
             'tenancy_id' => $t->id, 'tenant_id' => $t->tenant_id, 'name' => $t->tenant?->user?->name, 'phone' => $t->tenant?->user?->phone,
             'unit' => $t->unit?->unit_number, 'property' => $t->unit?->property?->name, 'moved_in' => $t->move_in_date?->format('Y-m-d'),
-            'balance' => self::money(Invoice::where('tenancy_id', $t->id)->whereIn('status', self::OPEN)->selectRaw('COALESCE(SUM(total_amount - total_paid), 0) as owed')->value('owed')),
-        ], $request));
+            'balance' => self::money($owed[$t->id] ?? 0),
+        ])->values(), 'page' => $p->currentPage(), 'last_page' => $p->lastPage(), 'total' => $p->total()]);
     }
 
     public function units(Request $request)
