@@ -42,10 +42,11 @@ td.amt, th.amt, td.num, th.num { text-align: right; white-space: nowrap; }
 td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
-.sub td { color: var(--ink); padding: 5px 0; border-bottom: 0; }
-.tot td { font-weight: 700; }
+.sub td { color: var(--ink); padding: 2px 0; border-bottom: 0; }
+
 .bal td { font-weight: 700; color: {{ $balance > 0 ? '#B42318' : '#027A48' }} !important; } .bal td.num { padding-right: 18px; white-space: nowrap; }
-.grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 10px; font-size: 18px; font-weight: 700; color: var(--ink); }
+.grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding: 8px 0 0; font-size: 18px; line-height: 1.2; font-weight: 700; color: var(--ink); }
+.lines-first td { padding-top: 10px; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .cards { max-width: 820px; margin: 28px auto -12px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cards .back { grid-column: 1 / -1; font-size: 13px; color: var(--muted); text-decoration: none; }
@@ -80,15 +81,15 @@ td small { display: block; color: var(--muted); }
   .meta b { font-size: 8.5px; margin-bottom: 2px; }
   .page > p.muted { margin: -4px 0 6px !important; }
   th { padding: 6px 0; font-size: 8.5px; } td { padding: 5px 0; }
-  .grand td { font-size: 13px; padding-top: 5px; } .sub td { padding: 2px 0; }
+  .grand td { font-size: 13px; padding: 4px 0 0; } .sub td { padding: 1px 0; }
   thead { display: table-row-group; }
 }
 @media print { body { background: #fff; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
 .sp-link:hover { text-decoration: underline; }
-.qr-cell { vertical-align: bottom; padding: 12px 20px 0 0 !important; border: 0 !important; }
-.payqr { display: flex; gap: 14px; align-items: center; }
+.qr-cell { vertical-align: bottom; padding: 10px 20px 0 0 !important; border: 0 !important; }
+.payqr { display: flex; gap: 14px; align-items: flex-end; } .payqr > div > div:last-child { line-height: 1.2; }
 .payqr .qr { width: 104px; height: 104px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
 .full-link { font: 13px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); word-break: break-all; }
 .handle { color: var(--red); font-weight: 600; text-decoration: none; }
@@ -176,7 +177,7 @@ td small { display: block; color: var(--muted); }
       @endforeach
     </tbody>
     <tfoot>
-      <tr class="sub"><td colspan="2" rowspan="5" class="qr-cell">@unless ($paid)<div class="payqr">
+      <tr class="sub lines-first"><td colspan="2" rowspan="5" class="qr-cell">@unless ($paid)<div class="payqr">
       @if ($payQr)<img class="qr" src="{{ $payQr }}" alt="QR code: pay with Sharet Pay" width="104" height="104">@endif
       <div>
         <div class="sp-link"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay</div>
@@ -185,7 +186,7 @@ td small { display: block; color: var(--muted); }
         @if ($handle)<div style="margin-top:4px;font-size:13px">Pay to <a class="handle" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $handle }}</a> · {{ $money($total) }}</div>@endif
       </div></div>@endunless</td><td class="num muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="amt">{{ $money($vat['net']) }}</td></tr>
       <tr class="sub"><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
-      <tr class="sub tot"><td class="num">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
+      <tr class="sub tot"><td class="num muted">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
       <tr class="sub"><td class="num muted">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="amt">{{ $money($paidAmount) }}</td></tr>
       <tr class="grand bal"><td class="num">Balance</td><td class="amt">{{ $money($balance) }}</td></tr>
     </tfoot>
