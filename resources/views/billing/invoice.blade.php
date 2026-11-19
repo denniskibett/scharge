@@ -44,7 +44,7 @@ th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
 .sub td { color: var(--ink); }
 .tot td { font-weight: 700; padding-bottom: 2px; } .tot + .sub td { padding-top: 2px; }
-.bal td { font-weight: 700; } .bal td.amt { color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
+.bal td { font-weight: 700; } .bal td.num { padding-right: 18px; white-space: nowrap; } .bal td.amt { color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--ink) !important; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .cards { max-width: 820px; margin: 28px auto -12px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
