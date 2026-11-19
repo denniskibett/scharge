@@ -71,7 +71,7 @@ h1 { margin: 0; font-size: 18pt; }
     <td style="text-align:right;padding-right:0">
       <span class="lbl">Plan</span>
       <div>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
-      <div><span class="muted">Issued:</span> {{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }} &nbsp;·&nbsp; <span class="muted">Due:</span> {{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</div>
+      <div class="muted">Issued: {{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }} · Due: {{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</div>
     </td>
   </tr>
 </table>
