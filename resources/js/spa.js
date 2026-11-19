@@ -159,6 +159,58 @@ async function visit(url, { push = true, keepScroll = false, fresh = false } = {
   document.dispatchEvent(new Event("spa:load"));
 }
 
+/** The block a tab line swaps: the nearest [data-spa-region], else the card the tab line sits in. */
+function tabRegion(a) {
+  const nav = a.closest("[data-spa-tabs]");
+  if (!nav) return null;
+  return nav.closest("[data-spa-region]") || nav.closest(".rounded-2xl, .rounded-xl");
+}
+
+/** Path of child indexes from the content root to el, to find the same block in the fetched page. */
+function pathTo(el, rootEl) {
+  const path = [];
+  while (el && el !== rootEl) { path.unshift([...el.parentElement.children].indexOf(el)); el = el.parentElement; }
+  return el === rootEl ? path : null;
+}
+
+/** Tab lines (data-spa-tabs): fetch the tab's page and swap only that card, keeping the header, the cards around it
+ *  and the scroll position, so switching tabs feels instant. Anything unexpected falls back to the normal swap. */
+async function swapTab(url, a) {
+  const target = document.querySelector(CONTENT);
+  const region = tabRegion(a);
+  const path = region && target ? pathTo(region, target) : null;
+  if (!path) return visit(url);
+  const ticket = ++current;
+  // Show the click at once: the tab you pressed looks active while the content arrives.
+  a.closest("[data-spa-tabs]").querySelectorAll("a").forEach((x) => x.removeAttribute("aria-current"));
+  a.setAttribute("aria-current", "page");
+  region.style.transition = "opacity .12s"; region.style.opacity = ".6";
+  const res = await load(url);
+  if (ticket !== current) return;
+  cache.delete(url);
+  region.style.opacity = "";
+  if (!res || !res.ok || !res.type.includes("text/html") || res.redirected) return visit(url);
+  const doc = new DOMParser().parseFromString(res.html, "text/html");
+  const nextRoot = doc.querySelector(CONTENT);
+  let next = null;
+  if (region.dataset.spaRegion) next = nextRoot && nextRoot.querySelector(`[data-spa-region="${region.dataset.spaRegion}"]`);
+  else if (nextRoot) { next = nextRoot; for (const i of path) { next = next && next.children[i]; } }
+  if (!next || next.tagName !== region.tagName) return visit(url);
+  const A = window.Alpine;
+  const fresh = next.cloneNode(true);
+  if (A && A.mutateDom && A.initTree) {
+    A.mutateDom(() => { A.destroyTree && A.destroyTree(region); region.replaceWith(fresh); });
+    runScripts(fresh);
+    A.initTree(fresh);
+  } else {
+    region.replaceWith(fresh);
+    runScripts(fresh);
+  }
+  history.pushState({ spa: true }, "", res.url || url);
+  window.dispatchEvent(new CustomEvent("spa:navigated", { detail: { url: res.url || url } }));
+  document.dispatchEvent(new Event("spa:load"));
+}
+
 window.spaVisit = (url) => visit(new URL(url, location.href).href);
 window.schargeRefresh = () => visit(location.href, { push: false, keepScroll: true, fresh: true });
 
@@ -169,6 +221,7 @@ if (document.querySelector(CONTENT)) {
     const url = sameAppLink(a, event);
     if (!url) return;
     event.preventDefault();
+    if (a.closest("[data-spa-tabs]")) return swapTab(url.href, a);
     visit(url.href);
   });
   // Prefetch on hover (65 ms rest) and on touch, like Breve.

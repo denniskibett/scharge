@@ -30,7 +30,7 @@ Enquiries
   @endphp
   <div class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     {{-- Stages as a tab line inside the card --}}
-    <nav class="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800" aria-label="Enquiry stages">
+    <nav class="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800" aria-label="Enquiry stages" data-spa-tabs>
       <a href="{{ route('enquiries.index') }}" class="{{ $tab(! $stage) }}" @if (! $stage) aria-current="page" @endif>All <span class="ml-1 text-xs opacity-70">{{ $counts->sum() }}</span></a>
       @foreach ($stages as $k => $l)<a href="{{ route('enquiries.index', ['stage' => $k]) }}" class="{{ $tab($stage === $k) }}" @if ($stage === $k) aria-current="page" @endif>{{ $l }} <span class="ml-1 text-xs opacity-70">{{ $counts[$k] }}</span></a>@endforeach
     </nav>

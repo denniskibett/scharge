@@ -9,9 +9,9 @@
     'blue' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   ];
 @endphp
-<div class="-mb-px flex shrink-0 space-x-6">
+<div class="-mb-px flex shrink-0 space-x-6" data-spa-tabs>
   @foreach ($tabs as $t)
-    <a href="{{ $t['url'] }}" class="inline-flex items-center whitespace-nowrap border-b-2 py-2 text-sm font-medium transition-colors {{ $t['active'] ? 'border-brand-500 text-brand-500 dark:border-brand-400 dark:text-brand-400' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300' }}">
+    <a href="{{ $t['url'] }}" @if ($t['active']) aria-current="page" @endif class="inline-flex items-center whitespace-nowrap border-b-2 py-2 text-sm font-medium transition-colors {{ $t['active'] ? 'border-brand-500 text-brand-500 dark:border-brand-400 dark:text-brand-400' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300' }}">
       {{ $t['label'] }}
       @if (isset($t['count']))
         <span class="ml-2 rounded-full px-2 py-0.5 text-xs {{ $tones[$t['tone'] ?? 'gray'] }}">{{ $t['count'] }}</span>

@@ -43,9 +43,28 @@ Rent collection
     <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">{{ session('error') ?? $errors->first() }}</div>
   @endif
 
+  <div class="space-y-6" data-spa-region="rent-tabs">
+  {{-- Payment attempts: the 30-day numbers sit above the tab card --}}
+  @if ($tab === 'attempts' && $attempts)
+    @php
+      $L = \App\Services\Payments\PaymentAttempts::LABELS;
+      $st = $attempts['by_status'] ?? collect();
+      $pressed = $st->sum('n');
+      $paid = (int) ($st['paid']->n ?? 0);
+    @endphp
+    <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"><p class="text-xs text-gray-500">Pressed Pay</p><p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($pressed) }}</p></div>
+      <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"><p class="text-xs text-gray-500">Paid</p><p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($paid) }} <span class="text-sm font-normal text-gray-500">{{ $pressed ? round($paid * 100 / $pressed) : 0 }}%</span></p></div>
+      @foreach (['app' => 'From the app', 'web' => 'From the website'] as $ch => $l)
+        @php $c = $attempts['by_channel'][$ch] ?? null; @endphp
+        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"><p class="text-xs text-gray-500">{{ $l }}</p><p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($c->n ?? 0) }} <span class="text-sm font-normal text-gray-500">{{ $c && $c->n ? round($c->paid * 100 / $c->n) : 0 }}% paid</span></p></div>
+      @endforeach
+    </div>
+  @endif
+
   {{-- Tabs as a line inside the card; each tab's note and table sit below it in the same card. --}}
   <div class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-  <nav class="flex items-end gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800">
+  <nav class="flex items-end gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800" data-spa-tabs>
     @foreach (['paybill' => ['Paybill payments', $counts['unmatched'], 'to match'], 'messages' => ['Messages', $counts['failed'], 'failed'], 'paused' => ['Paused tenants', $counts['paused'], null], 'attempts' => ['Payment attempts', null, null]] as $key => [$label, $count, $hint])
       <a href="{{ route('rent.index', ['tab' => $key]) }}" @class(['-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium', 'border-brand-500 text-brand-600 dark:text-brand-400' => $tab === $key, 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400' => $tab !== $key])>
         {{ $label }}@if ($count) <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-gray-200">{{ $count }}{{ $hint ? ' '.$hint : '' }}</span>@endif
@@ -115,14 +134,6 @@ Rent collection
     @if (! $attempts)
       <p class="text-sm text-gray-500">Not set up yet.</p>
     @else
-      <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"><p class="text-xs text-gray-500">Pressed Pay</p><p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($pressed) }}</p></div>
-        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"><p class="text-xs text-gray-500">Paid</p><p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($paid) }} <span class="text-sm font-normal text-gray-500">{{ $pressed ? round($paid * 100 / $pressed) : 0 }}%</span></p></div>
-        @foreach (['app' => 'From the app', 'web' => 'From the website'] as $ch => $l)
-          @php $c = $attempts['by_channel'][$ch] ?? null; @endphp
-          <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"><p class="text-xs text-gray-500">{{ $l }}</p><p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ number_format($c->n ?? 0) }} <span class="text-sm font-normal text-gray-500">{{ $c && $c->n ? round($c->paid * 100 / $c->n) : 0 }}% paid</span></p></div>
-        @endforeach
-      </div>
       <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <table class="w-full text-sm"><thead><tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400"><th class="p-3">How it ended</th><th class="p-3 text-right">Times</th><th class="p-3 text-right">KES</th></tr></thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">@foreach ($L as $k => $l)@if (isset($st[$k]))<tr><td class="p-3 text-gray-800 dark:text-white/90">{{ $l }}</td><td class="p-3 text-right">{{ number_format($st[$k]->n) }}</td><td class="p-3 text-right">{{ number_format($st[$k]->amount) }}</td></tr>@endif @endforeach</tbody></table>
@@ -201,6 +212,7 @@ Rent collection
       </table>
     </div>
   @endif
+  </div>
   </div>
   </div>
 </div>
