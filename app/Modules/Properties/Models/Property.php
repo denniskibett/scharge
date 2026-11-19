@@ -10,8 +10,11 @@ class Property extends Model
 {
     use HasFactory;
 
+    // company_id is set by the server (PropertyController@store), never from the form. Without it here,
+    // create() dropped it silently and new properties belonged to no company (invisible to their owner).
     protected $fillable = [
-        'name', 
+        'company_id',
+        'name',
         'location',
         'water_rate',
         'service_charge',
