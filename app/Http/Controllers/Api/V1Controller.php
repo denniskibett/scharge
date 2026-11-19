@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ApiKey;
 use App\Modules\Payments\Models\Invoice;
 use App\Services\Integrations;
+use App\Support\ApiSandbox;
 use App\Services\Sharet\SharetClient;
 use App\Services\Sharet\SharetCollections;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
  *   GET  /api/v1/{collection}            properties, units, people, tenants, tenancies, invoices, invoice_items,
  *                                         payments, water_readings; ?after={id}&limit=1..500&updated_since=ISO-date
  *                                         (read API for white-label clients: docs/WHITE_LABEL.md)
+ * Sandbox keys (test keys on the sandbox company) get App\Support\ApiSandbox sample data instead, and pay links that move no money.
  */
 class V1Controller extends Controller
 {
@@ -25,19 +27,36 @@ class V1Controller extends Controller
     {
         $key = $this->key($request);
 
-        return response()->json(['key' => $key->name, 'environment' => $key->environment, 'company' => $key->company?->name, 'scopes' => $key->scopes]);
+        return response()->json(['key' => $key->name, 'environment' => $key->environment, 'company' => $key->company?->name, 'scopes' => $key->scopes]
+            + (ApiSandbox::is($key) ? ['sandbox' => true, 'note' => 'Sample data only: no real tenant, bill or payment. Phones and emails are made up.'] : []));
     }
 
     public function invoice(Request $request, int $id)
     {
+        if (ApiSandbox::is($this->key($request))) {
+            return response()->json($this->presentSandbox($id));
+        }
+
         return response()->json($this->present($this->invoiceFor($request, $id)));
     }
 
     public function payLink(Request $request, int $id, SharetCollections $collections)
     {
         $key = $this->key($request);
-        $invoice = $this->invoiceFor($request, $id);
         $data = $request->validate(['amount' => 'nullable|numeric|min:1', 'phone' => 'nullable|string|max:20']);
+        if (ApiSandbox::is($key)) {
+            // Same shape as a real Sharet pay link; the URL is a sandbox page and no money moves.
+            $inv = $this->presentSandbox($id);
+            $amount = isset($data['amount']) ? (float) $data['amount'] : (float) $inv['balance'];
+            if ($amount <= 0 || (float) $inv['balance'] <= 0) {
+                return response()->json(['error' => 'nothing_to_pay', 'message' => 'This invoice is already paid. Pick one with status unpaid or partial.', 'invoice' => $inv], 422);
+            }
+
+            return response()->json(['object' => 'pay_link', 'provider' => 'sandbox', 'id' => 'pl_test_'.substr(md5($id.'|'.$amount.'|'.now()->format('YmdHi')), 0, 16),
+                'status' => 'pending', 'amount' => number_format($amount, 2, '.', ''), 'currency' => 'KES', 'url' => url('/developers').'#sandbox',
+                'expires_at' => now()->addDay()->toIso8601String(), 'invoice' => $inv, 'sandbox' => true], 201);
+        }
+        $invoice = $this->invoiceFor($request, $id);
 
         $platform = Integrations::sharet();
         $platformEnv = $platform ? SharetClient::fromIntegration($platform)->environment : null;
@@ -69,6 +88,9 @@ class V1Controller extends Controller
     {
         abort_unless(in_array($collection, self::COLLECTIONS, true), 404, 'Unknown collection.');
         $data = $request->validate(['after' => 'nullable|integer|min:0', 'limit' => 'nullable|integer|min:1|max:500', 'updated_since' => 'nullable|date']);
+        if (ApiSandbox::is($this->key($request))) {
+            return response()->json(ApiSandbox::page($collection, (int) ($data['after'] ?? 0), (int) ($data['limit'] ?? 100), $data['updated_since'] ?? null));
+        }
         $query = $export->tables((int) $this->key($request)->company_id)[$collection] ?? null;
         abort_unless($query, 404, 'Not available.');
         $from = $query->from;
@@ -94,6 +116,16 @@ class V1Controller extends Controller
         abort_unless($invoice, 404, 'No such invoice for this company.');
 
         return $invoice;
+    }
+
+    private function presentSandbox(int $id): array
+    {
+        $i = ApiSandbox::invoice($id);
+        abort_unless($i, 404, 'No such invoice in the sandbox. List them with GET /api/v1/invoices.');
+
+        return ['id' => $i['id'], 'object' => 'invoice', 'number' => 'SBX-'.$i['id'], 'billing_month' => $i['billing_month'], 'status' => $i['status'],
+            'total' => $i['total_amount'], 'paid' => $i['total_paid'], 'balance' => number_format(max(0, (float) $i['total_amount'] - (float) $i['total_paid']), 2, '.', ''),
+            'currency' => 'KES', 'sandbox' => true];
     }
 
     private function present(Invoice $invoice): array
