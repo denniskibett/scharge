@@ -89,10 +89,10 @@ h1 { margin: 0; font-size: 18pt; }
   </tbody>
   <tfoot>
     <tr class="sub first"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
-    <tr class="sub"><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
-    <tr class="sub tot"><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
-    <tr class="sub"><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
-    <tr class="grand"><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
+    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
+    <tr class="sub tot"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
+    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
+    <tr class="grand"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
   </tfoot>
 </table>
 <div class="qr-abs">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:58pt"><img src="{{ $payQr }}" style="width:54pt;height:54pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div>
