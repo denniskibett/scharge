@@ -13,9 +13,10 @@ class KycService
     {
     }
 
+    /** The callers chose and authorized the company (KycController::company), so this is not the signed-in user's scope. */
     public function forCompany(int $companyId): CompanyKyc
     {
-        return CompanyKyc::firstOrCreate(['company_id' => $companyId], ['status' => 'draft']);
+        return CompanyKyc::withoutGlobalScope('company')->firstOrCreate(['company_id' => $companyId], ['status' => 'draft']);
     }
 
     public function upload(int $companyId, string $kind, UploadedFile $file, ?int $propertyId, ?int $userId): KycDocument
@@ -30,6 +31,12 @@ class KycService
 
     /** Read a document, then fill empty KYC fields from it and re-run the checks. */
     public function readAndPrefill(KycDocument $doc): void
+    {
+        // Runs after the response (or in the queue): system work for the document's own company.
+        \App\Support\CompanyAccess::bypass(fn () => $this->readAndPrefillNow($doc));
+    }
+
+    private function readAndPrefillNow(KycDocument $doc): void
     {
         $doc = $this->reader->read($doc);
         $kyc = $this->forCompany($doc->company_id);

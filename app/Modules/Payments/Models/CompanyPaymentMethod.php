@@ -8,6 +8,8 @@ use App\Models\Company;
 
 class CompanyPaymentMethod extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'company_payment_methods';
     
     protected $fillable = [

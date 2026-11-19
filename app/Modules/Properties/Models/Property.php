@@ -2,12 +2,30 @@
 
 namespace App\Modules\Properties\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Company;
+use Illuminate\Support\Facades\DB;
 
 class Property extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /**
+     * A company sees its own buildings, buildings where it owns or manages (BnB host) units, and buildings landlords
+     * gave its agency (property_agents), the same rule as units. Finding any building on scharge (onboarding, host
+     * sign-up, claims, the public listings) goes through withoutGlobalScope('company') or CompanyAccess::bypass.
+     */
+    protected static function companyScope(Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('properties.company_id', $ids)
+            ->orWhereIn('properties.id', DB::table('units')->whereIn('company_id', $ids)->select('property_id'))
+            ->orWhereIn('properties.id', DB::table('units')->whereIn('id', DB::table('unit_managements')->whereIn('company_id', $ids)->where('status', 'active')->select('unit_id'))->select('property_id'))
+            ->when(\App\Services\Agents\AgentAccess::enabled(), fn ($w) => $w->orWhereIn('properties.id',
+                DB::table('property_agents')->whereIn('agency_id', $ids)->where('status', 'active')->select('property_id'))));
+    }
+
     use HasFactory;
 
     // company_id is set by the server (PropertyController@store), never from the form. Without it here,

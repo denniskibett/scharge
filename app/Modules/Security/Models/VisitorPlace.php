@@ -13,6 +13,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class VisitorPlace extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** By visitor_places.company_id, or a unit the company may see (its own, in its buildings, or one it hosts), like the gate screens. */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('visitor_places.company_id', $ids)->orWhereHas('unit'));
+    }
+
     protected $table = 'visitor_places';
 
     protected $fillable = [

@@ -17,12 +17,13 @@ class Integrations
             return null;
         }
 
-        // Read on most requests (mail, SMS, M-Pesa): cache briefly; forget() runs on every change.
-        $id = \Illuminate\Support\Facades\Cache::remember(self::cacheKey($companyId, $provider), 60, fn () => CompanyIntegration::where('provider', $provider)->where('enabled', true)
+        // Read on most requests (mail, SMS, M-Pesa): cache briefly; forget() runs on every change. System lookup by explicit
+        // company (or the platform row, company_id NULL), so not the signed-in user's company scope: the cache is shared.
+        $id = \Illuminate\Support\Facades\Cache::remember(self::cacheKey($companyId, $provider), 60, fn () => CompanyIntegration::withoutGlobalScope('company')->where('provider', $provider)->where('enabled', true)
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId), fn ($q) => $q->whereNull('company_id'))
             ->latest('id')->value('id') ?? 0);
 
-        return $id ? CompanyIntegration::find($id) : null;
+        return $id ? CompanyIntegration::withoutGlobalScope('company')->find($id) : null;
     }
 
     public static function forget(?int $companyId, string $provider): void

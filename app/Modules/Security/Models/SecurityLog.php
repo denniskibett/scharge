@@ -11,6 +11,14 @@ use App\Models\User;
 
 class SecurityLog extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** By security.company_id, or a unit the company may see (its own, in its buildings, or one it hosts), like the gate screens. */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('security.company_id', $ids)->orWhereHas('unit'));
+    }
+
     use HasFactory;
 
     protected $table = 'security';

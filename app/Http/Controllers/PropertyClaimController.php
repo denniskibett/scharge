@@ -18,7 +18,7 @@ class PropertyClaimController extends Controller
         $user = $request->user();
         abort_unless($user->company_id && $user->hasAnyRole(['admin', 'property_manager']), 403, 'Only a company admin can claim a building.');
         $data = $request->validate(['property_id' => 'required|integer|exists:properties,id', 'message' => 'nullable|string|max:500']);
-        $property = Property::findOrFail($data['property_id']);
+        $property = Property::withoutGlobalScope('company')->findOrFail($data['property_id']); // claiming a building another company or a host added
 
         if ((int) $property->company_id === (int) $user->company_id && $property->claim_status === 'managed') {
             return response()->json(['message' => 'Your company already manages this building.'], 422);
@@ -35,7 +35,7 @@ class PropertyClaimController extends Controller
 
     public function index(Request $request)
     {
-        $claims = $this->visible($request)->with(['property:id,name,location,company_id,claim_status', 'company:id,name', 'requester:id,name,email,phone'])
+        $claims = $this->visible($request)->with(['property' => fn ($q) => $q->withoutGlobalScope('company')->select('id', 'name', 'location', 'company_id', 'claim_status'), 'company:id,name', 'requester:id,name,email,phone'])
             ->orderByRaw("status = 'pending' DESC")->latest()->limit(200)->get();
 
         return view('admin.property-claims.index', ['claims' => $claims]);

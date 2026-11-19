@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Expense extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     use HasFactory;
 
     protected $fillable = [

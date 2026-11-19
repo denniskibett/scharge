@@ -370,7 +370,7 @@ class TenantController extends Controller
     /** A switched-on Integrations row (null company = scharge's own), read directly. */
     private static function setting(?int $companyId, string $provider): ?\App\Models\CompanyIntegration
     {
-        return \App\Models\CompanyIntegration::where('provider', $provider)->where('enabled', true)
+        return \App\Models\CompanyIntegration::withoutGlobalScope('company')->where('provider', $provider)->where('enabled', true)
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId), fn ($q) => $q->whereNull('company_id'))->latest('id')->first();
     }
 

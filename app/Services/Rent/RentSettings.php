@@ -32,7 +32,7 @@ class RentSettings
 
     public static function for(int $companyId): ?self
     {
-        $row = self::installed() ? CompanyIntegration::where('provider', self::PROVIDER)->where('enabled', true)
+        $row = self::installed() ? CompanyIntegration::withoutGlobalScope('company')->where('provider', self::PROVIDER)->where('enabled', true)
             ->where('company_id', $companyId)->latest('id')->first() : null;
 
         return $row ? self::fromRow($row) : null;
@@ -64,7 +64,7 @@ class RentSettings
             return [];
         }
 
-        return CompanyIntegration::where('provider', self::PROVIDER)->where('enabled', true)->whereNotNull('company_id')
+        return CompanyIntegration::withoutGlobalScope('company')->where('provider', self::PROVIDER)->where('enabled', true)->whereNotNull('company_id')
             ->get()->unique('company_id')->map(fn ($row) => self::fromRow($row))->values()->all();
     }
 

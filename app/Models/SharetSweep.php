@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** One rail-mode payout to a landlord company at a sweep slot (08:00 / 12:00 / 16:00 Nairobi). */
 class SharetSweep extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'sharet_sweeps';
 
     protected $fillable = ['company_id', 'slot', 'requests_count', 'gross', 'fee', 'net', 'destination', 'status', 'sharet_payment_id', 'failure'];

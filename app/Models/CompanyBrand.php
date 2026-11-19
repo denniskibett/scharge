@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Storage;
 /** A company's white label: name, logos, colour, own web address. App\Support\Brand picks the one for each request. */
 class CompanyBrand extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'display_name', 'domain', 'slug', 'logo_path', 'logo_dark_path', 'icon_path', 'primary_color',
         'tagline', 'support_phone', 'support_email', 'show_powered_by'];
 

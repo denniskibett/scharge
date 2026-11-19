@@ -15,6 +15,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class GatePass extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** By gate_passes.company_id, or a unit the company may see (its own, in its buildings, or one it hosts), like the gate screens. */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('gate_passes.company_id', $ids)->orWhereHas('unit'));
+    }
+
     protected $table = 'gate_passes';
 
     public const KINDS = [

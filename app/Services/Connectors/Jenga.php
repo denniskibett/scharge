@@ -61,7 +61,7 @@ class Jenga
             return 0;
         }
 
-        return CompanyIntegration::where('provider', 'jenga')->where('enabled', true)->whereNotNull('company_id')->get()
+        return CompanyIntegration::withoutGlobalScope('company')->where('provider', 'jenga')->where('enabled', true)->whereNotNull('company_id')->get()
             ->sum(fn ($row) => rescue(fn () => self::pull($row), 0));
     }
 

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** A landlord company's verification (KYC): the confirmed details, automatic checks and scharge's review. */
 class CompanyKyc extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'company_kyc';
 
     protected $fillable = ['company_id', 'status', 'owner_name', 'owner_id_number', 'kra_pin', 'business_name', 'registration_number',

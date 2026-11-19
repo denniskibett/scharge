@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CompanyIntegration extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'company_integrations';
 
     protected $fillable = ['company_id', 'provider', 'credentials', 'enabled', 'updated_by', 'last_tested_at', 'last_test_ok', 'last_test_message'];

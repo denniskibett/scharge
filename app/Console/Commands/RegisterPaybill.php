@@ -17,7 +17,7 @@ class RegisterPaybill extends Command
     public function handle(): int
     {
         $this->line('Address: '.PaybillRegistration::urls()['confirmation']);
-        $rows = CompanyIntegration::where('provider', 'mpesa_daraja')->where('enabled', true)->whereNotNull('company_id')
+        $rows = CompanyIntegration::withoutGlobalScope('company')->where('provider', 'mpesa_daraja')->where('enabled', true)->whereNotNull('company_id')
             ->when($this->option('company'), fn ($q) => $q->where('company_id', $this->option('company')))->get();
 
         foreach ($rows as $row) {

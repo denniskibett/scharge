@@ -174,7 +174,7 @@ class PaybillPayments
         if ($shortcode === '') {
             return null;
         }
-        $map = Cache::remember('paybill-shortcodes', 300, fn () => CompanyIntegration::where('provider', 'mpesa_daraja')->where('enabled', true)
+        $map = Cache::remember('paybill-shortcodes', 300, fn () => CompanyIntegration::withoutGlobalScope('company')->where('provider', 'mpesa_daraja')->where('enabled', true)
             ->whereNotNull('company_id')->get()->mapWithKeys(fn ($r) => [(string) $r->get('shortcode') => (int) $r->company_id])->all());
 
         return $map[$shortcode] ?? null;

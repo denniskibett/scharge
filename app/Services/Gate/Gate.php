@@ -113,7 +113,7 @@ class Gate
     {
         for ($i = 0; $i < 20; $i++) {
             $code = (string) random_int(100000, 999999);
-            if (! GatePass::where('code', $code)->whereIn('status', ['issued', 'checked_in'])->exists()) {
+            if (! GatePass::withoutGlobalScope('company')->where('code', $code)->whereIn('status', ['issued', 'checked_in'])->exists()) {
                 return $code;
             }
         }

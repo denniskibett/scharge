@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
  */
 class CompanyPage extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'slug', 'template', 'title', 'hero_title', 'hero_text', 'hero_image', 'body', 'draft', 'status',
         'show_in_menu', 'sort', 'published_at', 'submitted_by', 'submitted_at', 'approved_by', 'approved_at', 'review_note'];
 

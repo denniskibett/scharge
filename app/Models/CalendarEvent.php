@@ -7,6 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 /** An internal meeting or reminder on /calendar. See database/schema/2026_11_09_calendar_events.sql. */
 class CalendarEvent extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** The company's own rows plus the shared defaults (company_id NULL) every company starts from. */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('calendar_events.company_id', $ids)->orWhereNull('calendar_events.company_id'));
+    }
+
     protected $table = 'calendar_events';
 
     protected $fillable = ['company_id', 'title', 'description', 'location', 'kind', 'visibility', 'starts_at', 'ends_at', 'all_day', 'created_by'];

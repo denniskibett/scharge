@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** A short stay in one unit: made here (direct) or imported from a channel calendar. App\Services\Bookings\BookingCalendar. */
 class Booking extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'unit_id', 'source', 'external_uid', 'guest_name', 'guest_phone', 'guests', 'check_in', 'check_out',
         'amount', 'status', 'notes', 'created_by'];
 

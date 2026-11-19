@@ -181,7 +181,8 @@ Route::middleware('auth')->get('/campaign/{id}', function($id) {
 // ============================================
 // PUBLIC ROUTES
 // ============================================
-Route::controller(App\Http\Controllers\HomeController::class)->group(function () {
+// Public pages show every company's public rows whoever is signed in (App\Http\Middleware\PublicPage).
+Route::controller(App\Http\Controllers\HomeController::class)->middleware(App\Http\Middleware\PublicPage::class)->group(function () {
     Route::get('/', 'index')->name('home');
     Route::get('/developers', 'developers')->name('home.developers');
     Route::get('/airbnb', 'airbnb')->name('home.airbnb');
@@ -191,16 +192,16 @@ Route::controller(App\Http\Controllers\HomeController::class)->group(function ()
 });
 
 // One public listing's own page (shareable, indexed; built from ListingCatalog)
-Route::get('/listings/{slug}', [App\Http\Controllers\HomeController::class, 'listing'])->where('slug', '[a-z0-9-]+')->name('home.listing');
+Route::get('/listings/{slug}', [App\Http\Controllers\HomeController::class, 'listing'])->where('slug', '[a-z0-9-]+')->middleware(App\Http\Middleware\PublicPage::class)->name('home.listing');
 
 // Answer-style guides for search engines and AI assistants (App\Support\Guides)
-Route::get('/guides', [App\Http\Controllers\HomeController::class, 'guides'])->name('home.guides');
-Route::get('/guides/{slug}', [App\Http\Controllers\HomeController::class, 'guide'])->where('slug', '[a-z0-9-]+')->name('home.guide');
+Route::get('/guides', [App\Http\Controllers\HomeController::class, 'guides'])->middleware(App\Http\Middleware\PublicPage::class)->name('home.guides');
+Route::get('/guides/{slug}', [App\Http\Controllers\HomeController::class, 'guide'])->where('slug', '[a-z0-9-]+')->middleware(App\Http\Middleware\PublicPage::class)->name('home.guide');
 
 // Search engines (sitemap, robots) and AI assistants (llms.txt)
-Route::get('/sitemap.xml', [App\Http\Controllers\SeoController::class, 'sitemap'])->name('sitemap');
+Route::get('/sitemap.xml', [App\Http\Controllers\SeoController::class, 'sitemap'])->middleware(App\Http\Middleware\PublicPage::class)->name('sitemap');
 Route::get('/robots.txt', [App\Http\Controllers\SeoController::class, 'robots'])->name('robots');
-Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->name('llms');
+Route::get('/llms.txt', [App\Http\Controllers\SeoController::class, 'llms'])->middleware(App\Http\Middleware\PublicPage::class)->name('llms');
 
 // First-party website analytics beacon (public/assets/js/track.js; CSRF exempt in bootstrap/app.php)
 Route::post('/t', App\Http\Controllers\TrackController::class)->middleware('throttle:240,1,track')->name('track');
@@ -246,7 +247,7 @@ Route::middleware('guest')->group(function () {
     Route::get('/host/register', [App\Http\Controllers\HostController::class, 'create'])->name('host.register');
     Route::post('/host/register', [App\Http\Controllers\HostController::class, 'store'])->middleware('throttle:6,1,host-register')->name('host.store');
 });
-Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware('throttle:30,1,host-search')->name('host.properties.search');
+Route::get('/host/properties/search', [App\Http\Controllers\HostController::class, 'searchProperties'])->middleware(['throttle:30,1,host-search', App\Http\Middleware\PublicPage::class])->name('host.properties.search');
 
 // Sharet Africa webhooks (signed; CSRF exempt in bootstrap/app.php)
 // A unit's private calendar link for Airbnb / Booking.com to import (dates only; token in the path).
@@ -906,5 +907,5 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
 });
 
 // A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
-Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1,site-contact')->name('site.contact');
-Route::fallback([App\Http\Controllers\SiteController::class, 'fallback']);
+Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware(['throttle:6,1,site-contact', App\Http\Middleware\PublicPage::class])->name('site.contact');
+Route::fallback([App\Http\Controllers\SiteController::class, 'fallback'])->middleware(App\Http\Middleware\PublicPage::class);

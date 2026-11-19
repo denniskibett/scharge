@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** Money a tenant paid straight to a paybill (Safaricom C2B), and what scharge did with it. App\Services\Rent\PaybillPayments. */
 class PaybillPayment extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['trans_id', 'company_id', 'shortcode', 'bill_ref', 'amount', 'msisdn', 'payer_name', 'paid_at', 'status',
         'tenancy_id', 'matched_by', 'payment_ids', 'note', 'handled_by', 'raw'];
 

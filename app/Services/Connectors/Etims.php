@@ -85,7 +85,7 @@ class Etims
             // KRA needs gap-free numbers per branch: take the next one under the row lock and keep it on the link.
             $data = json_decode((string) $link->data, true) ?: [];
             if (empty($data['invc_no'])) {
-                $fresh = CompanyIntegration::whereKey($row->id)->lockForUpdate()->first();
+                $fresh = CompanyIntegration::withoutGlobalScope('company')->whereKey($row->id)->lockForUpdate()->first();
                 $data['invc_no'] = (int) $fresh->get('next_invc_no', 1);
                 $fresh->mergeCredentials(['next_invc_no' => $data['invc_no'] + 1]);
                 $fresh->save();

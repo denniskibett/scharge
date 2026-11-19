@@ -9,6 +9,14 @@ use App\Models\User;
 
 class HouseChecklist extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** Through the tenancy (no company_id column), like invoices. */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->whereHas('tenancy');
+    }
+
     use HasFactory;
 
     protected $fillable = [

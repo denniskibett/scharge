@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\Storage;
  */
 class UnitPhoto extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'unit_photos';
 
     public const APPLIES_TO = ['unit', 'type', 'property'];

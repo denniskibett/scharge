@@ -10,6 +10,15 @@ use App\Models\Unit;
 
 class Maintenance extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** By maintenances.company_id, or through the unit when it is empty (older rows). */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('maintenances.company_id', $ids)
+            ->orWhere(fn ($q) => $q->whereNull('maintenances.company_id')->whereHas('unit')));
+    }
+
     use HasFactory;
 
 
@@ -43,7 +52,7 @@ class Maintenance extends Model
         parent::boot();
         
         static::creating(function ($request) {
-            $request->request_number = 'MT-' . str_pad(static::max('id') + 1, 6, '0', STR_PAD_LEFT);
+            $request->request_number = 'MT-' . str_pad(static::withoutGlobalScope('company')->max('id') + 1, 6, '0', STR_PAD_LEFT);
         });
     }
 

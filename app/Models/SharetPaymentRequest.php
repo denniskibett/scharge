@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** A Sharet pay link for (part of) a tenant invoice. See database/schema/2026_11_08_sharet_payments.sql. */
 class SharetPaymentRequest extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'sharet_payment_requests';
 
     protected $fillable = ['sharet_id', 'company_id', 'invoice_id', 'tenant_id', 'environment', 'mode', 'sharet_account', 'amount',

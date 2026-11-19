@@ -33,9 +33,10 @@ class ApplyBrand
             }
             if ($request->is('/')) {
                 // The company's own website home page once scharge approved it (docs/COMPANY_WEBSITE.md); else the portal.
-                $live = \App\Models\CompanyPage::where('company_id', $own->company_id)->where('slug', '')->whereNotNull('published_at')->exists();
+                $live = \App\Models\CompanyPage::withoutGlobalScope('company')->where('company_id', $own->company_id)->where('slug', '')->whereNotNull('published_at')->exists();
 
-                return $live ? response(app(\App\Http\Controllers\SiteController::class)->page($request, '')) : redirect()->route($user ? 'dashboard' : 'login');
+                // A public page: whoever is signed in, it shows this company's published site (CompanyAccess::bypass).
+                return $live ? \App\Support\CompanyAccess::bypass(fn () => response(app(\App\Http\Controllers\SiteController::class)->page($request, ''))) : redirect()->route($user ? 'dashboard' : 'login');
             }
             if ($request->routeIs('register', 'register.*')) {
                 return redirect()->route('login');

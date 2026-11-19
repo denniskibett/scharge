@@ -11,7 +11,7 @@ class AppSettings
     public static function row(): ?CompanyIntegration
     {
         return Schema::hasTable('company_integrations')
-            ? CompanyIntegration::where('provider', 'mobile_app')->whereNull('company_id')->where('enabled', true)->latest('id')->first() : null;
+            ? CompanyIntegration::withoutGlobalScope('company')->where('provider', 'mobile_app')->whereNull('company_id')->where('enabled', true)->latest('id')->first() : null;
     }
 
     public static function minVersion(): ?string

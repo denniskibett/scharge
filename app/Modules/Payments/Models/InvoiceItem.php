@@ -8,6 +8,25 @@ use Illuminate\Database\Eloquent\Model;
 
 class InvoiceItem extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** By invoice_items.company_id, or through the invoice when it is empty (older rows). */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('invoice_items.company_id', $ids)
+            ->orWhere(fn ($q) => $q->whereNull('invoice_items.company_id')->whereHas('invoice')));
+    }
+
+    /** company_id is not fillable (create() dropped it): take the bill's company when nobody set it. */
+    protected static function booted(): void
+    {
+        static::creating(function (self $item) {
+            if (! $item->company_id && $item->invoice_id) {
+                $item->company_id = \Illuminate\Support\Facades\DB::table('invoices')->where('id', $item->invoice_id)->value('company_id');
+            }
+        });
+    }
+
     use HasFactory;
 
     protected $fillable = [

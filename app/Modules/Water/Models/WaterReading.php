@@ -10,6 +10,15 @@ use App\Models\User;
 
 class WaterReading extends Model
 {
+    use \App\Traits\CompanyScoped;
+
+    /** By water_readings.company_id, or through the unit when it is empty (older rows). */
+    protected static function companyScope(\Illuminate\Database\Eloquent\Builder $query, array $ids): void
+    {
+        $query->where(fn ($q) => $q->whereIn('water_readings.company_id', $ids)
+            ->orWhere(fn ($q) => $q->whereNull('water_readings.company_id')->whereHas('unit')));
+    }
+
     protected $table = 'water_readings';
     
     protected $fillable = [

@@ -21,7 +21,8 @@ class ListingCatalog
 
     public function items(): array
     {
-        return Cache::remember('public-listings-v3', now()->addMinutes(5), fn () => $this->build());
+        // Shared by every visitor: built without the signed-in user's company scope.
+        return Cache::remember('public-listings-v3', now()->addMinutes(5), fn () => \App\Support\CompanyAccess::bypass(fn () => $this->build()));
     }
 
     /** One listing by its page address (home.listing), or null when it is let / no longer advertised. */

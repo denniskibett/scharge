@@ -99,7 +99,7 @@ class RentCollectionTest extends RentSchemaTestCase
         $other = $this->staff($b['company']);
 
         $this->actingAs($other)->get('/rent')->assertOk()->assertDontSee('SKD1');
-        $this->actingAs($other)->post('/rent/paybill/'.PaybillPayment::sole()->id.'/assign', ['tenancy_id' => $b['tenancies'][0]])->assertNotFound();
+        $this->actingAs($other)->post('/rent/paybill/'.PaybillPayment::withoutGlobalScope('company')->sole()->id.'/assign', ['tenancy_id' => $b['tenancies'][0]])->assertNotFound();
     }
 
     public function test_penalty_only_when_the_owner_switched_it_on_once_per_bill_and_never_when_paused(): void

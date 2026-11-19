@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
  */
 class Meter extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'meters';
 
     public const UTILITIES = ['water' => 'm3', 'electricity' => 'kWh'];

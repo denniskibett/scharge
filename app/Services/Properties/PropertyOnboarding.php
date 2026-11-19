@@ -305,7 +305,7 @@ class PropertyOnboarding
         $this->props[$gk] = &$p;
 
         if ($d['scharge_property_id'] && $d['scharge_property_id'] !== 'new') {
-            $found = ctype_digit($d['scharge_property_id']) ? Property::find((int) $d['scharge_property_id']) : null;
+            $found = ctype_digit($d['scharge_property_id']) ? Property::withoutGlobalScope('company')->find((int) $d['scharge_property_id']) : null;
             if (! $found) {
                 $p['action'] = 'error';
                 $p['error'] = "scharge_property_id {$d['scharge_property_id']} is not a building on scharge";

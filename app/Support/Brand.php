@@ -47,7 +47,7 @@ class Brand
             return null;
         }
 
-        return self::$memo[$companyId] ??= CompanyBrand::where('company_id', $companyId)->first();
+        return self::$memo[$companyId] ??= CompanyBrand::withoutGlobalScope('company')->where('company_id', $companyId)->first();
     }
 
     /** The brand served at scharge.sharet.africa/{slug} (the preview address, e.g. /danaff). */
@@ -56,7 +56,7 @@ class Brand
         if (! Schema::hasColumn('company_brands', 'slug')) {
             return null;
         }
-        $companyId = CompanyBrand::where('slug', strtolower($slug))->value('company_id');
+        $companyId = CompanyBrand::withoutGlobalScope('company')->where('slug', strtolower($slug))->value('company_id');
 
         return $companyId ? self::forCompany((int) $companyId) : null;
     }
@@ -80,7 +80,7 @@ class Brand
             if (! Schema::hasTable('company_brands')) {
                 return ['domains' => [], 'companies' => []];
             }
-            $rows = CompanyBrand::get(['company_id', 'domain']);
+            $rows = CompanyBrand::withoutGlobalScope('company')->get(['company_id', 'domain']);
 
             return ['domains' => $rows->whereNotNull('domain')->mapWithKeys(fn ($b) => [strtolower($b->domain) => (int) $b->company_id])->all(),
                 'companies' => $rows->pluck('company_id')->map(fn ($id) => (int) $id)->all()];

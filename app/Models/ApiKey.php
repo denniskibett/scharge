@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
  */
 class ApiKey extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $table = 'api_keys';
 
     protected $fillable = ['company_id', 'user_id', 'name', 'environment', 'scopes', 'allowed_ips', 'prefix', 'last_four', 'hash', 'enabled', 'last_used_at'];

@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** An uploaded KYC document (private disk), and what was read from it (App\Services\Kyc\DocumentReader). */
 class KycDocument extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'property_id', 'kind', 'path', 'original_name', 'mime', 'size', 'read_status', 'extracted', 'read_error', 'uploaded_by'];
 
     protected $casts = ['extracted' => 'array'];

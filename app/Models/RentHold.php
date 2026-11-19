@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** Reminders (and penalties) paused for one tenancy, e.g. an agreed payment plan or a dispute. */
 class RentHold extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'tenancy_id', 'until', 'reason', 'created_by'];
 
     protected $casts = ['until' => 'date'];

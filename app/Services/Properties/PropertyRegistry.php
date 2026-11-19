@@ -53,7 +53,8 @@ class PropertyRegistry
             return collect();
         }
 
-        return Property::query()->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))->get()
+        // Every building on scharge, whoever asks: one building exists once (no company scope).
+        return Property::withoutGlobalScope('company')->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))->get()
             ->map(function (Property $p) use ($nk, $lk, $pin, $pins) {
                 $pn = $p->name_key ?: self::nameKey($p->name);
                 $pl = $p->location_key ?: self::locationKey($p->location);

@@ -28,7 +28,7 @@ class ChannelSync
     public static function enabled(): bool
     {
         return \Illuminate\Support\Facades\Schema::hasTable('company_integrations')
-            && \App\Models\CompanyIntegration::where('provider', 'channel_sync')->whereNull('company_id')->where('enabled', true)->exists();
+            && \App\Models\CompanyIntegration::withoutGlobalScope('company')->where('provider', 'channel_sync')->whereNull('company_id')->where('enabled', true)->exists();
     }
 
     public static function exportToken(int $unitId): string

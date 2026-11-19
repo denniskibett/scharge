@@ -36,7 +36,7 @@ class DocumentReader
 
     private static function apiKey(): ?string
     {
-        $row = Integrations::installed() ? \App\Models\CompanyIntegration::where('provider', 'document_reader')->whereNull('company_id')->where('enabled', true)->latest('id')->first() : null;
+        $row = Integrations::installed() ? \App\Models\CompanyIntegration::withoutGlobalScope('company')->where('provider', 'document_reader')->whereNull('company_id')->where('enabled', true)->latest('id')->first() : null;
 
         return $row?->get('api_key') ?: (config('services.anthropic.key') ?: null);
     }

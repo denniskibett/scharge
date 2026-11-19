@@ -15,7 +15,7 @@ class CompanyDataCommands extends Command
 
     public function handle(CompanyBackup $backup): int
     {
-        $rows = CompanyIntegration::where('provider', 'data_backup')->where('enabled', true)->whereNotNull('company_id')
+        $rows = CompanyIntegration::withoutGlobalScope('company')->where('provider', 'data_backup')->where('enabled', true)->whereNotNull('company_id')
             ->when($this->option('company'), fn ($q) => $q->where('company_id', $this->option('company')))->get();
         foreach ($rows as $row) {
             [$ok, $message] = $backup->run($row);

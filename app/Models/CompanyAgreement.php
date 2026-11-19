@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** An agreement a company accepted in the dashboard (who, when, from where, which version). */
 class CompanyAgreement extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'agreement', 'version', 'accepted_by', 'accepted_name', 'accepted_title', 'ip', 'accepted_at'];
 
     protected $casts = ['accepted_at' => 'datetime'];

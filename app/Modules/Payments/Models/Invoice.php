@@ -24,6 +24,14 @@ class Invoice extends Model
                     ->orWhere(fn ($q) => $q->whereNull('invoices.company_id')->whereHas('tenancy')));
             }
         });
+
+        // company_id is not fillable, so Invoice::create([... 'company_id' => ...]) dropped it and new bills needed the
+        // tenancy fallback above. Set it from the tenancy -> unit -> property owner when nobody did.
+        static::creating(function (self $invoice) {
+            if (! $invoice->company_id && $invoice->tenancy_id) {
+                $invoice->company_id = \App\Support\CompanyAccess::bypass(fn () => $invoice->owningCompanyId());
+            }
+        });
     }
 
     /**

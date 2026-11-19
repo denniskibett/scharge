@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 /** One unit's calendar on a channel (Airbnb, Booking.com…): its iCal export link, imported by ChannelSync. */
 class UnitChannel extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     protected $fillable = ['company_id', 'unit_id', 'channel', 'import_url', 'last_synced_at', 'last_status', 'last_error'];
 
     protected $casts = ['import_url' => 'encrypted', 'last_synced_at' => 'datetime'];

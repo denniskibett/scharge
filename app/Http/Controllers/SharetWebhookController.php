@@ -71,7 +71,7 @@ class SharetWebhookController extends Controller
         $connectionId = $data['id'] ?? null;
         $sharetId = $data['account']['sharet_id'] ?? $data['sharet_id'] ?? null;
 
-        CompanyIntegration::where('provider', 'sharet_payouts')->get()
+        CompanyIntegration::withoutGlobalScope('company')->where('provider', 'sharet_payouts')->get()
             ->filter(fn ($row) => $row->get('connection_id') && $row->get('connection_id') === $connectionId)
             ->each(function (CompanyIntegration $row) use ($active, $sharetId) {
                 $row->mergeCredentials($active

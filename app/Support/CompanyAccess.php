@@ -67,11 +67,16 @@ class CompanyAccess
         return null;
     }
 
-    /** Tenancies of the given companies: directly, through the unit, or the unit's property (older rows have no company_id). */
+    /**
+     * Tenancies of the given companies: directly, through the unit, or the unit's property (older rows have no company_id).
+     * Plain subqueries, not whereHas: whereHas would add the unit and property company scopes again inside (wider
+     * rules than this one, so they change nothing) and made every tenancy, invoice and payment query several times heavier.
+     */
     public static function tenancyFilter($query, array $ids)
     {
         return $query->where(fn ($q) => $q->whereIn('tenancies.company_id', $ids)
-            ->orWhere(fn ($q) => $q->whereNull('tenancies.company_id')->whereHas('unit', fn ($u) => $u->whereIn('units.company_id', $ids)
-                ->orWhere(fn ($u) => $u->whereNull('units.company_id')->whereHas('property', fn ($p) => $p->whereIn('properties.company_id', $ids))))));
+            ->orWhere(fn ($q) => $q->whereNull('tenancies.company_id')->whereIn('tenancies.unit_id', DB::table('units')->select('units.id')
+                ->where(fn ($u) => $u->whereIn('units.company_id', $ids)
+                    ->orWhere(fn ($u) => $u->whereNull('units.company_id')->whereIn('units.property_id', DB::table('properties')->select('properties.id')->whereIn('properties.company_id', $ids)))))));
     }
 }

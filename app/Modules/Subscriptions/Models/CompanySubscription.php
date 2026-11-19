@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class CompanySubscription extends Model
 {
+    use \App\Traits\CompanyScoped;
+
     use HasFactory;
     
     protected $table = 'company_subscriptions';
