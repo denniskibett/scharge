@@ -102,9 +102,43 @@ class SiteController extends Controller
     /** Fallback route: a page of the company's site, else the normal 404. */
     public function fallback(Request $request): View
     {
-        abort_unless(Brand::forDomain($request->getHost()) && $request->isMethod('GET') && preg_match('#^[a-z0-9-]{1,80}$#', $request->path()), 404);
+        abort_unless($request->isMethod('GET'), 404);
+        if (Brand::forDomain($request->getHost())) {
+            abort_unless(preg_match('#^[a-z0-9-]{1,80}$#', $request->path()), 404);
 
-        return $this->page($request, $request->path());
+            return $this->page($request, $request->path());
+        }
+
+        // Preview address on scharge itself: /{slug} and /{slug}/{page}, e.g. /danaff and /danaff/about.
+        abort_unless(preg_match('#^([a-z0-9-]{2,60})(?:/([a-z0-9-]{1,80}))?$#', $request->path(), $m), 404);
+        $brand = Brand::forSlug($m[1]);
+        abort_unless($brand, 404);
+
+        return $this->previewSite($request, $brand, $m[2] ?? '');
+    }
+
+    /**
+     * A company's site at scharge.sharet.africa/{slug}. Published pages are public. Drafts show only to scharge staff
+     * and the company's own people (so a site can be checked before it is approved). With no page to show, a branded
+     * welcome page with sign-in.
+     */
+    private function previewSite(Request $request, CompanyBrand $brand, string $slug): View
+    {
+        $user = $request->user();
+        $canDraft = $user && ($user->hasAnyRole(['sysadmin', 'account_manager']) || (int) $user->company_id === (int) $brand->company_id);
+        $page = CompanyPage::where('company_id', $brand->company_id)->where('slug', $slug)
+            ->when(! $canDraft, fn ($q) => $q->whereNotNull('published_at'))->first();
+        $base = '/'.$brand->slug;
+        if (! $page) {
+            abort_if($slug !== '', 404);
+
+            return view('site.welcome', ['brand' => $brand, 'base' => $base]);
+        }
+        $draft = $canDraft && (! $page->published_at || $page->draft);
+        $menu = CompanyPage::where('company_id', $brand->company_id)->where('show_in_menu', true)
+            ->when(! $canDraft, fn ($q) => $q->whereNotNull('published_at'))->orderBy('sort')->get(['slug', 'title']);
+
+        return $this->render($brand, $page, $draft)->with(['base' => $base, 'menu' => $menu, 'previewBanner' => $draft]);
     }
 
     private function listings(int $companyId): array

@@ -50,6 +50,17 @@ class Brand
         return self::$memo[$companyId] ??= CompanyBrand::where('company_id', $companyId)->first();
     }
 
+    /** The brand served at scharge.sharet.africa/{slug} (the preview address, e.g. /danaff). */
+    public static function forSlug(string $slug): ?CompanyBrand
+    {
+        if (! Schema::hasColumn('company_brands', 'slug')) {
+            return null;
+        }
+        $companyId = CompanyBrand::where('slug', strtolower($slug))->value('company_id');
+
+        return $companyId ? self::forCompany((int) $companyId) : null;
+    }
+
     /** Is this request on a company's own address? */
     public static function onOwnDomain(): ?CompanyBrand
     {

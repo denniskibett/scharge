@@ -54,9 +54,9 @@ footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted)
 <body>
 @if ($preview)<div class="preview">Preview of your changes. Visitors see them once scharge approves.</div>@endif
 <header><div class="wrap bar">
-  <a class="logo" href="/">@if ($brand->logoUrl())<img src="{{ $brand->logoUrl() }}" alt="{{ $brand->display_name }}">@else{{ $brand->display_name }}@endif</a>
+  <a class="logo" href="{{ ($base ?? '') ?: '/' }}">@if ($brand->logoUrl())<img src="{{ $brand->logoUrl() }}" alt="{{ $brand->display_name }}">@else{{ $brand->display_name }}@endif</a>
   <nav aria-label="Site">
-    @foreach ($menu as $m)<a href="/{{ $m->slug }}" @if ($m->slug === $page->slug) aria-current="page" @endif>{{ $m->title }}</a>@endforeach
+    @foreach ($menu as $m)<a href="{{ $base ?? '' }}/{{ $m->slug }}" @if ($m->slug === $page->slug) aria-current="page" @endif>{{ $m->title }}</a>@endforeach
     <a class="btn btn--ghost" href="/login">Tenant & owner login</a>
   </nav>
 </div></header>
@@ -102,7 +102,7 @@ footer { border-top: 1px solid var(--line); padding: 28px 0; color: var(--muted)
           </article>
         @endforeach
       </div>
-      @if ($page->template === 'home' && count($listings) > 3)<p><a class="btn btn--ghost" href="/rentals">See all {{ count($listings) }} homes</a></p>@endif
+      @if ($page->template === 'home' && count($listings) > 3)<p><a class="btn btn--ghost" href="{{ $base ?? '' }}/rentals">See all {{ count($listings) }} homes</a></p>@endif
     @elseif ($page->template === 'rentals')
       <p class="muted" style="padding:24px 0">No vacant units right now. Leave your number on the contact page and we will tell you when one opens.</p>
     @endif
