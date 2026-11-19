@@ -60,11 +60,10 @@ h1 { margin: 0; font-size: 18pt; }
   <tr>
     <td style="width:50%"><span class="lbl">Billed to</span>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</td>
     <td style="text-align:right;padding-right:0">
-      <span class="lbl">Info details</span>
+      <span class="lbl">Plan</span>
       <table class="kv">
-        <tr><td class="k">Plan</td><td class="v">{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</td></tr>
-        <tr><td class="k">Issued</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</td></tr>
-        <tr><td class="k">Due</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('j M Y') }}</td></tr>
+        <tr><td class="k">Issued:</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }}</td></tr>
+        <tr><td class="k">Due:</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</td></tr>
       </table>
     </td>
   </tr>
