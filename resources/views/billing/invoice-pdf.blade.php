@@ -59,18 +59,6 @@ h1 { margin: 0; font-size: 18pt; }
   </tr>
 </table>
 
-@unless ($paid)
-  <div class="box">
-    <b>Payment details · Sharet Pay</b>
-    <table style="margin-top:3pt">
-      <tr>
-        <td><span class="lbl">1 · scharge to scharge</span>Sign in at scharge.sharet.africa › Billing › Pay from wallet. Settles instantly.</td>
-        <td><span class="lbl">2 · M-Pesa (STK push)</span>Sign in › Billing › Pay with Sharet Pay, then approve the prompt on the phone.</td>
-        <td style="width:30%"><span class="lbl">Reference</span>{{ $inv->invoice_number }}<br><span class="muted">{{ $money($total) }}</span></td>
-      </tr>
-    </table>
-  </div>
-@endunless
 <table class="lines">
   <thead><tr><th>Description</th><th class="r" style="width:8%">Units</th><th class="r" style="width:17%">Rate / unit</th><th class="r" style="width:17%">Amount</th></tr></thead>
   <tbody>
