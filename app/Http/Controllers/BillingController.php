@@ -76,6 +76,31 @@ class BillingController extends Controller
     }
 
     /** Only the owner (admin) and accountant of a company pay. */
+    /** One scharge bill as a printable invoice with its lines (owner / accountant of that company, or scharge staff). */
+    public function show(int $invoice)
+    {
+        $user = auth()->user();
+        $row = DB::table('subscription_invoices as i')->join('company_subscriptions as s', 's.id', '=', 'i.company_subscription_id')
+            ->join('companies as c', 'c.id', '=', 's.company_id')->leftJoin('subscription_plans as p', 'p.id', '=', 's.plan_id')
+            ->where('i.id', $invoice)->first(['i.*', 's.company_id', 'c.name as company_name', 'c.email as company_email', 'c.phone as company_phone', 'c.address as company_address', 'p.name as plan_name']);
+        abort_unless($row, 404);
+        $staff = $user->hasRole('sysadmin');
+        abort_unless($staff || ($user->hasAnyRole(BillingLock::PAYERS) && (int) Modules::companyOf($user) === (int) $row->company_id), 403);
+        $json = json_decode((string) $row->invoice_json, true) ?: [];
+
+        // Lines: explicit items, else one per billed month, else the plan as one line.
+        $items = collect($json['items'] ?? [])->map(fn ($i) => ['description' => $i['description'], 'detail' => $i['detail'] ?? null, 'amount' => (float) $i['amount']]);
+        if ($items->isEmpty() && ! empty($json['lines'])) {
+            $items = collect($json['lines'])->map(fn ($l) => ['description' => ($json['property'] ?? 'Units').' · '.$l['month'],
+                'detail' => $l['units'].' units × KES '.number_format($l['rate']), 'amount' => (float) $l['amount']]);
+        }
+        if ($items->isEmpty()) {
+            $items = collect([['description' => ($json['plan_name'] ?? $row->plan_name ?? 'scharge subscription'), 'detail' => null, 'amount' => (float) $row->amount]]);
+        }
+
+        return view('billing.invoice', ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff]);
+    }
+
     private function payerCompany(): int
     {
         $user = auth()->user();

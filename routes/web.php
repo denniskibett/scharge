@@ -432,6 +432,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     // The company manual: what scharge offers and how, with progress from the company's data (App\Support\OnboardingGuide)
     // scharge's bills for this company; the one page open while an unpaid bill locks the company (App\Support\BillingLock).
     Route::get('/billing', [App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
+    Route::get('/billing/{invoice}', [App\Http\Controllers\BillingController::class, 'show'])->whereNumber('invoice')->name('billing.invoice');
     Route::post('/billing/{invoice}/pay/sharet', [App\Http\Controllers\BillingController::class, 'paySharet'])->whereNumber('invoice')->middleware('throttle:10,1')->name('billing.pay.sharet');
     Route::post('/billing/{invoice}/pay/wallet', [App\Http\Controllers\BillingController::class, 'payWallet'])->whereNumber('invoice')->middleware('throttle:10,1')->name('billing.pay.wallet');
 

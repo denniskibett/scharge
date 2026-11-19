@@ -51,6 +51,7 @@
 
                                     </button>
                                     <div x-show="open" x-cloak :style="`position:fixed;top:${y}px;left:${x - 160}px`" class="shadow-theme-lg dark:bg-gray-dark z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800">
+                                        <a href="{{ route('billing.invoice', $invoice['id'] ?? $invoice->id) }}" target="_blank" data-no-spa @click="open = false" class="text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">View invoice</a>
                                         <button type="button" onclick="window.subscriptionsInvoicesModal?.openModal({{ $planId ?? 0 }}, {{ $invoice['id'] ?? $invoice->id }})" @click="open = false" class="text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Edit</button>
                                         <button type="button" onclick="markInvoicePaid({{ $invoice['id'] ?? $invoice->id }})" @click="open = false" class="text-theme-xs flex w-full items-center rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">Mark Paid</button>
                                     </div>
