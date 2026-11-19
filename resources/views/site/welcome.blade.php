@@ -51,6 +51,6 @@ footer a { color: var(--muted); }
   </div>
 </main>
 <footer>© {{ date('Y') }} {{ $brand->display_name }}@if ($brand->show_powered_by) · Powered by <a href="https://scharge.sharet.africa">scharge</a>@endif</footer>
-@include('partials.android-app-bar', ['colour' => $brand->primary_color ?: '#DC2626', 'label' => 'Get the scharge app'])
+@include('partials.android-app-bar', ['label' => 'Get the scharge app'])
 </body>
 </html>

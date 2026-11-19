@@ -326,7 +326,7 @@ footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 24px; justify-content: 
   <span>© {{ now()->year }} {{ $brand->display_name }}</span>
   <span>{{ collect([$brand->support_phone, $brand->support_email])->filter()->join(' · ') }}@if ($brand->show_powered_by) · Powered by scharge @endif</span>
 </div></footer>
-@include('partials.android-app-bar', ['colour' => $c, 'label' => 'Get the scharge app'])
+@include('partials.android-app-bar', ['label' => 'Get the scharge app'])
 <script>
 // Fade sections in as they scroll into view (respects reduced motion via CSS).
 (() => {
