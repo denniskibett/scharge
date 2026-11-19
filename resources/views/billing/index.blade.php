@@ -64,7 +64,7 @@
         @php $late = \Illuminate\Support\Carbon::parse($i['due_date'])->lt(now()->startOfDay()); @endphp
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-3 text-sm last:border-0 dark:border-gray-800">
           <div>
-            <a href="{{ route('billing.invoice', $i['id']) }}" data-no-spa class="font-medium text-gray-800 hover:text-brand-600 hover:underline dark:text-white/90">{{ $i['invoice_number'] }}</a>
+            <a href="{{ route('billing.invoice', $i['id']) }}" data-no-spa class="font-medium text-gray-800 hover:text-brand-600 hover:underline dark:text-white/90">{{ \App\Support\InvoiceNo::of($i['id']) }}</a>
             <p class="text-xs {{ $late ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">Due {{ \Illuminate\Support\Carbon::parse($i['due_date'])->format('j M Y') }}{{ $late ? ' · overdue' : '' }}</p>
           </div>
           <p class="font-semibold text-gray-800 dark:text-white/90">{{ $money($i['amount'], $i['currency']) }}</p>
@@ -136,7 +136,7 @@
         <div class="border-b border-gray-200 px-5 py-3 dark:border-gray-800"><h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Recent payments</h3></div>
         @foreach ($paid as $p)
           <div class="flex justify-between border-b border-gray-100 px-5 py-2.5 text-sm last:border-0 dark:border-gray-800">
-            <span class="text-gray-700 dark:text-gray-300">{{ $p->invoice_number }} · {{ $p->paid_at ? \Illuminate\Support\Carbon::parse($p->paid_at)->format('j M Y') : '' }}</span>
+            <span class="text-gray-700 dark:text-gray-300">{{ \App\Support\InvoiceNo::of($p->id) }} · {{ $p->paid_at ? \Illuminate\Support\Carbon::parse($p->paid_at)->format('j M Y') : '' }}</span>
             <span class="font-medium text-gray-800 dark:text-white/90">{{ $money($p->amount, $p->currency) }}</span>
           </div>
         @endforeach

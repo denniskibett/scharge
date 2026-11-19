@@ -13,7 +13,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
-<title>{{ $inv->invoice_number }} · scharge</title>
+<title>{{ \App\Support\InvoiceNo::of($inv->id) }} · scharge</title>
 <link rel="icon" href="{{ asset('assets/images/brand/favicon.svg') }}">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -106,7 +106,7 @@ td small { display: block; color: var(--muted); }
     @endunless
   </section>
   <section class="card share-card">
-    <div class="card-head"><div><b>Invoice {{ $inv->invoice_number }}</b><span>Download, print or share</span></div></div>
+    <div class="card-head"><div><b>Invoice {{ \App\Support\InvoiceNo::of($inv->id) }}</b><span>Download, print or share</span></div></div>
     <div class="share-btns">
       <a class="btn" href="{{ $pdfUrl }}" target="_blank" rel="noopener">Download PDF</a>
       <button class="btn" type="button" onclick="window.print()">Print</button>
@@ -136,7 +136,7 @@ td small { display: block; color: var(--muted); }
     </div>
     <div style="text-align:right">
       <h1>{{ $vat['mode'] === 'exclusive' ? 'Tax invoice' : 'Invoice' }}</h1>
-      <p style="margin:4px 0 6px;font-weight:600">{{ $inv->invoice_number }}</p>
+      <p style="margin:4px 0 6px;font-weight:600">{{ \App\Support\InvoiceNo::of($inv->id) }}</p>
       <span class="pill {{ $paid ? 'paid' : ($late ? 'due' : 'open') }}">{{ $paid ? 'Paid' : ($late ? 'Overdue' : 'Unpaid') }}</span>
       <span class="pill" style="background:#F2F4F7;color:#344054">{{ $vat['mode'] === 'exclusive' ? 'VAT '.rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.').'% exclusive' : 'Non-VAT' }}</span>
     </div>

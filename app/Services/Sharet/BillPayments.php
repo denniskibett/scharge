@@ -122,7 +122,7 @@ class BillPayments
         $res = $client->post('/payment-requests', array_filter([
             'amount' => number_format($amount, 2, '.', ''),
             'channels' => ['mpesa', 'sharet'],
-            'reference' => mb_substr('scharge bill '.$bill->invoice_number, 0, 140),
+            'reference' => 'scharge invoice '.\App\Support\InvoiceNo::of($bill->id),
             'payer' => $phone ? ['phone' => $phone] : null,
             'expires_in_minutes' => 60 * 24,
             'metadata' => ['scharge_bill' => (string) $bill->id, 'scharge_company' => (string) $companyId],

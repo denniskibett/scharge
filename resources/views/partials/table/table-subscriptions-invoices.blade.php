@@ -32,7 +32,7 @@
                     @foreach($invoices as $invoice)
                         @php($invStatus = $invoice['status'] ?? $invoice->status ?? '')
                         <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
-                            <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">#{{ $invoice['invoice_number'] ?? $invoice->id }}</td>
+                            <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">#{{ \App\Support\InvoiceNo::of($invoice['id'] ?? $invoice->id) }}</td>
                             <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $invoice['company_name'] ?? $invoice->subscription?->company?->name ?? 'N/A' }}</td>
                             <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $invoice['plan_name'] ?? $invoice->subscription?->plan?->name ?? 'N/A' }}</td>
                             <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($invoice['amount'] ?? $invoice->amount ?? 0, 0) }}</td>

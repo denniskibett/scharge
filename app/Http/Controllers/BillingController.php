@@ -27,7 +27,7 @@ class BillingController extends Controller
             ->orderBy('users.id')->limit(3)->get(['users.name', 'users.email', 'users.phone']) : collect();
         $paid = $companyId && $payer ? DB::table('subscription_invoices as i')->join('company_subscriptions as s', 's.id', '=', 'i.company_subscription_id')
             ->where('s.company_id', $companyId)->where('i.status', 'paid')->orderByDesc('i.paid_at')->limit(6)
-            ->get(['i.invoice_number', 'i.amount', 'i.currency', 'i.paid_at']) : collect();
+            ->get(['i.id', 'i.invoice_number', 'i.amount', 'i.currency', 'i.paid_at']) : collect();
 
         return view('billing.index', [
             'status' => $status,
@@ -70,7 +70,7 @@ class BillingController extends Controller
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
-        $number = DB::table('subscription_invoices')->where('id', $row->subscription_invoice_id)->value('invoice_number');
+        $number = \App\Support\InvoiceNo::of($row->subscription_invoice_id);
 
         return redirect()->route('billing.index')->with('success', "Bill {$number} paid from your scharge wallet: KES ".number_format((float) $row->amount).'. Thank you.');
     }
@@ -197,7 +197,7 @@ class BillingController extends Controller
         if ($asPdf) {
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')
                 ->setOption(['chroot' => [public_path(), resource_path('fonts')], 'isRemoteEnabled' => false])
-                ->stream($row->invoice_number.'.pdf');
+                ->stream('scharge-invoice-'.\App\Support\InvoiceNo::of($row->id).'.pdf');
         }
 
         return view('billing.invoice', $data + ['publicUrl' => self::publicUrl((int) $row->id), 'privateUrl' => route('billing.invoice', $row->id),
