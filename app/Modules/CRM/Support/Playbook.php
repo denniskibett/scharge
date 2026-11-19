@@ -65,6 +65,10 @@ class Playbook
         $book = self::for($company);
         $subject = $company->profile('email_subject') ?: $book['subject'];
         $body = $company->profile('email_body') ?: $book['body'];
+        // The template's own text gets the owners-abroad line (Cloud9) once; a saved draft is left as the manager wrote it.
+        if (! $company->profile('email_body') && ($abroad = self::abroad($company)) && ! str_contains($body, 'Cloud9')) {
+            $body = preg_replace('/\n\nYou can pick a time/', "\n\n".$abroad."\n\nYou can pick a time", $body, 1);
+        }
 
         return ['subject' => self::fill($subject, $company, $manager), 'body' => self::fill($body, $company, $manager)];
     }
@@ -189,6 +193,9 @@ class Playbook
         $lines = ["Hello {$name} team,", "We are from scharge. {$noticed}"];
         $lines[] = 'Teams in your position usually tell us about '.(count($pains) > 1 ? 'a few headaches' : 'one headache').":\n"
             .collect($pains)->map(fn ($x) => '• '.$x[0].' → '.$x[1])->join("\n");
+        if ($abroad = self::abroad($company)) {
+            $lines[] = $abroad;
+        }
         $lines[] = 'If any of that sounds familiar, we can show you how it would work on one of your properties in 20 minutes.';
         $first = array_values($pains)[0][0] ?? 'Month-end billing';
         $hook = preg_split('/ (and|until|that|by|on|in) /', rtrim($first, '.'))[0];
@@ -264,6 +271,16 @@ class Playbook
             'referrals' => ['Every installation ends at the hardware sale', 'a referral arrangement that earns on the billing'],
         ],
     ];
+
+    /** For property segments: owners abroad are paid at home through Sharet Pay (international settlement), which runs on Cloud9 (cloud9.money), scharge's payment rails. */
+    public const ABROAD = 'Investing from abroad, or working with owners who are? Rent and payouts can go to their bank at home through Sharet Pay, our international settlement, which runs on Cloud9 (cloud9.money), our payment rails, in USD, KES or other currencies. From the dashboard you can also push money to any account, tenants included, for easier settlement, with KYC and account opening done during onboarding.';
+
+    private const NO_ABROAD = ['water_utility', 'water_private', 'power'];
+
+    public static function abroad(Company $company): ?string
+    {
+        return in_array(self::segmentOf($company), self::NO_ABROAD, true) ? null : self::ABROAD;
+    }
 
     public const OPT_OUT = "If you'd rather not hear from us, reply \"stop\" and we won't email you again.";
 
