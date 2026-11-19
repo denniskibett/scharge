@@ -31,6 +31,9 @@ class CrmImporter
         'public email' => 'email',
         'decision maker' => 'decision_maker',
         'linkedin' => 'linkedin',
+        'instagram' => 'instagram',
+        'tiktok' => 'tiktok',
+        'facebook' => 'facebook',
         'current property system' => 'current_system',
         'estimated units / gla' => 'estimated_units',
         'website' => 'website',
@@ -134,6 +137,9 @@ class CrmImporter
             'website' => Normalizer::website($row['website'] ?? null),
             'decision_maker' => Normalizer::personName($row['decision_maker'] ?? null),
             'linkedin' => Normalizer::website($row['linkedin'] ?? null),
+            'instagram' => Normalizer::website($row['instagram'] ?? null),
+            'tiktok' => Normalizer::website($row['tiktok'] ?? null),
+            'facebook' => Normalizer::website($row['facebook'] ?? null),
             'current_system' => $row['current_system'] ?? null,
             'estimated_units' => isset($row['estimated_units']) && preg_match('/[\d,]+/', $row['estimated_units'], $m) ? (int) str_replace(',', '', $m[0]) : null,
             'crm_stage' => self::STAGES[Str::lower($row['stage'] ?? '')] ?? 'new',
@@ -146,7 +152,7 @@ class CrmImporter
             'area' => $row['area'] ?? null,
             'clientele' => $row['clientele'] ?? null,
             // companies.kind (manager / bnb_host / developer); set only when the import creates the company.
-            'kind' => in_array(Str::lower($row['kind'] ?? ''), ['manager', 'bnb_host', 'developer'], true) ? Str::lower($row['kind']) : null,
+            'kind' => in_array(Str::lower($row['kind'] ?? ''), ['manager', 'bnb_host', 'developer', 'agency'], true) ? Str::lower($row['kind']) : null,
             'needs_verification' => $verify($row['phone'] ?? null) || $verify($row['email'] ?? null) || $verify($row['website'] ?? null)
                 // "Verified: No" / "Needs verification: Yes" columns flag the row too.
                 || in_array(Str::lower($row['verified'] ?? ''), ['no', 'n', 'false', '0'], true)

@@ -24,6 +24,7 @@ class Playbook
         $hint = Str::lower($segment.' '.$company->profile('business_type').' '.$company->kind.' '.$company->name);
 
         return match (true) {
+            $company->kind === 'agency' => 'agency',
             str_contains($hint, 'affordable') || str_contains($hint, 'housing co') || str_contains($hint, 'sacco') => 'affordable',
             str_contains($hint, 'developer') => 'developer',
             str_contains($hint, 'airbnb') || str_contains($hint, 'short') || str_contains($hint, 'bnb') || str_contains($hint, 'serviced') => 'shortstay',
@@ -48,6 +49,7 @@ class Playbook
             'Water Company' => 'water_utility', 'Private Water Supplier' => 'water_private', 'Electricity / KPLC & Metering' => 'power',
             'Office / Commercial' => 'commercial', 'Retail / Mall' => 'commercial', 'Industrial / Logistics' => 'industrial',
             'High-end Residential' => 'manager', 'Serviced Apartments' => 'shortstay', 'Gated Community' => 'building', 'Upmarket Agency' => 'manager',
+            'Real Estate Agency' => 'agency',
         ][$segment] ?? 'manager';
     }
 
@@ -75,7 +77,8 @@ class Playbook
             '{company}' => preg_replace('/\s*\((?:[^()]*)\)\s*$/', '', $company->name),
             '{city}' => $city,
             '{manager}' => $manager?->name ?? 'The scharge team',
-            '{manager_email}' => $manager?->email ?? config('mail.from.address'),
+            // Their sharet.africa work address when they have one (config/crm.php work_copies), else their login email.
+            '{manager_email}' => $manager ? (collect($manager->mailboxes())->first(fn ($e) => str_ends_with($e, '@sharet.africa')) ?? $manager->email) : config('mail.from.address'),
             '{manager_phone}' => $manager?->phone ?: '',
             '{demo_link}' => self::demoUrl($company),
         ]);
@@ -120,7 +123,7 @@ class Playbook
     }
 
     /** Demo refs start with the property type in full, e.g. BNB-7KQ2MA, RESIDENTIAL-4HD8PQ; older refs start SC-. */
-    public const REF_PREFIX = ['Short-stay' => 'BNB', 'Residential' => 'RESIDENTIAL', 'Commercial' => 'COMMERCIAL', 'Utilities' => 'UTILITIES', 'Mixed use' => 'MIXED', 'Mixed portfolio' => 'MIXED', 'Land & other' => 'LAND'];
+    public const REF_PREFIX = ['Short-stay' => 'BNB', 'Residential' => 'RESIDENTIAL', 'Commercial' => 'COMMERCIAL', 'Utilities' => 'UTILITIES', 'Mixed use' => 'MIXED', 'Mixed portfolio' => 'MIXED', 'Land & other' => 'LAND', 'Agency' => 'AGENCY'];
 
     public const REF_PATTERN = '[A-Za-z]{2,12}-[A-Za-z0-9]{6}';
 
@@ -198,6 +201,13 @@ class Playbook
     }
 
     private const PAINS = [
+        // Agencies: wording approved by the user before the AGENCY campaign is sent.
+        'agency' => [
+            'listings' => ['Vacant homes scattered across portals and WhatsApp groups, with landlords forgetting to tell you what is free', 'a landlord adds your agency to their building once; you see which homes are vacant and put them on scharge Open listings with photos'],
+            'enquiries' => ['Renter enquiries lost between calls, DMs and portal inboxes', 'every viewing request reaches your agent dashboard and your phone by SMS straight away'],
+            'commission' => ['Commission agreed by phone and argued about after the tenant moves in', 'your commission % is recorded with the landlord when they give you the building'],
+            'duplicates' => ['The same house posted by five agents at five prices', 'each building exists once on scharge and every agent links to it, so renters see one honest listing'],
+        ],
         'manager' => [
             'chase' => ['Chasing tenants for rent every month and confirming M-Pesa messages by hand', 'invoices go out automatically by SMS/email and every M-Pesa or bank payment is matched to the tenant'],
             'statements' => ['Landlords asking for statements and wondering where their money is', 'each landlord gets a live statement and payouts are recorded'],
@@ -260,6 +270,19 @@ class Playbook
     private const SIGN = "\n\nYou can pick a time and tell us about your properties here (2 minutes): {demo_link}\n\nKind regards,\n{manager}\nAccount Manager, scharge\n{manager_email}  {manager_phone}\nhttps://scharge.sharet.africa";
 
     private const BOOKS = [
+        'agency' => [
+            'label' => 'Real estate agency / agent',
+            'approach' => [
+                'Ask which areas and home types they let or sell, and how many landlords they work with.',
+                'Lead with listings and enquiries: their landlords add the agency once and vacant homes go on Open listings with photos.',
+                'Show the agent dashboard: vacant homes, photos, renter enquiries by SMS, commission % recorded per building.',
+                'Close on setting up the agency account today and inviting two of their landlords.',
+            ],
+            'offers' => ['Agency account and agent logins (Team › Agent role)', 'Buildings landlords give you, with live vacancy', 'Open listings with photos', 'Renter enquiries on the dashboard and by SMS', 'Commission % recorded per building', 'One record per building: no duplicate listings'],
+            'objections' => ['We already use the portals' => 'Keep them; scharge adds a listing that stays in sync with real vacancy, and the landlord sees it too.', 'Landlords won\'t join' => 'Landlords join to collect rent; adding your agency is one step on their property page.'],
+            'subject' => '{company}: vacant homes, enquiries and commission in one place',
+            'body' => "Hello {company} team,\n\nWe are from scharge, a Kenyan property platform used by landlords and managers in {city}. Agencies can now work inside scharge: when a landlord gives your agency their building, you see which homes are vacant, put them on scharge Open listings with photos, and get every renter enquiry by SMS straight away, with your commission recorded against the building.\n\nCould we set up your agency account this week? It takes about 10 minutes.".self::SIGN,
+        ],
         'manager' => [
             'label' => 'Property manager / agency',
             'approach' => [

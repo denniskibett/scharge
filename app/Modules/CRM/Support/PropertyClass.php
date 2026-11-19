@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 class PropertyClass
 {
-    public const CLASSES = ['Residential', 'Short-stay', 'Commercial', 'Mixed use', 'Mixed portfolio', 'Land & other', 'Utilities'];
+    public const CLASSES = ['Residential', 'Short-stay', 'Commercial', 'Mixed use', 'Mixed portfolio', 'Land & other', 'Utilities', 'Agency'];
 
     /** Lead segments (import sheets) → class. */
     public const SEGMENTS = [
@@ -19,6 +19,8 @@ class PropertyClass
         'Short-stay' => ['Short-stay / Airbnb Manager', 'Short-stay / Airbnb', 'Hotel / Serviced Accommodation', 'Serviced Apartments'],
         'Commercial' => ['Commercial Property / Mall', 'Office / Commercial', 'Retail / Mall', 'Industrial / Warehouse Park', 'Industrial / Factory (utility & metering)', 'Industrial / Logistics'],
         'Utilities' => ['Water Company', 'Private Water Supplier', 'Electricity / KPLC & Metering'],
+        // Agencies market and let other people's buildings; they link to the one property row (property_agents).
+        'Agency' => ['Real Estate Agency'],
     ];
 
     public static function of(Company $company): ?string
@@ -33,7 +35,7 @@ class PropertyClass
             }
         }
 
-        return $company->kind === 'bnb_host' ? 'Short-stay' : null;
+        return match ($company->kind) { 'bnb_host' => 'Short-stay', 'agency' => 'Agency', default => null };
     }
 
     /** Filter companies by class: the exact class when known, else the segment's class. */
