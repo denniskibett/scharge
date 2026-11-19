@@ -44,7 +44,7 @@
             ['label' => 'Unsent', 'url' => $tabUrl('unsent'), 'active' => $att === 'unsent', 'count' => $att === 'unsent' ? $companies->total() : null, 'tone' => 'amber'],
         ];
         $initials = fn ($n) => collect(preg_split('/\s+/', trim((string) $n)))->filter()->take(2)->map(fn ($w) => mb_strtoupper(mb_substr($w, 0, 1)))->implode('') ?: '?';
-        $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
+        $th = 'px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400';
     @endphp
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <form method="GET" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
@@ -73,59 +73,60 @@
             </div>
         </form>
 
-        <div class="w-full overflow-x-auto">
-            <table class="data-table w-full table-auto">
+        {{-- Fixed column widths (inline, so no CSS rebuild): the table fits the screen and never scrolls sideways. --}}
+        <div class="w-full">
+            <table class="data-table w-full" style="table-layout: fixed">
+                <colgroup><col style="width: 30%"><col style="width: 12%"><col style="width: 18%"><col style="width: 9%"><col style="width: 12%"><col style="width: 13%"><col style="width: 6%"></colgroup>
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-800">
-                        <th class="{{ $th }}">Company</th><th class="{{ $th }}">Property type</th><th class="{{ $th }}">Location</th><th class="{{ $th }}">County</th><th class="{{ $th }}">Sub-county</th><th class="{{ $th }}">Stage</th><th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Next step</th><th class="{{ $th }} text-right"><span class="sr-only">Actions</span></th>
+                        <th class="{{ $th }}">Company</th><th class="{{ $th }}">Property type</th><th class="{{ $th }}">Location</th><th class="{{ $th }}">Stage</th><th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Next step</th><th class="{{ $th }} text-right"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
                     @forelse ($companies as $company)
-                        @php $overdue = $company->next_due_at && \Illuminate\Support\Carbon::parse($company->next_due_at)->isPast(); @endphp
+                        @php
+                            $overdue = $company->next_due_at && \Illuminate\Support\Carbon::parse($company->next_due_at)->isPast();
+                            $ptype = \App\Modules\CRM\Support\PropertyClass::of($company);
+                            $place = collect([$company->profile('area'), $company->profile('city')])->filter()->unique()->join(', ');
+                            // "Wanjiru Kamau" -> "W. Kamau"
+                            $words = preg_split('/\s+/', trim((string) $company->owner?->name));
+                            $manager = $company->owner ? (count($words) > 1 ? mb_substr($words[0], 0, 1).'. '.end($words) : $words[0]) : null;
+                        @endphp
                         <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
-                            <td class="p-4">
+                            <td class="px-3 py-3">
                                 <div class="flex items-center gap-3">
                                     <div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-purple-100"><span class="text-sm font-medium text-purple-600">{{ $initials($company->name) }}</span></div>
                                     <div class="min-w-0">
-                                        <div class="flex items-center gap-2">
-                                            <a href="{{ route('crm.companies.show', $company) }}" class="text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90">{{ $company->name }}</a>
+                                        <div class="flex flex-wrap items-center gap-1">
+                                            <a href="{{ route('crm.companies.show', $company) }}" class="text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90" style="overflow-wrap: anywhere">{{ $company->name }}</a>
                                             @include('crm.partials.tier-badge', ['tier' => $company->tier])
                                             @if ($company->profile('needs_verification'))<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                         </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
+                                        <p class="truncate text-xs text-gray-500 dark:text-gray-400" title="{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') }}">{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
                                     </div>
                                 </div>
                             </td>
-                            @php($ptype = \App\Modules\CRM\Support\PropertyClass::of($company))
-                            <td class="p-4 whitespace-nowrap text-sm">
-                                @if ($ptype)<a href="{{ request()->fullUrlWithQuery(['ptype' => $ptype, 'page' => null]) }}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300">{{ $ptype }}</a>@else<span class="text-gray-400">-</span>@endif
-                                @if ($company->profile('segment'))<p class="mt-1 max-w-[200px] truncate text-xs text-gray-500 dark:text-gray-400" title="{{ $company->profile('segment') }}">{{ $company->profile('segment') }}</p>@endif
+                            <td class="px-3 py-3 text-xs">
+                                @if ($ptype)<a href="{{ request()->fullUrlWithQuery(['ptype' => $ptype, 'page' => null]) }}" class="rounded-full bg-gray-100 px-2 py-0.5 font-medium whitespace-nowrap text-gray-700 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300">{{ $ptype }}</a>@else<span class="text-gray-400">-</span>@endif
+                                @if ($company->profile('segment'))<p class="mt-1 truncate text-gray-500 dark:text-gray-400" title="{{ $company->profile('segment') }}">{{ $company->profile('segment') }}</p>@endif
                             </td>
-                            <td class="p-4 text-sm text-gray-700 dark:text-gray-300"><span class="block max-w-[200px] truncate" title="{{ collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') }}">{{ collect([$company->profile('area'), $company->profile('city')])->filter()->unique()->join(', ') ?: '-' }}</span></td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                @if ($company->profile('county_id'))<a href="{{ request()->fullUrlWithQuery(['county_id' => $company->profile('county_id'), 'page' => null]) }}" class="hover:text-blue-600">{{ $company->profile('county') }}</a>@else{{ $company->profile('county') ?: '-' }}@endif
+                            <td class="px-3 py-3 text-xs">
+                                <p class="truncate text-gray-700 dark:text-gray-300" title="{{ $place }}">{{ $place ?: '-' }}</p>
+                                <p class="truncate text-gray-500 dark:text-gray-400">@if ($company->profile('sub_county_id'))<a href="{{ request()->fullUrlWithQuery(['sub_county_id' => $company->profile('sub_county_id'), 'page' => null]) }}" class="hover:text-blue-600" title="{{ $company->profile('ward') ? $company->profile('ward').' ward' : '' }}">{{ $company->profile('sub_county') }}</a>@if ($company->profile('county')), @endif @endif @if ($company->profile('county_id'))<a href="{{ request()->fullUrlWithQuery(['county_id' => $company->profile('county_id'), 'page' => null]) }}" class="hover:text-blue-600">{{ $company->profile('county') }}</a>@elseif ($company->profile('county')){{ $company->profile('county') }}@endif</p>
                             </td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
-                                @if ($company->profile('sub_county_id'))
-                                    <a href="{{ request()->fullUrlWithQuery(['sub_county_id' => $company->profile('sub_county_id'), 'page' => null]) }}" class="hover:text-blue-600">{{ $company->profile('sub_county') }}</a>
-                                    @if ($company->profile('ward'))<p class="text-xs text-gray-500 dark:text-gray-400">{{ $company->profile('ward') }} ward</p>@endif
-                                @else<span class="text-gray-400" title="Located to the town or county only">-</span>@endif
-                            </td>
-                            <td class="p-4 whitespace-nowrap">@include('crm.partials.stage-badge', ['stage' => $company->crm_stage])@if ($company->lifecycle === 'customer') <span class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">customer</span>@endif</td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $company->owner?->name ?? '-' }}</td>
-                            <td class="p-4 text-sm">
+                            <td class="px-3 py-3">@include('crm.partials.stage-badge', ['stage' => $company->crm_stage])@if ($company->lifecycle === 'customer') <span class="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">customer</span>@endif</td>
+                            <td class="px-3 py-3 text-xs text-gray-600 dark:text-gray-400"><span class="block truncate" title="{{ $company->owner?->name }}">{{ $manager ?? '-' }}</span></td>
+                            <td class="px-3 py-3 text-xs">
                                 @if ($company->next_due_at)
-                                    <span class="whitespace-nowrap font-medium {{ $overdue ? 'text-red-600' : 'text-gray-700 dark:text-gray-300' }}">{{ \Illuminate\Support\Carbon::parse($company->next_due_at)->format('D j M, H:i') }}@if ($overdue) · overdue @endif</span>
+                                    <span class="font-medium {{ $overdue ? 'text-red-600' : 'text-gray-700 dark:text-gray-300' }}">{{ \Illuminate\Support\Carbon::parse($company->next_due_at)->format('D j M, H:i') }}@if ($overdue) · overdue @endif</span>
                                 @elseif (in_array($company->crm_stage, \App\Models\Company::OPEN_CRM_STAGES, true))
-                                    <span class="text-xs font-medium text-amber-600">No follow-up booked</span>
-                                    @if ($company->profile('next_action'))<p class="text-xs text-gray-500 dark:text-gray-400">Sheet: {{ \Illuminate\Support\Str::limit($company->profile('next_action'), 60) }}</p>@endif
+                                    <span class="font-medium text-amber-600" title="{{ $company->profile('next_action') ? 'Sheet: '.$company->profile('next_action') : '' }}">No follow-up</span>
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif
-                                <p class="whitespace-nowrap text-xs text-gray-400">Last contact: {{ $company->last_contact_at ? \Illuminate\Support\Carbon::parse($company->last_contact_at)->diffForHumans() : 'never' }}</p>
+                                <p class="truncate text-gray-400">Last: {{ $company->last_contact_at ? \Illuminate\Support\Carbon::parse($company->last_contact_at)->diffForHumans(short: true) : 'never' }}</p>
                             </td>
-                            <td class="p-4 whitespace-nowrap">
+                            <td class="px-1 py-3 whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-0.5">
                                     <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-brand-500 hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-white/5" title="Playbook: approach, what to sell, cold email, verify" aria-label="Open playbook for {{ $company->name }}"><x-icon name="sparkles" class="h-4 w-4" /></button>
                                     <div x-data="{ open: false, top: 0, right: 0 }" class="relative">
@@ -142,7 +143,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="p-4 text-center">
+                            <td colspan="7" class="p-4 text-center">
                                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No prospects found</h3>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your filters, or add a prospect.</p>
@@ -151,6 +152,12 @@
                     @endforelse
                 </tbody>
             </table>
+        </div>
+        <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-5 pt-3 text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
+            <label for="per-page">Rows per page</label>
+            <select id="per-page" onchange="const u = new URL(location.href); u.searchParams.set('per_page', this.value); u.searchParams.delete('page'); location.href = u" class="h-9 w-auto rounded-lg border border-gray-300 bg-transparent px-2 text-xs text-gray-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                @foreach ([25, 50, 100, 250, 500, 1000] as $n)<option value="{{ $n }}" @selected($companies->perPage() === $n)>{{ $n }}</option>@endforeach
+            </select>
         </div>
         @include('partials.table.pager', ['paginator' => $companies])
     </div>

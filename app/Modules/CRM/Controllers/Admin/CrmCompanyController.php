@@ -57,7 +57,7 @@ class CrmCompanyController extends Controller
             ->orderBy('tier')
             ->orderByRaw('next_due_at IS NULL, next_due_at')
             ->orderBy('name')
-            ->paginate(25)
+            ->paginate(in_array((int) $request->query('per_page'), [25, 50, 100, 250, 500, 1000], true) ? (int) $request->query('per_page') : 25)
             ->withQueryString();
 
         // Contact names for the visible page in one query.
