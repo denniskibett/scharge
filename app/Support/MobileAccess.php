@@ -123,10 +123,33 @@ class MobileAccess
     }
 
     /** The white label (company_brands, App\Support\Brand) or scharge's own. */
+    /**
+     * A white label is "paid" when the Website & white label module was given to the company on purpose: a sysadmin
+     * switched it on (Companies › Modules), or the company's active plan lists it. The default "on" for plans
+     * without a module list does not count, so a saved but unpaid white label (e.g. a preview) keeps scharge red.
+     */
+    public static function whiteLabelPaid(int $companyId): bool
+    {
+        if (! class_exists(Modules::class)) {
+            return false;
+        }
+        $state = Modules::states($companyId)['website'] ?? null;
+        if (! $state || ! $state['on']) {
+            return false;
+        }
+        if ($state['source'] === 'override') {
+            return true;
+        }
+        $plan = Modules::planModules($companyId);
+
+        return $plan !== null && in_array('website', $plan, true);
+    }
+
     public static function brand(User $user): array
     {
-        $companyId = self::companyFor($user);
-        $brand = $companyId && class_exists(\App\Support\Brand::class) ? \App\Support\Brand::forCompany($companyId) : null;
+        // scharge staff always see scharge; everyone else only gets a company's colours once its white label is paid.
+        $companyId = $user->hasAnyRole(['sysadmin', 'account_manager', 'sales']) ? null : self::companyFor($user);
+        $brand = $companyId && self::whiteLabelPaid($companyId) && class_exists(\App\Support\Brand::class) ? \App\Support\Brand::forCompany($companyId) : null;
         $color = $brand && preg_match('/^#[0-9a-fA-F]{6}$/', (string) $brand->primary_color) ? strtoupper($brand->primary_color) : '#DC2626'; // scharge red
 
         return [

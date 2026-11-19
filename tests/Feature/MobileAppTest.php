@@ -408,9 +408,23 @@ class MobileAppTest extends RentSchemaTestCase
         }
         DB::table('company_brands')->insert(['company_id' => $this->a['company'], 'display_name' => 'Danaff Homes', 'primary_color' => '#0a7c55']);
         \App\Support\Brand::forget();
-        $this->api($staff)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'Danaff Homes')->assertJsonPath('brand.primary_color', '#0A7C55');
         [, $tenant] = $this->tenantOf($this->a['tenancies'][0]);
+
+        // Saved but not paid (no white-label module given): scharge red for the company's staff and its tenants.
+        $this->api($staff)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'scharge')->assertJsonPath('brand.primary_color', '#DC2626');
+        $this->api($tenant)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'scharge')->assertJsonPath('brand.white_label', false);
+
+        // Paid: a sysadmin switches "Website & white label" on for the company (Companies › Modules).
+        Schema::dropIfExists('company_modules');
+        Schema::create('company_modules', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id'), $t->string('module'), $t->boolean('enabled'),
+            $t->timestamp('expires_at')->nullable(), $t->string('note')->nullable(), $t->unsignedBigInteger('changed_by')->nullable(), $t->timestamps()]);
+        DB::table('company_modules')->insert(['company_id' => $this->a['company'], 'module' => 'website', 'enabled' => true]);
+        \App\Support\Modules::flush();
+        $this->api($staff)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'Danaff Homes')->assertJsonPath('brand.primary_color', '#0A7C55');
         $this->api($tenant)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'Danaff Homes');
+        // scharge staff linked to that company still see scharge.
+        [, $am] = $this->person($this->a['company'], 'account_manager');
+        $this->api($am)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'scharge');
         [, $other] = $this->person($this->b['company'], 'admin');
         $this->api($other)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'scharge');
     }
