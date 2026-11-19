@@ -40,6 +40,7 @@
         $tabs = [
             ['label' => 'All', 'url' => $tabUrl(null), 'active' => ! $att, 'count' => $att ? null : $companies->total()],
             ['label' => 'Replies', 'url' => $tabUrl('replied'), 'active' => $att === 'replied', 'count' => $stats['replied'] ?: null, 'tone' => 'red'],
+            ['label' => 'Opened', 'url' => $tabUrl('opened'), 'active' => $att === 'opened', 'count' => $att === 'opened' ? $companies->total() : null, 'tone' => 'green'],
             ['label' => 'Overdue', 'url' => $tabUrl('overdue'), 'active' => $att === 'overdue', 'count' => $att === 'overdue' ? $companies->total() : null, 'tone' => 'red'],
             ['label' => 'No next step', 'url' => $tabUrl('unattended'), 'active' => $att === 'unattended', 'count' => $stats['unattended'], 'tone' => 'amber'],
             ['label' => 'To verify', 'url' => $tabUrl('verify'), 'active' => $att === 'verify', 'count' => $att === 'verify' ? $companies->total() : null],

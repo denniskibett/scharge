@@ -25,12 +25,67 @@
         @include('partials.table.tabs', ['tabs' => collect(\App\Modules\CRM\Controllers\Admin\CrmTeamController::PERIODS)->map(fn ($l, $k) => ['label' => $l, 'url' => route('crm.team.index', ['period' => $k]), 'active' => $period === $k])->values()->all()])
     </div>
 
+    @php
+        $pct = fn ($n) => $funnel['sent'] ? ' <span class="text-xs font-normal text-gray-400">'.round($n / $funnel['sent'] * 100).'%</span>' : '';
+        $steps = [['Sent', $funnel['sent'], ''], ['Delivered', $funnel['delivered'], $pct($funnel['delivered'])], ['Opened', $funnel['opened'], $pct($funnel['opened'])], ['Clicked', $funnel['clicked'], $pct($funnel['clicked'])], ['Replied', $funnel['replied'], $pct($funnel['replied'])], ['Booked a demo', $funnel['booked'], $pct($funnel['booked'])], ['Bounced', $funnel['bounced'], $pct($funnel['bounced'])]];
+        $window = $recap->from->copy()->tz(config('app.schedule_timezone', 'Africa/Nairobi'))->format('D j M').($period === 'yesterday' ? '' : ' – '.$recap->to->copy()->tz(config('app.schedule_timezone', 'Africa/Nairobi'))->format('D j M'));
+    @endphp
+    @if ($totals)
+        @include('partials.card.pills', ['pills' => [
+            ['label' => 'New prospects', 'value' => number_format($totals['new_prospects']), 'url' => null, 'tone' => 'gray'],
+            ['label' => 'Replies in', 'value' => $totals['replies'], 'url' => null, 'tone' => 'gray'],
+            ['label' => 'Replies waiting now', 'value' => $totals['replies_waiting'], 'url' => route('crm.index', ['attention' => 'replied']), 'tone' => $totals['replies_waiting'] ? 'red' : 'gray'],
+            ['label' => 'Demo requests', 'value' => $totals['demo_requests'], 'url' => route('crm.requests.index'), 'tone' => $totals['demo_requests'] ? 'green' : 'gray'],
+            ['label' => 'Overdue follow-ups now', 'value' => $totals['overdue'], 'url' => route('crm.follow-ups.index', ['view' => 'overdue']), 'tone' => $totals['overdue'] ? 'amber' : 'gray'],
+            ['label' => 'Ready to email', 'value' => collect($totals['ready'])->map(fn ($n, $t) => $t.' '.$n)->join(' · '), 'url' => route('crm.campaigns.index'), 'tone' => 'gray'],
+        ]])
+    @endif
+
+    <div class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-5 py-3 dark:border-gray-800">
+                <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Cold emails sent {{ $window }}</h3>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ collect($funnel['by_campaign'])->map(fn ($n, $c) => $c.' '.$n)->join(' · ') ?: 'none sent' }}</span>
+            </div>
+            <table class="w-full table-auto"><tbody>
+                @foreach ($steps as [$label, $n, $p])
+                    <tr class="border-b border-gray-100 dark:border-gray-800">
+                        <td class="px-5 py-2 text-sm text-gray-600 dark:text-gray-400">{{ $label }}</td>
+                        <td class="px-5 py-2 text-right text-sm font-semibold {{ $label === 'Bounced' && $n ? 'text-red-600' : 'text-gray-800 dark:text-white/90' }}">{{ number_format($n) }}{!! $p !!}</td>
+                        <td class="px-5 py-2" style="width:50%"><div class="h-2 rounded-full bg-gray-100 dark:bg-gray-800"><div class="h-2 rounded-full {{ $label === 'Bounced' ? 'bg-red-500' : 'bg-brand-500' }}" style="width: {{ $funnel['sent'] ? max(1, round($n / $funnel['sent'] * 100)) : 0 }}%"></div></div></td>
+                    </tr>
+                @endforeach
+            </tbody></table>
+            <p class="px-5 py-3 text-xs text-gray-500 dark:text-gray-400">How far those emails have got so far. In the same days, across all emails: {{ $funnel['events']['opened'] }} opens, {{ $funnel['events']['clicked'] }} clicks, {{ $funnel['events']['replied'] }} replies, {{ $funnel['events']['booked'] }} demos booked. Opens need images on, so the real number is higher; some mail apps open automatically.</p>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="border-b border-gray-200 px-5 py-3 dark:border-gray-800"><h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Hot leads: opened, no answer yet. Call these first</h3></div>
+            <ul class="max-h-96 overflow-y-auto">
+                @forelse ($hot as $e)
+                    <li class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-2.5 dark:border-gray-800">
+                        <div class="min-w-0">
+                            <a href="{{ route('crm.companies.show', $e->company_id) }}" class="block truncate text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90">{{ $e->company->name }}</a>
+                            <p class="truncate text-xs text-gray-500 dark:text-gray-400">{{ $e->company->owner?->name ?? 'No owner' }}{{ $e->company->phone ? ' · '.$e->company->phone : ' · no phone' }}</p>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-2">
+                            @if ($e->detail('clicked_at'))<span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">clicked</span>@endif
+                            <span class="text-xs text-gray-500 whitespace-nowrap">{{ max(1, (int) $e->detail('opens')) }} open{{ (int) $e->detail('opens') > 1 ? 's' : '' }} · {{ $ago($e->detail('clicked_at') ?? $e->detail('opened_at')) }}</span>
+                            @if ($e->company->phone)<a href="tel:{{ preg_replace('/[^\d+]/', '', $e->company->phone) }}" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-brand-500 hover:bg-gray-100 dark:hover:bg-white/5" aria-label="Call {{ $e->company->name }}"><x-icon name="phone" class="h-4 w-4" /></a>@endif
+                        </div>
+                    </li>
+                @empty
+                    <li class="px-5 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No opens waiting for a call.</li>
+                @endforelse
+            </ul>
+        </div>
+    </div>
+
     <div class="mb-6 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="border-b border-gray-200 px-5 py-3 dark:border-gray-800"><h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">CRM work · {{ \App\Modules\CRM\Controllers\Admin\CrmTeamController::PERIODS[$period] }}</h3></div>
         <div class="w-full overflow-x-auto">
             <table class="w-full table-auto">
                 <thead><tr class="border-b border-gray-200 dark:border-gray-800">
-                    <th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Prospects (open)</th><th class="{{ $th }}">Cold emails</th><th class="{{ $th }}">Replies in</th><th class="{{ $th }}">Waiting on them</th><th class="{{ $th }}">Answered</th><th class="{{ $th }}">Calls · WhatsApp · Meetings</th><th class="{{ $th }}">Stage moves</th><th class="{{ $th }}">Overdue</th><th class="{{ $th }}">Last active</th>
+                    <th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Prospects (open)</th><th class="{{ $th }}">Cold emails</th><th class="{{ $th }}">Opened</th><th class="{{ $th }}">Replies in</th><th class="{{ $th }}">Waiting on them</th><th class="{{ $th }}">Answered</th><th class="{{ $th }}">Calls · WhatsApp · Meetings</th><th class="{{ $th }}">Stage moves</th><th class="{{ $th }}">Overdue</th><th class="{{ $th }}">Last own action</th>
                 </tr></thead>
                 <tbody>
                     @foreach ($rows as $r)
@@ -38,13 +93,14 @@
                             <td class="{{ $td }}"><span class="font-medium text-gray-800 dark:text-white/90">{{ $r['user']->name }}</span><div class="text-xs text-gray-400">{{ $r['user']->email }}</div></td>
                             <td class="{{ $td }}"><a href="{{ route('crm.index', ['owner' => $r['user']->id]) }}" class="hover:text-blue-600">{{ number_format($r['owned']) }}</a> <span class="text-xs text-gray-400">({{ number_format($r['open']) }})</span></td>
                             <td class="{{ $td }}">{{ number_format($r['cold']) }}</td>
+                            <td class="{{ $td }}">{{ number_format($r['opened']) }}</td>
                             <td class="{{ $td }}">{{ number_format($r['replies']) }}</td>
                             <td class="{{ $td }}">@if ($r['waiting'])<a href="{{ route('crm.index', ['attention' => 'replied', 'owner' => $r['user']->id]) }}" class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 hover:bg-red-100 dark:text-red-200"><span class="h-2 w-2 rounded-full bg-red-500"></span>{{ $r['waiting'] }}</a>@else 0 @endif</td>
                             <td class="{{ $td }}">{{ number_format($r['answered']) }}</td>
                             <td class="{{ $td }}">{{ $r['calls'] }} · {{ $r['whatsapp'] }} · {{ $r['meetings'] }}</td>
                             <td class="{{ $td }}">{{ $r['stages'] }}</td>
                             <td class="{{ $td }} {{ $r['overdue'] ? 'font-medium text-red-600' : '' }}">{{ $r['overdue'] }}</td>
-                            <td class="{{ $td }}">{{ $ago($r['last_active']) }}<div class="text-xs text-gray-400">signed in {{ $ago($r['last_login']) }}</div></td>
+                            <td class="{{ $td }}">{{ $ago($r['last_active']) }}<div class="text-xs {{ $r['logged_in'] ? 'text-green-600' : 'text-gray-400' }}">signed in {{ $ago($r['last_login']) }}</div></td>
                         </tr>
                     @endforeach
                 </tbody>

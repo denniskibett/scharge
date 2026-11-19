@@ -45,23 +45,24 @@ class OutreachService
         // Whoever sends the first email takes an unowned prospect: the follow-up is theirs.
         if (! $company->owner_id) {
             $company->update(['owner_id' => $sender->id]);
-            $this->contacts->log($company, 'note', 'Owner: nobody → '.$sender->name, $campaign ? 'Assigned by the '.$campaign.' campaign.' : 'Took the account when sending the first email.', [], null, $sender->id);
+            // Campaign steps are the system's work, not the manager's (CRM › Team counts only what people did).
+            $this->contacts->log($company, 'note', 'Owner: nobody → '.$sender->name, $campaign ? 'Assigned by the '.$campaign.' campaign.' : 'Took the account when sending the first email.', [], null, $campaign ? null : $sender->id);
         }
 
         $company->followUps()->create([
-            'assigned_to' => $manager->id, 'created_by' => $sender->id, 'type' => 'email', 'status' => 'done',
+            'assigned_to' => $manager->id, 'created_by' => $campaign ? null : $sender->id, 'type' => 'email', 'status' => 'done',
             'title' => 'Cold email: '.$subject, 'notes' => EmailBody::toText($body), 'done_at' => now(),
             'details' => array_filter(['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::fromFor($company), 'sent_by' => $sender->id, 'playbook' => Playbook::segmentOf($company), 'campaign' => $campaign, 'ref' => Playbook::demoRef($company),
                 'track' => $track, 'message_id' => $sent?->getMessageId(), 'type' => PropertyClass::of($company)]),
         ]);
         $due = now()->addWeekdays($followUpDays)->setTime(10, 0);
         $company->followUps()->create([
-            'assigned_to' => $manager->id, 'created_by' => $sender->id, 'type' => 'call', 'status' => 'open',
+            'assigned_to' => $manager->id, 'created_by' => $campaign ? null : $sender->id, 'type' => 'call', 'status' => 'open',
             'title' => 'Follow up on the cold email to '.$company->name, 'due_at' => $due,
             'notes' => 'Emailed '.$to.($cc ? ' (cc '.implode(', ', $cc).')' : '').' on '.now()->format('j M').($campaign ? ' ('.$campaign.' campaign)' : '').'. Call to book a demo; if no answer, send a short follow-up email.',
         ]);
         if ($company->crm_stage === 'new' || $company->crm_stage === null) {
-            $this->contacts->setStage($company, 'contacted', $sender->id);
+            $this->contacts->setStage($company, 'contacted', $campaign ? null : $sender->id);
         }
 
         $profile = array_filter(['email_subject' => $subject, 'email_body' => $body, 'last_emailed_at' => now()->toDateTimeString(), 'campaign' => $campaign]);

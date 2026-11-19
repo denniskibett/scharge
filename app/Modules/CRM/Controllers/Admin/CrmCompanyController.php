@@ -45,6 +45,11 @@ class CrmCompanyController extends Controller
             ->when(($filters['attention'] ?? null) === 'verify', fn ($q) => $q->where('crm_profile->needs_verification', true))
             ->when(($filters['attention'] ?? null) === 'unsent', fn ($q) => \App\Modules\CRM\Support\EmailTracking::unsent($q))
             ->when(($filters['attention'] ?? null) === 'replied', fn ($q) => $q->where('crm_profile->reply_pending', true))
+            // Opened or clicked a cold email, no reply or demo yet: warm calls.
+            ->when(($filters['attention'] ?? null) === 'opened', fn ($q) => $q->whereIn('crm_stage', ['new', 'contacted'])
+                ->where(fn ($w) => $w->whereNull('crm_profile->reply_pending')->orWhere('crm_profile->reply_pending', false))
+                ->whereHas('followUps', fn ($f) => $f->where('type', 'email')->whereNotNull('details->track')->whereNull('details->replied_at')->whereNull('details->booked_at')
+                    ->where(fn ($o) => $o->whereNotNull('details->opened_at')->orWhereNotNull('details->clicked_at'))))
             // From the Kenya map (crm:geocode fills these in crm_profile).
             ->when($filters['county'] ?? null, fn ($q, $v) => $q->where('crm_profile->county', $v))
             ->when($filters['county_id'] ?? null, fn ($q, $v) => $q->where('crm_profile->county_id', (int) $v))

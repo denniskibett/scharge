@@ -113,3 +113,10 @@ foreach (['08:00', '10:00', '12:00', '14:00'] as $slot) {
             ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
     }
 }
+
+// CRM recap of the last working day (Monday covers the weekend): sysadmins get the team, each account manager their own day and calls.
+Schedule::command('crm:daily-recap')
+    ->weekdays()->at('07:30')
+    ->withoutOverlapping(30)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
