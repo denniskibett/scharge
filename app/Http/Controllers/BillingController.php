@@ -80,12 +80,37 @@ class BillingController extends Controller
     public function show(int $invoice)
     {
         $user = auth()->user();
+        $row = $this->invoiceRow($invoice);
+        $staff = $user->hasRole('sysadmin');
+        abort_unless($staff || ($user->hasAnyRole(BillingLock::PAYERS) && (int) Modules::companyOf($user) === (int) $row->company_id), 403);
+
+        return $this->renderInvoice($row, $staff, false);
+    }
+
+    /** The same invoice through its signed public link (no sign-in): for sharing with whoever pays. */
+    public function publicShow(int $invoice)
+    {
+        return $this->renderInvoice($this->invoiceRow($invoice), false, true);
+    }
+
+    /** Signed public link to an invoice (valid until the APP_KEY changes). */
+    public static function publicUrl(int $invoice): string
+    {
+        return \Illuminate\Support\Facades\URL::signedRoute('billing.invoice.public', ['invoice' => $invoice]);
+    }
+
+    private function invoiceRow(int $invoice): object
+    {
         $row = DB::table('subscription_invoices as i')->join('company_subscriptions as s', 's.id', '=', 'i.company_subscription_id')
             ->join('companies as c', 'c.id', '=', 's.company_id')->leftJoin('subscription_plans as p', 'p.id', '=', 's.plan_id')
             ->where('i.id', $invoice)->first(['i.*', 's.company_id', 'c.name as company_name', 'c.email as company_email', 'c.phone as company_phone', 'c.address as company_address', 'p.name as plan_name']);
         abort_unless($row, 404);
-        $staff = $user->hasRole('sysadmin');
-        abort_unless($staff || ($user->hasAnyRole(BillingLock::PAYERS) && (int) Modules::companyOf($user) === (int) $row->company_id), 403);
+
+        return $row;
+    }
+
+    private function renderInvoice(object $row, bool $staff, bool $public)
+    {
         $json = json_decode((string) $row->invoice_json, true) ?: [];
 
         // Lines: explicit items, else one per billed month, else the plan as one line.
@@ -98,7 +123,8 @@ class BillingController extends Controller
             $items = collect([['description' => ($json['plan_name'] ?? $row->plan_name ?? 'scharge subscription'), 'detail' => null, 'amount' => (float) $row->amount]]);
         }
 
-        return view('billing.invoice', ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff]);
+        return view('billing.invoice', ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public,
+            'publicUrl' => self::publicUrl((int) $row->id), 'privateUrl' => route('billing.invoice', $row->id), 'pay' => config('billing')]);
     }
 
     private function payerCompany(): int

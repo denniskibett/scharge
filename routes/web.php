@@ -932,6 +932,8 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
 
 // A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
 Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1,site-contact')->name('site.contact');
+// A scharge invoice through its signed public link (no sign-in), shared with whoever pays it.
+Route::get('/invoice/{invoice}', [App\Http\Controllers\BillingController::class, 'publicShow'])->whereNumber('invoice')->middleware(['signed', 'throttle:60,1,invoice-public'])->name('billing.invoice.public');
 // Drop-in homes widget for a white-label company's own website: <script src="/embed/{slug}.js"></script>
 Route::get('/embed/{slug}.js', [App\Http\Controllers\Api\SiteFeedController::class, 'widget'])->where('slug', '[a-z0-9-]{2,60}')->middleware('throttle:120,1,site-widget')->name('site.widget');
 Route::fallback([App\Http\Controllers\SiteController::class, 'fallback']);
