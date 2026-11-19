@@ -42,7 +42,7 @@ h1 { margin: 0; font-size: 18pt; }
 .tt .t-grand td { border-top: 2px solid #101828 !important; padding: 4pt 0 0 !important; font-size: 11pt; font-weight: bold; line-height: 1.1; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .lines td.qr-cell-old { vertical-align: bottom; border: 0; padding: 0 14pt 0 0; color: #101828; line-height: 1.1; }
 .lines .grand td.e { border-top: 0; }
-.qrt { width: auto; } .qrt td { border: 0 !important; padding: 0 6pt 0 0 !important; vertical-align: bottom; color: #101828; }
+.qrt { width: auto; } .qrt td { border: 0 !important; padding: 0 6pt 0 0 !important; vertical-align: middle; color: #101828; }
 .payline { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
@@ -90,9 +90,9 @@ h1 { margin: 0; font-size: 18pt; }
   </tbody>
   <tfoot>
     <tr class="foot">
-      <td colspan="2" class="qr-cell">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:80pt"><img src="{{ $payQr }}" style="width:76pt;height:76pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div><div class="muted" style="font-size:7.5pt;margin:10pt 0 0">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
-        <div style="margin-top:10pt"><a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:8.5pt">{{ $payUrl }}</a></div>
-        @if ($handle)<div style="margin-top:10pt;font-size:8pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif</td></tr></table>@endunless</td>
+      <td colspan="2" class="qr-cell">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:80pt"><img src="{{ $payQr }}" style="width:76pt;height:76pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div><div class="muted" style="font-size:7.5pt;margin:2pt 0 0">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
+        <div style="margin-top:3pt"><a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:8.5pt">{{ $payUrl }}</a></div>
+        @if ($handle)<div style="margin-top:3pt;font-size:8pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif</td></tr></table>@endunless</td>
       <td colspan="2" class="tot-cell">
         <table class="tt">
           <tr class="t-sub"><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>

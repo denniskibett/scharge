@@ -92,7 +92,7 @@ td small { display: block; color: var(--muted); }
 .qr-cell { vertical-align: bottom; padding: 10px 20px 0 0 !important; border: 0 !important; }
 .grand td.e { border-top: 0; }
 .payqr { display: flex; gap: 14px; align-items: stretch; height: var(--qr, 124px); }
-.payqr > div { display: flex; flex-direction: column; justify-content: space-between; } .payqr > div > div:last-child { line-height: 1.2; }
+.payqr > div { display: flex; flex-direction: column; justify-content: center; gap: 4px; } .payqr > div > div:last-child { line-height: 1.2; }
 .payqr .qr { width: var(--qr, 124px); height: var(--qr, 124px); box-sizing: border-box; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
 .full-link { font: 13px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); word-break: break-all; }
 .handle { color: var(--red); font-weight: 600; text-decoration: none; }
