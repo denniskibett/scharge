@@ -29,6 +29,7 @@ h1 { margin: 0; font-size: 18pt; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
 .box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
 .box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
+.payline { margin-top: 14pt; padding-top: 8pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
 </head>
@@ -79,6 +80,9 @@ h1 { margin: 0; font-size: 18pt; }
   </tfoot>
 </table>
 
+@unless ($paid)
+  <div class="payline"><b>Pay with Sharet Pay</b>@if (! empty($pay['stk_number']))&nbsp;&nbsp;·&nbsp;&nbsp;STK push: <b>{{ $pay['stk_number'] }}</b>@endif @if (! empty($pay['sharet_handle']))&nbsp;&nbsp;·&nbsp;&nbsp;Sharet to Sharet: <b>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</b>@endif&nbsp;&nbsp;·&nbsp;&nbsp;Reference: <b>{{ $inv->invoice_number }}</b></div>
+@endunless
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 
 </body>

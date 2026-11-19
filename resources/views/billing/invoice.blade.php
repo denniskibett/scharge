@@ -45,9 +45,9 @@ td small { display: block; color: var(--muted); }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
 @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
-@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .actions, .toast, .pay-card { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
+@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .actions, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .pay { margin: 0 0 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
-.pay-card { max-width: 820px; margin: 28px auto -12px; }
+.payline { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 22px; color: #344054; font-size: 13px; }
 .pay h3 { margin: 0 0 10px; font-size: 14px; }
 .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .pay-grid > div > b:first-child { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
@@ -56,17 +56,6 @@ td small { display: block; color: var(--muted); }
 </style>
 </head>
 <body>
-  @unless ($paid)
-    <div class="pay pay-card">
-      <h3>Payment details · Sharet Pay</h3>
-      <div class="pay-grid">
-        <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.</div>
-        <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.</div>
-        <div><b>Reference</b>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></div>
-        <div><b>Questions</b>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</div>
-      </div>
-    </div>
-  @endunless
 <div class="page">
   <div class="top">
     <div>
@@ -115,6 +104,14 @@ td small { display: block; color: var(--muted); }
     </tfoot>
   </table>
 
+  @unless ($paid)
+    <div class="payline">
+      <b>Pay with Sharet Pay</b>
+      @if (! empty($pay['stk_number']))<span>STK push: <strong>{{ $pay['stk_number'] }}</strong></span>@endif
+      @if (! empty($pay['sharet_handle']))<span>Sharet to Sharet: <strong>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</strong></span>@endif
+      <span>Reference: <strong>{{ $inv->invoice_number }}</strong></span>
+    </div>
+  @endunless
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 </div>
 @if ($staff && ! $public && ! $paid)
