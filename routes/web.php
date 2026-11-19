@@ -429,6 +429,11 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::post('/host/units', [App\Http\Controllers\HostController::class, 'addUnit'])->name('host.units.store');
     });
 
+    // The company manual: what scharge offers and how, with progress from the company's data (App\Support\OnboardingGuide)
+    Route::get('/guide', [App\Http\Controllers\OnboardingGuideController::class, 'show'])->name('guide');
+    Route::post('/guide/mark', [App\Http\Controllers\OnboardingGuideController::class, 'mark'])->middleware('role:admin|property_manager')->name('guide.mark');
+    Route::post('/guide/visibility', [App\Http\Controllers\OnboardingGuideController::class, 'visibility'])->middleware('role:admin|property_manager')->name('guide.visibility');
+
     // Onboarding from the CSV template (one row per unit; matches existing buildings and units, dry run first)
     Route::middleware('role:sysadmin|account_manager|admin|property_manager|bnb_host')->group(function () {
         Route::get('/properties/onboard', [App\Http\Controllers\PropertyOnboardingController::class, 'create'])->name('properties.onboard');
@@ -531,6 +536,8 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::patch('/integrations/{provider}/toggle', [App\Http\Controllers\IntegrationController::class, 'toggle'])->name('integrations.toggle');
         Route::post('/integrations/{provider}/test', [App\Http\Controllers\IntegrationController::class, 'test'])->name('integrations.test');
         Route::get('/integrations/oauth/{provider}/callback', [App\Http\Controllers\IntegrationController::class, 'oauthCallback'])->whereIn('provider', ['quickbooks', 'xero', 'zoho_books'])->name('integrations.oauth.callback');
+        Route::post('/integrations/{provider}/file/{field}', [App\Http\Controllers\IntegrationController::class, 'upload'])->middleware('throttle:10,1,integration-upload')->name('integrations.upload');
+        Route::get('/integrations/{provider}/template/{field}', [App\Http\Controllers\IntegrationController::class, 'template'])->name('integrations.template');
         Route::get('/integrations/{provider}/connect', [App\Http\Controllers\IntegrationController::class, 'oauthStart'])->whereIn('provider', ['quickbooks', 'xero', 'zoho_books'])->name('integrations.oauth.start');
         Route::delete('/integrations/{provider}', [App\Http\Controllers\IntegrationController::class, 'destroy'])->name('integrations.destroy');
 
@@ -796,6 +803,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::get('/', [SubscriptionController::class, 'index'])->name('index');
         Route::get('/company/{company}/dashboard', [SubscriptionController::class, 'companyShow'])->name('company.dashboard');
         Route::put('/plans/{plan}/features', [SubscriptionController::class, 'updateFeatures'])->name('plans.features');
+        Route::put('/plans/{plan}/modules', [App\Http\Controllers\Admin\CompanyModuleController::class, 'plan'])->whereNumber('plan')->middleware('role:sysadmin')->name('plans.modules');
         Route::get('/api/plans/{plan}/available-companies', [SubscriptionController::class, 'getAvailableCompanies'])->name('api.plans.available-companies');
         Route::post('/plans/{plan}/assign-companies', [SubscriptionController::class, 'assignCompanies'])->name('plans.assign-companies');
         Route::get('/api/users', [SubscriptionController::class, 'getUsers'])->name('api.users');
@@ -841,6 +849,8 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::post('/{company}/users', [App\Http\Controllers\Admin\CompanyController::class, 'addUser'])->name('add-user');
         Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
         Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
+        // Paid modules per company (App\Support\Modules): sysadmins only.
+        Route::put('/{company}/modules/{module}', [App\Http\Controllers\Admin\CompanyModuleController::class, 'update'])->whereNumber('company')->middleware('role:sysadmin')->name('modules.update');
         Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
         Route::delete('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'destroy'])->name('destroy');
@@ -907,4 +917,6 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
 
 // A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
 Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1,site-contact')->name('site.contact');
+// Drop-in homes widget for a white-label company's own website: <script src="/embed/{slug}.js"></script>
+Route::get('/embed/{slug}.js', [App\Http\Controllers\Api\SiteFeedController::class, 'widget'])->where('slug', '[a-z0-9-]{2,60}')->middleware('throttle:120,1,site-widget')->name('site.widget');
 Route::fallback([App\Http\Controllers\SiteController::class, 'fallback']);

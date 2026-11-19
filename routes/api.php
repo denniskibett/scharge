@@ -9,6 +9,9 @@ use Illuminate\Support\Facades\Route;
 
 // scharge API v1. Keys: Settings › API keys. Docs: docs/SHARET_PAYMENTS.md, docs/METERS_API.md.
 Route::prefix('v1')->group(function () {
+    // A white-label company's public data and viewing requests for its own website (SiteFeedController).
+    Route::get('/sites/{slug}', [App\Http\Controllers\Api\SiteFeedController::class, 'show'])->where('slug', '[a-z0-9-]{2,60}')->middleware('throttle:120,1,site-feed');
+    Route::post('/sites/{slug}/viewing', [App\Http\Controllers\Api\SiteFeedController::class, 'viewing'])->where('slug', '[a-z0-9-]{2,60}')->middleware('throttle:6,1,site-feed-viewing');
     // Reader app sign-in (email + password -> personal key) and smart meters (device token).
     Route::post('/auth/token', [MetersController::class, 'token'])->middleware('throttle:5,1,api-token');
     Route::post('/smart/readings', [MetersController::class, 'smart'])->middleware('throttle:240,1,api-smart');
