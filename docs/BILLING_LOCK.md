@@ -16,7 +16,7 @@ The logic lives in `App\Support\BillingLock`. `Modules::deny()` runs it before t
 
 **On `/billing`:**
 
-- The owner (admin role) and the accountant see the unpaid bills, the amount due, how to pay (`SCHARGE_PAYBILL`), and recent payments.
+- The owner (admin role) and the accountant see the unpaid bills, the amount due, and recent payments. They can pay each bill with Sharet Pay or from the company's scharge wallet (`docs/BILLING_PAYMENTS.md`). Without online payment set up, they see the paybill instead (`SCHARGE_PAYBILL`).
 - Everyone else sees "Your company's access is paused. Contact your admin to restore it." with the admins' names and contacts, and no amounts.
 
 These stay open while the company is locked: billing, sign-in and sign-out, profile, password, and the email-code screen. The app's sign-in, crash reports and device registration stay open too.

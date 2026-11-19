@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompanyIntegration;
 use App\Models\SharetSweep;
 use App\Services\Integrations;
+use App\Services\Sharet\BillPayments;
 use App\Services\Sharet\SharetClient;
 use App\Services\Sharet\SharetCollections;
 use App\Services\Sharet\SharetPayouts;
@@ -45,7 +46,7 @@ class SharetWebhookController extends Controller
         }
 
         match (true) {
-            str_starts_with($type, 'payment_request.') => $collections->apply($data),
+            str_starts_with($type, 'payment_request.') => $collections->apply($data) ?? app(BillPayments::class)->apply($data),   // rent, else a scharge bill
             str_starts_with($type, 'payment.') => $this->payout($payouts, $data),
             $type === 'account.connected' => $this->connected($data, true),
             $type === 'account.disconnected' => $this->connected($data, false),

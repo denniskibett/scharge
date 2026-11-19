@@ -12,7 +12,7 @@ class SharetSync extends Command
 
     protected $description = 'Check open Sharet pay links and apply any that were paid, expired or cancelled';
 
-    public function handle(SharetCollections $collections): int
+    public function handle(SharetCollections $collections, \App\Services\Sharet\BillPayments $bills): int
     {
         if (! SharetCollections::available()) {
             $this->info('Sharet is not configured; nothing to do.');
@@ -21,6 +21,7 @@ class SharetSync extends Command
         }
 
         $this->info('Updated: '.$collections->syncOpen((int) $this->option('limit')));
+        $this->info('scharge bills updated: '.$bills->syncOpen());
 
         return self::SUCCESS;
     }

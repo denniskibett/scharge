@@ -58,12 +58,11 @@ class SharetPayouts
         foreach ($companyIds as $companyId) {
             $settings = Integrations::for($companyId, 'sharet_payouts');
             $to = self::destination($settings);
-            $pending = SharetPaymentRequest::where('company_id', $companyId)->where('mode', 'rail')->where('status', 'paid')
-                ->whereNull('sweep_id')->where('environment', $client->environment);
-            $gross = (float) $pending->sum('amount');
-            // Sharet pays whole shillings: round the payout down, the cents stay with the fee.
-            $net = floor($gross - $gross * $feePercent / 100);
-            $fee = round($gross - $net, 2);
+            $pending = BillPayments::unsweptCollections($companyId, $client->environment);
+            $debitsQ = BillPayments::installed() ? BillPayments::unsweptDebits($companyId, $client->environment) : null;
+            // Sharet pays whole shillings: round the payout down, the cents stay with the fee. Bills the company paid from
+            // its scharge wallet (BillPayments) come off this payout.
+            ['gross' => $gross, 'fee' => $fee, 'debits' => $debits, 'available' => $net] = BillPayments::split((float) $pending->sum('amount'), (float) ($debitsQ?->sum('amount') ?? 0), $feePercent);
 
             if (! $to) {
                 $results[] = ['company_id' => $companyId, 'status' => 'skipped', 'message' => 'No payout destination set'];
@@ -76,31 +75,42 @@ class SharetPayouts
                 continue;
             }
             if ($dryRun) {
-                $results[] = ['company_id' => $companyId, 'status' => 'would_pay', 'net' => $net, 'message' => "gross {$gross}, fee {$fee}"];
+                $results[] = ['company_id' => $companyId, 'status' => 'would_pay', 'net' => $net, 'message' => "gross {$gross}, fee {$fee}".($debits ? ", bills paid from wallet {$debits}" : '')];
 
                 continue;
             }
 
-            $sweep = DB::transaction(function () use ($companyId, $slot, $pending, $gross, $fee, $net, $to) {
+            $sweep = DB::transaction(function () use ($companyId, $slot, $pending, $debitsQ, $feePercent, $minimum, $to) {
                 if (SharetSweep::where('company_id', $companyId)->where('slot', $slot)->exists()) {
                     return null;   // this slot already ran for this company
                 }
+                // Lock and recount: a wallet payment made since the first count must not be paid out as well.
+                $ids = (clone $pending)->lockForUpdate()->pluck('id');
+                $debitIds = $debitsQ ? (clone $debitsQ)->lockForUpdate()->pluck('id') : collect();
+                $split = BillPayments::split((float) SharetPaymentRequest::whereIn('id', $ids)->sum('amount'),
+                    (float) \App\Models\BillingPayment::whereIn('id', $debitIds)->sum('amount'), $feePercent);
+                if ($split['available'] < $minimum) {
+                    return false;
+                }
                 $sweep = SharetSweep::create([
-                    'company_id' => $companyId, 'slot' => $slot, 'gross' => $gross, 'fee' => $fee, 'net' => $net,
+                    'company_id' => $companyId, 'slot' => $slot, 'gross' => $split['gross'], 'fee' => $split['fee'], 'net' => $split['available'],
                     'destination' => $to, 'status' => 'paying',
                 ]);
-                $ids = (clone $pending)->lockForUpdate()->pluck('id');
                 SharetPaymentRequest::whereIn('id', $ids)->update(['sweep_id' => $sweep->id]);
+                if ($debitIds->isNotEmpty()) {
+                    \App\Models\BillingPayment::whereIn('id', $debitIds)->update(['sweep_id' => $sweep->id]);
+                }
                 $sweep->update(['requests_count' => $ids->count()]);
 
                 return $sweep;
             });
 
             if (! $sweep) {
-                $results[] = ['company_id' => $companyId, 'status' => 'skipped', 'message' => "Slot {$slot} already swept"];
+                $results[] = ['company_id' => $companyId, 'status' => 'skipped', 'message' => $sweep === false ? "Below the KES {$minimum} minimum; rolls over" : "Slot {$slot} already swept"];
 
                 continue;
             }
+            $net = (float) $sweep->net;
 
             $res = $client->post('/payments', [
                 'amount' => number_format($net, 2, '.', ''),
@@ -130,6 +140,9 @@ class SharetPayouts
         if ($status === 'failed') {
             // Release the collections so the next sweep tries again.
             SharetPaymentRequest::where('sweep_id', $sweep->id)->update(['sweep_id' => null]);
+            if (BillPayments::installed()) {
+                \App\Models\BillingPayment::where('sweep_id', $sweep->id)->update(['sweep_id' => null]);
+            }
             Log::warning('Sharet sweep payout failed', ['sweep_id' => $sweep->id, 'company_id' => $sweep->company_id, 'failure' => $failure]);
         }
     }

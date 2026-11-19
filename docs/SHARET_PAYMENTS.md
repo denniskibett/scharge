@@ -24,6 +24,7 @@ Sharet's API cannot send a phone prompt directly: tenants open the pay link. A "
 | Sweeps | `app/Services/Sharet/SharetPayouts.php`, `php artisan payments:sweep [--dry-run] [--slot=2026-11-09T08]` |
 | Webhook | `POST /webhooks/sharet` (`SharetWebhookController`), signed `Sharet-Signature`, deduped on event id |
 | Poll for missed webhooks and connected-mode requests | `php artisan sharet:sync` (every 5 min) |
+| scharge's own bills paid by companies (Sharet Pay or wallet) | `app/Services/Sharet/BillPayments.php`, `docs/BILLING_PAYMENTS.md` |
 | Shared invoice application, also used by M-Pesa | `app/Services/InvoicePaymentService.php` |
 | Integrations page | `/integrations` (`IntegrationController`, `config/integrations.php`) |
 | API keys page | `/api-keys` (`ApiKeyController`) |
