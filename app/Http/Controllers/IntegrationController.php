@@ -32,6 +32,7 @@ class IntegrationController extends Controller
         $isAdmin = $request->user()->hasRole('sysadmin');
 
         return view('integrations.index', [
+            'goLive' => $companyId ? \App\Services\Connectors\GoLive::steps($companyId) : [],
             'scope' => $companyId ? Company::find($companyId) : null,
             'companies' => $isAdmin ? Company::where(fn ($q) => $q->whereNull('lifecycle')->orWhere('lifecycle', '!=', 'prospect'))->orderBy('name')->get(['id', 'name']) : collect(),
             'isAdmin' => $isAdmin,
@@ -51,6 +52,11 @@ class IntegrationController extends Controller
         $errors = [];
         $isAdmin = $request->user()->hasRole('sysadmin');
         foreach ($definition['fields'] as $key => $field) {
+            if (($field['type'] ?? '') === 'file') {
+                $values[$key] = $saved[$key] ?? null;   // uploaded separately (upload())
+
+                continue;
+            }
             if (! empty($field['admin_only']) && ! $isAdmin) {
                 $values[$key] = $saved[$key] ?? null;   // scharge staff set these
 
@@ -142,9 +148,21 @@ class IntegrationController extends Controller
             case 'kenyasms_sender':
             case 'whatsapp_business':
                 $managed = ($values['setup'] ?? $values['mode'] ?? null) === 'managed';
+                // A new or changed SMS name needs registering again (the signed letter names it).
+                if ($provider === 'kenyasms_sender' && $managed && ! $isAdmin && filled($saved['sender_id'] ?? null)
+                    && strtoupper((string) $saved['sender_id']) !== strtoupper((string) ($values['sender_id'] ?? ''))) {
+                    $values['approval'] = null;
+                    $internal = ['letter_path' => null];
+                    $values['letter'] = null;
+                }
                 if ($managed && ! $isAdmin && blank($values['approval'] ?? null)) {
                     $values['approval'] = 'requested';
-                    $this->tellStaff($provider, $companyId, $values);
+                    if ($provider === 'whatsapp_business') {
+                        $this->tellStaff($provider, $companyId, $values);   // WhatsApp numbers are set up by scharge staff
+                    }
+                }
+                if ($provider === 'kenyasms_sender' && filled($values['sender_id'] ?? null)) {
+                    $values['sender_id'] = strtoupper($values['sender_id']);
                 }
                 if ($provider === 'kenyasms_sender' && filled($values['sender_id'] ?? null) && ! preg_match('/^[A-Za-z0-9 ._-]{1,11}$/', $values['sender_id'])) {
                     $errors['values.sender_id'] = 'Up to 11 letters or numbers.';
@@ -168,6 +186,39 @@ class IntegrationController extends Controller
                     fn ($m) => $m->to($to)->subject("Set-up request: {$company}")));
             }
         })->afterResponse();
+    }
+
+    /** A file field on a card (e.g. the signed sender ID letter): stored privately, then the provider acts on it. */
+    public function upload(Request $request, string $provider, string $field)
+    {
+        $companyId = $this->companyId($request);
+        abort_unless($companyId, 422, 'Choose a company first.');
+        $definition = $this->definition($provider, $companyId);
+        abort_unless(($definition['fields'][$field]['type'] ?? null) === 'file', 404);
+        $request->validate(['file' => ['required', 'file', 'max:8192', 'mimes:pdf,jpg,jpeg,png']]);
+        $row = $this->row($request, $provider);
+        $file = $request->file('file');
+        $path = $file->storeAs("integrations/{$companyId}", "{$provider}-{$field}-".now()->format('YmdHis').'.'.$file->extension(), 'local');
+        $row->mergeCredentials([$field => mb_substr($file->getClientOriginalName(), 0, 120), "{$field}_path" => $path]);
+        $row->updated_by = $request->user()->id;
+        $row->save();
+        $message = $provider === 'kenyasms_sender' && $row->get('setup') === 'managed' && $row->get('approval') !== 'approved'
+            ? \App\Services\Connectors\SenderIds::request($row) : 'Uploaded.';
+        Integrations::forget($companyId, $provider);
+
+        return response()->json(['message' => $message, 'provider' => $this->state($provider, $row->fresh())]);
+    }
+
+    /** The pre-filled document a file field asks for (the sender ID authorisation letter). */
+    public function template(Request $request, string $provider, string $field)
+    {
+        $companyId = $this->companyId($request);
+        abort_unless($companyId && $provider === 'kenyasms_sender' && $field === 'letter', 404);
+        $sender = strtoupper(trim((string) ($request->query('sender_id') ?: $this->rowOrNew($companyId, $provider)->get('sender_id', 'YOURNAME'))));
+        abort_unless(preg_match('/^[A-Z0-9 ._-]{1,11}$/', $sender), 422, 'Up to 11 letters or numbers.');
+
+        return response(\App\Services\Connectors\SenderIds::letterPdf($companyId, $sender), 200, ['Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="sender-id-letter-'.$sender.'.pdf"', 'Cache-Control' => 'private, no-store']);
     }
 
     /** Start "Connect" for an accounting system: off to its sign-in page. */

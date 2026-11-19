@@ -287,4 +287,45 @@ class IntegrationsMoreTest extends RentSchemaTestCase
         $this->actingAs($user)->get('/integrations')->assertOk()->assertSee('integrationsPage', false);
         $this->actingAs($user)->get('/bank-import')->assertOk()->assertSee('Upload statement');
     }
+
+    public function test_sender_id_goes_to_the_networks_on_the_signed_letter_and_switches_on_when_approved(): void
+    {
+        $this->bareLayout();
+        config(['mail.default' => 'testmail', 'mail.mailers.testmail' => ['transport' => 'array']]);
+        $user = User::create(['name' => 'Owner', 'email' => 'o@example.test', 'company_id' => $this->a['company']]);
+        $this->withoutMiddleware([\App\Http\Middleware\CheckAccess::class]);
+        CompanyIntegration::create(['company_id' => null, 'provider' => 'kenyasms', 'enabled' => true, 'credentials' => ['api_key' => 'test', 'sender_id' => 'SCHARGE', 'mode' => 'live', 'sender_requests_to' => 'desk@sms.example.test']]);
+        \App\Models\CompanyKyc::create(['company_id' => $this->a['company'], 'status' => 'verified', 'business_name' => 'Sunrise Ltd', 'kra_pin' => 'P051234567X']);
+
+        $this->actingAs($user)->putJson('/integrations/kenyasms_sender', ['values' => ['setup' => 'managed', 'sender_id' => 'sunrise']])->assertOk();
+        $row = fn () => CompanyIntegration::where('provider', 'kenyasms_sender')->first();
+        $this->assertSame('requested', $row()->get('approval'));
+        $this->assertSame('SUNRISE', $row()->get('sender_id'));
+        $this->assertNotSame('SUNRISE', \App\Services\Integrations::smsSender($this->a['company'])['sender_id']);   // not until approved
+
+        $pdf = $this->actingAs($user)->get('/integrations/kenyasms_sender/template/letter')->assertOk();
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+
+        $file = \Illuminate\Http\UploadedFile::fake()->create('signed.pdf', 20, 'application/pdf');
+        $this->actingAs($user)->post('/integrations/kenyasms_sender/file/letter', ['file' => $file], ['Accept' => 'application/json'])
+            ->assertOk()->assertJsonPath('message', fn ($m) => str_contains($m, 'Sent to the networks'));
+        $this->assertSame('submitted', $row()->get('approval'));
+        $sent = app('mail.manager')->mailer('testmail')->getSymfonyTransport()->messages();
+        $this->assertCount(1, $sent);
+        $this->assertSame('desk@sms.example.test', $sent[0]->getOriginalMessage()->getTo()[0]->getAddress());
+        $this->assertCount(1, $sent[0]->getOriginalMessage()->getAttachments());
+
+        config(['sms.kenyasms.base_url' => 'https://senders.example.test/api/v1']);
+        Http::fake(['senders.example.test/api/v1/account/sender-ids' => Http::response(['data' => [['sender_id' => 'SUNRISE', 'status' => 'active']]])]);
+        $this->assertSame(1, \App\Services\Connectors\SenderIds::sync());
+        $this->assertSame('approved', $row()->get('approval'));
+        Cache::flush();
+        $this->assertSame('SUNRISE', \App\Services\Integrations::smsSender($this->a['company'])['sender_id']);
+
+        $steps = collect(\App\Services\Connectors\GoLive::steps($this->a['company']))->keyBy('label');
+        $this->assertTrue($steps['SMS under your name']['done']);
+        $this->assertTrue($steps['Verify your business']['done']);
+        $this->assertFalse($steps['Get paid']['done']);
+        $this->actingAs($user)->get('/integrations')->assertOk()->assertSee('Go live under your own name');
+    }
 }

@@ -76,6 +76,7 @@ return [
             'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'SHARETENT', 'help' => 'The approved name tenants see.'],
             'base_url' => ['label' => 'API base URL', 'type' => 'url', 'placeholder' => 'https://kenyasms.com/api/v1'],
             'mode' => ['label' => 'Mode', 'type' => 'select', 'options' => ['sandbox' => 'Sandbox (no real SMS)', 'live' => 'Live'], 'required' => true],
+            'sender_requests_to' => ['label' => 'Send companies\' sender ID requests to', 'placeholder' => 'support@kenyasms.com', 'help' => 'KenyaSMS\'s sender ID desk. When a company uploads its signed letter, the request (letter + KYC documents) is emailed here, with scharge\'s admins copied. Approval is picked up from this account automatically every hour.'],
         ],
     ],
 
@@ -227,14 +228,14 @@ return [
         'name' => 'SMS sender ID',
         'scope' => 'company',
         'category' => 'Messaging',
-        'description' => 'Bills, reminders and receipts reach your tenants under your own name, not scharge\'s. We register the name for you and it is included in your plan, so your tenants only ever see your brand.',
+        'description' => 'Bills, reminders and receipts reach your tenants under your own name, not scharge\'s, paid for by scharge inside your plan. Type the name, upload the signed letter, and it switches on by itself once the networks approve it.',
         'color' => '#1D4ED8',
         'logo' => 'kenyasms.png', // public/images/integrations
         'fields' => [
-            'setup' => ['label' => 'Who sets it up', 'type' => 'select', 'required' => true, 'options' => ['managed' => 'scharge registers it for me (included in my plan)', 'own' => 'I have my own KenyaSMS account'], 'help' => 'With scharge, we apply for the name with the mobile networks for you (about 5 to 10 working days) and your SMS are part of your per-unit plan. Nothing to sign up for.'],
-            'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'MYAPARTMNT', 'help' => 'Up to 11 letters or numbers: usually your agency or building name. Until it is approved, your tenants keep getting messages from scharge\'s name.'],
-            'api_key' => ['label' => 'Your own KenyaSMS API key', 'secret' => true, 'show_if' => ['setup' => ['own']], 'help' => 'You pay for your SMS on your KenyaSMS account.'],
-            'approval' => ['label' => 'Registration status', 'type' => 'select', 'admin_only' => true, 'options' => ['requested' => 'Requested', 'submitted' => 'Submitted to networks', 'approved' => 'Approved', 'rejected' => 'Rejected'], 'help' => 'scharge staff only. Messages use the name once this says Approved.'],
+            'setup' => ['label' => 'Paid by', 'type' => 'select', 'required' => true, 'options' => ['managed' => 'scharge (included in my plan)'], 'help' => 'Your SMS, sent under your name, are part of your per-unit plan. Nothing to sign up for or top up.'],
+            'sender_id' => ['label' => 'Sender ID', 'required' => true, 'placeholder' => 'MYAPARTMNT', 'help' => 'Up to 11 letters or numbers: usually your agency or building name. Until the networks approve it (about 5 to 10 working days), your tenants keep getting messages from scharge\'s name.'],
+            'letter' => ['label' => 'Signed authorisation letter', 'type' => 'file', 'template' => 'integrations.sender-letter', 'help' => 'Download the letter (already filled in), sign and stamp it, then upload a photo or PDF. We send it with your verified business documents to the networks, and switch your name on as soon as it is approved.'],
+            'approval' => ['label' => 'Registration status', 'type' => 'select', 'admin_only' => true, 'options' => ['requested' => 'Waiting for the letter', 'submitted' => 'Submitted to networks', 'approved' => 'Approved', 'rejected' => 'Rejected'], 'help' => 'scharge staff only; set automatically when the letter is uploaded and when KenyaSMS approves the name.'],
         ],
     ],
 

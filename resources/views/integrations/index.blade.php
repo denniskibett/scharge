@@ -43,6 +43,32 @@ Integrations
   @if ($flash)
     <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">{{ $flash }}</div>
   @endif
+  @if ($goLive)
+    @php $required = collect($goLive)->where('optional', false); $doneCount = $required->where('done', true)->count(); @endphp
+    <div class="mb-6 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" x-data="{ open: {{ $doneCount < $required->count() ? 'true' : 'false' }} }">
+      <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-4 px-5 py-4 text-left">
+        <span>
+          <span class="block text-base font-semibold text-gray-800 dark:text-white/90">{{ $doneCount === $required->count() ? 'You are live under your own name' : 'Go live under your own name' }}</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400">{{ $doneCount }} of {{ $required->count() }} done. Everything here is yours to set up; scharge pays for your SMS.</span>
+        </span>
+        <span class="h-2 w-32 shrink-0 overflow-hidden rounded-full bg-gray-100 dark:bg-white/10"><span class="block h-full rounded-full bg-emerald-500" style="width: {{ round($doneCount / max(1, $required->count()) * 100) }}%"></span></span>
+      </button>
+      <ol x-show="open" x-cloak class="grid grid-cols-1 gap-x-6 border-t border-gray-200 px-5 py-3 sm:grid-cols-2 dark:border-gray-800">
+        @foreach ($goLive as $step)
+          <li class="flex items-start gap-3 py-2.5">
+            <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full {{ $step['done'] ? 'bg-emerald-500 text-white' : 'border border-gray-300 dark:border-gray-600' }}">
+              @if ($step['done'])<x-icon name="check" class="h-3.5 w-3.5" />@endif
+            </span>
+            <span class="min-w-0 text-sm">
+              <a href="{{ $step['url'] }}" class="font-medium text-gray-800 hover:underline dark:text-white/90">{{ $step['label'] }}</a>@if ($step['optional'])<span class="text-gray-400"> · optional</span>@endif
+              <span class="block text-xs {{ $step['done'] ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400' }}">{{ $step['state'] }}@unless ($step['done']) · {{ $step['hint'] }}@endunless</span>
+            </span>
+          </li>
+        @endforeach
+      </ol>
+    </div>
+  @endif
+
   <div x-show="notice" x-cloak x-transition class="mb-5 rounded-xl px-4 py-3 text-sm" :class="noticeOk ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200' : 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200'" x-text="notice"></div>
 
   <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -166,12 +192,24 @@ Integrations
                     <template x-for="(label, value) in f.options" :key="value"><option :value="value" x-text="label"></option></template>
                   </select>
                 </template>
+                <template x-if="f.type === 'file'">
+                  <div class="rounded-lg border border-dashed border-gray-300 p-3 text-sm dark:border-gray-700">
+                    <a x-show="f.template" :href="`${base}/${editing.key}/template/${f.key}?company=${scope}&sender_id=${encodeURIComponent(form.sender_id || '')}`"
+                       class="font-medium text-gray-900 underline dark:text-white">Download the filled-in letter (PDF)</a>
+                    <p x-show="editing.values[f.key]" class="mt-2 text-xs text-emerald-700 dark:text-emerald-400" x-text="'Uploaded: ' + editing.values[f.key]"></p>
+                    <template x-if="editing.connected">
+                      <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="upload(f, $event)" :disabled="busy"
+                             class="mt-2 block w-full text-xs text-gray-600 file:mr-2 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 dark:text-gray-300 dark:file:bg-white/10 dark:file:text-gray-200">
+                    </template>
+                    <p x-show="!editing.connected" class="mt-2 text-xs text-gray-500">Save first, then upload the signed letter here.</p>
+                  </div>
+                </template>
                 <template x-if="f.type === 'textarea'">
                   <textarea :id="'f-' + f.key" x-model="form[f.key]" rows="5" autocomplete="off" spellcheck="false"
                             class="w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 font-mono text-xs text-gray-800 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
                             :placeholder="f.secret && editing.saved_secrets.includes(f.key) ? 'Saved • leave blank to keep' : (f.placeholder || '')"></textarea>
                 </template>
-                <template x-if="f.type !== 'select' && f.type !== 'textarea'">
+                <template x-if="f.type !== 'select' && f.type !== 'textarea' && f.type !== 'file'">
                   <input :id="'f-' + f.key" x-model="form[f.key]" class="{{ $input }}" autocomplete="off"
                          :type="f.secret ? 'password' : (f.type === 'url' ? 'url' : 'text')"
                          :placeholder="f.secret && editing.saved_secrets.includes(f.key) ? 'Saved • leave blank to keep' : (f.placeholder || '')">
@@ -302,6 +340,15 @@ Integrations
         try { const r = await schargeSend('PUT', this.url(this.editing), { values: this.form }); this.replace(r.provider); this.say(r.message); this.reveal = r.reveal || null; }
         catch (e) { this.errors = Object.fromEntries(Object.entries(e.errors || {}).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])); }
         this.busy = false;
+      },
+      async upload(f, e) {
+        const file = e.target.files[0]; if (!file) return;
+        this.busy = true;
+        const body = new FormData(); body.append('file', file);
+        const res = await fetch(this.url(this.editing, `/file/${f.key}`), { method: 'POST', body, headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content } });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) { this.replace(data.provider); this.say(data.message); } else { this.say(data.message || Object.values(data.errors || {})[0]?.[0] || 'Upload failed.', false); }
+        e.target.value = ''; this.busy = false;
       },
       async test(p) {
         this.busy = true;

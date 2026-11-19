@@ -298,7 +298,13 @@ class Integrations
     {
         $sender = (string) $row->get('sender_id');
         if ($row->get('setup') === 'managed' && $row->get('approval') !== 'approved') {
-            return [true, "Request received for \"{$sender}\". scharge is registering it with the networks (about 5 to 10 working days); until then your tenants get messages under scharge's name."];
+            Connectors\SenderIds::sync($row);
+            if ($row->get('approval') === 'requested') {
+                return [false, "Upload the signed letter for \"{$sender}\" to send it to the networks. Until then your tenants get messages under scharge's name."];
+            }
+            if ($row->get('approval') !== 'approved') {
+                return [true, "\"{$sender}\" is with the networks (about 5 to 10 working days). It switches on by itself once approved; until then tenants get messages under scharge's name."];
+            }
         }
         if (! preg_match('/^[A-Za-z0-9 ._-]{1,11}$/', $sender)) {
             return [false, 'A sender ID is 1 to 11 letters or numbers ("'.$sender.'" is not).'];

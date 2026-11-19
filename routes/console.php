@@ -74,6 +74,9 @@ Schedule::call(function () {
     \App\Services\Connectors\Accounting::retryDue();
 })->everyFiveMinutes()->name('integrations-retry')->withoutOverlapping()->onOneServer();
 
+// Integrations › SMS sender ID: switch on names the networks approved on scharge's KenyaSMS account (no staff step).
+Schedule::call(fn () => \App\Services\Connectors\SenderIds::sync())->hourly()->name('sender-ids-sync')->withoutOverlapping()->onOneServer();
+
 // Integrations › Equity Bank (Jenga): read yesterday's deposits and match them to tenants' bills.
 Schedule::call(fn () => \App\Services\Connectors\Jenga::pullAll())->dailyAt('06:30')->name('jenga-pull')->withoutOverlapping()->onOneServer();
 
