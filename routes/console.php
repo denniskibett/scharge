@@ -94,19 +94,22 @@ Schedule::command('crm:pull-nairobi --enrich=80')
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/crm-pull-nairobi.log'));
 
-// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): every weekday morning, prospects added since
-// (with a business email, never emailed, not opted out) get their property type's email. Residential comes first:
-// the other types (hotels / short-stay, commercial, warehouses, utilities) send nothing while residential prospects
-// are still waiting (--after). Capped so a new sender builds reputation slowly; tracking: /crm/campaigns.
-Schedule::command('crm:campaign RESIDENTIAL --send --limit=60 --per-minute=6')
-    ->weekdays()->at('09:00')
-    ->withoutOverlapping(60)
-    ->onOneServer()
-    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
-foreach (['BNB' => '09:30', 'COMMERCIAL' => '09:50', 'UTILITIES' => '10:10'] as $type => $at) {
-    Schedule::command("crm:campaign {$type} --after=RESIDENTIAL --send --limit=40 --per-minute=6")
-        ->weekdays()->at($at)
+// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): every weekday at 08:00, 10:00, 12:00 and 14:00,
+// prospects added since (with a business email, never emailed, not opted out) get their property type's email.
+// Residential comes first: the other types (hotels / short-stay, commercial, warehouses, utilities) send nothing while
+// residential prospects are still waiting (--after). Capped per run so the sender builds reputation; tracking: /crm/campaigns.
+foreach (['08:00', '10:00', '12:00', '14:00'] as $slot) {
+    [$h] = explode(':', $slot);
+    Schedule::command('crm:campaign RESIDENTIAL --send --limit=60 --per-minute=6')
+        ->weekdays()->at($slot)
         ->withoutOverlapping(60)
         ->onOneServer()
         ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+    foreach (['BNB' => '15', 'COMMERCIAL' => '30', 'UTILITIES' => '45'] as $type => $min) {
+        Schedule::command("crm:campaign {$type} --after=RESIDENTIAL --send --limit=40 --per-minute=6")
+            ->weekdays()->at("{$h}:{$min}")
+            ->withoutOverlapping(60)
+            ->onOneServer()
+            ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+    }
 }
