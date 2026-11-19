@@ -183,7 +183,7 @@ class BillingController extends Controller
         if ($asPdf) {
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')
                 ->setOption(['chroot' => public_path(), 'isRemoteEnabled' => false])
-                ->download($row->invoice_number.'.pdf');
+                ->stream($row->invoice_number.'.pdf');
         }
 
         return view('billing.invoice', $data + ['publicUrl' => self::publicUrl((int) $row->id), 'privateUrl' => route('billing.invoice', $row->id),

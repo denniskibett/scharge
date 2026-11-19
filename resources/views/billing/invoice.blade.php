@@ -106,7 +106,7 @@ td small { display: block; color: var(--muted); }
       </form>
     @endif
     <span style="flex:1"></span>
-    <a class="btn" href="{{ $pdfUrl }}">Download PDF</a>
+    <a class="btn" href="{{ $pdfUrl }}" target="_blank" rel="noopener">Download PDF</a>
     <button class="btn red" type="button" onclick="window.print()">Print (A4)</button>
   </div>
 </div>
