@@ -36,7 +36,8 @@ class SendCampaign extends Command
         {--per-minute=10 : Sending pace}
         {--manager= : User id that takes unowned prospects (default: account managers in turn)}
         {--follow-up=3 : Working days until the call follow-up}
-        {--cc=all : Copy the company\'s other published addresses (crm_profile.emails): all, or none}';
+        {--cc=all : Copy the company\'s other published addresses (crm_profile.emails): all, or none}
+        {--after= : Wait for these types first (comma list, e.g. RESIDENTIAL): send nothing while any of them still has prospects to email}';
 
     protected $description = 'Cold-email one property type from sales@sharet.africa (test first, then send)';
 
@@ -79,6 +80,16 @@ class SendCampaign extends Command
             }
 
             return self::SUCCESS;
+        }
+
+        // Priority: residential prospects are the core market, so the other types wait until that audience is used up.
+        foreach (array_filter(array_map('trim', explode(',', strtoupper((string) $this->option('after'))))) as $first) {
+            $firstClasses = array_keys(Playbook::REF_PREFIX, $first, true);
+            if ($firstClasses && ($left = $this->audience($firstClasses)->count()) > 0) {
+                $this->line(sprintf('%s waits: %s %s prospects still to email first.', $type, number_format($left), $first));
+
+                return self::SUCCESS;
+            }
         }
 
         if (! $this->option('send')) {

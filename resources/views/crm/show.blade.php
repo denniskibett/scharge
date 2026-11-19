@@ -112,7 +112,7 @@
             @endif
 
             {{-- Details --}}
-            <form method="POST" action="{{ route('crm.companies.update', $company) }}" class="{{ $card }} space-y-3" x-data="{ open: false }">
+            <form id="details" method="POST" action="{{ route('crm.companies.update', $company) }}" class="{{ $card }} space-y-3" x-data="{ open: new URLSearchParams(location.search).has('edit') }">
                 @csrf @method('PUT')
                 <button type="button" @click="open = !open" class="flex w-full items-center justify-between"><h3 class="{{ $h }}">Company details</h3><span class="text-sm text-brand-500" x-text="open ? 'Close' : 'Edit'"></span></button>
                 <dl x-show="!open" class="grid grid-cols-1 gap-x-4 gap-y-2 text-sm sm:grid-cols-[140px_1fr]">

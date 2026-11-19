@@ -77,7 +77,7 @@
             <table class="data-table w-full table-auto">
                 <thead>
                     <tr class="border-b border-gray-200 dark:border-gray-800">
-                        <th class="{{ $th }}">Company</th><th class="{{ $th }}">Stage</th><th class="{{ $th }}">Owner</th><th class="{{ $th }}">Next step</th><th class="{{ $th }}">Last contact</th><th class="{{ $th }} text-right"><span class="sr-only">Actions</span></th>
+                        <th class="{{ $th }}">Company</th><th class="{{ $th }}">Property type</th><th class="{{ $th }}">Location</th><th class="{{ $th }}">County</th><th class="{{ $th }}">Sub-county</th><th class="{{ $th }}">Stage</th><th class="{{ $th }}">Account manager</th><th class="{{ $th }}">Next step</th><th class="{{ $th }} text-right"><span class="sr-only">Actions</span></th>
                     </tr>
                 </thead>
                 <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
@@ -93,9 +93,24 @@
                                             @include('crm.partials.tier-badge', ['tier' => $company->tier])
                                             @if ($company->profile('needs_verification'))<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                         </div>
-                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([\App\Modules\CRM\Support\PropertyClass::of($company), $company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
                                     </div>
                                 </div>
+                            </td>
+                            @php($ptype = \App\Modules\CRM\Support\PropertyClass::of($company))
+                            <td class="p-4 whitespace-nowrap text-sm">
+                                @if ($ptype)<a href="{{ request()->fullUrlWithQuery(['ptype' => $ptype, 'page' => null]) }}" class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/5 dark:text-gray-300">{{ $ptype }}</a>@else<span class="text-gray-400">-</span>@endif
+                                @if ($company->profile('segment'))<p class="mt-1 max-w-[12rem] truncate text-xs text-gray-500 dark:text-gray-400" title="{{ $company->profile('segment') }}">{{ $company->profile('segment') }}</p>@endif
+                            </td>
+                            <td class="p-4 text-sm text-gray-700 dark:text-gray-300"><span class="block max-w-[12rem] truncate" title="{{ collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') }}">{{ collect([$company->profile('area'), $company->profile('city')])->filter()->unique()->join(', ') ?: '-' }}</span></td>
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                @if ($company->profile('county_id'))<a href="{{ request()->fullUrlWithQuery(['county_id' => $company->profile('county_id'), 'page' => null]) }}" class="hover:text-blue-600">{{ $company->profile('county') }}</a>@else{{ $company->profile('county') ?: '-' }}@endif
+                            </td>
+                            <td class="p-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                @if ($company->profile('sub_county_id'))
+                                    <a href="{{ request()->fullUrlWithQuery(['sub_county_id' => $company->profile('sub_county_id'), 'page' => null]) }}" class="hover:text-blue-600">{{ $company->profile('sub_county') }}</a>
+                                    @if ($company->profile('ward'))<p class="text-xs text-gray-500 dark:text-gray-400">{{ $company->profile('ward') }} ward</p>@endif
+                                @else<span class="text-gray-400" title="Located to the town or county only">-</span>@endif
                             </td>
                             <td class="p-4 whitespace-nowrap">@include('crm.partials.stage-badge', ['stage' => $company->crm_stage])@if ($company->lifecycle === 'customer') <span class="ml-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900 dark:text-green-200">customer</span>@endif</td>
                             <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $company->owner?->name ?? '-' }}</td>
@@ -108,19 +123,26 @@
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif
+                                <p class="whitespace-nowrap text-xs text-gray-400">Last contact: {{ $company->last_contact_at ? \Illuminate\Support\Carbon::parse($company->last_contact_at)->diffForHumans() : 'never' }}</p>
                             </td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $company->last_contact_at ? \Illuminate\Support\Carbon::parse($company->last_contact_at)->diffForHumans() : 'Never' }}</td>
                             <td class="p-4 whitespace-nowrap">
-                                <div class="flex items-center justify-end gap-1">
-                                    <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white text-brand-500 hover:text-brand-600" title="Playbook: approach, what to sell, cold email, verify" aria-label="Open playbook for {{ $company->name }}"><x-icon name="light-bulb" class="h-5 w-5" /></button>
-                                    @if ($company->phone)<a href="tel:{{ preg_replace('/[^\d+]/', '', $company->phone) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white" title="Call {{ $company->phone }}" aria-label="Call {{ $company->name }}"><x-icon name="phone" class="h-4 w-4" /></a>@endif
-                                    <a href="{{ route('crm.companies.show', $company) }}" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white" title="Open company" aria-label="Open {{ $company->name }}"><x-icon name="eye" class="h-4 w-4" /></a>
+                                <div class="flex items-center justify-end gap-0.5">
+                                    <button type="button" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-brand-500 hover:bg-gray-100 hover:text-brand-600 dark:hover:bg-white/5" title="Playbook: approach, what to sell, cold email, verify" aria-label="Open playbook for {{ $company->name }}"><x-icon name="sparkles" class="h-4 w-4" /></button>
+                                    <div x-data="{ open: false, top: 0, right: 0 }" class="relative">
+                                        <button type="button" @click="const r = $el.getBoundingClientRect(); top = r.bottom + 4; right = window.innerWidth - r.right; open = !open" class="inline-flex h-7 w-7 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-white" aria-label="Actions for {{ $company->name }}" :aria-expanded="open"><x-icon name="ellipsis-horizontal" class="h-4 w-4" /></button>
+                                        <div x-show="open" x-cloak @click.outside="open = false" @keydown.escape.window="open = false" @scroll.window="open = false" :style="`top:${top}px; right:${right}px`" class="fixed z-50 w-52 rounded-xl border border-gray-200 bg-white py-1 text-sm shadow-lg dark:border-gray-800 dark:bg-gray-900">
+                                            <a href="{{ route('crm.companies.show', $company) }}" class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="eye" class="h-4 w-4" /> View</a>
+                                            <button type="button" @click="open = false; $dispatch('assign-manager', { url: '{{ route('crm.companies.update', $company) }}', name: @js($company->name), owner: '{{ $company->owner_id }}' })" class="flex w-full items-center gap-2 px-3 py-2 text-left text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="user-circle" class="h-4 w-4" /> Assign account manager</button>
+                                            <a href="{{ route('crm.companies.show', $company) }}?edit=1#details" class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="pencil-square" class="h-4 w-4" /> Edit</a>
+                                            @if ($company->phone)<a href="tel:{{ preg_replace('/[^\d+]/', '', $company->phone) }}" class="flex items-center gap-2 px-3 py-2 text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-white/5"><x-icon name="phone" class="h-4 w-4" /> Call {{ $company->phone }}</a>@endif
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6" class="p-4 text-center">
+                            <td colspan="9" class="p-4 text-center">
                                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No prospects found</h3>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Try adjusting your filters, or add a prospect.</p>
@@ -173,6 +195,26 @@
             </div>
         </form>
     </div>
+</div>
+{{-- Assign account manager (one dialog, filled by the row's Actions menu) --}}
+<div x-data="{ show: false, url: '', name: '', owner: '' }" @assign-manager.window="url = $event.detail.url; name = $event.detail.name; owner = $event.detail.owner; show = true" x-show="show" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assign-title" @keydown.escape.window="show = false">
+    <div class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="show = false"></div>
+    <form method="POST" :action="url" class="relative w-full max-w-sm space-y-4 rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
+        @csrf @method('PUT')
+        <div>
+            <h3 id="assign-title" class="text-lg font-semibold text-gray-800 dark:text-white/90">Assign account manager</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400" x-text="name"></p>
+        </div>
+        <select name="owner_id" x-model="owner" class="{{ $field }}" aria-label="Account manager">
+            <option value="">Nobody</option>
+            @foreach ($owners as $o)<option value="{{ $o->id }}">{{ $o->name }}</option>@endforeach
+        </select>
+        <p class="text-xs text-gray-500 dark:text-gray-400">Open follow-ups move to the new account manager.</p>
+        <div class="flex justify-end gap-2">
+            <button type="button" @click="show = false" class="h-10 rounded-lg border border-gray-300 px-4 text-sm text-gray-700 dark:border-gray-700 dark:text-gray-300">Cancel</button>
+            <button class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600">Assign</button>
+        </div>
+    </form>
 </div>
 @include('crm.partials.playbook-modal')
 @endsection
