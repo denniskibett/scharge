@@ -23,12 +23,12 @@ h1 { margin: 0; font-size: 18pt; }
 .meta td { vertical-align: top; padding: 6pt 8pt 6pt 0; border-top: 1px solid #EAECF0; border-bottom: 1px solid #EAECF0; }
 .lbl { display: block; font-size: 7.5pt; color: #667085; text-transform: uppercase; letter-spacing: .5pt; margin-bottom: 2pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
-.lines td { padding: 3pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
+.lines td { padding: 2.5pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
 .lines .sub td { color: #101828; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
-.box { margin: 0 0 8pt; border: 1px solid #EAECF0; border-radius: 8pt; padding: 10pt 12pt; }
-.box td { vertical-align: top; padding: 2pt 10pt 0 0; font-size: 8.5pt; }
+.box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
+.box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
 </head>
@@ -50,7 +50,7 @@ h1 { margin: 0; font-size: 18pt; }
   </tr>
 </table>
 
-<table class="meta" style="margin:8pt 0">
+<table class="meta" style="margin:6pt 0 8pt">
   <tr>
     <td style="width:34%"><span class="lbl">Billed to</span>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</td>
     <td><span class="lbl">Issued</span>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</td>
@@ -66,13 +66,13 @@ h1 { margin: 0; font-size: 18pt; }
       <tr>
         <td><span class="lbl">1 · scharge to scharge</span>Sign in at scharge.sharet.africa › Billing › Pay from wallet. Settles instantly.</td>
         <td><span class="lbl">2 · M-Pesa (STK push)</span>Sign in › Billing › Pay with Sharet Pay, then approve the prompt on the phone.</td>
-        <td style="width:24%"><span class="lbl">Reference</span>{{ $inv->invoice_number }}<br><span class="muted">{{ $money($total) }}</span></td>
+        <td style="width:30%"><span class="lbl">Reference</span>{{ $inv->invoice_number }}<br><span class="muted">{{ $money($total) }}</span></td>
       </tr>
     </table>
   </div>
 @endunless
 <table class="lines">
-  <thead><tr><th>Description</th><th class="r">Units</th><th class="r">Rate / unit</th><th class="r">Amount</th></tr></thead>
+  <thead><tr><th>Description</th><th class="r" style="width:8%">Units</th><th class="r" style="width:17%">Rate / unit</th><th class="r" style="width:17%">Amount</th></tr></thead>
   <tbody>
     @foreach ($items as $it)
       <tr>
