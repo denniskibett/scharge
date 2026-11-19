@@ -15,6 +15,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex,nofollow">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <title>Pay {{ $inv->invoice_number }} · Sharet Pay</title>
 <link rel="icon" href="{{ asset('assets/images/brand/favicon.svg') }}">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -49,7 +50,14 @@ dt { color: var(--muted); } dd { margin: 0; text-align: right; font-weight: 500;
 .foot { text-align: center; margin-top: 16px; font-size: 13px; }
 .foot a { color: var(--muted); }
 html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 16px; max-width: none; } html.embed .card { border: 0; } html.embed .foot { display: none; }
-.opt { padding: 14px 16px; } .opt > span:first-child { padding-right: 8px; }
+.opt { padding: 14px 16px; }
+.mp { display: block; } .mp:hover { border-color: var(--line); } .mp:active { transform: none; }
+.mp-row { display: flex; gap: 8px; margin-top: 10px; }
+.mp-row input { flex: 1; min-width: 0; font: inherit; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; }
+.mp-row input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px #FEE2E2; }
+.mp-row .btn { white-space: nowrap; } .mp-row .btn[disabled] { opacity: .6; cursor: wait; }
+.mp-msg { margin: 10px 0 0; font-size: 13.5px; border-radius: 10px; padding: 10px 12px; }
+.mp-msg.ok { background: #ECFDF3; color: #027A48; } .mp-msg.bad { background: #FEF3F2; color: #B42318; } .opt > span:first-child { padding-right: 8px; }
 </style>
 </head>
 <body>
@@ -78,16 +86,20 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
 
     @if ($status === 'open' && $row?->pay_url)
       <div class="opts">
-        <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
-          <span><b>M-Pesa (STK push)</b><span>Enter your M-Pesa number, approve the prompt with your PIN @if ($stkNumber) · {{ $stkNumber }}@endif</span></span>
-          <span class="go">Pay →</span>
-        </a>
+        <form class="opt mp" id="mpesa" autocomplete="on" novalidate>
+          <span><b>M-Pesa (STK push)</b><span>Enter the M-Pesa number. The prompt goes straight to the phone: approve it with your PIN.</span></span>
+          <div class="mp-row">
+            <input id="mp-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="0712 345 678" maxlength="16" required aria-label="M-Pesa number">
+            <button class="btn red" id="mp-send" type="submit">Send prompt</button>
+          </div>
+          <p class="mp-msg" id="mp-msg" role="status" hidden></p>
+        </form>
         <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
           <span><b>Sharet to Sharet</b><span>Sign in to Sharet and pay {{ $handle ?: 'scharge' }} from your balance</span></span>
           <span class="go">Pay →</span>
         </a>
       </div>
-      <p class="note">Sharet opens in a new tab for your M-Pesa number or Sharet sign-in. Keep this open: it turns <b>Paid</b> on its own once Sharet confirms, and this link always shows the status.</p>
+      <p class="note">This turns <b>Paid</b> on its own once the payment is confirmed, and this link always shows the status. Sharet to Sharet opens Sharet in a new tab to sign in.</p>
     @elseif ($status === 'paid')
       <p style="margin:0">Thank you. The invoice is paid and your scharge account is up to date.</p>
     @elseif ($inv->status !== 'paid')
@@ -109,7 +121,29 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
     } catch (e) {}
     return false;
   };
-  const tick = async () => { tries++; if (!(await check())) setTimeout(tick, tries < 40 ? 6000 : 20000); };
+  let fast = 0;
+  const tick = async () => { tries++; if (!(await check())) setTimeout(tick, fast > 0 ? (fast--, 3000) : (tries < 40 ? 6000 : 20000)); };
+  const f = document.getElementById('mpesa');
+  if (f) {
+    const msg = document.getElementById('mp-msg'), btn = document.getElementById('mp-send'), input = document.getElementById('mp-phone');
+    const show = (text, ok) => { msg.textContent = text; msg.className = 'mp-msg ' + (ok ? 'ok' : 'bad'); msg.hidden = false; };
+    if (location.hash === '#mpesa') setTimeout(() => input.focus(), 150);
+    f.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const phone = input.value.trim();
+      if (!/^(?:\+?254|0)?[71]\d{8}$/.test(phone.replace(/[\s-]/g, ''))) { show('Enter a Safaricom number like 0712 345 678.', false); input.focus(); return; }
+      btn.disabled = true; btn.textContent = 'Sending…'; msg.hidden = true;
+      try {
+        const r = await fetch(@js($mpesaUrl), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({ phone }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.status === 429) show('Too many prompts just now. Wait a minute and try again.', false);
+        else if (j.paid) { location.reload(); return; }
+        else show(j.message || (r.ok ? 'Prompt sent.' : 'Could not send the prompt. Try again.'), !!j.ok);
+        if (j.ok) { fast = 40; check(); }
+      } catch (err) { show('Could not reach scharge. Check your connection and try again.', false); }
+      btn.disabled = false; btn.textContent = 'Send prompt';
+    });
+  }
   setTimeout(tick, 6000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 })();

@@ -90,7 +90,7 @@ td small { display: block; color: var(--muted); }
       <img src="{{ asset('images/integrations/sharet.svg') }}" alt="Sharet Pay" width="40" height="40">
       <div class="sp-text"><b>Sharet Pay</b><span>Pay {{ $money($total) }}@if ($handle) to <strong>{{ $handle }}</strong>@endif</span></div>
       <div class="sp-opts">
-        <a class="btn sm" href="{{ $payUrl }}" target="_blank" rel="noopener" data-pay>M-Pesa STK push</a>
+        <a class="btn sm" href="{{ $payUrl }}#mpesa" target="_blank" rel="noopener" data-pay>M-Pesa STK push</a>
         <a class="btn sm red" href="{{ $payUrl }}" target="_blank" rel="noopener" data-pay>Sharet to Sharet</a>
       </div>
     </div>
