@@ -95,7 +95,7 @@ class CompanyController extends Controller
      */
     public function show($id)
     {
-        $company = Company::with(['users.role', 'properties'])->findOrFail($id);
+        $company = Company::with(['users.roles', 'properties'])->findOrFail($id);
         
         // If this is an AJAX request expecting JSON, return the company data
         if (request()->wantsJson() || request()->ajax()) {
@@ -173,7 +173,7 @@ class CompanyController extends Controller
             ->whereHas('roles', function($q) {
                 $q->where('name', '!=', 'tenant');
             })
-            ->with('role')
+            ->with('roles')
             ->get()
             ->map(function($user) {
                 return [
@@ -181,8 +181,8 @@ class CompanyController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone ?? '-',
-                    'role' => $user->role->name ?? 'unknown',
-                    'role_name' => ucfirst(str_replace('_', ' ', $user->role->name ?? 'unknown')),
+                    'role' => $user->roles->first()?->name ?? 'unknown',
+                    'role_name' => ucfirst(str_replace('_', ' ', $user->roles->first()?->name ?? 'unknown')),
                     'company_id' => $user->company_id,
                     'company_name' => $user->company->name ?? '-',
                     'is_active' => $user->status === 0,
@@ -401,7 +401,7 @@ class CompanyController extends Controller
             ->whereHas('roles', function($q) {
                 $q->where('name', '!=', 'tenant');
             })
-            ->with('role')
+            ->with('roles')
             ->get()
             ->map(function($user) {
                 return [
@@ -409,8 +409,8 @@ class CompanyController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'phone' => $user->phone ?? '-',
-                    'role' => $user->role->name ?? 'unknown',
-                    'role_name' => ucfirst(str_replace('_', ' ', $user->role->name ?? 'unknown')),
+                    'role' => $user->roles->first()?->name ?? 'unknown',
+                    'role_name' => ucfirst(str_replace('_', ' ', $user->roles->first()?->name ?? 'unknown')),
                     'company_id' => $user->company_id,
                     'company_name' => $user->company->name ?? '-',
                     'is_active' => $user->status === 0,
