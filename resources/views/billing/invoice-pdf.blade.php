@@ -20,15 +20,15 @@ table { width: 100%; border-collapse: collapse; }
 h1 { margin: 0; font-size: 18pt; }
 .pill { display: inline-block; border-radius: 8pt; padding: 1pt 7pt; font-size: 8pt; font-weight: bold; }
 .due { background: #FEF3F2; color: #B42318; } .open { background: #FFFAEB; color: #B54708; } .paid { background: #ECFDF3; color: #027A48; } .grey { background: #F2F4F7; color: #344054; }
-.meta td { vertical-align: top; padding: 10pt 8pt 10pt 0; border-top: 1px solid #EAECF0; border-bottom: 1px solid #EAECF0; }
+.meta td { vertical-align: top; padding: 7pt 8pt 7pt 0; border-top: 1px solid #EAECF0; border-bottom: 1px solid #EAECF0; }
 .lbl { display: block; font-size: 7.5pt; color: #667085; text-transform: uppercase; letter-spacing: .5pt; margin-bottom: 2pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 7pt 0; border-bottom: 1px solid #EAECF0; }
-.lines td { padding: 6pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
+.lines td { padding: 3.5pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
 .totals { width: 52%; margin-left: 48%; margin-top: 10pt; }
 .totals td { padding: 3pt 0; }
 .grand td { border-top: 2px solid #101828; padding-top: 6pt; font-size: 12pt; font-weight: bold; }
-.box { margin-top: 16pt; border: 1px solid #EAECF0; border-radius: 8pt; padding: 10pt 12pt; }
+.box { margin-top: 12pt; border: 1px solid #EAECF0; border-radius: 8pt; padding: 10pt 12pt; }
 .box td { vertical-align: top; padding: 4pt 10pt 4pt 0; width: 50%; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
@@ -51,7 +51,7 @@ h1 { margin: 0; font-size: 18pt; }
   </tr>
 </table>
 
-<table class="meta" style="margin:16pt 0">
+<table class="meta" style="margin:12pt 0">
   <tr>
     <td style="width:34%"><span class="lbl">Billed to</span>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</td>
     <td><span class="lbl">Issued</span>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</td>
