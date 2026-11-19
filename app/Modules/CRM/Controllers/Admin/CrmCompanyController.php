@@ -33,13 +33,12 @@ class CrmCompanyController extends Controller
         // Next due / last contact come from two grouped follow-up queries joined in once, not a lookup per company
         // (131k companies made the per-row version take ~10 s).
         $nextDue = $todo(CrmFollowUp::query())->selectRaw('company_id, MIN(due_at) as next_due_at')->groupBy('company_id');
-        $lastContact = CrmFollowUp::whereIn('type', CrmFollowUp::ACTION_TYPES)->where('type', '!=', 'note')->where('status', 'done')
-            ->selectRaw('company_id, MAX(done_at) as last_contact_at')->groupBy('company_id');
+        $lastContact = fn ($ids) => CrmFollowUp::whereIn('company_id', $ids)->whereIn('type', CrmFollowUp::ACTION_TYPES)->where('type', '!=', 'note')->where('status', 'done')
+            ->selectRaw('company_id, MAX(done_at) as last_contact_at')->groupBy('company_id')->pluck('last_contact_at', 'company_id');
         // Sort and page on narrow rows (ids + the two dates), then load only the companies on this page.
         $companies = $mine()
-            ->select('companies.id', 'nd.next_due_at', 'lc.last_contact_at')
+            ->select('companies.id', 'nd.next_due_at')
             ->leftJoinSub($nextDue, 'nd', 'nd.company_id', '=', 'companies.id')
-            ->leftJoinSub($lastContact, 'lc', 'lc.company_id', '=', 'companies.id')
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%")
                 ->orWhere('phone', 'like', "%{$term}%")->orWhere('crm_profile', 'like', "%{$term}%")))
@@ -74,8 +73,9 @@ class CrmCompanyController extends Controller
             ->paginate(in_array((int) $request->query('per_page'), [25, 50, 100, 250, 500, 1000], true) ? (int) $request->query('per_page') : 25)
             ->withQueryString();
         $models = Company::withoutGlobalScope('customers')->with(['owner:id,name'])->findMany($companies->pluck('id'))->keyBy('id');
+        $last = $lastContact($companies->pluck('id'));   // only for the companies on this page
         $companies->setCollection($companies->getCollection()
-            ->map(fn ($row) => isset($models[$row->id]) ? $models[$row->id]->setAttribute('next_due_at', $row->next_due_at)->setAttribute('last_contact_at', $row->last_contact_at) : null)
+            ->map(fn ($row) => isset($models[$row->id]) ? $models[$row->id]->setAttribute('next_due_at', $row->next_due_at)->setAttribute('last_contact_at', $last[$row->id] ?? null) : null)
             ->filter()->values());
 
         // Contact names for the visible page in one query.
