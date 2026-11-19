@@ -6,7 +6,6 @@
 @include('partials.modal.error-modal')
 
 @section('content')
-@include('partials.card.sms-history')
 <div x-data="smsLogsTable()" x-init="init()">
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">

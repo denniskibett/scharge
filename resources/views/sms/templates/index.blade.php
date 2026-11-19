@@ -4,7 +4,6 @@
 @include('partials.modal.error-modal')
 
 @section('content')
-@include('partials.card.sms-templates')
 <div 
      x-data="smsTemplateTable()" 
      x-init="init()">

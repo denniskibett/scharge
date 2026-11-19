@@ -3,7 +3,6 @@
 @section('title', 'SMS Settings')
 
 @section('content')
-@include('partials.card.sms-settings')
 <div>
     <div class="mb-6">
         @section('page_title')
