@@ -23,12 +23,18 @@ Enquiries
     <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">{{ session('success') }}</div>
   @endif
 
-  <div class="flex flex-wrap gap-2 text-sm">
-    <a href="{{ route('enquiries.index') }}" class="{{ $stage ? $outline : $primary }}">All</a>
-    @foreach ($stages as $k => $l)<a href="{{ route('enquiries.index', ['stage' => $k]) }}" class="{{ $stage === $k ? $primary : $outline }}">{{ $l }} <span class="ml-1 opacity-70">{{ $counts[$k] }}</span></a>@endforeach
-  </div>
-
-  <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+  @php
+    $tab = fn ($on) => 'shrink-0 px-4 py-2 text-sm font-medium transition-colors '.($on
+      ? 'border-b-2 border-brand-500 -mb-px text-brand-600 dark:text-brand-400'
+      : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200');
+  @endphp
+  <div class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+    {{-- Stages as a tab line inside the card --}}
+    <nav class="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800" aria-label="Enquiry stages">
+      <a href="{{ route('enquiries.index') }}" class="{{ $tab(! $stage) }}" @if (! $stage) aria-current="page" @endif>All <span class="ml-1 text-xs opacity-70">{{ $counts->sum() }}</span></a>
+      @foreach ($stages as $k => $l)<a href="{{ route('enquiries.index', ['stage' => $k]) }}" class="{{ $tab($stage === $k) }}" @if ($stage === $k) aria-current="page" @endif>{{ $l }} <span class="ml-1 text-xs opacity-70">{{ $counts[$k] }}</span></a>@endforeach
+    </nav>
+    <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead><tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">
         <th class="p-3">When</th><th class="p-3">Who</th><th class="p-3">For</th><th class="p-3">Stage</th>
@@ -52,10 +58,11 @@ Enquiries
             </td>
           </tr>
         @empty
-          <tr><td colspan="4" class="p-6 text-center text-gray-500">No enquiries yet. Vacant units with a rent amount appear on scharge's Open listings automatically.</td></tr>
+          <tr><td colspan="4" class="p-6 text-center text-gray-500">No enquiries yet. Switch a property on for Open listings (on its property page) and renters' requests for its vacant units land here.</td></tr>
         @endforelse
       </tbody>
     </table>
+    </div>
   </div>
   {{ $enquiries->links() }}
 </div>
