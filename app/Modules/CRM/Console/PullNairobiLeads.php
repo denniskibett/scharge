@@ -69,7 +69,34 @@ class PullNairobiLeads extends Command
         'Ruiru' => [-1.1460, 36.9600, 3500, 2, 'Kiambu'],
         'Syokimau' => [-1.3667, 36.9333, 2500, 3],
         'Kitengela' => [-1.4761, 36.9614, 3500, 3],
+        // Added 19 Nov 2026: south and east (Ngong Road, Mombasa Road, Lang'ata Road corridors).
+        'Racecourse' => [-1.3045, 36.7585, 1200, 2],
+        'Mbagathi' => [-1.3060, 36.8020, 1000, 2],
+        'Madaraka' => [-1.3090, 36.8140, 1000, 2],
+        'Ongata Rongai' => [-1.3960, 36.7600, 3000, 3, 'Kajiado'],
+        'Ngong' => [-1.3600, 36.6560, 2500, 3, 'Kajiado'],
+        'Imara Daima' => [-1.3260, 36.8780, 1500, 3],
+        'Athi River' => [-1.4560, 36.9800, 3500, 3, 'Machakos'],
+        // Waiyaki Way, Kiambu, Ngara.
+        'Loresho' => [-1.2530, 36.7580, 1000, 2],
+        'Kangemi' => [-1.2640, 36.7470, 1500, 3],
+        'Uthiru' => [-1.2650, 36.7130, 1500, 3],
+        'Kinoo' => [-1.2530, 36.6900, 1500, 3, 'Kiambu'],
+        'Kiambu Town' => [-1.1710, 36.8350, 2500, 3, 'Kiambu'],
+        'Ngara' => [-1.2740, 36.8240, 1000, 2],
+        // Thika Road, end to end, with the campuses (USIU, KU, JKUAT): student hostels and rentals.
+        'Pangani' => [-1.2680, 36.8370, 900, 3],
+        'Ruaraka' => [-1.2470, 36.8690, 1200, 3],
+        'Roysambu' => [-1.2180, 36.8890, 1500, 2],
+        'Kasarani' => [-1.2230, 36.9020, 1500, 3],
+        'Githurai' => [-1.2000, 36.9170, 1500, 3],
+        'Kahawa Wendani' => [-1.1800, 36.9280, 1800, 2],
+        'Juja' => [-1.1010, 37.0150, 2500, 2, 'Kiambu'],
+        'Thika' => [-1.0390, 37.0830, 3500, 3, 'Kiambu'],
     ];
+
+    /** NHC estates and affordable-housing schemes anywhere in Kenya (no area circle). */
+    public const NHC_AREA = 'NHC & affordable housing';
 
     private const ENDPOINTS = [
         'https://overpass-api.de/api/interpreter',
@@ -78,16 +105,16 @@ class PullNairobiLeads extends Command
     ];
 
     /** Names that say nothing about who runs the place. */
-    private const GENERIC = '/^(the )?(apartments?|flats?|estate|residential|residence|houses?|homes?|guest ?house|bnb|airbnb|block [a-z0-9]+|court|towers?|villas?|maisonettes?|townhouses?|staff quarters|quarters|[0-9 \-\/]+)$/i';
+    private const GENERIC = '/^(the )?(apartments?|flats?|estate|residential|residence|houses?|homes?|guest ?house|bnb|airbnb|block [a-z0-9]+|court|towers?|villas?|maisonettes?|townhouses?|staff quarters|quarters|hostels?|phase( [0-9a-z]+)?|student apartments?( \d+)?|[0-9 \-\/]+)$/i';
 
     /** Not a property business even when mapped as one. */
-    private const NOT_TARGET = '/\b(school|primary|secondary|academy|kindergarten|daycare|church|ack|a\.c\.k|catholic|parish|chapel|cathedral|pcea|sda|adventist|pentecostal|gospel|ministr(y|ies)|fellowship|jumuiya|four ?square|mosque|masjid|madrasa|temple|gurdwara|hospital|clinic|dispensary|health|police|barracks|prison|university|college|polytechnic|embassy|high commission|county government|slum|informal|swimming pool|playground|cemetery|restaurant|cafe|cafeteria|eatery|hotel kibanda|kibanda|chapati|nyama choma|butchery|bar|pub|club|lounge|kinyozi|salon|shop|supermarket|market|stage|matatu|garage|car ?wash|petrol|depot|godown|warehouse|factory|plot|farm|shamba|jua ?ka(li|i))\b|\b(centre|center|area|park|grounds?|stadium|sector)$/i';
+    private const NOT_TARGET = '/\b(school|primary|secondary|academy|kindergarten|daycare|church|ack|a\.c\.k|catholic|parish|chapel|cathedral|pcea|sda|adventist|pentecostal|gospel|ministr(y|ies)|fellowship|jumuiya|four ?square|mosque|masjid|madrasa|temple|gurdwara|hospital|clinic|dispensary|health|police|barracks|prison|university|college|polytechnic|embassy|high commission|county government|slum|informal|swimming pool|playground|cemetery|restaurant|cafe|cafeteria|eatery|hotel kibanda|kibanda|chapati|nyama choma|butchery|bar|pub|club|lounge|kinyozi|salon|shop|supermarket|market|stage|matatu|garage|car ?wash|petrol|depot|godown|warehouse|factory|plot|farm|shamba|jua ?ka(li|i)|(mens?|ladies|female|male|girls|boys) hostels?)\b|\b(centre|center|area|park|grounds?|stadium|sector)$/i';
 
     /** Named after a person ("Mama Tina", "Kwa Mzee …"): a home or a kiosk, and personal data either way. */
     private const PERSONAL = '/^(mama|baba|mzee|kwa|cucu|shosh|mr\.?|mrs\.?|dr\.?|hon\.?)\b|\'s (home|house|place|residence)\b|\b(homestead|home of|residence of|family)\b/i';
 
     /** A named estate / residential landuse must look like one (not a place name or a landmark). */
-    private const ESTATE_WORDS = '/\b(estates?|court|gardens?|park ?view|villas?|residen\w*|heights|springs|apartments?|homes|ridge|views?|meadows|village|flats|towers?|phase|block|close|crescent|grove|place|terrace|mansions?|manor|haven|enclave|suites|maisonettes?|town ?houses|annex|condos?|cottages|housing|developments?|riviera|willows|drive|point|res)\b/i';
+    private const ESTATE_WORDS = '/\b(estates?|court|gardens?|park ?view|villas?|residen\w*|heights|springs|apartments?|homes|ridge|views?|meadows|village|flats|towers?|phase|block|close|crescent|grove|place|terrace|mansions?|manor|haven|enclave|suites|maisonettes?|town ?houses|annex|condos?|cottages|housing|developments?|riviera|willows|drive|point|res|hostels?|nhc)\b/i';
 
     private const ROLE_EMAILS = ['info', 'sales', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'hello', 'contact', 'contactus', 'admin', 'office',
         'lettings', 'letting', 'rentals', 'rent', 'leasing', 'reservations', 'reservation', 'bookings', 'booking', 'stay', 'property', 'properties',
@@ -139,9 +166,37 @@ class PullNairobiLeads extends Command
             }
         }
 
+        // NHC estates and affordable-housing schemes, anywhere in Kenya (full runs, or --areas=NHC).
+        $nhcFailed = false;
+        $wantNhc = ! $this->option('areas') || in_array('nhc', array_map(fn ($a) => Str::lower(trim($a)), explode(',', $this->option('areas'))), true);
+        if ($wantNhc && $this->option('source') === 'pbf') {
+            $nhcFailed = true;
+        } elseif ($wantNhc) {
+            $found = $this->overpassNhc();
+            if ($found === null) {
+                $nhcFailed = true;
+                $this->warn('Overpass gave no answer for the NHC / affordable-housing search; it is retried next run.');
+            } else {
+                foreach ($found as $el) {
+                    $el['_nhc'] = true;
+                    $elements[$el['type'].'/'.$el['id']] ??= $el;
+                    $elements[$el['type'].'/'.$el['id']]['_nhc'] = true;
+                }
+                $this->line(sprintf('%-14s %4d OSM features', 'NHC/affordable', count($found)));
+            }
+        }
+
         // Areas Overpass could not answer (or --source=pbf): the .pbf extract.
-        if ($failed && ($extract = $this->pbfElements())) {
+        if (($failed || $nhcFailed) && ($extract = $this->pbfElements())) {
             [$fromPbf, $base] = $extract;
+            if ($nhcFailed) {
+                $found = array_filter($fromPbf, fn ($el) => ! empty($el['_nhc']));
+                foreach ($found as $el) {
+                    $elements[$el['type'].'/'.$el['id']] ??= $el;
+                    $elements[$el['type'].'/'.$el['id']]['_nhc'] = true;
+                }
+                $this->line(sprintf('%-14s %4d OSM features (from the .pbf extract, %s)', 'NHC/affordable', count($found), $base));
+            }
             foreach ($failed as $area) {
                 [$lat, $lng, $radius] = $areas[$area];
                 $found = array_filter($fromPbf, fn ($el) => ($p = $this->point($el)) && $this->metres($p[0], $p[1], $lat, $lng) <= $radius);
@@ -353,21 +408,45 @@ class PullNairobiLeads extends Command
         $path = $dir.'/companies-'.now()->format('Ymd-His').'.json.gz';
         Storage::disk('local')->makeDirectory($dir);
         $out = gzopen(Storage::disk('local')->path($path), 'w6') ?: throw new \RuntimeException('Cannot write backup');
-        gzwrite($out, "[\n");
+        $write = fn (string $s) => gzwrite($out, $s) === false && throw new \RuntimeException('Backup write failed: '.$path);
+        $write("[\n");
         $first = true;
-        DB::table('companies')->orderBy('id')->chunk(1000, function ($chunk) use ($out, &$first) {
+        $rows = 0;
+        DB::table('companies')->orderBy('id')->chunk(1000, function ($chunk) use ($write, &$first, &$rows) {
             foreach ($chunk as $row) {
-                gzwrite($out, ($first ? '' : ",\n").json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+                $json = json_encode($row, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+                if ($json === false) {
+                    throw new \RuntimeException('Backup: company #'.$row->id.' could not be encoded.');
+                }
+                $write(($first ? '' : ",\n").$json);
                 $first = false;
+                $rows++;
             }
         });
-        gzwrite($out, "\n]\n");
-        gzclose($out);
+        $write("\n]\n");
+        gzclose($out) || throw new \RuntimeException('Backup could not be closed: '.$path);
+        // Hard stop: nothing is written to the CRM unless the backup holds every company.
+        $expected = DB::table('companies')->count();
+        if ($rows === 0 || $rows < $expected || filesize(Storage::disk('local')->path($path)) < 100) {
+            throw new \RuntimeException("Backup incomplete ({$rows} of {$expected} companies): stopping before any change.");
+        }
 
         $old = collect(Storage::disk('local')->files($dir))->filter(fn ($f) => str_contains($f, '/companies-'))->sort()->values();
         Storage::disk('local')->delete($old->slice(0, max(0, $old->count() - 8))->all());
 
         return Storage::disk('local')->path($path);
+    }
+
+    /** NHC (National Housing Corporation) estates and affordable-housing projects in Kenya, by name, operator or owner. */
+    private function overpassNhc(): ?array
+    {
+        $re = '(^|[^a-z])NHC([^a-z]|$)|national housing|affordable housing|boma yangu';
+        $query = '[out:json][timeout:90];area["ISO3166-1"="KE"][admin_level=2]->.ke;('
+            .'nwr[name~"'.$re.'",i][~"^(landuse|building|residential|place)$"~"."](area.ke);'
+            .'nwr[~"^(operator|owner)$"~"'.$re.'",i][~"^(landuse|building|residential)$"~"."](area.ke);'
+            .');out center tags;';
+
+        return $this->overpassQuery($query);
     }
 
     /** @return array<int, array>|null Overpass elements around a point, or null when every endpoint failed. */
@@ -383,8 +462,15 @@ class PullNairobiLeads extends Command
             .'nwr[name][office][name~"propert|realt|real estate|developers|homes|housing|estates",i]'.$a.';'
             .'nwr[tourism~"^(apartment|guest_house|chalet)$"]'.$a.';'
             .'nwr[name][tourism=hotel][name~"apartment|suites|residence|serviced",i]'.$a.';'
+            .'nwr[name][tourism=hostel]'.$a.';'
+            .'nwr[name][building][name~"hostel",i]'.$a.';'
             .');out center tags;';
 
+        return $this->overpassQuery($query);
+    }
+
+    private function overpassQuery(string $query): ?array
+    {
         foreach (self::ENDPOINTS as $attempt => $url) {
             try {
                 $response = Http::withHeaders(['User-Agent' => self::UA])->asForm()->connectTimeout(10)->timeout(75)->post($url, ['data' => $query]);
@@ -439,6 +525,9 @@ class PullNairobiLeads extends Command
             }
             [$lat, $lng] = $this->point($el) ?? [null, null];
             $area = $lat === null ? null : $this->nearestArea($lat, $lng, $areas);
+            if (! $area && $lat !== null && ! empty($el['_nhc'])) {
+                $area = self::NHC_AREA;
+            }
             if (! $area) {
                 $skips['outside the areas']++;
                 continue;
@@ -464,20 +553,27 @@ class PullNairobiLeads extends Command
                 $seen['@'.$domain] = true;
             }
 
-            $rows[] = $this->row($name, $t, $area, $areas[$area][3], $osmId, $lat, $lng, $website, $email);
+            $rows[] = $this->row($name, $t, $area, $areas[$area][3] ?? 2, $osmId, $lat, $lng, $website, $email, ! empty($el['_nhc']));
         }
 
         return [$rows, $skips];
     }
 
-    private function row(string $name, array $t, string $area, int $tier, string $osmId, float $lat, float $lng, ?string $website, ?string $email): array
+    private function row(string $name, array $t, string $area, int $tier, string $osmId, float $lat, float $lng, ?string $website, ?string $email, bool $nhc = false): array
     {
         $office = $t['office'] ?? $t['shop'] ?? null;
         $tourism = $t['tourism'] ?? null;
         $phone = $t['phone'] ?? $t['contact:phone'] ?? $t['contact:mobile'] ?? null;
         $phone = $phone ? implode(' / ', array_map('trim', preg_split('/;/', $phone))) : null;
 
-        if ($office) {
+        $hostel = ($t['tourism'] ?? null) === 'hostel' || ($t['building'] ?? null) === 'dormitory' || preg_match('/\bhostels?\b/i', $name);
+        if ($nhc && ! $office) {
+            [$kind, $segment, $type, $angle, $role] = ['manager', 'Affordable Housing', 'NHC / affordable-housing estate',
+                'Rent and tenant-purchase collection, service charge, water/power sub-metering and gate log for the estate', 'Estate Manager / NHC regional office'];
+        } elseif ($hostel && ! $office) {
+            [$kind, $segment, $type, $angle, $role] = ['manager', 'Residential Property (named building/estate)', 'Student hostel / rental near campus',
+                'Rent per room or bed, deposits, water/power sub-metering and gate log for the hostel', 'Hostel Owner / Manager'];
+        } elseif ($office) {
             $developer = preg_match('/develop|construction|homes\b/i', $name);
             [$kind, $segment, $type, $angle, $role] = $developer
                 ? ['developer', 'Developer', 'Property developer (office)', 'Rent, service charge and handover for Nairobi projects', 'Head of Sales / Property Management']
@@ -514,7 +610,7 @@ class PullNairobiLeads extends Command
             'Company' => $name,
             'Kind' => $kind,
             'Segment' => $segment,
-            'City' => self::AREAS[$area][4] ?? 'Nairobi',
+            'City' => $area === self::NHC_AREA ? '' : (self::AREAS[$area][4] ?? 'Nairobi'),
             'Area' => $area,
             'Business Type' => $type,
             'Known Project / Portfolio' => $kind === 'manager' && ! $office ? $name.', '.$area : '',
