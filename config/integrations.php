@@ -348,6 +348,8 @@ return [
             'mailgun_domain' => ['label' => 'Mailgun domain', 'placeholder' => 'mg.youragency.co.ke', 'show_if' => ['provider' => ['mailgun']]],
             'mailgun_key' => ['label' => 'Mailgun API key', 'secret' => true, 'show_if' => ['provider' => ['mailgun']]],
             'mailgun_region' => ['label' => 'Mailgun region', 'type' => 'select', 'show_if' => ['provider' => ['mailgun']], 'options' => ['us' => 'US (api.mailgun.net)', 'eu' => 'EU (api.eu.mailgun.net)']],
+            'read_inbox' => ['label' => 'Let the Claude assistant read this inbox', 'type' => 'select', 'show_if' => ['provider' => ['smtp', 'google', 'microsoft', 'zoho']], 'options' => ['no' => 'No', 'yes' => 'Yes: draft replies to tenants\' emails'], 'help' => 'Read-only (emails are not marked read, moved or deleted). Only emails from your tenants get a draft; you send it.'],
+            'imap_host' => ['label' => 'Incoming mail server (IMAP)', 'placeholder' => 'mail.youragency.co.ke', 'show_if' => ['provider' => ['smtp']], 'help' => 'Google, Microsoft and Zoho are filled in for you. Port 993 (SSL).'],
         ],
     ],
 
@@ -460,6 +462,38 @@ return [
         'fields' => [
             'vendor' => ['label' => 'Meter make / vendor', 'placeholder' => 'Stron, Hexing, Calin, Kamstrup…', 'help' => 'For our records and support.'],
             'gateway_key' => ['label' => 'Gateway key', 'secret' => true, 'help' => 'Leave blank and save to get one (shown once in the Test result). The vendor sends it as "Authorization: Bearer …" to POST /api/v1/meter-readings with {serial, reading, read_at}.'],
+        ],
+    ],
+
+    'assistant' => [
+        'name' => 'Claude assistant',
+        'scope' => 'company',
+        'category' => 'Automation',
+        'description' => 'Claude (Anthropic) drafts replies to your tenants\' emails, payment follow-ups for late tenants, and a weekly data clean-up (units, bills, phone numbers that do not add up). Nothing is sent or changed until a person approves it on the Assistant page. Included in your plan.',
+        'color' => '#D97757',
+        'link' => ['label' => 'Open the Assistant', 'route' => 'assistant.index'],
+        'fields' => [
+            'tone' => ['label' => 'Tone', 'type' => 'select', 'required' => true, 'options' => ['warm' => 'Warm and friendly', 'formal' => 'Formal', 'brief' => 'Short and to the point']],
+            'sign_off' => ['label' => 'Sign off as', 'placeholder' => 'Mary, Greenview Apartments office'],
+            'arrears' => ['label' => 'Payment follow-ups', 'type' => 'select', 'required' => true, 'options' => ['7' => 'For tenants 7+ days late', '3' => 'For tenants 3+ days late', '14' => 'For tenants 14+ days late', 'off' => 'Off'], 'help' => 'A personal message with the amount owed and the pay link, in addition to the automatic reminders. One draft per tenant per week.'],
+            'arrears_channel' => ['label' => 'Send follow-ups by', 'type' => 'select', 'required' => true, 'options' => ['sms' => 'SMS', 'whatsapp' => 'WhatsApp (else SMS)', 'email' => 'Email (else SMS)']],
+            'cleanup' => ['label' => 'Data clean-up', 'type' => 'select', 'required' => true, 'options' => ['weekly' => 'Every Monday morning', 'off' => 'Only when I press Scan']],
+            'instructions' => ['label' => 'Anything Claude should always know', 'type' => 'textarea', 'placeholder' => 'Office hours 8-5, Mon-Sat. Rent is due on the 5th. We accept M-Pesa paybill 123456, account = unit number.', 'help' => 'Facts and house rules used in every draft.'],
+        ],
+    ],
+
+    'claude' => [
+        'name' => 'Claude assistant (scharge)',
+        'scope' => 'platform',
+        'category' => 'Automation',
+        'description' => 'scharge\'s Anthropic key for the Claude assistant: drafts answers to prospects\' replies, CRM follow-ups and subscription reminders for scharge staff, and the companies\' assistant (tenant emails, payment follow-ups, data clean-up). Everything waits on the Assistant page for a person to send.',
+        'color' => '#D97757',
+        'link' => ['label' => 'Open the Assistant', 'route' => 'assistant.index'],
+        'fields' => [
+            'api_key' => ['label' => 'Anthropic API key', 'secret' => true, 'help' => 'From console.anthropic.com › API keys. Leave blank to use the Document reading (KYC) key.'],
+            'daily_limit' => ['label' => 'Drafts per company per day', 'placeholder' => '60', 'help' => 'A cap so one busy company cannot run up the bill.'],
+            'crm' => ['label' => 'scharge CRM drafts', 'type' => 'select', 'required' => true, 'options' => ['on' => 'Prospect replies, due follow-ups and subscription reminders', 'off' => 'Off']],
+            'instructions' => ['label' => 'What Claude should know about scharge', 'type' => 'textarea', 'placeholder' => 'Pricing per unit per month, pay 1 month get 3, free for tenants…', 'help' => 'Used in every scharge CRM and billing draft.'],
         ],
     ],
 

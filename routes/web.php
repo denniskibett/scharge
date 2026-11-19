@@ -505,6 +505,14 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     Route::get('/payments/{id}/receipt', [App\Http\Controllers\DocumentController::class, 'receipt'])->whereNumber('id')->name('payments.receipt');
     Route::post('/invoices/{invoice}/pay-link', App\Http\Controllers\InvoicePayLinkController::class)
         ->middleware('role:sysadmin|admin|accountant|property_manager')->name('invoices.pay-link');
+    // Claude assistant: drafts wait here for a person to send (docs/ASSISTANT.md).
+    Route::middleware('role:sysadmin|account_manager|admin|accountant|property_manager')->prefix('assistant')->name('assistant.')->controller(App\Http\Controllers\AssistantController::class)->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/run', 'run')->middleware('throttle:6,1,assistant-run')->name('run');
+        Route::post('/{id}/send', 'send')->whereNumber('id')->middleware('throttle:60,1,assistant-send')->name('send');
+        Route::post('/{id}/discard', 'discard')->whereNumber('id')->name('discard');
+        Route::post('/{id}/redraft', 'redraft')->whereNumber('id')->middleware('throttle:20,1,assistant-redraft')->name('redraft');
+    });
     // Bank statement import (Integrations › Bank statement import; docs/INTEGRATIONS.md).
     Route::middleware('role:sysadmin|admin|accountant|property_manager')->prefix('bank-import')->name('bank-import.')->controller(App\Http\Controllers\BankImportController::class)->group(function () {
         Route::get('/', 'index')->name('index');

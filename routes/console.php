@@ -77,6 +77,19 @@ Schedule::call(function () {
 // Integrations › SMS sender ID: switch on names the networks approved on scharge's KenyaSMS account (no staff step).
 Schedule::call(fn () => \App\Services\Connectors\SenderIds::sync())->hourly()->name('sender-ids-sync')->withoutOverlapping()->onOneServer();
 
+// Claude assistant: draft replies and follow-ups in working hours (nothing is sent until a person approves it).
+Schedule::call(fn () => \App\Services\Assistant\Sources::run())->everyFifteenMinutes()->between('7:00', '19:00')
+    ->name('assistant-drafts')->withoutOverlapping(30)->onOneServer();
+// Claude assistant: weekly data clean-up for companies that chose it (fixes wait for approval).
+Schedule::call(function () {
+    if (! \App\Services\Assistant\Claude::installed()) {
+        return;
+    }
+    \App\Models\CompanyIntegration::where('provider', 'assistant')->where('enabled', true)->whereNotNull('company_id')->get()
+        ->filter(fn ($r) => $r->get('cleanup', 'weekly') === 'weekly')
+        ->each(fn ($r) => rescue(fn () => \App\Services\Assistant\Cleanup::scan((int) $r->company_id)));
+})->weeklyOn(1, '07:00')->name('assistant-cleanup')->withoutOverlapping()->onOneServer();
+
 // Integrations › Equity Bank (Jenga): read yesterday's deposits and match them to tenants' bills.
 Schedule::call(fn () => \App\Services\Connectors\Jenga::pullAll())->dailyAt('06:30')->name('jenga-pull')->withoutOverlapping()->onOneServer();
 

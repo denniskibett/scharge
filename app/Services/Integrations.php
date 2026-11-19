@@ -165,6 +165,7 @@ class Integrations
             'quickbooks', 'xero', 'zoho_books' => Connectors\Accounting::test($row),
             'quickbooks_app', 'xero_app', 'zoho_app' => [filled($row->get('client_id')) && filled($row->get('client_secret')), 'Saved. Companies can now click Connect. Redirect URI: '.route('integrations.oauth.callback', ['provider' => ['quickbooks_app' => 'quickbooks', 'xero_app' => 'xero', 'zoho_app' => 'zoho_books'][$row->provider]])],
             'smart_meters' => self::testMeters($row),
+            'assistant', 'claude' => \App\Services\Assistant\Claude::test($row),
             'channel_sync' => [true, \App\Models\UnitChannel::whereNotNull('import_url')->count().' unit calendars connected. They sync every 30 minutes while this is on.'],
             default => [false, 'No test available for this provider.'],
         };
@@ -197,6 +198,10 @@ class Integrations
                 ($q && ($err = (clone $q)->whereNotNull('error')->where('status', '!=', 'synced')->latest('updated_at')->value('error'))) ? ['label' => 'Last problem', 'value' => $err] : null,
             ],
             'jenga' => ($q = $count('bank_statement_lines', ['company_id' => $row->company_id, 'source' => 'jenga'])) ? [['label' => 'Deposits read', 'value' => (clone $q)->count().' ('.(clone $q)->where('status', 'posted')->count().' recorded)']] : [],
+            'assistant', 'claude' => ($q = $count('ai_drafts', ['company_id' => $row->company_id])) ? [
+                ['label' => 'Waiting for you', 'value' => (clone $q)->where('status', 'draft')->count().' drafts'],
+                ['label' => 'Sent or fixed this week', 'value' => (string) (clone $q)->whereIn('status', ['sent', 'applied'])->where('sent_at', '>=', now()->subDays(7))->count()],
+            ] : [],
             'smart_meters' => [['label' => 'Vendor endpoint', 'value' => url('/api/v1/meter-readings'), 'copy' => true]],
             'kenyasms_sender' => $row->get('setup') === 'managed' && $status($row) ? [['label' => 'Registration', 'value' => $status($row)]] : [],
             'whatsapp_business' => $row->get('mode') === 'managed' && $status($row) ? [['label' => 'Set-up', 'value' => $status($row)]] : [],
