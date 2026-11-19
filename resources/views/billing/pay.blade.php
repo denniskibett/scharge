@@ -53,7 +53,7 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
 .strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 0 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
 .strip .pill { margin-left: auto; padding: 2px 10px; font-size: 12px; }
 .sp-frame { display: block; width: 100%; height: 600px; border: 0; margin-top: 12px; border-radius: 14px; background: #fff; }
-html.embed .sp-frame { height: calc(100vh - 190px); min-height: 480px; }
+html.embed .sp-frame { height: calc(100vh - 250px); min-height: 440px; }
 .note a { color: var(--muted); }
 </style>
 </head>
