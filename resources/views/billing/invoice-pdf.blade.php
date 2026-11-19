@@ -81,7 +81,7 @@ h1 { margin: 0; font-size: 18pt; }
 </table>
 
 @unless ($paid)
-  <div class="payline">@if (is_file(public_path('images/integrations/sharet.svg')))<img src="{{ public_path('images/integrations/sharet.svg') }}" style="width:12pt;height:12pt;vertical-align:-3pt;margin-right:4pt" alt="">@endif<b>Pay with Sharet Pay</b>@if (! empty($pay['stk_number']))&nbsp;&nbsp;·&nbsp;&nbsp;STK push: <b>{{ $pay['stk_number'] }}</b>@endif @if (! empty($pay['sharet_handle']))&nbsp;&nbsp;·&nbsp;&nbsp;Sharet to Sharet: <b>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</b>@endif&nbsp;&nbsp;·&nbsp;&nbsp;Reference: <b>{{ $inv->invoice_number }}</b></div>
+  <div class="payline">@if (is_file(public_path('images/integrations/sharet.svg')))<img src="{{ public_path('images/integrations/sharet.svg') }}" style="width:12pt;height:12pt;vertical-align:-3pt;margin-right:4pt" alt="">@endif<a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">Pay with Sharet Pay</a><span class="muted">&nbsp;&nbsp;·&nbsp;&nbsp;M-Pesa STK push or Sharet to Sharet@if (! empty($pay['sharet_handle'])) ({{ '@'.ltrim($pay['sharet_handle'], '@') }})@endif</span></div>
 @endunless
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 

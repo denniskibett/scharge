@@ -245,6 +245,25 @@ class BillPayments
             });
     }
 
+    /** Ask Sharet for one open bill payment now (the public status page). Returns the row, updated when Sharet moved it. */
+    public function refresh(BillingPayment $row): BillingPayment
+    {
+        $platform = Integrations::sharet();
+        if (! $platform || $row->method !== 'sharet_pay' || $row->status !== 'open' || ! $row->sharet_id) {
+            return $row;
+        }
+        try {
+            $res = SharetClient::fromIntegration($platform)->get('/payment-requests/'.$row->sharet_id);
+            if ($res->successful()) {
+                return $this->apply($res->json()) ?? $row;
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Sharet bill status check failed', ['billing_payment_id' => $row->id, 'error' => $e->getMessage()]);
+        }
+
+        return $row;
+    }
+
     /** Poll Sharet for open bill links (a safety net for missed webhooks). */
     public function syncOpen(int $limit = 100): int
     {

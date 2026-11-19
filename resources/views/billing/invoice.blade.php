@@ -60,7 +60,10 @@ td small { display: block; color: var(--muted); }
 @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
 @media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .links, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .pay { margin: 0 0 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
-.payline { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 22px; color: #344054; font-size: 13px; }
+.sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
+.sp-link img { border-radius: 5px; }
+.sp-link:hover { text-decoration: underline; }
+.payline { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: #344054; font-size: 13px; }
 .pay h3 { margin: 0 0 10px; font-size: 14px; }
 .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .pay-grid > div > b:first-child { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
@@ -92,7 +95,7 @@ td small { display: block; color: var(--muted); }
       <div class="pay-grid">
         <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.@if (! empty($pay['sharet_handle']))<br>Sharet to Sharet: <strong>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</strong>@endif</div>
         <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.@if (! empty($pay['stk_number']))<br>STK push number: <strong>{{ $pay['stk_number'] }}</strong>@endif</div>
-        <div><b>Reference</b>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></div>
+        <div><b>Pay now</b><a class="btn sm red" href="{{ $payUrl }}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;margin-top:2px">Pay {{ $money($total) }} with Sharet Pay →</a><br><span class="muted" style="font-size:12px">A fresh Sharet reference each time; the link shows the payment's status.</span></div>
         <div><b>Questions</b>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</div>
       </div>
     </div>
@@ -162,10 +165,8 @@ td small { display: block; color: var(--muted); }
 
   @unless ($paid)
     <div class="payline">
-      <b class="sp-head"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay</b>
-      @if (! empty($pay['stk_number']))<span>STK push: <strong>{{ $pay['stk_number'] }}</strong></span>@endif
-      @if (! empty($pay['sharet_handle']))<span>Sharet to Sharet: <strong>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</strong></span>@endif
-      <span>Reference: <strong>{{ $inv->invoice_number }}</strong></span>
+      <a class="sp-link" href="{{ $payUrl }}" target="_blank" rel="noopener"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay →</a>
+      <span class="muted">M-Pesa STK push or Sharet to Sharet@if (! empty($pay['sharet_handle'])) ({{ '@'.ltrim($pay['sharet_handle'], '@') }})@endif</span>
     </div>
   @endunless
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
