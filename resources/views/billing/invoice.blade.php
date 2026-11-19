@@ -48,7 +48,7 @@ td small { display: block; color: var(--muted); }
 .pay { margin-top: 22px; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
 .pay h3 { margin: 0 0 10px; font-size: 14px; }
 .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-.pay-grid div b { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.pay-grid > div > b:first-child { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #101828; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 .toast.show { opacity: 1; }
 </style>
@@ -98,8 +98,8 @@ td small { display: block; color: var(--muted); }
     <div class="pay">
       <h3>Payment details · Sharet Pay</h3>
       <div class="pay-grid">
-        <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <b>Billing</b> and choose <b>Pay from wallet</b>. It settles instantly.</div>
-        <div><b>2 · M-Pesa (STK push)</b>Sign in, open <b>Billing</b> and choose <b>Pay with Sharet Pay</b>: enter the M-Pesa number and approve the prompt on the phone with your PIN.</div>
+        <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.</div>
+        <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.</div>
         <div><b>Reference</b>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></div>
         <div><b>Questions</b>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</div>
       </div>
