@@ -76,15 +76,15 @@ h1 { margin: 0; font-size: 18pt; }
 </table>
 
 <table class="totals">
-  <tr><td class="gap"></td><td class="muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
+  <tr><td class="gap">&nbsp;</td><td class="muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
   @if ($vat['mode'] === 'exclusive')
-    <tr><td class="gap"></td><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
+    <tr><td class="gap">&nbsp;</td><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
   @else
-    <tr><td class="gap"></td><td class="muted">VAT (0%)</td><td class="r">{{ $money(0) }}</td></tr>
+    <tr><td class="gap">&nbsp;</td><td class="muted">VAT (0%)</td><td class="r">{{ $money(0) }}</td></tr>
   @endif
-  @if ($paid && $inv->paid_at)<tr><td class="gap"></td><td class="muted">Paid</td><td class="r muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
+  @if ($paid && $inv->paid_at)<tr><td class="gap">&nbsp;</td><td class="muted">Paid</td><td class="r muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
 </table>
-<table style="margin-top:6pt"><tr class="grand"><td class="gap"></td><td>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr></table>
+<table style="margin-top:2pt"><tr class="grand"><td class="gap">&nbsp;</td><td>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr></table>
 
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 @unless ($paid)
