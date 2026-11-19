@@ -18,7 +18,6 @@ use App\Http\Controllers\CleaningController;
 use App\Http\Controllers\MaintenanceController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\WaterReadingController;
-use App\Http\Controllers\Auth\VerificationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MpesaController;
 use App\Modules\Subscriptions\Controllers\SubscriptionController;
@@ -259,11 +258,6 @@ Route::get('/feeds/{company}/{token}/{kind}', [App\Http\Controllers\FeedControll
 Route::post('/webhooks/mpesa/c2b/{token}/validation', [App\Http\Controllers\PaybillWebhookController::class, 'validation'])->name('webhooks.c2b.validation');
 Route::post('/webhooks/mpesa/c2b/{token}/confirmation', [App\Http\Controllers\PaybillWebhookController::class, 'confirmation'])->name('webhooks.c2b.confirmation');
 Route::post('/webhooks/sharet', App\Http\Controllers\SharetWebhookController::class)->name('webhooks.sharet');
-
-// Email Verification Routes
-// Route::get('/email/verify', [VerificationController::class, 'notice'])->name('verification.notice');
-// Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verify'])->name('verification.verify');
-// Route::post('/email/resend', [VerificationController::class, 'resend'])->name('verification.resend');
 
 // ============================================
 // AUTHENTICATION ROUTES
