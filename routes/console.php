@@ -105,9 +105,13 @@ $campaignCap = fn () => match (now(config('app.schedule_timezone', 'Africa/Nairo
     default => 2500,
 };
 $campaignOrder = ['RESIDENTIAL', 'BNB', 'COMMERCIAL', 'UTILITIES'];
+// Who signs (and owns) the new prospects of each type: Waithaka Kammau (#664) all residential, Annete Sidi Kenga (#667) BNB.
+// The other types alternate between the account managers. Prospects that already have an owner keep them.
+$campaignManager = ['RESIDENTIAL' => 664, 'BNB' => 667];
 foreach ($campaignOrder as $i => $type) {
     $after = $i ? ' --after='.implode(',', array_slice($campaignOrder, 0, $i)) : '';
-    Schedule::command("crm:campaign {$type}{$after} --send --limit=40 --per-minute=6 --daily-cap=".$campaignCap())
+    $manager = isset($campaignManager[$type]) ? ' --manager='.$campaignManager[$type] : '';
+    Schedule::command("crm:campaign {$type}{$after}{$manager} --send --limit=40 --per-minute=6 --daily-cap=".$campaignCap())
         ->weekdays()->everyTenMinutes()->between('08:00', '20:59')
         ->withoutOverlapping(15)
         ->onOneServer()
