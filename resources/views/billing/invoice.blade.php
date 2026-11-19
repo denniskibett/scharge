@@ -155,7 +155,7 @@ td small { display: block; color: var(--muted); }
     <div class="info">
       <b>Plan</b>
       <div class="plan-name">{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
-      <div class="dates muted">Issued: {{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }} · Due: {{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</div>
+      <div class="dates muted">Issued: {{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }} · Due: {{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('D, d/m/Y') }}</div>
     </div>
   </div>
 
