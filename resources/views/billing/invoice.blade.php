@@ -34,7 +34,9 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; padding: 10px 0; border-bottom: 1px solid var(--line); }
 td { padding: 12px 0; border-bottom: 1px solid #F2F4F7; vertical-align: top; }
-td.amt, th.amt { text-align: right; white-space: nowrap; }
+td.amt, th.amt, td.num, th.num { text-align: right; white-space: nowrap; }
+td.num, th.num { padding-left: 14px; color: #344054; }
+th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
 .totals { margin-left: auto; width: min(320px, 100%); margin-top: 16px; }
 .totals div { display: flex; justify-content: space-between; padding: 6px 0; }
@@ -79,10 +81,15 @@ td small { display: block; color: var(--muted); }
   @endif
 
   <table>
-    <thead><tr><th>Description</th><th class="amt">Amount</th></tr></thead>
+    <thead><tr><th>Description</th><th class="num">Units</th><th class="num">Rate / unit</th><th class="amt">Amount</th></tr></thead>
     <tbody>
       @foreach ($items as $it)
-        <tr><td>{{ $it['description'] }}@if ($it['detail'])<small>{{ $it['detail'] }}</small>@endif</td><td class="amt">{{ $money($it['amount']) }}</td></tr>
+        <tr>
+          <td>{{ $it['description'] }}@if ($it['detail'])<small>{{ $it['detail'] }}</small>@endif</td>
+          <td class="num">{{ $it['units'] !== null ? number_format($it['units']) : '—' }}</td>
+          <td class="num">{{ $it['rate'] !== null ? $cur.' '.number_format($it['rate'], 2) : '—' }}</td>
+          <td class="amt">{{ $money($it['amount']) }}</td>
+        </tr>
       @endforeach
     </tbody>
   </table>

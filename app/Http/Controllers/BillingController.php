@@ -114,13 +114,23 @@ class BillingController extends Controller
         $json = json_decode((string) $row->invoice_json, true) ?: [];
 
         // Lines: explicit items, else one per billed month, else the plan as one line.
-        $items = collect($json['items'] ?? [])->map(fn ($i) => ['description' => $i['description'], 'detail' => $i['detail'] ?? null, 'amount' => (float) $i['amount']]);
+        // Units and rate in their own columns: from the item, else read from an older "276 units × KES 60" detail.
+        $items = collect($json['items'] ?? [])->map(function ($i) {
+            $units = $i['units'] ?? null;
+            $rate = $i['rate'] ?? null;
+            if (($units === null || $rate === null) && preg_match('/([\d,]+)\s*units?\s*×\s*KES\s*([\d,.]+)/u', (string) ($i['detail'] ?? ''), $m)) {
+                $units ??= (int) str_replace(',', '', $m[1]);
+                $rate ??= (float) str_replace(',', '', $m[2]);
+            }
+
+            return ['description' => $i['description'], 'detail' => ($units !== null ? null : ($i['detail'] ?? null)), 'units' => $units, 'rate' => $rate, 'amount' => (float) $i['amount']];
+        });
         if ($items->isEmpty() && ! empty($json['lines'])) {
             $items = collect($json['lines'])->map(fn ($l) => ['description' => ($json['property'] ?? 'Units').' · '.$l['month'],
-                'detail' => $l['units'].' units × KES '.number_format($l['rate']), 'amount' => (float) $l['amount']]);
+                'detail' => null, 'units' => (int) $l['units'], 'rate' => (float) $l['rate'], 'amount' => (float) $l['amount']]);
         }
         if ($items->isEmpty()) {
-            $items = collect([['description' => ($json['plan_name'] ?? $row->plan_name ?? 'scharge subscription'), 'detail' => null, 'amount' => (float) $row->amount]]);
+            $items = collect([['description' => ($json['plan_name'] ?? $row->plan_name ?? 'scharge subscription'), 'detail' => null, 'units' => null, 'rate' => null, 'amount' => (float) $row->amount]]);
         }
 
         return view('billing.invoice', ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public,
