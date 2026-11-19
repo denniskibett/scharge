@@ -10,7 +10,10 @@
   <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
     <form method="GET" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
       @include('partials.table.tabs', ['tabs' => [['label' => 'All visitors', 'url' => route('gate.visitors'), 'active' => true, 'count' => $places->total()]]])
-      @include('partials.table.search', ['value' => request('q'), 'placeholder' => 'Name, phone or plate…'])
+      <div class="flex flex-wrap items-center gap-3">
+        @include('partials.table.search', ['value' => request('q'), 'placeholder' => 'Name, phone or plate…'])
+        @include('gate._actions', ['active' => 'visitors', 'canManage' => $canManage ?? false])
+      </div>
     </form>
     @if ($places->isEmpty())
       <div class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No visitors yet. They appear here after their first pass.</div>

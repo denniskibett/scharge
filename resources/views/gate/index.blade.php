@@ -46,6 +46,7 @@
           @include('partials.table.select', ['name' => 'property_id', 'aria' => 'Property', 'selected' => request('property_id'), 'options' => ['' => 'All Properties'] + $properties->pluck('name', 'id')->all()])
         @endif
         @include('partials.table.search', ['value' => request('q'), 'placeholder' => 'Name, phone, code or plate…'])
+        @include('gate._actions', ['active' => 'index', 'canManage' => $canManage ?? false])
       </div>
     </form>
 
