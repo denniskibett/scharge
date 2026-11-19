@@ -16,7 +16,7 @@
     @keydown.escape.window="open = false">
     {{-- Right-side slide-over --}}
     <div x-show="open" x-cloak x-transition:leave="duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-100" class="fixed inset-0 z-99999" role="dialog" aria-modal="true" aria-label="Sales playbook">
-        <div x-show="open" x-transition.opacity.duration.200ms class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="open = false"></div>
+        <div x-show="open" x-transition.opacity.duration.200ms class="absolute inset-0 modal-overlay" @click="open = false"></div>
         <aside x-show="open"
                x-transition:enter="transform transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
                x-transition:leave="transform transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"

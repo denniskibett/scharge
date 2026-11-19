@@ -3,7 +3,7 @@
   id="eventModal"
 >
   <div
-    class="modal-close-btn fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+    class="modal-close-btn fixed inset-0 transition-opacity z-99999 modal-overlay"
   ></div>
   <div
     class="modal-dialog modal-dialog-scrollable modal-lg no-scrollbar fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999 p-6 lg:p-10"

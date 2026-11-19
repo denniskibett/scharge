@@ -3,7 +3,7 @@
 <!-- MAIN SECURITY VISITOR LOG MODAL (Full Modal with Property→Unit→Tenant Selection) -->
 <div id="securityVisitorModal" class="fixed inset-0 z-999999 hidden" style="isolation: isolate;" aria-labelledby="slideover-title" role="dialog" aria-modal="true">
     <!-- Backdrop with fade -->
-    <div class="fixed inset-0 transition-opacity bg-gray-400/50 backdrop-blur-[32px]"></div>
+    <div class="fixed inset-0 transition-opacity modal-overlay"></div>
     
     <!-- Slideover Panel - slides in from right -->
     <div class="fixed inset-y-0 right-0 max-w-full flex">
@@ -266,7 +266,7 @@
 <!-- QUICK ENTRY MODAL (Alpine.js) -->
 <div x-data="securityQuickEntryModal" x-init="init()" x-cloak>
     <template x-if="isOpen">
-        <div @click="closeModal()" class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+        <div @click="closeModal()" class="fixed inset-0 transition-opacity z-99999 modal-overlay"></div>
     </template>
 
     <div x-show="isOpen" 
@@ -343,7 +343,7 @@
 <!-- ADD VISITOR MODAL (Alpine.js) -->
 <div x-data="securityAddVisitorModal" x-init="init()" x-cloak>
     <template x-if="isOpen">
-        <div @click="closeModal()" class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+        <div @click="closeModal()" class="fixed inset-0 transition-opacity z-99999 modal-overlay"></div>
     </template>
 
     <div x-show="isOpen" 

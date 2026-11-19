@@ -221,7 +221,7 @@
     {{-- Write / reply: right-side slide-over --}}
     @if ($box && $box->isConnected())
     <div x-show="compose" x-cloak class="fixed inset-0 z-99999" role="dialog" aria-modal="true" aria-labelledby="compose-title" @keydown.escape.window="compose = false">
-        <div x-show="compose" x-transition.opacity.duration.200ms class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="compose = false"></div>
+        <div x-show="compose" x-transition.opacity.duration.200ms class="absolute inset-0 modal-overlay" @click="compose = false"></div>
         <form method="POST" action="{{ route('crm.inbox.send', $box) }}" enctype="multipart/form-data" x-show="compose"
               x-transition:enter="transform transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
               x-transition:leave="transform transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"

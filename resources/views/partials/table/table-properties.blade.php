@@ -145,7 +145,7 @@
     <template x-if="isOpen">
         <div 
             @click="closeModal()"
-            class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+            class="fixed inset-0 transition-opacity z-99999 modal-overlay"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
@@ -350,7 +350,7 @@
     <template x-if="isOpen">
         <div 
             @click="closeModal()"
-            class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+            class="fixed inset-0 transition-opacity z-99999 modal-overlay"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
@@ -533,7 +533,7 @@
 <!-- DELETE PROPERTY MODAL (Centered) -->
 <div x-data="deletePropertyModal()" x-show="isModalOpen" x-cloak>
     <div class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
-        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]" @click="closeModal()"></div>
+        <div class="modal-close-btn fixed inset-0 h-full w-full modal-overlay" @click="closeModal()"></div>
         <div 
             class="relative w-full max-w-md rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-8"
         >

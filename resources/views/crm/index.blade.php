@@ -173,7 +173,7 @@
     {{-- Add prospect --}}
     {{-- Add a prospect: right-side slide-over --}}
     <div x-show="adding" x-cloak x-transition:leave="duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-100" class="fixed inset-0 z-99999" role="dialog" aria-modal="true" aria-labelledby="add-prospect-title" @keydown.escape.window="adding = false">
-        <div x-show="adding" x-transition.opacity.duration.200ms class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="adding = false"></div>
+        <div x-show="adding" x-transition.opacity.duration.200ms class="absolute inset-0 modal-overlay" @click="adding = false"></div>
         <form method="POST" action="{{ route('crm.companies.store') }}" x-show="adding"
               x-transition:enter="transform transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
               x-transition:leave="transform transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
@@ -213,7 +213,7 @@
 </div>
 {{-- Assign account manager (one dialog, filled by the row's Actions menu) --}}
 <div x-data="{ show: false, url: '', name: '', owner: '' }" @assign-manager.window="url = $event.detail.url; name = $event.detail.name; owner = $event.detail.owner; show = true" x-show="show" x-cloak class="fixed inset-0 z-99999 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assign-title" @keydown.escape.window="show = false">
-    <div class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="show = false"></div>
+    <div class="absolute inset-0 modal-overlay" @click="show = false"></div>
     <form method="POST" :action="url" class="relative w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-2xl dark:bg-gray-900">
         @csrf @method('PUT')
         <div>

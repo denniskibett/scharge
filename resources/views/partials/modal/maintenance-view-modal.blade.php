@@ -1,7 +1,7 @@
 {{-- Repair request details: a right-side slide-over (open from the Repairs table's View). --}}
 <div x-data="maintenanceViewModal()" x-init="init()" x-cloak>
     <div x-show="showModal" class="fixed inset-0 z-999999" role="dialog" aria-modal="true" aria-labelledby="mt-view-title" @keydown.escape.window="closeModal()" style="display: none;">
-        <div x-show="showModal" x-transition.opacity.duration.200ms class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="closeModal()"></div>
+        <div x-show="showModal" x-transition.opacity.duration.200ms class="absolute inset-0 modal-overlay" @click="closeModal()"></div>
         <div x-show="showModal"
              x-transition:enter="transform transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
              x-transition:leave="transform transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"

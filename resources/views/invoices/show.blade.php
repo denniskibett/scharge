@@ -458,7 +458,7 @@
        x-transition:leave-end="opacity-0"
        x-cloak
        @click="closeModal()"
-       class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+       class="fixed inset-0 transition-opacity z-99999 modal-overlay"></div>
   <div x-show="isModalOpen"
        x-transition:enter="transition transform ease-out duration-300"
        x-transition:enter-start="translate-x-full"

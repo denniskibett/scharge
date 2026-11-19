@@ -34,12 +34,6 @@ Rent collection
         <a href="{{ route('integrations.index') }}" class="font-medium text-brand-600 hover:underline dark:text-brand-400">Settings</a>
       </p>
     </div>
-    @if ($company)
-      <form method="POST" action="{{ route('rent.resend-links') }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="Send a fresh bill link by SMS to every tenant who owes ({{ $counts['owing'] ?? 0 }} unpaid {{ ($counts['owing'] ?? 0) === 1 ? 'bill' : 'bills' }})?">
-        @csrf
-        <button class="{{ $primary }}" type="submit">Send fresh bill links</button>
-      </form>
-    @endif
   </div>
 
   @if (session('success'))
@@ -51,12 +45,18 @@ Rent collection
 
   {{-- Tabs as a line inside the card; each tab's note and table sit below it in the same card. --}}
   <div class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-  <nav class="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800">
+  <nav class="flex items-end gap-1 overflow-x-auto whitespace-nowrap border-b border-gray-200 px-3 pt-3 sm:px-5 dark:border-gray-800">
     @foreach (['paybill' => ['Paybill payments', $counts['unmatched'], 'to match'], 'messages' => ['Messages', $counts['failed'], 'failed'], 'paused' => ['Paused tenants', $counts['paused'], null], 'attempts' => ['Payment attempts', null, null]] as $key => [$label, $count, $hint])
       <a href="{{ route('rent.index', ['tab' => $key]) }}" @class(['-mb-px whitespace-nowrap border-b-2 px-4 py-2.5 text-sm font-medium', 'border-brand-500 text-brand-600 dark:text-brand-400' => $tab === $key, 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400' => $tab !== $key])>
         {{ $label }}@if ($count) <span class="ml-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-white/10 dark:text-gray-200">{{ $count }}{{ $hint ? ' '.$hint : '' }}</span>@endif
       </a>
     @endforeach
+    @if ($company)
+      <form class="ml-auto shrink-0 self-center pb-2" method="POST" action="{{ route('rent.resend-links') }}" onsubmit="return confirm(this.dataset.confirm)" data-confirm="Send a fresh bill link by SMS to every tenant who owes ({{ $counts['owing'] ?? 0 }} unpaid {{ ($counts['owing'] ?? 0) === 1 ? 'bill' : 'bills' }})?">
+        @csrf
+        <button class="{{ $primary }}" type="submit">Send fresh bill links</button>
+      </form>
+    @endif
   </nav>
   <div class="min-w-0 space-y-4 p-3 sm:p-5">
 

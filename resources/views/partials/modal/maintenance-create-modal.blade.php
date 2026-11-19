@@ -2,7 +2,7 @@
 <div x-data="maintenanceCreateModal" x-init="init()" x-cloak>
     <!-- Backdrop -->
     <template x-if="isOpen">
-        <div @click="closeModal()" class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+        <div @click="closeModal()" class="fixed inset-0 transition-opacity z-99999 modal-overlay"></div>
     </template>
 
     <!-- Modal Content -->

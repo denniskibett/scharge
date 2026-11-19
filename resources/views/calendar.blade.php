@@ -38,7 +38,7 @@
         x-transition:leave="transition ease-in duration-200"
         x-transition:leave-start="opacity-100"
         x-transition:leave-end="opacity-0"
-        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"></div>
+        class="fixed inset-0 transition-opacity z-99999 modal-overlay"></div>
     <div x-show="open" x-cloak @keydown.escape.window="open = false"
         x-transition:enter="transition transform ease-out duration-300"
         x-transition:enter-start="translate-x-full"

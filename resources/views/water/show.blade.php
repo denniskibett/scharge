@@ -311,7 +311,7 @@
          x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
          @click="updateModalOpen = false"
-         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+         class="fixed inset-0 transition-opacity z-99999 modal-overlay" style="display: none;"></div>
     <div x-show="updateModalOpen" x-cloak
          x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
          x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
@@ -396,7 +396,7 @@
          x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
          x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
          @click="autoFillModalOpen = false"
-         class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" style="display: none;"></div>
+         class="fixed inset-0 transition-opacity z-99999 modal-overlay" style="display: none;"></div>
     <div x-show="autoFillModalOpen" x-cloak
          x-transition:enter="transition transform ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
          x-transition:leave="transition transform ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"

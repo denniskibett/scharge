@@ -261,7 +261,7 @@
     <template x-if="isOpen">
         <div 
             @click="closeModal()"
-            class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+            class="fixed inset-0 transition-opacity z-99999 modal-overlay"
             x-transition:enter="transition ease-out duration-300"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"

@@ -1,5 +1,5 @@
 <div id="editUserModal" class="fixed inset-0 z-99999 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999" onclick="closeEditModal()"></div>
+    <div class="fixed inset-0 transition-opacity z-99999 modal-overlay" onclick="closeEditModal()"></div>
 
     <div class="fixed top-0 right-0 h-full bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto z-999999" style="width: 32rem; max-width: calc(100% - 2rem);">
         <div class="p-6 lg:p-10">

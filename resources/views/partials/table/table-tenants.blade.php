@@ -231,7 +231,7 @@
 <!-- Single Create Tenant Modal -->
 <div x-data="createTenantModal()" x-cloak>
     <div x-show="isModalOpen" x-cloak @click="isModalOpen = false"
-        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+        class="fixed inset-0 transition-opacity z-99999 modal-overlay"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -378,7 +378,7 @@
 <!-- Bulk Create Tenant Modal -->
 <div x-data="bulkCreateTenantModal()" x-cloak>
     <div x-show="isModalOpen" x-cloak @click="isModalOpen = false"
-        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+        class="fixed inset-0 transition-opacity z-99999 modal-overlay"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -593,7 +593,7 @@
 <!-- Edit Tenant Modal (Simplified) -->
 <div x-data="editTenantModal()" x-cloak>
     <div x-show="isModalOpen" x-cloak @click="isModalOpen = false"
-        class="fixed inset-0 bg-gray-400/50 backdrop-blur-[32px] transition-opacity z-99999"
+        class="fixed inset-0 transition-opacity z-99999 modal-overlay"
         x-transition:enter="transition ease-out duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -704,7 +704,7 @@
 <!-- Delete Tenant Modal -->
 <div x-data="deleteTenantModal()" x-show="isModalOpen" x-cloak>
     <div class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999">
-        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+        <div class="modal-close-btn fixed inset-0 h-full w-full modal-overlay"></div>
         <div 
             @click.outside="isModalOpen = false"
             class="relative w-full max-w-[584px] rounded-3xl bg-white p-6 dark:bg-gray-900 lg:p-10"
