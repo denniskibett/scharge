@@ -73,13 +73,13 @@ td small { display: block; color: var(--muted); }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
 @page { size: A4 portrait; margin: 10mm 12mm 10mm; }
 @media print {
-  body { font-size: 10px; line-height: 1.35; }
+  body { font-size: 10.5px; line-height: 1.4; }
   .top img { height: 24px; } .top p { margin-top: 6px !important; }
   h1 { font-size: 18px; } .pill { font-size: 9px; padding: 1px 7px; }
   .meta { margin: 10px 0; padding: 8px 0; gap: 8px; grid-template-columns: repeat(4, 1fr); }
   .meta b { font-size: 8.5px; margin-bottom: 2px; }
   .page > p.muted { margin: -4px 0 6px !important; }
-  th { padding: 5px 0; font-size: 8.5px; } td { padding: 3.5px 0; }
+  th { padding: 6px 0; font-size: 8.5px; } td { padding: 5px 0; }
   .grand td { font-size: 13px; padding-top: 6px; }
   .payline { margin-top: 10px; padding-top: 6px; font-size: 10px; }
   thead { display: table-row-group; }
