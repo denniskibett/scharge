@@ -81,13 +81,13 @@ class PullNairobiLeads extends Command
     private const GENERIC = '/^(the )?(apartments?|flats?|estate|residential|residence|houses?|homes?|guest ?house|bnb|airbnb|block [a-z0-9]+|court|towers?|villas?|maisonettes?|townhouses?|staff quarters|quarters|[0-9 \-\/]+)$/i';
 
     /** Not a property business even when mapped as one. */
-    private const NOT_TARGET = '/\b(school|primary|secondary|academy|kindergarten|daycare|church|ack|a\.c\.k|catholic|parish|chapel|cathedral|pcea|sda|adventist|pentecostal|gospel|ministr(y|ies)|fellowship|jumuiya|four ?square|mosque|masjid|madrasa|temple|gurdwara|hospital|clinic|dispensary|health|police|barracks|prison|university|college|polytechnic|embassy|high commission|county government|slum|informal|swimming pool|playground|cemetery|restaurant|cafe|cafeteria|eatery|hotel kibanda|kibanda|chapati|nyama choma|butchery|bar|pub|club|lounge|kinyozi|salon|shop|supermarket|market|stage|matatu|garage|car ?wash|petrol|depot|godown|warehouse|factory|plot|farm|shamba)\b|\b(centre|center|area|park|grounds?|stadium)$/i';
+    private const NOT_TARGET = '/\b(school|primary|secondary|academy|kindergarten|daycare|church|ack|a\.c\.k|catholic|parish|chapel|cathedral|pcea|sda|adventist|pentecostal|gospel|ministr(y|ies)|fellowship|jumuiya|four ?square|mosque|masjid|madrasa|temple|gurdwara|hospital|clinic|dispensary|health|police|barracks|prison|university|college|polytechnic|embassy|high commission|county government|slum|informal|swimming pool|playground|cemetery|restaurant|cafe|cafeteria|eatery|hotel kibanda|kibanda|chapati|nyama choma|butchery|bar|pub|club|lounge|kinyozi|salon|shop|supermarket|market|stage|matatu|garage|car ?wash|petrol|depot|godown|warehouse|factory|plot|farm|shamba|jua ?ka(li|i))\b|\b(centre|center|area|park|grounds?|stadium|sector)$/i';
 
     /** Named after a person ("Mama Tina", "Kwa Mzee …"): a home or a kiosk, and personal data either way. */
     private const PERSONAL = '/^(mama|baba|mzee|kwa|cucu|shosh|mr\.?|mrs\.?|dr\.?|hon\.?)\b|\'s (home|house|place|residence)\b|\b(homestead|home of|residence of|family)\b/i';
 
     /** A named estate / residential landuse must look like one (not a place name or a landmark). */
-    private const ESTATE_WORDS = '/\b(estates?|court|gardens?|park ?view|villas?|residen\w*|heights|springs|apartments?|homes|ridge|views?|meadows|village|flats|towers?|phase|block|close|crescent|grove|place|terrace|mansions?|manor|haven|enclave|suites|maisonettes?|town ?houses|annex|condos?|cottages)\b/i';
+    private const ESTATE_WORDS = '/\b(estates?|court|gardens?|park ?view|villas?|residen\w*|heights|springs|apartments?|homes|ridge|views?|meadows|village|flats|towers?|phase|block|close|crescent|grove|place|terrace|mansions?|manor|haven|enclave|suites|maisonettes?|town ?houses|annex|condos?|cottages|housing|developments?|riviera|willows|drive|point|res)\b/i';
 
     private const ROLE_EMAILS = ['info', 'sales', 'enquiries', 'enquiry', 'inquiries', 'inquiry', 'hello', 'contact', 'contactus', 'admin', 'office',
         'lettings', 'letting', 'rentals', 'rent', 'leasing', 'reservations', 'reservation', 'bookings', 'booking', 'stay', 'property', 'properties',
@@ -332,10 +332,9 @@ class PullNairobiLeads extends Command
         Company::withoutGlobalScope('customers')->where('lifecycle', 'prospect')->where('crm_stage', 'new')->whereNull('owner_id')
             ->where('source', 'like', '%'.self::LABEL_FILE.'%')->whereNull('email')
             ->each(function (Company $c) use (&$removed) {
-                $type = (string) $c->profile('business_type');
-                $estate = str_starts_with($type, 'Named estate') || str_starts_with($type, 'Named apartment building');
-                $bad = preg_match(self::NOT_TARGET, $c->name) || preg_match(self::PERSONAL, $c->name)
-                    || ($estate && str_starts_with($type, 'Named estate') && ! preg_match(self::ESTATE_WORDS, $c->name));
+                // Only names that are plainly not a property (church, eatery, a person's name). Lacking an estate word is not enough:
+                // "The Cycads", "Kanaro" and "One Riverside Drive" are real estates, and a wrong delete loses the row.
+                $bad = preg_match(self::NOT_TARGET, $c->name) || preg_match(self::PERSONAL, $c->name);
                 if (! $bad || $c->followUps()->where('type', '!=', 'import')->exists()) {
                     return;
                 }
