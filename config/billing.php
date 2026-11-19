@@ -21,6 +21,10 @@ return [
     'stk_number' => env('SCHARGE_STK_NUMBER'),        // Sharet Pay STK push number shown under every invoice
     'sharet_handle' => env('SCHARGE_SHARET_HANDLE'),  // scharge's Sharet Pay @handle for Sharet to Sharet payments
 
+    // Show Sharet's pay page (Sharet to Sharet sign-in + PIN) inside the scharge pay modal. Needs Sharet to allow
+    // scharge.sharet.africa in its frame-ancestors (sharetafricanew: security.frame_ancestors); until then it opens a tab.
+    'sharet_embed' => (bool) env('SCHARGE_SHARET_EMBED', false),
+
     'vat_rate' => (float) env('SCHARGE_VAT_RATE', 16),
     'kra_pin' => env('SCHARGE_KRA_PIN'),          // shown on every invoice when set
     'vat_number' => env('SCHARGE_VAT_NUMBER'),    // shown on VAT invoices when set

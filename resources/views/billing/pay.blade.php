@@ -56,6 +56,10 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
 .mp-row input { flex: 1; min-width: 0; font: inherit; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .mp-row input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px #FEE2E2; }
 .mp-row .btn { white-space: nowrap; } .mp-row .btn[disabled] { opacity: .6; cursor: wait; }
+.s2s-toggle { all: unset; display: flex; align-items: center; gap: 12px; width: 100%; cursor: pointer; }
+.s2s-toggle b { display: block; } .s2s-toggle span span { font-size: 13px; color: var(--muted); }
+#s2s-frame { display: block; width: 100%; height: 560px; border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; background: #fff; }
+.s2s-out { display: inline-block; margin-top: 8px; font-size: 13px; color: var(--muted); }
 .mp-msg { margin: 10px 0 0; font-size: 13.5px; border-radius: 10px; padding: 10px 12px; }
 .mp-msg.ok { background: #ECFDF3; color: #027A48; } .mp-msg.bad { background: #FEF3F2; color: #B42318; } .opt > span:first-child { padding-right: 8px; }
 </style>
@@ -94,10 +98,23 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
           </div>
           <p class="mp-msg" id="mp-msg" role="status" hidden></p>
         </form>
-        <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
-          <span><b>Sharet to Sharet</b><span>Sign in to Sharet and pay {{ $handle ?: 'scharge' }} from your balance</span></span>
-          <span class="go">Pay →</span>
-        </a>
+        @if (config('billing.sharet_embed'))
+          <div class="opt mp" id="s2s">
+            <button class="s2s-toggle" type="button" aria-expanded="false" aria-controls="s2s-frame-wrap">
+              <span><b>Sharet to Sharet</b><span>Sign in to Sharet here and pay {{ $handle ?: 'scharge' }} from your balance with your PIN</span></span>
+              <span class="go">Pay →</span>
+            </button>
+            <div id="s2s-frame-wrap" hidden>
+              <iframe id="s2s-frame" title="Sharet sign-in and payment" data-src="{{ $row->pay_url }}" src="about:blank"></iframe>
+              <a class="s2s-out" href="{{ $row->pay_url }}" target="_blank" rel="noopener">Open in a new tab instead</a>
+            </div>
+          </div>
+        @else
+          <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
+            <span><b>Sharet to Sharet</b><span>Sign in to Sharet and pay {{ $handle ?: 'scharge' }} from your balance</span></span>
+            <span class="go">Pay →</span>
+          </a>
+        @endif
       </div>
       <p class="note">This turns <b>Paid</b> on its own once the payment is confirmed, and this link always shows the status. Sharet to Sharet opens Sharet in a new tab to sign in.</p>
     @elseif ($status === 'paid')
@@ -123,6 +140,13 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
   };
   let fast = 0;
   const tick = async () => { tries++; if (!(await check())) setTimeout(tick, fast > 0 ? (fast--, 3000) : (tries < 40 ? 6000 : 20000)); };
+  const s2s = document.querySelector('#s2s .s2s-toggle');
+  if (s2s) s2s.addEventListener('click', () => {
+    const wrap = document.getElementById('s2s-frame-wrap'), fr = document.getElementById('s2s-frame');
+    const open = wrap.hidden; wrap.hidden = !open; s2s.setAttribute('aria-expanded', String(open));
+    if (open && fr.src === 'about:blank') fr.src = fr.dataset.src;
+    if (open) { fast = 60; wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
   const f = document.getElementById('mpesa');
   if (f) {
     const msg = document.getElementById('mp-msg'), btn = document.getElementById('mp-send'), input = document.getElementById('mp-phone');
