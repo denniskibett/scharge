@@ -206,6 +206,7 @@ async function swapTab(url, a) {
     region.replaceWith(fresh);
     runScripts(fresh);
   }
+  fresh.classList.add("ui-swap-in");
   history.pushState({ spa: true }, "", res.url || url);
   window.dispatchEvent(new CustomEvent("spa:navigated", { detail: { url: res.url || url } }));
   document.dispatchEvent(new Event("spa:load"));

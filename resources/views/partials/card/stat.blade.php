@@ -10,7 +10,7 @@
   $d = $card['delta'] ?? null;
   $good = $d === null ? null : (($d >= 0) === ($card['upIsGood'] ?? true));
 @endphp
-<div class="flex h-full min-w-0 flex-col rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+<div class="stat-tile flex h-full min-w-0 flex-col rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
   <div class="flex items-start justify-between gap-3">
     <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ $card['label'] }}</p>
     <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg {{ $tones[$card['tone'] ?? 'brand'] ?? $tones['brand'] }}">

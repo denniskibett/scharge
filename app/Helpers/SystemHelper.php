@@ -129,46 +129,49 @@ class SystemHelper
     // Logos & Favicon
     // =========================
 
-    public static function logoUrl($type = 'light')
+    /** scharge's own brand files, used when no custom logo was uploaded (the old template logos are not ours). */
+    private const BRAND = [
+        'light' => 'assets/images/brand/scharge-logo.svg',
+        'dark' => 'assets/images/brand/scharge-logo-white.svg',
+        'icon' => 'assets/images/brand/scharge-icon.svg',
+        'auth' => 'assets/images/brand/scharge-logo.svg',
+    ];
+
+    /** A stored logo value (path or bare file name, possibly with stray whitespace) as a public URL, or null. */
+    private static function storedLogoUrl(?string $value): ?string
     {
-        $logo = match($type){
-            'dark' => self::get('logo_dark'),
-            'icon' => self::get('logo_icon'),
-            'auth' => null,
-            default => self::get('logo')
-        };
-
-        if ($type === 'auth') return self::authLogoUrl();
-
-        if ($logo && file_exists(public_path($logo))) {
-            return asset($logo);
+        $value = trim((string) $value);
+        if ($value === '' || in_array($value, ['logo.svg', 'logo-dark.svg', 'logo-icon.svg', 'auth-logo.svg'], true)) {
+            return null;   // the template defaults: show scharge's brand instead
+        }
+        $value = ltrim(preg_replace('#^public/#', '', $value), '/');
+        foreach ([$value, 'images/logo/'.$value, 'images/'.$value] as $candidate) {
+            if (is_file(public_path($candidate))) {
+                return asset($candidate);
+            }
+        }
+        if (is_file(storage_path('app/public/'.$value))) {
+            return asset('storage/'.$value);
         }
 
-        return match($type){
-            'dark' => asset('public/images/logo/logo-dark.svg'),
-            'icon' => asset('public/images/logo/logo-icon.svg'),
-            'auth' => asset('public/images/logo/auth-logo.svg'),
-            default => asset('public/images/logo/logo.svg'),
+        return null;
+    }
+
+    public static function logoUrl($type = 'light')
+    {
+        $type = array_key_exists($type, self::BRAND) ? $type : 'light';
+        $stored = match ($type) {
+            'dark' => self::get('logo_dark'),
+            'icon' => self::get('logo_icon'),
+            default => self::get('logo'),
         };
+
+        return self::storedLogoUrl($stored) ?? asset(self::BRAND[$type]);
     }
 
     public static function authLogoUrl()
     {
-        $logo = self::get('logo');
-        if ($logo) {
-            if (file_exists(public_path('public/images/logo/' . $logo))) {
-                return asset('public/images/logo/' . $logo);
-            }
-            
-            if (file_exists(storage_path('app/public/' . $logo))) {
-                return asset('storage/' . $logo);
-            }
-            
-            if (file_exists(public_path($logo))) {
-                return asset($logo);
-            }
-        }
-        return asset('images/logo/auth-logo.svg');
+        return self::storedLogoUrl(self::get('logo')) ?? asset(self::BRAND['auth']);
     }
 
     public static function faviconUrl()

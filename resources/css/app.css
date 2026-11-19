@@ -591,3 +591,27 @@ select:not([multiple]):not([size]) {
 
 /* Every modal / slide-over backdrop: one look, dark at 50% opacity (no blur). Use class="… inset-0 modal-overlay". */
 .modal-overlay { background-color: rgb(16 24 40 / 0.5); }
+
+/* ---------- Motion: short, transform/opacity only (no layout work), off for reduced-motion users ---------- */
+@keyframes ui-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes ui-fade { from { opacity: 0; } to { opacity: 1; } }
+/* page content when it loads or is swapped in by background navigation */
+#app-content > * { animation: ui-in .24s cubic-bezier(.2, .7, .2, 1) both; }
+/* a tab card swapped in place (spa.js swapTab) and settings tab panels */
+.ui-swap-in, .tab-content:not(.hidden) { animation: ui-fade .18s ease-out both; }
+/* stat tiles arrive one after another and lift a little on hover */
+.stat-tile { animation: ui-in .3s cubic-bezier(.2, .7, .2, 1) both; transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.stat-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 18px -8px rgb(16 24 40 / .18); }
+.grid > .stat-tile:nth-child(2) { animation-delay: .04s; }
+.grid > .stat-tile:nth-child(3) { animation-delay: .08s; }
+.grid > .stat-tile:nth-child(4) { animation-delay: .12s; }
+.grid > .stat-tile:nth-child(5) { animation-delay: .16s; }
+/* buttons press in */
+#app-content button:not(:disabled), #app-content a.inline-flex { transition: transform .1s ease, background-color .15s ease, border-color .15s ease, color .15s ease; }
+#app-content button:not(:disabled):active, #app-content a.inline-flex:active { transform: scale(.97); }
+/* table rows ease their hover colour */
+#app-content tbody tr { transition: background-color .15s ease; }
+@media (prefers-reduced-motion: reduce) {
+  #app-content > *, .ui-swap-in, .tab-content:not(.hidden), .stat-tile { animation: none !important; }
+  .stat-tile:hover, #app-content button:active, #app-content a.inline-flex:active { transform: none !important; }
+}

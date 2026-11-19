@@ -4,41 +4,11 @@
 
 @section('content')
 <div x-data="{ pageName: 'System Settings' }">
-    @include('partials.breadcrumb', ['pageName' => 'System Settings'])
     @include('partials.card.system')
 </div>
     
 <div>
-    <!-- Header with Actions -->
-    <div class="mb-8">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                @section('page_title')
-System Settings
-@endsection
-                <p class="text-gray-600 dark:text-gray-300 mt-2">Manage your application configuration</p>
-            </div>
-            
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-3">
-                <button onclick="toggleMaintenance()" 
-                        class="inline-flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition rounded-lg border border-gray-300 bg-white shadow-theme-xs hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700">
-                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                    </svg>
-                    {{ $system->maintenance_mode ? 'Disable Maintenance' : 'Enable Maintenance' }}
-                </button>
-                
-                <a href="{{ route('system.clear-cache') }}" 
-                   class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700">
-                    <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Clear Cache
-                </a>
-            </div>
-        </div>
-    </div>
+    @include('partials.page-header', ['title' => 'System Settings', 'sub' => 'Manage your application configuration'])
 
     <!-- Success Message -->
     @if(session('success'))
@@ -53,19 +23,19 @@ System Settings
     @endif
 
     <!-- Main Settings Container -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
+    <div class="min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <!-- Tab Navigation -->
         <div class="border-b border-gray-200 dark:border-gray-700">
-            <div class="flex space-x-1 overflow-x-auto px-4">
+            <div class="flex items-center gap-1 overflow-x-auto whitespace-nowrap px-4">
                 <button type="button" onclick="switchTab('basic')" data-tab="basic" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     Basic Info
                 </button>
                 <button type="button" onclick="switchTab('system')" data-tab="system" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -73,71 +43,82 @@ System Settings
                     System Config
                 </button>
                 <button type="button" onclick="switchTab('colors')" data-tab="colors" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
                     </svg>
                     Colors
                 </button>
                 <button type="button" onclick="switchTab('notifications')" data-tab="notifications" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
                     </svg>
                     Notifications
                 </button>
                 <button type="button" onclick="switchTab('security')" data-tab="security" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
                     Security
                 </button>
                 <button type="button" onclick="switchTab('social')" data-tab="social" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
                     </svg>
                     Social Media
                 </button>
                 <button type="button" onclick="switchTab('pages')" data-tab="pages" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
                     </svg>
                     Website Pages
                 </button>
                 <button type="button" onclick="switchTab('company')" data-tab="company" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
                     </svg>
                     Company Info
                 </button>
                 <button type="button" onclick="switchTab('other')" data-tab="other" 
-                        class="tab-button inline-flex items-center px-4 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        class="tab-button inline-flex shrink-0 items-center px-3 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
                     </svg>
                     Other
                 </button>
+                <!-- Actions at the right of the tab line -->
+                <div class="ml-auto flex shrink-0 items-center gap-2 py-2 pl-3">
+                    <button type="button" onclick="toggleMaintenance()" class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/5">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        {{ $system->maintenance_mode ? 'Disable maintenance' : 'Maintenance mode' }}
+                    </button>
+                    <a href="{{ route('system.clear-cache') }}" data-no-spa class="inline-flex h-9 items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-white/5">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Clear cache
+                    </a>
+                </div>
             </div>
         </div>
 
         <!-- Tab Content -->
-        <form action="{{ route('system.update') }}" method="POST" enctype="multipart/form-data" class="p-6">
+        <form action="{{ route('system.update') }}" method="POST" enctype="multipart/form-data" class="p-5">
             @csrf
             @method('PUT')
 
             <!-- Basic Information Tab -->
             <div id="basic-tab" class="tab-content space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Application Name *
                         </label>
                         <input type="text" name="name" value="{{ old('name', $system->name) }}" required
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                               class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         @error('name') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
                     </div>
 
@@ -146,12 +127,12 @@ System Settings
                             Slogan
                         </label>
                         <input type="text" name="slogan" value="{{ old('slogan', $system->slogan) }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                               class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                     </div>
                 </div>
 
                 <!-- Logo Uploads -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
                     <!-- Main Logo -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -211,14 +192,14 @@ System Settings
 
                 <!-- Contact Information -->
                 <div class="mt-6">
-                    <h4 class="text-md font-medium text-gray-800 dark:text-white mb-4">Contact Information</h4>
+                    <h4 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">Contact Information</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Contact Email
                             </label>
                             <input type="email" name="contact_email" value="{{ old('contact_email', $system->contact_email) }}"
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         <div>
@@ -226,7 +207,7 @@ System Settings
                                 Contact Phone
                             </label>
                             <input type="text" name="contact_phone" value="{{ old('contact_phone', $system->contact_phone) }}"
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         <div class="md:col-span-2">
@@ -234,28 +215,28 @@ System Settings
                                 Address
                             </label>
                             <textarea name="address" rows="2"
-                                      class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('address', $system->address) }}</textarea>
+                                      class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('address', $system->address) }}</textarea>
                         </div>
                     </div>
                 </div>
 
                 <!-- Meta Information -->
                 <div class="mt-6">
-                    <h4 class="text-md font-medium text-gray-800 dark:text-white mb-4">SEO Information</h4>
+                    <h4 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">SEO Information</h4>
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Meta Description
                             </label>
                             <textarea name="meta_description" rows="2"
-                                      class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('meta_description', $system->meta_description) }}</textarea>
+                                      class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('meta_description', $system->meta_description) }}</textarea>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Meta Keywords
                             </label>
                             <textarea name="meta_keywords" rows="2"
-                                      class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('meta_keywords', $system->meta_keywords) }}</textarea>
+                                      class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('meta_keywords', $system->meta_keywords) }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -263,13 +244,13 @@ System Settings
 
             <!-- System Configuration Tab -->
             <div id="system-tab" class="tab-content hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Timezone *
                         </label>
                         <select name="timezone" required
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             @foreach($timezones as $tz)
                                 <option value="{{ $tz }}" {{ old('timezone', $system->timezone) == $tz ? 'selected' : '' }}>{{ $tz }}</option>
                             @endforeach
@@ -281,7 +262,7 @@ System Settings
                             Date Format *
                         </label>
                         <select name="date_format" required
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             <option value="Y-m-d" {{ old('date_format', $system->date_format) == 'Y-m-d' ? 'selected' : '' }}>YYYY-MM-DD</option>
                             <option value="d/m/Y" {{ old('date_format', $system->date_format) == 'd/m/Y' ? 'selected' : '' }}>DD/MM/YYYY</option>
                             <option value="m/d/Y" {{ old('date_format', $system->date_format) == 'm/d/Y' ? 'selected' : '' }}>MM/DD/YYYY</option>
@@ -294,7 +275,7 @@ System Settings
                             Time Format
                         </label>
                         <select name="time_format"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             <option value="H:i:s" {{ old('time_format', $system->time_format) == 'H:i:s' ? 'selected' : '' }}>24-hour (HH:MM:SS)</option>
                             <option value="h:i:s A" {{ old('time_format', $system->time_format) == 'h:i:s A' ? 'selected' : '' }}>12-hour (HH:MM:SS AM/PM)</option>
                         </select>
@@ -305,20 +286,20 @@ System Settings
                             Pagination Limit *
                         </label>
                         <input type="number" name="pagination_limit" value="{{ old('pagination_limit', $system->pagination_limit) }}" min="5" max="100" required
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                               class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                     </div>
                 </div>
 
                 <!-- Currency Settings -->
                 <div>
-                    <h4 class="text-md font-medium text-gray-800 dark:text-white mb-4">Currency Settings</h4>
+                    <h4 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">Currency Settings</h4>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                 Currency *
                             </label>
                             <select name="currency" required
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                                 @foreach($currencies as $code => $name)
                                     <option value="{{ $code }}" {{ old('currency', $system->currency) == $code ? 'selected' : '' }}>{{ $name }}</option>
                                 @endforeach
@@ -330,7 +311,7 @@ System Settings
                                 Currency Symbol *
                             </label>
                             <input type="text" name="currency_symbol" value="{{ old('currency_symbol', $system->currency_symbol) }}" required
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         <div>
@@ -338,7 +319,7 @@ System Settings
                                 Symbol Position
                             </label>
                             <select name="currency_position"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                                 <option value="before" {{ old('currency_position', $system->settings['currency_position'] ?? 'before') == 'before' ? 'selected' : '' }}>Before amount ($100)</option>
                                 <option value="after" {{ old('currency_position', $system->settings['currency_position'] ?? 'before') == 'after' ? 'selected' : '' }}>After amount (100$)</option>
                                 <option value="before_space" {{ old('currency_position', $system->settings['currency_position'] ?? 'before') == 'before_space' ? 'selected' : '' }}>Before with space ($ 100)</option>
@@ -350,7 +331,7 @@ System Settings
 
                 <!-- Location Settings -->
                 <div>
-                    <h4 class="text-md font-medium text-gray-800 dark:text-white mb-4">Location Settings</h4>
+                    <h4 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">Location Settings</h4>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {{-- Country --}}
@@ -360,7 +341,7 @@ System Settings
                             </label>
 
                             <select name="location_country"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                                 <option value="">Select Country</option>
 
                                 @foreach($countries as $code => $name)
@@ -380,7 +361,7 @@ System Settings
                             <input type="text"
                                 name="location_city"
                                 value="{{ old('location_city', $system->location->city ?? '') }}"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         {{-- Location Name --}}
@@ -391,7 +372,7 @@ System Settings
                             <input type="text"
                                 name="location_name"
                                 value="{{ old('location_name', $system->location->name ?? '') }}"
-                                class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         {{-- Coordinates --}}
@@ -403,7 +384,7 @@ System Settings
                                 <input type="text"
                                     name="location_latitude"
                                     value="{{ old('location_latitude', $system->location->latitude ?? '') }}"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             </div>
 
                             <div>
@@ -413,7 +394,7 @@ System Settings
                                 <input type="text"
                                     name="location_longitude"
                                     value="{{ old('location_longitude', $system->location->longitude ?? '') }}"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             </div>
                         </div>
                     </div>
@@ -436,7 +417,7 @@ System Settings
                             <div class="flex-1">
                                 <input type="text" name="primary_color" 
                                        value="{{ old('primary_color', $system->primary_color) }}" required
-                                       class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                       class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             </div>
                         </div>
                         <div class="mt-4 flex items-center">
@@ -457,7 +438,7 @@ System Settings
                             <div class="flex-1">
                                 <input type="text" name="secondary_color" 
                                        value="{{ old('secondary_color', $system->secondary_color) }}" required
-                                       class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                       class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                             </div>
                         </div>
                         <div class="mt-4 flex items-center">
@@ -471,59 +452,59 @@ System Settings
             <!-- Notifications Tab -->
             <div id="notifications-tab" class="tab-content hidden space-y-6">
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                         <div>
                             <h4 class="text-sm font-medium text-gray-800 dark:text-white">Email Notifications</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive important updates via email</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Receive important updates via email</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="hidden" name="email_notifications" value="0">
                             <input type="checkbox" name="email_notifications" value="1" 
                                    class="sr-only peer" 
                                    {{ old('email_notifications', $system->settings['notifications']['email_notifications'] ?? true) ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                         </label>
                     </div>
 
-                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                         <div>
                             <h4 class="text-sm font-medium text-gray-800 dark:text-white">Push Notifications</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive browser notifications</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Receive browser notifications</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="hidden" name="push_notifications" value="0">
                             <input type="checkbox" name="push_notifications" value="1" 
                                    class="sr-only peer" 
                                    {{ old('push_notifications', $system->settings['notifications']['push_notifications'] ?? true) ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                         </label>
                     </div>
 
-                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                         <div>
                             <h4 class="text-sm font-medium text-gray-800 dark:text-white">SMS Notifications</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Receive SMS notifications</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Receive SMS notifications</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="hidden" name="sms_notifications" value="0">
                             <input type="checkbox" name="sms_notifications" value="1" 
                                    class="sr-only peer" 
                                    {{ old('sms_notifications', $system->settings['notifications']['sms_notifications'] ?? false) ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                         </label>
                     </div>
 
-                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                         <div>
                             <h4 class="text-sm font-medium text-gray-800 dark:text-white">Notification Sound</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Play sound for new notifications</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Play sound for new notifications</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="hidden" name="notification_sound" value="0">
                             <input type="checkbox" name="notification_sound" value="1" 
                                    class="sr-only peer" 
                                    {{ old('notification_sound', $system->settings['notifications']['notification_sound'] ?? true) ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                         </label>
                     </div>
                 </div>
@@ -532,17 +513,17 @@ System Settings
             <!-- Security Tab -->
             <div id="security-tab" class="tab-content hidden space-y-6">
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                         <div>
                             <h4 class="text-sm font-medium text-gray-800 dark:text-white">Two-Factor Authentication</h4>
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Require 2FA for admin login</p>
+                            <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Require 2FA for admin login</p>
                         </div>
                         <label class="relative inline-flex items-center cursor-pointer">
                             <input type="hidden" name="two_factor_auth" value="0">
                             <input type="checkbox" name="two_factor_auth" value="1" 
                                    class="sr-only peer" 
                                    {{ old('two_factor_auth', $system->settings['security']['two_factor_auth'] ?? false) ? 'checked' : '' }}>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                         </label>
                     </div>
 
@@ -553,7 +534,7 @@ System Settings
                             </label>
                             <input type="number" name="login_attempts" 
                                    value="{{ old('login_attempts', $system->settings['security']['login_attempts'] ?? 5) }}" min="1" max="10"
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         <div>
@@ -562,7 +543,7 @@ System Settings
                             </label>
                             <input type="number" name="session_timeout" 
                                    value="{{ old('session_timeout', $system->settings['security']['session_timeout'] ?? 30) }}" min="5" max="480"
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
 
                         <div>
@@ -571,7 +552,7 @@ System Settings
                             </label>
                             <input type="number" name="password_expiry" 
                                    value="{{ old('password_expiry', $system->settings['security']['password_expiry'] ?? 90) }}" min="30" max="365"
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -610,7 +591,7 @@ System Settings
                                         <input type="checkbox" name="social_{{ $platform }}_enabled" value="1" 
                                                class="sr-only peer" 
                                                {{ old("social_{$platform}_enabled", $socialData['enabled']) ? 'checked' : '' }}>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                                     </label>
                                     <div class="flex items-center gap-2">
                                         <div class="w-8 h-8 rounded flex items-center justify-center" style="background-color: {{ $socialData['color'] }}">
@@ -693,7 +674,7 @@ System Settings
                                         <input type="checkbox" name="page_{{ $page }}_enabled" value="1" 
                                             class="sr-only peer" 
                                             {{ old("page_{$page}_enabled", $pageData['enabled']) ? 'checked' : '' }}>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                                     </label>
                                     <span class="text-sm font-medium text-gray-800 dark:text-white">
                                         {{ $pageData['title'] }}
@@ -705,7 +686,7 @@ System Settings
                                         <input type="checkbox" name="page_{{ $page }}_show_in_menu" value="1" 
                                             class="sr-only peer" 
                                             {{ old("page_{$page}_show_in_menu", $pageData['show_in_menu']) ? 'checked' : '' }}>
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                                     </label>
                                     <span class="text-xs text-gray-500 dark:text-gray-400">Show in Menu</span>
                                 </div>
@@ -718,7 +699,7 @@ System Settings
                                         </label>
                                         <input type="text" name="page_{{ $page }}_title" 
                                             value="{{ old("page_{$page}_title", $pageData['title']) }}"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -726,7 +707,7 @@ System Settings
                                         </label>
                                         <input type="text" name="page_{{ $page }}_slug" 
                                             value="{{ old("page_{$page}_slug", $pageData['slug']) }}"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                                     </div>
                                     <div>
                                         <label class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
@@ -734,7 +715,7 @@ System Settings
                                         </label>
                                         <input type="number" name="page_{{ $page }}_order" 
                                             value="{{ old("page_{$page}_order", $pageData['order']) }}" min="1" max="99"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent">
                                     </div>
                                 </div>
                                 <div>
@@ -742,7 +723,7 @@ System Settings
                                         Content
                                     </label>
                                     <textarea name="page_{{ $page }}_content" rows="3"
-                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-primary focus:border-transparent">{{ old("page_{$page}_content", $pageData['content'] ?? '') }}</textarea>
+                                            class="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm focus:ring-2 focus:ring-brand-500 focus:border-transparent">{{ old("page_{$page}_content", $pageData['content'] ?? '') }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -752,14 +733,14 @@ System Settings
 
             <!-- Company Info Tab -->
             <div id="company-tab" class="tab-content hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Company Website
                         </label>
                         <input type="url" name="company_website" 
                                value="{{ old('company_website', $system->settings['company']['website'] ?? '') }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                               class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -767,7 +748,7 @@ System Settings
                         </label>
                         <input type="tel" name="company_phone" 
                                value="{{ old('company_phone', $system->settings['company']['phone'] ?? '') }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                               class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -775,42 +756,42 @@ System Settings
                         </label>
                         <input type="email" name="company_email" 
                                value="{{ old('company_email', $system->settings['company']['email'] ?? '') }}"
-                               class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                               class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Company Address
                         </label>
                         <textarea name="company_address" rows="2"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('company_address', $system->settings['company']['address'] ?? '') }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('company_address', $system->settings['company']['address'] ?? '') }}</textarea>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             About Company
                         </label>
                         <textarea name="company_about" rows="4"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('company_about', $system->settings['company']['about'] ?? '') }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('company_about', $system->settings['company']['about'] ?? '') }}</textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Mission Statement
                         </label>
                         <textarea name="company_mission" rows="3"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('company_mission', $system->settings['company']['mission'] ?? '') }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('company_mission', $system->settings['company']['mission'] ?? '') }}</textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Vision Statement
                         </label>
                         <textarea name="company_vision" rows="3"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('company_vision', $system->settings['company']['vision'] ?? '') }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('company_vision', $system->settings['company']['vision'] ?? '') }}</textarea>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Core Values
                         </label>
                         <textarea name="company_values" rows="3"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">{{ old('company_values', $system->settings['company']['values'] ?? '') }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">{{ old('company_values', $system->settings['company']['values'] ?? '') }}</textarea>
                     </div>
                 </div>
             </div>
@@ -818,17 +799,17 @@ System Settings
             <!-- Other Settings Tab -->
             <div id="other-tab" class="tab-content hidden space-y-6">
                 <!-- Maintenance Mode -->
-                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                     <div>
                         <h4 class="text-sm font-medium text-gray-800 dark:text-white">Maintenance Mode</h4>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Put site in maintenance mode</p>
+                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Put site in maintenance mode</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="hidden" name="maintenance_mode" value="0">
                         <input type="checkbox" name="maintenance_mode" value="1" 
                                class="sr-only peer" 
                                {{ old('maintenance_mode', $system->maintenance_mode) ? 'checked' : '' }}>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                     </label>
                 </div>
 
@@ -836,31 +817,31 @@ System Settings
                 <div class="space-y-4">
                     <h4 class="text-md font-medium text-gray-800 dark:text-white mb-2">Backup Settings</h4>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                             <div>
                                 <h4 class="text-sm font-medium text-gray-800 dark:text-white">Auto Backup</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Automatically backup database</p>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Automatically backup database</p>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="hidden" name="auto_backup" value="0">
                                 <input type="checkbox" name="auto_backup" value="1" 
                                        class="sr-only peer" 
                                        {{ old('auto_backup', $system->settings['backup']['auto_backup'] ?? true) ? 'checked' : '' }}>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                             </label>
                         </div>
 
-                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <div class="flex items-center justify-between rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800">
                             <div>
                                 <h4 class="text-sm font-medium text-gray-800 dark:text-white">Backup to Cloud</h4>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Store backups in cloud storage</p>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">Store backups in cloud storage</p>
                             </div>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input type="hidden" name="backup_to_cloud" value="0">
                                 <input type="checkbox" name="backup_to_cloud" value="1" 
                                        class="sr-only peer" 
                                        {{ old('backup_to_cloud', $system->settings['backup']['backup_to_cloud'] ?? false) ? 'checked' : '' }}>
-                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-brand-500 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
                             </label>
                         </div>
                     </div>
@@ -871,7 +852,7 @@ System Settings
                                 Backup Frequency
                             </label>
                             <select name="backup_frequency"
-                                    class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                    class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                                 <option value="daily" {{ old('backup_frequency', $system->settings['backup']['backup_frequency'] ?? 'daily') == 'daily' ? 'selected' : '' }}>Daily</option>
                                 <option value="weekly" {{ old('backup_frequency', $system->settings['backup']['backup_frequency'] ?? 'daily') == 'weekly' ? 'selected' : '' }}>Weekly</option>
                                 <option value="monthly" {{ old('backup_frequency', $system->settings['backup']['backup_frequency'] ?? 'daily') == 'monthly' ? 'selected' : '' }}>Monthly</option>
@@ -884,7 +865,7 @@ System Settings
                             </label>
                             <input type="number" name="backup_retention" 
                                    value="{{ old('backup_retention', $system->settings['backup']['backup_retention'] ?? 30) }}" min="1" max="365"
-                                   class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                                   class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                         </div>
                     </div>
                 </div>
@@ -896,7 +877,7 @@ System Settings
                     </label>
                     <input type="text" name="google_analytics" 
                            value="{{ old('google_analytics', $system->settings['integrations']['google_analytics'] ?? '') }}"
-                           class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                           class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                 </div>
 
                 <!-- Google Maps -->
@@ -906,17 +887,17 @@ System Settings
                     </label>
                     <input type="text" name="google_maps_key" 
                            value="{{ old('google_maps_key', $system->settings['integrations']['google_maps_key'] ?? '') }}"
-                           class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200">
+                           class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
                 </div>
 
                 <!-- Custom CSS & JS -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Custom CSS
                         </label>
                         <textarea name="custom_css" rows="6"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-mono text-sm">{{ old('custom_css', $system->custom_css) }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-mono text-sm focus:border-brand-300 focus:outline-none">{{ old('custom_css', $system->custom_css) }}</textarea>
                     </div>
 
                     <div>
@@ -924,25 +905,25 @@ System Settings
                             Custom JavaScript
                         </label>
                         <textarea name="custom_js" rows="6"
-                                  class="w-full px-4 py-3 rounded-lg border border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 text-gray-800 dark:text-gray-200 font-mono text-sm">{{ old('custom_js', $system->custom_js) }}</textarea>
+                                  class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-mono text-sm focus:border-brand-300 focus:outline-none">{{ old('custom_js', $system->custom_js) }}</textarea>
                     </div>
                 </div>
             </div>
 
             <!-- Form Actions -->
-            <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div class="flex items-center gap-5">
+            <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-800">
+                <div class="flex items-center justify-end gap-3">
                     <button type="reset" 
-                            class="inline-flex items-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 transition rounded-lg border border-gray-300 bg-white shadow-theme-xs hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700">
-                        <svg class="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-flex h-10 items-center gap-2 px-4 text-sm font-medium text-gray-700 transition rounded-lg border border-gray-300 bg-white shadow-theme-xs hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 dark:hover:bg-gray-700">
+                        <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                         </svg>
                         Reset Changes
                     </button>
                     
                     <button type="submit" 
-                            class="inline-flex items-center gap-2 rounded-lg border border-primary bg-primary px-5 py-3.5 text-sm font-medium text-white shadow-theme-xs transition hover:bg-primary/90 dark:bg-primary dark:border-primary dark:text-white dark:hover:bg-primary/90">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600">
+                        <svg class="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
                         Save Settings
@@ -963,7 +944,7 @@ System Settings
 
         // Remove active class from all tab buttons
         document.querySelectorAll('.tab-button').forEach(button => {
-            button.classList.remove('border-primary', 'text-primary', 'dark:text-primary-400');
+            button.classList.remove('border-brand-500', 'text-brand-600', 'dark:text-brand-400');
             button.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
         });
 
@@ -976,7 +957,7 @@ System Settings
         // Activate selected tab button
         const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
         if (selectedButton) {
-            selectedButton.classList.add('border-primary', 'text-primary', 'dark:text-primary-400');
+            selectedButton.classList.add('border-brand-500', 'text-brand-600', 'dark:text-brand-400');
             selectedButton.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
         }
 
