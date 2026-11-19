@@ -123,6 +123,8 @@
                 </div>
                 <div>
                   <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="company.name"></span>
+                  <span x-show="company.billing_overdue" class="ml-1 rounded-full px-2 py-0.5 text-xs font-medium" :class="company.billing_locked ? 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400'"
+                        :title="company.billing_locked ? 'Locked: unpaid scharge bill past due' : 'Unpaid scharge bill past due (billing lock is off)'" x-text="company.billing_locked ? 'Locked · unpaid' : 'Overdue'"></span>
                   <p class="text-xs text-gray-500 dark:text-gray-400" x-show="company.registration_number" x-text="'Reg: ' + company.registration_number"></p>
                 </div>
               </div>

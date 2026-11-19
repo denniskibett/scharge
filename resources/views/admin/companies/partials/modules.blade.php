@@ -11,6 +11,25 @@
   $field = 'h-9 rounded-lg border border-gray-300 bg-transparent px-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90';
 @endphp
 <script>
+function billingGrace(b, companyId) {
+  return {
+    b, until: '', note: '', saving: false, today: new Date().toISOString().slice(0, 10),
+    async save(until) {
+      this.saving = true;
+      try {
+        const res = await fetch(`/admin/companies/${companyId}/billing-grace`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content },
+          body: JSON.stringify({ until, note: this.note || null }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Could not save.');
+        this.b = data.billing; this.until = ''; this.note = '';
+        if (data.log) window.dispatchEvent(new CustomEvent('module-log', { detail: data.log }));
+      } catch (e) { alert(e.message); } finally { this.saving = false; }
+    },
+  };
+}
 function companyModules(rows, logs, companyId) {
   return {
     rows: rows.map(r => ({ ...r, draft: null, noteDraft: '', saving: false })),
@@ -38,7 +57,7 @@ function companyModules(rows, logs, companyId) {
   };
 }
 </script>
-<div x-data="companyModules(@js($rows), @js(CM::logs($company->id)), {{ $company->id }})" class="space-y-5">
+<div x-data="companyModules(@js($rows), @js(CM::logs($company->id)), {{ $company->id }})" @module-log.window="logs.unshift($event.detail)" class="space-y-5">
   <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
     @include('partials.card.stat', ['card' => ['label' => 'Modules on', 'value' => $rows->where('on', true)->count().' of '.$rows->count(), 'icon' => 'puzzle-piece', 'tone' => 'brand', 'hint' => 'paid add-ons']])
     @include('partials.card.stat', ['card' => ['label' => 'Locked', 'value' => $rows->where('on', false)->count(), 'icon' => 'lock-closed', 'tone' => 'amber', 'hint' => 'hidden from this company']])
@@ -50,6 +69,31 @@ function companyModules(rows, logs, companyId) {
   @unless (Modules::installed())
     <p class="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">Run <code>database/schema/2026_11_20_company_modules.sql</code> to switch modules per company. Until then every module is on.</p>
   @endunless
+
+  @php $bill = \App\Support\BillingLock::status($company->id); @endphp
+  <div x-data="billingGrace(@js($bill), {{ $company->id }})" class="rounded-2xl border p-4 text-sm"
+       :class="b.locked ? 'border-red-200 bg-red-50/60 dark:border-red-500/30 dark:bg-red-500/10' : (b.overdue.length ? 'border-amber-200 bg-amber-50/60 dark:border-amber-500/30 dark:bg-amber-500/10' : 'border-gray-200 dark:border-gray-800')">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 class="font-semibold text-gray-800 dark:text-white/90">scharge bill</h3>
+        <p class="mt-0.5 text-gray-600 dark:text-gray-300">
+          <span x-show="b.locked">Locked: an unpaid bill is past due. Everyone in the company sees only the Billing page.</span>
+          <span x-show="!b.locked && b.overdue.length && b.grace_until" x-text="'Overdue, but in grace until ' + (b.grace_until || '').slice(0, 10) + '.'"></span>
+          <span x-show="!b.locked && b.overdue.length && !b.grace_until">Overdue. The billing lock is off, so nobody is locked yet.</span>
+          <span x-show="!b.overdue.length" x-text="b.unpaid.length ? 'Unpaid bills, none past due.' : 'Nothing unpaid.'"></span>
+          <span class="text-gray-500 dark:text-gray-400" x-show="b.unpaid.length" x-text="' Due: ' + b.currency + ' ' + Number(b.total_due).toLocaleString()"></span>
+        </p>
+      </div>
+      @if ($canEdit)
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="date" x-model="until" :min="today" class="{{ $field }}" aria-label="Grace until">
+          <input type="text" x-model="note" placeholder="Note (optional)" maxlength="255" class="{{ $field }} w-40">
+          <button type="button" @click="save(until)" :disabled="saving || !until" class="inline-flex h-9 items-center rounded-lg bg-brand-500 px-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50">Give grace</button>
+          <button type="button" x-show="b.grace_until" @click="save(null)" :disabled="saving" class="inline-flex h-9 items-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">End grace</button>
+        </div>
+      @endif
+    </div>
+  </div>
 
   <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800">
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-800">

@@ -430,6 +430,9 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     });
 
     // The company manual: what scharge offers and how, with progress from the company's data (App\Support\OnboardingGuide)
+    // scharge's bills for this company; the one page open while an unpaid bill locks the company (App\Support\BillingLock).
+    Route::get('/billing', [App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
+
     Route::get('/guide', [App\Http\Controllers\OnboardingGuideController::class, 'show'])->name('guide');
     Route::post('/guide/mark', [App\Http\Controllers\OnboardingGuideController::class, 'mark'])->middleware('role:admin|property_manager')->name('guide.mark');
     Route::post('/guide/visibility', [App\Http\Controllers\OnboardingGuideController::class, 'visibility'])->middleware('role:admin|property_manager')->name('guide.visibility');
@@ -850,6 +853,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::delete('/{company}/users/{user}', [App\Http\Controllers\Admin\CompanyController::class, 'removeUser'])->name('remove-user');
         Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
         // Paid modules per company (App\Support\Modules): sysadmins only.
+        Route::put('/{company}/billing-grace', [App\Http\Controllers\Admin\CompanyModuleController::class, 'grace'])->whereNumber('company')->middleware('role:sysadmin')->name('billing-grace');
         Route::put('/{company}/modules/{module}', [App\Http\Controllers\Admin\CompanyModuleController::class, 'update'])->whereNumber('company')->middleware('role:sysadmin')->name('modules.update');
         Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');

@@ -31,6 +31,18 @@ class CompanyModuleController extends Controller
             'message' => Modules::label($module).': '.($state['on'] ? 'on' : 'off').($state['source'] === 'plan' ? ' (plan default)' : '').'.']);
     }
 
+    /** Billing lock grace: until a date (or end it now with no date). */
+    public function grace(Request $request, int $company)
+    {
+        abort_unless(Modules::installed(), 503, 'Run database/schema/2026_11_20_company_modules.sql first.');
+        abort_unless(DB::table('companies')->where('id', $company)->exists(), 404);
+        $data = $request->validate(['until' => 'nullable|date|after_or_equal:today', 'note' => 'nullable|string|max:255']);
+        \App\Support\BillingLock::setGrace($company, $data['until'] ?? null, $data['note'] ?? null, $request->user()->id);
+
+        return response()->json(['ok' => true, 'billing' => \App\Support\BillingLock::status($company), 'log' => self::logs($company, 1)[0] ?? null,
+            'message' => ($data['until'] ?? null) ? 'Grace until '.\Illuminate\Support\Carbon::parse($data['until'])->format('j M Y').'.' : 'Grace ended.']);
+    }
+
     /** The plan's module list: "all" (no list: every module) or the keys ticked. */
     public function plan(Request $request, int $plan)
     {
@@ -88,7 +100,7 @@ class CompanyModuleController extends Controller
             ->map(fn ($l) => [
                 'at' => \Illuminate\Support\Carbon::parse($l->created_at)->format('j M Y, H:i'),
                 'who' => $l->user_name ?: 'Someone',
-                'module' => Modules::label($l->module),
+                'module' => $l->module === \App\Support\BillingLock::GRACE ? 'Billing grace' : Modules::label($l->module),
                 'change' => ['plan' => 'Plan default', 'on' => 'On', 'off' => 'Off'][$l->from_state] ?? $l->from_state,
                 'to' => (['plan' => 'Plan default', 'on' => 'On', 'off' => 'Off'][$l->to_state] ?? $l->to_state)
                     .($l->expires_at ? ' until '.\Illuminate\Support\Carbon::parse($l->expires_at)->format('j M Y') : ''),

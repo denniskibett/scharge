@@ -50,9 +50,12 @@ class CompanyController extends Controller
                 : 0,
         ];
         
-        $formattedCompanies = $companies->map(function($company) {
+        $overdue = \App\Support\BillingLock::overdueCompanyIds(); // unpaid scharge bill past due (locked when the lock is on)
+        $formattedCompanies = $companies->map(function($company) use ($overdue) {
             return [
                 'id' => $company->id,
+                'billing_overdue' => in_array((int) $company->id, $overdue, true),
+                'billing_locked' => in_array((int) $company->id, $overdue, true) && \App\Support\BillingLock::enabled(),
                 'name' => $company->name,
                 'registration_number' => $company->registration_number,
                 'tax_id' => $company->tax_id,

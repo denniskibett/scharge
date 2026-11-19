@@ -296,6 +296,10 @@ class Modules
     public static function deny(Request $request): ?\Symfony\Component\HttpFoundation\Response
     {
         $apiKey = $request->attributes->get('api_key');
+        // An unpaid scharge bill locks the whole company first (App\Support\BillingLock).
+        if ($locked = BillingLock::deny($request, $apiKey ? (int) $apiKey->company_id : null)) {
+            return $locked;
+        }
         $keys = array_merge(self::forPath($request->path()), $apiKey ? ['api_keys'] : []);
         if (! $keys) {
             return null;

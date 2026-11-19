@@ -151,6 +151,9 @@ class Access
             $keys[] = 'host';
             $keys[] = 'gate'; // guests & gate for their own units
         }
+        if ($user->hasAnyRole(['admin', 'accountant'])) {
+            $keys[] = 'billing'; // scharge's bills for the company (BillingController)
+        }
         foreach (self::MENU as $key => $needs) {
             if ($user->hasRole('sysadmin') || collect((array) $needs)->contains(fn ($perm) => $user->can($perm))) {
                 $keys[] = $key;

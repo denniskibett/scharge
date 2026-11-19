@@ -187,6 +187,8 @@ document.addEventListener('alpine:init', () => {
     allowedMenu: @js(\App\Support\Access::menuFor(auth()->user())),
     // Entries of paid modules this company does not have (App\Support\Modules); hidden whatever the role allows.
     lockedMenu: @js(\App\Support\Modules::lockedMenu(auth()->user())),
+    // An unpaid scharge bill locks the company (App\Support\BillingLock): only Billing and Profile stay in the menu.
+    billingLocked: @js(\App\Support\BillingLock::lockedFor(auth()->user())),
     // What is waiting for this person, per menu page (App\Support\SidebarBadges, role-specific). Refreshed after each page change.
     badges: @js(\App\Support\SidebarBadges::for(auth()->user())),
     
@@ -224,7 +226,7 @@ document.addEventListener('alpine:init', () => {
         'gate', 'security', 'security_logs',
         'sms', 'sms_send', 'sms_history', 'sms_templates',
         'users', 'staff', 'team',
-        'settings', 'integrations', 'white_label', 'website', 'verify', 'api_keys',
+        'settings', 'integrations', 'white_label', 'website', 'verify', 'api_keys', 'billing',
       ],
       'property_manager': [
         'dashboard', 'calendar', 'profile',
@@ -235,7 +237,7 @@ document.addEventListener('alpine:init', () => {
       'accountant': [
         'dashboard', 'calendar', 'profile',
         'finance', 'invoices', 'payments', 'rent', 'payees', 'expenses',
-        'users', 'staff', 'team',
+        'users', 'staff', 'team', 'billing',
       ],
       'meter_reader': [
         'dashboard', 'calendar', 'profile',
@@ -389,6 +391,8 @@ document.addEventListener('alpine:init', () => {
       {
         title: 'SETUP',
         items: [
+          { name: 'billing', label: 'Billing', link: '/billing', page: 'billing', permission: 'billing',
+            stroke: true, icon: 'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z' },
           { name: 'verify', label: 'Verify your business', link: '/settings/verify', page: 'verify', permission: 'verify',
             stroke: true, icon: 'M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z' },
           { name: 'website', label: 'Website', link: '/settings/website', page: 'website', permission: 'website',
@@ -443,6 +447,7 @@ document.addEventListener('alpine:init', () => {
 
     // Helper method to get user permissions with error handling
     getUserPermissions() {
+      if (this.billingLocked) return ['billing', 'profile'];
       const keys = this.roleMenu();
       return this.lockedMenu.length ? keys.filter(k => !this.lockedMenu.includes(k)) : keys;
     },
