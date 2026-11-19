@@ -26,6 +26,8 @@ class Property extends Model
         // listed_publicly: its vacant homes show on the public Open listings page (switched on from the property page).
         'listed_publicly' => 'boolean',
         'listed_at' => 'datetime',
+        // lat / lng: GPS pin inside Kenya (App\Support\PropertyPin; database/schema/2026_11_19_property_pin.sql). Set with forceFill.
+        'pinned_at' => 'datetime',
         'water_rate' => 'decimal:2',
         'service_charge' => 'decimal:2',
         'garbage_charge' => 'decimal:2',

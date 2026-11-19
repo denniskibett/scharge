@@ -31,7 +31,9 @@ class PropertyController extends Controller
                 'water_rate' => (float) ($property->water_rate ?? 0),
                 'service_charge' => (float) ($property->service_charge ?? 0),
                 'garbage_charge' => (float) ($property->garbage_charge ?? 0),
-                'security_charge' => (float) ($property->security_charge ?? 0)
+                'security_charge' => (float) ($property->security_charge ?? 0),
+                'lat' => \App\Support\PropertyPin::of($property)[0] ?? null,
+                'lng' => \App\Support\PropertyPin::of($property)[1] ?? null,
             ];
         });
         
@@ -121,7 +123,10 @@ class PropertyController extends Controller
                 'service_charge' => 'nullable|numeric|min:0',
                 'garbage_charge' => 'nullable|numeric|min:0',
                 'security_charge' => 'nullable|numeric|min:0'
-            ]);
+            ] + \App\Support\PropertyPin::rules());
+            $pin = \App\Support\PropertyPin::valid($validated['lat'] ?? null, $validated['lng'] ?? null);
+            $pinSource = $validated['pin_source'] ?? 'typed';
+            unset($validated['lat'], $validated['lng'], $validated['pin_source']);
 
             // Set default values for utilities if not provided
             $validated['water_rate'] = $validated['water_rate'] ?? 0;
@@ -132,7 +137,7 @@ class PropertyController extends Controller
             // One record per building: if this looks like a property already in scharge (e.g. a BnB
             // host registered it first), offer to claim it instead of creating a duplicate.
             if (! $request->boolean('confirm_new') && \Illuminate\Support\Facades\Schema::hasTable('property_claims')) {
-                $matches = app(\App\Services\Properties\PropertyRegistry::class)->matches($validated['name'], $validated['location'] ?? null)
+                $matches = app(\App\Services\Properties\PropertyRegistry::class)->matches($validated['name'], $validated['location'] ?? null, null, $pin)
                     ->reject(fn ($m) => (int) $m['property']->company_id === (int) Auth::user()->company_id);
                 if ($matches->isNotEmpty()) {
                     return response()->json([
@@ -148,6 +153,9 @@ class PropertyController extends Controller
             $validated['company_id'] = Auth::user()->company_id;
 
             $property = Property::create($validated);
+            if ($pin) {
+                $property->forceFill(\App\Support\PropertyPin::attributes($pin, $pinSource))->save();
+            }
             \App\Services\Properties\PropertyRegistry::index($property);
 
             if ($request->wantsJson()) {
@@ -197,7 +205,10 @@ class PropertyController extends Controller
                 'service_charge' => 'nullable|numeric|min:0',
                 'garbage_charge' => 'nullable|numeric|min:0',
                 'security_charge' => 'nullable|numeric|min:0'
-            ]);
+            ] + \App\Support\PropertyPin::rules());
+            $pin = \App\Support\PropertyPin::valid($validated['lat'] ?? null, $validated['lng'] ?? null);
+            $pinSource = $validated['pin_source'] ?? 'typed';
+            unset($validated['lat'], $validated['lng'], $validated['pin_source']);
 
             // Set default values for utilities if not provided
             $validated['water_rate'] = $validated['water_rate'] ?? 0;
@@ -205,6 +216,13 @@ class PropertyController extends Controller
             $validated['garbage_charge'] = $validated['garbage_charge'] ?? 0;
             $validated['security_charge'] = $validated['security_charge'] ?? 0;
 
+            // The pin changes only when the form sent one (or cleared it); other callers leave it alone.
+            if ($request->exists('lat')) {
+                $current = \App\Support\PropertyPin::of($property);
+                if ($current !== $pin) {
+                    $property->forceFill(\App\Support\PropertyPin::attributes($pin, $pinSource));
+                }
+            }
             $property->update($validated);
             \App\Services\Properties\PropertyRegistry::index($property);
 

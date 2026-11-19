@@ -41,10 +41,12 @@ class PropertyRegistry
 
     /**
      * Properties that are probably the same building, best first.
+     *
      * @return Collection<int, array{property: Property, score: int}>
      */
-    public function matches(string $name, ?string $location = null, ?int $ignoreId = null): Collection
+    public function matches(string $name, ?string $location = null, ?int $ignoreId = null, ?array $pin = null): Collection
     {
+        $pins = $pin && \App\Support\PropertyPin::enabled();
         $nk = self::nameKey($name);
         $lk = self::locationKey($location);
         if ($nk === '') {
@@ -52,7 +54,7 @@ class PropertyRegistry
         }
 
         return Property::query()->when($ignoreId, fn ($q) => $q->whereKeyNot($ignoreId))->get()
-            ->map(function (Property $p) use ($nk, $lk) {
+            ->map(function (Property $p) use ($nk, $lk, $pin, $pins) {
                 $pn = $p->name_key ?: self::nameKey($p->name);
                 $pl = $p->location_key ?: self::locationKey($p->location);
                 similar_text($nk, $pn, $nameScore);
@@ -61,8 +63,18 @@ class PropertyRegistry
                 // Location: share at least one place word, or one side has no location at all.
                 $placeOk = $lk === '' || $pl === '' || count(array_intersect(explode(' ', $lk), explode(' ', $pl))) > 0;
                 $score = (int) round($sameWords ? 100 : $nameScore);
+                $score = $placeOk ? $score : (int) round($score * 0.6);
 
-                return ['property' => $p, 'score' => $placeOk ? $score : (int) round($score * 0.6)];
+                // Both pinned: the map decides. Same spot (75 m) with a similar name is the same building; 3 km apart is not.
+                $there = $pins ? \App\Support\PropertyPin::of($p) : null;
+                $metres = $there ? (int) round(\App\Support\PropertyPin::metres($pin, $there)) : null;
+                if ($metres !== null && $metres <= 75 && ($nameScore >= 70 || str_contains($pn, $nk) || str_contains($nk, $pn))) {
+                    $score = max($score, 95);
+                } elseif ($metres !== null && $metres > 3000) {
+                    $score = (int) round(min($score, 100) * 0.6);
+                }
+
+                return ['property' => $p, 'score' => $score, 'metres' => $metres];
             })
             ->filter(fn ($m) => $m['score'] >= 80)
             ->sortByDesc('score')->values();
@@ -84,6 +96,7 @@ class PropertyRegistry
     {
         return [
             'id' => $p->id, 'name' => $p->name, 'location' => $p->location, 'score' => $score,
+            'pinned' => \App\Support\PropertyPin::of($p) !== null,
             'managed' => (bool) $p->company_id && ($p->claim_status ?? 'managed') === 'managed',
             'units' => \App\Support\CompanyAccess::bypass(fn () => $p->units()->count()), // the real size, whoever asks
         ];

@@ -238,6 +238,8 @@
                         />
                     </div>
 
+                    @include('partials.property-pin-field')
+
                     <!-- Utility Charges Section -->
                     <div class="col-span-1 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
                         <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Default Utility Charges</h5>
@@ -423,6 +425,8 @@
                             class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
                         />
                     </div>
+
+                    @include('partials.property-pin-field')
 
                     <!-- Utility Charges Section -->
                     <div class="col-span-1 border-t border-gray-200 dark:border-gray-700 pt-4 mt-2">
@@ -739,6 +743,9 @@ function createPropertyModal() {
         form: {
             name: '',
             location: '',
+            lat: '',
+            lng: '',
+            pin_source: '',
             water_rate: '',
             service_charge: '',
             garbage_charge: '',
@@ -771,6 +778,9 @@ function createPropertyModal() {
             this.form = {
                 name: '',
                 location: '',
+                lat: '',
+                lng: '',
+                pin_source: '',
                 water_rate: '',
                 service_charge: '',
                 garbage_charge: '',
@@ -868,6 +878,9 @@ function editPropertyModal() {
         form: {
             name: '',
             location: '',
+            lat: '',
+            lng: '',
+            pin_source: '',
             water_rate: '',
             service_charge: '',
             garbage_charge: '',
@@ -885,6 +898,9 @@ function editPropertyModal() {
             this.form = {
                 name: property.name,
                 location: property.location || '',
+                lat: property.lat ?? '',
+                lng: property.lng ?? '',
+                pin_source: '',
                 water_rate: property.water_rate || '',
                 service_charge: property.service_charge || '',
                 garbage_charge: property.garbage_charge || '',

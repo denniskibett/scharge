@@ -11,6 +11,7 @@ use App\Models\UnitManagement;
 use App\Models\User;
 use App\Modules\CRM\Support\Normalizer;
 use App\Support\CompanyAccess;
+use App\Support\PropertyPin;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -43,7 +44,7 @@ class PropertyOnboarding
         'property_name' => '* Building name, the same on every row of that building (e.g. Kings Serenity Apartments)',
         'location' => 'Area and town (e.g. Kilimani, Nairobi). Used to tell apart buildings with the same name',
         'lr_number' => 'Plot / LR number if known (used to check matches; not saved yet)',
-        'gps' => 'Pin as "lat, lng" if known (used to check matches; not saved yet)',
+        'gps' => 'GPS pin: "lat, lng" or a Google Maps link to the building (must be in Kenya). Saved on the building',
         'scharge_property_id' => 'Leave blank. Only if the preview asks: the building id it suggested, or "new"',
         'property_water_rate' => 'KES per m3 of water for the building',
         'property_service_charge' => 'Default monthly service charge for units without their own',
@@ -77,7 +78,7 @@ class PropertyOnboarding
     private const ALIASES = [
         'property' => 'property_name', 'building' => 'property_name', 'building_name' => 'property_name', 'estate' => 'property_name',
         'area' => 'location', 'address' => 'location', 'lr_no' => 'lr_number', 'plot_number' => 'lr_number', 'plot_no' => 'lr_number', 'lr' => 'lr_number',
-        'pin' => 'gps', 'coordinates' => 'gps', 'property_id' => 'scharge_property_id',
+        'pin' => 'gps', 'coordinates' => 'gps', 'google_maps' => 'gps', 'map_link' => 'gps', 'gps_pin' => 'gps', 'lat_lng' => 'gps', 'property_id' => 'scharge_property_id',
         'unit' => 'unit_number', 'unit_no' => 'unit_number', 'house_number' => 'unit_number', 'house_no' => 'unit_number', 'house' => 'unit_number',
         'type' => 'unit_type', 'beds' => 'bedrooms', 'rent_amount' => 'rent', 'monthly_rent' => 'rent', 'rent_price' => 'rent',
         'security_deposit' => 'deposit', 'deposit_amount' => 'deposit', 'water_meter' => 'water_meter_no', 'water_meter_number' => 'water_meter_no',
@@ -263,6 +264,7 @@ class PropertyOnboarding
         if ($p['writable']) {
             $tmp = ['filled' => [], 'kept' => []];
             $this->fill($property, $this->propertyValues($d), $tmp, 'property ');
+            $this->fillPin($property, PropertyPin::parse($d['gps']), $tmp);
             $out['filled'] = $tmp['filled'];
             foreach ($tmp['kept'] as $k) {
                 $p['notes'][] = "Kept {$k['field']}: {$k['existing']} (file: {$k['file']}).";
@@ -316,7 +318,8 @@ class PropertyOnboarding
             return $r;
         }
 
-        $matches = $d['scharge_property_id'] === 'new' ? collect() : app(PropertyRegistry::class)->matches($d['property_name'], $d['location']);
+        $pin = PropertyPin::parse($d['gps']);
+        $matches = $d['scharge_property_id'] === 'new' ? collect() : app(PropertyRegistry::class)->matches($d['property_name'], $d['location'], null, $pin);
         $best = $matches->first();
         if ($best && $best['score'] >= 95) {
             if (isset($this->byId[$best['property']->id])) {
@@ -334,7 +337,7 @@ class PropertyOnboarding
         }
         // The same name somewhere else: maybe another building, maybe the location written differently. Ask.
         if (! $best && $d['scharge_property_id'] !== 'new' && $d['location']) {
-            $best = app(PropertyRegistry::class)->matches($d['property_name'])->first(fn ($m) => $m['score'] >= 95);
+            $best = app(PropertyRegistry::class)->matches($d['property_name'], null, null, $pin)->first(fn ($m) => $m['score'] >= 95);
             $matches = $best ? collect([$best]) : $matches;
         }
         if ($best) {
@@ -353,7 +356,7 @@ class PropertyOnboarding
             'garbage_charge' => $d['property_garbage_charge'] ?? 0, 'security_charge' => $d['property_security_charge'] ?? 0,
             'company_id' => $manager ? $this->company->id : null, 'claim_status' => $manager ? 'managed' : 'unclaimed',
             'created_by_company_id' => $this->company->id,
-        ]);
+        ] + PropertyPin::attributes($pin, 'csv'));
         PropertyRegistry::index($property);
         $p['action'] = 'created';
         $p['id'] = $property->id;
@@ -425,14 +428,14 @@ class PropertyOnboarding
         if ($key === '') {
             return [];
         }
-        [$lat, $lng] = $this->pin($d['gps']);
+        [$lat, $lng] = PropertyPin::parse($d['gps']) ?? [null, null];
 
         return Company::withoutGlobalScope('customers')->where('lifecycle', 'prospect')->where('name_key', $key)->limit(5)
             ->get(['id', 'name', 'kind', 'crm_profile'])
             ->map(function (Company $c) use ($lat, $lng) {
                 $cl = $c->crm_profile['lat'] ?? null;
                 $cg = $c->crm_profile['lng'] ?? null;
-                $m = ($lat !== null && $cl !== null) ? (int) round($this->metres($lat, $lng, (float) $cl, (float) $cg)) : null;
+                $m = ($lat !== null && $cl !== null) ? (int) round(PropertyPin::metres([$lat, $lng], [(float) $cl, (float) $cg])) : null;
 
                 return ['id' => $c->id, 'name' => $c->name, 'kind' => $c->kind, 'metres' => $m];
             })
@@ -601,6 +604,22 @@ class PropertyOnboarding
         }
     }
 
+    /** The building's pin: set when it has none; a pin more than 100 m from the saved one is reported, not moved. */
+    private function fillPin(Property $property, ?array $pin, array &$out): void
+    {
+        if (! $pin || ! PropertyPin::enabled()) {
+            return;
+        }
+        $saved = PropertyPin::of($property);
+        if (! $saved) {
+            $property->forceFill(PropertyPin::attributes($pin, 'csv'))->save();
+            $out['filled'][] = 'property gps';
+            $this->report['counts']['fields_filled']++;
+        } elseif (($m = PropertyPin::metres($saved, $pin)) > 100) {
+            $out['kept'][] = ['field' => 'gps pin', 'existing' => implode(', ', $saved), 'file' => implode(', ', $pin).' ('.round($m).' m away)'];
+        }
+    }
+
     private function propertyValues(array $d): array
     {
         return ['location' => $d['location'], 'water_rate' => $d['property_water_rate'], 'service_charge' => $d['property_service_charge'],
@@ -701,8 +720,8 @@ class PropertyOnboarding
             $pid = '';
         }
         $gps = $t('gps', 60);
-        if ($gps && $this->pin($gps) === [null, null]) {
-            $errors[] = "gps \"{$gps}\" should be \"lat, lng\"";
+        if ($gps && ! PropertyPin::parse($gps)) {
+            $errors[] = "gps \"{$gps}\" should be \"lat, lng\" (or a Google Maps link) of a place in Kenya";
             $gps = null;
         }
         $email = trim((string) ($r['owner_email'] ?? ''));
@@ -770,26 +789,5 @@ class PropertyOnboarding
         $n = preg_replace('/^(unit|house|hse|apt|apartment|no\.?|#)\s*[:.]?\s*(?=\S)/', '', $n);
 
         return preg_replace('/[^a-z0-9]+/', '', $n);
-    }
-
-    /** @return array{0: ?float, 1: ?float} */
-    private function pin(?string $gps): array
-    {
-        if ($gps && preg_match('/^\s*(-?\d{1,2}(?:\.\d+)?)\s*[,; ]\s*(-?\d{1,3}(?:\.\d+)?)\s*$/', $gps, $m)
-            && abs((float) $m[1]) <= 90 && abs((float) $m[2]) <= 180) {
-            return [(float) $m[1], (float) $m[2]];
-        }
-
-        return [null, null];
-    }
-
-    private function metres(float $lat1, float $lng1, float $lat2, float $lng2): float
-    {
-        $r = 6371000;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLng = deg2rad($lng2 - $lng1);
-        $a = sin($dLat / 2) ** 2 + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLng / 2) ** 2;
-
-        return 2 * $r * asin(min(1, sqrt($a)));
     }
 }
