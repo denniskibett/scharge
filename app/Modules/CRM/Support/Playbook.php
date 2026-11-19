@@ -65,8 +65,8 @@ class Playbook
         $book = self::for($company);
         $subject = $company->profile('email_subject') ?: $book['subject'];
         $body = $company->profile('email_body') ?: $book['body'];
-        // The template's own text gets the owners-abroad line (Cloud9) once; a saved draft is left as the manager wrote it.
-        if (! $company->profile('email_body') && ($abroad = self::abroad($company)) && ! str_contains($body, 'Cloud9')) {
+        // The template's own text gets the owners-abroad line (Sharet Pay) once; a saved draft is left as the manager wrote it.
+        if (! $company->profile('email_body') && ($abroad = self::abroad($company)) && ! str_contains($body, 'Sharet Pay, our international settlement')) {
             $body = preg_replace('/\n\nYou can pick a time/', "\n\n".$abroad."\n\nYou can pick a time", $body, 1);
         }
 
@@ -272,8 +272,8 @@ class Playbook
         ],
     ];
 
-    /** For property segments: owners abroad are paid at home through Sharet Pay (international settlement), which runs on Cloud9 (cloud9.money), scharge's payment rails. */
-    public const ABROAD = 'Investing from abroad, or working with owners who are? Rent and payouts can go to their bank at home through Sharet Pay, our international settlement, which runs on Cloud9 (cloud9.money), our payment rails, in USD, KES or other currencies. From the dashboard you can also push money to any account, tenants included, for easier settlement, with KYC and account opening done during onboarding.';
+    /** For property segments: owners abroad are paid at home through Sharet Pay (international settlement). Never name the rails underneath. */
+    public const ABROAD = 'Investing from abroad, or working with owners who are? Rent and payouts can go to their bank at home through Sharet Pay, our international settlement, in USD, KES or other currencies. From the dashboard you can also push money to any account, tenants included, for easier settlement, with KYC and account opening done during onboarding.';
 
     private const NO_ABROAD = ['water_utility', 'water_private', 'power'];
 
