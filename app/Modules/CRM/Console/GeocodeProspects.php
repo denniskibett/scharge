@@ -23,6 +23,7 @@ class GeocodeProspects extends Command
 {
     protected $signature = 'crm:geocode
         {--force : Recompute rows that already have a location}
+        {--missing : Also recompute rows that were located but got no sub-county}
         {--chunk=500 : Rows per batch}
         {--limit=0 : Stop after this many rows (0 = all)}
         {--dry-run : Count only, save nothing}
@@ -35,6 +36,7 @@ class GeocodeProspects extends Command
     public function handle(KenyaGeo $geo): int
     {
         $force = (bool) $this->option('force');
+        $missing = (bool) $this->option('missing');
         $limit = (int) $this->option('limit');
         $dry = (bool) $this->option('dry-run');
         $stats = ['exact' => 0, 'area' => 0, 'town' => 0, 'county' => 0, 'none' => 0, 'skipped' => 0];
@@ -59,7 +61,7 @@ class GeocodeProspects extends Command
         $bar = $this->output->createProgressBar($limit ?: (clone $query)->count());
 
         $pause = max(0, (int) $this->option('pause'));
-        $query->chunkById((int) $this->option('chunk'), function ($companies) use ($geo, $force, $limit, $dry, $now, $pins, $track, $pause, &$stats, &$props, &$done, $bar) {
+        $query->chunkById((int) $this->option('chunk'), function ($companies) use ($geo, $force, $missing, $limit, $dry, $now, $pins, $track, $pause, &$stats, &$props, &$done, $bar) {
             if ($pause) {
                 usleep($pause * 1000);
             }
@@ -69,7 +71,7 @@ class GeocodeProspects extends Command
                 }
                 $profile = $company->crm_profile ?? [];
                 $changed = false;
-                if (! $force && ! empty($profile['geo_at'])) {
+                if (! $force && ! empty($profile['geo_at']) && ! ($missing && empty($profile['sub_county_id']))) {
                     $stats['skipped']++;
                 } else {
                     $done++;

@@ -20,7 +20,7 @@ class KenyaGeo
     /** Cities that span several constituencies: a town-level pin there says nothing about the constituency. */
     private const MULTI_CONSTITUENCY_TOWNS = [
         'nairobi', 'mombasa', 'kisumu', 'nakuru', 'eldoret', 'thika', 'machakos', 'kakamega', 'kisii', 'meru',
-        'nyeri', 'kitale', 'kericho', 'malindi', 'kilifi', 'naivasha', 'ruiru', 'kitengela', 'athiriver', 'kiambu',
+        'nyeri', 'kitale', 'kericho', 'malindi', 'kilifi', 'naivasha', 'kitengela', 'athiriver', 'kiambu',
     ];
 
     /** subcounties rows seeded without a ward name, in id order per constituency (IEBC ward order). */
@@ -415,7 +415,7 @@ class KenyaGeo
     }
 
     /** Ray casting over the outer ring, minus holes. */
-    private static function inPolygon(float $x, float $y, array $rings): bool
+    public static function inPolygon(float $x, float $y, array $rings): bool
     {
         $inside = false;
         foreach ($rings as $i => $ring) {
@@ -459,6 +459,14 @@ class KenyaGeo
         $words = preg_split('/\s+/', $first);
         for ($n = count($words) - 1; $n >= 2; $n--) {
             $candidates[] = implode(' ', array_slice($words, 0, $n));
+        }
+        // "Karen Langata", "Hardy Langata": a known suburb as one of the words (5+ letters, so "Park" or "View" never count).
+        // A road name is not its namesake town ("Ngong Road" is in Kilimani, not Ngong), except Lang'ata Road, which is in Lang'ata.
+        foreach (array_reverse($words, true) as $i => $word) { // the last word is usually the place ("Kiambu Ruiru" is in Ruiru)
+            $road = preg_match('/^(road|rd\.?|avenue|ave|drive|street|st|way|lane|highway|bypass)$/i', $words[$i + 1] ?? '');
+            if (mb_strlen($word) >= 5 && self::key($word) !== 'nairobi' && (! $road || self::key($word) === 'langata')) {
+                $candidates[] = $word;
+            }
         }
         foreach (array_unique($candidates) as $candidate) {
             $k = self::key($candidate);

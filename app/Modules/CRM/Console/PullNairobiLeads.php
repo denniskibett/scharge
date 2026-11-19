@@ -66,7 +66,7 @@ class PullNairobiLeads extends Command
         'South B' => [-1.3099, 36.8338, 1100, 2],
         'South C' => [-1.3170, 36.8240, 1100, 2],
         'Ruaka' => [-1.2085, 36.7775, 1800, 2, 'Kiambu'],
-        'Ruiru' => [-1.1460, 36.9600, 3500, 2, 'Kiambu'],
+        'Ruiru' => [-1.1460, 36.9600, 3500, 2], // sold as Nairobi (Thika Road); the map still puts it in Kiambu County
         'Syokimau' => [-1.3667, 36.9333, 2500, 3],
         'Kitengela' => [-1.4761, 36.9614, 3500, 3],
         // Added 19 Nov 2026: south and east (Ngong Road, Mombasa Road, Lang'ata Road corridors).
@@ -94,6 +94,100 @@ class PullNairobiLeads extends Command
         'Juja' => [-1.1010, 37.0150, 2500, 2, 'Kiambu'],
         'Thika' => [-1.0390, 37.0830, 3500, 3, 'Kiambu'],
     ];
+
+    /**
+     * Campuses with a student-rental market around them: name => [lat, lng, campus half-width m, reach m]. Reach defaults to
+     * CAMPUS_REACH; city-centre campuses get less, so Kilimani or Riverside blocks are not sold as student lets. Centres and sizes are the
+     * amenity=university/college outlines in OpenStreetMap (Kenya extract, 19 Nov 2026). Apartments and private hostels within
+     * CAMPUS_REACH of the campus edge are student-rental prospects; a hostel inside the campus with no published contact is a
+     * university hall (run by the university's housing office, not a landlord) and is skipped.
+     */
+    public const CAMPUSES = [
+        'Kenyatta University' => [-1.1800, 36.9324, 1250],
+        'Kenyatta University Ruiru' => [-1.1450, 36.9667, 240],
+        'JKUAT' => [-1.0951, 37.0138, 1120],
+        'USIU-Africa' => [-1.2140, 36.8798, 680],
+        'Pan Africa Christian University' => [-1.2160, 36.8844, 180, 1000],
+        'KCA University' => [-1.2539, 36.8601, 170, 800],
+        'Kenya Utalii College' => [-1.2580, 36.8560, 190, 600],
+        'University of Nairobi (Main)' => [-1.2796, 36.8158, 300, 600],
+        'University of Nairobi (Chiromo)' => [-1.2741, 36.8063, 420, 600],
+        'Technical University of Kenya' => [-1.2920, 36.8242, 150, 500],
+        'Daystar University (Nairobi)' => [-1.2971, 36.8023, 90, 500],
+        'KMTC Nairobi' => [-1.3006, 36.8038, 320, 600],
+        'Strathmore University' => [-1.3103, 36.8138, 290, 1000],
+        'Riara University' => [-1.3147, 36.8071, 110, 700],
+        'University of Nairobi (Kenya Science)' => [-1.3023, 36.7648, 360, 800],
+        'Catholic University of East Africa' => [-1.3502, 36.7561, 650],
+        'Co-operative University' => [-1.3672, 36.7286, 240],
+        'JKUAT Karen' => [-1.3561, 36.7410, 170],
+        'Multimedia University' => [-1.3832, 36.7679, 870],
+        'Africa Nazarene University' => [-1.4009, 36.7901, 300],
+        'Daystar University (Athi River)' => [-1.4461, 37.0485, 850],
+        'University of Nairobi (Kabete)' => [-1.2534, 36.7304, 460],
+        'Kabete National Polytechnic' => [-1.2648, 36.7243, 360],
+        'Kiambu National Polytechnic' => [-1.1806, 36.8349, 480],
+        'Mount Kenya University' => [-1.0449, 37.0848, 270],
+        'Gretsa University' => [-1.0526, 37.0945, 130],
+    ];
+
+    /** How far past the campus edge a building still counts as student housing (walking distance). */
+    public const CAMPUS_REACH = 1500;
+
+    /** Built this year or later = a new building (preferred: modern fittings, owners still setting up management). */
+    public const NEW_BUILD_YEAR = 2015;
+
+    private static ?array $outlines = null;
+
+    /**
+     * Nearest campus within reach. Distance is from the campus centre less its half-width (a circle, good enough for
+     * "walking distance"); -1 means inside the campus's real OSM outline (database/data/geo/ke_campuses.json), so a
+     * private hostel just outside an oddly shaped campus is never mistaken for a hall.
+     *
+     * @return array{0: string, 1: float}|null [campus, metres from its edge]
+     */
+    public static function nearCampus(float $lat, float $lng): ?array
+    {
+        self::$outlines ??= json_decode((string) @file_get_contents(database_path('data/geo/ke_campuses.json')), true)['campuses'] ?? [];
+        $best = null;
+        foreach (self::CAMPUSES as $campus => $c) {
+            [$clat, $clng, $half] = $c;
+            $dx = ($lng - $clng) * 111320 * cos(deg2rad($lat));
+            $dy = ($lat - $clat) * 110570;
+            $edge = sqrt($dx * $dx + $dy * $dy) - $half;
+            if ($edge > ($c[3] ?? self::CAMPUS_REACH)) {
+                continue;
+            }
+            $inside = false;
+            foreach (self::$outlines[$campus] ?? [] as $rings) {
+                if (\App\Modules\CRM\Support\KenyaGeo::inPolygon($lng, $lat, $rings)) {
+                    $inside = true;
+                    break;
+                }
+            }
+            $edge = $inside ? -1.0 : max(0.0, $edge);
+            if (! $best || $edge < $best[1]) {
+                $best = [$campus, $edge];
+            }
+        }
+
+        return $best;
+    }
+
+    /** Year the building was finished (OSM start_date and friends), 'construction' while it is being built, else null. */
+    public static function buildYear(array $t): int|string|null
+    {
+        if (($t['building'] ?? null) === 'construction' || isset($t['construction'])) {
+            return 'construction';
+        }
+        foreach (['start_date', 'building:start_date', 'construction_date', 'building:year'] as $k) {
+            if (isset($t[$k]) && preg_match('/\b(19[5-9]\d|20[0-4]\d)\b/', $t[$k], $m)) {
+                return (int) $m[1];
+            }
+        }
+
+        return null;
+    }
 
     /** NHC estates and affordable-housing schemes anywhere in Kenya (no area circle). */
     public const NHC_AREA = 'NHC & affordable housing';
@@ -524,6 +618,12 @@ class PullNairobiLeads extends Command
                 continue;
             }
             [$lat, $lng] = $this->point($el) ?? [null, null];
+            $hall = $lat !== null && ! isset($t['office']) && (($t['tourism'] ?? null) === 'hostel' || ($t['building'] ?? null) === 'dormitory' || preg_match('/\bhostels?\b/i', $name))
+                && ($c = self::nearCampus($lat, $lng)) && $c[1] < 0 && ! $this->hasContact($t);
+            if ($hall || preg_match('/universit|college/i', ($t['operator'] ?? '').' '.($t['owner'] ?? ''))) {
+                $skips['university hall (inside campus, no contact)'] = ($skips['university hall (inside campus, no contact)'] ?? 0) + 1;
+                continue;
+            }
             $area = $lat === null ? null : $this->nearestArea($lat, $lng, $areas);
             if (! $area && $lat !== null && ! empty($el['_nhc'])) {
                 $area = self::NHC_AREA;
@@ -567,11 +667,15 @@ class PullNairobiLeads extends Command
         $phone = $phone ? implode(' / ', array_map('trim', preg_split('/;/', $phone))) : null;
 
         $hostel = ($t['tourism'] ?? null) === 'hostel' || ($t['building'] ?? null) === 'dormitory' || preg_match('/\bhostels?\b/i', $name);
+        $campus = self::nearCampus($lat, $lng)[0] ?? null;
+        $built = self::buildYear($t);
+        $new = $built === 'construction' || (is_int($built) && $built >= self::NEW_BUILD_YEAR);
         if ($nhc && ! $office) {
             [$kind, $segment, $type, $angle, $role] = ['manager', 'Affordable Housing', 'NHC / affordable-housing estate',
                 'Rent and tenant-purchase collection, service charge, water/power sub-metering and gate log for the estate', 'Estate Manager / NHC regional office'];
         } elseif ($hostel && ! $office) {
-            [$kind, $segment, $type, $angle, $role] = ['manager', 'Residential Property (named building/estate)', 'Student hostel / rental near campus',
+            [$kind, $segment, $type, $angle, $role] = ['manager', 'Residential Property (named building/estate)',
+                $campus ? 'Private student hostel near '.$campus : 'Student hostel / rental near campus',
                 'Rent per room or bed, deposits, water/power sub-metering and gate log for the hostel', 'Hostel Owner / Manager'];
         } elseif ($office) {
             $developer = preg_match('/develop|construction|homes\b/i', $name);
@@ -592,13 +696,24 @@ class PullNairobiLeads extends Command
             [$kind, $segment, $type, $angle, $role] = [
                 'manager',
                 'Residential Property (named building/estate)',
-                ($t['landuse'] ?? null) === 'residential' || isset($t['residential']) ? 'Named estate / gated community' : 'Named apartment building',
+                match (true) {
+                    ($t['landuse'] ?? null) === 'residential' || isset($t['residential']) => 'Named estate / gated community',
+                    (bool) $campus => 'Apartments near '.$campus.' (student lets)',
+                    default => 'Named apartment building',
+                },
                 'Rent and service-charge collection, water/power sub-metering, gate and visitor log for the managing agent',
                 'Managing Agent / Caretaker / Residents\' Association',
             ];
         }
 
+        if ($new && $kind === 'manager' && ! $office) {
+            $tier = 1; // new buildings first
+        } elseif ($campus && $kind === 'manager' && ! $office && ! $nhc) {
+            $tier = min($tier, 2);
+        }
         $facts = array_filter([
+            $built === 'construction' ? 'Under construction (OSM)' : ($built ? 'Built '.$built.' (OSM)' : null),
+            $campus ? 'Near '.$campus : null,
             isset($t['building:levels']) ? $t['building:levels'].' floors' : null,
             isset($t['addr:street']) ? trim(($t['addr:housenumber'] ?? '').' '.$t['addr:street']) : null,
             isset($t['operator']) ? 'Operator: '.$t['operator'] : null,
