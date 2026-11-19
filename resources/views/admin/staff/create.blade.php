@@ -3,12 +3,9 @@
 @section('title', 'Add Staff')
 
 @section('content')
+@include('partials.page-header', ['title' => 'Add staff member', 'crumbs' => ['Staff' => route('staff.index')]])
 <div>
-    <div class="mb-6">
-        <a href="{{ route('admin.staff.index') }}" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-            <i class="fas fa-arrow-left mr-2"></i> Back to Staff
-        </a>
-    </div>
+    
 
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="p-6 border-b border-gray-200 dark:border-gray-700">
@@ -16,7 +13,7 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">Create a new staff account with role and company assignment.</p>
         </div>
 
-        <form method="POST" action="{{ route('admin.staff.store') }}" class="p-6 space-y-6">
+        <form method="POST" action="{{ route('staff.store') }}" class="p-6 space-y-6">
             @csrf
 
             @if($errors->any())
@@ -94,7 +91,7 @@
 
             <!-- Submit -->
             <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <a href="{{ route('admin.staff.index') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
+                <a href="{{ route('staff.index') }}" class="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs ring-1 ring-gray-300 transition hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03]">
                     Cancel
                 </a>
                 <button type="submit" class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">

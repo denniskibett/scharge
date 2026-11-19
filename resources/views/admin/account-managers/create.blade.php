@@ -3,6 +3,7 @@
 @section('title', 'Create Account Manager')
 
 @section('content')
+@include('partials.page-header', ['title' => 'New account manager', 'crumbs' => ['Account managers' => route('admin.account-managers.index')]])
 <div class="flex flex-col gap-5">
     <!-- Card -->
     <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
@@ -15,13 +16,7 @@
                     Add a new account manager to manage properties
                 </p>
             </div>
-            <a href="{{ route('admin.account-managers.index') }}" 
-               class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to List
-            </a>
+            
         </div>
     </div>
 

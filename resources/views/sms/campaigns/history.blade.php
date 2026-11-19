@@ -4,21 +4,14 @@
 @section('title', 'Campaign History')
 
 @section('content')
+@include('partials.page-header', ['title' => 'Campaign history', 'sub' => 'Campaigns synced from KenyaSMS', 'crumbs' => ['SMS campaigns' => route('sms.campaigns.index')]])
 <div>
     
     <!-- Header -->
     <div class="mb-6 flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">
-        <div>
-            <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Campaign History</h1>
-            <p class="text-sm text-gray-500 dark:text-gray-400">View all campaigns synced from KenyaSMS</p>
-        </div>
+        <div></div>
         <div class="flex gap-2">
-            <a href="{{ route('sms.campaigns.index') }}" class="shadow-theme-xs flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                </svg>
-                Back to Campaigns
-            </a>
+            
             <a href="{{ route('sms.sync-campaigns') }}" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition" onclick="this.innerHTML='⏳ Syncing...'">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>

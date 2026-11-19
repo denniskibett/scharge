@@ -10,7 +10,7 @@
     $vacant = $units->where('status', 'vacant');
 @endphp
 <div>
-    <a href="{{ route('agent.dashboard') }}" class="mb-3 inline-block text-sm text-brand-600 hover:underline dark:text-brand-400">← All properties</a>
+    @include('partials.page-header', ['title' => $property->name, 'crumbs' => ['Agency properties' => route('agent.dashboard')]])
     <div class="{{ $card }} mb-6 p-6">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>

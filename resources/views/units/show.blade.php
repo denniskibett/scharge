@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+@include('partials.page-header', ['title' => 'Unit '.$unit->unit_number, 'crumbs' => ['Units' => route('units.index')]])
 <!-- Include modal partials -->
 @include('partials.modal.units-edit-modal')
 @include('partials.modal.units-delete-modal')
@@ -33,12 +34,7 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2">
-        <a href="{{ route('units.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Units
-        </a>
+        
         
         @php $activeTenancy = $unit->tenancies->where('status', 'active')->first(); @endphp
         @if($activeTenancy)

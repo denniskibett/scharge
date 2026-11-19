@@ -367,7 +367,8 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 // ADMIN USER MANAGEMENT ROUTES
 // ============================================
-Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(function () {
+// Every user on scharge: sysadmins only (company admins manage their own people on /team).
+Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:sysadmin'])->group(function () {
 
     Route::resource('/', App\Http\Controllers\Admin\UserController::class)
         ->parameters(['' => 'user']);
