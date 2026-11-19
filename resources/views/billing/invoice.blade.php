@@ -43,6 +43,7 @@ td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
 .sub td { color: var(--ink); }
+.tot td { font-weight: 700; padding-bottom: 2px; } .tot + .sub td { padding-top: 2px; }
 .bal td { font-weight: 700; } .bal td.amt { color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--ink) !important; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
@@ -86,13 +87,14 @@ td small { display: block; color: var(--muted); }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
 .sp-link:hover { text-decoration: underline; }
-.payqr { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 16px; align-items: center; }
+.qr-cell { vertical-align: middle; padding: 10px 20px 10px 0 !important; border-bottom: 0 !important; }
+.payqr { display: flex; gap: 14px; align-items: center; }
 .payqr .qr { width: 104px; height: 104px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
 .full-link { font: 13px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); word-break: break-all; }
 .handle { color: var(--red); font-weight: 600; text-decoration: none; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #101828; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 .toast.show { opacity: 1; }
-@media print { .payqr { margin-top: 10px; padding-top: 8px; gap: 12px; } .payqr .qr { width: 84px; height: 84px; } .full-link { font-size: 10px; } .payqr .muted, .payqr div, .plan-name .muted, .meta dt { font-size: 9.5px !important; } .plan-name { margin-bottom: 4px; } }
+@media print { .payqr { gap: 10px; } .payqr .qr { width: 76px; height: 76px; } .full-link { font-size: 10px; } .payqr .muted, .payqr div, .plan-name .muted, .meta dt { font-size: 9.5px !important; } .plan-name { margin-bottom: 4px; } }
 </style>
 </head>
 <body>
@@ -174,25 +176,21 @@ td small { display: block; color: var(--muted); }
       @endforeach
     </tbody>
     <tfoot>
-      <tr class="sub"><td></td><td></td><td class="num muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="amt">{{ $money($vat['net']) }}</td></tr>
-      <tr class="sub"><td></td><td></td><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
-      <tr class="grand"><td></td><td></td><td class="num">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
-      <tr class="sub"><td></td><td></td><td class="num muted">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="amt">{{ $money($paidAmount) }}</td></tr>
-      <tr class="sub bal"><td></td><td></td><td class="num">Balance due</td><td class="amt">{{ $money($balance) }}</td></tr>
-    </tfoot>
-  </table>
-
-  @unless ($paid)
-    <div class="payqr">
+      <tr class="sub"><td colspan="2" rowspan="5" class="qr-cell">@unless ($paid)<div class="payqr">
       @if ($payQr)<img class="qr" src="{{ $payQr }}" alt="QR code: pay with Sharet Pay" width="104" height="104">@endif
       <div>
         <div class="sp-link"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay</div>
         <div class="muted" style="font-size:12.5px;margin:2px 0 6px">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
         <a class="full-link" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $payUrl }}</a>
         @if ($handle)<div style="margin-top:4px;font-size:13px">Pay to <a class="handle" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $handle }}</a> · {{ $money($total) }}</div>@endif
-      </div>
-    </div>
-  @endunless
+      </div></div>@endunless</td><td class="num muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="amt">{{ $money($vat['net']) }}</td></tr>
+      <tr class="sub"><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
+      <tr class="sub tot"><td class="num">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
+      <tr class="sub"><td class="num muted">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="amt">{{ $money($paidAmount) }}</td></tr>
+      <tr class="grand bal"><td class="num">Balance due</td><td class="amt">{{ $money($balance) }}</td></tr>
+    </tfoot>
+  </table>
+
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 </div>
 <div class="toast" id="toast"></div>
