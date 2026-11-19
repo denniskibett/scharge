@@ -425,6 +425,14 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::post('/host/units', [App\Http\Controllers\HostController::class, 'addUnit'])->name('host.units.store');
     });
 
+    // Onboarding from the CSV template (one row per unit; matches existing buildings and units, dry run first)
+    Route::middleware('role:sysadmin|account_manager|admin|property_manager|bnb_host')->group(function () {
+        Route::get('/properties/onboard', [App\Http\Controllers\PropertyOnboardingController::class, 'create'])->name('properties.onboard');
+        Route::get('/properties/onboard/template.csv', [App\Http\Controllers\PropertyOnboardingController::class, 'template'])->name('properties.onboard.template');
+        Route::post('/properties/onboard/preview', [App\Http\Controllers\PropertyOnboardingController::class, 'preview'])->middleware('throttle:20,1,onboard-preview')->name('properties.onboard.preview');
+        Route::post('/properties/onboard/confirm', [App\Http\Controllers\PropertyOnboardingController::class, 'confirm'])->middleware('throttle:10,1,onboard-confirm')->name('properties.onboard.confirm');
+        Route::post('/properties/onboard/cancel', [App\Http\Controllers\PropertyOnboardingController::class, 'cancel'])->name('properties.onboard.cancel');
+    });
     Route::resource('properties', PropertyController::class)->middleware('access:properties');
     // Old links and bookmarks from before the Estate -> Property rename.
     Route::get('/estates/{rest?}', fn (?string $rest = null) => redirect('/properties'.($rest ? '/'.$rest : ''), 301))->where('rest', '.*');
