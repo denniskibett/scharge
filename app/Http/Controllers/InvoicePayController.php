@@ -67,23 +67,6 @@ class InvoicePayController extends Controller
         return $this->page($inv, $bills->refresh($row));
     }
 
-    /** Send the M-Pesa STK prompt for this payment, from scharge (no trip to Sharet's page). */
-    public function mpesa(\Illuminate\Http\Request $request, int $invoice, string $ref, BillPayments $bills, \App\Services\Sharet\HostedPay $hosted)
-    {
-        $inv = $this->invoice($invoice);
-        $row = $bills->refresh($this->payment($inv->id, $ref));
-        if ($row->status === 'paid') {
-            return response()->json(['ok' => true, 'paid' => true, 'message' => 'Already paid. Thank you.']);
-        }
-        $phone = \App\Services\Sharet\HostedPay::phone((string) $request->input('phone'));
-        if (! $phone) {
-            return response()->json(['ok' => false, 'message' => 'Enter a Safaricom number like 0712 345 678.'], 422);
-        }
-        $out = $hosted->mpesa($row, $phone);
-
-        return response()->json($out, $out['ok'] ? 200 : 422);
-    }
-
     public function status(int $invoice, string $ref, BillPayments $bills)
     {
         $inv = $this->invoice($invoice);
@@ -107,7 +90,6 @@ class InvoicePayController extends Controller
             'invoiceUrl' => BillingController::publicUrl($inv->id),
             'startUrl' => self::startUrl($inv->id),
             'statusJson' => $row ? URL::signedRoute('billing.invoice.pay.status', ['invoice' => $inv->id, 'ref' => $row->sharet_id]) : null,
-            'mpesaUrl' => $row ? URL::signedRoute('billing.invoice.pay.mpesa', ['invoice' => $inv->id, 'ref' => $row->sharet_id]) : null,
             'stkNumber' => config('billing.stk_number'),
         ])->header('Cache-Control', 'no-store');
     }

@@ -50,18 +50,11 @@ dt { color: var(--muted); } dd { margin: 0; text-align: right; font-weight: 500;
 .foot { text-align: center; margin-top: 16px; font-size: 13px; }
 .foot a { color: var(--muted); }
 html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 16px; max-width: none; } html.embed .card { border: 0; } html.embed .foot { display: none; }
-.opt { padding: 14px 16px; }
-.mp { display: block; } .mp:hover { border-color: var(--line); } .mp:active { transform: none; }
-.mp-row { display: flex; gap: 8px; margin-top: 10px; }
-.mp-row input { flex: 1; min-width: 0; font: inherit; padding: 11px 12px; border: 1px solid var(--line); border-radius: 12px; }
-.mp-row input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px #FEE2E2; }
-.mp-row .btn { white-space: nowrap; } .mp-row .btn[disabled] { opacity: .6; cursor: wait; }
-.s2s-toggle { all: unset; display: flex; align-items: center; gap: 12px; width: 100%; cursor: pointer; }
-.s2s-toggle b { display: block; } .s2s-toggle span span { font-size: 13px; color: var(--muted); }
-#s2s-frame { display: block; width: 100%; height: 560px; border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; background: #fff; }
-.s2s-out { display: inline-block; margin-top: 8px; font-size: 13px; color: var(--muted); }
-.mp-msg { margin: 10px 0 0; font-size: 13.5px; border-radius: 10px; padding: 10px 12px; }
-.mp-msg.ok { background: #ECFDF3; color: #027A48; } .mp-msg.bad { background: #FEF3F2; color: #B42318; } .opt > span:first-child { padding-right: 8px; }
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 0 12px; border-bottom: 1px solid var(--line); font-size: 14px; }
+.strip .pill { margin-left: auto; padding: 2px 10px; font-size: 12px; }
+.sp-frame { display: block; width: 100%; height: 600px; border: 0; margin-top: 12px; border-radius: 14px; background: #fff; }
+html.embed .sp-frame { height: calc(100vh - 190px); min-height: 480px; }
+.note a { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -74,54 +67,37 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
 
     @if ($error)<div class="err">{{ $error }}</div>@endif
 
-    <div class="muted" style="font-size:13px">Amount</div>
-    <div class="amount">{{ $cur }} {{ number_format($amount, 2) }}</div>
-    @if ($label)
-      <span id="pill" class="pill {{ $status === 'paid' ? 'paid' : ($status === 'open' ? 'open' : 'bad') }}"><span class="dot"></span><span id="pill-text">{{ $label }}</span></span>
-    @endif
-
-    <dl>
-      <dt>Pay to</dt><dd>{{ $payee }}@if ($handle)<br><span style="color:var(--red)">{{ $handle }}</span>@endif</dd>
-      @if ($row)<dt>Sharet ref</dt><dd>{{ $row->sharet_id }}</dd>@endif
-      @if ($status === 'paid' && $row?->paid_at)<dt>Paid</dt><dd>{{ $row->paid_at->timezone('Africa/Nairobi')->format('j M Y, H:i') }}@if ($via) · {{ $via }}@endif</dd>@endif
-      @if ($status === 'paid' && $row?->sharet_transaction)<dt>Transaction</dt><dd>{{ $row->sharet_transaction }}</dd>@endif
-      @if ($status === 'open' && $row?->expires_at)<dt>Link valid until</dt><dd>{{ $row->expires_at->timezone('Africa/Nairobi')->format('j M Y, H:i') }}</dd>@endif
-    </dl>
-
     @if ($status === 'open' && $row?->pay_url)
-      <div class="opts">
-        <form class="opt mp" id="mpesa" autocomplete="on" novalidate>
-          <span><b>M-Pesa (STK push)</b><span>Enter the M-Pesa number. The prompt goes straight to the phone: approve it with your PIN.</span></span>
-          <div class="mp-row">
-            <input id="mp-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="0712 345 678" maxlength="16" required aria-label="M-Pesa number">
-            <button class="btn red" id="mp-send" type="submit">Send prompt</button>
-          </div>
-          <p class="mp-msg" id="mp-msg" role="status" hidden></p>
-        </form>
-        @if (config('billing.sharet_embed'))
-          <div class="opt mp" id="s2s">
-            <button class="s2s-toggle" type="button" aria-expanded="false" aria-controls="s2s-frame-wrap">
-              <span><b>Sharet to Sharet</b><span>Sign in to Sharet here and pay {{ $handle ?: 'scharge' }} from your balance with your PIN</span></span>
-              <span class="go">Pay →</span>
-            </button>
-            <div id="s2s-frame-wrap" hidden>
-              <iframe id="s2s-frame" title="Sharet sign-in and payment" data-src="{{ $row->pay_url }}" src="about:blank"></iframe>
-              <a class="s2s-out" href="{{ $row->pay_url }}" target="_blank" rel="noopener">Open in a new tab instead</a>
-            </div>
-          </div>
-        @else
-          <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
-            <span><b>Sharet to Sharet</b><span>Sign in to Sharet and pay {{ $handle ?: 'scharge' }} from your balance</span></span>
-            <span class="go">Pay →</span>
-          </a>
-        @endif
+      <div class="strip">
+        <span><b>{{ $cur }} {{ number_format($amount, 2) }}</b>@if ($handle) to <span style="color:var(--red)">{{ $handle }}</span>@endif</span>
+        <span class="muted">{{ $row->sharet_id }}</span>
+        <span id="pill" class="pill open"><span class="dot"></span>Waiting</span>
       </div>
-      <p class="note">This turns <b>Paid</b> on its own once the payment is confirmed, and this link always shows the status.@unless (config('billing.sharet_embed')) Sharet to Sharet opens Sharet in a new tab to sign in.@endunless</p>
-    @elseif ($status === 'paid')
-      <p style="margin:0">Thank you. The invoice is paid and your scharge account is up to date.</p>
-    @elseif ($inv->status !== 'paid')
-      <p style="margin:0 0 14px">This payment link is {{ strtolower($label ?? 'not available') }}. Start a new one to pay this invoice.</p>
-      <a class="btn red" href="{{ $startUrl }}">Start a new payment</a>
+      @if (config('billing.sharet_embed'))
+        <iframe class="sp-frame" title="Sharet Pay" src="{{ $row->pay_url }}" allow="clipboard-write"></iframe>
+        <p class="note">Turns <b>Paid</b> here on its own once Sharet confirms, and this link always shows the status. <a href="{{ $row->pay_url }}" target="_blank" rel="noopener">Open Sharet Pay in a new tab</a></p>
+      @else
+        <a class="btn red" style="width:100%;margin-top:14px" href="{{ $row->pay_url }}" target="_blank" rel="noopener">Pay with Sharet Pay →</a>
+        <p class="note">M-Pesa or Sharet to Sharet on Sharet Pay. This page turns <b>Paid</b> on its own once Sharet confirms.</p>
+      @endif
+    @else
+      <div class="muted" style="font-size:13px">Amount</div>
+      <div class="amount">{{ $cur }} {{ number_format($amount, 2) }}</div>
+      @if ($label)
+        <span id="pill" class="pill {{ $status === 'paid' ? 'paid' : 'bad' }}"><span class="dot"></span><span id="pill-text">{{ $label }}</span></span>
+      @endif
+      <dl>
+        <dt>Pay to</dt><dd>{{ $payee }}@if ($handle)<br><span style="color:var(--red)">{{ $handle }}</span>@endif</dd>
+        @if ($row)<dt>Sharet ref</dt><dd>{{ $row->sharet_id }}</dd>@endif
+        @if ($status === 'paid' && $row?->paid_at)<dt>Paid</dt><dd>{{ $row->paid_at->timezone('Africa/Nairobi')->format('j M Y, H:i') }}@if ($via) · {{ $via }}@endif</dd>@endif
+        @if ($status === 'paid' && $row?->sharet_transaction)<dt>Transaction</dt><dd>{{ $row->sharet_transaction }}</dd>@endif
+      </dl>
+      @if ($status === 'paid')
+        <p style="margin:0">Thank you. The invoice is paid and your scharge account is up to date.</p>
+      @elseif ($inv->status !== 'paid')
+        <p style="margin:0 0 14px">This payment link is {{ strtolower($label ?? 'not available') }}. Start a new one to pay this invoice.</p>
+        <a class="btn red" href="{{ $startUrl }}">Start a new payment</a>
+      @endif
     @endif
   </div>
   <div class="foot"><a href="{{ $invoiceUrl }}">View invoice {{ $inv->invoice_number }}</a></div>
@@ -138,38 +114,8 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
     } catch (e) {}
     return false;
   };
-  let fast = 0;
-  const tick = async () => { tries++; if (!(await check())) setTimeout(tick, fast > 0 ? (fast--, 3000) : (tries < 40 ? 6000 : 20000)); };
-  const s2s = document.querySelector('#s2s .s2s-toggle');
-  if (s2s) s2s.addEventListener('click', () => {
-    const wrap = document.getElementById('s2s-frame-wrap'), fr = document.getElementById('s2s-frame');
-    const open = wrap.hidden; wrap.hidden = !open; s2s.setAttribute('aria-expanded', String(open));
-    if (open && fr.src === 'about:blank') fr.src = fr.dataset.src;
-    if (open) { fast = 60; wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-  });
-  if (s2s && location.hash === '#s2s') setTimeout(() => s2s.click(), 150);
-  const f = document.getElementById('mpesa');
-  if (f) {
-    const msg = document.getElementById('mp-msg'), btn = document.getElementById('mp-send'), input = document.getElementById('mp-phone');
-    const show = (text, ok) => { msg.textContent = text; msg.className = 'mp-msg ' + (ok ? 'ok' : 'bad'); msg.hidden = false; };
-    if (location.hash === '#mpesa') setTimeout(() => input.focus(), 150);
-    f.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const phone = input.value.trim();
-      if (!/^(?:\+?254|0)?[71]\d{8}$/.test(phone.replace(/[\s-]/g, ''))) { show('Enter a Safaricom number like 0712 345 678.', false); input.focus(); return; }
-      btn.disabled = true; btn.textContent = 'Sending…'; msg.hidden = true;
-      try {
-        const r = await fetch(@js($mpesaUrl), { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }, body: JSON.stringify({ phone }) });
-        const j = await r.json().catch(() => ({}));
-        if (r.status === 429) show('Too many prompts just now. Wait a minute and try again.', false);
-        else if (j.paid) { location.reload(); return; }
-        else show(j.message || (r.ok ? 'Prompt sent.' : 'Could not send the prompt. Try again.'), !!j.ok);
-        if (j.ok) { fast = 40; check(); }
-      } catch (err) { show('Could not reach scharge. Check your connection and try again.', false); }
-      btn.disabled = false; btn.textContent = 'Send prompt';
-    });
-  }
-  setTimeout(tick, 6000);
+  const tick = async () => { tries++; if (!(await check())) setTimeout(tick, tries < 100 ? 4000 : 20000); };
+  setTimeout(tick, 4000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 })();
 </script>
