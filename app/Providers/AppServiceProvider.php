@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Live is served over https: every generated link, form action and asset URL must be https too.
-        if ($this->app->isProduction() && str_starts_with((string) config('app.url'), 'https://')) {
+        if ($this->app->isProduction() && $this->app->bound('request') && str_starts_with((string) config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
