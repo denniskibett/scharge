@@ -31,7 +31,8 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .pill.paid { background: #ECFDF3; color: #027A48; }
 .meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 18px 32px; margin: 28px 0; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .meta .info { text-align: right; }
-.plan-name { margin-bottom: 8px; font-weight: 500; } .plan-name .muted { font-weight: 400; font-size: 13px; }
+.dates { white-space: nowrap; } .dates .sep { color: var(--line); margin: 0 6px; }
+.plan-name { margin: 0; font-weight: 400; } .plan-name .muted { font-weight: 400; font-size: inherit; }
 .meta dl { margin: 0; display: grid; grid-template-columns: auto auto; justify-content: end; column-gap: 18px; row-gap: 6px; }
 .meta dt { color: var(--muted); font-size: 13px; } .meta dd { margin: 0; }
 .meta b { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
@@ -88,15 +89,16 @@ td small { display: block; color: var(--muted); }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
 .sp-link:hover { text-decoration: underline; }
-.qr-cell { vertical-align: middle; padding: 8px 20px 4px 0 !important; border: 0 !important; }
+.qr-cell { vertical-align: bottom; padding: 10px 20px 0 0 !important; border: 0 !important; }
 .grand td.e { border-top: 0; }
-.payqr { display: flex; gap: 14px; align-items: center; } .payqr > div > div:last-child { line-height: 1.2; }
-.payqr .qr { width: 88px; height: 88px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
+.payqr { display: flex; gap: 14px; align-items: stretch; height: var(--qr, 124px); }
+.payqr > div { display: flex; flex-direction: column; justify-content: space-between; } .payqr > div > div:last-child { line-height: 1.2; }
+.payqr .qr { width: var(--qr, 124px); height: var(--qr, 124px); box-sizing: border-box; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
 .full-link { font: 13px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); word-break: break-all; }
 .handle { color: var(--red); font-weight: 600; text-decoration: none; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #101828; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 .toast.show { opacity: 1; }
-@media print { .payqr { gap: 10px; } .payqr .qr { width: 76px; height: 76px; } .full-link { font-size: 10px; } .payqr .muted, .payqr div, .plan-name .muted, .meta dt { font-size: 9.5px !important; } .plan-name { margin-bottom: 4px; } }
+@media print { .payqr { gap: 10px; --qr: 80px; } .qr-cell { padding-top: 4px !important; } .full-link { font-size: 10px; } .payqr .muted, .payqr div { font-size: 9.5px !important; } .plan-name { margin-bottom: 0; } }
 </style>
 </head>
 <body>
@@ -153,10 +155,7 @@ td small { display: block; color: var(--muted); }
     <div class="info">
       <b>Plan</b>
       <div class="plan-name">{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
-      <dl>
-        <dt>Issued:</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }}</dd>
-        <dt>Due:</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</dd>
-      </dl>
+      <div class="dates"><span class="muted">Issued:</span> {{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }} <span class="sep">·</span> <span class="muted">Due:</span> {{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</div>
     </div>
   </div>
 
@@ -178,18 +177,18 @@ td small { display: block; color: var(--muted); }
       @endforeach
     </tbody>
     <tfoot>
-      <tr class="sub lines-first"><td colspan="2" rowspan="4" class="qr-cell">@unless ($paid)<div class="payqr">
+      <tr class="sub lines-first"><td colspan="2" rowspan="5" class="qr-cell">@unless ($paid)<div class="payqr">
       @if ($payQr)<img class="qr" src="{{ $payQr }}" alt="QR code: pay with Sharet Pay" width="104" height="104">@endif
       <div>
         <div class="sp-link"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay</div>
-        <div class="muted" style="font-size:12.5px;margin:2px 0 6px">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
+        <div class="muted" style="font-size:12.5px">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
         <a class="full-link" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $payUrl }}</a>
-        @if ($handle)<div style="margin-top:4px;font-size:13px">Pay to <a class="handle" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $handle }}</a> · {{ $money($total) }}</div>@endif
+        @if ($handle)<div style="font-size:13px">Pay to <a class="handle" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $handle }}</a> · {{ $money($total) }}</div>@endif
       </div></div>@endunless</td><td class="num muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="amt">{{ $money($vat['net']) }}</td></tr>
       <tr class="sub"><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
       <tr class="sub tot"><td class="num muted">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
       <tr class="sub"><td class="num muted">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="amt">{{ $money($paidAmount) }}</td></tr>
-      <tr class="grand bal"><td colspan="2" class="e"></td><td class="num">Balance</td><td class="amt">{{ $money($balance) }}</td></tr>
+      <tr class="grand bal"><td class="num">Balance</td><td class="amt">{{ $money($balance) }}</td></tr>
     </tfoot>
   </table>
 

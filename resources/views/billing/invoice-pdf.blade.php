@@ -35,7 +35,12 @@ h1 { margin: 0; font-size: 18pt; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding: 4pt 0 0; line-height: 1.1; font-size: 11pt; font-weight: bold; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
 .box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
-.lines td.qr-cell { vertical-align: middle; border: 0; padding: 0 14pt 0 0; color: #101828; line-height: 1.1; }
+.lines .foot > td { border: 0; padding: 6pt 0 0; vertical-align: bottom; }
+.lines .foot > td.qr-cell { padding-right: 14pt; }
+.tt { width: 100%; } .tt td { border: 0 !important; padding: 1pt 0 !important; color: #667085; font-size: 8.5pt; text-align: right; white-space: nowrap; }
+.tt td:first-child { width: 47%; }
+.tt .t-grand td { border-top: 2px solid #101828 !important; padding: 4pt 0 0 !important; font-size: 11pt; font-weight: bold; line-height: 1.1; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
+.lines td.qr-cell-old { vertical-align: bottom; border: 0; padding: 0 14pt 0 0; color: #101828; line-height: 1.1; }
 .lines .grand td.e { border-top: 0; }
 .qrt { width: auto; } .qrt td { border: 0 !important; padding: 0 6pt 0 0 !important; vertical-align: bottom; color: #101828; }
 .payline { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
@@ -65,17 +70,14 @@ h1 { margin: 0; font-size: 18pt; }
     <td style="width:50%"><span class="lbl">Billed to</span>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</td>
     <td style="text-align:right;padding-right:0">
       <span class="lbl">Plan</span>
-      <div style="margin-bottom:3pt">{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted" style="font-size:8.5pt">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
-      <table class="kv">
-        <tr><td class="k">Issued:</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }}</td></tr>
-        <tr><td class="k">Due:</td><td class="v">{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</td></tr>
-      </table>
+      <div>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
+      <div><span class="muted">Issued:</span> {{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('D, d/m/Y') }} &nbsp;·&nbsp; <span class="muted">Due:</span> {{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('d/m/Y') }}</div>
     </td>
   </tr>
 </table>
 
 <table class="lines">
-  <thead><tr><th>Description</th><th class="r">Units</th><th class="r">Rate / unit</th><th class="r">Amount</th></tr></thead>
+  <thead><tr><th>Description</th><th class="r" style="width:7%">Units</th><th class="r" style="width:15%">Rate / unit</th><th class="r" style="width:17%">Amount</th></tr></thead>
   <tbody>
     @foreach ($items as $it)
       <tr>
@@ -87,13 +89,20 @@ h1 { margin: 0; font-size: 18pt; }
     @endforeach
   </tbody>
   <tfoot>
-    <tr class="sub first"><td colspan="2" rowspan="4" class="qr-cell">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:44pt"><img src="{{ $payQr }}" style="width:40pt;height:40pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div><div class="muted" style="font-size:7pt;margin:0">Scan or open: M-Pesa or Sharet to Sharet</div>
-        <a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:8pt">{{ $payUrl }}</a>
-        @if ($handle)<div style="margin-top:1pt;font-size:7.5pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif</td></tr></table>@endunless</td><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
-    <tr class="sub"><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
-    <tr class="sub tot"><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
-    <tr class="sub"><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
-    <tr class="grand"><td colspan="2" class="e">&nbsp;</td><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
+    <tr class="foot">
+      <td colspan="2" class="qr-cell">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:80pt"><img src="{{ $payQr }}" style="width:76pt;height:76pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div><div class="muted" style="font-size:7.5pt;margin:10pt 0 0">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
+        <div style="margin-top:10pt"><a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:8.5pt">{{ $payUrl }}</a></div>
+        @if ($handle)<div style="margin-top:10pt;font-size:8pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif</td></tr></table>@endunless</td>
+      <td colspan="2" class="tot-cell">
+        <table class="tt">
+          <tr class="t-sub"><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
+          <tr class="t-sub"><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
+          <tr class="t-sub"><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
+          <tr class="t-sub"><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
+          <tr class="t-grand"><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
+        </table>
+      </td>
+    </tr>
   </tfoot>
 </table>
 
