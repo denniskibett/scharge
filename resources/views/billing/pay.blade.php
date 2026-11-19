@@ -116,7 +116,7 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
           </a>
         @endif
       </div>
-      <p class="note">This turns <b>Paid</b> on its own once the payment is confirmed, and this link always shows the status. Sharet to Sharet opens Sharet in a new tab to sign in.</p>
+      <p class="note">This turns <b>Paid</b> on its own once the payment is confirmed, and this link always shows the status.@unless (config('billing.sharet_embed')) Sharet to Sharet opens Sharet in a new tab to sign in.@endunless</p>
     @elseif ($status === 'paid')
       <p style="margin:0">Thank you. The invoice is paid and your scharge account is up to date.</p>
     @elseif ($inv->status !== 'paid')
@@ -147,6 +147,7 @@ html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 
     if (open && fr.src === 'about:blank') fr.src = fr.dataset.src;
     if (open) { fast = 60; wrap.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   });
+  if (s2s && location.hash === '#s2s') setTimeout(() => s2s.click(), 150);
   const f = document.getElementById('mpesa');
   if (f) {
     const msg = document.getElementById('mp-msg'), btn = document.getElementById('mp-send'), input = document.getElementById('mp-phone');
