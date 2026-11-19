@@ -29,8 +29,10 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .pill.due { background: #FEF3F2; color: #B42318; }
 .pill.open { background: #FFFAEB; color: #B54708; }
 .pill.paid { background: #ECFDF3; color: #027A48; }
-.meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 18px; margin: 28px 0; padding: 18px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.meta b { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.meta { display: flex; justify-content: flex-end; margin: 24px 0; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.meta dl { margin: 0; display: grid; grid-template-columns: auto auto; column-gap: 24px; row-gap: 8px; text-align: right; }
+.meta dt { font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; padding-top: 2px; }
+.meta dd { margin: 0; }
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; padding: 10px 0; border-bottom: 1px solid var(--line); }
 td { padding: 12px 0; border-bottom: 1px solid #F2F4F7; vertical-align: top; color: var(--muted); }
@@ -73,10 +75,12 @@ td small { display: block; color: var(--muted); }
   </div>
 
   <div class="meta">
-    <div><b>Billed to</b>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</div>
-    <div><b>Issued</b>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</div>
-    <div><b>Due</b>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('j M Y') }}</div>
-    <div><b>Plan</b>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
+    <dl>
+      <dt>Billed to</dt><dd><strong>{{ $inv->company_name }}</strong>@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</dd>
+      <dt>Issued</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</dd>
+      <dt>Due</dt><dd>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('j M Y') }}</dd>
+      <dt>Plan</dt><dd>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</dd>
+    </dl>
   </div>
 
   @if (! empty($json['billing_start']) && ! empty($json['billing_end']))
