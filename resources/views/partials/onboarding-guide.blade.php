@@ -54,7 +54,7 @@
           @endif
           <span class="min-w-0 flex-1">
             <span class="block text-base font-semibold text-gray-800 dark:text-white/90">{{ $ch['title'] }}@if ($ch['optional']) <span class="ml-1 text-xs font-normal text-gray-400">optional</span>@endif</span>
-            <span class="block text-sm text-gray-500 dark:text-gray-400">{{ $ch['marked'] && ! $ch['data_done'] ? ($ch['readable'] ? 'Read' : 'Not for us') : $ch['progress'] }}</span>
+            <span class="block text-sm text-gray-500 dark:text-gray-400">{{ $ch['marked'] && ! $ch['data_done'] && $ch['key'] !== 'plan' ? ($ch['readable'] ? 'Read' : 'Not for us') : $ch['progress'] }}</span>
           </span>
           <svg class="h-5 w-5 shrink-0 text-gray-400 transition" :style="open ? 'transform: rotate(180deg)' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </button>
@@ -74,7 +74,7 @@
               <a href="{{ $a['url'] }}" @if (str_ends_with($a['url'], '.csv')) data-no-spa @endif
                  @class(['inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition',
                    'bg-brand-500 text-white hover:bg-brand-600' => $i === 0,
-                   'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300' => $i > 0])>{{ $i === 0 && ! $ch['done'] ? 'Do it now: ' : '' }}{{ $a['label'] }}</a>
+                   'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300' => $i > 0])>{{ $i === 0 && ! $ch['done'] && $ch['key'] !== 'plan' ? 'Do it now: ' : '' }}{{ $a['label'] }}</a>
             @endforeach
             @if (! $ch['data_done'] && auth()->user()->hasAnyRole(['admin', 'property_manager']))
               <form method="POST" action="{{ route('guide.mark') }}" class="ml-auto">

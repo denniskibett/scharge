@@ -273,6 +273,8 @@ class OnboardingGuide
             ],
         ];
 
+        $chapters[] = $this->planChapter();
+
         foreach ($chapters as $i => &$ch) {
             $ch['number'] = $i + 1;
             $ch['optional'] ??= false;
@@ -285,5 +287,48 @@ class OnboardingGuide
         }
 
         return $chapters;
+    }
+
+    /**
+     * "Your plan & payments": the billing policy set by scharge (pay one month, get three months; unpaid after the due
+     * date locks the whole company except the payment page). The lock itself is enforced elsewhere; this only explains
+     * it, with the next due date and amount from the subscription tables when there are any. Amounts are shown only to
+     * the owner (admin) and the accountant, as on the payment page.
+     */
+    private function planChapter(): array
+    {
+        $c = $this->company->id;
+        $sub = Schema::hasTable('company_subscriptions')
+            ? DB::table('company_subscriptions')->where('company_id', $c)->orderByDesc('ends_at')->orderByDesc('id')->first() : null;
+        $unpaid = $sub && Schema::hasTable('subscription_invoices')
+            ? DB::table('subscription_invoices')->whereIn('company_subscription_id', DB::table('company_subscriptions')->where('company_id', $c)->select('id'))
+                ->whereIn('status', ['pending', 'failed'])->orderBy('due_date')->first() : null;
+        $paid = $sub && Schema::hasTable('subscription_invoices')
+            ? DB::table('subscription_invoices')->whereIn('company_subscription_id', DB::table('company_subscriptions')->where('company_id', $c)->select('id'))
+                ->where('status', 'paid')->count() : 0;
+        $paidUntil = $sub?->ends_at ?? $this->company->subscription_ends_at ?? null;
+        $seesMoney = ! $this->user || $this->user->hasAnyRole(['admin', 'accountant']);
+        $date = fn ($d) => \Illuminate\Support\Carbon::parse($d)->format('j M Y');
+
+        $progress = match (true) {
+            (bool) $unpaid => 'Next payment due '.$date($unpaid->due_date).($seesMoney ? ' · '.($unpaid->currency ?: 'KES').' '.number_format((float) $unpaid->amount) : ''),
+            (bool) $paidUntil => 'Paid up to '.$date($paidUntil),
+            default => 'No bill yet',
+        };
+        $pay = collect(['billing.index', 'billing', 'subscription.pay', 'subscriptions.pay', 'account.billing'])->first(fn ($r) => Route::has($r));
+
+        return [
+            'key' => 'plan', 'title' => 'Your plan and payments', 'readable' => true,
+            'what' => 'You pay for one month and get three months of access. Your monthly amount comes from your units and their area (see What it costs).',
+            'why' => 'The account must be paid by its due date. If a payment has not arrived when it is due, the whole company is locked at once: every page closes except the payment page.',
+            'steps' => [
+                'Pay before the due date so nobody on your team is locked out.',
+                'If the account is locked, the owner (admin) and the accountant still open the payment page, see the exact amount due and pay it there.',
+                'Everyone else on the team sees a message to contact their admin for access until the payment is in.',
+            ],
+            'progress' => $progress,
+            'done' => $paid > 0 && (! $unpaid || $unpaid->due_date >= now()->toDateString()),   // only an overdue bill un-ticks it
+            'actions' => $pay && $seesMoney ? [['Pay now', $pay]] : [],
+        ];
     }
 }
