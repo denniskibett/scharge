@@ -67,6 +67,10 @@ class KenyaGeo
     public function geocode(?string $city, ?string $area): ?array
     {
         $town = $this->place($city);
+        // Nairobi's CBD is Starehe (clean() drops the word "CBD" itself, which left these rows at the city centre with no ward).
+        if ($town && preg_match('/\bcbd\b|city cent(re|er)/i', (string) $area) && $this->place('Starehe') && $this->km($this->place('Starehe'), $town) <= 15) {
+            $area = 'Starehe';
+        }
         $spot = $this->place($area);
 
         // A suburb only counts when it is near the town (common names repeat across Kenya).
@@ -445,7 +449,18 @@ class KenyaGeo
             return null;
         }
         $places = $this->places();
-        foreach ([$name, explode(',', $name)[0], preg_replace('/\s*-.*$/', '', $name)] as $candidate) {
+        // "Parklands/Highridge", "Starehe Ward", "Athi River Machakos": also try each part, without "Ward", and the name with
+        // trailing words dropped (down to two words, so "Ngong Road Muchai Drive" never shrinks to the town of Ngong).
+        $first = trim(explode(',', $name)[0]);
+        $candidates = [$name, $first, preg_replace('/\s*-.*$/', '', $name), preg_replace('/\s+(ward|estate)$/i', '', $first)];
+        foreach (explode('/', $first) as $part) {
+            $candidates[] = preg_replace('/\s+(ward|estate)$/i', '', trim($part));
+        }
+        $words = preg_split('/\s+/', $first);
+        for ($n = count($words) - 1; $n >= 2; $n--) {
+            $candidates[] = implode(' ', array_slice($words, 0, $n));
+        }
+        foreach (array_unique($candidates) as $candidate) {
             $k = self::key($candidate);
             if ($k !== '' && isset($places[$k])) {
                 return $places[$k];
