@@ -79,7 +79,7 @@ h1 { margin: 0; font-size: 18pt; }
   @if ($vat['mode'] === 'exclusive')
     <tr><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
   @else
-    <tr><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money(0) }}</td></tr>
+    <tr><td class="muted">VAT (0%)</td><td class="r">{{ $money(0) }}</td></tr>
   @endif
   @if ($paid && $inv->paid_at)<tr><td class="muted">Paid</td><td class="r muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
 </table>

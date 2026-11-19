@@ -102,7 +102,7 @@ td small { display: block; color: var(--muted); }
     @if ($vat['mode'] === 'exclusive')
       <div><span class="muted">VAT ({{ rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') }}%)</span><span>{{ $money($vat['tax']) }}</span></div>
     @else
-      <div><span class="muted">VAT ({{ rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') }}%)</span><span>{{ $money(0) }}</span></div>
+      <div><span class="muted">VAT (0%)</span><span>{{ $money(0) }}</span></div>
     @endif
   </div>
   <div class="grand"><span>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</span><span>{{ $money($total) }}</span></div>
