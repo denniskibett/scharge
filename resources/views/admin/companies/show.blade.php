@@ -9,7 +9,7 @@
         'sub' => $company->registration_number ? 'Reg: '.$company->registration_number : null])
 
     <!-- Company Stats Cards -->
-    <div class="grid grid-cols-2 gap-3 mb-6 sm:gap-4 md:grid-cols-6">
+    <div class="grid grid-cols-2 gap-3 mb-6 sm:gap-4 md:grid-cols-3 2xl:grid-cols-6">
         <!-- Company Staff -->
         <div class="min-w-0 rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="flex items-center justify-between gap-2">
@@ -17,7 +17,7 @@
                     <span class="text-sm text-gray-500 dark:text-gray-400">Staff</span>
                     <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalStaff">{{ $stats['totalStaff'] ?? 0 }}</h3>
                 </div>
-                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex bg-blue-100 dark:bg-blue-900/30">
+                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-blue-100 dark:bg-blue-900/30">
                     <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
@@ -32,7 +32,7 @@
                     <span class="text-sm text-gray-500 dark:text-gray-400">Properties</span>
                     <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalProperties">{{ $stats['totalProperties'] ?? 0 }}</h3>
                 </div>
-                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex bg-green-100 dark:bg-green-900/30">
+                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-green-100 dark:bg-green-900/30">
                     <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
@@ -47,7 +47,7 @@
                     <span class="text-sm text-gray-500 dark:text-gray-400">Units</span>
                     <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalUnits">{{ $stats['totalUnits'] ?? 0 }}</h3>
                 </div>
-                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex bg-purple-100 dark:bg-purple-900/30">
+                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-purple-100 dark:bg-purple-900/30">
                     <svg class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
@@ -62,7 +62,7 @@
                     <span class="text-sm text-gray-500 dark:text-gray-400">Tenancies</span>
                     <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalTenants">{{ $stats['totalTenants'] ?? 0 }}</h3>
                 </div>
-                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex bg-yellow-100 dark:bg-yellow-900/30">
+                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-yellow-100 dark:bg-yellow-900/30">
                     <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                     </svg>
@@ -77,7 +77,7 @@
                     <span class="text-sm text-gray-500 dark:text-gray-400">Invoices</span>
                     <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalInvoices">{{ $stats['totalInvoices'] ?? 0 }}</h3>
                 </div>
-                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex bg-indigo-100 dark:bg-indigo-900/30">
+                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-indigo-100 dark:bg-indigo-900/30">
                     <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                     </svg>
@@ -94,7 +94,7 @@
                         {{ $subscription?->plan->name ?? 'No Plan' }}
                     </h3>
                 </div>
-                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full sm:flex bg-cyan-100 dark:bg-cyan-900/30">
+                <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-cyan-100 dark:bg-cyan-900/30">
                     <svg class="h-6 w-6 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
@@ -277,7 +277,7 @@
                                 <option value="partial">Partial</option>
                                 <option value="draft">Draft</option>
                             </select>
-                            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"><svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M5.293 7.293C5.68342 6.90258 6.31658 6.90258 6.707 7.293L10 10.586L13.293 7.293C13.6834 6.90258 14.3166 6.90258 14.707 7.293C15.0974 7.68342 15.0974 8.31658 14.707 8.707L10.707 12.707C10.3166 13.0974 9.68342 13.0974 9.293 12.707L5.293 8.707C4.90258 8.31658 4.90258 7.68342 5.293 7.293Z" fill=""/></svg></span>
+
                         </div>
                         <div class="relative">
           <span class="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-gray-500 dark:text-gray-400"><svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M3.04199 9.37363C3.04199 5.87693 5.87735 3.04199 9.37533 3.04199C12.8733 3.04199 15.7087 5.87693 15.7087 9.37363C15.7087 12.8703 12.8733 15.7053 9.37533 15.7053C5.87735 15.7053 3.04199 12.8703 3.04199 9.37363ZM9.37533 1.54199C5.04926 1.54199 1.54199 5.04817 1.54199 9.37363C1.54199 13.6991 5.04926 17.2053 9.37533 17.2053C11.2676 17.2053 13.0032 16.5344 14.3572 15.4176L17.1773 18.238C17.4702 18.5309 17.945 18.5309 18.2379 18.238C18.5308 17.9451 18.5309 17.4703 18.238 17.1773L15.4182 14.3573C16.5367 13.0033 17.2087 11.2669 17.2087 9.37363C17.2087 5.04817 13.7014 1.54199 9.37533 1.54199Z" fill=""/></svg></span>
