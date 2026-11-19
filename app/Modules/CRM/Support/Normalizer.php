@@ -92,14 +92,18 @@ class Normalizer
     {
         $cased = self::personName($value);
         $letters = preg_replace('/[^\p{L}]/u', '', $value);
-        if ($cased === null || $letters === '' || mb_strtoupper($letters) === $letters) {
-            return $cased; // "MERCY MUMBI" -> "Mercy Mumbi"
+        if ($cased === null || $letters === '') {
+            return $cased;
         }
-        $orig = explode(' ', preg_replace('/\s+/u', ' ', $value));
+        // Whole name in capitals ("MERCY MUMBI KCB"): only vowel-less short words are acronyms; otherwise any 2-4 letter capitals word is.
+        $shouting = mb_strtoupper($letters) === $letters;
+        $orig = explode(' ', preg_replace('/\s+/u', ' ', trim($value)));
         $out = explode(' ', $cased);
         foreach ($orig as $i => $w) {
             $l = preg_replace('/[^\p{L}]/u', '', $w);
-            if (isset($out[$i]) && mb_strlen($l) >= 2 && mb_strlen($l) <= 4 && mb_strtoupper($l) === $l) {
+            $isCaps = mb_strlen($l) >= 2 && mb_strtoupper($l) === $l;
+            $acronym = $shouting ? $isCaps && mb_strlen($l) <= 4 && ! preg_match('/[AEIOUY]/u', $l) : $isCaps && mb_strlen($l) <= 4;
+            if (isset($out[$i]) && $acronym) {
                 $out[$i] = $w;
             }
         }
