@@ -52,6 +52,23 @@ class CrmFollowUp extends Model
 
     protected $casts = ['due_at' => 'datetime', 'done_at' => 'datetime', 'score' => 'integer', 'details' => 'array'];
 
+    /** Titles, notes and outcomes are plain text, whoever writes them (staff, forms, emails, campaigns). */
+    protected static function booted(): void
+    {
+        static::saving(function (self $row) {
+            $N = \App\Modules\CRM\Support\Normalizer::class;
+            if ($row->isDirty('title') && is_string($row->title)) {
+                $row->title = $N::text($row->title, 250) ?? '';
+            }
+            if ($row->isDirty('notes') && is_string($row->notes)) {
+                $row->notes = $N::text($row->notes, 20000, true);
+            }
+            if ($row->isDirty('outcome') && is_string($row->outcome)) {
+                $row->outcome = $N::text($row->outcome, 255);
+            }
+        });
+    }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class)->withoutGlobalScope('customers');

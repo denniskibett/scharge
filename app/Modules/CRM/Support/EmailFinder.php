@@ -136,8 +136,12 @@ class EmailFinder
      *
      * @return array<int, array{email: string, source: string}>
      */
+    /** Phone numbers seen on the pages the last fromWebsite() call read (normalised, best first, at most 3). */
+    public array $phones = [];
+
     public function fromWebsite(string $website): array
     {
+        $this->phones = [];
         $website = Normalizer::website($website);
         if (! $website) {
             return [];
@@ -163,6 +167,11 @@ class EmailFinder
             foreach (self::extract($html) as $email) {
                 $found[$email] ??= $url;
             }
+            foreach (self::extractPhones($html) as $phone) {
+                if (! in_array($phone, $this->phones, true) && count($this->phones) < 3) {
+                    $this->phones[] = $phone;
+                }
+            }
             if (count($seen) === 1) { // from the home page: follow its contact/about links on the same site, else try the usual paths
                 $links = self::contactLinks($html, $base, $host);
                 $queue = array_merge($queue, $links ?: array_map(fn ($p) => $base.'/'.$p.'/', self::PAGES));
@@ -183,6 +192,26 @@ class EmailFinder
         usort($out, fn ($a, $b) => $a['rank'] <=> $b['rank']);
 
         return array_map(fn ($r) => ['email' => $r['email'], 'source' => $r['source']], array_slice($out, 0, self::MAX));
+    }
+
+    /**
+     * Kenyan phone numbers on a page: tel: links first, then printed mobiles (07xx / 01xx / +254 7xx / 1xx)
+     * and Nairobi landlines (020 / +254 20). Returned normalised (+254…).
+     */
+    public static function extractPhones(string $html): array
+    {
+        $out = [];
+        preg_match_all('/href=["\']tel:([^"\']+)/i', $html, $tel);
+        $text = html_entity_decode(preg_replace('/<[^>]*>/', ' ', $html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        preg_match_all('/(?<![\d+])(?:\+?254[\s.-]?|0)(?:[17]\d{2}[\s.-]?\d{3}[\s.-]?\d{3}|20[\s.-]?\d{3}[\s.-]?\d{4}|20[\s.-]?\d{7})(?!\d)/', $text, $m);
+        foreach (array_merge(array_map('urldecode', $tel[1]), $m[0]) as $raw) {
+            $phone = Normalizer::dialable($raw);
+            if ($phone && preg_match('/^\+254(7\d{8}|1\d{8}|20\d{7})$/', $phone)) {
+                $out[$phone] = true;
+            }
+        }
+
+        return array_keys($out);
     }
 
     /** Emails printed on a page or in mailto: links (including &#64; / [at] obfuscation and Cloudflare-protected ones). */

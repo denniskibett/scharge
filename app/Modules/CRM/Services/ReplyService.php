@@ -8,6 +8,7 @@ use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Support\EmailBody;
 use App\Modules\CRM\Support\EmailTracking;
 use App\Modules\CRM\Support\InboundEmail;
+use App\Modules\CRM\Support\Normalizer;
 use App\Modules\CRM\Support\Playbook;
 use App\Modules\Users\Models\User;
 use Illuminate\Support\Facades\Mail;
@@ -58,7 +59,12 @@ class ReplyService
         if ($mail->messageId && $company->followUps()->where('type', 'email')->where('details->in_message_id', $mail->messageId)->exists()) {
             return null;
         }
-        $text = Str::limit($mail->fresh(), 8000);
+        // Everything from the email is outside data: saved as clean plain text only.
+        $text = Normalizer::text($mail->fresh(), 8000, true) ?? '';
+        $mail->fromName = Normalizer::text($mail->fromName, 120) ?? '';
+        $mail->subject = Normalizer::text($mail->subject, 250) ?? '';
+        $mail->from = Normalizer::email($mail->from) ?? '';
+        $mail->messageId = Normalizer::text($mail->messageId, 250) ?? '';
         $who = $mail->fromName ?: $mail->from;
         $optOut = ! $mail->auto && $mail->optOut();
         $row = $company->followUps()->create([
@@ -133,6 +139,7 @@ class ReplyService
         if ($stage && $stage !== $company->crm_stage) {
             $this->contacts->setStage($company, $stage, $user->id);
         }
+        $note = Normalizer::text($note, 1000, true);
         if ($log || $note) {
             $this->contacts->log($company, 'note', 'Reply handled', $note, [], null, $user->id);
         }

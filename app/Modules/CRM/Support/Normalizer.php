@@ -29,6 +29,84 @@ class Normalizer
         return $value === '' || in_array(Str::lower($value), self::PLACEHOLDERS, true);
     }
 
+    /**
+     * Safe plain text for anything we save from outside (forms, emails, websites, imports): no HTML tags,
+     * no control or zero-width characters, entities decoded, whitespace collapsed, valid UTF-8, length capped.
+     * $multiline keeps line breaks (message bodies, notes); otherwise everything is one line.
+     */
+    public static function text(?string $value, int $max = 255, bool $multiline = false): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = mb_scrub((string) $value, 'UTF-8');
+        $value = preg_replace('#<(script|style)[^>]*>.*?</\1>#is', ' ', $value);
+        $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = preg_replace('/[\x{200B}-\x{200D}\x{2060}\x{FEFF}]/u', '', $value); // zero-width
+        $value = str_replace(["\r\n", "\r"], "\n", $value);
+        $value = preg_replace($multiline ? '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u' : '/[\x00-\x1F\x7F]/u', ' ', $value);
+        if ($multiline) {
+            $value = preg_replace("/[ \t\x{00A0}]+/u", ' ', $value);
+            $value = preg_replace("/ *\n */", "\n", $value);
+            $value = preg_replace("/\n{3,}/", "\n\n", $value);
+        } else {
+            $value = preg_replace('/\s+/u', ' ', $value);
+        }
+        $value = trim($value);
+
+        return $value === '' ? null : mb_substr($value, 0, $max);
+    }
+
+    /**
+     * A phone we can dial: Kenyan numbers must be +254 plus 9 digits (mobile 7xx/1xx or a landline area code);
+     * other countries 8-15 digits. Returns the E.164 form or null.
+     */
+    public static function dialable(?string $value, string $dialCode = '254'): ?string
+    {
+        $phone = self::phone($value, $dialCode);
+        if (! $phone || preg_match('/(\d)\1{6,}/', substr($phone, 4))) {
+            return null; // placeholders like 0700000000
+        }
+        if (str_starts_with($phone, '+254')) {
+            return preg_match('/^\+254[1-9]\d{8}$/', $phone) ? $phone : null;
+        }
+
+        return preg_match('/^\+[1-9]\d{7,14}$/', $phone) ? $phone : null;
+    }
+
+    /** A name on a person record that may really be a business ("ABC Properties Ltd"): company case for those, person case otherwise. */
+    public static function anyName(?string $value): ?string
+    {
+        $value = self::text($value, 255);
+        if ($value === null) {
+            return null;
+        }
+
+        return preg_match('/\b(ltd|limited|plc|llc|inc|co|company|properties|property|apartments?|agenc(y|ies)|investments?|enterprises?|group|estates?|homes|realty|realtors|management|holdings|developers|associates|services|hotel|villas?|court|towers?|plaza|sacco|church|school|bank|trust)\b\.?/i', $value)
+            ? self::companyName($value)
+            : self::personNameKeepingAcronyms($value);
+    }
+
+    /** Person case, but short words typed in capitals (BNB, PC, KCB) stay as typed unless the whole name is in capitals. */
+    private static function personNameKeepingAcronyms(string $value): ?string
+    {
+        $cased = self::personName($value);
+        $letters = preg_replace('/[^\p{L}]/u', '', $value);
+        if ($cased === null || $letters === '' || mb_strtoupper($letters) === $letters) {
+            return $cased; // "MERCY MUMBI" -> "Mercy Mumbi"
+        }
+        $orig = explode(' ', preg_replace('/\s+/u', ' ', $value));
+        $out = explode(' ', $cased);
+        foreach ($orig as $i => $w) {
+            $l = preg_replace('/[^\p{L}]/u', '', $w);
+            if (isset($out[$i]) && mb_strlen($l) >= 2 && mb_strlen($l) <= 4 && mb_strtoupper($l) === $l) {
+                $out[$i] = $w;
+            }
+        }
+
+        return implode(' ', $out);
+    }
+
     /** "  jOHN   o'brien-mwangi " -> "John O'Brien-Mwangi". */
     public static function personName(?string $value): ?string
     {
@@ -207,8 +285,10 @@ class Normalizer
 
     private static function capitaliseWord(string $lower): string
     {
-        // Capitalise after hyphens and apostrophes too: mwangi-otieno, o'brien.
-        $word = preg_replace_callback("/(^|[-'’])(\p{L})/u", fn ($m) => $m[1].mb_strtoupper($m[2]), $lower);
+        // Capitalise after hyphens and apostrophes too: mwangi-otieno, o'brien, d'souza; but not a possessive or
+        // contraction ending (andrew's, ma'am, n't), so only after a one-letter prefix like O' or D'.
+        $word = preg_replace_callback("/(^|-)(\p{L})/u", fn ($m) => $m[1].mb_strtoupper($m[2]), $lower);
+        $word = preg_replace_callback("/(^|-)(\p{L})(['’])(\p{L})(?=\p{L})/u", fn ($m) => $m[1].$m[2].$m[3].mb_strtoupper($m[4]), $word);
 
         // Mc prefix: mcdonald -> McDonald.
         return preg_replace_callback('/^(Mc)(\p{L})/u', fn ($m) => $m[1].mb_strtoupper($m[2]), $word);

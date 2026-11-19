@@ -69,6 +69,27 @@ class User extends Authenticatable implements Wallet
         'status' => 'boolean',
     ];
 
+    /**
+     * Names are saved clean and in name case whatever the path (sign-up, forms, imports, CRM):
+     * "  JOHN   kamau " -> "John Kamau"; a business name keeps its acronyms ("ABC Properties Ltd").
+     * Phones and emails are left as they are here (they are login and payment identifiers).
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (self $user) {
+            foreach (['name', 'first_name', 'last_name'] as $field) {
+                if ($user->isDirty($field) && is_string($user->{$field}) && trim($user->{$field}) !== '') {
+                    $user->{$field} = \App\Modules\CRM\Support\Normalizer::anyName($user->{$field}) ?? $user->{$field};
+                }
+            }
+            foreach (['city' => 120, 'state' => 120, 'bio' => 2000] as $field => $max) {
+                if ($user->isDirty($field) && is_string($user->{$field})) {
+                    $user->{$field} = \App\Modules\CRM\Support\Normalizer::text($user->{$field}, $max, $field === 'bio');
+                }
+            }
+        });
+    }
+
     public function company()
     {
         return $this->belongsTo(Company::class);

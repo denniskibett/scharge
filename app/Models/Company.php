@@ -51,6 +51,26 @@ class Company extends Model
         if ($hasLifecycle) {
             static::addGlobalScope('customers', fn ($query) => $query->where('companies.lifecycle', '!=', 'prospect'));
         }
+
+        // Whatever path saves a company (forms, imports, CRM, scrapers), the contact fields are stored clean:
+        // plain text without tags or control characters, names in name case, phones in +254… form, emails lower-case.
+        static::saving(function (self $company) {
+            $N = \App\Modules\CRM\Support\Normalizer::class;
+            if ($company->isDirty('name') && is_string($company->name)) {
+                $company->name = $N::companyName($N::text($company->name, 255)) ?? $company->getOriginal('name');
+            }
+            foreach (['address' => 500, 'location' => 255, 'registration_number' => 100, 'tax_id' => 100] as $field => $max) {
+                if ($company->isDirty($field) && is_string($company->{$field})) {
+                    $company->{$field} = $N::text($company->{$field}, $max);
+                }
+            }
+            if ($company->isDirty('phone') && is_string($company->phone)) {
+                $company->phone = $N::dialable($company->phone) ?? $N::text($company->phone, 40);
+            }
+            if ($company->isDirty('email') && is_string($company->email)) {
+                $company->email = $N::email($company->email) ?? $N::text($company->email, 255);
+            }
+        });
     }
 
     /** Every company the CRM works with: prospects plus customers that came through the pipeline. */

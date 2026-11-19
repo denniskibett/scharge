@@ -33,6 +33,7 @@ class FindEmails extends Command
         {--limit=200 : Most websites to read in this run}
         {--ids= : Only these company ids (comma separated)}
         {--recheck : Also read sites checked before}
+        {--phones : Also read sites of prospects that have no phone yet (phones are always collected from every site read)}
         {--dry-run : Show, do not save}';
 
     protected $description = 'Find and verify up to 3 published work emails per prospect (own website, researched listings)';
@@ -97,15 +98,47 @@ class FindEmails extends Command
             $website = $company->profile('website');
             $found = $finder->fromWebsite($website);
             if (! $dry) {
-                $company->forceFill(['crm_profile' => array_merge($company->fresh()->crm_profile ?? [], ['emails_checked_at' => now()->toDateString()])])->saveQuietly();
+                $company->forceFill(['crm_profile' => array_merge($company->fresh()->crm_profile ?? [], ['emails_checked_at' => now()->toDateString(), 'phones_checked_at' => now()->toDateString()])])->saveQuietly();
             }
             $this->save($company->fresh(), $found, true, $dry, $stats);
+            $this->savePhones($company->fresh(), $finder->phones, $website, $dry, $stats);
         }
 
-        $this->info(sprintf('%s%d website(s) read, %d website(s) added from research, %d companies got %d new address(es), %d address(es) rejected.',
-            $dry ? '[dry run] ' : '', $read, $stats['websites'], $stats['companies'], $stats['added'], $stats['rejected']));
+        $this->info(sprintf('%s%d website(s) read, %d website(s) added from research, %d companies got %d new address(es), %d address(es) rejected, %d phone number(s) added.',
+            $dry ? '[dry run] ' : '', $read, $stats['websites'], $stats['companies'], $stats['added'], $stats['rejected'], $stats['phones'] ?? 0));
 
         return self::SUCCESS;
+    }
+
+    /** Fill a missing main phone, then the alternate number; never overwrite one we already have. */
+    private function savePhones(Company $company, array $phones, ?string $website, bool $dry, array &$stats): void
+    {
+        $have = array_filter([Normalizer::dialable($company->phone), Normalizer::dialable($company->profile('phone_alt'))]);
+        $new = array_values(array_diff($phones, $have));
+        if (! $new) {
+            return;
+        }
+        $this->line('#'.$company->id.' '.$company->name.': phone '.implode(', ', $new));
+        if ($dry) {
+            $stats['phones'] = ($stats['phones'] ?? 0) + count($new);
+
+            return;
+        }
+        $profile = $company->crm_profile ?? [];
+        $added = 0;
+        if (! Normalizer::dialable($company->phone)) {
+            $company->phone = array_shift($new);
+            $added++;
+        }
+        if ($new && ! $company->profile('phone_alt')) {
+            $profile['phone_alt'] = array_shift($new);
+            $added++;
+        }
+        if ($added) {
+            $profile['phone_source'] = $website;
+            $company->forceFill(['crm_profile' => $profile])->saveQuietly();
+            $stats['phones'] = ($stats['phones'] ?? 0) + $added;
+        }
     }
 
     private function save(Company $company, array $emails, bool $ownSite, bool $dry, array &$stats): void
@@ -135,10 +168,15 @@ class FindEmails extends Command
         $q = Company::withoutGlobalScope('customers')->where('lifecycle', 'prospect')->whereNotNull('crm_profile->website');
         if ($ids = $this->option('ids')) {
             $q->whereIn('id', array_map('intval', explode(',', $ids)));
+        } elseif ($this->option('phones')) {
+            // not read yet for emails, or read before phones were collected and still without a phone
+            $q->where(fn ($w) => $w->whereNull('crm_profile->emails_checked_at')
+                ->orWhere(fn ($x) => $x->whereNull('crm_profile->phones_checked_at')->where(fn ($p) => $p->whereNull('phone')->orWhere('phone', ''))));
         } elseif (! $this->option('recheck')) {
             $q->whereNull('crm_profile->emails_checked_at');
         }
-        $rows = $q->get()->reject(fn ($c) => $this->skip($c) || $this->count($c) >= EmailFinder::MAX)
+        $needsPhone = (bool) $this->option('phones');
+        $rows = $q->get()->reject(fn ($c) => $this->skip($c) || ($this->count($c) >= EmailFinder::MAX && ! ($needsPhone && ! $c->phone)))
             ->sortBy(fn ($c) => [$this->areaRank($c), $this->segmentRank($c), $c->id]);
         foreach ($rows as $c) {
             yield $c;
