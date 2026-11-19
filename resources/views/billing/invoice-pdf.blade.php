@@ -16,22 +16,22 @@
 @font-face { font-family: 'Outfit'; font-weight: normal; src: url('{{ resource_path('fonts/outfit/Outfit-Regular.ttf') }}') format('truetype'); }
 @font-face { font-family: 'Outfit'; font-weight: bold; src: url('{{ resource_path('fonts/outfit/Outfit-Bold.ttf') }}') format('truetype'); }
 @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
-body { font-family: 'Outfit', DejaVu Sans, sans-serif; font-size: 9.5pt; color: #101828; line-height: 1.45; }
+body { font-family: 'Outfit', DejaVu Sans, sans-serif; font-size: 9.5pt; color: #101828; line-height: 1.25; }
 .muted { color: #667085; }
 table { width: 100%; border-collapse: collapse; }
 h1 { margin: 0; font-size: 18pt; }
 .pill { display: inline-block; border-radius: 8pt; padding: 1pt 7pt; font-size: 8pt; font-weight: bold; }
 .due { background: #FEF3F2; color: #B42318; } .open { background: #FFFAEB; color: #B54708; } .paid { background: #ECFDF3; color: #027A48; } .grey { background: #F2F4F7; color: #344054; }
-.meta td { vertical-align: top; padding: 6pt 8pt 6pt 0; border-top: 1px solid #EAECF0; border-bottom: 1px solid #EAECF0; }
+.meta td { vertical-align: top; padding: 5pt 8pt 5pt 0; border-top: 1px solid #EAECF0; border-bottom: 1px solid #EAECF0; }
 .lbl { display: block; font-size: 7.5pt; color: #667085; text-transform: uppercase; letter-spacing: .5pt; margin-bottom: 2pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
-.lines td { padding: 4pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
+.lines td { padding: 3pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
 .lines .sub td { color: #101828; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
 .box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
 .box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
-.payline { margin-top: 14pt; padding-top: 8pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
+.payline { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
 </head>
