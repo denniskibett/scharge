@@ -184,7 +184,7 @@ class BillingController extends Controller
             'handle' => InvoicePayController::payeeHandle()];
         if ($asPdf) {
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')
-                ->setOption(['chroot' => public_path(), 'isRemoteEnabled' => false])
+                ->setOption(['chroot' => [public_path(), resource_path('fonts')], 'isRemoteEnabled' => false])
                 ->stream($row->invoice_number.'.pdf');
         }
 

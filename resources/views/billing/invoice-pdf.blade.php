@@ -13,8 +13,10 @@
 <head>
 <meta charset="utf-8">
 <style>
+@font-face { font-family: 'Outfit'; font-weight: normal; src: url('{{ resource_path('fonts/outfit/Outfit-Regular.ttf') }}') format('truetype'); }
+@font-face { font-family: 'Outfit'; font-weight: bold; src: url('{{ resource_path('fonts/outfit/Outfit-Bold.ttf') }}') format('truetype'); }
 @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
-body { font-family: DejaVu Sans, sans-serif; font-size: 9.5pt; color: #101828; line-height: 1.45; }
+body { font-family: 'Outfit', DejaVu Sans, sans-serif; font-size: 9.5pt; color: #101828; line-height: 1.45; }
 .muted { color: #667085; }
 table { width: 100%; border-collapse: collapse; }
 h1 { margin: 0; font-size: 18pt; }
