@@ -25,8 +25,8 @@ h1 { margin: 0; font-size: 18pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 7pt 0; border-bottom: 1px solid #EAECF0; }
 .lines td { padding: 3.5pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
-.totals { width: 52%; margin-left: 48%; margin-top: 10pt; }
-.totals td { padding: 3pt 0; }
+.totals { width: 100%; margin-top: 2pt; }
+.totals td { padding: 4pt 0; border-bottom: 1px solid #F2F4F7; }
 .grand td { border-top: 2px solid #101828; padding-top: 6pt; font-size: 12pt; font-weight: bold; }
 .box { margin-top: 12pt; border: 1px solid #EAECF0; border-radius: 8pt; padding: 10pt 12pt; }
 .box td { vertical-align: top; padding: 4pt 10pt 4pt 0; width: 50%; }

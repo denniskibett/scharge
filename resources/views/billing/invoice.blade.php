@@ -38,8 +38,8 @@ td.amt, th.amt, td.num, th.num { text-align: right; white-space: nowrap; }
 td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
-.totals { margin-left: auto; width: min(320px, 100%); margin-top: 16px; }
-.totals div { display: flex; justify-content: space-between; padding: 6px 0; }
+.totals { width: 100%; margin-top: 4px; }
+.totals div { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #F2F4F7; }
 .grand { display: flex; justify-content: space-between; border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 700; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .actions { max-width: 820px; margin: 0 auto 28px; display: flex; gap: 10px; justify-content: flex-end; padding: 0 4px; }
