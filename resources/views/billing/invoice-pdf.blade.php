@@ -29,12 +29,12 @@ h1 { margin: 0; font-size: 18pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
 .lines td { padding: 2.6pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
-.lines .sub td { color: #101828; }
-.lines .tot td { padding-bottom: 1pt; } .lines .tot + .sub td { padding-top: 1pt; }
-.lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
+.lines .sub td { color: #101828; padding: 1.8pt 0; border-bottom: 0; }
+
+.lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 4pt; font-size: 12pt; font-weight: bold; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
 .box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
-.lines td.qr-cell { vertical-align: middle; border-bottom: 0; padding: 6pt 14pt 6pt 0; color: #101828; }
+.lines td.qr-cell { vertical-align: bottom; border: 0; padding: 6pt 14pt 0 0; color: #101828; }
 .qrt { width: auto; } .qrt td { border: 0 !important; padding: 0 6pt 0 0 !important; vertical-align: middle; color: #101828; }
 .payline { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
@@ -92,7 +92,7 @@ h1 { margin: 0; font-size: 18pt; }
     <tr class="sub"><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
     <tr class="sub tot"><td class="r" style="font-weight:bold">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r" style="font-weight:bold">{{ $money($total) }}</td></tr>
     <tr class="sub"><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
-    <tr class="grand"><td class="r">Balance due</td><td class="r" style="color:{{ $balance > 0 ? '#B42318' : '#027A48' }}">{{ $money($balance) }}</td></tr>
+    <tr class="grand"><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
   </tfoot>
 </table>
 

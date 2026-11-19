@@ -42,10 +42,10 @@ td.amt, th.amt, td.num, th.num { text-align: right; white-space: nowrap; }
 td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
-.sub td { color: var(--ink); }
-.tot td { font-weight: 700; padding-bottom: 2px; } .tot + .sub td { padding-top: 2px; }
-.bal td { font-weight: 700; } .bal td.num { padding-right: 18px; white-space: nowrap; } .bal td.amt { color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
-.grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--ink) !important; }
+.sub td { color: var(--ink); padding: 5px 0; border-bottom: 0; }
+.tot td { font-weight: 700; }
+.bal td { font-weight: 700; color: {{ $balance > 0 ? '#B42318' : '#027A48' }} !important; } .bal td.num { padding-right: 18px; white-space: nowrap; }
+.grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 10px; font-size: 18px; font-weight: 700; color: var(--ink); }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .cards { max-width: 820px; margin: 28px auto -12px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cards .back { grid-column: 1 / -1; font-size: 13px; color: var(--muted); text-decoration: none; }
@@ -80,14 +80,14 @@ td small { display: block; color: var(--muted); }
   .meta b { font-size: 8.5px; margin-bottom: 2px; }
   .page > p.muted { margin: -4px 0 6px !important; }
   th { padding: 6px 0; font-size: 8.5px; } td { padding: 5px 0; }
-  .grand td { font-size: 13px; padding-top: 6px; }
+  .grand td { font-size: 13px; padding-top: 5px; } .sub td { padding: 2px 0; }
   thead { display: table-row-group; }
 }
 @media print { body { background: #fff; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
 .sp-link:hover { text-decoration: underline; }
-.qr-cell { vertical-align: middle; padding: 10px 20px 10px 0 !important; border-bottom: 0 !important; }
+.qr-cell { vertical-align: bottom; padding: 12px 20px 0 0 !important; border: 0 !important; }
 .payqr { display: flex; gap: 14px; align-items: center; }
 .payqr .qr { width: 104px; height: 104px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
 .full-link { font: 13px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); word-break: break-all; }
@@ -187,7 +187,7 @@ td small { display: block; color: var(--muted); }
       <tr class="sub"><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
       <tr class="sub tot"><td class="num">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
       <tr class="sub"><td class="num muted">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="amt">{{ $money($paidAmount) }}</td></tr>
-      <tr class="grand bal"><td class="num">Balance due</td><td class="amt">{{ $money($balance) }}</td></tr>
+      <tr class="grand bal"><td class="num">Balance</td><td class="amt">{{ $money($balance) }}</td></tr>
     </tfoot>
   </table>
 
