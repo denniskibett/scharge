@@ -1,6 +1,6 @@
 # scharge app (Android)
 
-One app for every role. The app lives in its own repo, `scharge-app` (Flutter), next to this one. This repo holds the
+One app for every role. The app lives in its own folder, `../mobile/scharge` (Flutter). This repo holds the
 API it talks to (`routes/api.php`, prefix `/api/v1/app`) and this document.
 
 Designs: the "7 · Mobile app" page of the scharge brand canvas (Tenant, Property manager & landlord, Water meter
@@ -137,7 +137,7 @@ book per account manager, sales and sysadmin; repair photos). App side: `test/rb
 
 - Migrations: `2026_11_11_000600_create_mobile_sessions.php` and `2026_11_11_001000_create_tenant_suggestions.php`
   (both listed in `scripts/deploy-migrations.txt`).
-- The APKs for the website: build them in `scharge-app` (see its README) and copy them to `public/downloads/` here
+- The APKs for the website: build them in `../mobile/scharge` (see its README) and copy them to `public/downloads/` here
   before `scripts/push.sh`: `scharge-app.apk` (any phone), `scharge-app-arm64.apk` (newer phones),
   `scharge-app-arm32.apk` (older phones). They are not kept in git. Without `scharge-app.apk` the pages show
   "coming soon" instead of the link.

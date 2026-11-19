@@ -35,7 +35,7 @@ Location is taken only at that moment, with the phone's permission, and never in
 - **Versions:** each call sends `X-App-Version`, `X-OS-Version` and `X-Device-Model`, stored on the phone's session.
 - **Report:** Admin › **App health** (sysadmin) shows phones active in 30 days, how many can get push, app and Android versions, phone models, and errors (with stack and a "Mark fixed" button).
 
-## App side (Flutter, `/Users/dennis/projects/scharge-app`)
+## App side (Flutter, `/Users/dennis/projects/mobile/scharge`)
 
 1. Firebase Messaging: register `push_token` with `/device` on sign-in and on token refresh; show notifications; open the bill on tap (`data.invoice_id`).
 2. Send `X-App-Version`, `X-OS-Version` and `X-Device-Model` on every call; on 426, show "Update the app" with `download_url`.
