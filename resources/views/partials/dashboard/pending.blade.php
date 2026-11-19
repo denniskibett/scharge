@@ -87,7 +87,7 @@
                     <div>
                         <span class="text-gray-500 dark:text-gray-400">Role:</span>
                         <span class="ml-2 font-medium text-gray-800 dark:text-white/90">
-                            {{ ucfirst(str_replace('_', ' ', $user->role->name ?? 'N/A')) }}
+                            {{ ucfirst(str_replace('_', ' ', $user->getRoleNames()->first() ?? 'N/A')) }}
                         </span>
                     </div>
                     <div>

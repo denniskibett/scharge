@@ -172,7 +172,7 @@ class WalletController extends Controller
                 'requires_approval' => !$confirmed,
                 'deposited_by' => $user->id,
                 'deposited_by_name' => $user->name,
-                'deposited_by_role' => $user->role?->name ?? 'user',
+                'deposited_by_role' => $user->getRoleNames()->first() ?? 'user',
             ];
             
             // Add notes for manual top-up
@@ -1495,7 +1495,7 @@ class WalletController extends Controller
         try {
             $user = Auth::user();
             
-            Log::info('API Get Tenant Details called', ['user_id' => $user->id, 'user_role' => $user->role?->name]);
+            Log::info('API Get Tenant Details called', ['user_id' => $user->id, 'user_role' => $user->getRoleNames()->first()]);
             
             if (!$user->isTenant()) {
                 return response()->json([
@@ -1828,7 +1828,7 @@ class WalletController extends Controller
         try {
             Log::info('API Get Pending Invoices called', [
                 'user_id' => Auth::id(),
-                'user_role' => Auth::user()->role?->name ?? 'unknown'
+                'user_role' => Auth::user()->getRoleNames()->first() ?? 'unknown'
             ]);
             
             $walletOwner = $this->getWalletOwner();

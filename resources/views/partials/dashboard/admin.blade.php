@@ -41,7 +41,7 @@
                                 <div class="text-right">
                                     <p class="text-sm text-blue-100">Your Role</p>
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/20 text-white backdrop-blur-sm">
-                                        {{ ucfirst(str_replace('_', ' ', Auth::user()->role->name ?? 'Admin')) }}
+                                        {{ ucfirst(str_replace('_', ' ', Auth::user()->getRoleNames()->first() ?? 'Admin')) }}
                                     </span>
                                 </div>
                             </div>

@@ -19,7 +19,7 @@
                         <span class="text-4xl font-bold text-blue-600">{{ substr($user->name ?? 'U', 0, 1) }}</span>
                     </div>
                     <h3 class="mt-4 text-xl font-semibold text-gray-800 dark:text-white">{{ $user->name ?? 'Unknown' }}</h3>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ ucfirst(str_replace('_', ' ', $user->role->name ?? 'No Role')) }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ ucfirst(str_replace('_', ' ', $user->getRoleNames()->first() ?? 'No Role')) }}</p>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2
                         @if($user->status == 0) bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200
                         @elseif($user->status == 1) bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200
@@ -61,16 +61,16 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Role Description</p>
-                            <p class="mt-1 text-sm text-gray-800 dark:text-white">{{ $user->role->description ?? 'No description available.' }}</p>
+                            <p class="mt-1 text-sm text-gray-800 dark:text-white">{{ \App\Support\Access::COMPANY_ROLES[$user->getRoleNames()->first()] ?? 'No description available.' }}</p>
                         </div>
                         <div class="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
                             <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Access Level</p>
                             <p class="mt-1 text-sm text-gray-800 dark:text-white">
-                                @if($user->role->name == 'admin')
+                                @if($user->getRoleNames()->first() == 'admin')
                                     Full system access
-                                @elseif($user->role->name == 'property_manager')
+                                @elseif($user->getRoleNames()->first() == 'property_manager')
                                     Property management access
-                                @elseif($user->role->name == 'accountant')
+                                @elseif($user->getRoleNames()->first() == 'accountant')
                                     Financial access
                                 @else
                                     Limited access

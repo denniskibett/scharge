@@ -319,7 +319,7 @@ document.addEventListener('alpine:init', () => {
         isSubmitting: false,
         activeTab: 'form',
         formErrors: [],
-        userRole: '{{ auth()->user()->role->name ?? "guest" }}',
+        userRole: '{{ auth()->user()->getRoleNames()->first() ?? "guest" }}',
         currentUnit: @json($currentUnit ?? null),
         units: @json($units ?? []),
         previousRequests: [],

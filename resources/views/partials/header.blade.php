@@ -464,7 +464,7 @@
             </li>
             
             {{-- Check if user is admin --}}
-            @if(auth()->check() && auth()->user()->role?->name === 'admin')
+            @if(auth()->check() && auth()->user()->hasRole('admin'))
             <li>
               <a
                 href="{{ route('system.index') }}"
