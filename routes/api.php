@@ -83,13 +83,33 @@ Route::prefix('v1/app')->group(function () {
         Route::get('/units', [Mobile\StaffController::class, 'units'])->middleware(MobileCan::class.':staff,properties.view');
         Route::get('/bookings', [Mobile\StaffController::class, 'bookings'])->middleware(MobileCan::class.':staff,properties.view');
         Route::get('/suggestions', [Mobile\StaffController::class, 'suggestions'])->middleware(MobileCan::class.':staff,tenants.manage');
-        Route::get('/companies', [Mobile\StaffController::class, 'companies'])->middleware(MobileCan::class.':staff,companies.view');
+        // Admin › Companies: sysadmins, and account managers on the companies they own (CompanyAccess, owner_id).
+        Route::get('/companies', [Mobile\StaffController::class, 'companies'])->middleware(MobileCan::class.':companies,companies.view');
         Route::get('/meters', [Mobile\FieldController::class, 'meters'])->middleware(MobileCan::class.':staff,water.view');
         Route::get('/meters/{id}/readings', [Mobile\FieldController::class, 'readings'])->whereNumber('id')->middleware(MobileCan::class.':staff,water.view');
         Route::post('/meters/{id}/readings', [Mobile\FieldController::class, 'record'])->whereNumber('id')->middleware(MobileCan::class.':staff,water.manage');
         Route::get('/repairs', [Mobile\FieldController::class, 'repairs'])->middleware(MobileCan::class.':staff,maintenance.view');
         Route::post('/repairs/{id}', [Mobile\FieldController::class, 'updateRepair'])->whereNumber('id')->middleware(MobileCan::class.':staff,maintenance.manage');
         Route::post('/repairs/{id}/visit', [Mobile\FieldController::class, 'visit'])->whereNumber('id')->middleware(MobileCan::class.':staff,maintenance.manage');
+
+        // CRM for scharge's sales people (sysadmin, account_manager, sales): their own book through CrmAccess.
+        Route::prefix('crm')->group(function () {
+            $view = MobileCan::class.':crm,crm.view';
+            $manage = MobileCan::class.':crm,crm.manage';
+            Route::get('/summary', [Mobile\CrmController::class, 'summary'])->middleware($view);
+            Route::get('/prospects', [Mobile\CrmController::class, 'prospects'])->middleware($view);
+            Route::get('/prospects/{id}', [Mobile\CrmController::class, 'prospect'])->whereNumber('id')->middleware($view);
+            Route::post('/prospects/{id}/stage', [Mobile\CrmController::class, 'stage'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/follow-ups', [Mobile\CrmController::class, 'addFollowUp'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/reply/handled', [Mobile\CrmController::class, 'replyHandled'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/reply', [Mobile\CrmController::class, 'replyAnswer'])->whereNumber('id')->middleware([$manage, 'throttle:20,1,app-crm-reply']);
+            Route::get('/follow-ups', [Mobile\CrmController::class, 'followUps'])->middleware($view);
+            Route::post('/follow-ups/{id}', [Mobile\CrmController::class, 'updateFollowUp'])->whereNumber('id')->middleware($manage);
+            Route::get('/requests', [Mobile\CrmController::class, 'requests'])->middleware($view);
+            Route::get('/waitlist', [Mobile\CrmController::class, 'waitlist'])->middleware($view);
+            Route::post('/waitlist/{id}', [Mobile\CrmController::class, 'updateWaitlist'])->whereNumber('id')->middleware($manage);
+            Route::get('/sales', [Mobile\CrmController::class, 'sales'])->middleware($view);
+        });
 
         // Gate & visitors: guards, managers, BnB hosts and tenants, each on their own units (Gate service).
         Route::get('/gate/passes', [Mobile\FieldController::class, 'passes']);

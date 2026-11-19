@@ -105,6 +105,11 @@ class StaffController extends Controller
     public function bookings(Request $request)
     {
         $units = Unit::with('property:id,name')->whereIn('stay_type', MobileAccess::SHORT_STAY)->orderBy('unit_number')->get();
+        // Agencies see landlords' units given to them (property_agents), but the money stays the landlord's.
+        $ids = \App\Support\CompanyAccess::ids();
+        $granted = \App\Services\Agents\AgentAccess::propertyIds($request->user());
+        $hideAmount = $units->filter(fn ($u) => $ids !== null && in_array((int) $u->property_id, $granted, true) && ! in_array((int) $u->company_id, $ids, true))
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
         $bookings = Booking::with('unit:id,unit_number')->whereIn('unit_id', $units->pluck('id')->all() ?: [0])->where('status', 'confirmed')
             ->whereDate('check_out', '>=', now()->toDateString())->orderBy('check_in')->limit(100)->get();
 
@@ -112,13 +117,14 @@ class StaffController extends Controller
             'units' => $units->map(fn ($u) => ['id' => $u->id, 'number' => $u->unit_number, 'property' => $u->property?->name, 'status' => $u->status])->values(),
             'data' => $bookings->map(fn ($b) => ['id' => $b->id, 'unit' => $b->unit?->unit_number, 'guest' => $b->guest_name, 'phone' => $b->guest_phone,
                 'guests' => $b->guests, 'check_in' => $b->check_in->format('Y-m-d'), 'check_out' => $b->check_out->format('Y-m-d'), 'nights' => $b->nights,
-                'source' => Booking::SOURCES[$b->source] ?? $b->source, 'amount' => $b->amount !== null ? self::money($b->amount) : null])->values(),
+                'source' => Booking::SOURCES[$b->source] ?? $b->source, 'amount' => $b->amount !== null && ! in_array((int) $b->unit_id, $hideAmount, true) ? self::money($b->amount) : null])->values(),
         ]);
     }
 
     public function companies(Request $request)
     {
         $ids = CompanyAccess::ids();
+        abort_unless(MobileAccess::seesCompanies($request->user()), 403, 'Companies are for scharge admins and account managers.');
         $q = Company::query()->when($ids !== null, fn ($q) => $q->whereIn('id', $ids ?: [0]))
             ->when(trim((string) $request->query('q')), fn ($q, $s) => $q->where('name', 'like', "%$s%"))->orderBy('name');
 

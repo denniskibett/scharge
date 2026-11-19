@@ -55,6 +55,22 @@ class MobileAccess
         return $user->company_id && CompanyAccess::ids() !== null && $user->getRoleNames()->diff(self::NOT_STAFF)->isNotEmpty();
     }
 
+    /**
+     * scharge's sales people in the CRM (sysadmin, account managers, the "sales" role), as on the web
+     * (app/Modules/CRM/routes.php: role:sysadmin|account_manager|sales + crm.view). What each sees is CrmAccess:
+     * their own book plus unassigned leads, everything for sysadmins and "crm.all".
+     */
+    public static function isCrm(?User $user): bool
+    {
+        return $user && $user->hasAnyRole(['sysadmin', 'account_manager', 'sales']) && self::can($user, 'crm.view');
+    }
+
+    /** Admin › Companies on the web is sysadmin + account managers only (account managers: the companies they own). */
+    public static function seesCompanies(?User $user): bool
+    {
+        return $user && $user->hasAnyRole(['sysadmin', 'account_manager']) && self::can($user, 'companies.view');
+    }
+
     public static function isTenant(?User $user): bool
     {
         return $user && $user->hasRole('tenant') && self::tenantIds($user) !== [];
@@ -153,8 +169,18 @@ class MobileAccess
 
             return $out;
         }
+        // scharge sales people open on the CRM (bottom tabs: My day, Pipeline, Follow-ups, Sales), then the rest.
+        if (self::isCrm($user)) {
+            $manage = $can('crm.manage');
+            $add('crm_today', 'My day');
+            $add('crm_pipeline', 'Pipeline', ['move_stage' => $manage, 'log' => $manage, 'schedule' => $manage, 'handle_reply' => $manage]);
+            $add('crm_follow_ups', 'Follow-ups', ['update' => $manage]);
+            $add('crm_sales', 'Sales');
+            $add('crm_requests', 'Requests', ['update' => $manage]);
+            $add('crm_waitlist', 'Waitlist', ['update' => $manage]);
+        }
         if (! self::isStaff($user)) {
-            return [];
+            return $out;
         }
 
         $can('payments.view') && $add('rent', 'Rent', ['match_paybill' => $can('payments.manage')]);
@@ -169,7 +195,7 @@ class MobileAccess
         $can('tenants.view') && $add('tenants', 'Tenants');
         $can('tenants.manage') && $user->company_id && $add('suggestions', 'Suggestions');
         $can('properties.view') && $add('units', 'Units');
-        $can('companies.view') && $add('companies', 'Companies');
+        self::seesCompanies($user) && $add('companies', 'Companies');
 
         return $out;
     }

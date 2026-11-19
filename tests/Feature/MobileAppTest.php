@@ -218,7 +218,12 @@ class MobileAppTest extends RentSchemaTestCase
         $this->assertSame(['repairs', 'units'], $keys('maintenance', $c));
         $this->assertSame(['gate', 'units'], $keys('security', $c));
         $this->assertSame(['gate', 'bookings', 'units'], $keys('bnb_host', $c)); // guests at their units, as on the web
-        $this->assertSame(['rent', 'payments', 'companies'], $keys('account_manager', null));
+        // Account managers open on the CRM (as on the web: pipeline, follow-ups, sales tracker, requests, waitlist),
+        // then the revenue and companies of their own book. The "sales" role works prospects only.
+        $crm = ['crm_today', 'crm_pipeline', 'crm_follow_ups', 'crm_sales', 'crm_requests', 'crm_waitlist'];
+        $this->assertSame([...$crm, 'rent', 'payments', 'companies'], $keys('account_manager', null));
+        $this->assertSame($crm, $keys('sales', null)); // no companies: Admin › Companies is sysadmin + account managers
+        $this->assertSame(['units'], $keys('agent', $c));
         $this->assertContains('companies', $keys('sysadmin', null));
 
         // A meter reader may record; an accountant may only look.
@@ -787,5 +792,134 @@ class MobileAppTest extends RentSchemaTestCase
             'password_confirmation' => 'new-pass-123', 'device_name' => 'Phone'])->assertStatus(422)->assertJson(['error' => 'staff_account']);
         $this->assertSame($before, DB::table('users')->where('id', $admin->id)->value('password'));
         $this->assertNotSame('Intruder', DB::table('users')->where('id', $admin->id)->value('name'));
+    }
+
+    // ---- CRM for account managers / sales ---------------------------------------------------------------------------
+
+    private function crmSchema(): void
+    {
+        Schema::table('companies', function (Blueprint $t) {
+            foreach (['crm_stage' => 'string', 'email' => 'string', 'phone' => 'string', 'kind' => 'string'] as $col => $type) {
+                if (! Schema::hasColumn('companies', $col)) {
+                    $t->{$type}($col)->nullable();
+                }
+            }
+            if (! Schema::hasColumn('companies', 'tier')) {
+                $t->unsignedTinyInteger('tier')->nullable();
+            }
+            if (! Schema::hasColumn('companies', 'crm_profile')) {
+                $t->json('crm_profile')->nullable();
+            }
+            if (! Schema::hasColumn('companies', 'reply_pending')) {
+                $t->boolean('reply_pending')->default(false); // a stored generated column in MySQL (2026_11_19_crm_speed.sql)
+            }
+            if (! Schema::hasColumn('companies', 'is_active')) {
+                $t->boolean('is_active')->default(true);
+            }
+        });
+        // CRM › Sales tracker commission (CommissionService): settings on `system`, paid platform bills.
+        foreach (['system', 'company_subscriptions', 'subscription_invoices'] as $t) {
+            Schema::dropIfExists($t);
+        }
+        Schema::create('system', fn (Blueprint $t) => [$t->id(), $t->string('name')->nullable(), $t->json('settings')->nullable(), $t->timestamps()]);
+        Schema::create('company_subscriptions', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id'), $t->timestamps()]);
+        Schema::create('subscription_invoices', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_subscription_id'), $t->string('invoice_number')->nullable(),
+            $t->string('status'), $t->decimal('amount', 12, 2), $t->timestamp('paid_at')->nullable(), $t->json('invoice_json')->nullable(), $t->timestamps()]);
+        Schema::dropIfExists('waitlist_entries');
+        Schema::create('waitlist_entries', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('user_id')->nullable(), $t->unsignedBigInteger('company_id')->nullable(),
+            $t->string('country_code', 2)->nullable(), $t->string('status')->default('waiting'), $t->json('details')->nullable(), $t->timestamps()]);
+    }
+
+    private function prospect(string $name, ?int $owner, string $stage = 'new', array $profile = []): int
+    {
+        return DB::table('companies')->insertGetId(['name' => $name, 'lifecycle' => 'prospect', 'crm_stage' => $stage, 'tier' => 2, 'owner_id' => $owner,
+            'crm_profile' => json_encode($profile), 'reply_pending' => ! empty($profile['reply_pending'])]);
+    }
+
+    public function test_account_managers_work_their_own_crm_book_in_the_app(): void
+    {
+        $this->crmSchema();
+        [$am, $token] = $this->person(null, 'account_manager');
+        [$other] = $this->person(null, 'account_manager');
+        $mine = $this->prospect('Mine Homes', $am->id, 'contacted', ['reply_pending' => true, 'reply' => ['from' => 'a@b.test', 'name' => 'Asha', 'snippet' => 'Call me', 'at' => now()->toDateTimeString()]]);
+        $free = $this->prospect('Unassigned Lets', null);
+        $theirs = $this->prospect('Their Estates', $other->id);
+        DB::table('crm_follow_ups')->insert(['company_id' => $mine, 'assigned_to' => $am->id, 'type' => 'call', 'status' => 'open', 'title' => 'Call back', 'due_at' => now()->subDay()]);
+        $theirTask = DB::table('crm_follow_ups')->insertGetId(['company_id' => $theirs, 'assigned_to' => $other->id, 'type' => 'call', 'status' => 'open', 'title' => 'Theirs', 'due_at' => now()->subDay()]);
+
+        // Pipeline: own book plus unassigned leads, replies first; never another account manager's prospects.
+        $names = array_column($this->api($token)->getJson('/api/v1/app/crm/prospects')->assertOk()->json('data'), 'name');
+        $this->assertSame(['Mine Homes', 'Unassigned Lets'], $names);
+        $this->api($token)->getJson('/api/v1/app/crm/prospects/'.$theirs)->assertForbidden();
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$theirs.'/stage', ['stage' => 'qualified'])->assertForbidden();
+        $this->api($token)->postJson('/api/v1/app/crm/follow-ups/'.$theirTask, ['status' => 'done', 'outcome' => 'x'])->assertForbidden();
+
+        $day = $this->api($token)->getJson('/api/v1/app/crm/summary')->assertOk();
+        $this->assertSame(1, $day->json('stats.replied'));
+        $this->assertSame(1, $day->json('stats.overdue'));
+        $this->assertSame('Asha', $day->json('replies.0.reply.from'));
+        $this->assertContains('crm_today', array_column($this->api($token)->getJson('/api/v1/app/notifications')->json('data'), 'screen'));
+
+        // Work a prospect: log a call (new -> contacted), move the stage, clear the reply alert, close the follow-up.
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$free.'/follow-ups', ['mode' => 'log', 'type' => 'call', 'title' => 'Intro call'])->assertCreated();
+        $this->assertSame('contacted', DB::table('companies')->where('id', $free)->value('crm_stage'));
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$mine.'/stage', ['stage' => 'lost'])->assertStatus(422); // lost needs a reason
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$mine.'/stage', ['stage' => 'proposal'])->assertOk()->assertJsonPath('stage', 'proposal');
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$mine.'/reply/handled', ['note' => 'Called her'])->assertOk()->assertJsonPath('reply', null);
+        $task = $this->api($token)->getJson('/api/v1/app/crm/follow-ups?view=overdue')->assertOk()->json('data.0.id');
+        $this->api($token)->postJson('/api/v1/app/crm/follow-ups/'.$task, ['status' => 'done', 'outcome' => 'Sent proposal', 'next_title' => 'Chase', 'next_due_at' => now()->addDays(2)->toDateTimeString()])->assertOk();
+        $this->assertSame(1, DB::table('crm_follow_ups')->where('company_id', $mine)->where('title', 'Chase')->count());
+
+        // Sales tracker: their own book only; commission on the paid platform bills of companies they own (20% default).
+        DB::table('companies')->where('id', $this->a['company'])->update(['owner_id' => $am->id]);
+        DB::table('units')->whereIn('id', DB::table('tenancies')->whereIn('id', $this->a['tenancies'])->pluck('unit_id'))->update(['company_id' => $this->a['company']]);
+        $sub = DB::table('company_subscriptions')->insertGetId(['company_id' => $this->a['company']]);
+        DB::table('subscription_invoices')->insert(['company_subscription_id' => $sub, 'invoice_number' => 'SUB-1', 'status' => 'paid', 'amount' => 1000, 'paid_at' => now(), 'invoice_json' => '{}']);
+        $sales = $this->api($token)->getJson('/api/v1/app/crm/sales')->assertOk();
+        $this->assertSame('mine', $sales->json('scope'));
+        $this->assertSame('1000.00', $sales->json('totals.fees'));
+        $this->assertSame('200.00', $sales->json('totals.commission'));
+        $this->assertSame(2, $sales->json('totals.units'));
+        $this->assertSame(['Mine Homes'], array_column($sales->json('closing'), 'name'));
+    }
+
+    public function test_sysadmins_see_the_whole_pipeline_and_sales_cannot_reach_company_data(): void
+    {
+        $this->crmSchema();
+        [$am] = $this->person(null, 'account_manager');
+        $this->prospect('Mine Homes', $am->id);
+        $this->prospect('Unassigned Lets', null);
+        [, $sys] = $this->person(null, 'sysadmin');
+        $this->assertSame(2, $this->api($sys)->getJson('/api/v1/app/crm/prospects')->json('total'));
+        $this->assertSame('team', $this->api($sys)->getJson('/api/v1/app/crm/sales')->assertOk()->json('scope'));
+
+        [, $sales] = $this->person(null, 'sales');
+        $this->assertSame(['Unassigned Lets'], array_column($this->api($sales)->getJson('/api/v1/app/crm/prospects')->assertOk()->json('data'), 'name'));
+        foreach (['/companies', '/rent', '/bills', '/tenants', '/units', '/payments'] as $path) {
+            $this->api($sales)->getJson('/api/v1/app'.$path)->assertForbidden();
+        }
+
+        // Landlord staff and tenants never reach the CRM.
+        [, $admin] = $this->person($this->a['company'], 'admin');
+        $this->api($admin)->getJson('/api/v1/app/crm/prospects')->assertForbidden();
+        [, $tenant] = $this->tenantOf($this->a['tenancies'][0]);
+        $this->api($tenant)->getJson('/api/v1/app/crm/summary')->assertForbidden();
+    }
+
+    public function test_repair_photos_never_turn_an_empty_list_into_a_storage_url(): void
+    {
+        $unit = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('unit_id');
+        $tenantId = DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id');
+        foreach (['"[]"', '[]', null, '["repair-photos/a.jpg"]', '"[\"repair-photos/b.jpg\"]"'] as $i => $images) {
+            DB::table('maintenances')->insert(['company_id' => $this->a['company'], 'unit_id' => $unit, 'tenant_id' => $tenantId, 'request_number' => 'R'.$i,
+                'name' => 'Leak '.$i, 'description' => 'x', 'images' => $images]);
+        }
+        [, $token] = $this->tenantOf($this->a['tenancies'][0]);
+        $photos = collect($this->api($token)->getJson('/api/v1/app/tenant/repairs')->assertOk()->json('data'))->pluck('photos', 'title');
+        $this->assertSame([], $photos['Leak 0']);
+        $this->assertSame([], $photos['Leak 1']);
+        $this->assertSame([], $photos['Leak 2']);
+        $this->assertStringEndsWith('/storage/repair-photos/a.jpg', $photos['Leak 3'][0]);
+        $this->assertStringEndsWith('/storage/repair-photos/b.jpg', $photos['Leak 4'][0]);
     }
 }

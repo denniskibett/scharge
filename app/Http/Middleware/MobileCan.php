@@ -8,7 +8,8 @@ use Illuminate\Http\Request;
 
 /**
  * scharge app routes: `MobileCan::class.':staff,invoices.view'`. "staff" = company or scharge staff (never a tenant
- * acting on company data); "tenant" = a tenant on their own records. The permission comes from App\Support\Access
+ * acting on company data); "tenant" = a tenant on their own records; "crm" = scharge
+ * sales people (sysadmin, account_manager, sales) on CrmAccess's book; "companies" = sysadmin and account managers. The permission comes from App\Support\Access
  * through Spatie (MobileAccess::can), and fails closed.
  */
 class MobileCan
@@ -19,6 +20,8 @@ class MobileCan
         $ok = match ($who) {
             'staff' => MobileAccess::isStaff($user),
             'tenant' => MobileAccess::isTenant($user),
+            'crm' => MobileAccess::isCrm($user),
+            'companies' => MobileAccess::seesCompanies($user),
             default => false,
         };
         if ($ok && $permission) {

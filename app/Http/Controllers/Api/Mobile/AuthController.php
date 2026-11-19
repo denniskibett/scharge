@@ -98,8 +98,8 @@ class AuthController extends Controller
         // Tenant accounts only: sign-up sets a password that also works on the website, so it must never reach a
         // landlord's staff or a scharge account that shares the number (they sign in with their own password).
         $all = $this->accountsFor($key);
-        $users = $all->filter(fn ($u) => $u->hasRole('tenant') && ! $u->hasAnyRole(['sysadmin', 'account_manager', 'admin', 'property_manager',
-            'accountant', 'meter_reader', 'maintenance', 'cleaning_staff', 'security', 'bnb_host']))->values();
+        // Any role besides tenant/guest (staff, agents, sales, hosts, roles added later) keeps the account out of sign-up.
+        $users = $all->filter(fn ($u) => $u->hasRole('tenant') && $u->getRoleNames()->diff(['tenant', 'guest'])->isEmpty())->values();
         if ($users->isEmpty()) {
             return $all->isNotEmpty()
                 ? response()->json(['error' => 'staff_account', 'message' => 'This number belongs to a staff account. Sign in with your password or an SMS code instead.'], 422)
@@ -231,6 +231,18 @@ class AuthController extends Controller
             $ids = CompanyAccess::ids();
             $n = \App\Models\TenantSuggestion::whereNull('read_at')->when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))->count();
             $add('suggestions', 'New suggestions', "$n new from tenants (anonymous).", $n);
+        }
+
+        // CRM (account managers, sales, sysadmins): prospect replies waiting, follow-ups late, new website requests.
+        if (isset($keys['crm_today'])) {
+            $C = \App\Modules\CRM\Support\CrmAccess::class;
+            $FU = \App\Modules\CRM\Models\CrmFollowUp::class;
+            $n = $C::companies(\App\Models\Company::crm(), $user)->where('companies.reply_pending', 1)->count();
+            $add('crm_today', 'Prospect replies', $n === 1 ? 'A prospect replied and is waiting for you.' : "$n prospects replied and are waiting for you.", $n);
+            $n = $C::followUps($FU::query(), $user)->overdue()->count();
+            $add('crm_follow_ups', 'Follow-ups overdue', "$n follow-ups are past their date.", $n);
+            $n = $C::followUps($FU::query(), $user)->whereIn('type', array_keys($FU::REQUEST_TYPES))->where('status', 'open')->count();
+            $add('crm_requests', 'New requests', "$n demo, API key or listing requests to pick up.", $n);
         }
 
         return response()->json(['count' => array_sum(array_column($items, 'count')), 'data' => $items]);

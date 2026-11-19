@@ -114,6 +114,23 @@ trait Presents
         ];
     }
 
+    /**
+     * Repair photo paths -> public URLs. Some rows hold the images column double-encoded (the string "[]" or
+     * '["a.jpg"]' instead of an array), which used to come out as /storage/%5B%5D and a 404 in the app.
+     */
+    public static function photoUrls($images): array
+    {
+        for ($i = 0; is_string($images) && $i < 2; $i++) {
+            $decoded = json_decode($images, true);
+            $images = json_last_error() === JSON_ERROR_NONE ? $decoded : [$images];
+        }
+
+        return collect(is_array($images) ? $images : [])
+            ->filter(fn ($p) => is_string($p) && ($p = trim($p)) !== '' && ! in_array($p, ['[]', '{}', 'null'], true))
+            ->map(fn ($p) => preg_match('#^https?://#i', $p) ? $p : asset('storage/'.ltrim(preg_replace('#^/?storage/#', '', $p), '/')))
+            ->values()->all();
+    }
+
     protected function repair($m): array
     {
         return [
@@ -130,7 +147,7 @@ trait Presents
             'assigned_to' => $m->assignedStaff?->name,
             'assigned_phone' => $m->assignedStaff?->phone,
             'scheduled_date' => $m->scheduled_date?->format('j M'),
-            'photos' => collect($m->images ?? [])->map(fn ($p) => asset('storage/'.$p))->values()->all(),
+            'photos' => self::photoUrls($m->images),
             'resolution_notes' => $m->resolution_notes,
             'cost' => $m->cost !== null ? self::money($m->cost) : null,
             'created_at' => $m->created_at?->toIso8601String(),

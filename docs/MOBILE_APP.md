@@ -54,8 +54,13 @@ Default grants from `Access::ROLES`. The Roles page can add or remove any of the
 | Cleaning staff | Repairs, Units | View only |
 | Security | Gate, Units | Type a guest's code, let in, let out, walk-in visitors |
 | BnB host | Visitors, Bookings, Units | Guest passes for their units, see stays (units they manage only) |
-| Account manager (scharge) | Rent, Payments, Companies | For the companies they own only |
-| sysadmin (scharge) | Everything, all companies | |
+| Agent (agency) | Units (+ Bookings when short-stay units are in scope) | Units of properties landlords gave their agency (`property_agents`); booking amounts on those stay the landlord's (hidden) |
+| Account manager (scharge) | My day, Pipeline, Follow-ups, Sales, then Requests, Waitlist, Rent, Payments, Companies | CRM on their own book plus unassigned leads (`CrmAccess`): answer or clear prospect replies, move stages (won → customer, lost needs a reason), log and book follow-ups, close follow-ups with the next step, work website requests and the waitlist; Sales tracker shows their funnel, wins, settled platform fees and commission (`CommissionService`); Rent, Payments and Companies for the companies they own (`owner_id`) only |
+| Sales (scharge) | My day, Pipeline, Follow-ups, Sales, Requests, Waitlist | Same CRM as an account manager; no company data (no Companies, Rent, Bills…) |
+| sysadmin (scharge) | The CRM screens (whole pipeline, whole-team sales), then everything, all companies | |
+
+A person whose role has no app screens sees "Nothing to show for your role yet" with Refresh (before 1.1.0+3 the
+app crashed with "Invalid argument(s): 0").
 
 With more than 5 screens the app shows 4 tabs and "More".
 
@@ -113,7 +118,9 @@ summary cards and the selected tab: tenants red only, owners and landlord staff 
 | GET | `/bills`, `/bills/{id}` | staff · `invoices.view` |
 | GET | `/tenants` | staff · `tenants.view` |
 | GET | `/units`, `/bookings` | staff · `properties.view` |
-| GET | `/companies` | staff · `companies.view` |
+| GET | `/companies` | sysadmin / account_manager · `companies.view` (as Admin › Companies on the web) |
+| GET | `/crm/summary`, `/crm/prospects`, `/crm/prospects/{id}`, `/crm/follow-ups`, `/crm/requests`, `/crm/waitlist`, `/crm/sales` | crm (sysadmin, account_manager, sales) · `crm.view`; rows through `CrmAccess` |
+| POST | `/crm/prospects/{id}/stage`, `/crm/prospects/{id}/follow-ups`, `/crm/prospects/{id}/reply`, `/crm/prospects/{id}/reply/handled`, `/crm/follow-ups/{id}`, `/crm/waitlist/{id}` | crm · `crm.manage`; another account manager's prospect or follow-up is 403 |
 | GET | `/meters`, `/meters/{id}/readings` | staff · `water.view` |
 | POST | `/meters/{id}/readings` | staff · `water.manage` (multipart, `photo`, `client_ref`) |
 | GET / POST | `/repairs`, `/repairs/{id}` | staff · `maintenance.view` / `maintenance.manage` |
@@ -123,7 +130,8 @@ summary cards and the selected tab: tenants red only, owners and landlord staff 
 | GET / POST | `/gate/passes`, `/gate/verify`, `/gate/passes/{id}` | Gate service rules (guards, managers, hosts, tenants) |
 
 Tests: `tests/Feature/MobileAppTest.php` (sign-in, PIN lockout, screens per role, Roles-page changes, and
-cross-company / cross-tenant checks for bills, rent, tenants, units, meters, repairs, gate and bookings).
+cross-company / cross-tenant checks for bills, rent, tenants, units, meters, repairs, gate and bookings; the CRM
+book per account manager, sales and sysadmin; repair photos). App side: `test/rbac_test.dart` in the app project.
 
 ## Deploying
 
