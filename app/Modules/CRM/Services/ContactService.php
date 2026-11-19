@@ -4,6 +4,7 @@ namespace App\Modules\CRM\Services;
 
 use App\Models\Company;
 use App\Models\User;
+use App\Modules\Users\Models\User as AnyUser; // base class: also accepts morph-resolved users (Company->owner, Sanctum)
 use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Support\Countries;
 use App\Modules\CRM\Support\Normalizer;
@@ -107,7 +108,7 @@ class ContactService
     }
 
     /** True when the user is only a lead (no role, or just the lead role) — safe to update from public forms. */
-    public function isLeadOnly(User $user): bool
+    public function isLeadOnly(AnyUser $user): bool
     {
         return $user->getRoleNames()->reject(fn ($r) => $r === self::LEAD_ROLE)->isEmpty() && ! $user->company_id;
     }
@@ -213,7 +214,7 @@ class ContactService
     }
 
     /** Link a person to a company: a `contact` row in the CRM pivot (once per person). */
-    public function attachContact(Company $company, User $user, ?string $jobTitle = null, ?int $authorId = null): void
+    public function attachContact(Company $company, AnyUser $user, ?string $jobTitle = null, ?int $authorId = null): void
     {
         $row = $company->followUps()->where('type', 'contact')->where('user_id', $user->id)->first();
         if ($row) {
@@ -236,7 +237,7 @@ class ContactService
     }
 
     /** Write a history row (done). */
-    public function log(Company $company, string $type, string $title, ?string $notes = null, array $details = [], ?User $contact = null, ?int $authorId = null): CrmFollowUp
+    public function log(Company $company, string $type, string $title, ?string $notes = null, array $details = [], ?AnyUser $contact = null, ?int $authorId = null): CrmFollowUp
     {
         return $company->followUps()->create([
             'user_id' => $contact?->id,
@@ -267,7 +268,7 @@ class ContactService
         $this->log($company, 'stage', 'Stage: '.($from ? $label($from) : 'none').' → '.$label($stage), $reason, ['from' => $from, 'to' => $stage], null, $authorId);
     }
 
-    private function sameTail(?string $phone, User $user): bool
+    private function sameTail(?string $phone, AnyUser $user): bool
     {
         $tail = Normalizer::phoneTail($phone);
 
@@ -279,7 +280,7 @@ class ContactService
      * email into a public form, so real accounts (tenants, staff, admins) are never modified here.
      * $countryIsHome: false when the country is only one they asked about (waitlist), so it just fills a blank.
      */
-    private function mergePerson(User $user, ?string $name, ?string $email, ?string $phone, ?string $code, bool $countryIsHome = true): void
+    private function mergePerson(AnyUser $user, ?string $name, ?string $email, ?string $phone, ?string $code, bool $countryIsHome = true): void
     {
         if (! $this->isLeadOnly($user)) {
             return;

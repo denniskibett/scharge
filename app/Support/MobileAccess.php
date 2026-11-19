@@ -6,7 +6,7 @@ use Spatie\Permission\PermissionRegistrar;
 use App\Models\Tenancy;
 use App\Models\Tenant;
 use App\Models\Unit;
-use App\Models\User;
+use App\Modules\Users\Models\User; // base class: accepts App\Models\User and morph-resolved users (Sanctum, relations)
 use App\Services\Gate\Gate;
 use App\Services\Rent\RentRun;
 

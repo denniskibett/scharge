@@ -6,7 +6,7 @@ use App\Helpers\PhoneHelper;
 use App\Http\Middleware\CheckAccess;
 use App\Models\Unit;
 use App\Models\UnitManagement;
-use App\Models\User;
+use App\Modules\Users\Models\User; // base class: accepts App\Models\User and morph-resolved users (Sanctum, relations)
 use App\Modules\Security\Models\GatePass;
 use App\Modules\Security\Models\SecurityLog;
 use App\Modules\Security\Models\Visitor;
