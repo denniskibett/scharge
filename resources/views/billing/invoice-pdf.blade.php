@@ -29,14 +29,14 @@ h1 { margin: 0; font-size: 18pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
 .lines td { padding: 2.6pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
-.lines .sub td { color: #101828; padding: 1pt 0; border-bottom: 0; }
+.lines .sub td { color: #667085; font-size: 8.5pt; padding: 1pt 0; border-bottom: 0; }
 .lines .first td { padding-top: 6pt; }
 
-.lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding: 4pt 0 0; line-height: 1.1; font-size: 12pt; font-weight: bold; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
+.lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding: 4pt 0 0; line-height: 1.1; font-size: 11pt; font-weight: bold; color: {{ $balance > 0 ? '#B42318' : '#027A48' }}; }
 .box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
 .box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
-.lines-wrap { position: relative; }
-.qr-abs { position: absolute; left: 0; bottom: 0; width: 56%; }
+.lines td.qr-cell { vertical-align: middle; border: 0; padding: 4pt 14pt 2pt 0; color: #101828; }
+.lines .grand td.e { border-top: 0; }
 .qrt { width: auto; } .qrt td { border: 0 !important; padding: 0 6pt 0 0 !important; vertical-align: bottom; color: #101828; }
 .payline { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
@@ -74,7 +74,6 @@ h1 { margin: 0; font-size: 18pt; }
   </tr>
 </table>
 
-<div class="lines-wrap">
 <table class="lines">
   <thead><tr><th>Description</th><th class="r">Units</th><th class="r">Rate / unit</th><th class="r">Amount</th></tr></thead>
   <tbody>
@@ -88,18 +87,16 @@ h1 { margin: 0; font-size: 18pt; }
     @endforeach
   </tbody>
   <tfoot>
-    <tr class="sub first"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
-    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
-    <tr class="sub tot"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
-    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
-    <tr class="grand"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
+    <tr class="sub first"><td colspan="2" rowspan="4" class="qr-cell">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:50pt"><img src="{{ $payQr }}" style="width:46pt;height:46pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div><div class="muted" style="font-size:7.5pt;margin:0 0 2pt">Scan or open: M-Pesa or Sharet to Sharet</div>
+        <a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:9pt">{{ $payUrl }}</a>
+        @if ($handle)<div style="margin-top:2pt;font-size:8.5pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif</td></tr></table>@endunless</td><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
+    <tr class="sub"><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
+    <tr class="sub tot"><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
+    <tr class="sub"><td class="r">Paid @if ($paid && $inv->paid_at) · {{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('d/m/Y') }}@endif</td><td class="r">{{ $money($paidAmount) }}</td></tr>
+    <tr class="grand"><td colspan="2" class="e">&nbsp;</td><td class="r">Balance</td><td class="r">{{ $money($balance) }}</td></tr>
   </tfoot>
 </table>
-<div class="qr-abs">@unless ($paid)<table class="qrt"><tr>@if ($payQr)<td style="width:58pt"><img src="{{ $payQr }}" style="width:54pt;height:54pt" alt=""></td>@endif<td><div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div>
-        <div class="muted" style="font-size:8pt;margin:1pt 0 4pt">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
-        <a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:9pt">{{ $payUrl }}</a>
-        @if ($handle)<div style="margin-top:2pt;font-size:8.5pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif</td></tr></table>@endunless</div>
-</div>
+
 
 @unless ($paid)
 @endunless
