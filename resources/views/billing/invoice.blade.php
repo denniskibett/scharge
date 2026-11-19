@@ -33,9 +33,9 @@ h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
 .meta b { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
 table { width: 100%; border-collapse: collapse; }
 th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; padding: 10px 0; border-bottom: 1px solid var(--line); }
-td { padding: 12px 0; border-bottom: 1px solid #F2F4F7; vertical-align: top; }
+td { padding: 12px 0; border-bottom: 1px solid #F2F4F7; vertical-align: top; color: var(--muted); }
 td.amt, th.amt, td.num, th.num { text-align: right; white-space: nowrap; }
-td.num, th.num { padding-left: 14px; color: #344054; }
+td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
 .totals { margin-left: auto; width: min(320px, 100%); margin-top: 16px; }
@@ -60,17 +60,20 @@ td small { display: block; color: var(--muted); }
   <div class="top">
     <div>
       <img src="{{ asset('assets/images/brand/scharge-logo.svg') }}" alt="scharge">
-      <p class="muted" style="margin:10px 0 0">scharge · Sharet Africa<br>info@sharet.africa · https://scharge.sharet.africa</p>
+      <p class="muted" style="margin:10px 0 0">scharge · Sharet Africa<br>info@sharet.africa · https://scharge.sharet.africa
+        @if (! empty($pay['kra_pin']))<br>KRA PIN: {{ $pay['kra_pin'] }}@endif
+        @if ($vat['mode'] === 'exclusive' && ! empty($pay['vat_number']))<br>VAT No.: {{ $pay['vat_number'] }}@endif</p>
     </div>
     <div style="text-align:right">
-      <h1>Invoice</h1>
+      <h1>{{ $vat['mode'] === 'exclusive' ? 'Tax invoice' : 'Invoice' }}</h1>
       <p style="margin:4px 0 6px;font-weight:600">{{ $inv->invoice_number }}</p>
       <span class="pill {{ $paid ? 'paid' : ($late ? 'due' : 'open') }}">{{ $paid ? 'Paid' : ($late ? 'Overdue' : 'Unpaid') }}</span>
+      <span class="pill" style="background:#F2F4F7;color:#344054">{{ $vat['mode'] === 'exclusive' ? 'VAT '.rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.').'% exclusive' : 'Non-VAT' }}</span>
     </div>
   </div>
 
   <div class="meta">
-    <div><b>Billed to</b>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif</div>
+    <div><b>Billed to</b>{{ $inv->company_name }}@if ($inv->company_email)<br><span class="muted">{{ $inv->company_email }}</span>@endif @if ($inv->company_phone)<br><span class="muted">{{ $inv->company_phone }}</span>@endif @if (! empty($inv->company_tax_id))<br><span class="muted">KRA PIN: {{ $inv->company_tax_id }}</span>@endif</div>
     <div><b>Issued</b>{{ \Illuminate\Support\Carbon::parse($inv->created_at)->format('j M Y') }}</div>
     <div><b>Due</b>{{ \Illuminate\Support\Carbon::parse($inv->due_date)->format('j M Y') }}</div>
     <div><b>Plan</b>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
@@ -95,8 +98,13 @@ td small { display: block; color: var(--muted); }
   </table>
 
   <div class="totals">
-    @if (abs($sum - $total) > 0.009)<div><span class="muted">Lines</span><span>{{ $money($sum) }}</span></div>@endif
-    <div class="grand"><span>Total</span><span>{{ $money($total) }}</span></div>
+    <div><span class="muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</span><span>{{ $money($vat['net']) }}</span></div>
+    @if ($vat['mode'] === 'exclusive')
+      <div><span class="muted">VAT {{ rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') }}%</span><span>{{ $money($vat['tax']) }}</span></div>
+    @else
+      <div><span class="muted">VAT</span><span class="muted">Not charged</span></div>
+    @endif
+    <div class="grand"><span>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</span><span>{{ $money($total) }}</span></div>
     @if ($paid && $inv->paid_at)<div class="muted"><span>Paid</span><span>{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</span></div>@endif
   </div>
 
@@ -113,11 +121,21 @@ td small { display: block; color: var(--muted); }
     </div>
   @endunless
 </div>
+@if ($staff && ! $public && ! $paid)
+<form method="POST" action="{{ route('billing.invoice.vat', $inv->id) }}" class="actions" style="justify-content:flex-start;align-items:center;gap:8px">
+  @csrf
+  <span class="muted" style="margin-right:4px">VAT (scharge staff):</span>
+  <button class="btn {{ $vat['mode'] === 'none' ? 'red' : '' }}" name="mode" value="none" type="submit">Non-VAT</button>
+  <button class="btn {{ $vat['mode'] === 'exclusive' ? 'red' : '' }}" name="mode" value="exclusive" type="submit">VAT exclusive ({{ rtrim(rtrim(number_format($pay['vat_rate'] ?? 16, 2), '0'), '.') }}%)</button>
+  <span class="muted">For VAT-registered customers: VAT is added on top of the prices.</span>
+</form>
+@endif
 <div class="actions">
   @if (! $public && ! $staff)<a class="btn" href="{{ route('billing.index') }}">Back to Billing</a>@endif
   @unless ($public)<a class="btn" href="{{ $publicUrl }}" target="_blank" rel="noopener">View public page</a>@endunless
   <button class="btn" type="button" onclick="copyLink(@js($publicUrl), 'Public link copied')">Copy public link</button>
   @unless ($public)<button class="btn" type="button" onclick="copyLink(@js($privateUrl), 'Link copied (sign-in needed)')">Copy this link</button>@endunless
+  <a class="btn" href="{{ $pdfUrl }}">Download PDF</a>
   <button class="btn red" type="button" onclick="window.print()">Print (A4)</button>
 </div>
 <div class="toast" id="toast"></div>

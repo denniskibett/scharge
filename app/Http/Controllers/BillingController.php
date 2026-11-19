@@ -87,6 +87,22 @@ class BillingController extends Controller
         return $this->renderInvoice($row, $staff, false);
     }
 
+    /** The invoice as a PDF download (same access as show). */
+    public function pdf(int $invoice)
+    {
+        $user = auth()->user();
+        $row = $this->invoiceRow($invoice);
+        abort_unless($user->hasRole('sysadmin') || ($user->hasAnyRole(BillingLock::PAYERS) && (int) Modules::companyOf($user) === (int) $row->company_id), 403);
+
+        return $this->renderInvoice($row, false, false, true);
+    }
+
+    /** PDF through the signed public link. */
+    public function publicPdf(int $invoice)
+    {
+        return $this->renderInvoice($this->invoiceRow($invoice), false, true, true);
+    }
+
     /** The same invoice through its signed public link (no sign-in): for sharing with whoever pays. */
     public function publicShow(int $invoice)
     {
@@ -99,17 +115,45 @@ class BillingController extends Controller
         return \Illuminate\Support\Facades\URL::signedRoute('billing.invoice.public', ['invoice' => $invoice]);
     }
 
+    /** VAT on a scharge invoice: 'none' (non-VAT, the default) or 'exclusive' (line prices are net, VAT added on top). */
+    public static function vatOf(array $json, float $amount): array
+    {
+        $mode = ($json['vat']['mode'] ?? 'none') === 'exclusive' ? 'exclusive' : 'none';
+        $rate = (float) ($json['vat']['rate'] ?? config('billing.vat_rate', 16));
+        $net = (float) ($json['vat']['net'] ?? $amount);
+        $tax = $mode === 'exclusive' ? round($net * $rate / 100, 2) : 0.0;
+
+        return ['mode' => $mode, 'rate' => $rate, 'net' => $net, 'tax' => $tax, 'total' => round($net + $tax, 2)];
+    }
+
+    /** Sysadmin: switch an unpaid invoice between non-VAT and VAT exclusive; the amount due follows. */
+    public function toggleVat(Request $request, int $invoice)
+    {
+        abort_unless($request->user()->hasRole('sysadmin'), 403);
+        $row = DB::table('subscription_invoices')->where('id', $invoice)->first();
+        abort_unless($row, 404);
+        abort_if($row->status === 'paid', 422, 'A paid invoice cannot change its VAT.');
+        $json = json_decode((string) $row->invoice_json, true) ?: [];
+        $current = self::vatOf($json, (float) $row->amount);
+        $mode = $request->input('mode') === 'exclusive' ? 'exclusive' : 'none';
+        $json['vat'] = ['mode' => $mode, 'rate' => (float) config('billing.vat_rate', 16), 'net' => $current['net'], 'changed_by' => $request->user()->id, 'changed_at' => now()->toIso8601String()];
+        $vat = self::vatOf($json, $current['net']);
+        DB::table('subscription_invoices')->where('id', $invoice)->update(['amount' => $vat['total'], 'invoice_json' => json_encode($json), 'updated_at' => now()]);
+
+        return back()->with('success', $mode === 'exclusive' ? 'VAT added: '.number_format($vat['tax'], 2).' on top.' : 'Invoice is non-VAT.');
+    }
+
     private function invoiceRow(int $invoice): object
     {
         $row = DB::table('subscription_invoices as i')->join('company_subscriptions as s', 's.id', '=', 'i.company_subscription_id')
             ->join('companies as c', 'c.id', '=', 's.company_id')->leftJoin('subscription_plans as p', 'p.id', '=', 's.plan_id')
-            ->where('i.id', $invoice)->first(['i.*', 's.company_id', 'c.name as company_name', 'c.email as company_email', 'c.phone as company_phone', 'c.address as company_address', 'p.name as plan_name']);
+            ->where('i.id', $invoice)->first(['i.*', 's.company_id', 'c.name as company_name', 'c.email as company_email', 'c.phone as company_phone', 'c.address as company_address', 'c.tax_id as company_tax_id', 'p.name as plan_name']);
         abort_unless($row, 404);
 
         return $row;
     }
 
-    private function renderInvoice(object $row, bool $staff, bool $public)
+    private function renderInvoice(object $row, bool $staff, bool $public, bool $asPdf = false)
     {
         $json = json_decode((string) $row->invoice_json, true) ?: [];
 
@@ -133,8 +177,17 @@ class BillingController extends Controller
             $items = collect([['description' => ($json['plan_name'] ?? $row->plan_name ?? 'scharge subscription'), 'detail' => null, 'units' => null, 'rate' => null, 'amount' => (float) $row->amount]]);
         }
 
-        return view('billing.invoice', ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public,
-            'publicUrl' => self::publicUrl((int) $row->id), 'privateUrl' => route('billing.invoice', $row->id), 'pay' => config('billing')]);
+        $vat = self::vatOf($json, (float) $row->amount);
+
+        $data = ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public, 'vat' => $vat, 'pay' => config('billing')];
+        if ($asPdf) {
+            return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')
+                ->setOption(['chroot' => public_path(), 'isRemoteEnabled' => false])
+                ->download($row->invoice_number.'.pdf');
+        }
+
+        return view('billing.invoice', $data + ['publicUrl' => self::publicUrl((int) $row->id), 'privateUrl' => route('billing.invoice', $row->id),
+            'pdfUrl' => $public ? \Illuminate\Support\Facades\URL::signedRoute('billing.invoice.public.pdf', ['invoice' => $row->id]) : route('billing.invoice.pdf', $row->id)]);
     }
 
     private function payerCompany(): int

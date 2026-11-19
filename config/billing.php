@@ -16,4 +16,9 @@ return [
     'account_hint' => env('SCHARGE_PAYBILL_ACCOUNT_HINT', 'your invoice number'),
     'contact_email' => env('SCHARGE_BILLING_EMAIL', 'sales@sharet.africa'),
     'contact_phone' => env('SCHARGE_BILLING_PHONE'),
+
+    // VAT on scharge invoices. Invoices are non-VAT unless a sysadmin switches one to "VAT exclusive" (16% added on top).
+    'vat_rate' => (float) env('SCHARGE_VAT_RATE', 16),
+    'kra_pin' => env('SCHARGE_KRA_PIN'),          // shown on every invoice when set
+    'vat_number' => env('SCHARGE_VAT_NUMBER'),    // shown on VAT invoices when set
 ];

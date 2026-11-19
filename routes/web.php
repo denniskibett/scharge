@@ -433,6 +433,8 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     // scharge's bills for this company; the one page open while an unpaid bill locks the company (App\Support\BillingLock).
     Route::get('/billing', [App\Http\Controllers\BillingController::class, 'index'])->name('billing.index');
     Route::get('/billing/{invoice}', [App\Http\Controllers\BillingController::class, 'show'])->whereNumber('invoice')->name('billing.invoice');
+    Route::get('/billing/{invoice}/pdf', [App\Http\Controllers\BillingController::class, 'pdf'])->whereNumber('invoice')->name('billing.invoice.pdf');
+    Route::post('/billing/{invoice}/vat', [App\Http\Controllers\BillingController::class, 'toggleVat'])->whereNumber('invoice')->middleware('role:sysadmin')->name('billing.invoice.vat');
     Route::post('/billing/{invoice}/pay/sharet', [App\Http\Controllers\BillingController::class, 'paySharet'])->whereNumber('invoice')->middleware('throttle:10,1')->name('billing.pay.sharet');
     Route::post('/billing/{invoice}/pay/wallet', [App\Http\Controllers\BillingController::class, 'payWallet'])->whereNumber('invoice')->middleware('throttle:10,1')->name('billing.pay.wallet');
 
@@ -933,6 +935,7 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
 // A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
 Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1,site-contact')->name('site.contact');
 // A scharge invoice through its signed public link (no sign-in), shared with whoever pays it.
+Route::get('/invoice/{invoice}/pdf', [App\Http\Controllers\BillingController::class, 'publicPdf'])->whereNumber('invoice')->middleware(['signed', 'throttle:30,1,invoice-pdf'])->name('billing.invoice.public.pdf');
 Route::get('/invoice/{invoice}', [App\Http\Controllers\BillingController::class, 'publicShow'])->whereNumber('invoice')->middleware(['signed', 'throttle:60,1,invoice-public'])->name('billing.invoice.public');
 // Drop-in homes widget for a white-label company's own website: <script src="/embed/{slug}.js"></script>
 Route::get('/embed/{slug}.js', [App\Http\Controllers\Api\SiteFeedController::class, 'widget'])->where('slug', '[a-z0-9-]{2,60}')->middleware('throttle:120,1,site-widget')->name('site.widget');
