@@ -410,16 +410,20 @@ class MobileAppTest extends RentSchemaTestCase
         \App\Support\Brand::forget();
         [, $tenant] = $this->tenantOf($this->a['tenancies'][0]);
 
-        // Saved but not paid (no white-label module given): scharge red for the company's staff and its tenants.
+        // A pending (or failed) scharge subscription bill: scharge red for the company's staff and its tenants.
+        Schema::dropIfExists('company_subscriptions');
+        Schema::dropIfExists('subscription_invoices');
+        Schema::create('company_subscriptions', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id'), $t->timestamps()]);
+        Schema::create('subscription_invoices', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_subscription_id'), $t->string('status'), $t->decimal('amount', 12, 2)->default(0), $t->timestamps()]);
+        $sub = DB::table('company_subscriptions')->insertGetId(['company_id' => $this->a['company']]);
+        $bill = DB::table('subscription_invoices')->insertGetId(['company_subscription_id' => $sub, 'status' => 'pending', 'amount' => 115920]);
+        \Illuminate\Support\Facades\Cache::flush();
         $this->api($staff)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'scharge')->assertJsonPath('brand.primary_color', '#DC2626');
         $this->api($tenant)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'scharge')->assertJsonPath('brand.white_label', false);
 
-        // Paid: a sysadmin switches "Website & white label" on for the company (Companies › Modules).
-        Schema::dropIfExists('company_modules');
-        Schema::create('company_modules', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id'), $t->string('module'), $t->boolean('enabled'),
-            $t->timestamp('expires_at')->nullable(), $t->string('note')->nullable(), $t->unsignedBigInteger('changed_by')->nullable(), $t->timestamps()]);
-        DB::table('company_modules')->insert(['company_id' => $this->a['company'], 'module' => 'website', 'enabled' => true]);
-        \App\Support\Modules::flush();
+        // Paid up: the company's colours, as on the dashboard (Brand::paidUp).
+        DB::table('subscription_invoices')->where('id', $bill)->update(['status' => 'paid']);
+        \Illuminate\Support\Facades\Cache::flush();
         $this->api($staff)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'Danaff Homes')->assertJsonPath('brand.primary_color', '#0A7C55');
         $this->api($tenant)->getJson('/api/v1/app/me')->assertJsonPath('brand.name', 'Danaff Homes');
         // scharge staff linked to that company still see scharge.

@@ -124,25 +124,13 @@ class MobileAccess
 
     /** The white label (company_brands, App\Support\Brand) or scharge's own. */
     /**
-     * A white label is "paid" when the Website & white label module was given to the company on purpose: a sysadmin
-     * switched it on (Companies › Modules), or the company's active plan lists it. The default "on" for plans
-     * without a module list does not count, so a saved but unpaid white label (e.g. a preview) keeps scharge red.
+     * A company's white label shows in the app only while its scharge subscription is paid up: no pending or failed
+     * subscription invoice. The same rule as the dashboard (Brand::paidUp), so web and app always agree; an unpaid
+     * company (e.g. Danaff with an open bill) keeps scharge red for its staff and tenants.
      */
     public static function whiteLabelPaid(int $companyId): bool
     {
-        if (! class_exists(Modules::class)) {
-            return false;
-        }
-        $state = Modules::states($companyId)['website'] ?? null;
-        if (! $state || ! $state['on']) {
-            return false;
-        }
-        if ($state['source'] === 'override') {
-            return true;
-        }
-        $plan = Modules::planModules($companyId);
-
-        return $plan !== null && in_array('website', $plan, true);
+        return method_exists(Brand::class, 'paidUp') && Brand::paidUp($companyId);
     }
 
     public static function brand(User $user): array
