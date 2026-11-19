@@ -33,6 +33,7 @@ h1 { margin: 0; font-size: 18pt; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
 .box { margin: 0 0 6pt; border: 1px solid #EAECF0; border-radius: 6pt; padding: 6pt 10pt; }
 .box td { vertical-align: top; padding: 1pt 10pt 0 0; font-size: 8pt; line-height: 1.3; }
+.payqr { margin-top: 10pt; border-top: 1px solid #EAECF0; } .payqr td { padding-top: 6pt; vertical-align: middle; }
 .payline { margin-top: 10pt; padding-top: 6pt; border-top: 1px solid #EAECF0; color: #344054; font-size: 9pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
@@ -90,7 +91,17 @@ h1 { margin: 0; font-size: 18pt; }
 </table>
 
 @unless ($paid)
-  <div class="payline">@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:12pt;height:12pt;vertical-align:-3pt;margin-right:4pt" alt="">@endif<a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">Pay with Sharet Pay</a><span class="muted">&nbsp;&nbsp;·&nbsp;&nbsp;M-Pesa STK push or Sharet to Sharet @if ($handle) ({{ $handle }})@endif</span></div>
+  <table class="payqr">
+    <tr>
+      @if ($payQr)<td style="width:68pt"><img src="{{ $payQr }}" style="width:62pt;height:62pt" alt=""></td>@endif
+      <td>
+        <div>@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:11pt;height:11pt;vertical-align:-2pt;margin-right:4pt" alt="">@endif<b style="color:#DC2626">Pay with Sharet Pay</b></div>
+        <div class="muted" style="font-size:8pt;margin:1pt 0 4pt">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
+        <a href="{{ $payUrl }}" style="color:#101828;text-decoration:none;font-size:9pt">{{ $payUrl }}</a>
+        @if ($handle)<div style="margin-top:2pt;font-size:8.5pt">Pay to <a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">{{ $handle }}</a> · {{ $money($total) }}</div>@endif
+      </td>
+    </tr>
+  </table>
 @endunless
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 

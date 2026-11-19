@@ -109,6 +109,17 @@ class BillingController extends Controller
         return $this->renderInvoice($this->invoiceRow($invoice), false, true);
     }
 
+    /** QR code as a PNG data URI (works in the browser, in print and in dompdf). */
+    public static function qr(string $text): string
+    {
+        $o = new \chillerlan\QRCode\QROptions([
+            'outputType' => \chillerlan\QRCode\Output\QROutputInterface::GDIMAGE_PNG, 'scale' => 8, 'quietzoneSize' => 1,
+            'eccLevel' => \chillerlan\QRCode\Common\EccLevel::M, 'outputBase64' => true,
+        ]);
+
+        return (new \chillerlan\QRCode\QRCode($o))->render($text);
+    }
+
     /** Signed public link to an invoice (valid until the APP_KEY changes). */
     public static function publicUrl(int $invoice): string
     {
@@ -180,7 +191,8 @@ class BillingController extends Controller
         $vat = self::vatOf($json, (float) $row->amount);
 
         $data = ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public, 'vat' => $vat, 'pay' => config('billing'),
-            'payUrl' => $row->status === 'paid' ? null : InvoicePayController::startUrl((int) $row->id, true),
+            'payUrl' => $payUrl = ($row->status === 'paid' ? null : InvoicePayController::shortUrl((int) $row->id)),
+            'payQr' => $payUrl ? self::qr($payUrl) : null,
             'handle' => InvoicePayController::payeeHandle()];
         if ($asPdf) {
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')

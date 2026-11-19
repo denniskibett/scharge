@@ -78,16 +78,19 @@ td small { display: block; color: var(--muted); }
   .page > p.muted { margin: -4px 0 6px !important; }
   th { padding: 6px 0; font-size: 8.5px; } td { padding: 5px 0; }
   .grand td { font-size: 13px; padding-top: 6px; }
-  .payline { margin-top: 10px; padding-top: 6px; font-size: 10px; }
   thead { display: table-row-group; }
 }
-@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
+@media print { body { background: #fff; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
 .sp-link:hover { text-decoration: underline; }
-.payline { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: #344054; font-size: 13px; }
+.payqr { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; gap: 16px; align-items: center; }
+.payqr .qr { width: 104px; height: 104px; image-rendering: pixelated; border: 1px solid var(--line); border-radius: 10px; padding: 4px; flex: none; }
+.full-link { font: 13px/1.3 ui-monospace, Menlo, monospace; color: var(--ink); word-break: break-all; }
+.handle { color: var(--red); font-weight: 600; text-decoration: none; }
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #101828; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; }
 .toast.show { opacity: 1; }
+@media print { .payqr { margin-top: 10px; padding-top: 8px; gap: 12px; } .payqr .qr { width: 84px; height: 84px; } .full-link { font-size: 10px; } }
 </style>
 </head>
 <body>
@@ -177,9 +180,14 @@ td small { display: block; color: var(--muted); }
   </table>
 
   @unless ($paid)
-    <div class="payline">
-      <a class="sp-link" href="{{ $payUrl }}" target="_blank" rel="noopener"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay →</a>
-      <span class="muted">M-Pesa STK push or Sharet to Sharet @if ($handle) ({{ $handle }})@endif</span>
+    <div class="payqr">
+      @if ($payQr)<img class="qr" src="{{ $payQr }}" alt="QR code: pay with Sharet Pay" width="104" height="104">@endif
+      <div>
+        <div class="sp-link"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay</div>
+        <div class="muted" style="font-size:12.5px;margin:2px 0 6px">Scan the code or open the link: M-Pesa or Sharet to Sharet</div>
+        <a class="full-link" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $payUrl }}</a>
+        @if ($handle)<div style="margin-top:4px;font-size:13px">Pay to <a class="handle" href="{{ $payUrl }}" target="_blank" rel="noopener">{{ $handle }}</a> · {{ $money($total) }}</div>@endif
+      </div>
     </div>
   @endunless
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif

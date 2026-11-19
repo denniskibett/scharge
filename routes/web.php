@@ -935,6 +935,7 @@ Route::prefix('api/wallet')->middleware(['auth'])->group(function () {
 // A white-label company's own website (docs/COMPANY_WEBSITE.md): contact form, and its pages on its own address.
 Route::post('/site/contact', [App\Http\Controllers\SiteController::class, 'contact'])->middleware('throttle:6,1,site-contact')->name('site.contact');
 // A scharge invoice through its signed public link (no sign-in), shared with whoever pays it.
+Route::get('/pay/{code}', [App\Http\Controllers\InvoicePayController::class, 'short'])->where('code', '[A-Za-z0-9]{10}')->middleware('throttle:20,1,invoice-pay-short')->name('billing.invoice.pay.short');
 Route::get('/invoice/{invoice}/pay', [App\Http\Controllers\InvoicePayController::class, 'start'])->whereNumber('invoice')->middleware(['signed', 'throttle:10,1,invoice-pay'])->name('billing.invoice.pay');
 Route::get('/invoice/{invoice}/pay/{ref}', [App\Http\Controllers\InvoicePayController::class, 'show'])->whereNumber('invoice')->where('ref', '[A-Za-z0-9_-]{4,80}')->middleware(['signed', 'throttle:60,1,invoice-pay-show'])->name('billing.invoice.pay.show');
 Route::get('/invoice/{invoice}/pay/{ref}/status', [App\Http\Controllers\InvoicePayController::class, 'status'])->whereNumber('invoice')->where('ref', '[A-Za-z0-9_-]{4,80}')->middleware(['signed', 'throttle:30,1,invoice-pay-status'])->name('billing.invoice.pay.status');

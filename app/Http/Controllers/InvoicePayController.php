@@ -43,6 +43,32 @@ class InvoicePayController extends Controller
         });
     }
 
+    /** The invoice's short pay link (/pay/{code}): printed with its QR under the total. The code is made once and kept. */
+    public static function shortUrl(int $invoice): string
+    {
+        $row = DB::table('subscription_invoices')->where('id', $invoice)->first(['invoice_json']);
+        $json = json_decode((string) ($row->invoice_json ?? ''), true) ?: [];
+        if (empty($json['pay_code'])) {
+            do {
+                $code = \Illuminate\Support\Str::random(10);
+            } while (! ctype_alnum($code) || DB::table('subscription_invoices')->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(invoice_json, '$.pay_code')) = ?", [$code])->exists());
+            $json['pay_code'] = $code;
+            DB::table('subscription_invoices')->where('id', $invoice)->update(['invoice_json' => json_encode($json)]);
+        }
+
+        return url('/pay/'.$json['pay_code']);
+    }
+
+    /** /pay/{code}: on to the Sharet Africa payment gateway for that invoice. */
+    public function short(string $code, BillPayments $bills)
+    {
+        $id = DB::table('subscription_invoices')->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(invoice_json, '$.pay_code')) = ?", [$code])->value('id');
+        abort_unless($id, 404);
+        request()->query->set('to', 'sharet');
+
+        return $this->start((int) $id, $bills);
+    }
+
     public function start(int $invoice, BillPayments $bills)
     {
         $inv = $this->invoice($invoice);
