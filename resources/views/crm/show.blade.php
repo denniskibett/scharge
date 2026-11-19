@@ -39,6 +39,8 @@
         <button type="button" x-data x-init="if (new URLSearchParams(location.search).has('playbook')) $nextTick(() => $dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' }))" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-500 px-3 text-sm font-medium text-white hover:bg-brand-600"><x-icon name="light-bulb" class="h-4 w-4" /> Playbook &amp; email</button>
     </div>
 
+    @if ($company->profile('reply_pending'))@include('crm.partials.reply-alert')@endif
+
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         {{-- LEFT --}}
         <div class="space-y-6">

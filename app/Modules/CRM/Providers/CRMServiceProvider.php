@@ -6,6 +6,7 @@ use App\Modules\CRM\Console\FindEmails;
 use App\Modules\CRM\Console\GeocodeProspects;
 use App\Modules\CRM\Console\ImportProspects;
 use App\Modules\CRM\Console\MailDelivery;
+use App\Modules\CRM\Console\MailReplies;
 use App\Modules\CRM\Console\PullNairobiLeads;
 use App\Modules\CRM\Console\SendCampaign;
 use Illuminate\Support\ServiceProvider;
@@ -19,7 +20,7 @@ class CRMServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([ImportProspects::class, GeocodeProspects::class, SendCampaign::class, MailDelivery::class, PullNairobiLeads::class, FindEmails::class]);
+            $this->commands([ImportProspects::class, GeocodeProspects::class, SendCampaign::class, MailDelivery::class, MailReplies::class, PullNairobiLeads::class, FindEmails::class]);
         }
     }
 }

@@ -5,7 +5,7 @@
     use App\Modules\CRM\Support\EmailTracking as T;
     $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
     $num = 'p-4 text-sm text-right tabular-nums whitespace-nowrap';
-    $cols = ['ready' => 'Ready to email', 'unsent' => 'Unsent (no email)', 'sent' => 'Sent', 'waiting' => 'Awaiting delivery', 'delivered' => 'Delivered', 'opened' => 'Opened', 'clicked' => 'Clicked', 'booked' => 'Booked a demo', 'bounced' => 'Bounced'];
+    $cols = ['ready' => 'Ready to email', 'unsent' => 'Unsent (no email)', 'sent' => 'Sent', 'waiting' => 'Awaiting delivery', 'delivered' => 'Delivered', 'opened' => 'Opened', 'clicked' => 'Clicked', 'replied' => 'Replied', 'booked' => 'Booked a demo', 'bounced' => 'Bounced'];
 @endphp
 <div>
     @include('crm.partials.nav', ['title' => 'Campaigns', 'subtitle' => 'Cold emails per property type from sales@sharet.africa: who we can email, who still has no email, and what happened to every email sent.'])
@@ -27,7 +27,7 @@
                                         <a href="{{ route('crm.index', ['attention' => 'unsent', 'ptype' => $type]) }}" class="font-medium text-brand-500 hover:underline">{{ number_format($r[$key]) }}</a>
                                     @else
                                         {{ number_format($r[$key]) }}
-                                        @if (in_array($key, ['delivered', 'opened', 'clicked', 'booked'], true) && $r['sent'])<span class="text-xs text-gray-400">{{ round($r[$key] / $r['sent'] * 100) }}%</span>@endif
+                                        @if (in_array($key, ['delivered', 'opened', 'clicked', 'replied', 'booked'], true) && $r['sent'])<span class="text-xs text-gray-400">{{ round($r[$key] / $r['sent'] * 100) }}%</span>@endif
                                     @endif
                                 </td>
                             @endforeach

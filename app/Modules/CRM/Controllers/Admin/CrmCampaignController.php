@@ -14,7 +14,7 @@ use Illuminate\View\View;
 
 /**
  * Cold-email funnel per property type: who is ready to email, who has no email yet (Unsent), and what happened
- * to every email we sent (delivered, opened, clicked, booked, bounced).
+ * to every email we sent (delivered, opened, clicked, replied, booked, bounced).
  */
 class CrmCampaignController extends Controller
 {
@@ -40,9 +40,10 @@ class CrmCampaignController extends Controller
                 'unsent' => EmailTracking::unsent(PropertyClass::scope($base(), $type))->count(),
                 'sent' => $mine->count(),
                 // each step counts everyone who got at least that far
-                'delivered' => $counts['delivered'] + $counts['opened'] + $counts['clicked'] + $counts['booked'],
+                'delivered' => $counts['delivered'] + $counts['opened'] + $counts['clicked'] + $counts['replied'] + $counts['booked'],
                 'opened' => $counts['opened'] + $counts['clicked'] + $counts['booked'],
                 'clicked' => $counts['clicked'] + $counts['booked'],
+                'replied' => $mine->filter(fn ($e) => $e->detail('replied_at'))->count(),
                 'booked' => $counts['booked'],
                 'bounced' => $counts['bounced'],
                 'waiting' => $counts['sent'] + $counts['deferred'],

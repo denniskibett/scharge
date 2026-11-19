@@ -44,6 +44,7 @@ class CrmCompanyController extends Controller
             ->when(($filters['attention'] ?? null) === 'unattended', fn ($q) => $q->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo))
             ->when(($filters['attention'] ?? null) === 'verify', fn ($q) => $q->where('crm_profile->needs_verification', true))
             ->when(($filters['attention'] ?? null) === 'unsent', fn ($q) => \App\Modules\CRM\Support\EmailTracking::unsent($q))
+            ->when(($filters['attention'] ?? null) === 'replied', fn ($q) => $q->where('crm_profile->reply_pending', true))
             // From the Kenya map (crm:geocode fills these in crm_profile).
             ->when($filters['county'] ?? null, fn ($q, $v) => $q->where('crm_profile->county', $v))
             ->when($filters['county_id'] ?? null, fn ($q, $v) => $q->where('crm_profile->county_id', (int) $v))
@@ -54,6 +55,8 @@ class CrmCompanyController extends Controller
             ->when(isset($filters['verified']) && $filters['verified'] !== '', fn ($q) => $filters['verified'] === '1'
                 ? $q->where(fn ($w) => $w->whereNull('crm_profile->needs_verification')->orWhere('crm_profile->needs_verification', false))
                 : $q->where('crm_profile->needs_verification', true))
+            // Prospects who replied and are still waiting for an answer come first.
+            ->orderByRaw("CASE WHEN JSON_EXTRACT(crm_profile, '$.reply_pending') = true THEN 0 ELSE 1 END")
             ->orderBy('tier')
             ->orderByRaw('next_due_at IS NULL, next_due_at')
             ->orderBy('name')
@@ -70,6 +73,7 @@ class CrmCompanyController extends Controller
             'overdue' => $myFollowUps()->overdue()->count(),
             'due_today' => $myFollowUps()->dueToday()->count(),
             'unattended' => $mine()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo)->count(),
+            'replied' => $mine()->where('crm_profile->reply_pending', true)->count(),
             'new_demos' => $myFollowUps()->whereIn('type', ['demo', 'api_keys', 'viewing'])->where('status', 'open')->count(),
             'waitlist' => WaitlistEntry::whereIn('status', ['waiting', 'demo_requested'])->count(),
             'nps' => self::nps(CrmFollowUp::where('type', 'feedback')->whereNotNull('score')->pluck('score')),

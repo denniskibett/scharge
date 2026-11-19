@@ -6,6 +6,7 @@
         'crm.index' => ['Pipeline', null],
         'crm.map.index' => ['Map', null],
         'crm.sales.index' => ['Sales tracker', null],
+        'crm.team.index' => ['Team', \App\Models\Company::withoutGlobalScope('customers')->where('crm_profile->reply_pending', true)->when(! \App\Modules\CRM\Support\CrmAccess::seesAll(auth()->user()), fn ($q) => $q->where('owner_id', auth()->id()))->count()],
         'crm.campaigns.index' => ['Campaigns', null],
         'crm.properties.index' => ['Open properties', null],
         'crm.inbox.index' => ['Inbox', null],

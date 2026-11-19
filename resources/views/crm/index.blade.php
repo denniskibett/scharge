@@ -8,6 +8,7 @@
     $label = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400';
     $kpis = [
         ['Open prospects', $stats['open'], route('crm.index', ['stage' => 'open']), 'text-gray-800 dark:text-white/90'],
+        ['Replies to answer', $stats['replied'], route('crm.index', ['attention' => 'replied']), $stats['replied'] ? 'text-red-600' : 'text-gray-800 dark:text-white/90'],
         ['Overdue follow-ups', $stats['overdue'], route('crm.follow-ups.index', ['view' => 'overdue']), $stats['overdue'] ? 'text-red-600' : 'text-gray-800 dark:text-white/90'],
         ['Due today', $stats['due_today'], route('crm.follow-ups.index', ['view' => 'today']), 'text-gray-800 dark:text-white/90'],
         ['No next step', $stats['unattended'], route('crm.index', ['attention' => 'unattended']), $stats['unattended'] ? 'text-amber-600' : 'text-gray-800 dark:text-white/90'],
@@ -38,6 +39,7 @@
         $tabUrl = fn ($key) => route('crm.index', array_filter(array_merge($filters, ['attention' => $key])));
         $tabs = [
             ['label' => 'All', 'url' => $tabUrl(null), 'active' => ! $att, 'count' => $att ? null : $companies->total()],
+            ['label' => 'Replies', 'url' => $tabUrl('replied'), 'active' => $att === 'replied', 'count' => $stats['replied'] ?: null, 'tone' => 'red'],
             ['label' => 'Overdue', 'url' => $tabUrl('overdue'), 'active' => $att === 'overdue', 'count' => $att === 'overdue' ? $companies->total() : null, 'tone' => 'red'],
             ['label' => 'No next step', 'url' => $tabUrl('unattended'), 'active' => $att === 'unattended', 'count' => $stats['unattended'], 'tone' => 'amber'],
             ['label' => 'To verify', 'url' => $tabUrl('verify'), 'active' => $att === 'verify', 'count' => $att === 'verify' ? $companies->total() : null],
@@ -100,8 +102,13 @@
                                         <div class="flex flex-wrap items-center gap-1">
                                             <a href="{{ route('crm.companies.show', $company) }}" class="text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90" style="overflow-wrap: anywhere">{{ $company->name }}</a>
                                             @include('crm.partials.tier-badge', ['tier' => $company->tier])
+                                            @if ($company->profile('reply_pending'))
+                                                @php($reply = $company->profile('reply') ?? [])
+                                                <a href="{{ route('crm.companies.show', $company) }}#reply" class="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700 border border-red-200 hover:bg-red-100 dark:text-red-200" title="{{ ($reply['name'] ?? '') ?: ($reply['from'] ?? '') }}: {{ $reply['snippet'] ?? '' }}"><span class="h-2 w-2 animate-pulse rounded-full bg-red-500"></span>{{ ! empty($reply['opt_out']) ? 'asked to stop' : 'replied' }} {{ ! empty($reply['at']) ? \Illuminate\Support\Carbon::parse($reply['at'])->diffForHumans(short: true) : '' }}</a>
+                                            @endif
                                             @if ($company->profile('needs_verification'))<span class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200" title="Some details in the sheet were marked 'Verify'">verify</span>@endif
                                         </div>
+                                        @if ($company->profile('reply_pending'))<p class="truncate text-xs text-red-700 dark:text-red-200" title="{{ $company->profile('reply.snippet') }}">“{{ $company->profile('reply.snippet') }}”</p>@endif
                                         <p class="truncate text-xs text-gray-500 dark:text-gray-400" title="{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') }}">{{ collect([$company->profile('business_type'), $contactNames[$company->id] ?? null])->filter()->join(' · ') ?: '-' }}</p>
                                     </div>
                                 </div>

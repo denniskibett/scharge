@@ -14,13 +14,14 @@ use Illuminate\Database\Eloquent\Builder;
  *   bounced     their server refused it (bad address): the company goes back to Unsent
  *   opened      the email was opened (tracking image; some mail apps block images)
  *   clicked     they opened their demo form from the email
+ *   replied     they answered the email (crm:mail-replies)
  *   booked      they submitted the demo form
  */
 class EmailTracking
 {
     public const LABELS = [
         'sent' => 'Sent', 'deferred' => 'Delayed', 'bounced' => 'Bounced', 'delivered' => 'Delivered',
-        'opened' => 'Opened', 'clicked' => 'Clicked the link', 'booked' => 'Booked a demo',
+        'opened' => 'Opened', 'clicked' => 'Clicked the link', 'replied' => 'Replied', 'booked' => 'Booked a demo',
     ];
 
     public const TONES = [
@@ -30,6 +31,7 @@ class EmailTracking
         'delivered' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         'opened' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
         'clicked' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'replied' => 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
         'booked' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
     ];
 
@@ -38,6 +40,7 @@ class EmailTracking
     {
         return match (true) {
             (bool) $email->detail('booked_at') => 'booked',
+            (bool) $email->detail('replied_at') => 'replied',
             (bool) $email->detail('clicked_at') => 'clicked',
             (bool) $email->detail('opened_at') => 'opened',
             $email->detail('delivery') === 'bounced' => 'bounced',

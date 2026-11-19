@@ -110,11 +110,13 @@ class Playbook
     public static function replyTo(?\App\Modules\Users\Models\User $manager, bool $onboarding): array
     {
         $to = $manager ? $manager->mailboxes() : [];
+        // sales@ (on our own mail server) gets a copy of every reply, so crm:mail-replies can raise the CRM alert.
+        $to[] = self::SALES_FROM;
         if ($onboarding) {
             $to[] = self::ONBOARDING_FROM;
         }
 
-        return array_map(fn ($e) => new \Illuminate\Mail\Mailables\Address($e, $e === self::ONBOARDING_FROM ? 'scharge onboarding' : $manager->name), array_values(array_unique($to)));
+        return array_map(fn ($e) => new \Illuminate\Mail\Mailables\Address($e, match ($e) { self::ONBOARDING_FROM => 'scharge onboarding', self::SALES_FROM => 'scharge sales', default => $manager?->name ?? 'scharge' }), array_values(array_unique($to)));
     }
 
     /** Demo refs start with the property type in full, e.g. BNB-7KQ2MA, RESIDENTIAL-4HD8PQ; older refs start SC-. */
