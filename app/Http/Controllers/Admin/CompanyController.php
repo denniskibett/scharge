@@ -149,8 +149,20 @@ class CompanyController extends Controller
         
         // Get users for the staff table (non-tenant users with company_id)
         $usersData = $this->getUsersForView($company);
-        
+
+        // Subscriptions tab: only this company's own subscriptions (not the plan catalogue), and what each of its
+        // properties costs under the active plan (units x price per unit, less the plan discount).
+        $companySubscriptions = CompanySubscription::where('company_id', $company->id)->with('plan')
+            ->orderByRaw("status = 'active' desc")->orderByDesc('starts_at')->get();
+        $propertyBilling = \Illuminate\Support\Facades\DB::table('properties')->where('properties.company_id', $company->id)
+            ->leftJoin('units', 'units.property_id', '=', 'properties.id')
+            ->groupBy('properties.id', 'properties.name', 'properties.location')
+            ->selectRaw("properties.id, properties.name, properties.location, COUNT(units.id) as units, SUM(units.status = 'occupied') as occupied")
+            ->orderBy('properties.name')->get();
+
         return view('admin.companies.show', compact(
+            'companySubscriptions',
+            'propertyBilling',
             'company', 
             'subscription', 
             'availableRoles', 

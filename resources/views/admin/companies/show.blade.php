@@ -294,9 +294,7 @@
             
             <!-- Subscriptions Tab -->
             <div x-show="activeTab === 'subscriptions'" x-cloak>
-                <div x-data="subscriptionsTable()" x-init="loadSubscriptions()">
-                    @include('partials.table.table-subscriptions')
-                </div>
+                @include('admin.companies.partials.subscriptions', ['subscriptions' => $companySubscriptions, 'properties' => $propertyBilling])
             </div>
             
             <!-- Expenses Tab -->
