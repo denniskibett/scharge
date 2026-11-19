@@ -1,118 +1,59 @@
+{{-- Repair request details: a right-side slide-over (open from the Repairs table's View). --}}
 <div x-data="maintenanceViewModal()" x-init="init()" x-cloak>
-    <div x-show="showModal" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-999999 overflow-y-auto" 
-         style="display: none;">
-        
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 transition-opacity" aria-hidden="true">
-                <div class="absolute inset-0 bg-gray-400/50 backdrop-blur-[32px]"></div>
+    <div x-show="showModal" class="fixed inset-0 z-999999" role="dialog" aria-modal="true" aria-labelledby="mt-view-title" @keydown.escape.window="closeModal()" style="display: none;">
+        <div x-show="showModal" x-transition.opacity.duration.200ms class="absolute inset-0 bg-gray-400/50 backdrop-blur-sm" @click="closeModal()"></div>
+        <div x-show="showModal"
+             x-transition:enter="transform transition ease-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0"
+             x-transition:leave="transform transition ease-in duration-200" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full"
+             class="absolute inset-y-0 right-0 flex w-full max-w-lg flex-col bg-white shadow-2xl dark:bg-gray-900">
+            <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
+                <div class="min-w-0">
+                    <h3 id="mt-view-title" class="text-lg font-semibold text-gray-800 dark:text-white/90">Repair request</h3>
+                    <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400" x-text="request ? request.request_number : ''"></p>
+                </div>
+                <button type="button" @click="closeModal()" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:hover:bg-white/5" aria-label="Close">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
 
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="flex-1 overflow-y-auto p-5">
+                <div x-show="loading" class="py-12 text-center">
+                    <div class="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-brand-500"></div>
+                    <p class="mt-2 text-sm text-gray-500">Loading…</p>
+                </div>
 
-            <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                    <div class="sm:flex sm:items-start">
-                        <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                                    Maintenance Request Details
-                                </h3>
-                                <button @click="closeModal()" class="text-gray-400 hover:text-gray-500">
-                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                            
-                            <div x-show="loading" class="text-center py-8">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div>
-                                <p class="mt-2 text-gray-500">Loading...</p>
-                            </div>
-                            
-                            <div x-show="!loading && request" class="space-y-4">
-                                <div class="flex justify-between items-start">
-                                    <div>
-                                        <span class="text-xs text-gray-500">Request #</span>
-                                        <p class="font-medium text-gray-900 dark:text-white" x-text="request.request_number"></p>
-                                    </div>
-                                    <span :class="request.priority_color" class="px-2 py-1 text-xs font-medium rounded-full" x-text="request.priority_label"></span>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Status</span>
-                                    <p><span :class="request.status_color" class="inline-block px-2 py-1 text-xs font-medium rounded-full" x-text="request.status_label"></span></p>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Unit</span>
-                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.unit_number"></p>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Tenant</span>
-                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.tenant_name || 'N/A'"></p>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Category</span>
-                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.category_label || request.category"></p>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Title</span>
-                                    <p class="font-medium text-gray-900 dark:text-white" x-text="request.title || request.name"></p>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Description</span>
-                                    <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="request.description"></p>
-                                </div>
-                                
-                                <div x-show="request.admin_notes">
-                                    <span class="text-xs text-gray-500">Admin Notes</span>
-                                    <p class="text-gray-700 dark:text-gray-300" x-text="request.admin_notes"></p>
-                                </div>
-                                
-                                <div>
-                                    <span class="text-xs text-gray-500">Reported On</span>
-                                    <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.created_at)"></p>
-                                </div>
-                                
-                                <div x-show="request.scheduled_date">
-                                    <span class="text-xs text-gray-500">Scheduled Date</span>
-                                    <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.scheduled_date)"></p>
-                                </div>
-                                
-                                <div x-show="request.completed_date">
-                                    <span class="text-xs text-gray-500">Completed Date</span>
-                                    <p class="text-gray-700 dark:text-gray-300" x-text="formatDate(request.completed_date)"></p>
-                                </div>
-                            </div>
-                        </div>
+                <div x-show="!loading && request" class="space-y-5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span :class="request?.status_color" class="rounded-full px-2.5 py-1 text-xs font-medium" x-text="request?.status_label"></span>
+                        <span :class="request?.priority_color" class="rounded-full px-2.5 py-1 text-xs font-medium" x-text="(request?.priority_label || '') + ' priority'"></span>
+                    </div>
+
+                    <div>
+                        <h4 class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="request?.title || request?.name"></h4>
+                        <p class="mt-1 whitespace-pre-wrap text-sm text-gray-600 dark:text-gray-300" x-text="request?.description"></p>
+                    </div>
+
+                    <dl class="grid grid-cols-2 gap-x-4 gap-y-4 rounded-xl border border-gray-200 p-4 dark:border-gray-800">
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Unit</dt><dd class="mt-0.5 text-sm font-medium text-gray-800 dark:text-white/90" x-text="request?.unit_number || '–'"></dd></div>
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Tenant</dt><dd class="mt-0.5 text-sm font-medium text-gray-800 dark:text-white/90" x-text="request?.tenant_name || '–'"></dd></div>
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Category</dt><dd class="mt-0.5 text-sm text-gray-800 dark:text-white/90" x-text="request?.category_label || request?.category || '–'"></dd></div>
+                        <div><dt class="text-xs text-gray-500 dark:text-gray-400">Reported</dt><dd class="mt-0.5 text-sm text-gray-800 dark:text-white/90" x-text="request ? formatDate(request.created_at) : ''"></dd></div>
+                        <div x-show="request?.scheduled_date"><dt class="text-xs text-gray-500 dark:text-gray-400">Scheduled</dt><dd class="mt-0.5 text-sm text-gray-800 dark:text-white/90" x-text="request?.scheduled_date ? formatDate(request.scheduled_date) : ''"></dd></div>
+                        <div x-show="request?.completed_date"><dt class="text-xs text-gray-500 dark:text-gray-400">Completed</dt><dd class="mt-0.5 text-sm text-gray-800 dark:text-white/90" x-text="request?.completed_date ? formatDate(request.completed_date) : ''"></dd></div>
+                    </dl>
+
+                    <div x-show="request?.admin_notes" class="rounded-xl bg-gray-50 p-4 dark:bg-white/5">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Notes</p>
+                        <p class="mt-1 whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300" x-text="request?.admin_notes"></p>
                     </div>
                 </div>
-                
-                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <button type="button"
-                            @click="closeModal()"
-                            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-600 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 sm:mt-0 sm:w-auto sm:text-sm">
-                        Close
-                    </button>
-                    @if(auth()->user()->hasAnyRole(['super_admin', 'admin', 'property_manager', 'maintenance']))
-                    <button type="button"
-                            @click="editRequest()"
-                            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-brand-600 text-base font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Edit Request
-                    </button>
-                    @endif
-                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 border-t border-gray-200 p-5 dark:border-gray-800">
+                <button type="button" @click="closeModal()" class="h-11 rounded-lg border border-gray-300 px-4 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Close</button>
+                @if(auth()->user()->hasAnyRole(['sysadmin', 'admin', 'property_manager', 'maintenance']))
+                <button type="button" @click="editRequest()" class="h-11 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Edit request</button>
+                @endif
             </div>
         </div>
     </div>
