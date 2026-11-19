@@ -6,6 +6,10 @@
 @section('content')
 <div x-data="propertyManagerDashboard()" x-init="init()">
     <div>
+        @php $onboardingGuide = auth()->user()->company_id ? \App\Support\OnboardingGuide::for(auth()->user()) : null; @endphp
+        @if ($onboardingGuide && $onboardingGuide->showOnDashboard())
+            @include('partials.onboarding-guide', ['guide' => $onboardingGuide])
+        @endif
         
         <!-- Welcome Card -->
         <div class="row mb-6">

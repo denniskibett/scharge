@@ -51,6 +51,11 @@
             </div>
         </div>
 
+        @php $onboardingGuide = auth()->user()->company_id ? \App\Support\OnboardingGuide::for(auth()->user()) : null; @endphp
+        @if ($onboardingGuide && $onboardingGuide->showOnDashboard())
+            @include('partials.onboarding-guide', ['guide' => $onboardingGuide])
+        @endif
+
         <!-- Stats Cards (6 cards as before, but company-specific) -->
         @include('partials.card.card-dashboard', ['cardData' => array_merge($stats, ['user_role' => 'admin'])])
         @include('partials.dashboard.analytics-summary')

@@ -455,6 +455,15 @@
                 Account settings
               </a>
             </li>
+            @if (auth()->user()->company_id)
+            <li>
+              <a href="{{ route('guide') }}"
+                class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
+                <svg class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M5 4.75A2.75 2.75 0 0 1 7.75 2H19a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H7.75a1.25 1.25 0 0 0 0 2.5H19a1 1 0 1 1 0 2H7.75A3.25 3.25 0 0 1 4.5 20.25V4.75H5Zm1.5 12.04c.39-.18.81-.29 1.25-.29H18.5v-13H7.75c-.69 0-1.25.56-1.25 1.25v12.04ZM9 7.25c0-.41.34-.75.75-.75h5.5a.75.75 0 0 1 0 1.5h-5.5A.75.75 0 0 1 9 7.25Zm.75 2.75a.75.75 0 0 0 0 1.5h3.5a.75.75 0 0 0 0-1.5h-3.5Z"/></svg>
+                Guide
+              </a>
+            </li>
+            @endif
             <li>
               <a href="{{ url('/') }}" target="_blank" rel="noopener" data-no-spa
                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-theme-sm font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300">
