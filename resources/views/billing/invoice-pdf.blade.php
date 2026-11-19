@@ -15,7 +15,7 @@
 <style>
 @font-face { font-family: 'Outfit'; font-weight: normal; src: url('{{ resource_path('fonts/outfit/Outfit-Regular.ttf') }}') format('truetype'); }
 @font-face { font-family: 'Outfit'; font-weight: bold; src: url('{{ resource_path('fonts/outfit/Outfit-Bold.ttf') }}') format('truetype'); }
-@page { size: A4 portrait; margin: 14mm 14mm 16mm; }
+@page { size: A4 portrait; margin: 10mm 12mm 10mm; }
 body { font-family: 'Outfit', DejaVu Sans, sans-serif; font-size: 9.5pt; color: #101828; line-height: 1.25; }
 .muted { color: #667085; }
 table { width: 100%; border-collapse: collapse; }
@@ -27,7 +27,7 @@ h1 { margin: 0; font-size: 18pt; }
 .kv td.k { color: #667085; padding-right: 12pt; white-space: nowrap; }
 .lbl { display: block; font-size: 7.5pt; color: #667085; text-transform: uppercase; letter-spacing: .5pt; margin-bottom: 2pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
-.lines td { padding: 3pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
+.lines td { padding: 2.6pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
 .lines .sub td { color: #101828; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
