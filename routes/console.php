@@ -96,7 +96,7 @@ Schedule::command('crm:pull-nairobi --enrich=80')
 
 // CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): a batch every 10 minutes on weekdays, 08:00-21:00 Nairobi.
 // Prospects with a business email, never emailed, not opted out get their property type's email. One type at a time:
-// residential first, then hotels / short-stay, commercial, utilities (--after). Each batch is 40 emails at 6 a minute (~7 min).
+// agencies first, then residential, hotels / short-stay, commercial, utilities (--after). Each batch is 40 emails at 6 a minute (~7 min).
 // Daily ramp so sales@ keeps its reputation: 800 on 19 Nov, 1,500 on 20 Nov, then 2,500 a day (all types together).
 // A batch also stops for the day when more than 10% of today's emails bounced. Tracking: /crm/campaigns and /crm/funnel.
 $campaignCap = fn () => match (now(config('app.schedule_timezone', 'Africa/Nairobi'))->toDateString()) {
@@ -104,7 +104,8 @@ $campaignCap = fn () => match (now(config('app.schedule_timezone', 'Africa/Nairo
     '2026-11-20' => 1500,
     default => 2500,
 };
-$campaignOrder = ['RESIDENTIAL', 'BNB', 'COMMERCIAL', 'UTILITIES'];
+// AGENCY first (added 19 Nov, user asked for agencies to be emailed at once): ~140 agencies, then the queue moves on.
+$campaignOrder = ['AGENCY', 'RESIDENTIAL', 'BNB', 'COMMERCIAL', 'UTILITIES'];
 // Who signs (and owns) the new prospects of each type: Waithaka Kammau (#664) all residential, Annete Sidi Kenga (#667) BNB.
 // The other types alternate between the account managers. Prospects that already have an owner keep them.
 $campaignManager = ['RESIDENTIAL' => 664, 'BNB' => 667];
