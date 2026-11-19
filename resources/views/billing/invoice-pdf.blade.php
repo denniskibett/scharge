@@ -77,9 +77,9 @@ h1 { margin: 0; font-size: 18pt; }
 <table class="totals">
   <tr><td class="muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
   @if ($vat['mode'] === 'exclusive')
-    <tr><td class="muted">VAT {{ $rateTxt }}%</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
+    <tr><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
   @else
-    <tr><td class="muted">VAT</td><td class="r muted">Not charged</td></tr>
+    <tr><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money(0) }}</td></tr>
   @endif
   @if ($paid && $inv->paid_at)<tr><td class="muted">Paid</td><td class="r muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
 </table>
