@@ -31,6 +31,11 @@ class AuthenticateApiKey
         }
         $request->attributes->set('api_key', $key);
 
+        // Paid modules: API keys (and e.g. water for meter calls) must be on the key's company plan (App\Support\Modules).
+        if ($locked = \App\Support\Modules::deny($request)) {
+            return $locked;
+        }
+
         return $next($request);
     }
 }

@@ -185,6 +185,8 @@ document.addEventListener('alpine:init', () => {
     userRole: @js(auth()->user()->getRoleNames()->first() ?? 'guest'),
     // From the user's real permissions (App\Support\Access::menuFor); null = use the role list below.
     allowedMenu: @js(\App\Support\Access::menuFor(auth()->user())),
+    // Entries of paid modules this company does not have (App\Support\Modules); hidden whatever the role allows.
+    lockedMenu: @js(\App\Support\Modules::lockedMenu(auth()->user())),
     // What is waiting for this person, per menu page (App\Support\SidebarBadges, role-specific). Refreshed after each page change.
     badges: @js(\App\Support\SidebarBadges::for(auth()->user())),
     
@@ -441,6 +443,11 @@ document.addEventListener('alpine:init', () => {
 
     // Helper method to get user permissions with error handling
     getUserPermissions() {
+      const keys = this.roleMenu();
+      return this.lockedMenu.length ? keys.filter(k => !this.lockedMenu.includes(k)) : keys;
+    },
+
+    roleMenu() {
       if (Array.isArray(this.allowedMenu)) return this.allowedMenu;
       if (!this.rolePermissions[this.userRole]) {
         console.error(

@@ -45,6 +45,11 @@ class AuthenticateMobile
                 'min_version' => \App\Services\App\AppSettings::minVersion(), 'download_url' => url('/downloads/scharge-app.apk')], 426);
         }
 
+        // Paid modules: the app itself and the screen's module must be on the company's plan (App\Support\Modules).
+        if ($locked = \App\Support\Modules::deny($request)) {
+            return $locked;
+        }
+
         return $next($request);
     }
 }

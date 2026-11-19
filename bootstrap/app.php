@@ -35,6 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Signed-in people confirm their email with a code before using the app (only when real mail is set up).
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsureEmailConfirmed::class);
+
+        // Paid modules: a company only opens the modules on its plan (App\Support\Modules); scharge staff see everything.
+        $middleware->appendToGroup('web', \App\Http\Middleware\CheckModule::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

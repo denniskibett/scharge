@@ -158,6 +158,12 @@
                     Subscriptions
                 </button>
                 
+                <!-- Modules Tab: paid modules on/off (App\Support\Modules) -->
+                <button @click="activeTab = 'modules'" :class="activeTab === 'modules' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
+                    <x-icon name="puzzle-piece" class="mr-2 inline h-4 w-4" />
+                    Modules
+                </button>
+
                 <!-- Expenses Tab -->
                 <button @click="activeTab = 'expenses'; loadExpenses()" :class="activeTab === 'expenses' ? 'border-brand-500 text-brand-600 dark:text-brand-400 border-b-2 -mb-px' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400'" class="shrink-0 px-4 py-2 text-sm font-medium transition-colors">
                     <svg class="inline w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,6 +262,11 @@
                 @include('admin.companies.partials.subscriptions', ['subscriptions' => $companySubscriptions, 'properties' => $propertyBilling])
             </div>
             
+            <!-- Modules Tab -->
+            <div x-show="activeTab === 'modules'" x-cloak>
+                @include('admin.companies.partials.modules')
+            </div>
+
             <!-- Expenses Tab -->
             <div x-show="activeTab === 'expenses'" x-cloak>
                 <div x-data="expensesTable()" x-init="loadExpenses()">
@@ -1084,7 +1095,7 @@ function expensesTable() {
 // Main Component
 document.addEventListener('alpine:init', () => {
     Alpine.data('companyShowPage', () => ({
-        activeTab: 'info',
+        activeTab: new URLSearchParams(location.search).get('tab') || 'info',
         showEditModal: false,
         showAddStaffModal: false,
         addingStaff: false,

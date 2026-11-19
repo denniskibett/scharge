@@ -61,6 +61,12 @@
                     Features
                     <span class="ml-1.5 text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">{{ count($planData['business_features'] ?? []) }}</span>
                 </button>
+                <button @click="activeTab = 'modules'"
+                    :class="activeTab === 'modules' ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-900/10' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'"
+                    class="inline-flex items-center px-4 py-2.5 border-b-2 font-medium text-sm transition rounded-t-lg">
+                    <x-icon name="puzzle-piece" class="mr-2 h-4 w-4" />
+                    Modules
+                </button>
                 <button @click="activeTab = 'invoices'" 
                     :class="activeTab === 'invoices' ? 'border-purple-500 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-900/10' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'"
                     class="inline-flex items-center px-4 py-2.5 border-b-2 font-medium text-sm transition rounded-t-lg">
@@ -93,6 +99,11 @@
 
         <!-- Tab Content - All Partials -->
         <div class="p-6">
+            <!-- Modules Tab: which paid modules the plan includes -->
+            <div x-show="activeTab === 'modules'" x-cloak>
+                @include('subscriptions.partials-plan-modules', ['planData' => $planData])
+            </div>
+
             <!-- Features Tab -->
             <div x-show="activeTab === 'features'" x-cloak>
                 @include('partials.table.table-subscriptions-features', ['planData' => $planData])
