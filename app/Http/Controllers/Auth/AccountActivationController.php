@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class AccountActivationController extends Controller
 {
-    public const KINDS = ['manager' => 'Property / building manager', 'bnb_host' => 'Airbnb / short-stay host', 'developer' => 'Developer'];
+    public const KINDS = ['manager' => 'Property / building manager', 'bnb_host' => 'Airbnb / short-stay host', 'developer' => 'Developer', 'agency' => 'Agent / agency (I market and let homes for landlords)'];
 
     public static function emailConfirmed($user): bool
     {

@@ -51,6 +51,8 @@ class Access
         'security' => ['properties.view', 'security.view', 'security.manage'],
         'tenant' => ['tenants.view', 'invoices.view', 'payments.view', 'maintenance.view', 'maintenance.manage', 'security.view'],
         'bnb_host' => ['properties.view', 'properties.manage'],
+        // Agents only reach the properties landlords gave their agency (App\Services\Agents\AgentAccess).
+        'agent' => ['properties.view', 'properties.manage'],
         'guest' => [],
     ];
 
@@ -63,11 +65,12 @@ class Access
         'maintenance' => 'Maintenance: repairs and work orders',
         'cleaning_staff' => 'Cleaning: turnover and cleaning tasks',
         'security' => 'Security: gate and visitor log',
+        'agent' => 'Agent: markets and lets the properties landlords give your agency',
     ];
 
     /** Built-in roles: code checks their names, so they cannot be renamed or deleted. */
     public const BUILT_IN = ['sysadmin', 'account_manager', 'sales', 'admin', 'property_manager', 'accountant', 'meter_reader',
-        'maintenance', 'cleaning_staff', 'security', 'tenant', 'bnb_host', 'guest'];
+        'maintenance', 'cleaning_staff', 'security', 'tenant', 'bnb_host', 'agent', 'guest'];
 
     /** Extra permissions given to particular people (never through a role's "area.*" wildcard). */
     public const EXTRA = [
@@ -137,6 +140,11 @@ class Access
     {
         if (! \App\Http\Middleware\CheckAccess::catalogueInstalled() || $user->hasRole('tenant') && ! $user->hasAnyRole(['admin', 'property_manager', 'sysadmin'])) {
             return null;
+        }
+        // Agents and agency admins: their agent dashboard (plus the team page for the agency's admin), not the
+        // landlord pages, which would only show their own (empty) agency.
+        if (\App\Services\Agents\AgentAccess::isAgent($user)) {
+            return array_values(array_filter(['dashboard', 'profile', 'agent', $user->can('team.view') ? 'team' : null, $user->can('team.view') ? 'settings' : null]));
         }
         $keys = ['dashboard', 'calendar', 'profile'];
         if ($user->hasRole('bnb_host')) {

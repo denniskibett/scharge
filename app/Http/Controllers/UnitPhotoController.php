@@ -96,6 +96,8 @@ class UnitPhotoController extends Controller
         $companyId = $unit->property?->company_id ?? $unit->company_id;
         $isHost = \Illuminate\Support\Facades\Schema::hasTable('unit_managements') && $user->hasRole('bnb_host')
             && \App\Models\UnitManagement::where('unit_id', $unit->id)->where('company_id', $user->company_id)->where('role', 'bnb_host')->where('status', 'active')->exists();
-        abort_unless($isHost || $user->hasRole('sysadmin') || ((int) $user->company_id === (int) $companyId && $user->hasAnyRole(['admin', 'property_manager'])), 403);
+        // An agent whose agency the landlord gave this property to may add listing photos too.
+        $isAgent = $unit->property_id && \App\Services\Agents\AgentAccess::grant($user, (int) $unit->property_id) !== null;
+        abort_unless($isHost || $isAgent || $user->hasRole('sysadmin') || ((int) $user->company_id === (int) $companyId && $user->hasAnyRole(['admin', 'property_manager'])), 403);
     }
 }

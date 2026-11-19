@@ -48,4 +48,30 @@ class EnquiryRouter
 
         return $sent;
     }
+
+    /** The agents of the agencies the landlord gave this property to get the same SMS (sent with the landlord's sender). */
+    public function notifyAgents(int $propertyId, int $landlordCompanyId, string $name, string $phone, string $listing, ?string $when): int
+    {
+        if (! \App\Services\Agents\AgentAccess::enabled()) {
+            return 0;
+        }
+        $agencies = \App\Models\PropertyAgent::active()->where('property_id', $propertyId)->pluck('agency_id');
+        if ($agencies->isEmpty()) {
+            return 0;
+        }
+        $agents = User::whereIn('company_id', $agencies)->whereNotNull('phone')->where(fn ($q) => $q->whereNull('status')->orWhere('status', 0))
+            ->whereHas('roles', fn ($r) => $r->whereIn('name', ['agent', 'admin']))->limit(10)->get();
+        $text = mb_substr("New viewing request: {$name} ({$phone}) for {$listing}".($when ? ", {$when}" : '').'. Call them, then see scharge › Agent.', 0, 300);
+        $sent = 0;
+        foreach ($agents as $user) {
+            try {
+                $res = app(KenyaSMS::class)->forCompany($landlordCompanyId)->sendOne($user->phone, $text);
+                $sent += ($res['success'] ?? false) ? 1 : 0;
+            } catch (\Throwable $e) {
+                Log::warning('Enquiry SMS to agent failed', ['property_id' => $propertyId, 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $sent;
+    }
 }

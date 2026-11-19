@@ -258,6 +258,10 @@ document.addEventListener('alpine:init', () => {
         'maintenance',
         'gate', 'security', 'security_logs'
       ],
+      // Agent: the properties landlords gave their agency.
+      'agent': [
+        'dashboard', 'profile', 'agent',
+      ],
       // BnB host: their own units only.
       'bnb_host': [
         'dashboard', 'calendar', 'profile', 'host', 'host_units', 'bookings', 'gate',
@@ -279,6 +283,8 @@ document.addEventListener('alpine:init', () => {
           { name: 'Reports', label: 'Reports', link: '/reports', page: 'reports', permission: 'reports',
             icon: 'M4 3.75a.75.75 0 0 1 .75.75v14.75h14.75a.75.75 0 0 1 0 1.5H4.75A1.5 1.5 0 0 1 3.25 19.25V4.5A.75.75 0 0 1 4 3.75Zm4 9.5a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0V14a.75.75 0 0 1 .75-.75Zm4-4a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0V10a.75.75 0 0 1 .75-.75Zm4-3a.75.75 0 0 1 .75.75v9.5a.75.75 0 0 1-1.5 0V7a.75.75 0 0 1 .75-.75Z' },
           { name: 'Host', label: 'My BnB units', link: '/host', page: 'host', permission: 'host',
+            icon: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5Z' },
+          { name: 'Agent', label: 'Agency properties', link: '/agent', page: 'agent', permission: 'agent',
             icon: 'M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-9.5Z' }
         ]
       },

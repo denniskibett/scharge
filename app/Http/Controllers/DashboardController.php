@@ -35,6 +35,11 @@ class DashboardController extends Controller
             return $this->pendingVerificationView($user);
         }
         
+        // Agents (and an agency's admin) work on the properties landlords gave their agency.
+        if (\App\Services\Agents\AgentAccess::isAgent($user)) {
+            return redirect()->route('agent.dashboard');
+        }
+
         // FIXED: Use Spatie's getRoleNames() instead of $user->role
         $roleName = $user->getRoleNames()->first() ?? 'guest';
         

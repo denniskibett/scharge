@@ -77,6 +77,52 @@
             </form>
         </div>
 
+        <!-- Agents: agencies this landlord lets market and let the property -->
+        @if (\App\Services\Agents\AgentAccess::enabled() && (auth()->user()->hasRole('sysadmin') || auth()->user()->hasAnyRole(['admin', 'property_manager'])))
+            @php
+                $agentGrants = \App\Models\PropertyAgent::active()->where('property_id', $property->id)->with('agency:id,name,email,phone')->get();
+            @endphp
+            <div class="mb-6 rounded-xl border border-gray-200 p-4 dark:border-gray-800" x-data="{ adding: {{ $errors->has('agency') ? 'true' : 'false' }} }">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Agents</p>
+                        <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-400">Let an agency market and let this property. Its agents see the vacant homes, add photos and get renter enquiries; never tenants or money.</p>
+                    </div>
+                    <button type="button" @click="adding = !adding" class="h-9 rounded-lg px-3 text-sm font-medium text-brand-600 ring-1 ring-brand-200 hover:bg-brand-50 dark:text-brand-400 dark:ring-brand-800 dark:hover:bg-white/5">+ Add agent</button>
+                </div>
+                @if ($agentGrants->isNotEmpty())
+                    <ul class="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
+                        @foreach ($agentGrants as $ag)
+                            <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                                <span class="text-gray-800 dark:text-white/90"><span class="font-medium">{{ $ag->agency?->name }}</span>
+                                    <span class="text-gray-500 dark:text-gray-400">· {{ $ag->commission_pct !== null ? rtrim(rtrim(number_format((float) $ag->commission_pct, 2), '0'), '.').'% commission' : 'no commission set' }} · {{ $ag->can_list ? 'may switch Open listings' : 'cannot list' }}</span></span>
+                                <form method="POST" action="{{ route('properties.agents.destroy', [$property, $ag]) }}" onsubmit="return confirm('Remove {{ addslashes($ag->agency?->name ?? 'this agency') }} from {{ addslashes($property->name) }}?')">
+                                    @csrf @method('DELETE')
+                                    <button class="text-sm text-red-600 hover:underline dark:text-red-400">Remove</button>
+                                </form>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+                <form x-show="adding" x-cloak method="POST" action="{{ route('properties.agents.store', $property) }}" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[2fr_1fr_auto] sm:items-end">
+                    @csrf
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400" for="agency-q">Agency name, or an agent's email or phone</label>
+                        <input id="agency-q" name="agency" required value="{{ old('agency') }}" placeholder="e.g. Bringetony Ventures or 0712 345 678" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
+                        @error('agency')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400" for="agency-pct">Commission % (optional)</label>
+                        <input id="agency-pct" name="commission_pct" type="number" step="0.5" min="0" max="100" value="{{ old('commission_pct') }}" class="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-3 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-400"><input type="hidden" name="can_list" value="0"><input type="checkbox" name="can_list" value="1" checked class="rounded border-gray-300"> May list</label>
+                        <button class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600">Add</button>
+                    </div>
+                </form>
+            </div>
+        @endif
+
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">

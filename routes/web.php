@@ -434,6 +434,12 @@ Route::prefix('users')->name('admin.users.')->middleware('access:team')->group(f
         Route::post('/properties/onboard/cancel', [App\Http\Controllers\PropertyOnboardingController::class, 'cancel'])->name('properties.onboard.cancel');
     });
     Route::patch('/properties/{property}/listing', [PropertyController::class, 'listing'])->name('properties.listing')->middleware('access:properties');
+    // Agents: a landlord gives an agency a property; the agency's agents work on it from /agent.
+    Route::post('/properties/{property}/agents', [App\Http\Controllers\PropertyAgentController::class, 'store'])->name('properties.agents.store')->middleware('access:properties');
+    Route::delete('/properties/{property}/agents/{grant}', [App\Http\Controllers\PropertyAgentController::class, 'destroy'])->name('properties.agents.destroy')->middleware('access:properties');
+    Route::get('/agent', [App\Http\Controllers\AgentController::class, 'index'])->name('agent.dashboard');
+    Route::get('/agent/properties/{property}', [App\Http\Controllers\AgentController::class, 'show'])->name('agent.properties.show');
+    Route::patch('/agent/properties/{property}/listing', [App\Http\Controllers\AgentController::class, 'listing'])->name('agent.properties.listing');
     Route::resource('properties', PropertyController::class)->middleware('access:properties');
     // Old links and bookmarks from before the Estate -> Property rename.
     Route::get('/estates/{rest?}', fn (?string $rest = null) => redirect('/properties'.($rest ? '/'.$rest : ''), 301))->where('rest', '.*');

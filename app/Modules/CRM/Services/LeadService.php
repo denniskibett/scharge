@@ -198,6 +198,10 @@ class LeadService
             if ($route['company_id']) {
                 DB::afterCommit(fn () => app(\App\Services\Listings\EnquiryRouter::class)->notifyLandlord($route['company_id'], $data['name'], $data['phone'],
                     $listing['title'] ?? 'a listing', $data['when'] ?? null));
+                if (! empty($route['property_id'])) {
+                    DB::afterCommit(fn () => app(\App\Services\Listings\EnquiryRouter::class)->notifyAgents((int) $route['property_id'], (int) $route['company_id'],
+                        $data['name'], $data['phone'], $listing['title'] ?? 'a listing', $data['when'] ?? null));
+                }
             }
 
             return ['already' => false, 'follow_up' => $followUp, 'route' => $route];
