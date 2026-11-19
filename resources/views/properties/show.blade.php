@@ -3,6 +3,9 @@
 @section('content')
 <!-- Include modal partials -->
 @include('partials.modal.success-modal')
+@if (session('success'))
+<script>document.addEventListener('alpine:initialized', () => window.successModal?.simple('Done', @json(session('success'))));</script>
+@endif
 @include('partials.modal.error-modal')
 
 <div x-data="propertyShow()" x-init="init()">
@@ -40,6 +43,40 @@
             </button>
         </div>
         
+        <!-- Open listings switch: vacant homes on the public listings page only when switched on -->
+        @php
+            $listed = (bool) ($property->listed_publicly ?? false);
+        @endphp
+        <div @class([
+            'mb-6 flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-center sm:justify-between',
+            'border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30' => $listed,
+            'border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900' => ! $listed,
+        ])>
+            <div>
+                <p class="text-sm font-semibold text-gray-800 dark:text-white/90">
+                    Open listings: {{ $listed ? 'On' : 'Off' }}
+                </p>
+                <p class="mt-0.5 text-sm text-gray-600 dark:text-gray-400">
+                    @if ($listed)
+                        {{ $vacantCount }} vacant {{ \Illuminate\Support\Str::plural('home', $vacantCount) }} {{ $vacantCount === 1 ? 'shows' : 'show' }} on
+                        <a href="{{ route('home.listings') }}" target="_blank" class="font-medium text-brand-600 underline dark:text-brand-400">scharge Open listings</a>
+                        (with rent set){{ $property->listed_at ? ', since '.$property->listed_at->format('j M Y') : '' }}. Renters' requests come to you.
+                    @else
+                        Nothing from this property is public. Switch on to advertise its {{ $vacantCount }} vacant {{ \Illuminate\Support\Str::plural('home', $vacantCount) }} to renters, free.
+                    @endif
+                </p>
+            </div>
+            <form method="POST" action="{{ route('properties.listing', $property) }}">
+                @csrf @method('PATCH')
+                <input type="hidden" name="listed_publicly" value="{{ $listed ? 0 : 1 }}">
+                <button @class([
+                    'inline-flex h-10 items-center rounded-lg px-4 text-sm font-medium',
+                    'bg-white text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:ring-gray-700' => $listed,
+                    'bg-brand-500 text-white hover:bg-brand-600' => ! $listed,
+                ])>{{ $listed ? 'Take off Open listings' : 'Show on Open listings' }}</button>
+            </form>
+        </div>
+
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-gray-900">

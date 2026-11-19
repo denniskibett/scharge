@@ -20,6 +20,9 @@ class Property extends Model
     ];
 
     protected $casts = [
+        // listed_publicly: its vacant homes show on the public Open listings page (switched on from the property page).
+        'listed_publicly' => 'boolean',
+        'listed_at' => 'datetime',
         'water_rate' => 'decimal:2',
         'service_charge' => 'decimal:2',
         'garbage_charge' => 'decimal:2',

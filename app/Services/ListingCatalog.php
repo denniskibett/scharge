@@ -41,6 +41,8 @@ class ListingCatalog
             ->leftJoin('companies as c', 'c.id', '=', 'p.company_id')
             ->where('u.status', 'vacant')->where(fn ($q) => $q->whereNull('u.is_active')->orWhere('u.is_active', 1))
             ->where(fn ($q) => $q->whereNull('c.id')->orWhereNull('c.lifecycle')->orWhere('c.lifecycle', '!=', 'prospect'))
+            // Only properties whose owner (or scharge) switched "Show on Open listings" on.
+            ->when(Schema::hasColumn('properties', 'listed_publicly'), fn ($q) => $q->where('p.listed_publicly', 1))
             ->selectRaw("p.id as pid, p.company_id as cid, p.name as pname, p.location, p.water_rate, u.unit_type, u.stay_type,
                 COALESCE(NULLIF(u.rent_amount, 0), 0) as rent, u.bnb_nightly_rate, MAX(u.service_charge) as service,
                 MAX(u.security_deposit_amount) as deposit, MAX(u.furnishing_status) as furnishing, MAX(u.custom_water_rate) as custom_rate,
@@ -99,15 +101,9 @@ class ListingCatalog
         })->filter()->values()->all();
     }
 
-    /** A neutral picture for listings without photos yet (never a stock photo of someone else's house). */
+    /** Listings without photos yet show the scharge logo (never a stock photo of someone else's house). */
     private function placeholder(?string $type, string $property): string
     {
-        $label = htmlspecialchars(mb_strimwidth(($type ?: 'Home').' · '.$property, 0, 34, '…'), ENT_QUOTES);
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420"><rect width="640" height="420" fill="#F3E9EA"/>'
-            .'<path d="M260 230 320 180l60 50v70h-40v-40h-40v40h-40z" fill="#DC2626" opacity=".85"/>'
-            .'<text x="320" y="345" font-family="Arial,sans-serif" font-size="22" fill="#5C4A4E" text-anchor="middle">'.$label.'</text>'
-            .'<text x="320" y="375" font-family="Arial,sans-serif" font-size="16" fill="#8A7A7D" text-anchor="middle">Photos coming soon</text></svg>';
-
-        return 'data:image/svg+xml;base64,'.base64_encode($svg);
+        return asset('assets/images/listings/no-photo.svg');
     }
 }

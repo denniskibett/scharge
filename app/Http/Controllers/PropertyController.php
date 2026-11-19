@@ -402,6 +402,23 @@ class PropertyController extends Controller
         }
     }
 
+    /** "Show on Open listings": its vacant homes go on the public listings page (owner or scharge staff). */
+    public function listing(Request $request, Property $property)
+    {
+        $this->authorizeCompanyAccess($property);
+        $on = $request->boolean('listed_publicly');
+        $property->forceFill([
+            'listed_publicly' => $on,
+            'listed_at' => $on ? now() : null,
+            'listed_by' => $on ? Auth::id() : null,
+        ])->save();
+        \App\Services\ListingCatalog::forget();
+
+        return back()->with('success', $on
+            ? $property->name.'\'s vacant homes are now on Open listings.'
+            : $property->name.' is no longer on Open listings.');
+    }
+
     /**
      * Helper method to check if an property belongs to the current user's company
      * 
