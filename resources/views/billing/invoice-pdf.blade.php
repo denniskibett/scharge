@@ -23,7 +23,7 @@ h1 { margin: 0; font-size: 18pt; }
 .meta td { vertical-align: top; padding: 6pt 8pt 6pt 0; border-top: 1px solid #EAECF0; border-bottom: 1px solid #EAECF0; }
 .lbl { display: block; font-size: 7.5pt; color: #667085; text-transform: uppercase; letter-spacing: .5pt; margin-bottom: 2pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
-.lines td { padding: 2.5pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
+.lines td { padding: 4pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
 .lines .sub td { color: #101828; }
 .lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
@@ -60,7 +60,7 @@ h1 { margin: 0; font-size: 18pt; }
 </table>
 
 <table class="lines">
-  <thead><tr><th>Description</th><th class="r" style="width:8%">Units</th><th class="r" style="width:17%">Rate / unit</th><th class="r" style="width:17%">Amount</th></tr></thead>
+  <thead><tr><th>Description</th><th class="r">Units</th><th class="r">Rate / unit</th><th class="r">Amount</th></tr></thead>
   <tbody>
     @foreach ($items as $it)
       <tr>
