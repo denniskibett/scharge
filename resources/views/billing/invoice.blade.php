@@ -41,11 +41,18 @@ td small { display: block; color: var(--muted); }
 .sub td { color: var(--ink); }
 .grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--ink) !important; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
-.actions { max-width: 820px; margin: 0 auto 28px; display: flex; gap: 10px; justify-content: flex-end; padding: 0 4px; }
+.links { max-width: 820px; margin: 28px auto -12px; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 16px 18px; display: grid; gap: 10px; }
+.link-row { display: grid; grid-template-columns: 170px 1fr auto auto; gap: 8px; align-items: center; }
+.link-lbl b { display: block; font-size: 13px; } .link-lbl span { font-size: 11.5px; }
+.link-url { font: 12.5px/1 ui-monospace, Menlo, monospace; color: #344054; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #F9FAFB; min-width: 0; width: 100%; text-overflow: ellipsis; }
+.link-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 6px; border-top: 1px solid #F2F4F7; }
+.vat-form { display: flex; gap: 6px; align-items: center; margin: 0; }
+.btn.sm { padding: 7px 12px; font-size: 13px; }
+@media (max-width: 640px) { .link-row { grid-template-columns: 1fr auto auto; } .link-lbl { grid-column: 1 / -1; } }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
 @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
-@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .actions, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
+@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .links, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .pay { margin: 0 0 20px; background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
 .payline { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 22px; color: #344054; font-size: 13px; }
 .pay h3 { margin: 0 0 10px; font-size: 14px; }
@@ -56,6 +63,38 @@ td small { display: block; color: var(--muted); }
 </style>
 </head>
 <body>
+@php
+  $publicPdf = \Illuminate\Support\Facades\URL::signedRoute('billing.invoice.public.pdf', ['invoice' => $inv->id]);
+  $links = array_values(array_filter([
+    ['Public link', $publicUrl, 'Anyone with this link can view the invoice'],
+    $public ? null : ['Sign-in link', $privateUrl, 'Owner, accountant or scharge staff'],
+    ['PDF link', $publicPdf, 'Downloads the PDF, no sign-in'],
+  ]));
+@endphp
+<div class="links">
+  @foreach ($links as [$label, $url, $hint])
+    <div class="link-row">
+      <div class="link-lbl"><b>{{ $label }}</b><span class="muted">{{ $hint }}</span></div>
+      <input class="link-url" type="text" readonly value="{{ $url }}" onclick="this.select()" aria-label="{{ $label }}">
+      <button class="btn sm" type="button" onclick="copyLink(@js($url), @js($label.' copied'))">Copy</button>
+      <a class="btn sm" href="{{ $url }}" target="_blank" rel="noopener">Open</a>
+    </div>
+  @endforeach
+  <div class="link-actions">
+    @if (! $public && ! $staff)<a class="btn" href="{{ route('billing.index') }}">Back to Billing</a>@endif
+    @if ($staff && ! $public && ! $paid)
+      <form method="POST" action="{{ route('billing.invoice.vat', $inv->id) }}" class="vat-form">
+        @csrf
+        <span class="muted">VAT:</span>
+        <button class="btn sm {{ $vat['mode'] === 'none' ? 'red' : '' }}" name="mode" value="none" type="submit">Non-VAT (0%)</button>
+        <button class="btn sm {{ $vat['mode'] === 'exclusive' ? 'red' : '' }}" name="mode" value="exclusive" type="submit">VAT exclusive ({{ rtrim(rtrim(number_format($pay['vat_rate'] ?? 16, 2), '0'), '.') }}%)</button>
+      </form>
+    @endif
+    <span style="flex:1"></span>
+    <a class="btn" href="{{ $pdfUrl }}">Download PDF</a>
+    <button class="btn red" type="button" onclick="window.print()">Print (A4)</button>
+  </div>
+</div>
 <div class="page">
   <div class="top">
     <div>
@@ -113,23 +152,6 @@ td small { display: block; color: var(--muted); }
     </div>
   @endunless
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
-</div>
-@if ($staff && ! $public && ! $paid)
-<form method="POST" action="{{ route('billing.invoice.vat', $inv->id) }}" class="actions" style="justify-content:flex-start;align-items:center;gap:8px">
-  @csrf
-  <span class="muted" style="margin-right:4px">VAT (scharge staff):</span>
-  <button class="btn {{ $vat['mode'] === 'none' ? 'red' : '' }}" name="mode" value="none" type="submit">Non-VAT</button>
-  <button class="btn {{ $vat['mode'] === 'exclusive' ? 'red' : '' }}" name="mode" value="exclusive" type="submit">VAT exclusive ({{ rtrim(rtrim(number_format($pay['vat_rate'] ?? 16, 2), '0'), '.') }}%)</button>
-  <span class="muted">For VAT-registered customers: VAT is added on top of the prices.</span>
-</form>
-@endif
-<div class="actions">
-  @if (! $public && ! $staff)<a class="btn" href="{{ route('billing.index') }}">Back to Billing</a>@endif
-  @unless ($public)<a class="btn" href="{{ $publicUrl }}" target="_blank" rel="noopener">View public page</a>@endunless
-  <button class="btn" type="button" onclick="copyLink(@js($publicUrl), 'Public link copied')">Copy public link</button>
-  @unless ($public)<button class="btn" type="button" onclick="copyLink(@js($privateUrl), 'Link copied (sign-in needed)')">Copy this link</button>@endunless
-  <a class="btn" href="{{ $pdfUrl }}">Download PDF</a>
-  <button class="btn red" type="button" onclick="window.print()">Print (A4)</button>
 </div>
 <div class="toast" id="toast"></div>
 <script>
