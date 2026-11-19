@@ -321,6 +321,8 @@ class KenyaGeo
         return \App\Models\Company::crm()
             ->whereNotNull('name_key')->where('name_key', '!=', '')
             ->whereRaw($j('geo_precision')." = 'exact'")
+            // Building-site footprints have generic names ("Apartment block"); never match a property to them.
+            ->whereRaw('COALESCE('.$j('segment').", '') <> ?", [\App\Modules\CRM\Controllers\Admin\CrmMapController::SITES_SEGMENT])
             ->when($keys, fn ($q) => $q->whereIn('name_key', $keys))
             ->selectRaw("name_key, {$j('lat')} AS lat, {$j('lng')} AS lng")
             ->toBase()->get()

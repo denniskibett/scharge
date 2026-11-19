@@ -10,6 +10,7 @@ use App\Modules\CRM\Support\KenyaGeo;
 use App\Modules\CRM\Support\Normalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\View\View;
 
 /**
@@ -18,6 +19,36 @@ use Illuminate\View\View;
  */
 class CrmMapController extends Controller
 {
+    /**
+     * Overture Maps building footprints imported as prospects (~110k). Too many to send to the browser with
+     * everything else: they are left out of data.json and served as area counts (sitesSummary) and, when
+     * zoomed in, as the pins inside the visible map (sites).
+     */
+    public const SITES_SEGMENT = 'Residential Building (site)';
+
+    /** Most pins one sites.json call returns, and the largest box it accepts (degrees; ~11 km). */
+    private const SITES_LIMIT = 3000;
+
+    private const SITES_MAX_SPAN = 0.1;
+
+    private static function j(string $key): string
+    {
+        return "JSON_UNQUOTE(JSON_EXTRACT(companies.crm_profile, '$.{$key}'))";
+    }
+
+    /** Every CRM company this user may see, minus the building sites. */
+    private static function withoutSites(Request $request)
+    {
+        return CrmAccess::companies(Company::crm(), $request->user())
+            ->whereRaw('COALESCE('.self::j('segment').", '') <> ?", [self::SITES_SEGMENT]);
+    }
+
+    private static function siteQuery(Request $request)
+    {
+        return CrmAccess::companies(Company::crm(), $request->user())
+            ->whereRaw(self::j('segment').' = ?', [self::SITES_SEGMENT]);
+    }
+
     public function index(Request $request): View
     {
         return view('crm.map', [
@@ -33,8 +64,8 @@ class CrmMapController extends Controller
      */
     public function data(Request $request, KenyaGeo $geo): JsonResponse
     {
-        $p = fn (string $key) => "JSON_UNQUOTE(JSON_EXTRACT(companies.crm_profile, '$.{$key}'))";
-        $rows = CrmAccess::companies(Company::crm(), $request->user())
+        $p = fn (string $key) => self::j($key);
+        $rows = self::withoutSites($request)
             ->selectRaw("companies.id, companies.name, companies.crm_stage, companies.owner_id,
                 {$p('lat')} AS lat, {$p('lng')} AS lng, {$p('segment')} AS segment, {$p('geo_precision')} AS prec,
                 {$p('county')} AS county, {$p('sub_county')} AS sub_county, {$p('county_id')} AS county_id,
@@ -117,7 +148,7 @@ class CrmMapController extends Controller
      */
     private function properties(Request $request, KenyaGeo $geo, callable $index, callable $names): array
     {
-        $companies = CrmAccess::companies(Company::crm(), $request->user())
+        $companies = self::withoutSites($request)
             ->whereNotNull('crm_profile->prospect_properties')
             ->get(['id', 'owner_id', 'crm_profile']);
 
@@ -146,5 +177,57 @@ class CrmMapController extends Controller
         }
 
         return $out;
+    }
+
+    /**
+     * Building sites per area: [county, sub_county, ward_sub_county_id, placed count, ward] (names from the ids), plus the
+     * total and how many have no pin yet. One grouped query, cached 10 minutes per access scope.
+     */
+    public function sitesSummary(Request $request, KenyaGeo $geo): JsonResponse
+    {
+        $scope = CrmAccess::seesPipeline($request->user()) ? 'all' : 'user'.$request->user()->id;
+        $data = Cache::remember('crm-map-sites-summary:'.$scope, 600, function () use ($request, $geo) {
+            $groups = self::siteQuery($request)
+                ->selectRaw(self::j('county_id').' AS county_id, '.self::j('sub_county_id').' AS sub_id, '
+                    .'SUM('.self::j('lat').' IS NULL) AS unplaced, COUNT(*) AS n')
+                ->groupByRaw('county_id, sub_id')
+                ->toBase()->get();
+            $areas = [];
+            $total = 0;
+            $unplaced = 0;
+            foreach ($groups as $g) {
+                $total += (int) $g->n;
+                $unplaced += (int) $g->unplaced;
+                $row = $geo->subCounty(is_numeric($g->sub_id) ? (int) $g->sub_id : null);
+                $countyId = $row ? $row[2] : (is_numeric($g->county_id) ? (int) $g->county_id : null);
+                $areas[] = [$geo->countyName($countyId) ?? '', $row ? $row[0] : '', $row ? (int) $g->sub_id : 0, (int) $g->n - (int) $g->unplaced, $row ? $row[1] : ''];
+            }
+
+            return ['areas' => $areas, 'total' => $total, 'unplaced' => $unplaced];
+        });
+
+        return response()->json($data + ['segment' => self::SITES_SEGMENT, 'limit' => self::SITES_LIMIT, 'max_span' => self::SITES_MAX_SPAN])
+            ->header('Cache-Control', 'private, max-age=300');
+    }
+
+    /** Building-site pins inside a small box: ?b=west,south,east,north. Rows: [id, name, lat, lng, stage, sub_county_id, owner_id]. */
+    public function sites(Request $request): JsonResponse
+    {
+        $b = array_map('floatval', explode(',', (string) $request->query('b')));
+        abort_unless(count($b) === 4 && $b[2] > $b[0] && $b[3] > $b[1], 422, 'b=west,south,east,north');
+        abort_if($b[2] - $b[0] > self::SITES_MAX_SPAN * 1.5 || $b[3] - $b[1] > self::SITES_MAX_SPAN * 1.5, 422, 'Zoom in further.');
+
+        $lat = 'CAST('.self::j('lat').' AS DECIMAL(9,5))';
+        $lng = 'CAST('.self::j('lng').' AS DECIMAL(9,5))';
+        $rows = self::siteQuery($request)
+            ->whereRaw("{$lat} BETWEEN ? AND ? AND {$lng} BETWEEN ? AND ?", [$b[1], $b[3], $b[0], $b[2]])
+            ->selectRaw("companies.id, companies.name, companies.crm_stage, companies.owner_id, {$lat} AS lat, {$lng} AS lng, ".self::j('sub_county_id').' AS sub_id')
+            ->limit(self::SITES_LIMIT + 1)
+            ->toBase()->get();
+
+        return response()->json([
+            'rows' => $rows->take(self::SITES_LIMIT)->map(fn ($r) => [(int) $r->id, $r->name, (float) $r->lat, (float) $r->lng, $r->crm_stage, (int) $r->sub_id, (int) $r->owner_id])->values(),
+            'more' => $rows->count() > self::SITES_LIMIT,
+        ])->header('Cache-Control', 'private, max-age=300');
     }
 }

@@ -45,6 +45,8 @@ Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->pref
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
     Route::get('/map', [CrmMapController::class, 'index'])->name('map.index');
     Route::get('/map/data.json', [CrmMapController::class, 'data'])->name('map.data');
+    Route::get('/map/sites-summary.json', [CrmMapController::class, 'sitesSummary'])->name('map.sites-summary');
+    Route::get('/map/sites.json', [CrmMapController::class, 'sites'])->middleware('throttle:120,1')->name('map.sites');
     Route::get('/sales', [CrmSalesController::class, 'index'])->name('sales.index');
     Route::get('/properties', [CrmPropertyController::class, 'index'])->name('properties.index');
     Route::get('/campaigns', [CrmCampaignController::class, 'index'])->name('campaigns.index');

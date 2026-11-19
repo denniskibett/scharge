@@ -25,7 +25,8 @@ class GeocodeProspects extends Command
         {--force : Recompute rows that already have a location}
         {--chunk=500 : Rows per batch}
         {--limit=0 : Stop after this many rows (0 = all)}
-        {--dry-run : Count only, save nothing}';
+        {--dry-run : Count only, save nothing}
+        {--pause=0 : Milliseconds to wait after each batch, to go easy on a busy database}';
 
     protected $description = 'Locate CRM prospects (OSM pins, else town centroids) and assign county / sub-county';
 
@@ -47,7 +48,7 @@ class GeocodeProspects extends Command
             }
             $how = isset($located['sub_county_id']) ? $located['sub_county_match'] : (isset($located['county_id']) ? 'county_only' : 'none');
             $matches[$what][$how] = ($matches[$what][$how] ?? 0) + 1;
-            if (in_array($how, ['none', 'constituency'], true) || ($how === 'county_only' && ! isset($located['county_id']))) {
+            if (count($unmatched) < 5000 && (in_array($how, ['none', 'constituency'], true) || ($how === 'county_only' && ! isset($located['county_id'])))) {
                 $unmatched[] = [$what, $companyId, $name, $located['lat'], $located['lng'], $located['geo_precision'], $located['county'] ?? '', $located['constituency'] ?? '', $how];
             }
         };
@@ -57,7 +58,11 @@ class GeocodeProspects extends Command
         $query = Company::crm()->select(['id', 'name', 'crm_profile']);
         $bar = $this->output->createProgressBar($limit ?: (clone $query)->count());
 
-        $query->chunkById((int) $this->option('chunk'), function ($companies) use ($geo, $force, $limit, $dry, $now, $pins, $track, &$stats, &$props, &$done, $bar) {
+        $pause = max(0, (int) $this->option('pause'));
+        $query->chunkById((int) $this->option('chunk'), function ($companies) use ($geo, $force, $limit, $dry, $now, $pins, $track, $pause, &$stats, &$props, &$done, $bar) {
+            if ($pause) {
+                usleep($pause * 1000);
+            }
             foreach ($companies as $company) {
                 if ($limit && $done >= $limit) {
                     return false;

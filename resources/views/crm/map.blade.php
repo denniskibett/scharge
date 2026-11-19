@@ -22,6 +22,7 @@
     .crm-sub .crm-area-row { padding-left: 1.6rem; font-size: .8125rem; }
     .crm-prop { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 3px; transform: rotate(45deg); box-shadow: 0 0 0 1px rgba(0,0,0,.35); }
     .crm-prop.approx { border-style: dashed; border-color: #344054; }
+    .crm-scount { font-size: .7rem; padding: 0 .35rem; border-radius: 9999px; background: #ccfbef; color: #125d56; }
     .crm-pcount { font-size: .7rem; padding: 0 .35rem; border-radius: 9999px; background: #fef0c7; color: #93370d; }
     .leaflet-popup-content { font-size: 13px; line-height: 1.45; }
     .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(70, 95, 255, .18); }
@@ -85,6 +86,10 @@
                     </label>
                 </div>
                 <label class="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" id="f-sites" class="rounded border-gray-300"> Building sites (Overture footprints)
+                </label>
+                <p class="mt-1 hidden text-xs text-gray-500 dark:text-gray-400" id="crm-sites-status" aria-live="polite"></p>
+                <label class="mt-3 flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
                     <input type="checkbox" id="f-bounds" class="rounded border-gray-300"> Show sub-county boundaries
                 </label>
                 <p class="mt-3 text-sm text-gray-800 dark:text-white/90" id="crm-total" aria-live="polite">Loading…</p>
@@ -115,6 +120,9 @@
     const COMPANY_URL = @json(url('/crm/companies')) + '/';
     const OPEN_STAGES = @json(\App\Models\Company::OPEN_CRM_STAGES);
     const PROPERTIES_URL = @json(route('crm.properties.index'));
+    const SITES_SUMMARY_URL = @json(route('crm.map.sites-summary'));
+    const SITES_URL = @json(route('crm.map.sites'));
+    const SITES_MIN_ZOOM = 13;
     const PSTATUS_COLORS = { open: '#2e90fa', demo_done: '#f79009', proposal: '#ee46bc', won: '#12b76a', lost: '#98a2b3' };
     const PALETTE = ['#465fff', '#f04438', '#12b76a', '#f79009', '#7a5af8', '#06aed4', '#ee46bc', '#84cc16', '#a15c07', '#0e9384', '#667085', '#dd2590', '#2e90fa', '#fb6514', '#344054'];
     const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -126,6 +134,8 @@
     const cluster = L.markerClusterGroup({ chunkedLoading: true, showCoverageOnHover: false, maxClusterRadius: 45, spiderfyOnMaxZoom: true });
     map.addLayer(cluster);
     const propLayer = L.layerGroup().addTo(map);
+    const siteLayer = L.layerGroup().addTo(map);
+    let S = null, siteTimer = null, siteReq = 0; // S = building-sites summary, loaded when the box is ticked
     let propMarkers = [];
 
     let D, markers = [], countyShapes = {}, subLayer = null, subShapes = {}, area = null; // area = {county, sub, ward}; names come from the stored ids (county_id, sub_county_id)
@@ -205,9 +215,10 @@
         return markers[i] = m;
     };
 
-    const pipelineUrl = q => {
+    const pipelineUrl = (q, segment) => {
         const p = new URLSearchParams();
-        if (q.segment !== '' && D.lists.segment[+q.segment]) p.set('segment', D.lists.segment[+q.segment]);
+        if (segment) p.set('segment', segment);
+        else if (q.segment !== '' && D.lists.segment[+q.segment]) p.set('segment', D.lists.segment[+q.segment]);
         if (q.stage) p.set('stage', q.stage);
         if (q.owner) p.set('owner', q.owner);
         if (q.verified !== '') p.set('verified', q.verified);
@@ -255,6 +266,18 @@
             + ` · ${(placed - approx).toLocaleString()} exact, ${approx.toLocaleString()} approximate`
             + (total - placed ? `, ${(total - placed).toLocaleString()} not on the map` : '')
             + ((D.properties || []).length ? ` · <strong>${propsShown}</strong> listed propert${propsShown === 1 ? 'y' : 'ies'} shown` : '');
+        // Building sites: counts per area from the summary (all stages / owners), pins only when zoomed in.
+        let sitesHere = 0;
+        if (S && el('f-sites').checked) {
+            S.areas.forEach(([county, sub, wardId, n, ward]) => {
+                const c = tree[county] ??= { n: 0, subs: {}, wards: {} };
+                c.sites = (c.sites || 0) + n;
+                c.ss ??= {}; c.ss[sub] = (c.ss[sub] || 0) + n; c.subs[sub] ??= 0;
+                if (wardId) { (c.wards[sub] ??= {})[wardId] ??= 0; (c.ws ??= {})[wardId] = (c.ws[wardId] || 0) + n; D.wards[wardId] ??= ward; }
+                if (!area || (county === area.county && (area.sub === undefined || sub === area.sub) && (area.ward === undefined || wardId === area.ward))) sitesHere += n;
+            });
+            el('crm-total').innerHTML += ` · <strong>${sitesHere.toLocaleString()}</strong> building sites <a class="text-blue-600 dark:text-blue-400" href="${pipelineUrl({ ...q, segment: '' }, S.segment)}">(pipeline)</a>`;
+        }
         el('crm-pipeline-link').href = pipelineUrl(q);
         el('crm-area-clear').classList.toggle('hidden', !area);
         renderAreas(tree);
@@ -267,12 +290,12 @@
             const name = county || 'No county (no location found)';
             const subs = open ? Object.entries(c.subs).sort((a, b) => b[1] - a[1]).map(([sub, n]) =>
                 `<button type="button" class="crm-area-row${area.sub === sub ? ' is-active' : ''}" data-county="${esc(county)}" data-sub="${esc(sub)}">
-                    <span>${esc(sub || 'Town-level only (sub-county unknown)')}</span>${c.ps && c.ps[sub] ? `<span class="crm-pcount" title="Listed properties">${c.ps[sub]} prop.</span>` : ''}<span class="n">${n.toLocaleString()}</span></button>`
+                    <span>${esc(sub || 'Town-level only (sub-county unknown)')}</span>${c.ps && c.ps[sub] ? `<span class="crm-pcount" title="Listed properties">${c.ps[sub]} prop.</span>` : ''}${c.ss && c.ss[sub] ? `<span class="crm-scount" title="Building sites">${c.ss[sub].toLocaleString()} sites</span>` : ''}<span class="n">${n.toLocaleString()}</span></button>`
                 + (area.sub === sub && sub && c.wards[sub] ? Object.entries(c.wards[sub]).sort((a, b) => b[1] - a[1]).map(([w, wn]) =>
                     `<button type="button" class="crm-area-row${area.ward === +w ? ' is-active' : ''}" style="padding-left:2.8rem;font-size:.75rem" data-county="${esc(county)}" data-sub="${esc(sub)}" data-ward="${w}">
-                        <span>${esc(D.wards[w] || 'Ward ' + w)} ward</span><span class="n">${wn.toLocaleString()}</span></button>`).join('') : '')).join('') : '';
+                        <span>${esc(D.wards[w] || 'Ward ' + w)} ward</span>${c.ws && c.ws[w] ? `<span class="crm-scount" title="Building sites">${c.ws[w].toLocaleString()} sites</span>` : ''}<span class="n">${wn.toLocaleString()}</span></button>`).join('') : '')).join('') : '';
             return `<button type="button" class="crm-area-row${open && area.sub === undefined ? ' is-active' : ''}" data-county="${esc(county)}" ${county ? '' : 'disabled'}>
-                    <span style="width:12px">${county ? (open ? '▾' : '▸') : ''}</span><span class="font-medium">${esc(name)}</span>${c.p ? `<span class="crm-pcount" title="Listed properties">${c.p} prop.</span>` : ''}<span class="n">${c.n.toLocaleString()}</span></button>
+                    <span style="width:12px">${county ? (open ? '▾' : '▸') : ''}</span><span class="font-medium">${esc(name)}</span>${c.p ? `<span class="crm-pcount" title="Listed properties">${c.p} prop.</span>` : ''}${c.sites ? `<span class="crm-scount" title="Building sites">${c.sites.toLocaleString()} sites</span>` : ''}<span class="n">${c.n.toLocaleString()}</span></button>
                 <div class="crm-sub">${subs}</div>`;
         }).join('') || '<p class="p-3 text-sm text-gray-500">No prospects match these filters.</p>';
     }
@@ -282,7 +305,11 @@
         render();
         const key = county + '|' + nk(sub);
         const shape = sub ? (subShapes[key] ?? Object.entries(subShapes).find(([k]) => k.startsWith(key))?.[1]) : countyShapes[county];
-        if (shape) map.fitBounds(shape.getBounds(), { maxZoom: 13 });
+        // A ward has no outline here: frame the exact pins in it instead (street level, so building sites show).
+        const wardPins = ward !== undefined ? D.rows.filter(r => r[11] === ward && r[2] !== null && D.lists.precision[r[6]] === 'exact').map(r => [r[2], r[3]]) : [];
+        const median = a => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];
+        if (wardPins.length) map.setView([median(wardPins.map(p => p[0])), median(wardPins.map(p => p[1]))], 14);
+        else if (shape) map.fitBounds(shape.getBounds(), { maxZoom: 13 });
         else if (!county) map.setView([0.2, 37.9], 6);
     }
 
@@ -294,7 +321,50 @@
         selectArea(county, sub, ward);
     });
     el('crm-area-clear').addEventListener('click', () => selectArea(null));
-    ['f-segment', 'f-stage', 'f-owner', 'f-verified', 'f-precision', 'f-props', 'f-pstatus'].forEach(id => el(id).addEventListener('change', render));
+
+    const siteStatus = text => { el('crm-sites-status').textContent = text; el('crm-sites-status').classList.toggle('hidden', !text); };
+    async function loadSites() {
+        const id = ++siteReq;
+        if (!el('f-sites').checked) { siteLayer.clearLayers(); return siteStatus(''); }
+        if (map.getZoom() < SITES_MIN_ZOOM) {
+            siteLayer.clearLayers();
+            return siteStatus(`${(S?.total || 0).toLocaleString()} sites in all (${(S?.unplaced || 0).toLocaleString()} without a pin yet). Counts are in the list; zoom in to street level to see the pins.`);
+        }
+        const b = map.getBounds(), q = f();
+        let [w, s, e, n] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+        const c = map.getCenter(), half = S.max_span / 2;
+        [w, e] = [Math.max(w, c.lng - half), Math.min(e, c.lng + half)];
+        [s, n] = [Math.max(s, c.lat - half), Math.min(n, c.lat + half)];
+        siteStatus('Loading building sites…');
+        const d = await fetch(`${SITES_URL}?b=${[w, s, e, n].map(x => x.toFixed(4)).join(',')}`, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then(r => r.ok ? r.json() : null).catch(() => null);
+        if (id !== siteReq) return;
+        siteLayer.clearLayers();
+        if (!d) return siteStatus('Could not load building sites here. Try again.');
+        let shown = 0;
+        d.rows.forEach(([cid, name, lat, lng, stage, wardId, owner]) => {
+            if (q.owner === 'none' ? owner !== 0 : (q.owner && owner !== +q.owner)) return;
+            if (q.stage === 'open' ? !OPEN_STAGES.includes(stage) : (q.stage && stage !== q.stage)) return;
+            if (area && area.ward !== undefined && wardId !== area.ward) return;
+            shown++;
+            L.circleMarker([lat, lng], { radius: 4, color: '#0e9384', weight: 1.5, fillColor: '#99f6e4', fillOpacity: .9 })
+                .bindPopup(() => `<strong>${esc(name)}</strong> <span style="color:#667085">(building site)</span>`
+                    + `<br>${esc(D.stages[stage] || stage || '')}${D.wards[wardId] ? ' · ' + esc(D.wards[wardId]) + ' ward' : ''}`
+                    + `<br><a href="${COMPANY_URL}${cid}">Open prospect →</a> · <a href="https://www.google.com/maps/search/?api=1&query=${lat},${lng}" target="_blank" rel="noopener">Google Maps ↗</a>`)
+                .addTo(siteLayer);
+        });
+        siteStatus(`${shown.toLocaleString()} building sites in view${d.more ? ` (first ${S.limit.toLocaleString()}; zoom in for all)` : ''}.`);
+    }
+    el('f-sites').addEventListener('change', async e => {
+        if (e.target.checked && !S) {
+            siteStatus('Loading building-site counts…');
+            S = await fetch(SITES_SUMMARY_URL, { headers: { Accept: 'application/json' }, credentials: 'same-origin' }).then(r => r.json()).catch(() => null);
+            if (!S) { e.target.checked = false; return siteStatus('Could not load building sites. Try again.'); }
+        }
+        render(); loadSites();
+    });
+    map.on('moveend', () => { clearTimeout(siteTimer); siteTimer = setTimeout(loadSites, 400); });
+    ['f-segment', 'f-stage', 'f-owner', 'f-verified', 'f-precision', 'f-props', 'f-pstatus'].forEach(id => el(id).addEventListener('change', () => { render(); loadSites(); }));
 
     const areaPopup = (county, sub) => {
         const q = f(); const saved = area; area = { county, sub };
