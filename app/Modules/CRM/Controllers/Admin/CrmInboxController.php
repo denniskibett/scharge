@@ -38,7 +38,7 @@ class CrmInboxController extends Controller
         $data = ['mailboxes' => $mailboxes, 'box' => $box, 'role' => $role, 'page' => $page, 'search' => $search,
             'folders' => [], 'list' => ['total' => 0, 'items' => []], 'message' => null, 'error' => null, 'companies' => [],
             'unread' => [], 'available' => MailboxClient::available(),
-            'owners' => CrmAccess::seesAll($user) ? User::role(['sysadmin', 'account_manager'])->orderBy('name')->get(['id', 'name', 'email']) : collect()];
+            'owners' => CrmAccess::seesAll($user) ? User::whereHas('roles', fn ($q) => $q->whereIn('name', ['sysadmin', 'account_manager', 'sales']))->orderBy('name')->get(['id', 'name', 'email']) : collect()];
 
         if ($box && $box->isConnected() && $data['available']) {
             try {

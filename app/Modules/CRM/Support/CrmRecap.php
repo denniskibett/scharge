@@ -41,17 +41,26 @@ class CrmRecap
     }
 
     /** Cold emails sent in the window and how far each got so far, plus things that happened in the window to any email. */
-    public function funnel(): array
+    public function funnel(?Collection $assignedTo = null): array
     {
-        $sent = $this->fu()->where('type', 'email')->whereNotNull('details->track')->whereBetween('created_at', [$this->from, $this->to])->get();
+        $sent = $this->fu()->where('type', 'email')->whereNotNull('details->track')->whereBetween('created_at', [$this->from, $this->to])
+            ->when($assignedTo, fn ($q) => $q->whereIn('assigned_to', $assignedTo))->get();
         $reached = fn (string $step) => $sent->filter(fn ($e) => $e->detail($step.'_at'))->count();
-        $events = fn (string $step) => $this->fu()->where('type', 'email')->whereNotNull('details->track')
+        $events = fn (string $step) => $this->fu()->where('type', 'email')->whereNotNull('details->track')->when($assignedTo, fn ($q) => $q->whereIn('assigned_to', $assignedTo))
             ->where('details->'.$step.'_at', '>=', $this->from->copy()->tz(config('app.timezone'))->toDateTimeString())
             ->where('details->'.$step.'_at', '<', $this->to->copy()->tz(config('app.timezone'))->toDateTimeString())->count();
 
         return [
             'sent' => $sent->count(),
             'by_campaign' => $sent->countBy(fn ($e) => strtok((string) ($e->detail('campaign') ?? 'Playbook'), ' '))->all(),
+            // per campaign: how far its emails got
+            'campaigns' => $sent->groupBy(fn ($e) => strtok((string) ($e->detail('campaign') ?? 'Playbook'), ' '))->map(fn ($g) => [
+                'sent' => $g->count(),
+                'delivered' => $g->filter(fn ($e) => in_array(EmailTracking::status($e), ['delivered', 'opened', 'clicked', 'replied', 'booked'], true))->count(),
+                'opened' => $g->filter(fn ($e) => $e->detail('opened_at'))->count(), 'clicked' => $g->filter(fn ($e) => $e->detail('clicked_at'))->count(),
+                'replied' => $g->filter(fn ($e) => $e->detail('replied_at'))->count(), 'booked' => $g->filter(fn ($e) => $e->detail('booked_at'))->count(),
+                'bounced' => $g->filter(fn ($e) => EmailTracking::status($e) === 'bounced')->count(),
+            ])->sortByDesc('sent')->all(),
             'delivered' => $sent->filter(fn ($e) => in_array(EmailTracking::status($e), ['delivered', 'opened', 'clicked', 'replied', 'booked'], true))->count(),
             'bounced' => $sent->filter(fn ($e) => EmailTracking::status($e) === 'bounced')->count(),
             'waiting' => $sent->filter(fn ($e) => in_array(EmailTracking::status($e), ['sent', 'deferred'], true))->count(),

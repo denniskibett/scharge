@@ -10,6 +10,7 @@ use App\Modules\CRM\Controllers\Admin\CrmCampaignController;
 use App\Modules\CRM\Controllers\Admin\CrmPropertyController;
 use App\Modules\CRM\Controllers\Admin\CrmReplyController;
 use App\Modules\CRM\Controllers\Admin\CrmTeamController;
+use App\Modules\CRM\Controllers\Admin\CrmFunnelController;
 use App\Modules\CRM\Controllers\Admin\CrmSalesController;
 use App\Modules\CRM\Controllers\Admin\CrmWaitlistController;
 use App\Modules\CRM\Controllers\Site\DemoRequestController;
@@ -43,7 +44,7 @@ Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->midd
 // ---------------------------------------------------------------------------
 // CRM (scharge staff only)
 // ---------------------------------------------------------------------------
-Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->prefix('crm')->name('crm.')->group(function () {
+Route::middleware(['auth', 'role:sysadmin|account_manager|sales', 'access:crm'])->prefix('crm')->name('crm.')->group(function () {
     Route::get('/', [CrmCompanyController::class, 'index'])->name('index');
     Route::get('/map', [CrmMapController::class, 'index'])->name('map.index');
     Route::get('/map/data.json', [CrmMapController::class, 'data'])->name('map.data');
@@ -66,6 +67,7 @@ Route::middleware(['auth', 'role:sysadmin|account_manager', 'access:crm'])->pref
     Route::post('/companies/{crmCompany}/reply', [CrmReplyController::class, 'answer'])->middleware('throttle:20,1')->name('companies.reply.answer');
     Route::post('/companies/{crmCompany}/reply/handled', [CrmReplyController::class, 'handled'])->name('companies.reply.handled');
     Route::get('/team', [CrmTeamController::class, 'index'])->name('team.index');
+    Route::get('/funnel', [CrmFunnelController::class, 'index'])->name('funnel.index');
     Route::post('/companies/{crmCompany}/contacts', [CrmCompanyController::class, 'addContact'])->name('companies.contacts.store');
     Route::post('/companies/{crmCompany}/follow-ups', [CrmFollowUpController::class, 'store'])->name('companies.follow-ups.store');
     Route::post('/companies/{crmCompany}/feedback', [CrmFollowUpController::class, 'requestFeedback'])->name('companies.feedback.store');

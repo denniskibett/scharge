@@ -14,6 +14,7 @@ class RoleDescriptions
     public const DESCRIPTIONS = [
         'sysadmin' => 'scharge staff: full access to every company and system setting.',
         'account_manager' => 'scharge staff: manages a book of companies, their leads and revenue.',
+        'sales' => 'scharge staff: sells. Works their own prospects in the CRM (pipeline, funnel, follow-ups).',
         'admin' => 'Company admin (landlord side): runs the company\'s properties, staff and money.',
         'property_manager' => 'Runs properties: units, tenants, tenancies, repairs and notices.',
         'accountant' => 'Finance: invoices, payments, payees and expenses.',

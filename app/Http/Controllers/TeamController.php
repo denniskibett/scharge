@@ -143,7 +143,7 @@ class TeamController extends Controller
     private function assignableRoles(Request $request, bool $staffTeam): array
     {
         if ($staffTeam) {
-            return ['account_manager' => 'Account manager: owns a book of companies, their leads and revenue', 'sysadmin' => 'System admin: everything'];
+            return ['account_manager' => 'Account manager: owns a book of companies, their leads and revenue', 'sales' => 'Sales: works their own prospects in the CRM', 'sysadmin' => 'System admin: everything'];
         }
 
         // Custom roles made on the Roles page can be given too.

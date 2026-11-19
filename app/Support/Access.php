@@ -39,6 +39,7 @@ class Access
     public const ROLES = [
         'sysadmin' => '*',
         'account_manager' => ['crm.*', 'companies.view', 'companies.manage', 'reports.view', 'payments.view'],
+        'sales' => ['crm.*', 'companies.view'],
         'admin' => ['properties.*', 'tenants.*', 'water.*', 'maintenance.*', 'security.*', 'invoices.*', 'payments.*', 'expenses.*',
             'reports.view', 'sms.*', 'team.*', 'settings.*'],
         'property_manager' => ['properties.view', 'properties.manage', 'tenants.view', 'tenants.manage', 'water.view', 'water.manage',
@@ -65,7 +66,7 @@ class Access
     ];
 
     /** Built-in roles: code checks their names, so they cannot be renamed or deleted. */
-    public const BUILT_IN = ['sysadmin', 'account_manager', 'admin', 'property_manager', 'accountant', 'meter_reader',
+    public const BUILT_IN = ['sysadmin', 'account_manager', 'sales', 'admin', 'property_manager', 'accountant', 'meter_reader',
         'maintenance', 'cleaning_staff', 'security', 'tenant', 'bnb_host', 'guest'];
 
     /** Extra permissions given to particular people (never through a role's "area.*" wildcard). */

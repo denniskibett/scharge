@@ -208,6 +208,11 @@ document.addEventListener('alpine:init', () => {
         'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos', 'crm_waitlist', 'crm_feedback',
         'administration', 'sign_ins', 'companies', 'property_claims', 'kyc_reviews', 'website_reviews',
       ],
+      // scharge staff: sells; their own prospects only.
+      'sales': [
+        'dashboard', 'calendar', 'profile',
+        'crm', 'crm_pipeline', 'crm_follow_ups', 'crm_demos',
+      ],
       'admin': [
         'dashboard', 'calendar', 'profile',
         'property', 'properties', 'units', 'bookings', 'enquiries', 'demand', 'tenants', 'tenancies',
@@ -343,6 +348,8 @@ document.addEventListener('alpine:init', () => {
         items: [
           { name: 'crmPipeline', label: 'Pipeline', link: '/crm', page: 'crmPipeline', permission: 'crm_pipeline',
             stroke: true, icon: 'M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z' },
+          { name: 'crmFunnel', label: 'Sales funnel', link: '/crm/funnel', page: 'crmFunnel', permission: 'crm_pipeline',
+            stroke: true, icon: 'M3 4.5h18l-7 8.25v6l-4 1.5v-7.5L3 4.5Z' },
           { name: 'crmFollowUps', label: 'Follow-ups', link: '/crm/follow-ups', page: 'crmFollowUps', permission: 'crm_follow_ups',
             stroke: true, icon: 'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z' },
           { name: 'crmDemos', label: 'Requests', link: '/crm/requests', page: 'crmDemos', permission: 'crm_demos',

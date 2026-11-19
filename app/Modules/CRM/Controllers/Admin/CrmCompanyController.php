@@ -226,7 +226,7 @@ class CrmCompanyController extends Controller
     {
         // whereHas instead of User::role(): Spatie throws if a role row is missing,
         // and account_manager may not exist yet in every database.
-        return User::whereHas('roles', fn ($q) => $q->whereIn('name', ['sysadmin', 'account_manager']))
+        return User::whereHas('roles', fn ($q) => $q->whereIn('name', ['sysadmin', 'account_manager', 'sales']))
             ->orderBy('name')->get(['users.id', 'users.name']);
     }
 }

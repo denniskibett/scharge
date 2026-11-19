@@ -34,7 +34,7 @@ class DailyRecap extends Command
         $team = [
             'headline' => 'What happened in the CRM', 'window' => $window,
             'funnel' => $recap->funnel(), 'totals' => $recap->totals(),
-            'people' => $recap->people(User::whereIn('id', $staff)->whereHas('roles', fn ($q) => $q->where('name', 'account_manager'))->pluck('id')),
+            'people' => $recap->people(User::whereIn('id', $staff)->whereHas('roles', fn ($q) => $q->whereIn('name', ['account_manager', 'sales']))->pluck('id')),
             'hot' => $recap->hotLeads(null, 10), 'todo' => [],
         ];
         $admins = $this->option('to') ? [$this->option('to')]
@@ -47,7 +47,7 @@ class DailyRecap extends Command
             return self::SUCCESS;
         }
 
-        foreach (User::whereIn('id', $staff)->whereHas('roles', fn ($q) => $q->where('name', 'account_manager'))->get() as $am) {
+        foreach (User::whereIn('id', $staff)->whereHas('roles', fn ($q) => $q->whereIn('name', ['account_manager', 'sales']))->get() as $am) {
             $ids = collect([$am->id]);
             $mine = $recap->people($ids)->first();
             $dueToday = CrmFollowUp::where('assigned_to', $am->id)->dueToday()->count();
