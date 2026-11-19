@@ -16,7 +16,10 @@ class WaterReadingController extends Controller
         $user = auth()->user();
         
         // Get readings with unit and property relationships
+        // Only readings of units this person may see: units are filtered by company (CompanyAccess), readings are not,
+        // so without whereHas another company's readings came back with no unit and the page crashed.
         $query = WaterReading::with(['unit.property'])
+            ->whereHas('unit')
             ->orderBy('reading_date', 'desc');
         
         // Filter based on user role
@@ -1006,6 +1009,7 @@ public function storeBulkMatrix(Request $request)
         ]);
         
         $query = WaterReading::with(['unit.property'])
+            ->whereHas('unit') // this company's units only (see index)
             ->whereBetween('reading_date', [$validated['start_date'], $validated['end_date']]);
         
         if ($validated['property_id'] ?? false) {
