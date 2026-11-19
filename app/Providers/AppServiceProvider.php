@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Live is served over https: every generated link, form action and asset URL must be https too.
+        if ($this->app->isProduction() && str_starts_with((string) config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Payment attempts (docs/APP_DATA.md): how each M-Pesa prompt and Sharet pay page ended.
         \App\Models\MpesaStk::updated(fn ($stk) => $stk->wasChanged('response_code')
             && \App\Services\Payments\PaymentAttempts::stkResult($stk->checkout_request_id, $stk->response_code, $stk->response_description));

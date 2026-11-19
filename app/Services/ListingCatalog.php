@@ -67,9 +67,10 @@ class ListingCatalog
             $urls = $set->where('applies_to', 'type')->where('unit_type', $r->unit_type)->merge($set->where('applies_to', 'property'))
                 ->map(fn ($p) => Storage::disk('public')->url($p->path))->values()->all();
 
-            $water = $r->custom_rate ?? $r->water_rate;
+            // A unit's own water rate wins only when set (> 0); a 0 there must not hide the building's rate.
+            $water = (float) $r->custom_rate > 0 ? (float) $r->custom_rate : (float) $r->water_rate;
             $costs = collect([
-                $water ? 'Water KES '.number_format((float) $water).'/m³' : null,
+                $water > 0 ? 'Water KES '.number_format($water).'/m³' : null,
                 (float) $r->service > 0 ? 'service KES '.number_format((float) $r->service) : null,
                 (float) $r->deposit > 0 ? 'deposit KES '.number_format((float) $r->deposit) : null,
             ])->filter()->join(' · ') ?: 'Ask the caretaker for other costs';
