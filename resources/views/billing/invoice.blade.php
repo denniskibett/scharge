@@ -47,6 +47,8 @@ td small { display: block; color: var(--muted); }
 .link-url { font: 12.5px/1 ui-monospace, Menlo, monospace; color: #344054; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: #F9FAFB; min-width: 0; width: 100%; text-overflow: ellipsis; }
 .link-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 6px; border-top: 1px solid #F2F4F7; }
 .vat-form { display: flex; gap: 6px; align-items: center; margin: 0; }
+.pay-top { border-top: 1px solid #F2F4F7; padding-top: 12px; }
+.pay-top h3 { margin: 0 0 10px; font-size: 14px; }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
 @media (max-width: 640px) { .link-row { grid-template-columns: 1fr auto auto; } .link-lbl { grid-column: 1 / -1; } }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
@@ -80,6 +82,17 @@ td small { display: block; color: var(--muted); }
       <a class="btn sm" href="{{ $url }}" target="_blank" rel="noopener">Open</a>
     </div>
   @endforeach
+  @unless ($paid)
+    <div class="pay-top">
+      <h3>Payment details · Sharet Pay</h3>
+      <div class="pay-grid">
+        <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.@if (! empty($pay['sharet_handle']))<br>Sharet to Sharet: <strong>{{ '@'.ltrim($pay['sharet_handle'], '@') }}</strong>@endif</div>
+        <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.@if (! empty($pay['stk_number']))<br>STK push number: <strong>{{ $pay['stk_number'] }}</strong>@endif</div>
+        <div><b>Reference</b>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></div>
+        <div><b>Questions</b>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</div>
+      </div>
+    </div>
+  @endunless
   <div class="link-actions">
     @if (! $public && ! $staff)<a class="btn" href="{{ route('billing.index') }}">Back to Billing</a>@endif
     @if ($staff && ! $public && ! $paid)
