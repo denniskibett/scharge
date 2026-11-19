@@ -61,7 +61,7 @@ td small { display: block; color: var(--muted); }
 .btn.icon { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; color: #344054; flex: none; }
 .btn.icon:hover { color: var(--red); border-color: #FECACA; }
 .btn.xs { padding: 5px 10px; font-size: 12.5px; }
-@media (max-width: 680px) { .cards { grid-template-columns: 1fr; } }
+@media (max-width: 680px) { .cards { grid-template-columns: 1fr; } .top > div:last-child { text-align: left !important; } }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
 .pm { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: grid; place-items: center; padding: 16px; z-index: 50; animation: fade .15s ease; }
 .pm[hidden] { display: none; }
