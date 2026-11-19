@@ -47,7 +47,29 @@ class SiteController extends Controller
             'preview' => $preview,
             'menu' => CompanyPage::where('company_id', $brand->company_id)->whereNotNull('published_at')->where('show_in_menu', true)->orderBy('sort')->get(['slug', 'title']),
             'listings' => $page->template === 'rentals' || $page->template === 'home' ? $this->listings($brand->company_id) : [],
+            'buildings' => in_array($page->template, ['home', 'about', 'rentals'], true) ? $this->buildings($brand->company_id) : [],
         ]);
+    }
+
+    /** The company's buildings for its site: name, area, home types, how many are free, rents from, a photo if any. */
+    private function buildings(int $companyId): array
+    {
+        $rows = DB::table('properties as p')->leftJoin('units as u', 'u.property_id', '=', 'p.id')->where('p.company_id', $companyId)
+            ->groupBy('p.id', 'p.name', 'p.location')
+            ->selectRaw("p.id, p.name, p.location, COUNT(u.id) as units, SUM(u.status = 'vacant') as vacant,
+                MIN(NULLIF(u.rent_amount, 0)) as rent_from, GROUP_CONCAT(DISTINCT u.unit_type ORDER BY u.unit_type SEPARATOR ', ') as types")
+            ->orderBy('p.name')->get();
+        $photos = \Illuminate\Support\Facades\Schema::hasTable('unit_photos')
+            ? DB::table('unit_photos')->whereIn('property_id', $rows->pluck('id'))->orderBy('sort')->get(['property_id', 'path'])->groupBy('property_id')
+            : collect();
+
+        return $rows->map(fn ($r) => [
+            'name' => $r->name, 'area' => $r->location, 'units' => (int) $r->units, 'vacant' => (int) $r->vacant,
+            'rent_from' => $r->rent_from ? (float) $r->rent_from : null,
+            'types' => collect(explode(', ', (string) $r->types))->filter(fn ($t) => $t && strcasecmp($t, 'Shop') !== 0)->values()->all(),
+            'shops' => str_contains(strtolower((string) $r->types), 'shop'),
+            'photo' => ($ph = $photos->get($r->id)?->first()) ? \Illuminate\Support\Facades\Storage::disk('public')->url($ph->path) : null,
+        ])->all();
     }
 
     /** Contact form on the company's site: a CRM follow-up for the company, and an SMS to its admins. */
