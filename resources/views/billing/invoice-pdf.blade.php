@@ -6,7 +6,7 @@
   $paid = $inv->status === 'paid';
   $late = ! $paid && \Illuminate\Support\Carbon::parse($inv->due_date)->lt(now()->startOfDay());
   $rateTxt = rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.');
-  $logo = public_path('assets/images/brand/scharge-logo.svg');
+  $logo = public_path('assets/images/brand/scharge-logo.png');
 @endphp
 <!doctype html>
 <html>
@@ -83,7 +83,7 @@ h1 { margin: 0; font-size: 18pt; }
 </table>
 
 @unless ($paid)
-  <div class="payline">@if (is_file(public_path('images/integrations/sharet.svg')))<img src="{{ public_path('images/integrations/sharet.svg') }}" style="width:12pt;height:12pt;vertical-align:-3pt;margin-right:4pt" alt="">@endif<a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">Pay with Sharet Pay</a><span class="muted">&nbsp;&nbsp;·&nbsp;&nbsp;M-Pesa STK push or Sharet to Sharet @if ($handle) ({{ $handle }})@endif</span></div>
+  <div class="payline">@if (is_file(public_path('images/integrations/sharet.png')))<img src="{{ public_path('images/integrations/sharet.png') }}" style="width:12pt;height:12pt;vertical-align:-3pt;margin-right:4pt" alt="">@endif<a href="{{ $payUrl }}" style="color:#DC2626;font-weight:bold;text-decoration:none">Pay with Sharet Pay</a><span class="muted">&nbsp;&nbsp;·&nbsp;&nbsp;M-Pesa STK push or Sharet to Sharet @if ($handle) ({{ $handle }})@endif</span></div>
 @endunless
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 

@@ -20,9 +20,10 @@ use Illuminate\Support\Facades\URL;
  */
 class InvoicePayController extends Controller
 {
-    public static function startUrl(int $invoice): string
+    /** $toSharet: straight on to the Sharet Africa payment gateway (the invoice's Pay with Sharet Pay button and the PDF). */
+    public static function startUrl(int $invoice, bool $toSharet = false): string
     {
-        return URL::signedRoute('billing.invoice.pay', ['invoice' => $invoice]);
+        return URL::signedRoute('billing.invoice.pay', $toSharet ? ['invoice' => $invoice, 'to' => 'sharet'] : ['invoice' => $invoice]);
     }
 
     public static function statusUrl(int $invoice, string $ref): string
@@ -56,8 +57,8 @@ class InvoicePayController extends Controller
             return $this->page($inv, null, $e->getMessage());
         }
 
-        // Opened in the invoice's pay modal (an iframe): the Sharet Africa payment gateway itself, nothing around it.
-        if (config('billing.sharet_embed') && request()->header('Sec-Fetch-Dest') === 'iframe' && $row->isOpen() && $row->pay_url) {
+        // The invoice's Pay with Sharet Pay: on to the Sharet Africa payment gateway itself.
+        if (request()->query('to') === 'sharet' && $row->isOpen() && $row->pay_url) {
             return redirect()->away($row->pay_url);
         }
 

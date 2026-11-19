@@ -63,12 +63,6 @@ td small { display: block; color: var(--muted); }
 .btn.xs { padding: 5px 10px; font-size: 12.5px; }
 @media (max-width: 680px) { .cards { grid-template-columns: 1fr; } .top > div:last-child { text-align: left !important; } }
 .btn.sm { padding: 7px 12px; font-size: 13px; }
-.pm { position: fixed; inset: 0; background: rgb(0 0 0 / .5); display: grid; place-items: center; padding: 16px; z-index: 50; animation: fade .15s ease; }
-.pm[hidden] { display: none; }
-.pm-box { position: relative; width: min(520px, 100%); height: min(760px, calc(100vh - 32px)); background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 24px 60px -20px rgb(0 0 0 / .45); animation: rise .2s cubic-bezier(.2,.7,.2,1); }
-.pm-box iframe { width: 100%; height: 100%; border: 0; display: block; }
-.pm-x { position: absolute; top: 10px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: #fff; font-size: 20px; line-height: 1; cursor: pointer; color: #344054; }
-@keyframes fade { from { opacity: 0; } } @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.98); } }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
 @page { size: A4 portrait; margin: 10mm 12mm 10mm; }
@@ -84,7 +78,7 @@ td small { display: block; color: var(--muted); }
   .payline { margin-top: 10px; padding-top: 6px; font-size: 10px; }
   thead { display: table-row-group; }
 }
-@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast, .pm { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
+@media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .cards, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
 .sp-link { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--red); text-decoration: none; }
 .sp-link img { border-radius: 5px; }
 .sp-link:hover { text-decoration: underline; }
@@ -100,7 +94,7 @@ td small { display: block; color: var(--muted); }
     <div class="card-head"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="36" height="36"><div><b>Sharet Pay</b><span>{{ $paid ? 'Paid'.($inv->paid_at ? ' · '.\Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') : '') : 'M-Pesa or Sharet to Sharet' }}</span></div></div>
     <div class="pay-amt">{{ $money($total) }}@if (! $paid && $handle)<span>to <strong>{{ $handle }}</strong></span>@endif</div>
     @unless ($paid)
-      <a class="btn red wide" href="{{ $payUrl }}" target="_blank" rel="noopener" data-pay>Pay with Sharet Pay</a>
+      <a class="btn red wide" href="{{ $payUrl }}" target="_blank" rel="noopener">Pay with Sharet Pay</a>
     @else
       <div class="paid-note">Thank you. This invoice is paid.</div>
     @endunless
@@ -126,14 +120,6 @@ td small { display: block; color: var(--muted); }
     @endif
   </section>
 </div>
-@unless ($paid)
-<div class="pm" id="payModal" hidden>
-  <div class="pm-box" role="dialog" aria-modal="true" aria-label="Pay with Sharet Pay">
-    <button class="pm-x" type="button" aria-label="Close" onclick="closePay()">×</button>
-    <iframe id="payFrame" title="Sharet Pay" src="about:blank"></iframe>
-  </div>
-</div>
-@endunless
 <div class="page">
   <div class="top">
     <div>
@@ -184,7 +170,7 @@ td small { display: block; color: var(--muted); }
 
   @unless ($paid)
     <div class="payline">
-      <a class="sp-link" href="{{ $payUrl }}" target="_blank" rel="noopener" data-pay><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay →</a>
+      <a class="sp-link" href="{{ $payUrl }}" target="_blank" rel="noopener"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay →</a>
       <span class="muted">M-Pesa STK push or Sharet to Sharet @if ($handle) ({{ $handle }})@endif</span>
     </div>
   @endunless
@@ -192,11 +178,6 @@ td small { display: block; color: var(--muted); }
 </div>
 <div class="toast" id="toast"></div>
 <script>
-const payModal = document.getElementById('payModal');
-function openPay(url) { if (!payModal) return true; document.getElementById('payFrame').src = url; payModal.hidden = false; document.body.style.overflow = 'hidden'; return false; }
-function closePay() { payModal.hidden = true; document.getElementById('payFrame').src = 'about:blank'; document.body.style.overflow = ''; location.reload(); }
-document.querySelectorAll('[data-pay]').forEach((a) => a.addEventListener('click', (e) => { e.preventDefault(); openPay(a.href); }));
-if (payModal) { payModal.addEventListener('click', (e) => { if (e.target === payModal) closePay(); }); document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !payModal.hidden) closePay(); }); }
 function copyLink(url, msg) {
   const done = () => { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 1800); };
   if (navigator.clipboard) { navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link:', url); }); } else { prompt('Copy this link:', url); }
