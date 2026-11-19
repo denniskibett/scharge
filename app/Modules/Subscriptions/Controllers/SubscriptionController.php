@@ -969,18 +969,6 @@ class SubscriptionController extends Controller
     }
 
     /**
-     * Display all plans for selection (Admin Plans Index)
-     * Route: GET /admin/subscriptions/plans
-     */
-    public function plansIndex()
-    {
-        $plans = SubscriptionPlan::orderBy('price_per_unit')
-            ->orderBy('id', 'desc')
-            ->get();
-        return view('subscriptions.index', compact('plans'));
-    }
-
-    /**
      * Get subscribers for a plan
      * Route: GET /admin/subscriptions/api/plans/{plan}/subscribers
      */
@@ -1120,7 +1108,6 @@ class SubscriptionController extends Controller
             ], 500);
         }
     }
-
 
     /**
      * Get counties
@@ -1469,109 +1456,4 @@ class SubscriptionController extends Controller
         }
     }
 
-    /**
-     * Get company subscription invoices
-     * Route: GET /admin/companies/{company}/subscription-invoices
-     */
-    public function getCompanySubscriptionInvoices($companyId)
-    {
-        try {
-            $company = Company::findOrFail($companyId);
-            
-            $invoices = SubscriptionInvoice::whereHas('subscription', function($q) use ($company) {
-                $q->where('company_id', $company->id);
-            })
-            ->with(['subscription.plan'])
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function($invoice) {
-                return [
-                    'id' => $invoice->id,
-                    'invoice_number' => $invoice->invoice_number ?? '#'.$invoice->id,
-                    'company_name' => $invoice->subscription?->company?->name ?? 'N/A',
-                    'plan_name' => $invoice->subscription?->plan?->name ?? 'N/A',
-                    'amount' => (float) $invoice->amount,
-                    'status' => $invoice->status ?? 'pending',
-                    'due_date' => $invoice->due_date ? $invoice->due_date->toISOString() : null,
-                    'created_at' => $invoice->created_at ? $invoice->created_at->toISOString() : null,
-                ];
-            });
-            
-            $totalAmount = $invoices->sum('amount');
-            
-            return response()->json([
-                'success' => true,
-                'invoices' => $invoices,
-                'total_amount' => (float) $totalAmount,
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Error in getCompanySubscriptionInvoices: ' . $e->getMessage(), [
-                'company_id' => $companyId,
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error loading subscription invoices: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get company subscriptions (active and trial only)
-     * Route: GET /admin/companies/{company}/subscriptions
-     */
-    public function getCompanySubscriptionsForCompany($companyId)
-    {
-        try {
-            $company = Company::findOrFail($companyId);
-            
-            $subscriptions = CompanySubscription::where('company_id', $company->id)
-                ->whereIn('status', ['active', 'trial'])
-                ->with(['plan'])
-                ->orderBy('created_at', 'desc')
-                ->get()
-                ->map(function($subscription) {
-                    $amount = 0;
-                    if ($subscription->plan) {
-                        if ($subscription->billing_cycle === 'monthly') {
-                            $amount = (float) ($subscription->plan->price_monthly ?? 0);
-                        } else {
-                            $amount = (float) ($subscription->plan->price_yearly ?? 0);
-                        }
-                    }
-                    
-                    return [
-                        'id' => $subscription->id,
-                        'plan_name' => $subscription->plan->name ?? 'N/A',
-                        'billing_cycle' => $subscription->billing_cycle ?? 'monthly',
-                        'starts_at' => $subscription->starts_at ? $subscription->starts_at->toISOString() : null,
-                        'ends_at' => $subscription->ends_at ? $subscription->ends_at->toISOString() : null,
-                        'status' => $subscription->status ?? 'inactive',
-                        'amount' => $amount,
-                        'unit_count' => $subscription->unit_count ?? 0,
-                        'auto_renew' => $subscription->auto_renew ?? false,
-                    ];
-                });
-            
-            return response()->json([
-                'success' => true,
-                'subscriptions' => $subscriptions,
-            ]);
-            
-        } catch (\Exception $e) {
-            Log::error('Error in getCompanySubscriptionsForCompany: ' . $e->getMessage(), [
-                'company_id' => $companyId,
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error loading subscriptions: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 }

@@ -392,7 +392,6 @@ public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResp
         }
     }
 
-
     public function destroy(Request $request): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
@@ -416,13 +415,5 @@ public function update(ProfileUpdateRequest $request): RedirectResponse|JsonResp
         return Redirect::to('/');
     }
 
-    public function getData()
-    {
-        $user = auth()->user();
-        
-        return response()->json([
-            'user' => $user->only(['name', 'email', 'phone', 'bio', 'country', 'city', 'state', 'postal_code', 'tax_id'])
-        ]);
-    }
     
 }

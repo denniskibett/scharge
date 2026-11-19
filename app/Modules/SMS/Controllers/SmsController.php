@@ -566,44 +566,6 @@ class SmsController extends Controller
     }
 
     // ============================================
-    // SHOW CAMPAIGN
-    // ============================================
-    public function showCampaign($id)
-    {
-        $campaign = SmsCampaign::with('logs', 'creator')->findOrFail($id);
-        return view('sms.campaigns.show', compact('campaign'));
-    }
-
-    // ============================================
-    // RESEND FAILED
-    // ============================================
-    public function resendFailed(Request $request, $campaignId, KenyaSMS $kenyaSms)
-    {
-        $campaign = SmsCampaign::with('logs')->findOrFail($campaignId);
-        $failedLogs = $campaign->logs()->where('status', 'failed')->get();
-        if ($failedLogs->isEmpty()) {
-            return redirect()->route('sms.campaigns.show', $campaign->id)
-                ->with('error', 'No failed messages to resend.');
-        }
-        $sent = 0;
-        $failed = 0;
-        foreach ($failedLogs as $log) {
-            $result = $kenyaSms->sendOne($log->recipient_phone, $log->message, null, $campaign->id);
-            if ($result['success']) {
-                $sent++;
-                $log->update(['status' => 'sent']);
-            } else {
-                $failed++;
-            }
-        }
-        $campaign->sent_count += $sent;
-        $campaign->failed_count = $campaign->failed_count - $sent;
-        $campaign->save();
-        return redirect()->route('sms.campaigns.show', $campaign->id)
-            ->with('success', "Resent {$sent} messages successfully. {$failed} still failed.");
-    }
-
-    // ============================================
     // GET TENANT PAYMENT STATUS
     // ============================================
     public function getTenantPaymentStatus($tenantId)
