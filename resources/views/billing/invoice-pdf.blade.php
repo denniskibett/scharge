@@ -81,9 +81,9 @@ h1 { margin: 0; font-size: 18pt; }
   @else
     <tr><td class="muted">VAT</td><td class="r muted">Not charged</td></tr>
   @endif
-  <tr class="grand"><td>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
   @if ($paid && $inv->paid_at)<tr><td class="muted">Paid</td><td class="r muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
 </table>
+<table style="margin-top:6pt"><tr class="grand"><td>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr></table>
 
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
 @unless ($paid)

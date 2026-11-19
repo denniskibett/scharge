@@ -40,7 +40,7 @@ th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
 .totals { margin-left: auto; width: min(320px, 100%); margin-top: 16px; }
 .totals div { display: flex; justify-content: space-between; padding: 6px 0; }
-.totals .grand { border-top: 2px solid var(--ink); margin-top: 6px; padding-top: 10px; font-size: 18px; font-weight: 700; }
+.grand { display: flex; justify-content: space-between; border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 700; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .actions { max-width: 820px; margin: 0 auto 28px; display: flex; gap: 10px; justify-content: flex-end; padding: 0 4px; }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
@@ -104,9 +104,9 @@ td small { display: block; color: var(--muted); }
     @else
       <div><span class="muted">VAT</span><span class="muted">Not charged</span></div>
     @endif
-    <div class="grand"><span>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</span><span>{{ $money($total) }}</span></div>
-    @if ($paid && $inv->paid_at)<div class="muted"><span>Paid</span><span>{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</span></div>@endif
   </div>
+  <div class="grand"><span>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</span><span>{{ $money($total) }}</span></div>
+  @if ($paid && $inv->paid_at)<div class="totals"><div class="muted"><span>Paid</span><span>{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</span></div></div>@endif
 
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
   @unless ($paid)
