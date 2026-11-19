@@ -25,12 +25,10 @@ h1 { margin: 0; font-size: 18pt; }
 .lines th { text-align: left; font-size: 7.5pt; color: #667085; font-weight: normal; text-transform: uppercase; letter-spacing: .5pt; padding: 5pt 0; border-bottom: 1px solid #EAECF0; }
 .lines td { padding: 3pt 0; border-bottom: 1px solid #F2F4F7; color: #667085; vertical-align: top; }
 .r { text-align: right; white-space: nowrap; padding-left: 10pt !important; }
-.totals { width: 100%; margin-top: 2pt; }
-.totals td { padding: 3pt 0; border-bottom: 1px solid #F2F4F7; }
-.gap { width: 50%; }
-.grand td { border-top: 2px solid #101828; padding-top: 6pt; font-size: 12pt; font-weight: bold; }
-.box { margin-top: 12pt; border: 1px solid #EAECF0; border-radius: 8pt; padding: 10pt 12pt; }
-.box td { vertical-align: top; padding: 4pt 10pt 4pt 0; width: 50%; }
+.lines .sub td { color: #101828; }
+.lines .grand td { border-top: 2px solid #101828; border-bottom: 0; padding-top: 6pt; font-size: 12pt; font-weight: bold; color: #101828; }
+.box { margin: 0 0 8pt; border: 1px solid #EAECF0; border-radius: 8pt; padding: 10pt 12pt; }
+.box td { vertical-align: top; padding: 2pt 10pt 0 0; font-size: 8.5pt; }
 .note { margin-top: 14pt; padding: 9pt 11pt; background: #F9FAFB; border-radius: 8pt; color: #344054; }
 </style>
 </head>
@@ -61,6 +59,18 @@ h1 { margin: 0; font-size: 18pt; }
   </tr>
 </table>
 
+@unless ($paid)
+  <div class="box">
+    <b>Payment details · Sharet Pay</b>
+    <table style="margin-top:3pt">
+      <tr>
+        <td><span class="lbl">1 · scharge to scharge</span>Sign in at scharge.sharet.africa › Billing › Pay from wallet. Settles instantly.</td>
+        <td><span class="lbl">2 · M-Pesa (STK push)</span>Sign in › Billing › Pay with Sharet Pay, then approve the prompt on the phone.</td>
+        <td style="width:24%"><span class="lbl">Reference</span>{{ $inv->invoice_number }}<br><span class="muted">{{ $money($total) }}</span></td>
+      </tr>
+    </table>
+  </div>
+@endunless
 <table class="lines">
   <thead><tr><th>Description</th><th class="r">Units</th><th class="r">Rate / unit</th><th class="r">Amount</th></tr></thead>
   <tbody>
@@ -73,34 +83,15 @@ h1 { margin: 0; font-size: 18pt; }
       </tr>
     @endforeach
   </tbody>
+  <tfoot>
+    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
+    <tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">VAT ({{ $vat['mode'] === 'exclusive' ? $rateTxt : '0' }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
+    <tr class="grand"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr>
+    @if ($paid && $inv->paid_at)<tr class="sub"><td>&nbsp;</td><td>&nbsp;</td><td class="r">Paid</td><td class="r">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
+  </tfoot>
 </table>
-
-<table class="totals">
-  <tr><td class="gap">&nbsp;</td><td class="muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="r">{{ $money($vat['net']) }}</td></tr>
-  @if ($vat['mode'] === 'exclusive')
-    <tr><td class="gap">&nbsp;</td><td class="muted">VAT ({{ $rateTxt }}%)</td><td class="r">{{ $money($vat['tax']) }}</td></tr>
-  @else
-    <tr><td class="gap">&nbsp;</td><td class="muted">VAT (0%)</td><td class="r">{{ $money(0) }}</td></tr>
-  @endif
-  @if ($paid && $inv->paid_at)<tr><td class="gap">&nbsp;</td><td class="muted">Paid</td><td class="r muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
-</table>
-<table style="margin-top:2pt"><tr class="grand"><td class="gap">&nbsp;</td><td>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="r">{{ $money($total) }}</td></tr></table>
 
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
-@unless ($paid)
-  <div class="box">
-    <b>Payment details · Sharet Pay</b>
-    <table style="margin-top:6pt">
-      <tr>
-        <td><span class="lbl">1 · scharge to scharge</span>Pay from your scharge wallet: sign in at scharge.sharet.africa, open Billing and choose Pay from wallet. It settles instantly.</td>
-        <td><span class="lbl">2 · M-Pesa (STK push)</span>Sign in, open Billing and choose Pay with Sharet Pay: enter the M-Pesa number and approve the prompt on the phone with your PIN.</td>
-      </tr>
-      <tr>
-        <td><span class="lbl">Reference</span>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></td>
-        <td><span class="lbl">Questions</span>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</td>
-      </tr>
-    </table>
-  </div>
-@endunless
+
 </body>
 </html>

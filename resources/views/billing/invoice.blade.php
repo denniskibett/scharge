@@ -38,18 +38,15 @@ td.amt, th.amt, td.num, th.num { text-align: right; white-space: nowrap; }
 td.num, th.num { padding-left: 14px; }
 th.num { color: var(--muted); }
 td small { display: block; color: var(--muted); }
-.totals { width: 100%; margin-top: 4px; }
-.totals div { display: flex; justify-content: flex-end; padding: 10px 0; border-bottom: 1px solid #F2F4F7; }
-.grand { display: flex; justify-content: flex-end; border-top: 2px solid var(--ink); margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 700; }
-.totals div > span:first-child, .grand > span:first-child { flex: 0 1 220px; }
-.totals div > span:last-child, .grand > span:last-child { flex: 0 0 180px; text-align: right; }
+.sub td { color: var(--ink); }
+.grand td { border-top: 2px solid var(--ink); border-bottom: 0; padding-top: 12px; font-size: 18px; font-weight: 700; color: var(--ink) !important; }
 .note { margin-top: 26px; padding: 14px 16px; border-radius: 12px; background: #F9FAFB; color: #344054; }
 .actions { max-width: 820px; margin: 0 auto 28px; display: flex; gap: 10px; justify-content: flex-end; padding: 0 4px; }
 .btn { font: inherit; font-weight: 600; border-radius: 10px; padding: 10px 16px; border: 1px solid var(--line); background: #fff; color: var(--ink); text-decoration: none; cursor: pointer; }
 .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
 @page { size: A4 portrait; margin: 14mm 14mm 16mm; }
 @media print { body { background: #fff; font-size: 12px; } .page { border: 0; border-radius: 0; margin: 0; padding: 0; max-width: none; box-shadow: none; } .actions, .toast { display: none !important; } tr, .note, .pay { break-inside: avoid; } }
-.pay { margin-top: 22px; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+.pay { margin: 0 0 20px; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
 .pay h3 { margin: 0 0 10px; font-size: 14px; }
 .pay-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .pay-grid > div > b:first-child { display: block; font-size: 12px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
@@ -81,6 +78,18 @@ td small { display: block; color: var(--muted); }
     <div><b>Plan</b>{{ $json['plan_name'] ?? $inv->plan_name ?? 'scharge subscription' }}@if (! empty($json['price_per_unit']))<br><span class="muted">{{ $cur }} {{ number_format((float) $json['price_per_unit']) }} per unit per month</span>@endif</div>
   </div>
 
+  @unless ($paid)
+    <div class="pay">
+      <h3>Payment details · Sharet Pay</h3>
+      <div class="pay-grid">
+        <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.</div>
+        <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.</div>
+        <div><b>Reference</b>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></div>
+        <div><b>Questions</b>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</div>
+      </div>
+    </div>
+  @endunless
+
   @if (! empty($json['billing_start']) && ! empty($json['billing_end']))
     <p class="muted" style="margin:-10px 0 18px">Period: {{ \Illuminate\Support\Carbon::parse($json['billing_start'])->format('j M Y') }} – {{ \Illuminate\Support\Carbon::parse($json['billing_end'])->format('j M Y') }}@if (! empty($json['property'])) · {{ $json['property'] }}@endif</p>
   @endif
@@ -97,31 +106,15 @@ td small { display: block; color: var(--muted); }
         </tr>
       @endforeach
     </tbody>
+    <tfoot>
+      <tr class="sub"><td></td><td></td><td class="num muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</td><td class="amt">{{ $money($vat['net']) }}</td></tr>
+      <tr class="sub"><td></td><td></td><td class="num muted">VAT ({{ $vat['mode'] === 'exclusive' ? rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') : '0' }}%)</td><td class="amt">{{ $money($vat['tax']) }}</td></tr>
+      <tr class="grand"><td></td><td></td><td class="num">Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</td><td class="amt">{{ $money($total) }}</td></tr>
+      @if ($paid && $inv->paid_at)<tr class="sub"><td></td><td></td><td class="num muted">Paid</td><td class="amt muted">{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</td></tr>@endif
+    </tfoot>
   </table>
 
-  <div class="totals">
-    <div><span class="muted">Subtotal{{ $vat['mode'] === 'exclusive' ? ' (excl. VAT)' : '' }}</span><span>{{ $money($vat['net']) }}</span></div>
-    @if ($vat['mode'] === 'exclusive')
-      <div><span class="muted">VAT ({{ rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.') }}%)</span><span>{{ $money($vat['tax']) }}</span></div>
-    @else
-      <div><span class="muted">VAT (0%)</span><span>{{ $money(0) }}</span></div>
-    @endif
-  </div>
-  <div class="grand"><span>Total{{ $vat['mode'] === 'exclusive' ? ' (incl. VAT)' : '' }}</span><span>{{ $money($total) }}</span></div>
-  @if ($paid && $inv->paid_at)<div class="totals"><div class="muted"><span>Paid</span><span>{{ \Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') }}</span></div></div>@endif
-
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
-  @unless ($paid)
-    <div class="pay">
-      <h3>Payment details · Sharet Pay</h3>
-      <div class="pay-grid">
-        <div><b>1 · scharge to scharge</b>Pay from your scharge wallet: sign in at scharge.sharet.africa, open <strong>Billing</strong> and choose <strong>Pay from wallet</strong>. It settles instantly.</div>
-        <div><b>2 · M-Pesa (STK push)</b>Sign in, open <strong>Billing</strong> and choose <strong>Pay with Sharet Pay</strong>: enter the M-Pesa number and approve the prompt on the phone with your PIN.</div>
-        <div><b>Reference</b>{{ $inv->invoice_number }}<br><span class="muted">Amount: {{ $money($total) }}</span></div>
-        <div><b>Questions</b>{{ $pay['contact_email'] ?? 'sales@sharet.africa' }}@if (! empty($pay['contact_phone']))<br>{{ $pay['contact_phone'] }}@endif</div>
-      </div>
-    </div>
-  @endunless
 </div>
 @if ($staff && ! $public && ! $paid)
 <form method="POST" action="{{ route('billing.invoice.vat', $inv->id) }}" class="actions" style="justify-content:flex-start;align-items:center;gap:8px">
