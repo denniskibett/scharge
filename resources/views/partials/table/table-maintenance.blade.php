@@ -161,11 +161,22 @@
             </td>
           </tr>
         </template>
-        <tr x-show="filteredRequests.length === 0">
+        <tr x-show="filteredRequests.length === 0" x-cloak>
           <td colspan="8" class="px-4 py-12 text-center">
-            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No maintenance requests</h3>
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No maintenance requests match your criteria.</p>
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085"/></svg>
+            <template x-if="requests.length === 0">
+              <div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No repair requests yet</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">When a tenant or staff member reports a problem, it shows up here.</p>
+              </div>
+            </template>
+            <template x-if="requests.length > 0">
+              <div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nothing matches</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">No repair requests match this tab, priority or search.</p>
+                <button type="button" @click="filterStatus = 'all'; filterPriority = 'all'; searchQuery = ''; currentPage = 1" class="mt-3 text-sm font-medium text-brand-500 hover:text-brand-600">Clear filters</button>
+              </div>
+            </template>
           </td>
         </tr>
       </tbody>
@@ -217,23 +228,25 @@ document.addEventListener('alpine:init', () => {
         loading: false,
         
         init() {
-            this.requests = this.requests.map(req => ({
+            // Accept a plain array, a collection, or a paginator's { data: [...] }.
+            const raw = this.requests;
+            const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : Object.values(raw || {}));
+            this.requests = rows.map(req => ({
                 ...req,
                 priority_label: this.getPriorityLabel(req.priority),
                 priority_color: this.getPriorityColor(req.priority),
                 status_label: this.getStatusLabel(req.status),
                 status_color: this.getStatusColor(req.status),
+                title: req.title || req.name || '',
+                unit_number: req.unit_number || req.unit?.unit_number || 'N/A',
+                tenant_name: req.tenant_name || req.tenant?.user?.name || 'N/A',
                 request_number: req.request_number || '#' + String(req.id).padStart(6, '0')
             }));
         },
         
         get statusCounts() {
             const counts = { all: this.requests.length, open: 0, in_progress: 0, resolved: 0 };
-            this.requests.forEach(req => {
-                if (req.status === 'open') counts.open++;
-                else if (req.status === 'in_progress') counts.in_progress++;
-                else if (req.status === 'resolved') counts.resolved++;
-            });
+            this.requests.forEach(req => { counts[this.statusGroup(req.status)]++; });
             return counts;
         },
 
@@ -247,7 +260,7 @@ document.addEventListener('alpine:init', () => {
             let filtered = this.requests;
             
             if (this.filterStatus !== 'all') {
-                filtered = filtered.filter(req => req.status === this.filterStatus);
+                filtered = filtered.filter(req => this.statusGroup(req.status) === this.filterStatus);
             }
             if (this.filterPriority !== 'all') {
                 filtered = filtered.filter(req => req.priority === this.filterPriority);
@@ -269,10 +282,8 @@ document.addEventListener('alpine:init', () => {
                     valA = valA ? new Date(valA).getTime() : 0;
                     valB = valB ? new Date(valB).getTime() : 0;
                 }
-                if (typeof valA === 'string') {
-                    valA = valA.toLowerCase();
-                    valB = valB.toLowerCase();
-                }
+                valA = typeof valA === 'string' ? valA.toLowerCase() : (valA ?? '');
+                valB = typeof valB === 'string' ? valB.toLowerCase() : (valB ?? '');
                 if (valA < valB) return this.sortDirection === 'asc' ? -1 : 1;
                 if (valA > valB) return this.sortDirection === 'asc' ? 1 : -1;
                 return 0;
@@ -314,14 +325,23 @@ document.addEventListener('alpine:init', () => {
             return colors[priority] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
         },
         
+        // Tab a status belongs to; mirrors the Repairs stat cards.
+        statusGroup(status) {
+            if (['completed', 'resolved', 'closed', 'cancelled', 'done'].includes(status)) return 'resolved';
+            if (['in_progress', 'assigned', 'scheduled'].includes(status)) return 'in_progress';
+            return 'open';
+        },
+
         getStatusLabel(status) {
-            const labels = { open: 'Open', in_progress: 'In Progress', resolved: 'Resolved' };
-            return labels[status] || status;
+            const labels = { open: 'Open', in_progress: 'In Progress', pending_parts: 'Waiting for parts', assigned: 'Assigned', scheduled: 'Scheduled', completed: 'Completed', resolved: 'Resolved', closed: 'Closed', cancelled: 'Cancelled', done: 'Done' };
+            return labels[status] || (status ? String(status).replace(/_/g, ' ').replace(/^./, c => c.toUpperCase()) : 'Open');
         },
         
         getStatusColor(status) {
             const colors = {
                 resolved: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                completed: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                pending_parts: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                 in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                 open: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
             };

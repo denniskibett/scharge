@@ -8,6 +8,7 @@ use App\Models\Unit;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Property;
+use App\Services\Reports\PortfolioReport;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
@@ -18,74 +19,83 @@ class MaintenanceController extends Controller
     {
         $user = auth()->user();
         $query = Maintenance::with(['unit', 'tenant.user', 'assignedStaff']);
-        
-        // Apply company filter for non-sysadmin users
-        if (!$user->hasRole('sysadmin') && $user->company_id) {
-            $query->whereHas('unit', function($q) use ($user) {
-                $q->where('company_id', $user->company_id);
-            });
+
+        // Same company scope as the Repairs stat cards (PageCards::pageMaintenance),
+        // so every request counted on the cards shows up as a row.
+        $ids = PortfolioReport::companyIdsFor($user);
+        if ($ids !== null) {
+            $ids = $ids ?: [0];
+            $query->where(fn ($q) => $q->whereIn('company_id', $ids)
+                ->orWhere(fn ($q) => $q->whereNull('company_id')
+                    ->whereHas('unit', fn ($u) => $u->whereIn('company_id', $ids))));
         }
-        
-        // Filter by status
-        if ($request->has('status') && $request->status !== 'all') {
+
+        if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
-        
-        // Filter by priority
-        if ($request->has('priority') && $request->priority !== 'all') {
+        if ($request->filled('priority') && $request->priority !== 'all') {
             $query->where('priority', $request->priority);
         }
-        
-        // Filter by unit
-        if ($request->has('unit_id') && $request->unit_id) {
+        if ($request->filled('unit_id')) {
             $query->where('unit_id', $request->unit_id);
         }
-        
-        $requests = $query->latest()->paginate(20);
-        
-        // Get units and properties for the modals
-        $units = Unit::where('company_id', $user->company_id)
+
+        if ($request->wantsJson()) {
+            $page = $query->latest()->paginate(20);
+
+            return response()->json([
+                'success' => true,
+                'data' => $page->getCollection()->map(fn ($req) => $this->listRow($req))->values(),
+                'pagination' => [
+                    'current_page' => $page->currentPage(),
+                    'total_pages' => $page->lastPage(),
+                    'total' => $page->total(),
+                ],
+            ]);
+        }
+
+        // The table pages, filters and sorts in the browser, so it needs a plain
+        // array of rows (a paginator serialises to an object and breaks it).
+        $requests = $query->latest()->limit(1000)->get()
+            ->map(fn ($req) => $this->listRow($req))->values()->all();
+
+        $units = Unit::when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))
             ->with('property')
             ->where('is_active', true)
             ->get();
-        
-        $properties = Property::where('company_id', $user->company_id)
+
+        $properties = Property::when($ids !== null, fn ($q) => $q->whereIn('company_id', $ids ?: [0]))
             ->orderBy('name')
             ->get();
-        
+
         $currentUnit = null;
         if ($user->hasRole('tenant') && $user->tenant && $user->tenant->activeTenancy) {
             $currentUnit = $user->tenant->activeTenancy->unit->load('property');
         }
-        
-        if ($request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'data' => $requests->map(function($req) {
-                    return [
-                        'id' => $req->id,
-                        'request_number' => $req->request_number,
-                        'name' => $req->name,
-                        'description' => $req->description,
-                        'category' => $req->category,
-                        'priority' => $req->priority,
-                        'status' => $req->status,
-                        'unit_number' => $req->unit->unit_number ?? 'N/A',
-                        'tenant_name' => $req->tenant->user->name ?? 'N/A',
-                        'created_at' => $req->created_at,
-                        'scheduled_date' => $req->scheduled_date,
-                        'completed_date' => $req->completed_date,
-                    ];
-                }),
-                'pagination' => [
-                    'current_page' => $requests->currentPage(),
-                    'total_pages' => $requests->lastPage(),
-                    'total' => $requests->total()
-                ]
-            ]);
-        }
-        
+
         return view('maintenance.index', compact('requests', 'units', 'properties', 'currentUnit'));
+    }
+
+    /** One table row for the Repairs list (JSON-safe, no model objects). */
+    private function listRow(Maintenance $req): array
+    {
+        return [
+            'id' => $req->id,
+            'request_number' => $req->request_number,
+            'name' => $req->name,
+            'title' => $req->name,
+            'description' => $req->description,
+            'category' => $req->category,
+            'priority' => $req->priority,
+            'status' => $req->status,
+            'unit_number' => $req->unit->unit_number ?? 'N/A',
+            'tenant_name' => $req->tenant?->user?->name ?? 'N/A',
+            'assigned_to' => $req->assignedStaff?->name,
+            'cost' => $req->cost,
+            'created_at' => $req->created_at?->toIso8601String(),
+            'scheduled_date' => $req->scheduled_date?->toDateString(),
+            'completed_date' => $req->completed_date?->toDateString(),
+        ];
     }
 
     public function store(Request $request)
