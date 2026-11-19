@@ -7,7 +7,7 @@
         'crm.map.index' => ['Map', null],
         'crm.funnel.index' => ['Sales funnel', null],
         'crm.sales.index' => ['Sales tracker', null],
-        'crm.team.index' => ['Team', \App\Models\Company::withoutGlobalScope('customers')->where('crm_profile->reply_pending', true)->when(! \App\Modules\CRM\Support\CrmAccess::seesAll(auth()->user()), fn ($q) => $q->where('owner_id', auth()->id()))->count()],
+        'crm.team.index' => ['Team', \App\Models\Company::withoutGlobalScope('customers')->where('companies.reply_pending', 1)->when(! \App\Modules\CRM\Support\CrmAccess::seesAll(auth()->user()), fn ($q) => $q->where('owner_id', auth()->id()))->count()],
         'crm.campaigns.index' => ['Campaigns', null],
         'crm.properties.index' => ['Open properties', null],
         'crm.inbox.index' => ['Inbox', null],

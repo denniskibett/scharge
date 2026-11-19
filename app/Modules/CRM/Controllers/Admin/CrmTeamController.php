@@ -56,7 +56,7 @@ class CrmTeamController extends Controller
         $feed = $fu()->whereIn('created_by', $ids)->whereBetween('created_at', [$recap->from, $recap->to])->whereNotIn('type', ['contact', 'import'])->where('title', 'not like', 'Owner:%')
             ->with(['company' => fn ($q) => $q->withoutGlobalScope('customers')->select('id', 'name'), 'author:id,name'])
             ->latest('id')->limit(40)->get();
-        $waitingList = $companies()->whereIn('owner_id', $ids)->where('crm_profile->reply_pending', true)->with('owner:id,name')
+        $waitingList = $companies()->whereIn('owner_id', $ids)->where('companies.reply_pending', 1)->with('owner:id,name')
             ->orderByDesc('crm_profile->reply->at')->limit(30)->get(['id', 'name', 'owner_id', 'crm_profile', 'crm_stage']);
 
         return view('crm.team', [

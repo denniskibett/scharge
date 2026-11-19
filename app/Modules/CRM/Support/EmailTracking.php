@@ -78,14 +78,26 @@ class EmailTracking
     }
 
     /** Prospects a campaign may email: a business email, never emailed, not opted out, still New. */
+    public static function flagColumns(): bool
+    {
+        static $has;
+
+        return $has ??= \Illuminate\Support\Facades\Schema::hasColumn('companies', 'email_blocked');
+    }
+
     public static function ready(Builder $query, bool $withEmail = true): Builder
     {
         $query->where('lifecycle', 'prospect')
-            ->where(fn ($w) => $w->whereNull('crm_stage')->orWhere('crm_stage', 'new'))
-            ->where(fn ($w) => $w->whereNull('crm_profile->do_not_email')->orWhere('crm_profile->do_not_email', false))
-            ->whereNull('crm_profile->last_emailed_at')
-            ->where(fn ($w) => $w->whereNull('crm_profile->email_no_mx')->orWhere('crm_profile->email_no_mx', false))
-            ->where(fn ($w) => $w->whereNull('crm_profile->email_shared')->orWhere('crm_profile->email_shared', false));
+            ->where(fn ($w) => $w->whereNull('crm_stage')->orWhere('crm_stage', 'new'));
+        // Stored flag columns when present (database/schema/2026_11_19_crm_mail_flags.sql), else the JSON itself.
+        if (self::flagColumns()) {
+            $query->where('companies.email_blocked', 0)->where('companies.email_sent', 0);
+        } else {
+            $query->where(fn ($w) => $w->whereNull('crm_profile->do_not_email')->orWhere('crm_profile->do_not_email', false))
+                ->whereNull('crm_profile->last_emailed_at')
+                ->where(fn ($w) => $w->whereNull('crm_profile->email_no_mx')->orWhere('crm_profile->email_no_mx', false))
+                ->where(fn ($w) => $w->whereNull('crm_profile->email_shared')->orWhere('crm_profile->email_shared', false));
+        }
 
         return $withEmail ? $query->whereNotNull('email')->where('email', 'like', '%_@_%._%') : $query;
     }
@@ -96,8 +108,15 @@ class EmailTracking
      */
     public static function unsent(Builder $query): Builder
     {
-        return $query->where('lifecycle', 'prospect')
-            ->where(fn ($w) => $w->whereNull('crm_stage')->orWhereIn('crm_stage', ['new', 'contacted']))
+        $query->where('lifecycle', 'prospect')
+            ->where(fn ($w) => $w->whereNull('crm_stage')->orWhereIn('crm_stage', ['new', 'contacted']));
+        if (self::flagColumns()) {
+            return $query->where('companies.email_dne', 0)->where(fn ($w) => $w
+                ->where(fn ($x) => $x->where(fn ($e) => $e->whereNull('email')->orWhere('email', '')->orWhere('email', 'not like', '%_@_%._%'))->where('companies.email_sent', 0))
+                ->orWhere('companies.email_problem', 1));
+        }
+
+        return $query
             ->where(fn ($w) => $w->whereNull('crm_profile->do_not_email')->orWhere('crm_profile->do_not_email', false))
             ->where(fn ($w) => $w
                 ->where(fn ($x) => $x->where(fn ($e) => $e->whereNull('email')->orWhere('email', '')->orWhere('email', 'not like', '%_@_%._%'))->whereNull('crm_profile->last_emailed_at'))

@@ -39,8 +39,19 @@ class PropertyClass
     }
 
     /** Filter companies by class: the exact class when known, else the segment's class. */
+    /** companies.crm_class: the same answer as of(), stored and indexed (database/schema/2026_11_19_crm_class.sql). */
+    public static function hasColumn(): bool
+    {
+        static $has;
+
+        return $has ??= \Illuminate\Support\Facades\Schema::hasColumn('companies', 'crm_class');
+    }
+
     public static function scope(Builder $query, string $class): Builder
     {
+        if (self::hasColumn()) {
+            return $class === 'none' ? $query->whereNull('companies.crm_class') : $query->where('companies.crm_class', $class);
+        }
         if ($class === 'none') {
             return $query->whereNull('crm_profile->property_class')
                 ->where(fn ($q) => $q->whereNull('crm_profile->segment')->orWhereNotIn('crm_profile->segment', array_merge(...array_values(self::SEGMENTS))));

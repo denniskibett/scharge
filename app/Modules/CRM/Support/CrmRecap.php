@@ -76,7 +76,7 @@ class CrmRecap
             'new_prospects' => $this->companies()->whereBetween('created_at', [$this->from, $this->to])->count(),
             'prospects' => $this->companies()->where('lifecycle', 'prospect')->count(),
             'replies' => $this->fu()->where('type', 'email')->where('details->direction', 'in')->whereNull('details->auto')->whereBetween('created_at', [$this->from, $this->to])->count(),
-            'replies_waiting' => $this->companies()->where('crm_profile->reply_pending', true)->count(),
+            'replies_waiting' => $this->companies()->where('companies.reply_pending', 1)->count(),
             'demo_requests' => $this->fu()->where('type', 'demo')->whereBetween('created_at', [$this->from, $this->to])->count(),
             'stage_moves' => $this->fu()->where('type', 'stage')->whereNotNull('created_by')->whereBetween('created_at', [$this->from, $this->to])->get()
                 ->countBy(fn ($f) => Company::CRM_STAGES[$f->detail('to')] ?? $f->detail('to'))->all(),
@@ -93,7 +93,7 @@ class CrmRecap
         $in = fn ($q, string $col = 'created_at') => $q->whereBetween($col, [$this->from, $this->to]);
         $owned = $count($this->companies()->whereIn('owner_id', $ids), 'owner_id');
         $open = $count($this->companies()->whereIn('owner_id', $ids)->whereIn('crm_stage', Company::OPEN_CRM_STAGES), 'owner_id');
-        $waiting = $count($this->companies()->whereIn('owner_id', $ids)->where('crm_profile->reply_pending', true), 'owner_id');
+        $waiting = $count($this->companies()->whereIn('owner_id', $ids)->where('companies.reply_pending', 1), 'owner_id');
         $cold = $count($in($this->fu()->where('type', 'email')->whereNotNull('details->track')->whereIn('assigned_to', $ids)), 'assigned_to');
         $opened = $count($this->fu()->where('type', 'email')->whereNotNull('details->track')->whereIn('assigned_to', $ids)
             ->where('details->opened_at', '>=', $this->from->copy()->tz(config('app.timezone'))->toDateTimeString())

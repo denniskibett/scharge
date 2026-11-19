@@ -50,10 +50,11 @@
         $th = 'px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400';
     @endphp
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <form method="GET" class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
+        <form method="GET" class="border-b border-gray-200 dark:border-gray-700">
             @if ($att)<input type="hidden" name="attention" value="{{ $att }}">@endif
-            @include('partials.table.tabs', ['tabs' => $tabs])
-            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
+            {{-- Row 1: the tab line along the card's top edge. Row 2: filters, search and Prospect on one line. --}}
+            <div class="overflow-x-auto border-b border-gray-100 px-5 pt-3 dark:border-gray-800">@include('partials.table.tabs', ['tabs' => $tabs])</div>
+            <div class="flex flex-nowrap items-center gap-2 overflow-x-auto px-5 py-3">
                 @include('partials.table.select', ['name' => 'stage', 'size' => 'sm', 'aria' => 'Stage', 'min' => 'min-w-[110px]', 'selected' => $filters['stage'] ?? '',
                     'options' => ['' => 'All stages', 'open' => 'Open'] + \App\Models\Company::CRM_STAGES])
                 @include('partials.table.select', ['name' => 'tier', 'size' => 'sm', 'aria' => 'Tier', 'min' => 'min-w-[80px]', 'selected' => $filters['tier'] ?? '',
@@ -68,8 +69,8 @@
                         Clear
                     </a>
                 @endif
-                @include('partials.table.search', ['size' => 'sm', 'value' => $filters['q'] ?? '', 'min' => 'min-w-[140px]', 'placeholder' => 'Search…'])
-                <button type="button" @click="adding = true" class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition">
+                <div class="ml-auto shrink-0">@include('partials.table.search', ['size' => 'sm', 'value' => $filters['q'] ?? '', 'min' => 'min-w-[180px]', 'placeholder' => 'Search…'])</div>
+                <button type="button" @click="adding = true" class="shrink-0 bg-brand-500 shadow-theme-xs hover:bg-brand-600 inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 py-3 text-sm font-medium text-white transition">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                     Prospect
                 </button>

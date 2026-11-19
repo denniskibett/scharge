@@ -30,10 +30,16 @@ class CrmCompanyController extends Controller
         $myFollowUps = fn () => CrmAccess::followUps(CrmFollowUp::query(), $user);
         $todo = fn ($q) => $q->whereIn('status', ['open', 'scheduled'])->whereNotIn('type', CrmFollowUp::NOT_TODO);
 
+        // Next due / last contact come from two grouped follow-up queries joined in once, not a lookup per company
+        // (131k companies made the per-row version take ~10 s).
+        $nextDue = $todo(CrmFollowUp::query())->selectRaw('company_id, MIN(due_at) as next_due_at')->groupBy('company_id');
+        $lastContact = CrmFollowUp::whereIn('type', CrmFollowUp::ACTION_TYPES)->where('type', '!=', 'note')->where('status', 'done')
+            ->selectRaw('company_id, MAX(done_at) as last_contact_at')->groupBy('company_id');
+        // Sort and page on narrow rows (ids + the two dates), then load only the companies on this page.
         $companies = $mine()
-            ->with(['owner:id,name'])
-            ->withMin(['followUps as next_due_at' => $todo], 'due_at')
-            ->withMax(['followUps as last_contact_at' => fn ($q) => $q->whereIn('type', CrmFollowUp::ACTION_TYPES)->where('type', '!=', 'note')->where('status', 'done')], 'done_at')
+            ->select('companies.id', 'nd.next_due_at', 'lc.last_contact_at')
+            ->leftJoinSub($nextDue, 'nd', 'nd.company_id', '=', 'companies.id')
+            ->leftJoinSub($lastContact, 'lc', 'lc.company_id', '=', 'companies.id')
             ->when($filters['q'] ?? null, fn ($q, $term) => $q->where(fn ($w) => $w
                 ->where('name', 'like', "%{$term}%")->orWhere('email', 'like', "%{$term}%")
                 ->orWhere('phone', 'like', "%{$term}%")->orWhere('crm_profile', 'like', "%{$term}%")))
@@ -44,10 +50,10 @@ class CrmCompanyController extends Controller
             ->when(($filters['attention'] ?? null) === 'unattended', fn ($q) => $q->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo))
             ->when(($filters['attention'] ?? null) === 'verify', fn ($q) => $q->where('crm_profile->needs_verification', true))
             ->when(($filters['attention'] ?? null) === 'unsent', fn ($q) => \App\Modules\CRM\Support\EmailTracking::unsent($q))
-            ->when(($filters['attention'] ?? null) === 'replied', fn ($q) => $q->where('crm_profile->reply_pending', true))
+            ->when(($filters['attention'] ?? null) === 'replied', fn ($q) => $q->where('companies.reply_pending', 1))
             // Opened or clicked a cold email, no reply or demo yet: warm calls.
             ->when(($filters['attention'] ?? null) === 'opened', fn ($q) => $q->whereIn('crm_stage', ['new', 'contacted'])
-                ->where(fn ($w) => $w->whereNull('crm_profile->reply_pending')->orWhere('crm_profile->reply_pending', false))
+                ->where('companies.reply_pending', 0)
                 ->whereHas('followUps', fn ($f) => $f->where('type', 'email')->whereNotNull('details->track')->whereNull('details->replied_at')->whereNull('details->booked_at')
                     ->where(fn ($o) => $o->whereNotNull('details->opened_at')->orWhereNotNull('details->clicked_at'))))
             // From the Kenya map (crm:geocode fills these in crm_profile).
@@ -61,12 +67,16 @@ class CrmCompanyController extends Controller
                 ? $q->where(fn ($w) => $w->whereNull('crm_profile->needs_verification')->orWhere('crm_profile->needs_verification', false))
                 : $q->where('crm_profile->needs_verification', true))
             // Prospects who replied and are still waiting for an answer come first.
-            ->orderByRaw("CASE WHEN JSON_EXTRACT(crm_profile, '$.reply_pending') = true THEN 0 ELSE 1 END")
-            ->orderBy('tier')
-            ->orderByRaw('next_due_at IS NULL, next_due_at')
-            ->orderBy('name')
+            ->orderByDesc('companies.reply_pending')
+            ->orderBy('companies.tier')
+            ->orderByRaw('nd.next_due_at IS NULL, nd.next_due_at')
+            ->orderBy('companies.name')
             ->paginate(in_array((int) $request->query('per_page'), [25, 50, 100, 250, 500, 1000], true) ? (int) $request->query('per_page') : 25)
             ->withQueryString();
+        $models = Company::withoutGlobalScope('customers')->with(['owner:id,name'])->findMany($companies->pluck('id'))->keyBy('id');
+        $companies->setCollection($companies->getCollection()
+            ->map(fn ($row) => isset($models[$row->id]) ? $models[$row->id]->setAttribute('next_due_at', $row->next_due_at)->setAttribute('last_contact_at', $row->last_contact_at) : null)
+            ->filter()->values());
 
         // Contact names for the visible page in one query.
         $contactNames = CrmFollowUp::where('type', 'contact')->whereIn('company_id', $companies->pluck('id'))
@@ -78,7 +88,7 @@ class CrmCompanyController extends Controller
             'overdue' => $myFollowUps()->overdue()->count(),
             'due_today' => $myFollowUps()->dueToday()->count(),
             'unattended' => $mine()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->whereDoesntHave('followUps', $todo)->count(),
-            'replied' => $mine()->where('crm_profile->reply_pending', true)->count(),
+            'replied' => $mine()->where('companies.reply_pending', 1)->count(),
             'new_demos' => $myFollowUps()->whereIn('type', ['demo', 'api_keys', 'viewing'])->where('status', 'open')->count(),
             'waitlist' => WaitlistEntry::whereIn('status', ['waiting', 'demo_requested'])->count(),
             'nps' => self::nps(CrmFollowUp::where('type', 'feedback')->whereNotNull('score')->pluck('score')),
