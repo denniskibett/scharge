@@ -30,6 +30,18 @@ class InvoicePayController extends Controller
         return URL::signedRoute('billing.invoice.pay.show', ['invoice' => $invoice, 'ref' => $ref]);
     }
 
+    /** scharge's Sharet @handle: from Sharet's own answer on the latest bill payment, else config. */
+    public static function payeeHandle(): ?string
+    {
+        return cache()->remember('sharet.payee_handle', 3600, function () {
+            $raw = BillingPayment::whereNotNull('raw')->where('method', 'sharet_pay')->latest('id')->value('raw');
+            $raw = is_string($raw) ? json_decode($raw, true) : $raw;
+            $h = $raw['payee']['handle'] ?? config('billing.sharet_handle');
+
+            return $h ? '@'.ltrim($h, '@') : null;
+        });
+    }
+
     public function start(int $invoice, BillPayments $bills)
     {
         $inv = $this->invoice($invoice);
@@ -67,7 +79,7 @@ class InvoicePayController extends Controller
     private function page(object $inv, ?BillingPayment $row, ?string $error = null)
     {
         $raw = $row?->raw ?? [];
-        $handle = $raw['payee']['handle'] ?? (config('billing.sharet_handle') ? '@'.ltrim(config('billing.sharet_handle'), '@') : null);
+        $handle = isset($raw['payee']['handle']) ? '@'.ltrim($raw['payee']['handle'], '@') : self::payeeHandle();
 
         return response()->view('billing.pay', [
             'inv' => $inv,

@@ -180,7 +180,8 @@ class BillingController extends Controller
         $vat = self::vatOf($json, (float) $row->amount);
 
         $data = ['inv' => $row, 'json' => $json, 'items' => $items, 'staff' => $staff, 'public' => $public, 'vat' => $vat, 'pay' => config('billing'),
-            'payUrl' => $row->status === 'paid' ? null : InvoicePayController::startUrl((int) $row->id)];
+            'payUrl' => $row->status === 'paid' ? null : InvoicePayController::startUrl((int) $row->id),
+            'handle' => InvoicePayController::payeeHandle()];
         if ($asPdf) {
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')
                 ->setOption(['chroot' => public_path(), 'isRemoteEnabled' => false])

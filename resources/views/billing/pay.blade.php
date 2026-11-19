@@ -10,6 +10,7 @@
 @endphp
 <!doctype html>
 <html lang="en">
+<script>if (window.self !== window.top) document.documentElement.classList.add('embed');</script>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -47,6 +48,8 @@ dt { color: var(--muted); } dd { margin: 0; text-align: right; font-weight: 500;
 .err { background: #FEF3F2; color: #B42318; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 14px; }
 .foot { text-align: center; margin-top: 16px; font-size: 13px; }
 .foot a { color: var(--muted); }
+html.embed body { background: #F2F4F7; } html.embed .wrap { margin: 0; padding: 16px; max-width: none; } html.embed .card { border: 0; } html.embed .foot { display: none; }
+.opt { padding: 14px 16px; } .opt > span:first-child { padding-right: 8px; }
 </style>
 </head>
 <body>
@@ -76,17 +79,15 @@ dt { color: var(--muted); } dd { margin: 0; text-align: right; font-weight: 500;
     @if ($status === 'open' && $row?->pay_url)
       <div class="opts">
         <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
-          <span class="ic" style="background:#ECFDF3;color:#027A48"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
           <span><b>M-Pesa (STK push)</b><span>Enter your M-Pesa number, approve the prompt with your PIN @if ($stkNumber) · {{ $stkNumber }}@endif</span></span>
           <span class="go">Pay →</span>
         </a>
         <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
-          <span class="ic"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="38" height="38" style="border-radius:10px"></span>
           <span><b>Sharet to Sharet</b><span>Sign in to Sharet and pay {{ $handle ?: 'scharge' }} from your balance</span></span>
           <span class="go">Pay →</span>
         </a>
       </div>
-      <p class="note">Sharet opens in a new tab. Keep this page open: it turns <b>Paid</b> on its own once Sharet confirms. You can also come back to this link later to see the status.</p>
+      <p class="note">Sharet opens in a new tab for your M-Pesa number or Sharet sign-in. Keep this open: it turns <b>Paid</b> on its own once Sharet confirms, and this link always shows the status.</p>
     @elseif ($status === 'paid')
       <p style="margin:0">Thank you. The invoice is paid and your scharge account is up to date.</p>
     @elseif ($inv->status !== 'paid')
