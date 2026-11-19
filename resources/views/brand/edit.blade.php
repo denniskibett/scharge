@@ -21,6 +21,14 @@ White label & data
     <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">{{ $company->name }}: your name, logo and colour on the dashboard, sign-in, tenant bills, PDFs and emails, and a copy of all your data whenever you want it.</p>
   </div>
 
+  @if ($isStaff && $companies->isNotEmpty())
+    <form method="GET" class="flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
+      <span>White label for</span>
+      <div class="min-w-[240px]">@include('partials.table.select', ['name' => 'company', 'aria' => 'Company', 'size' => 'sm', 'selected' => $company->id, 'options' => $companies->pluck('name', 'id')->all()])</div>
+      @if ($editBrand->exists && $editBrand->domain)<a href="https://{{ $editBrand->domain }}" target="_blank" rel="noopener" class="font-medium text-brand-600 hover:underline dark:text-brand-400">{{ $editBrand->domain }}</a>@endif
+    </form>
+  @endif
+
   @if (session('success'))
     <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">{{ session('success') }}</div>
   @endif

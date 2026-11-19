@@ -19,12 +19,22 @@ class ApiKeyController extends Controller
             return response()->json(['keys' => $this->visible($request)->with('user:id,name', 'company:id,name')->latest()->get()->map(fn ($k) => $this->present($k))->values()]);
         }
 
-        return view('api-keys.index', ['isAdmin' => $request->user()->hasRole('sysadmin'), 'company' => $request->user()->company ?? null]);
+        $isAdmin = $request->user()->hasRole('sysadmin');
+        // Sysadmins pick which company new keys act for (their own login may be linked to a customer, e.g. Danaff).
+        $companies = $isAdmin ? \App\Models\Company::orderBy('name')->get(['id', 'name']) : collect();
+        $company = $isAdmin
+            ? ($companies->firstWhere('id', (int) $request->query('company')) ?? null)
+            : ($request->user()->company ?? null);
+
+        return view('api-keys.index', ['isAdmin' => $isAdmin, 'company' => $company, 'companies' => $companies]);
     }
 
     public function store(Request $request)
     {
-        abort_unless($request->user()->company_id, 422, 'Keys belong to a company. Sign in as a company admin to create one.');
+        $isAdmin = $request->user()->hasRole('sysadmin');
+        $companyId = $isAdmin ? (int) $request->input('company_id') : (int) $request->user()->company_id;
+        abort_unless($companyId > 0, 422, $isAdmin ? 'Choose the company this key acts for.' : 'Keys belong to a company. Sign in as a company admin to create one.');
+        abort_unless(\App\Models\Company::whereKey($companyId)->exists(), 422, 'That company does not exist.');
         $data = $request->validate([
             'name' => 'required|string|max:80',
             'environment' => 'required|in:test,live',
@@ -34,7 +44,7 @@ class ApiKeyController extends Controller
         $data['scopes'] = array_values(array_unique(array_merge(['read'], $data['scopes'] ?? [])));
         $data['allowed_ips'] = $this->ips($request);
 
-        $key = new ApiKey($data + ['user_id' => $request->user()->id, 'company_id' => $request->user()->company_id, 'enabled' => true]);
+        $key = new ApiKey($data + ['user_id' => $request->user()->id, 'company_id' => $companyId, 'enabled' => true]);
         $plain = $key->issue();
         $key->save();
 

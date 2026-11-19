@@ -22,7 +22,15 @@ API keys
     </p>
   </div>
 
-  @if ($company)
+  @if ($isAdmin)
+    {{-- Sysadmin: choose the company new keys act for (the table lists every company's keys). --}}
+    <form method="GET" class="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
+      <span>New keys act for</span>
+      <div class="min-w-[220px]">@include('partials.table.select', ['name' => 'company', 'aria' => 'Company', 'size' => 'sm', 'selected' => $company?->id ?? '',
+        'options' => ['' => 'Choose a company…'] + $companies->pluck('name', 'id')->all()])</div>
+      <span>{{ $company ? 'and only see its properties, tenants and invoices.' : 'Pick one to create a key.' }}</span>
+    </form>
+  @elseif ($company)
     <div class="mb-6 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-500 dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-400">
       Your keys act for <b class="text-gray-900 dark:text-white">{{ $company->name }}</b> and only see its properties, tenants and invoices.
     </div>
@@ -252,7 +260,7 @@ API keys
       copy(text) { navigator.clipboard?.writeText(text); },
       async create() {
         this.busy = true; this.errors = {};
-        try { const r = await schargeSend('POST', base, this.form); this.put(r.key); this.plain = r.plain; this.creating = false; } catch (e) { this.errors = firstErrors(e); }
+        try { const r = await schargeSend('POST', base, Object.assign({}, this.form, { company_id: {{ (int) ($company?->id ?? 0) }} })); this.put(r.key); this.plain = r.plain; this.creating = false; } catch (e) { this.errors = firstErrors(e); }
         this.busy = false;
       },
       async saveAccess() {

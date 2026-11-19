@@ -29,6 +29,8 @@ class BrandController extends Controller
             'company' => $company,
             'editBrand' => CompanyBrand::firstOrNew(['company_id' => $company->id], ['display_name' => $company->name]),
             'isStaff' => $request->user()->hasRole('sysadmin'),
+            // Sysadmins switch company with a dropdown (same as ?company=ID).
+            'companies' => $request->user()->hasRole('sysadmin') ? \App\Models\Company::orderBy('name')->get(['id', 'name']) : collect(),
             'backup' => CompanyIntegration::where('company_id', $company->id)->where('provider', 'data_backup')->first(),
             'counts' => app(CompanyExport::class)->counts($company->id),
         ]);
