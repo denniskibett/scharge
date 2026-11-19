@@ -51,6 +51,20 @@ class HomeController extends Controller
         return view('home.listing', ['item' => $item]);
     }
 
+    /** Answer-style guides (App\Support\Guides): the questions landlords, agents and hosts ask. */
+    public function guides(): View
+    {
+        return view('home.guides', ['guides' => \App\Support\Guides::all()]);
+    }
+
+    public function guide(string $slug): View
+    {
+        $guide = \App\Support\Guides::find($slug);
+        abort_if(! $guide, 404);
+
+        return view('home.guide', ['guide' => $guide, 'others' => array_diff_key(\App\Support\Guides::all(), [$slug => true])]);
+    }
+
     public function api(): View
     {
         return view('home.api');

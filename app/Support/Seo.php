@@ -24,6 +24,7 @@ class Seo
         'home.airbnb' => ['Tools for Airbnb and short-stay hosts in Kenya: one calendar, smart-lock codes, cleaner checklists and M-Pesa payouts, flat fee per listing.', '0.8', 'monthly'],
         'home.developers' => ['For developers and landowners: buyer instalments, snag lists, service charge and handover set up before buyers move in.', '0.8', 'monthly'],
         'home.api' => ['scharge API and white label: vacancies and booking calendars on your own website, or a tenant/buyer app in your brand.', '0.6', 'monthly'],
+        'home.guides' => ['Guides for Kenyan landlords, agents and hosts: rent collection on M-Pesa, water billing, service charge, short-stay management and software prices.', '0.8', 'weekly'],
         'host.register' => ['Register a short-stay (BnB) unit on scharge in a few minutes.', '0.6', 'monthly'],
         'home.credits' => ['Photo credits for the scharge website.', '0.2', 'yearly'],
     ];

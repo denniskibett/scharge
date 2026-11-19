@@ -193,6 +193,10 @@ Route::controller(App\Http\Controllers\HomeController::class)->group(function ()
 // One public listing's own page (shareable, indexed; built from ListingCatalog)
 Route::get('/listings/{slug}', [App\Http\Controllers\HomeController::class, 'listing'])->where('slug', '[a-z0-9-]+')->name('home.listing');
 
+// Answer-style guides for search engines and AI assistants (App\Support\Guides)
+Route::get('/guides', [App\Http\Controllers\HomeController::class, 'guides'])->name('home.guides');
+Route::get('/guides/{slug}', [App\Http\Controllers\HomeController::class, 'guide'])->where('slug', '[a-z0-9-]+')->name('home.guide');
+
 // Search engines (sitemap, robots) and AI assistants (llms.txt)
 Route::get('/sitemap.xml', [App\Http\Controllers\SeoController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [App\Http\Controllers\SeoController::class, 'robots'])->name('robots');
