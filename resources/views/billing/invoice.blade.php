@@ -166,7 +166,7 @@ td small { display: block; color: var(--muted); }
   @unless ($paid)
     <div class="payline">
       <a class="sp-link" href="{{ $payUrl }}" target="_blank" rel="noopener"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="18" height="18">Pay with Sharet Pay →</a>
-      <span class="muted">M-Pesa STK push or Sharet to Sharet@if (! empty($pay['sharet_handle'])) ({{ '@'.ltrim($pay['sharet_handle'], '@') }})@endif</span>
+      <span class="muted">M-Pesa STK push or Sharet to Sharet @if (! empty($pay['sharet_handle'])) ({{ '@'.ltrim($pay['sharet_handle'], '@') }})@endif</span>
     </div>
   @endunless
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif

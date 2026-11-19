@@ -77,7 +77,7 @@ dt { color: var(--muted); } dd { margin: 0; text-align: right; font-weight: 500;
       <div class="opts">
         <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
           <span class="ic" style="background:#ECFDF3;color:#027A48"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
-          <span><b>M-Pesa (STK push)</b><span>Enter your M-Pesa number, approve the prompt with your PIN@if ($stkNumber) · {{ $stkNumber }}@endif</span></span>
+          <span><b>M-Pesa (STK push)</b><span>Enter your M-Pesa number, approve the prompt with your PIN @if ($stkNumber) · {{ $stkNumber }}@endif</span></span>
           <span class="go">Pay →</span>
         </a>
         <a class="opt" href="{{ $row->pay_url }}" target="_blank" rel="noopener">
