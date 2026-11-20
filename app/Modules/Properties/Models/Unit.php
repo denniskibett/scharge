@@ -53,6 +53,7 @@ class Unit extends Model
     const CATEGORY_INDUSTRIAL = 'industrial';
 
     protected $fillable = [
+        'company_id',   // the company that holds the unit's books (set from its property on create)
         'property_id',
         'unit_number',
         'unit_type',

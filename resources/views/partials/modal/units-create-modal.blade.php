@@ -893,6 +893,22 @@ document.addEventListener('alpine:init', () => {
       return units;
     },
     
+    // "2,3,4" or "2-20" or "A1 A2" typed in one row becomes one unit each (ranges keep zero-padding: 01-12).
+    expandUnitNumbers(rows) {
+      const out = [];
+      for (const row of rows) {
+        for (const part of String(row.unit_number || '').split(/[,;\s]+/).map(p => p.trim()).filter(Boolean)) {
+          const m = part.match(/^([A-Za-z-]*)(\d+)\s*(?:-|to)\s*\1?(\d+)$/);
+          if (m && Number(m[3]) >= Number(m[2]) && Number(m[3]) - Number(m[2]) < 500) {
+            for (let n = Number(m[2]); n <= Number(m[3]); n++) out.push({ unit_number: m[1] + String(n).padStart(m[2].length, '0') });
+          } else {
+            out.push({ unit_number: part });
+          }
+        }
+      }
+      return out;
+    },
+
     openModal(propertyId = null) {
       this.preSelectedPropertyId = propertyId;
       this.resetForm();
@@ -1087,7 +1103,7 @@ document.addEventListener('alpine:init', () => {
             return;
           }
           
-          unitsToSubmit = this.units;
+          unitsToSubmit = this.expandUnitNumbers(this.units);
           commonData = { ...this.commonFields };
         }
         
