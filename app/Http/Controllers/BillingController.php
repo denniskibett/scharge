@@ -36,6 +36,7 @@ class BillingController extends Controller
             'admins' => $admins,
             'paid' => $paid,
             'staff' => ! $companyId,
+            'shownIn' => \App\Support\Currency::forCompany($companyId ? (int) $companyId : null),
             'online' => $companyId && $payer && BillPayments::available(),
             'wallet' => $companyId && $payer ? BillPayments::wallet($companyId) : null,
             'ledger' => $companyId && $payer ? CompanyLedger::entries($companyId) : [],

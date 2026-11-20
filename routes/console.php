@@ -19,6 +19,12 @@ Schedule::command('mpesa:reconcile --days=7')
     ->withoutOverlapping()
     ->onOneServer();
 
+// Sharet's FX rates for showing amounts in other currencies (App\Support\FxRates; pages also refresh lazily).
+Schedule::command('fx:rates')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Give new tenants their wallet.
 Schedule::command('tenants:create-wallets')
     ->dailyAt('03:00')

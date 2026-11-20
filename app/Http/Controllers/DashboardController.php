@@ -915,7 +915,7 @@ class DashboardController extends Controller
                     'credit' => $isCredit ? (float) $tx->amount : 0,
                     'debit' => !$isCredit ? (float) $tx->amount : 0,
                     'amount' => (float) $tx->amount,
-                    'amount_formatted' => 'KES ' . number_format((float) $tx->amount, 2),
+                    'amount_formatted' => \App\Support\Money::format((float) $tx->amount, null, 2),
                     'description' => $meta['description'] ?? ($tx->type === 'deposit' ? 'Deposit' : 'Withdrawal'),
                     'tenant_name' => $tenant?->user?->name ?? 'Unknown Tenant',
                     'tenant_id' => $tenant?->id ?? null,
@@ -983,7 +983,7 @@ class DashboardController extends Controller
                         'credit' => $isCredit ? (float) $tx->amount : 0,
                         'debit' => !$isCredit ? (float) $tx->amount : 0,
                         'amount' => (float) $tx->amount,
-                        'amount_formatted' => 'KES ' . number_format((float) $tx->amount, 2),
+                        'amount_formatted' => \App\Support\Money::format((float) $tx->amount, null, 2),
                         'description' => $meta['description'] ?? ($tx->type === 'deposit' ? 'Wallet Deposit' : 'Wallet Withdrawal'),
                         'tenant_name' => $tenant?->user?->name ?? 'System',
                         'tenant_id' => $tenant?->id ?? null,
@@ -1030,7 +1030,7 @@ class DashboardController extends Controller
                 'credit' => (float) $payment->amount,
                 'debit' => 0,
                 'amount' => (float) $payment->amount,
-                'amount_formatted' => 'KES ' . number_format((float) $payment->amount, 2),
+                'amount_formatted' => \App\Support\Money::format((float) $payment->amount, null, 2),
                 'description' => $description,
                 'tenant_name' => $payment->invoice?->tenancy?->tenant?->user?->name ?? $payment->tenant?->user?->name ?? 'N/A',
                 'tenant_id' => $payment->invoice?->tenancy?->tenant_id ?? $payment->tenant_id ?? null,
@@ -1101,7 +1101,7 @@ class DashboardController extends Controller
                     'payment_method_label' => $lastPayment ? $lastPayment->payment_method_label : 'N/A',
                     'payment_datetime' => $lastPayment ? $lastPayment->created_at : null,
                     'total_amount' => $totalAmount,
-                    'total_amount_formatted' => 'KES ' . number_format($totalAmount, 2),
+                    'total_amount_formatted' => \App\Support\Money::format($totalAmount, null, 2),
                     'status' => $invoice->status,
                     'status_badge' => 'unpaid',
                     'billing_month' => $invoice->billing_month,
@@ -1113,9 +1113,9 @@ class DashboardController extends Controller
                     'urgency_color' => $urgencyColor,
                     'urgency_bg' => $urgencyBg,
                     'paid_amount' => $paidAmount,
-                    'paid_amount_formatted' => 'KES ' . number_format($paidAmount, 2),
+                    'paid_amount_formatted' => \App\Support\Money::format($paidAmount, null, 2),
                     'balance' => $balance,
-                    'balance_formatted' => 'KES ' . number_format($balance, 2),
+                    'balance_formatted' => \App\Support\Money::format($balance, null, 2),
                     'items' => $invoice->items->map(function($item) {
                         return [
                             'id' => $item->id,
@@ -1902,7 +1902,7 @@ class DashboardController extends Controller
             
             return [
                 'balance' => $balance,
-                'formatted_balance' => 'KES ' . number_format($balance, 2),
+                'formatted_balance' => \App\Support\Money::format($balance, null, 2),
                 'wallet_id' => $wallet->uuid ?? null,
                 'wallet_number' => $fullWalletNumber,
                 'masked_wallet_number' => $maskedWalletNumber,
@@ -1929,7 +1929,7 @@ class DashboardController extends Controller
     {
         return [
             'balance' => 0,
-            'formatted_balance' => 'KES 0.00',
+            'formatted_balance' => \App\Support\Money::format(0),
             'wallet_id' => null,
             'wallet_number' => null,
             'masked_wallet_number' => null,

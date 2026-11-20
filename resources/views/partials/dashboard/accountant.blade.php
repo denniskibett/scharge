@@ -390,7 +390,7 @@ function accountantDashboard() {
                         fontWeight: '600',
                     },
                     formatter: function(val) {
-                        return 'KES ' + Number(val).toLocaleString();
+                        return scMoney.fmt(val, 0);
                     }
                 },
                 xaxis: {
@@ -415,7 +415,7 @@ function accountantDashboard() {
                     forceNiceScale: true,
                     decimalsInFloat: 0,
                     title: {
-                        text: "Revenue (KES)",
+                        text: "Revenue (" + scMoney.code + ")",
                         style: {
                             fontSize: "13px",
                             fontFamily: 'Outfit, sans-serif',
@@ -457,7 +457,7 @@ function accountantDashboard() {
                     fontFamily: "Outfit, sans-serif",
                 },
                 tooltip: {
-                    y: { formatter: (val) => 'KES ' + Number(val).toLocaleString() },
+                    y: { formatter: (val) => scMoney.fmt(val, 0) },
                 },
                 states: {
                     hover: { filter: { type: 'lighten', value: 0.1 } }
@@ -557,7 +557,7 @@ function accountantDashboard() {
                 dataLabels: {
                     enabled: true,
                     formatter: function(val, opts) {
-                        return 'KES ' + Number(opts.w.globals.series[opts.seriesIndex]).toLocaleString();
+                        return scMoney.fmt(opts.w.globals.series[opts.seriesIndex], 0);
                     },
                     style: {
                         fontSize: '11px',
@@ -579,7 +579,7 @@ function accountantDashboard() {
                                     fontWeight: 600,
                                     color: '#64748b',
                                     formatter: function(w) {
-                                        return 'KES ' + Number(w.globals.seriesTotals.reduce((a, b) => a + b, 0)).toLocaleString();
+                                        return scMoney.fmt(w.globals.seriesTotals.reduce((a, b) => a + b, 0), 0);
                                     }
                                 }
                             }
@@ -587,7 +587,7 @@ function accountantDashboard() {
                     }
                 },
                 tooltip: {
-                    y: { formatter: function(val) { return 'KES ' + Number(val).toLocaleString(); } },
+                    y: { formatter: function(val) { return scMoney.fmt(val, 0); } },
                     style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
                 },
                 responsive: [{
@@ -710,7 +710,7 @@ function accountantDashboard() {
                 },
                 yaxis: {
                     title: {
-                        text: "Amount (KES)",
+                        text: "Amount (" + scMoney.code + ")",
                         style: {
                             fontSize: "12px",
                             fontFamily: 'Outfit, sans-serif',
@@ -720,12 +720,7 @@ function accountantDashboard() {
                     },
                     labels: {
                         formatter: function(value) {
-                            if (value >= 1000000) {
-                                return 'KES ' + (value / 1000000).toFixed(1) + 'M';
-                            } else if (value >= 1000) {
-                                return 'KES ' + (value / 1000).toFixed(1) + 'K';
-                            }
-                            return 'KES ' + Number(value).toLocaleString();
+                            return scMoney.short(value);
                         },
                         style: {
                             fontSize: '11px',
@@ -761,7 +756,7 @@ function accountantDashboard() {
                 tooltip: {
                     shared: true,
                     intersect: false,
-                    y: { formatter: function(val) { return 'KES ' + Number(val).toLocaleString(); } },
+                    y: { formatter: function(val) { return scMoney.fmt(val, 0); } },
                     style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
                 },
                 responsive: [{
@@ -1114,7 +1109,7 @@ function accountantDashboard() {
                         fontWeight: '600',
                     },
                     formatter: function(val) {
-                        return 'KES ' + Number(val).toLocaleString();
+                        return scMoney.fmt(val, 0);
                     }
                 },
                 xaxis: {
@@ -1138,7 +1133,7 @@ function accountantDashboard() {
                     forceNiceScale: true,
                     decimalsInFloat: 0,
                     title: {
-                        text: "Amount (KES)",
+                        text: "Amount (" + scMoney.code + ")",
                         style: {
                             fontSize: "13px",
                             fontFamily: 'Outfit, sans-serif',
@@ -1174,7 +1169,7 @@ function accountantDashboard() {
                     padding: { left: 10, right: 10 }
                 },
                 tooltip: {
-                    y: { formatter: function(val) { return 'KES ' + Number(val).toLocaleString(); } },
+                    y: { formatter: function(val) { return scMoney.fmt(val, 0); } },
                     style: { fontSize: '12px', fontFamily: 'Outfit, sans-serif' }
                 },
                 states: {

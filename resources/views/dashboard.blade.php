@@ -6,6 +6,11 @@
 <div x-data="dashboard()" x-init="init()">
     <div>
 
+    {{-- Converted figures say which Sharet rate they use (nothing shows when amounts are in KES) --}}
+    @unless (auth()->user()->hasRole('tenant'))
+        <x-fx-note class="mt-4 text-xs text-gray-500 dark:text-gray-400" />
+    @endunless
+
     <!-- Dashboard Cards - Only for non-sysadmin roles -->
     @if(!auth()->user()->hasRole('sysadmin'))
     <div class="mt-6 mb-6">

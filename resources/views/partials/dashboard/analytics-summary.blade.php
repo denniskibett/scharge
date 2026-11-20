@@ -18,9 +18,9 @@
     [$n, $p] = [$summary['now'], $summary['prev']];
     $delta = function ($a, $b) { if (! $b) return null; return round(($a - $b) / $b * 100); };
     $tiles = [
-      ['Billed this month', 'KES '.number_format($n['billed']), $delta($n['billed'], $p['billed'])],
-      ['Collected this month', 'KES '.number_format($n['collected']), $delta($n['collected'], $p['collected'])],
-      ['Arrears now', 'KES '.number_format($n['arrears']), null],
+      ['Billed this month', \App\Support\Money::show($n['billed'], null, null, 0), $delta($n['billed'], $p['billed'])],
+      ['Collected this month', \App\Support\Money::show($n['collected'], null, null, 0), $delta($n['collected'], $p['collected'])],
+      ['Arrears now', \App\Support\Money::show($n['arrears'], null, null, 0), null],
       ['Occupancy', $n['occupancy'] === null ? '—' : $n['occupancy'].'%', null],
     ];
   @endphp

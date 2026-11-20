@@ -245,8 +245,10 @@ class SystemHelper
 
     public static function currency($amount)
     {
-        $currencyCode = self::get('currency', 'KES');
-        $symbol = self::get('currency_symbol', 'KSh');
+        // Stored amounts are in the book currency (config currency.book); the platform currency is for display only
+        // and goes through App\Support\Money, so never label a stored amount with it.
+        $currencyCode = \App\Support\Currency::book();
+        $symbol = \App\Support\Currency::all()[$currencyCode]['symbol'] ?? $currencyCode;
         $position = self::get('settings.currency_position', 'before');
 
         $currencies = self::currencies();
@@ -383,7 +385,8 @@ class SystemHelper
     public static function dateFormat() { return self::get('date_format', 'Y-m-d'); }
     public static function timeFormat() { return self::get('time_format', 'H:i:s'); }
     public static function currencyCode() { return self::get('currency', 'KES'); }
-    public static function currencySymbol() { return self::get('currency_symbol', 'KSh'); }
+    /** Symbol of the book currency: every caller labels a stored amount (see App\Support\Money for display). */
+    public static function currencySymbol() { return \App\Support\Currency::all()[\App\Support\Currency::book()]['symbol'] ?? \App\Support\Currency::book(); }
     public static function customCss() { return self::get('custom_css'); }
     public static function customJs() { return self::get('custom_js'); }
     public static function googleAnalyticsId() { return config('services.google.analytics_id') ?? self::get('settings.integrations.google_analytics'); }
