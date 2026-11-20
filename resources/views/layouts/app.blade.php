@@ -328,11 +328,9 @@
     </style>
 
     {{-- Display currency for charts (App\Support\Money::js): scMoney.fmt(bookAmount) shows a KES figure in the viewer's currency --}}
-    @php
-        $scMoney = rescue(fn () => \App\Support\Money::js(), ['code' => 'KES', 'rate' => 1, 'decimals' => 2, 'note' => null], false);
-    @endphp
+    {{-- No @php block here: this layout also uses the one-line @php(...) form, and Blade mismatches the two. --}}
     <script>
-        window.scMoney = @json($scMoney);
+        window.scMoney = {!! json_encode(rescue(fn () => \App\Support\Money::js(), ['code' => 'KES', 'rate' => 1, 'decimals' => 2, 'note' => null], false), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!};
         window.scMoney.conv = function (v) { return Number(v || 0) * window.scMoney.rate; };
         window.scMoney.fmt = function (v, dp) { var d = dp === undefined ? window.scMoney.decimals : dp; return window.scMoney.code + ' ' + window.scMoney.conv(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); };
         window.scMoney.short = function (v) { var n = window.scMoney.conv(v), a = Math.abs(n); return window.scMoney.code + ' ' + (a >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : n.toLocaleString('en-US')); };
