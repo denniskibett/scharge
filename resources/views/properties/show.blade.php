@@ -2,6 +2,11 @@
 
 @section('content')
 <!-- Include modal partials -->
+{{-- Units on this property: Add / Edit / View / Delete use the same modals as the Units page, scoped to this property. --}}
+@include('partials.modal.units-create-modal', ['properties' => collect([$property])])
+@include('partials.modal.units-edit-modal', ['properties' => collect([$property])])
+@include('partials.modal.units-show-modal')
+@include('partials.modal.units-delete-modal')
 @include('partials.modal.success-modal')
 @if (session('success'))
 <script>document.addEventListener('alpine:initialized', () => window.successModal?.simple('Done', @json(session('success'))));</script>
