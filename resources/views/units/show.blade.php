@@ -9,6 +9,10 @@
 @include('partials.modal.error-modal')
 @include('partials.modal.invoice-create-modal')
 @include('partials.modal.units-water-reading-modal')
+{{-- The tenancy table below brings its own copy of this modal; a unit with no tenancies yet needs it for "Add tenant". --}}
+@if($unit->tenancies->count() === 0)
+  @include('partials.modal.tenancies-create-modal')
+@endif
 
 <div x-data="unitShow" x-init="init()" x-cloak>
   <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
@@ -446,7 +450,7 @@
             <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No Active Tenant</h3>
             <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">This unit is currently vacant. Add a tenant to get started.</p>
             <div class="mt-6">
-              <a href="{{ route('tenancies.create', ['unit_id' => $unit->id]) }}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+              <a href="#" @click.prevent="window.tenancyCreateModal?.openForUnit({{ $unit->id }})" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>

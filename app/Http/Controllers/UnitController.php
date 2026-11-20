@@ -138,6 +138,8 @@ class UnitController extends Controller
             'bnb_nightly_rate' => 'nullable|numeric|min:0',
             'security_deposit_amount' => 'nullable|numeric|min:0',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
+            'water_billing_type' => 'nullable|in:flat,consumption',
+            'custom_water_rate' => 'nullable|numeric|min:0',
         ]);
 
         // The unit belongs to its property's company (an agency adding units to its own property, a landlord, …).
@@ -223,7 +225,7 @@ class UnitController extends Controller
         
         $validated = $request->validate([
             // Existing fields
-            'unit_number' => 'required|string|max:255',
+            'unit_number' => ['required', 'string', 'max:255', 'not_regex:/[,;]/'],   // one unit per number, as on create
             'unit_type' => 'required|string|max:255',
             'rent_amount' => 'required|numeric|min:0',
             'water_charge' => 'nullable|numeric|min:0',
@@ -244,18 +246,22 @@ class UnitController extends Controller
             'bnb_nightly_rate' => 'nullable|numeric|min:0',
             'security_deposit_amount' => 'nullable|numeric|min:0',
             'commission_rate' => 'nullable|numeric|min:0|max:100',
+            'water_billing_type' => 'nullable|in:flat,consumption',
+            'custom_water_rate' => 'nullable|numeric|min:0',
         ]);
 
-        // Set default values for utilities if not provided
-        $validated['water_charge'] = $validated['water_charge'] ?? 0;
-        $validated['service_charge'] = $validated['service_charge'] ?? 0;
-        $validated['garbage_charge'] = $validated['garbage_charge'] ?? 0;
-        $validated['security_charge'] = $validated['security_charge'] ?? 0;
-        
-        // Handle nullable fields
-        $validated['bnb_nightly_rate'] = $validated['bnb_nightly_rate'] ?? null;
-        $validated['security_deposit_amount'] = $validated['security_deposit_amount'] ?? null;
-        $validated['commission_rate'] = $validated['commission_rate'] ?? null;
+        // Only change what the form sent: the quick edit modal sends rent and charges, not the nightly rate,
+        // deposit or commission, and those must keep their saved values (they used to be wiped to empty).
+        foreach (array_keys($validated) as $key) {
+            if (! $request->exists($key)) {
+                unset($validated[$key]);
+            }
+        }
+        foreach (['water_charge', 'service_charge', 'garbage_charge', 'security_charge'] as $key) {
+            if (array_key_exists($key, $validated) && $validated[$key] === null) {
+                $validated[$key] = 0;
+            }
+        }
 
         $unit->update($this->restrictHostUnitFields($unit, $validated));
 
@@ -464,13 +470,11 @@ class UnitController extends Controller
             'reading_date' => 'required|date',
         ]);
         
-        $unit->submitWaterReading($request->current_reading, $request->reading_date);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Water reading updated successfully',
-            'unit' => $unit
-        ]);
+        // Record it like the Water page does, so it lands in water_readings and is billed on the next invoice
+        // (this used to only update the unit's own columns, which invoices never read).
+        $request->merge(['unit_id' => $unit->id]);
+
+        return app(\App\Http\Controllers\WaterReadingController::class)->store($request);
     }
 
     public function getMeterReadingData(Unit $unit)

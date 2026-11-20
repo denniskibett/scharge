@@ -478,7 +478,7 @@ function sysAdminDashboard() {
         
         verifyUser(userId) {
             if (confirm('Verify this user? They will be able to log in and access the system.')) {
-                fetch(`/admin/users/${userId}/verify`, {
+                fetch(`/users/${userId}/verify`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}',
@@ -504,7 +504,7 @@ function sysAdminDashboard() {
         
         suspendUser(userId, userName) {
             if (confirm(`Are you sure you want to suspend "${userName}"? They will not be able to log in.`)) {
-                fetch(`/admin/users/${userId}/suspend`, {
+                fetch(`/users/${userId}/suspend`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '{{ csrf_token() }}',

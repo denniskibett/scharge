@@ -168,6 +168,10 @@ public function store(Request $request)
             'notes' => 'nullable|string',
         ]);
         
+        if (!empty($validated['unit_id'])) {
+            $this->freeUnitOrFail((int) $validated['unit_id']);
+        }
+
         // Check if user already has a tenant record
         $existingTenant = Tenant::where('user_id', $validated['user_id'])->first();
         if ($existingTenant) {
@@ -182,6 +186,9 @@ public function store(Request $request)
         
         // Get the user
         $user = User::findOrFail($validated['user_id']);
+        if (! $user->hasRole('tenant')) {
+            $user->assignRole('tenant');   // permissions come from the Spatie role, not role_id
+        }
         
         // Assign tenant role if not already assigned (using role_id directly)
         $tenantRole = Role::where('name', 'tenant')->first();
@@ -197,11 +204,13 @@ public function store(Request $request)
             'notes' => $validated['notes'] ?? null,
         ]);
         
-        // Create tenancy if unit is provided
+        // Create tenancy if unit is provided (only on a free unit of this company: see freeUnitOrFail)
         if (!empty($validated['unit_id'])) {
             $tenancy = Tenancy::create([
                 'tenant_id' => $tenant->id,
                 'unit_id' => $validated['unit_id'],
+                'company_id' => $tenant->company_id,
+                'property_id' => Unit::find($validated['unit_id'])?->property_id,
                 'move_in_date' => now()->format('Y-m-d'),
                 'status' => 'active',
             ]);
@@ -233,6 +242,10 @@ public function store(Request $request)
             'notes' => 'nullable|string',
         ]);
 
+        if (!empty($validated['unit_id'])) {
+            $this->freeUnitOrFail((int) $validated['unit_id']);
+        }
+
         // Generate unique email if not provided
         if (empty($validated['email'])) {
             $baseEmail = strtolower(str_replace(' ', '.', $validated['name'])) . '.' . substr($validated['phone'], -4);
@@ -260,6 +273,7 @@ public function store(Request $request)
             'email_verified_at' => now(),
             'role_id' => $tenantRole ? $tenantRole->id : null, // Assign tenant role directly
         ]);
+        $user->assignRole('tenant');   // permissions come from the Spatie role, not role_id
 
         // Create tenant record
         $tenant = Tenant::create([
@@ -269,11 +283,13 @@ public function store(Request $request)
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        // Create tenancy if unit is provided
+        // Create tenancy if unit is provided (only on a free unit of this company: see freeUnitOrFail)
         if (!empty($validated['unit_id'])) {
             $tenancy = Tenancy::create([
                 'tenant_id' => $tenant->id,
                 'unit_id' => $validated['unit_id'],
+                'company_id' => $tenant->company_id,
+                'property_id' => Unit::find($validated['unit_id'])?->property_id,
                 'move_in_date' => now()->format('Y-m-d'),
                 'status' => 'active',
             ]);
@@ -356,11 +372,9 @@ public function store(Request $request)
 
     public function destroy(Tenant $tenant)
     {
-        // End any active tenancies
-        $tenant->tenancies()->where('status', 'active')->update(['status' => 'ended']);
-        
-        // Set associated units to vacant
+        // Free the units of the active tenancies, then end them (this used to end them first, so no unit was freed)
         $activeTenancies = $tenant->tenancies()->where('status', 'active')->get();
+        $tenant->tenancies()->where('status', 'active')->update(['status' => 'ended']);
         foreach ($activeTenancies as $tenancy) {
             if ($tenancy->unit) {
                 $tenancy->unit->update(['status' => 'vacant']);
@@ -631,5 +645,16 @@ public function store(Request $request)
             });
         
         return response()->json($tenancies);
+    }
+
+    /** A tenancy can only start on a unit of your own company that nobody is renting now. */
+    private function freeUnitOrFail(int $unitId): void
+    {
+        $unit = Unit::withoutGlobalScopes()->findOrFail($unitId);
+        $me = auth()->user();
+        abort_unless($me->hasRole('sysadmin') || (int) $unit->company_id === (int) $me->company_id, 403, 'That unit is not in your company.');
+        if (Tenancy::where('unit_id', $unit->id)->where('status', 'active')->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['unit_id' => 'Unit '.$unit->unit_number.' already has an active tenant. End that tenancy first.']);
+        }
     }
 }

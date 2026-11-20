@@ -189,13 +189,23 @@ class PaymentController extends Controller
      */
     public function store(Request $request)
     {
+        // The record-payment modals name some fields differently: "bank" is a bank transfer, and the M-Pesa or bank
+        // code may come as transaction_id. Without this, bank transfers were rejected and typed codes were lost.
+        $request->merge(array_filter([
+            'payment_method' => $request->payment_method === 'bank' ? 'bank_transfer' : $request->payment_method,
+            'external_reference' => trim((string) ($request->external_reference ?: $request->transaction_id)) ?: null,
+        ], fn ($v) => $v !== null));
+
         $request->validate([
             'tenancy_id' => 'sometimes|exists:tenancies,id',
             'tenant_id' => 'required_without:tenancy_id|exists:tenants,id',
             'invoice_id' => 'required|exists:invoices,id',
             'amount' => 'required|numeric|min:0.01',
-            'payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill,mpesa',
-            'external_reference' => 'nullable|string',
+            'payment_method' => 'required|string|in:cash,bank_transfer,mpesa_paybill,mpesa,manual_topup',
+            'external_reference' => 'nullable|string|max:120',
+            'payer_name' => 'nullable|string|max:120',
+            'paid_to' => 'nullable|string|max:120',
+            'transaction_message' => 'nullable|string|max:1000',
             'payment_datetime' => 'nullable|date',
             'payment_month' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -388,6 +398,11 @@ class PaymentController extends Controller
                 'payment_id' => $paymentRecord ? $paymentRecord->id : null,
             ]);
             
+            // Keep what the person typed: who paid, to whom, the bank/M-Pesa message, and when it was received.
+            if ($paymentRecord) {
+                $this->applyReceivedDetails($paymentRecord, $request);
+            }
+
             // Refresh invoice to update status
             $invoice->refresh();
             
@@ -643,10 +658,18 @@ class PaymentController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $request->merge(array_filter([
+            'external_reference' => $request->has('transaction_id') && ! $request->has('external_reference') ? trim((string) $request->transaction_id) : null,
+        ], fn ($v) => $v !== null));
         $request->validate([
             'status' => 'sometimes|string|in:pending,completed,failed,cancelled,refunded',
             'is_reconciled' => 'sometimes|boolean',
             'notes' => 'nullable|string',
+            'external_reference' => 'nullable|string|max:120',
+            'payer_name' => 'nullable|string|max:120',
+            'paid_to' => 'nullable|string|max:120',
+            'transaction_message' => 'nullable|string|max:1000',
+            'payment_datetime' => 'nullable|date|before_or_equal:+1 day',
         ]);
         
         try {
@@ -676,7 +699,14 @@ class PaymentController extends Controller
             }
             $updateData['meta'] = $meta;
             
+            if ($request->filled('external_reference')) {
+                $updateData['external_reference'] = $request->external_reference;
+            }
             $payment->update($updateData);
+            $this->applyReceivedDetails($payment, $request);
+            if (! $request->expectsJson()) {
+                return back()->with('success', 'Payment updated');
+            }
             
             return response()->json([
                 'success' => true,
@@ -690,6 +720,25 @@ class PaymentController extends Controller
                 'message' => 'Failed to update payment'
             ], 500);
         }
+    }
+
+    /** Payer details and the date the money was received (manual entries): kept in meta, date on created_at. */
+    private function applyReceivedDetails(Payment $payment, Request $request): void
+    {
+        $meta = $payment->meta ?? [];
+        foreach (['payer_name', 'paid_to', 'transaction_message', 'payment_month'] as $k) {
+            if ($request->filled($k)) {
+                $meta[$k] = (string) $request->input($k);
+            }
+        }
+        $payment->meta = $meta;
+        if ($request->filled('payment_datetime')) {
+            $at = \Illuminate\Support\Carbon::parse($request->payment_datetime);
+            if ($at->lte(now()->addDay())) {
+                $payment->created_at = $at;
+            }
+        }
+        $payment->save();
     }
 
     /**

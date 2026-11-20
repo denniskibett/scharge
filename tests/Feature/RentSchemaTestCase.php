@@ -80,13 +80,13 @@ abstract class RentSchemaTestCase extends TestCase
             $t->string('furnishing_status')->nullable();
             $t->timestamps();
         });
-        Schema::create('tenancies', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('tenant_id'), $t->unsignedBigInteger('unit_id'),
+        Schema::create('tenancies', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('property_id')->nullable(), $t->unsignedBigInteger('tenant_id'), $t->unsignedBigInteger('unit_id'),
             $t->date('move_in_date'), $t->date('move_out_date')->nullable(), $t->text('notes')->nullable(), $t->string('status')->default('active'), $t->timestamps()]);
         Schema::create('invoices', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('tenancy_id'), $t->string('invoice_type'), $t->date('billing_month')->nullable(),
             $t->decimal('total_amount', 12, 2), $t->decimal('total_paid', 12, 2)->default(0), $t->string('status')->default('draft'), $t->unsignedBigInteger('company_id')->nullable(), $t->timestamps()]);
         Schema::create('invoice_items', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('invoice_id'), $t->string('item_type'), $t->string('description'), $t->decimal('amount', 12, 2),
             $t->decimal('paid_amount', 12, 2)->default(0), $t->unsignedBigInteger('payment_id')->nullable(), $t->decimal('water_units_used', 12, 2)->nullable(), $t->unsignedBigInteger('company_id')->nullable(), $t->timestamps(), $t->softDeletes()]);
-        Schema::create('water_readings', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('unit_id'), $t->decimal('previous_reading', 12, 2), $t->decimal('current_reading', 12, 2),
+        Schema::create('water_readings', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->unsignedBigInteger('unit_id'), $t->decimal('previous_reading', 12, 2), $t->decimal('current_reading', 12, 2),
             $t->decimal('consumption', 12, 2)->nullable(), $t->date('reading_date'), $t->timestamps()]);
         Schema::create('company_integrations', fn (Blueprint $t) => [$t->id(), $t->unsignedBigInteger('company_id')->nullable(), $t->string('provider'), $t->text('credentials')->nullable(),
             $t->boolean('enabled')->default(false), $t->unsignedBigInteger('updated_by')->nullable(), $t->timestamp('last_tested_at')->nullable(), $t->boolean('last_test_ok')->nullable(), $t->string('last_test_message')->nullable(), $t->timestamps()]);

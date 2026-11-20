@@ -71,6 +71,7 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Unit Type *</label>
             <select 
+              x-ref="unitType"
               x-model="formData.unit_type"
               name="unit_type"
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
@@ -301,13 +302,19 @@ document.addEventListener('alpine:init', () => {
         this.formData = {
           unit_number: unit.unit_number || '',
           unit_type: unit.unit_type || '',
-          rent_amount: unit.rent_amount || '',
+          rent_amount: unit.rent_amount ?? '',
           water_charge: unit.water_charge || '',
           service_charge: unit.service_charge || '',
           garbage_charge: unit.garbage_charge || '',
           security_charge: unit.security_charge || '',
           status: unit.status || 'vacant'
         };
+        // Types saved by CSV import or older forms (e.g. "1 Bedroom") aren't in the list: add them so the unit can be saved.
+        const t = this.formData.unit_type, sel = this.$refs.unitType;
+        if (t && sel && ![...sel.options].some(o => o.value === t)) {
+          const o = document.createElement('option'); o.value = t; o.textContent = t; sel.appendChild(o);
+          this.$nextTick(() => { sel.value = t; });
+        }
       }
       
       document.body.style.overflow = 'hidden';
@@ -332,8 +339,8 @@ document.addEventListener('alpine:init', () => {
         errors.push('Please select a unit type');
       }
       
-      if (!this.formData.rent_amount || parseFloat(this.formData.rent_amount) <= 0) {
-        errors.push('Please enter a valid rent amount greater than 0');
+      if (this.formData.rent_amount === '' || this.formData.rent_amount === null || isNaN(parseFloat(this.formData.rent_amount)) || parseFloat(this.formData.rent_amount) < 0) {
+        errors.push('Please enter the rent (0 or more)');
       }
       
       // Validate utilities (optional, but must be numeric if provided)

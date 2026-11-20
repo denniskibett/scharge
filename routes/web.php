@@ -372,6 +372,8 @@ Route::middleware(['auth'])->group(function () {
 // ============================================
 // Every user on scharge: sysadmins only (company admins manage their own people on /team).
 Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:sysadmin'])->group(function () {
+    Route::post('/bulk', [App\Http\Controllers\Admin\UserController::class, 'bulk'])->name('bulk');
+    Route::get('/export', [App\Http\Controllers\Admin\UserController::class, 'export'])->name('export');
 
     Route::resource('/', App\Http\Controllers\Admin\UserController::class)
         ->parameters(['' => 'user']);

@@ -438,6 +438,13 @@ document.addEventListener('alpine:init', () => {
       });
     },
     
+    /** Open for a new tenancy on one unit (the unit page's "Add tenant" button). */
+    openForUnit(unitId) {
+      this.openModal();
+      this.form.unit_id = String(unitId);
+      this.$nextTick(() => this.onUnitChange());
+    },
+
     openModal(editData = null) {
       this.isOpen = true;
       this.resetForm();

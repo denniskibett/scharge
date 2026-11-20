@@ -58,7 +58,7 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Tenant (Payer) *</label>
             <select 
-              x-model="formData.tenancy_id"
+              x-model="formData.tenancy_id" disabled title="Recorded amounts and methods can't be changed here: reverse the payment and record it again."
               name="tenancy_id"
               required
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
@@ -73,7 +73,7 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Invoice</label>
             <select 
-              x-model="formData.invoice_id"
+              x-model="formData.invoice_id" disabled title="Recorded amounts and methods can't be changed here: reverse the payment and record it again."
               name="invoice_id"
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
             >
@@ -91,7 +91,7 @@
                 <span class="text-gray-500 dark:text-gray-400">$</span>
               </div>
               <input 
-                x-model="formData.amount"
+                x-model="formData.amount" disabled title="Recorded amounts and methods can't be changed here: reverse the payment and record it again."
                 @blur="formatAmount()"
                 type="number"
                 step="0.01"
@@ -106,7 +106,7 @@
           <div>
             <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Payment Method *</label>
             <select 
-              x-model="formData.payment_method"
+              x-model="formData.payment_method" disabled title="Recorded amounts and methods can't be changed here: reverse the payment and record it again."
               name="payment_method"
               required
               class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-blue-300 focus:outline-hidden focus:ring-3 focus:ring-blue-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"

@@ -14,6 +14,9 @@ class Maintenance extends Model
 
 
     protected $fillable = [
+        'company_id',
+        'property_id',
+        'duration',
         'unit_id',
         'tenant_id',
         'assigned_to',

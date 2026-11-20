@@ -414,7 +414,7 @@
             return;
         }
 
-        fetch('/admin/users/' + userId + '/verify', {
+        fetch('/users/' + userId + '/verify', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken,
@@ -445,7 +445,7 @@
             return;
         }
 
-        fetch('/admin/users/' + userId + '/suspend', {
+        fetch('/users/' + userId + '/suspend', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken,
@@ -476,7 +476,7 @@
             return;
         }
 
-        fetch('/admin/users/' + userId + '/activate', {
+        fetch('/users/' + userId + '/activate', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': csrfToken,
