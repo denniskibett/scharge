@@ -204,7 +204,8 @@ class BillingController extends Controller
         if ($asPdf) {
             return \Barryvdh\DomPDF\Facade\Pdf::loadView('billing.invoice-pdf', $data)->setPaper('a4', 'portrait')
                 ->setOption(['chroot' => [public_path(), resource_path('fonts')], 'isRemoteEnabled' => false])
-                ->stream('scharge-invoice-'.\App\Support\InvoiceNo::of($row->id).'.pdf');
+                ->stream('scharge-invoice-'.\App\Support\InvoiceNo::of($row->id).'.pdf')
+                ->header('Cache-Control', 'no-store, max-age=0');   // always the current invoice, never a stale copy
         }
 
         return view('billing.invoice', $data + ['publicUrl' => self::publicUrl((int) $row->id), 'privateUrl' => route('billing.invoice', $row->id),
