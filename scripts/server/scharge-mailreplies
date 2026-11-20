@@ -1,0 +1,47 @@
+#!/bin/bash
+# scharge CRM: prospect replies and mailbox activity (root, every 5 minutes; /etc/cron.d/scharge-mailreplies).
+# Mail on disk is gzip-compressed by Dovecot; everything here reads it with zcat -f.
+# 1. Copies new INBOX messages that answer our emails (In-Reply-To/References @sharet.africa) or come from an
+#    address we cold-emailed (storage/app/crm-emailed.txt) into storage/app/inbox/, for crm:mail-replies.
+# 2. Writes message counts per mailbox (no content) to storage/app/mailbox-stats.json for CRM › Team.
+APP=/home/scharge.sharet.africa/laravel
+VM=/home/vmail/sharet.africa
+BOXES="sales onboarding support noreply sysadmin wkamau akenga"
+SEEN=/var/lib/scharge-mailreplies.seen
+OUT=$APP/storage/app/inbox
+mkdir -p "$OUT"; touch "$SEEN"
+LIST=$APP/storage/app/crm-emailed.txt
+now=$(date +%s); day=$(date -d today +%s); week=$((now - 7*86400))
+
+json="{\"generated_at\":$now,\"mailboxes\":{"; first=1
+for b in $BOXES; do
+  M=$VM/$b/Maildir
+  [ -d "$M" ] || continue
+  # replies: INBOX only, files from the last 3 days
+  find "$M/new" "$M/cur" -type f -mtime -3 2>/dev/null | while read -r f; do
+    key="$b/$(basename "$f" | cut -d: -f1)"
+    grep -qxF "$key" "$SEEN" && continue
+    # Dovecot saves mail gzip-compressed (zlib_save = gz): read it through zcat -f (plain files pass through).
+    head=$(zcat -f "$f" 2>/dev/null | sed -n '1,/^\r\?$/p' | tr -d '\000' | head -c 20000)
+    from=$(printf '%s\n' "$head" | grep -i -m1 '^From:' | grep -oiE '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+' | head -1 | tr 'A-Z' 'a-z')
+    if printf '%s\n' "$head" | grep -iE '^(In-Reply-To|References):|^[[:space:]]+<' | grep -qi '@sharet\.africa>' \
+       || { [ -n "$from" ] && [ -f "$LIST" ] && grep -qxF "$from" "$LIST"; }; then
+      zcat -f "$f" > "$OUT/${b}__$(basename "$f" | cut -d: -f1 | tr -c 'A-Za-z0-9._-' '_').eml"
+    fi
+    echo "$key" >> "$SEEN"
+  done
+  cnt() { find "$@" -type f 2>/dev/null | wc -l; }
+  recv=$(cnt "$M/new" "$M/cur" -newermt "@$week"); recvd=$(cnt "$M/new" "$M/cur" -newermt "@$day")
+  sent=$(cnt "$M/.Sent/cur" "$M/.Sent/new" -newermt "@$week"); sentd=$(cnt "$M/.Sent/cur" "$M/.Sent/new" -newermt "@$day")
+  unread=$( { find "$M/new" -type f; find "$M/cur" -type f ! -name '*:2,*S*'; } 2>/dev/null | wc -l)
+  lr=$(find "$M/new" "$M/cur" -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)
+  ls=$(find "$M/.Sent/cur" "$M/.Sent/new" -type f -printf '%T@\n' 2>/dev/null | sort -n | tail -1 | cut -d. -f1)
+  [ $first = 1 ] || json="$json,"; first=0
+  json="$json\"$b\":{\"received\":$recv,\"received_today\":$recvd,\"sent\":$sent,\"sent_today\":$sentd,\"unread\":$unread,\"last_received\":${lr:-null},\"last_sent\":${ls:-null}}"
+done
+json="$json}}"
+printf '%s\n' "$json" > "$APP/storage/app/mailbox-stats.json.tmp" && mv "$APP/storage/app/mailbox-stats.json.tmp" "$APP/storage/app/mailbox-stats.json"
+# keep the seen list short
+tail -n 20000 "$SEEN" > "$SEEN.tmp" && mv "$SEEN.tmp" "$SEEN"
+chown -R schar5452:schar5452 "$OUT" "$APP/storage/app/mailbox-stats.json"; chmod 640 "$APP/storage/app/mailbox-stats.json"
+cd "$APP" && sudo -u schar5452 php artisan crm:mail-replies >> "$APP/storage/logs/crm-mail-replies.log" 2>&1
