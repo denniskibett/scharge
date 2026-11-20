@@ -28,15 +28,19 @@ class DemoRequestController extends Controller
         $company = Demo::findByRef($ref);
         abort_unless($company, 404);
         // Opened from a cold email (?t=…): they clicked.
-        EmailTracking::mark(EmailTracking::find($request->query('t')), 'clicked');
+        $email = EmailTracking::find($request->query('t'));
+        EmailTracking::mark($email, 'clicked');
+        \App\Modules\CRM\Support\EmailEngagement::record($email, 'click', $request);
 
         return view('home.demo-request', ['company' => $company, 'ref' => strtoupper($ref), 'manager' => $company->owner]);
     }
 
     /** 1×1 image in cold emails: records that the email was opened. */
-    public function opened(string $token): \Illuminate\Http\Response
+    public function opened(Request $request, string $token): \Illuminate\Http\Response
     {
-        EmailTracking::mark(EmailTracking::find($token), 'opened');
+        $email = EmailTracking::find($token);
+        EmailTracking::mark($email, 'opened');
+        \App\Modules\CRM\Support\EmailEngagement::record($email, 'open', $request);   // when, roughly where, which device
 
         return response(base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), 200, [
             'Content-Type' => 'image/gif', 'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0', 'Pragma' => 'no-cache',

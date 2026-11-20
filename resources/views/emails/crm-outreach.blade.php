@@ -62,6 +62,7 @@
     <tr><td style="background:#1A1214;padding:22px 32px;font-family:{!! $sans !!};font-size:12px;line-height:1.55;color:#CDBFC2;">
       <strong style="color:#FFFFFF;">scharge</strong> · Sharet Africa · Nairobi, Kenya<br>
       You're receiving this because this address is published as the business contact for {{ $companyName }}. {{ $optOut }}<br>
+      This email uses a small image and link to tell us when it is read, roughly where (town) and on what kind of device, so we can follow up at a good time. We keep this for up to 12 months and never share it.<br>
       <a href="{{ $base }}" style="color:#FCA5A5;">scharge.sharet.africa</a>
     </td></tr>
   </table>

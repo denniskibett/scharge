@@ -144,6 +144,10 @@ foreach ($campaignOrder as $i => $type) {
         ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
 }
 
+// Email open/click details (place, device) are kept 12 months at most (Kenya Data Protection Act: keep only what is needed).
+Schedule::call(fn () => \App\Modules\CRM\Support\EmailEngagement::prune())
+    ->name('crm-email-events-prune')->dailyAt('03:20')->onOneServer();
+
 // CRM recap of the last working day (Monday covers the weekend): sysadmins get the team, each account manager their own day and calls.
 Schedule::command('crm:daily-recap')
     ->weekdays()->at('07:30')

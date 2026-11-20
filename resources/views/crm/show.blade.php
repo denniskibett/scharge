@@ -232,6 +232,9 @@
                                 @if (in_array($row->status, ['missed', 'cancelled'], true))<span class="ml-1 text-xs font-normal text-red-600">({{ $row->status }})</span>@endif
                                 @if ($row->type === 'email' && $row->detail('track'))@php($es = \App\Modules\CRM\Support\EmailTracking::status($row))<span class="ml-1 rounded-full px-2 py-0.5 text-xs font-medium {{ \App\Modules\CRM\Support\EmailTracking::TONES[$es] }}" title="{{ $row->detail('delivery_reply') }}">{{ \App\Modules\CRM\Support\EmailTracking::LABELS[$es] }}</span>@endif
                             </div>
+                            @if ($row->type === 'email' && $row->detail('track'))
+                                @include('crm.partials.engagement', ['e' => \App\Modules\CRM\Support\EmailEngagement::summary($row->id), 'events' => \App\Modules\CRM\Support\EmailEngagement::events($row->id)])
+                            @endif
                             @if ($row->detail('pdf'))<a href="{{ route('crm.follow-ups.pdf', $row) }}" class="mt-1 inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-0.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300"><x-icon name="document-text" class="h-3.5 w-3.5" /> {{ $row->type === 'demo' && ! $row->detail('form') ? 'Demo request' : ($row->detail('form.name') ?? 'Submission') }} PDF{{ $row->detail('ref') ? ' · '.$row->detail('ref') : '' }}</a>@endif
                             @if ($row->outcome && $row->type !== 'feedback')<div class="mt-0.5 text-sm text-gray-700 dark:text-gray-300">→ {{ $row->outcome }}</div>@endif
                             @if ($row->notes)<div class="mt-0.5 whitespace-pre-line text-sm text-gray-600 dark:text-gray-300">{{ $row->notes }}</div>@endif

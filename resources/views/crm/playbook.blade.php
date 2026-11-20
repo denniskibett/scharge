@@ -34,6 +34,7 @@
                 @if ($company->profile('property_class')) · {{ $company->profile('property_class') }}@endif
                 @if ($company->profile('last_emailed_at')) · last emailed {{ \Illuminate\Support\Carbon::parse($company->profile('last_emailed_at'))->diffForHumans() }}@endif
             </p>
+            @include('crm.partials.engagement', ['e' => \App\Modules\CRM\Support\EmailEngagement::summary(null, $company->id), 'events' => \App\Modules\CRM\Support\EmailEngagement::events(null, $company->id, 20)])
         </div>
         <div class="flex shrink-0 items-center gap-1">
             <div class="relative" x-data="{ menu: false }" @click.outside="menu = false" @keydown.escape.stop="menu = false">
