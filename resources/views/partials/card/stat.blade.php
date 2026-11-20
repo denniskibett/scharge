@@ -17,7 +17,7 @@
       <x-icon :name="$card['icon']" class="h-4 w-4" />
     </span>
   </div>
-  <p @if (! empty($card['id'])) id="{{ $card['id'] }}" @endif class="mt-2 truncate text-xl font-semibold text-gray-800 dark:text-white/90" title="{{ $card['value'] }}">{{ $card['value'] }}</p>
+  <p @if (! empty($card['id'])) id="{{ $card['id'] }}" @endif class="mt-2 truncate text-xl font-bold text-gray-800 dark:text-white/90" title="{{ $card['value'] }}">{{ $card['value'] }}</p>
   {{-- Secondary data as a pill, pinned to the bottom so every card in the row lines up. --}}
   <div class="mt-auto flex items-center justify-between gap-2 pt-1.5 text-xs">
     @if (filled($card['hint'] ?? null))
