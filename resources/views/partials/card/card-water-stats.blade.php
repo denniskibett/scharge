@@ -32,7 +32,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Water Consumed</p>
-                <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <p class="stat-num mt-1">
                     <span x-text="formatNumber(totalConsumption, 2)">0</span> 
                     <span class="text-sm font-normal text-gray-500">m³</span>
                 </p>
@@ -58,7 +58,7 @@
                     <p class="text-sm text-gray-500 dark:text-gray-400">This Month's Consumption</p>
                     <span class="px-2 py-0.5 rounded-lg text-xs font-medium bg-cyan-50 text-cyan-600 dark:bg-cyan-500/10 dark:text-cyan-400" x-text="currentMonthYear"></span>
                 </div>
-                <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <p class="stat-num mt-1">
                     <span x-text="formatNumber(monthlyConsumption, 2)">0</span> 
                     <span class="text-sm font-normal text-gray-500">m³</span>
                 </p>
@@ -85,7 +85,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Water Charges</p>
-                <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <p class="stat-num mt-1">
                     KES <span x-text="formatMoney(totalCharges)">0</span>
                 </p>
             </div>
@@ -106,7 +106,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Reading Coverage</p>
-                <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="coveragePercentage + '%'">0%</p>
+                <p class="stat-num mt-1" x-text="coveragePercentage + '%'">0%</p>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
                 <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

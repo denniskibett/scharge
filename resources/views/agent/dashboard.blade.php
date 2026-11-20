@@ -21,7 +21,7 @@
         @foreach ([['Properties', $grants->count()], ['Vacant homes', $vacant], ['On Open listings', $listed], ['Open enquiries', $openEnquiries]] as [$label, $value])
             <div class="{{ $card }} p-4">
                 <span class="block text-xs font-medium text-gray-500 dark:text-gray-400">{{ $label }}</span>
-                <span class="mt-1 block text-2xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($value) }}</span>
+                <span class="stat-num mt-1 block">{{ number_format($value) }}</span>
             </div>
         @endforeach
     </div>

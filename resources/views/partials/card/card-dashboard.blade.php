@@ -14,7 +14,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_units'] ?? 0) }}
                     </h4>
                 </div>
@@ -43,7 +43,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_tenants'] ?? 0) }}
                     </h4>
                 </div>
@@ -66,7 +66,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         KES {{ number_format($cardData['total_revenue'] ?? 0, 2) }}
                     </h4>
                 </div>
@@ -89,7 +89,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Invoices</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_invoices'] ?? 0) }}
                     </h4>
                 </div>
@@ -118,7 +118,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_consumption'] ?? 0, 0) }} m³
                     </h4>
                 </div>
@@ -138,7 +138,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Occupancy Rate</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['occupancy_rate'] ?? 0, 1) }}%
                     </h4>
                 </div>
@@ -163,7 +163,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_units'] ?? 0) }}
                     </h4>
                 </div>
@@ -192,7 +192,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_tenants'] ?? 0) }}
                     </h4>
                 </div>
@@ -213,7 +213,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Occupancy Rate</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['occupancy_rate'] ?? 0, 1) }}%
                     </h4>
                 </div>
@@ -235,7 +235,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Water Consumption</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_consumption'] ?? 0, 0) }} m³
                     </h4>
                 </div>
@@ -255,7 +255,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Maintenance</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['open_maintenance'] ?? 0) }}
                     </h4>
                 </div>
@@ -278,7 +278,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         KES {{ number_format($cardData['total_revenue'] ?? 0, 2) }}
                     </h4>
                 </div>
@@ -299,7 +299,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Invoices</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_invoices'] ?? 0) }}
                     </h4>
                 </div>
@@ -328,7 +328,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Collection Rate</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['collection_rate'] ?? 0, 1) }}%
                     </h4>
                 </div>
@@ -381,7 +381,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Water Consumed</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_consumption'] ?? 0, 2) }} <span class="text-sm font-normal text-gray-500">m³</span>
                     </h4>
                 </div>
@@ -410,7 +410,7 @@
                         <p class="text-sm text-gray-500 dark:text-gray-400">This Month's Consumption</p>
                         <span class="rounded-full bg-cyan-50 px-2 py-0.5 text-xs font-medium text-cyan-600">{{ \Carbon\Carbon::now()->format('M Y') }}</span>
                     </div>
-                    <h4 class="text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num">
                         {{ number_format($cardData['monthly_consumption'] ?? 0, 2) }} <span class="text-sm font-normal text-gray-500">m³</span>
                     </h4>
                 </div>
@@ -431,7 +431,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Water Charges</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         KES {{ number_format($cardData['total_charges'] ?? 0, 2) }}
                     </h4>
                 </div>
@@ -453,7 +453,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Reading Coverage</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">{{ $coveragePercent }}%</h4>
+                    <h4 class="stat-num mt-2">{{ $coveragePercent }}%</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900">
                     <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -533,7 +533,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Invoices</p>
-                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h4 class="stat-num mt-2">
                     {{ collect($roleData['invoices'] ?? [])->count() }}
                 </h4>
             </div>
@@ -682,7 +682,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Payment History</p>
-                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h4 class="stat-num mt-2">
                     {{ number_format($cardData['payment_count'] ?? 0) }}
                 </h4>
             </div>
@@ -839,7 +839,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['maintenance_total'] ?? 0) }}
                     </h4>
                 </div>
@@ -899,7 +899,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Logs</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['security_total_logs'] ?? 0) }}
                     </h4>
                 </div>
@@ -918,7 +918,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_units'] ?? 0) }}
                     </h4>
                 </div>
@@ -978,7 +978,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
-                    <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($cardData['total_units'] ?? 0) }}
                     </h4>
                 </div>

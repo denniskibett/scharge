@@ -141,7 +141,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Units</p>
-                        <p class="text-2xl font-semibold text-gray-800 dark:text-white">
+                        <p class="stat-num">
                             {{ $totalUnits }}
                         </p>
                     </div>
@@ -157,7 +157,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Occupied Units</p>
-                        <p class="text-2xl font-semibold text-gray-800 dark:text-white">
+                        <p class="stat-num">
                             {{ $occupiedCount }}
                         </p>
                     </div>
@@ -173,7 +173,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Vacant Units</p>
-                        <p class="text-2xl font-semibold text-gray-800 dark:text-white">
+                        <p class="stat-num">
                             {{ $vacantCount }}
                         </p>
                     </div>
@@ -189,7 +189,7 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Monthly Rent Potential</p>
-                        <p class="text-2xl font-semibold text-gray-800 dark:text-white">
+                        <p class="stat-num">
                             KES {{ number_format($monthlyRentPotential, 2) }}
                         </p>
                     </div>

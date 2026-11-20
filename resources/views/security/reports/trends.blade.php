@@ -38,7 +38,7 @@
     <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
             <p class="text-sm text-gray-500 dark:text-gray-400">Total Visitors</p>
-            <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $dailyTrends->sum('total') ?? 0 }}</h4>
+            <h4 class="stat-num">{{ $dailyTrends->sum('total') ?? 0 }}</h4>
         </div>
         <div class="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
             <p class="text-sm text-gray-500 dark:text-gray-400">Avg Daily Visitors</p>

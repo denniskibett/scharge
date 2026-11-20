@@ -59,7 +59,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::now()->format('F Y') }} Pending</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        <h4 class="stat-num mt-2">
                             {{ $roleData['pendingCount'] ?? $roleData['pendingReadings']->count() ?? 0 }}
                         </h4>
                     </div>
@@ -76,7 +76,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::now()->format('F Y') }} Readings</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        <h4 class="stat-num mt-2">
                             {{ $roleData['thisMonthReadings'] ?? $roleData['currentMonthReadings']->count() ?? 0 }}
                         </h4>
                     </div>
@@ -93,7 +93,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">Total Consumption</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        <h4 class="stat-num mt-2">
                             {{ number_format($roleData['totalConsumption'] ?? 0) }} m³
                         </h4>
                     </div>

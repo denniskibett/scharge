@@ -38,7 +38,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Companies</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mt-1">{{ $stats->total_companies ?? 0 }}</h4>
+                    <h4 class="stat-num mt-1">{{ $stats->total_companies ?? 0 }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-500/15">
                     <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -53,7 +53,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Properties</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mt-1">{{ $stats->total_properties ?? 0 }}</h4>
+                    <h4 class="stat-num mt-1">{{ $stats->total_properties ?? 0 }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15">
                     <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Tenants</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mt-1">{{ $stats->total_tenants ?? 0 }}</h4>
+                    <h4 class="stat-num mt-1">{{ $stats->total_tenants ?? 0 }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-500/15">
                     <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,7 +83,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mt-1">
+                    <h4 class="stat-num mt-1">
                         KES {{ number_format($stats->total_revenue ?? 0, 0) }}
                     </h4>
                 </div>

@@ -68,7 +68,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Consumption</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             <span x-text="formatNumber(totalConsumption)"></span> m³
                         </p>
                     </div>
@@ -85,7 +85,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Charges</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             KES <span x-text="formatNumber(totalCharges)"></span>
                         </p>
                     </div>
@@ -102,7 +102,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Avg Consumption</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             <span x-text="formatNumber(averageConsumption)"></span> m³
                         </p>
                     </div>
@@ -119,7 +119,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Readings</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             <span x-text="totalReadings"></span>
                         </p>
                     </div>
@@ -181,11 +181,11 @@
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Previous Reading</p>
-                        <p class="text-xl font-bold text-gray-800 dark:text-white/90" x-text="formatNumber(previousReading) + ' m³'">0.00 m³</p>
+                        <p class="stat-num" x-text="formatNumber(previousReading) + ' m³'">0.00 m³</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Current Reading</p>
-                        <p class="text-xl font-bold text-gray-800 dark:text-white/90" x-text="formatNumber(currentReading) + ' m³'">0.00 m³</p>
+                        <p class="stat-num" x-text="formatNumber(currentReading) + ' m³'">0.00 m³</p>
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Current Consumption</p>

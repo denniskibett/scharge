@@ -42,7 +42,7 @@ Water Meter Readings
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Readings</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="totalReadings">0</p>
+                        <p class="stat-num mt-1" x-text="totalReadings">0</p>
                     </div>
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                         <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -57,7 +57,7 @@ Water Meter Readings
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Consumption</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             <span x-text="formatNumber(totalConsumption)"></span> m³
                         </p>
                     </div>
@@ -74,7 +74,7 @@ Water Meter Readings
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Total Charges</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             KES <span x-text="formatNumber(totalCharges)"></span>
                         </p>
                     </div>
@@ -91,7 +91,7 @@ Water Meter Readings
                 <div class="flex items-center justify-between">
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Avg Reading</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-800 dark:text-white/90">
+                        <p class="stat-num mt-1">
                             <span x-text="formatNumber(averageConsumption)"></span> m³
                         </p>
                     </div>

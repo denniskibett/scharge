@@ -306,7 +306,7 @@ function renderBulkMode() {
             <div id="bulkStats" class="grid grid-cols-3 gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 border-b border-gray-200 dark:border-gray-700">
                 <div class="text-center">
                     <p class="text-xs text-gray-500 dark:text-gray-400">Total Units</p>
-                    <p class="text-xl font-bold text-gray-800 dark:text-white" id="bulkTotalUnits">0</p>
+                    <p class="stat-num" id="bulkTotalUnits">0</p>
                 </div>
                 <div class="text-center">
                     <p class="text-xs text-gray-500 dark:text-gray-400">Readings Entered</p>

@@ -58,7 +58,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">Total Companies</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        <h4 class="stat-num mt-2">
                             {{ number_format($stats['total_companies'] ?? 0) }}
                         </h4>
                     </div>
@@ -84,7 +84,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">Total Users</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        <h4 class="stat-num mt-2">
                             {{ number_format($stats['total_users'] ?? 0) }}
                         </h4>
                     </div>
@@ -110,7 +110,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">Platform Metrics</span>
-                        <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                        <h4 class="stat-num mt-2">
                             {{ number_format($stats['total_units'] ?? 0) }} Units
                         </h4>
                     </div>
@@ -153,7 +153,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm text-gray-500 dark:text-gray-400">Active Subscriptions</span>
-                    <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ number_format($subscriptionStats['active'] ?? 0) }}
                     </h4>
                 </div>

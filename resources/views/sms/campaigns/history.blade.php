@@ -25,11 +25,11 @@
     <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <span class="text-sm text-gray-500 dark:text-gray-400">Total Campaigns</span>
-            <h4 class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($summary->total_campaigns ?? 0) }}</h4>
+            <h4 class="stat-num mt-1">{{ number_format($summary->total_campaigns ?? 0) }}</h4>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <span class="text-sm text-gray-500 dark:text-gray-400">Recipients</span>
-            <h4 class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">{{ number_format($summary->total_recipients ?? 0) }}</h4>
+            <h4 class="stat-num mt-1">{{ number_format($summary->total_recipients ?? 0) }}</h4>
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <span class="text-sm text-gray-500 dark:text-gray-400">Sent</span>
@@ -45,7 +45,7 @@
         </div>
         <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
             <span class="text-sm text-gray-500 dark:text-gray-400">Total Cost</span>
-            <h4 class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">KES {{ number_format($summary->total_cost ?? 0, 2) }}</h4>
+            <h4 class="stat-num mt-1">KES {{ number_format($summary->total_cost ?? 0, 2) }}</h4>
         </div>
     </div>
 

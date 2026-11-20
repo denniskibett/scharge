@@ -110,7 +110,7 @@
                     </div>
                 </div>
                 <div class="text-center mt-2">
-                    <span class="text-3xl font-bold text-gray-800 dark:text-white/90" id="collectionRateValue">{{ $collectionRate ?? 85 }}%</span>
+                    <span class="stat-num" id="collectionRateValue">{{ $collectionRate ?? 85 }}%</span>
                 </div>
             </div>
         </div>

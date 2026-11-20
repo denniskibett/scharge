@@ -7,7 +7,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Total Companies</span>
-                <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="formatNumber(totalCompanies)">0</h3>
+                <h3 class="stat-num mt-2" x-text="formatNumber(totalCompanies)">0</h3>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/30">
                 <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,7 +28,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Total Users</span>
-                <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90" x-text="formatNumber(totalUsers)">0</h3>
+                <h3 class="stat-num mt-2" x-text="formatNumber(totalUsers)">0</h3>
             </div>
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
                 <svg class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,7 +49,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <span class="text-sm text-gray-500 dark:text-gray-400">Platform Metrics</span>
-                <h3 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h3 class="stat-num mt-2">
                     <span x-text="formatNumber(totalUnits)">0</span> <span class="text-sm font-normal">units</span>
                 </h3>
             </div>

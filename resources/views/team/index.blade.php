@@ -52,7 +52,7 @@ Team &amp; access
     <div class="mb-4 flex flex-wrap items-end justify-between gap-2">
       <div>
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">People by role</h3>
-        <p class="mt-1 flex items-baseline gap-2"><span class="text-title-sm font-bold text-gray-800 dark:text-white/90">{{ number_format($members->count()) }}</span>
+        <p class="mt-1 flex items-baseline gap-2"><span class="stat-num">{{ number_format($members->count()) }}</span>
           <span class="text-sm text-gray-500">{{ $joinedThisMonth ? $joinedThisMonth.' joined this month' : 'nobody new this month' }}</span></p>
       </div>
     </div>

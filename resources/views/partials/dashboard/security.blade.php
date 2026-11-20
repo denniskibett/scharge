@@ -57,7 +57,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm text-gray-500 dark:text-gray-400">Pending Approval</span>
-                    <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ $roleData['pendingLogs']->count() ?? 0 }}
                     </h4>
                 </div>
@@ -73,7 +73,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm text-gray-500 dark:text-gray-400">Today's Visits</span>
-                    <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ $roleData['todayLogs']->count() ?? 0 }}
                     </h4>
                 </div>
@@ -89,7 +89,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm text-gray-500 dark:text-gray-400">Total Access Logs</span>
-                    <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
+                    <h4 class="stat-num mt-2">
                         {{ $roleData['accessLogs']->count() ?? 0 }}
                     </h4>
                 </div>
