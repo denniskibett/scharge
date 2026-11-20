@@ -11,6 +11,8 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{-- Alpine pieces (dropdowns, menus, slide-overs) stay hidden until Alpine has started: no flash on load. --}}
+    <style>[x-cloak]{display:none!important}html:not(.alpine-ready) [x-show]{display:none!important}</style>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Laravel') }}</title>

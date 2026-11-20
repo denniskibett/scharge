@@ -20,6 +20,7 @@ import "./components/image-resize";
 Alpine.plugin(persist);
 window.Alpine = Alpine;
 Alpine.start();
+document.documentElement.classList.add("alpine-ready"); // layouts hide [x-show] until now (no dropdown flash on load)
 
 // Init flatpickr
 flatpickr(".datepicker", {
