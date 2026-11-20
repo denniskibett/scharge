@@ -46,7 +46,9 @@ class AuthController extends Controller
             $user = $users->first();
             $brand = MobileAccess::brand($user)['name'];
             try {
-                app(KenyaSMS::class)->forCompany(MobileAccess::companyFor($user))
+                // Sign-in codes always go out as scharge's own sender (SHARETENT), never a client's: they must reach
+                // the person even while a client's sender ID is pending or blocked, and look the same for everyone.
+                app(KenyaSMS::class)->forCompany(null)
                     ->sendOne($user->phone, "Your {$brand} app code is {$code}. It expires in ".self::CODE_MINUTES.' minutes. Never share it.');
             } catch (\Throwable $e) {
                 Log::warning('App sign-in code not sent', ['user_id' => $user->id, 'error' => $e->getMessage()]);
