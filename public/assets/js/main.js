@@ -135,6 +135,15 @@
     }
     $$('[data-type]', calc).forEach(function (b) { b.addEventListener('click', function () { st.type = +b.dataset.type; render(); }); });
     $$('[data-band]', calc).forEach(function (b) { b.addEventListener('click', function () { st.band = +b.dataset.band; render(); }); });
+    // The price table picks too: a cell sets both the property type and the area.
+    $$('#price-table td[data-t]').forEach(function (td) {
+      var t = +td.dataset.t, k = +td.dataset.b;
+      var pick = function () { st.type = t; st.band = k; render(); };
+      td.setAttribute('role', 'button'); td.setAttribute('tabindex', '0');
+      td.setAttribute('aria-label', P.types[t].name + ', ' + P.bands[k].name + ': KES ' + fmt(P.types[t].rates[k]));
+      td.addEventListener('click', pick);
+      td.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    });
     unitsEl.addEventListener('input', function () { st.units = +unitsEl.value; render(); });
     vacEl.addEventListener('input', function () { st.vacant = +vacEl.value; render(); });
     yearEl.addEventListener('change', function () { st.yearly = yearEl.checked; render(); });
