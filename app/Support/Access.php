@@ -144,7 +144,11 @@ class Access
         // Agents and agency admins: their agent dashboard (plus the team page for the agency's admin), not the
         // landlord pages, which would only show their own (empty) agency.
         if (\App\Services\Agents\AgentAccess::isAgent($user)) {
-            return array_values(array_filter(['dashboard', 'profile', 'agent', $user->can('team.view') ? 'team' : null, $user->can('team.view') ? 'settings' : null]));
+            // …plus their own properties and units (an agency can hold and run buildings of its own).
+            $own = $user->can('properties.view') ? ['properties', 'units'] : [];
+
+            return array_values(array_filter(array_merge(['dashboard', 'profile', 'agent'], $own,
+                [$user->can('team.view') ? 'team' : null, $user->can('team.view') ? 'settings' : null])));
         }
         $keys = ['dashboard', 'calendar', 'profile'];
         if ($user->hasRole('bnb_host')) {

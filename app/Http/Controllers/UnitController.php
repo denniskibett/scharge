@@ -117,7 +117,7 @@ class UnitController extends Controller
         $validated = $request->validate([
             // Existing fields
             'property_id' => 'required|exists:properties,id',
-            'unit_number' => 'required|string|max:255',
+            'unit_number' => ['required', 'string', 'max:255', 'not_regex:/[,;]/'],   // one unit per number: Mass add splits lists
             'unit_type' => 'required|string|max:255',
             'rent_amount' => 'required|numeric|min:0',
             'water_charge' => 'nullable|numeric|min:0',
@@ -140,8 +140,10 @@ class UnitController extends Controller
             'commission_rate' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        // Add company_id from authenticated user
-        $validated['company_id'] = Auth::user()->company_id;
+        // The unit belongs to its property's company (an agency adding units to its own property, a landlord, …).
+        $property = Property::find($validated['property_id']);
+        abort_unless($property && ((int) $property->company_id === (int) Auth::user()->company_id || Auth::user()->hasRole('sysadmin')), 403, 'You can only add units to your own properties.');
+        $validated['company_id'] = $property->company_id ?: Auth::user()->company_id;
 
         // Set default values for utilities if not provided
         $validated['water_charge'] = $validated['water_charge'] ?? 0;
@@ -495,6 +497,10 @@ class UnitController extends Controller
     {
         $companyId = Auth::user()->company_id;
         if ((int) $unit->company_id === (int) $companyId || Auth::user()->hasRole('sysadmin')) {
+            return;
+        }
+        // Units saved without a company (older rows) belong to their property's company.
+        if ($companyId && (int) Property::whereKey($unit->property_id)->value('company_id') === (int) $companyId) {
             return;
         }
         // A BnB host manages their own unit even when the building's company holds its books.
