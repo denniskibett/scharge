@@ -137,6 +137,22 @@ class MobileAppTest extends RentSchemaTestCase
 
     // ---- Sign-in -------------------------------------------------------------------------------------------------
 
+    public function test_sms_sign_in_codes_always_go_out_as_the_platform_sender(): void
+    {
+        config(['sms.kenyasms.sender_id' => 'SHARETENT']);
+        \App\Models\CompanyIntegration::create(['company_id' => $this->a['company'], 'provider' => 'kenyasms_sender', 'enabled' => true,
+            'credentials' => ['sender_id' => 'DANAFFKENYA', 'api_key' => 'client-key']]);
+        \Illuminate\Support\Facades\Cache::flush();
+        $this->tenantOf($this->a['tenancies'][0]);
+
+        $this->postJson('/api/v1/app/auth/code', ['phone' => '0712000001'])->assertOk();
+
+        $sent = collect(Http::recorded())->map(fn ($pair) => $pair[0])->last(fn ($r) => str_contains(json_encode($r->data()), 'code is'));
+        $this->assertNotNull($sent);
+        $this->assertSame('SHARETENT', $sent->data()['sender_id'] ?? null);
+        $this->assertStringNotContainsString('client-key', (string) $sent->header('Authorization')[0] ?? '');
+    }
+
     public function test_a_tenant_registers_a_phone_with_an_sms_code_then_sets_a_pin(): void
     {
         $tenantUser = DB::table('tenants')->where('id', DB::table('tenancies')->where('id', $this->a['tenancies'][0])->value('tenant_id'))->value('user_id');

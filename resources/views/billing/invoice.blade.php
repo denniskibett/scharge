@@ -1,8 +1,12 @@
 {{-- One scharge bill as a printable invoice (BillingController::show). $inv (invoice + company), $json, $items, $staff --}}
 @php
   $cur = $inv->currency ?: 'KES';
-  $money = fn ($v) => $cur.' '.number_format((float) $v, 2);
+  $money = fn ($v) => \App\Support\Money::format($v, $cur, 2);
   $total = (float) $inv->amount;
+  // The bill is charged in its own currency; the company's display currency only adds an "about" figure (App\Support\Money)
+  $shownIn = \App\Support\Currency::forCompany((int) $inv->company_id);
+  $approx = $shownIn !== strtoupper($cur) && \App\Support\Currency::supported($cur) ? \App\Support\Money::convert($total, $cur, $shownIn) : null;
+  $fxLine = $approx !== null ? \App\Support\Money::note($cur, $shownIn) : null;
   $sum = $items->sum('amount');
   $paid = $inv->status === 'paid';
   $late = ! $paid && \Illuminate\Support\Carbon::parse($inv->due_date)->lt(now()->startOfDay());
@@ -107,6 +111,9 @@ td small { display: block; color: var(--muted); }
   <section class="card pay-card">
     <div class="card-head"><img src="{{ asset('images/integrations/sharet.svg') }}" alt="" width="36" height="36"><div><b>Sharet Pay</b><span>{{ $paid ? 'Paid'.($inv->paid_at ? ' · '.\Illuminate\Support\Carbon::parse($inv->paid_at)->format('j M Y') : '') : 'M-Pesa or Sharet to Sharet' }}</span></div></div>
     <div class="pay-amt">{{ $money($total) }}@if (! $paid && $handle)<span>to <strong>{{ $handle }}</strong></span>@endif</div>
+    @if ($approx !== null)
+      <div class="muted" style="font-size:12.5px;margin-top:-6px">About {{ \App\Support\Money::format($approx, $shownIn) }}. You pay {{ $money($total) }}.</div>
+    @endif
     @unless ($paid)
       <a class="btn red wide" href="{{ $payUrl }}" target="_blank" rel="noopener">Pay with Sharet Pay</a>
     @else
@@ -193,6 +200,9 @@ td small { display: block; color: var(--muted); }
   </table>
 
   @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
+  @if ($fxLine)
+    <p class="muted" style="font-size:12px;margin-top:14px">Charged in {{ strtoupper($cur) }}. Total about {{ \App\Support\Money::format($approx, $shownIn) }}: {{ $fxLine }}</p>
+  @endif
 </div>
 <div class="toast" id="toast"></div>
 <script>

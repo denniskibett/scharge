@@ -93,6 +93,31 @@ White label & data
         <a href="{{ route('dpa.show', $q) }}" class="mt-2 block text-center text-sm font-medium text-brand-600 hover:underline dark:text-brand-400">{{ \App\Models\CompanyAgreement::dpaAccepted($company->id) ? 'Data-processing agreement: accepted' : 'Read and accept the data-processing agreement' }}</a>
       </div>
 
+      {{-- Display currency (App\Support\Currency): what dashboards, reports and billing totals are shown in --}}
+      <form method="POST" action="{{ route('brand.currency', $q) }}" class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+        @csrf
+        <h2 class="text-base font-semibold text-gray-900 dark:text-white">Display currency</h2>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Dashboards, reports and billing totals are shown in this currency at Sharet's rate for the day. Rent, bills and payments are still charged and stored in {{ \App\Support\Currency::book() }}.</p>
+        @if (\App\Support\Currency::hasCompanyColumn())
+          <select name="display_currency" class="{{ $field }} mt-3">
+            <option value="">Platform default ({{ \App\Support\Currency::platform() }})</option>
+            @foreach (\App\Support\Currency::all() as $code => $c)
+              <option value="{{ $code }}" @selected(\App\Support\Currency::companyChoice($company->id) === $code)>{{ $code }} · {{ $c['name'] }}</option>
+            @endforeach
+          </select>
+          @error('display_currency')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+          @php
+            $fxNote = \App\Support\Money::note(null, \App\Support\Currency::forCompany($company->id));
+          @endphp
+          @if ($fxNote)
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $fxNote }}</p>
+          @endif
+          <button type="submit" class="{{ $outline }} mt-4 w-full">Save currency</button>
+        @else
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Shown in {{ \App\Support\Currency::platform() }}, the platform default.</p>
+        @endif
+      </form>
+
       <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
         <h2 class="text-base font-semibold text-gray-900 dark:text-white">Nightly copy</h2>
         @if ($backup?->enabled)

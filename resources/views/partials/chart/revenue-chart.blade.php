@@ -31,7 +31,7 @@ function initRevenueChart() {
         data: {
             labels: months,
             datasets: [{
-                label: 'Revenue (KES)',
+                label: 'Revenue (' + scMoney.code + ')',
                 data: values,
                 borderColor: '#6366f1',
                 backgroundColor: 'rgba(99, 102, 241, 0.1)',
@@ -63,7 +63,7 @@ function initRevenueChart() {
                     callbacks: {
                         label: function(context) {
                             let value = context.raw;
-                            return 'Revenue: KES ' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            return 'Revenue: ' + scMoney.fmt(value);
                         }
                     }
                 }
@@ -73,7 +73,7 @@ function initRevenueChart() {
                     beginAtZero: true,
                     ticks: {
                         callback: function(value) {
-                            return 'KES ' + value.toLocaleString();
+                            return scMoney.fmt(value, 0);
                         },
                         font: {
                             family: "'Inter', sans-serif",

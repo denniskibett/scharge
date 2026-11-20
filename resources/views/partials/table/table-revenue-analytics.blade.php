@@ -5,13 +5,13 @@
   <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-      <p class="stat-num mt-2">KES {{ number_format(array_sum($monthlyRevenue ?? []), 2) }}</p>
+      <p class="stat-num mt-2">{{ \App\Support\Money::show(array_sum($monthlyRevenue ?? []), null, null, 2) }}</p>
       <p class="mt-1 text-xs text-green-600 dark:text-green-400">All time</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <p class="text-sm text-gray-500 dark:text-gray-400">Average Monthly</p>
-      <p class="stat-num mt-2">KES {{ number_format(!empty($monthlyRevenue) ? array_sum($monthlyRevenue) / count($monthlyRevenue) : 0, 2) }}</p>
+      <p class="stat-num mt-2">{{ \App\Support\Money::show(!empty($monthlyRevenue) ? array_sum($monthlyRevenue) / count($monthlyRevenue) : 0, null, null, 2) }}</p>
       <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 12 months</p>
     </div>
 
@@ -95,7 +95,7 @@
                     {{ ucfirst(str_replace('_', ' ', $method)) }}
                   </span>
                 </td>
-                <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">KES {{ number_format($amount, 2) }}</td>
+                <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ \App\Support\Money::show($amount, null, null, 2) }}</td>
                 <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $totalPaymentMethods > 0 ? number_format(($amount / $totalPaymentMethods) * 100, 1) : 0 }}%</td>
               </tr>
             @empty
@@ -110,7 +110,7 @@
           <tfoot>
             <tr class="border-t border-gray-200 dark:border-gray-800">
               <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">Total</td>
-              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($totalPaymentMethods, 2) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-gray-800 dark:text-white/90">{{ \App\Support\Money::show($totalPaymentMethods, null, null, 2) }}</td>
               <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-gray-800 dark:text-white/90">100%</td>
             </tr>
           </tfoot>
@@ -148,7 +148,7 @@
             @endphp
             <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
               <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ $monthDate->format('M Y') }}</td>
-              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">KES {{ number_format($amount, 2) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ \App\Support\Money::show($amount, null, null, 2) }}</td>
               <td class="p-4 whitespace-nowrap text-right text-sm">
                 @if($change !== null)
                   <span class="{{ $isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400' }}">{{ $isPositive ? '+' : '' }}{{ number_format($change, 1) }}%</span>
@@ -296,10 +296,7 @@ document.addEventListener('alpine:init', () => {
                         tooltip: {
                             callbacks: {
                                 label: function(context) {
-                                    return 'KES ' + context.raw.toLocaleString('en-KE', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    });
+                                    return scMoney.fmt(context.raw);
                                 }
                             }
                         }
@@ -309,7 +306,7 @@ document.addEventListener('alpine:init', () => {
                             beginAtZero: true,
                             ticks: {
                                 callback: function(value) {
-                                    return 'KES ' + value.toLocaleString();
+                                    return scMoney.fmt(value, 0);
                                 }
                             }
                         },
@@ -402,10 +399,7 @@ document.addEventListener('alpine:init', () => {
                                 label: function(context) {
                                     const total = context.dataset.data.reduce((a, b) => a + b, 0);
                                     const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                    return 'KES ' + context.parsed.toLocaleString('en-KE', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2
-                                    }) + ' (' + percentage + '%)';
+                                    return scMoney.fmt(context.parsed) + ' (' + percentage + '%)';
                                 }
                             }
                         }

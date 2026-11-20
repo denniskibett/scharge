@@ -122,7 +122,7 @@
                 </div>
                 <div class="mt-4 text-xs text-gray-600 dark:text-gray-400">
                     {{ number_format($stats['total_tenants'] ?? 0) }} Tenants | 
-                    KES {{ number_format($stats['total_revenue'] ?? 0, 0) }} Revenue
+                    {{ \App\Support\Money::show($stats['total_revenue'] ?? 0, null, null, 0) }} Revenue
                 </div>
             </div>
 
@@ -131,7 +131,7 @@
                     <div>
                         <span class="text-sm text-gray-500 dark:text-gray-400">Monthly Recurring Revenue</span>
                         <h4 class="mt-2 text-title-sm font-bold text-gray-800 dark:text-white/90">
-                            KES {{ number_format($stats['monthly_recurring_revenue'] ?? 0, 0) }}
+                            {{ \App\Support\Money::show($stats['monthly_recurring_revenue'] ?? 0, null, null, 0) }}
                         </h4>
                     </div>
                     <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-50 dark:bg-orange-500/15">
@@ -187,7 +187,7 @@
             </div>
             <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
                 <div class="flex justify-between text-xs">
-                    <span class="text-gray-500">MRR: <strong class="text-gray-900 dark:text-white">KES {{ number_format($subscriptionStats['total_mrr'] ?? 0, 0) }}</strong></span>
+                    <span class="text-gray-500">MRR: <strong class="text-gray-900 dark:text-white">{{ \App\Support\Money::show($subscriptionStats['total_mrr'] ?? 0, null, null, 0) }}</strong></span>
                     <span class="text-gray-500">Monthly: {{ number_format($subscriptionStats['monthly_cycle'] ?? 0) }}</span>
                     <span class="text-gray-500">Yearly: {{ number_format($subscriptionStats['yearly_cycle'] ?? 0) }}</span>
                 </div>
@@ -206,7 +206,7 @@
                         <span class="text-gray-600 dark:text-gray-400">
                             {{ number_format($plan['count']) }} companies · 
                             {{ number_format($plan['avg_units'] ?? 0) }} avg units · 
-                            KES {{ number_format($plan['revenue'] ?? 0, 0) }}
+                            {{ \App\Support\Money::show($plan['revenue'] ?? 0, null, null, 0) }}
                         </span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">

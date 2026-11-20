@@ -67,7 +67,7 @@
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
                     <h4 class="stat-num mt-2">
-                        KES {{ number_format($cardData['total_revenue'] ?? 0, 2) }}
+                        {{ \App\Support\Money::show($cardData['total_revenue'] ?? 0, null, null, 2) }}
                     </h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
@@ -79,7 +79,7 @@
             <div class="mt-3 flex items-center gap-2">
                 <span class="text-xs text-gray-500">Net Income</span>
                 <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">
-                    KES {{ number_format($cardData['net_income'] ?? 0, 2) }}
+                    {{ \App\Support\Money::show($cardData['net_income'] ?? 0, null, null, 2) }}
                 </span>
             </div>
         </div>
@@ -279,7 +279,7 @@
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
                     <h4 class="stat-num mt-2">
-                        KES {{ number_format($cardData['total_revenue'] ?? 0, 2) }}
+                        {{ \App\Support\Money::show($cardData['total_revenue'] ?? 0, null, null, 2) }}
                     </h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
@@ -290,7 +290,7 @@
             </div>
             <div class="mt-3 flex items-center gap-2">
                 <span class="text-xs text-gray-500">Net Income</span>
-                <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">KES {{ number_format($cardData['net_income'] ?? 0, 2) }}</span>
+                <span class="rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-600">{{ \App\Support\Money::show($cardData['net_income'] ?? 0, null, null, 2) }}</span>
             </div>
         </div>
 
@@ -351,7 +351,7 @@
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Outstanding</p>
                     <h4 class="mt-2 text-2xl font-bold text-red-600 dark:text-red-500">
-                        KES {{ number_format($cardData['outstanding_amount'] ?? 0, 2) }}
+                        {{ \App\Support\Money::show($cardData['outstanding_amount'] ?? 0, null, null, 2) }}
                     </h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
@@ -432,7 +432,7 @@
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Total Water Charges</p>
                     <h4 class="stat-num mt-2">
-                        KES {{ number_format($cardData['total_charges'] ?? 0, 2) }}
+                        {{ \App\Support\Money::show($cardData['total_charges'] ?? 0, null, null, 2) }}
                     </h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900">
@@ -443,7 +443,7 @@
             </div>
             <div class="mt-3 flex items-center gap-2">
                 @php $avgCharge = ($cardData['total_readings_count'] ?? 0) > 0 ? ($cardData['total_charges'] ?? 0) / ($cardData['total_readings_count'] ?? 1) : 0; @endphp
-                <span class="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-600">KES {{ number_format($avgCharge, 2) }}</span>
+                <span class="rounded-full bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-600">{{ \App\Support\Money::show($avgCharge, null, null, 2) }}</span>
                 <span class="text-xs text-gray-500">avg per reading</span>
             </div>
         </div>

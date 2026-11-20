@@ -75,6 +75,16 @@ class BrandController extends Controller
         return back()->with('success', 'White label saved.');
     }
 
+    /** A company's display currency (null = platform default). Display only: stored amounts never change. */
+    public function currency(Request $request): RedirectResponse
+    {
+        $company = $this->company($request);
+        $data = $request->validate(['display_currency' => ['nullable', 'string', Rule::in(array_keys(\App\Support\Currency::all()))]]);
+        \App\Support\Currency::setForCompany($company->id, $data['display_currency'] ?? null);
+
+        return back()->with('success', 'Amounts are now shown in '.\App\Support\Currency::forCompany($company->id).'.');
+    }
+
     public function destroy(Request $request): RedirectResponse
     {
         abort_unless($request->user()->hasRole('sysadmin'), 403);

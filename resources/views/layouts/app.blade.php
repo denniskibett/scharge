@@ -327,6 +327,16 @@
         .dark .text-orange-400 { color: #fb923c; } /* Keeping original orange-400 for dark mode warning */
     </style>
 
+    {{-- Display currency for charts (App\Support\Money::js): scMoney.fmt(bookAmount) shows a KES figure in the viewer's currency --}}
+    @php
+        $scMoney = rescue(fn () => \App\Support\Money::js(), ['code' => 'KES', 'rate' => 1, 'decimals' => 2, 'note' => null], false);
+    @endphp
+    <script>
+        window.scMoney = @json($scMoney);
+        window.scMoney.conv = function (v) { return Number(v || 0) * window.scMoney.rate; };
+        window.scMoney.fmt = function (v, dp) { var d = dp === undefined ? window.scMoney.decimals : dp; return window.scMoney.code + ' ' + window.scMoney.conv(v).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }); };
+        window.scMoney.short = function (v) { var n = window.scMoney.conv(v), a = Math.abs(n); return window.scMoney.code + ' ' + (a >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : a >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : n.toLocaleString('en-US')); };
+    </script>
 </head>
 
 <body class="font-outfit antialiased bg-gray-100"

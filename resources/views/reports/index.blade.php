@@ -5,7 +5,10 @@
 @section('content')
 @php
   $k = $data['kpis'];
-  $kes = fn ($v) => 'KES '.number_format((float) $v);
+  // Amounts are stored in KES; shown in the display currency at Sharet's rate (App\Support\Money)
+  $kes = fn ($v) => \App\Support\Money::show($v, null, null, 0);
+  $num = fn ($v) => number_format((float) (\App\Support\Money::convert($v) ?? $v));
+  $shownIn = \App\Support\Money::js()['code'];
   $pct = fn ($v) => $v === null ? '—' : rtrim(rtrim(number_format($v, 1), '0'), '.').'%';
   $card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
   $query = array_filter(['period' => $period, 'company' => $companyId, 'property' => $propertyId, 'from' => request('from'), 'to' => request('to')]);
@@ -20,6 +23,7 @@ Reports &amp; analytics
       {{ $scopeLabel }} · {{ \Carbon\Carbon::parse($data['from'])->format('j M Y') }} – {{ \Carbon\Carbon::parse($data['to'])->format('j M Y') }}.
       Billing is by billing month, collections by payment date; arrears and occupancy are as of today.
     </p>
+    <x-fx-note class="mt-1 text-xs text-gray-500 dark:text-gray-400" />
   </div>
 
   <form method="GET" action="{{ route('reports.index') }}" x-data="{ period: @js($period) }" class="flex flex-wrap items-end gap-2">
@@ -82,7 +86,7 @@ Reports &amp; analytics
   <div class="{{ $card }} xl:col-span-2">
     <div class="mb-2 flex items-center justify-between">
       <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Billed vs collected</h3>
-      <span class="text-xs text-gray-500">By month, KES</span>
+      <span class="text-xs text-gray-500">By month, {{ $shownIn }}</span>
     </div>
     <div id="report-monthly" class="-ml-2 min-h-[300px]"></div>
   </div>
@@ -114,11 +118,11 @@ Reports &amp; analytics
                 <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $p['location'] }}@if ($companyId === null && $companies->isNotEmpty()) · {{ $p['company'] }}@endif</span></td>
               <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['units']) }}</td>
               <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $pct($p['occupancy']) }}</td>
-              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['rent_roll']) }}</td>
-              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['billed']) }}</td>
-              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ number_format($p['collected']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $num($p['rent_roll']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $num($p['billed']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $num($p['collected']) }}</td>
               <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ $pct($p['collection_rate']) }}</td>
-              <td class="p-4 whitespace-nowrap text-right text-sm {{ $p['arrears'] > 0 ? 'font-medium text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">{{ number_format($p['arrears']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm {{ $p['arrears'] > 0 ? 'font-medium text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400' }}">{{ $num($p['arrears']) }}</td>
             </tr>
           @empty
             <tr><td colspan="8" class="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400">No properties yet.</td></tr>
@@ -139,7 +143,7 @@ Reports &amp; analytics
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400"><a href="{{ url('/tenancies/'.$r['tenancy_id']) }}" class="text-sm font-medium text-gray-800 hover:text-brand-500 dark:text-white/90">{{ $r['tenant'] ?: 'Tenancy #'.$r['tenancy_id'] }}</a>
                 <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $r['phone'] }}@if ($r['tenancy_status'] === 'ended') · moved out @endif</span></td>
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $r['unit'] }}<span class="block text-xs text-gray-500 dark:text-gray-400">{{ $r['property'] }}</span></td>
-              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-red-600 dark:text-red-400">{{ number_format($r['balance']) }}</td>
+              <td class="p-4 whitespace-nowrap text-right text-sm font-medium text-red-600 dark:text-red-400">{{ $num($r['balance']) }}</td>
               <td class="p-4 whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::parse($r['oldest'])->format('M Y') }}</td>
             </tr>
           @empty
@@ -156,7 +160,7 @@ Reports &amp; analytics
     <h3 class="mb-4 text-lg font-semibold text-gray-800 dark:text-white/90">Expenses by category</h3>
     <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
       @foreach ($data['expense_categories'] as $e)
-        <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/5"><span class="text-gray-600 dark:text-gray-300">{{ $e['category'] }}</span><span class="font-medium text-gray-900 dark:text-white">{{ number_format($e['total']) }}</span></div>
+        <div class="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm dark:bg-white/5"><span class="text-gray-600 dark:text-gray-300">{{ $e['category'] }}</span><span class="font-medium text-gray-900 dark:text-white">{{ $num($e['total']) }}</span></div>
       @endforeach
     </div>
   </div>
