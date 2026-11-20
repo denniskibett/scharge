@@ -320,6 +320,8 @@ pre.code { margin: 0; padding: 22px; border-radius: 20px; background: #0F0A0B; c
 .table-wrap { box-shadow: var(--shadow-s); }
 tbody tr { transition: background-color .2s; }
 tbody tr:hover { background: #FFF8F8; }
+#price-table td[data-t] { cursor: pointer; border-radius: 8px; }
+#price-table td[data-t]:hover, #price-table td[data-t]:focus-visible { background: var(--blush); outline: none; }
 .cell-on { display: inline-block; box-shadow: 0 4px 12px rgba(220,38,38,.35); animation: pop .35s var(--ease); }
 .step { transition: transform .3s var(--ease); }
 .step:hover { transform: translateY(-3px); }
