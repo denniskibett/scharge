@@ -254,6 +254,7 @@
     @include('partials.table.table-units', [
         'unitsData' => $unitsData,
         'property' => $property,
+        'currentProperty' => $property,   // Add unit opens with this property already chosen
         'totalUnits' => $totalUnits,
         'occupiedCount' => $occupiedCount,
         'vacantCount' => $vacantCount
