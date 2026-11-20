@@ -55,7 +55,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Currently Inside</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $currentlyInside }}</h4>
+                    <h4 class="stat-num">{{ $currentlyInside }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-50 dark:bg-green-500/15">
                     <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Today's Visitors</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $todayVisitors }}</h4>
+                    <h4 class="stat-num">{{ $todayVisitors }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 dark:bg-blue-500/15">
                     <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,7 +81,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approvals</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $pendingApprovals }}</h4>
+                    <h4 class="stat-num">{{ $pendingApprovals }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-50 dark:bg-yellow-500/15">
                     <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +94,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Today's Check-Ins</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $todayCheckIns }}</h4>
+                    <h4 class="stat-num">{{ $todayCheckIns }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-purple-50 dark:bg-purple-500/15">
                     <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,7 +108,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Today's Check-Outs</p>
-                    <h4 class="text-2xl font-semibold text-gray-800 dark:text-white/90">{{ $todayCheckOuts }}</h4>
+                    <h4 class="stat-num">{{ $todayCheckOuts }}</h4>
                 </div>
                 <div class="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 dark:bg-red-500/15">
                     <svg class="w-6 h-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

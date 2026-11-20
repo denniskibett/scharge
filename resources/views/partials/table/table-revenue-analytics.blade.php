@@ -5,19 +5,19 @@
   <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <p class="text-sm text-gray-500 dark:text-gray-400">Total Revenue</p>
-      <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">{{ \App\Support\Money::show(array_sum($monthlyRevenue ?? []), null, null, 2) }}</p>
+      <p class="stat-num mt-2">{{ \App\Support\Money::show(array_sum($monthlyRevenue ?? []), null, null, 2) }}</p>
       <p class="mt-1 text-xs text-green-600 dark:text-green-400">All time</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <p class="text-sm text-gray-500 dark:text-gray-400">Average Monthly</p>
-      <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">{{ \App\Support\Money::show(!empty($monthlyRevenue) ? array_sum($monthlyRevenue) / count($monthlyRevenue) : 0, null, null, 2) }}</p>
+      <p class="stat-num mt-2">{{ \App\Support\Money::show(!empty($monthlyRevenue) ? array_sum($monthlyRevenue) / count($monthlyRevenue) : 0, null, null, 2) }}</p>
       <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Last 12 months</p>
     </div>
 
     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
       <p class="text-sm text-gray-500 dark:text-gray-400">Payment Methods</p>
-      <p class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">{{ count($paymentMethods ?? []) }}</p>
+      <p class="stat-num mt-2">{{ count($paymentMethods ?? []) }}</p>
       <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Active payment channels</p>
     </div>
 

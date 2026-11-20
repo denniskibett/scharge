@@ -14,7 +14,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Price Per Unit</p>
-                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h4 class="stat-num mt-2">
                     KES {{ number_format($planData['price_per_unit'] ?? 0, 0) }}
                 </h4>
                 <p class="text-xs text-gray-400">per unit / month</p>
@@ -38,7 +38,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Monthly Price</p>
-                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h4 class="stat-num mt-2">
                     KES {{ number_format($planData['monthly_price'] ?? 0, 0) }}
                 </h4>
                 <p class="text-xs text-gray-400">based on min units</p>
@@ -62,7 +62,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Yearly Price</p>
-                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h4 class="stat-num mt-2">
                     KES {{ number_format($planData['yearly_price'] ?? 0, 0) }}
                 </h4>
                 <p class="text-xs text-gray-400">with {{ $planData['discount_percentage'] ?? 0 }}% discount</p>
@@ -111,7 +111,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Active Subscribers</p>
-                <h4 class="mt-2 text-2xl font-bold text-gray-800 dark:text-white/90">
+                <h4 class="stat-num mt-2">
                     {{ number_format($planData['subscriber_count'] ?? 0) }}
                 </h4>
                 <p class="text-xs text-gray-400">companies using this plan</p>

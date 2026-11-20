@@ -15,7 +15,7 @@
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Staff</span>
-                    <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalStaff">{{ $stats['totalStaff'] ?? 0 }}</h3>
+                    <h3 class="stat-num mt-2 truncate" x-text="stats.totalStaff">{{ $stats['totalStaff'] ?? 0 }}</h3>
                 </div>
                 <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-blue-100 dark:bg-blue-900/30">
                     <svg class="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,7 +30,7 @@
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Properties</span>
-                    <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalProperties">{{ $stats['totalProperties'] ?? 0 }}</h3>
+                    <h3 class="stat-num mt-2 truncate" x-text="stats.totalProperties">{{ $stats['totalProperties'] ?? 0 }}</h3>
                 </div>
                 <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-green-100 dark:bg-green-900/30">
                     <svg class="h-6 w-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,7 +45,7 @@
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Units</span>
-                    <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalUnits">{{ $stats['totalUnits'] ?? 0 }}</h3>
+                    <h3 class="stat-num mt-2 truncate" x-text="stats.totalUnits">{{ $stats['totalUnits'] ?? 0 }}</h3>
                 </div>
                 <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-purple-100 dark:bg-purple-900/30">
                     <svg class="h-6 w-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,7 +60,7 @@
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Tenancies</span>
-                    <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalTenants">{{ $stats['totalTenants'] ?? 0 }}</h3>
+                    <h3 class="stat-num mt-2 truncate" x-text="stats.totalTenants">{{ $stats['totalTenants'] ?? 0 }}</h3>
                 </div>
                 <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-yellow-100 dark:bg-yellow-900/30">
                     <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,7 +75,7 @@
             <div class="flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Invoices</span>
-                    <h3 class="mt-2 truncate text-xl font-bold text-gray-800 sm:text-2xl dark:text-white/90" x-text="stats.totalInvoices">{{ $stats['totalInvoices'] ?? 0 }}</h3>
+                    <h3 class="stat-num mt-2 truncate" x-text="stats.totalInvoices">{{ $stats['totalInvoices'] ?? 0 }}</h3>
                 </div>
                 <div class="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full md:flex bg-indigo-100 dark:bg-indigo-900/30">
                     <svg class="h-6 w-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

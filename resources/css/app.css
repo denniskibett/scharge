@@ -591,6 +591,11 @@ select:not([multiple]):not([size]) {
 
 [x-cloak] { display: none !important; }
 
+/* Every stat / KPI number, in every card on every page: one size, bold, black (white in dark mode). Same rule in all
+   our projects (scharge, Breve, AimZone, Aiyo, FitBeat) so figures look the same everywhere. */
+.stat-num { font-size: 1.5rem; line-height: 2rem; font-weight: 700; color: #000; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.dark .stat-num { color: #fff; }
+
 /* Every modal / slide-over backdrop: one look, dark at 70% opacity (no blur). Use class="… inset-0 modal-overlay". */
 .modal-overlay { background-color: rgb(16 24 40 / 0.7); }
 

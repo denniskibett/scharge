@@ -54,7 +54,7 @@
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="rounded-xl bg-gray-50 p-4 dark:bg-gray-800">
                         <p class="text-sm text-gray-500 dark:text-gray-400">Opening Balance</p>
-                        <p class="text-xl font-semibold text-gray-800 dark:text-white/90">
+                        <p class="stat-num">
                             KES <span x-text="formatNumber(summary.opening_balance)"></span>
                         </p>
                     </div>
