@@ -10,6 +10,9 @@ return [
         'sidiannete@gmail.com' => ['akenga@sharet.africa'],
     ],
 
+    /* Extra addresses copied on every prospect reply and on our answers, besides sysadmins and the account manager (comma-separated). */
+    'reply_cc' => array_filter(array_map('trim', explode(',', (string) env('CRM_REPLY_CC', '')))),
+
     /*
      * CRM → Inbox: the sharet.africa mail server (same machine as scharge on live). Local certificates are for
      * mail.sharet.africa, so a localhost connection skips the name check.

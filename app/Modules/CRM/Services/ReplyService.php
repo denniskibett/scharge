@@ -3,6 +3,7 @@
 namespace App\Modules\CRM\Services;
 
 use App\Models\Company;
+use App\Modules\CRM\Mail\CrmReplyCopy;
 use App\Modules\CRM\Mail\CrmReplyEmail;
 use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Support\EmailBody;
@@ -64,6 +65,34 @@ class ReplyService
         return User::whereRaw('LOWER(email) = ?', [$email])->whereHas('roles', fn ($r) => $r->whereIn('name', ['sysadmin', 'account_manager']))->exists();
     }
 
+    /** Who gets a copy of every prospect reply and of our answers: sysadmins, the company's account manager (and work copy), and CRM_REPLY_CC. */
+    public static function team(Company $company): array
+    {
+        $to = User::whereHas('roles', fn ($r) => $r->where('name', 'sysadmin'))->pluck('email')->all();
+        if ($company->owner_id && ($manager = User::find($company->owner_id))) {
+            $to = array_merge($to, $manager->mailboxes());
+        }
+        $to = array_merge($to, (array) config('crm.reply_cc', []));
+        $to = array_map(fn ($e) => strtolower(trim((string) $e)), $to);
+
+        return array_values(array_unique(array_filter($to, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL))));
+    }
+
+    /** Email the team a copy of a prospect's reply, skipping anyone the prospect already wrote to. */
+    private function copyTeam(Company $company, CrmFollowUp $row, InboundEmail $mail): void
+    {
+        $already = strtolower(($mail->headers['to'] ?? '').' '.($mail->headers['cc'] ?? ''));
+        $to = array_values(array_filter(self::team($company), fn ($e) => ! str_contains($already, $e)));
+        if (! $to) {
+            return;
+        }
+        try {
+            Mail::to($to)->send(new CrmReplyCopy($company, $row));
+        } catch (\Throwable $e) {
+            report($e); // the reply is logged either way
+        }
+    }
+
     /** Log a reply once; returns the logged row, or null when it was already logged. */
     public function record(Company $company, InboundEmail $mail, ?CrmFollowUp $ours, string $mailbox): ?CrmFollowUp
     {
@@ -112,6 +141,7 @@ class ReplyService
             'title' => 'Answer the reply from '.$who, 'notes' => Str::limit($text, 500),
             'details' => ['answer_reply' => true, 'reply_id' => $row->id],
         ]);
+        $this->copyTeam($company, $row, $mail);
         if ($optOut) {
             $this->contacts->log($company, 'note', 'Asked not to be emailed', 'Their reply asked us to stop emailing, so campaigns skip them now. Call only if they asked for it.');
         }
@@ -131,7 +161,7 @@ class ReplyService
         $html = EmailBody::toHtml($body);
         $thread = array_values(array_filter([$reply['message_id'] ?? null]));
 
-        $sent = Mail::to($to)->send(new CrmReplyEmail($subject, $html, $manager, $company, $thread));
+        $sent = Mail::to($to)->bcc(array_values(array_diff(self::team($company), [strtolower($to)])))->send(new CrmReplyEmail($subject, $html, $manager, $company, $thread));
         $this->contacts->log($company, 'email', 'Answered '.(($reply['name'] ?? '') ?: $to), EmailBody::toText($html),
             array_filter(['direction' => 'out', 'to' => $to, 'from' => Playbook::fromFor($company), 'subject' => $subject, 'answer_to' => $reply['follow_up_id'] ?? null, 'message_id' => $sent?->getMessageId()]), null, $user->id);
         $this->handled($company, $user, $stage, null, false);
