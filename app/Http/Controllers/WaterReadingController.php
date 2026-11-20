@@ -699,6 +699,7 @@ public function storeBulkMatrix(Request $request)
                 ->first();
             
             if ($existingReading) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'duplicate' => true,
@@ -715,8 +716,10 @@ public function storeBulkMatrix(Request $request)
                 ], 409);
             }
             
-            // Get the most recent reading for this unit to use as previous
+            // The previous reading is the latest one BEFORE this reading's date, so a back-dated reading compares
+            // with the right month (it used to compare with the newest reading and was wrongly rejected).
             $latestReading = WaterReading::where('unit_id', $unit->id)
+                ->where('reading_date', '<', $readingDate->toDateString())
                 ->orderBy('reading_date', 'desc')
                 ->first();
             
@@ -727,6 +730,7 @@ public function storeBulkMatrix(Request $request)
             $currentReading = $validated['current_reading'];
             
             if ($currentReading < $previousReading) {
+                DB::rollBack();
                 return response()->json([
                     'success' => false,
                     'message' => 'Current reading cannot be less than previous reading'

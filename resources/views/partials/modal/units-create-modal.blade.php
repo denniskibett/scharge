@@ -1162,6 +1162,8 @@ document.addEventListener('alpine:init', () => {
                 furnishing_status: commonData.furnishing_status || 'unfurnished',
                 stay_type: commonData.stay_type || 'long_stay',
                 property_category: commonData.property_category || 'residential',
+                water_billing_type: commonData.water_billing_type || 'consumption',
+                custom_water_rate: commonData.custom_water_rate || null,
                 security_deposit_amount: commonData.security_deposit_amount || 0
               })
             });

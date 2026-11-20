@@ -1276,84 +1276,6 @@ class SecurityController extends Controller
     }
 
     /**
-     * Register new visitor (one-time or recurring)
-     */
-    public function registerVisitor(Request $request)
-    {
-        try {
-            $request->validate([
-                'name' => 'required|string',
-                'phone' => 'required|string',
-                'email' => 'nullable|email',
-                'id_number' => 'nullable|string',
-                'id_type' => 'nullable|string',
-                'visitor_type' => 'required|in:family,employee,contractor,regular_guest,delivery,maintenance,one_time',
-                'relationship' => 'required_if:visitor_type,family,employee|nullable|string',
-                'company' => 'required_if:visitor_type,contractor|nullable|string',
-                'vehicles' => 'nullable|array',
-                'is_registered' => 'boolean',
-                'valid_until' => 'nullable|date|after:today',
-                'access_schedule' => 'nullable|array',
-            ]);
-            
-            // Check if visitor already exists
-            $visitor = null;
-            if ($request->phone) {
-                $visitor = Visitor::where('phone', $request->phone)->first();
-            }
-            if (!$visitor && $request->id_number) {
-                $visitor = Visitor::where('id_number', $request->id_number)->first();
-            }
-            
-            if ($visitor) {
-                // Update existing visitor
-                $visitor->update([
-                    'visitor_type' => $request->visitor_type,
-                    'relationship' => $request->relationship,
-                    'company' => $request->company,
-                    'is_registered' => $request->is_registered ?? $visitor->is_registered,
-                    'valid_until' => $request->valid_until ?? $visitor->valid_until,
-                    'access_schedule' => $request->access_schedule,
-                ]);
-                
-                if ($request->vehicles) {
-                    $visitor->vehicles = $request->vehicles;
-                    $visitor->save();
-                }
-                
-                $message = 'Visitor information updated successfully';
-            } else {
-                // Create new visitor
-                $visitor = Visitor::create([
-                    'name' => $request->name,
-                    'phone' => $request->phone,
-                    'email' => $request->email,
-                    'id_number' => $request->id_number,
-                    'id_type' => $request->id_type,
-                    'visitor_type' => $request->visitor_type,
-                    'relationship' => $request->relationship,
-                    'company' => $request->company,
-                    'vehicles' => $request->vehicles,
-                    'is_registered' => $request->is_registered ?? false,
-                    'valid_until' => $request->valid_until,
-                    'access_schedule' => $request->access_schedule,
-                ]);
-                
-                $message = 'Visitor registered successfully';
-            }
-            
-            return response()->json([
-                'success' => true,
-                'message' => $message,
-                'visitor' => $visitor
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Register Visitor Error: ' . $e->getMessage());
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
-    }
-
-    /**
      * Get security logs for display (API)
      */
     public function getLogs(Request $request)
@@ -1443,5 +1365,76 @@ class SecurityController extends Controller
             Log::error('Update Log Status Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    /** The tenant a guard is looking at, only if it is in the guard's own company (sysadmin: any). */
+    private function guardTenant($tenantId): Tenant
+    {
+        $tenant = Tenant::with('user')->findOrFail($tenantId);
+        $me = Auth::user();
+        abort_unless($me->hasRole('sysadmin') || (int) $tenant->company_id === (int) $me->company_id, 403);
+
+        return $tenant;
+    }
+
+    /** Security dashboard: register a regular visitor for a tenant (family, contractor, employee...). */
+    public function registerVisitor(Request $request)
+    {
+        $v = $request->validate([
+            'tenant_id' => 'required|integer|exists:tenants,id',
+            'first_name' => 'required|string|max:120',
+            'last_name' => 'nullable|string|max:120',
+            'phone' => 'required|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'id_number' => 'nullable|string|max:50',
+            'id_type' => 'nullable|string|max:50',
+            'visitor_type' => 'required|in:family,employee,contractor,regular_guest,delivery,maintenance,one_time',
+            'relationship' => 'nullable|string|max:255',
+            'company' => 'nullable|string|max:255',
+            'vehicles' => 'nullable|array',
+            'vehicles.*.registration' => 'nullable|string|max:50',
+            'valid_until' => 'nullable|date|after_or_equal:today',
+            'notes' => 'nullable|string|max:1000',
+        ]);
+        $tenant = $this->guardTenant($v['tenant_id']);
+        $unit = $tenant->activeTenancy?->unit;
+
+        $visitor = Visitor::create([
+            'name' => trim($v['first_name'].' '.($v['last_name'] ?? '')),
+            'phone' => $v['phone'], 'email' => $v['email'] ?? null,
+            'id_number' => $v['id_number'] ?? null, 'id_type' => $v['id_type'] ?? null,
+            'visitor_type' => $v['visitor_type'], 'relationship' => $v['relationship'] ?? null, 'company' => $v['company'] ?? null,
+            'vehicles' => $v['vehicles'] ?? [], 'valid_until' => $v['valid_until'] ?? null, 'notes' => $v['notes'] ?? null,
+            'is_registered' => 1, 'is_active' => 1, 'is_pre_approved' => 1,
+            'company_id' => $tenant->company_id, 'property_id' => $unit?->property_id, 'unit_id' => $unit?->id,
+            'tenant_id' => $tenant->id, 'registered_by_tenant_id' => $tenant->id,
+        ]);
+
+        return response()->json(['success' => true, 'message' => $visitor->name.' is registered for '.($tenant->user->name ?? 'this tenant').'.', 'visitor_id' => $visitor->id]);
+    }
+
+    /** Security dashboard: the gate log for a tenant's unit (latest 50). */
+    public function getLogsByTenant(Request $request)
+    {
+        $request->validate(['tenant_id' => 'required|integer|exists:tenants,id']);
+        $tenant = $this->guardTenant($request->tenant_id);
+        $unitId = $tenant->activeTenancy?->unit_id;
+        $q = SecurityLog::with('verifiedByUser:id,name')
+            ->where(fn ($w) => $w->where('tenant_id', $tenant->id)->when($unitId, fn ($x) => $x->orWhere('unit_id', $unitId)));
+        $logs = (clone $q)->latest('access_time')->limit(50)->get()->map(fn ($l) => [
+            'id' => $l->id,
+            'access_time_formatted' => $l->access_time ? Carbon::parse($l->access_time)->format('d M Y, H:i') : '-',
+            'visitor_name' => $l->visitor_name_snapshot ?? 'Visitor',
+            'visitor_phone' => $l->visitor_phone_snapshot,
+            'access_type' => $l->access_type ?? '-',
+            'status' => (string) ($l->status ?? 'pending'),
+            'purpose' => $l->purpose,
+            'verified_by' => $l->verifiedByUser?->name ?? '-',
+        ]);
+
+        return response()->json(['success' => true, 'logs' => $logs, 'stats' => [
+            'total_logs' => (clone $q)->count(),
+            'pending_logs' => (clone $q)->where('status', 'pending')->count(),
+        ]]);
     }
 }

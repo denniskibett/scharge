@@ -234,7 +234,8 @@ document.addEventListener('alpine:init', () => {
             'Accept': 'application/json'
           },
           body: JSON.stringify({
-            current_water_reading: this.currentReading,
+            current_reading: this.currentReading,
+            reading_date: new Date().toISOString().slice(0, 10),
             notes: this.notes
           })
         });
@@ -245,8 +246,8 @@ document.addEventListener('alpine:init', () => {
           this.closeModal();
           
           if (window.successModal) {
-            const consumption = data.consumption || 0;
-            const charge = data.estimated_charge || 0;
+            const consumption = Number(data.consumption ?? this.calculateConsumption() ?? 0);
+            const charge = Number(data.estimated_charge ?? this.calculateEstimatedCharge() ?? 0);
             window.successModal.show(
               'Water Reading Recorded', 
               `Reading saved successfully!\n\nUnits consumed: ${consumption.toFixed(2)}\nEstimated charge: KES ${charge.toFixed(2)}\n\nThis amount will be added to the next invoice.`

@@ -221,7 +221,7 @@ function createCompany() {
 
 function verifyUser(userId) {
     if (confirm('Verify this user?')) {
-        fetch(`/admin/users/${userId}/verify`, {
+        fetch(`/users/${userId}/verify`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
@@ -241,7 +241,7 @@ function verifyUser(userId) {
 function assignCompany(userId) {
     const companyId = prompt('Enter Company ID to assign:');
     if (companyId) {
-        fetch(`/admin/users/${userId}/assign-company`, {
+        fetch(`/users/${userId}/assign-company`, {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': '{{ csrf_token() }}',

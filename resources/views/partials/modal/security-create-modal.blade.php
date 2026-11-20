@@ -805,7 +805,7 @@ document.addEventListener('alpine:init', () => {
                 const vehicles = this.form.vehicle ? [{ registration: this.form.vehicle, is_primary: true }] : [];
                 const response = await fetch('/security/register-visitor', {
                     method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 'Accept': 'application/json' },
-                    body: JSON.stringify({ ...this.form, vehicles: vehicles })
+                    body: JSON.stringify({ ...this.form, vehicles: vehicles, tenant_id: securityState.tenantId })
                 });
                 const data = await response.json();
                 if (data.success) { alert(data.message); this.closeModal(); if (securityState.tenantId) loadTenantData(securityState.tenantId); }

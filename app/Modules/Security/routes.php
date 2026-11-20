@@ -53,6 +53,8 @@ Route::middleware(['auth', 'access:security'])->prefix('security')->name('securi
     Route::get('/units', [SecurityController::class, 'getUnitsByProperty'])->name('units');
     Route::get('/tenants', [SecurityController::class, 'getTenantsByUnit'])->name('tenants');
     Route::get('/visitors', [SecurityController::class, 'getVisitorsByTenant'])->name('visitors');
+    Route::post('/register-visitor', [SecurityController::class, 'registerVisitor'])->name('register-visitor');
+    Route::get('/logs-by-tenant', [SecurityController::class, 'getLogsByTenant'])->name('logs-by-tenant');
 });
 // ============================================
 // GUESTS & GATE: entry codes for every business (BnB hosts, managers, tenants) and the guard's verify screen.

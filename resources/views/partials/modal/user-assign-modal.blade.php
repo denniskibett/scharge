@@ -408,7 +408,7 @@ document.addEventListener('alpine:init', () => {
             this.saving = true;
             
             try {
-                const response = await fetch(`/admin/users/${this.userId}/assign-company`, {
+                const response = await fetch(`/users/${this.userId}/assign-company`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

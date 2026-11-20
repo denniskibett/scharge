@@ -13,6 +13,7 @@ class WaterReading extends Model
     protected $table = 'water_readings';
     
     protected $fillable = [
+        'company_id',
         'unit_id',
         'is_initial',
         'previous_reading',
@@ -26,6 +27,16 @@ class WaterReading extends Model
         'notes'
     ];
     
+    /** Every reading belongs to its unit's company (it used to be saved without one). */
+    protected static function booted(): void
+    {
+        static::creating(function (self $reading) {
+            if (! $reading->company_id && $reading->unit_id) {
+                $reading->company_id = \Illuminate\Support\Facades\DB::table('units')->where('id', $reading->unit_id)->value('company_id');
+            }
+        });
+    }
+
     protected $casts = [
         'reading_date' => 'date',
         'is_initial' => 'boolean',

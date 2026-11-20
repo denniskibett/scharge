@@ -686,4 +686,74 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    /** Users page bulk actions (sysadmin): activate, deactivate, change role, change company, delete. Sysadmins are never changed. */
+    public function bulk(Request $request)
+    {
+        $data = $request->validate([
+            'action' => 'required|in:activate,deactivate,change_role,change_company,delete',
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:users,id',
+            'role_id' => 'required_if:action,change_role|nullable|integer|exists:roles,id',
+            'company_id' => ['required_if:action,change_company', 'nullable', new \App\Rules\CustomerCompany],
+        ]);
+        if ($data['action'] === 'delete') {
+            return $this->bulkDelete($request);
+        }
+        $protected = User::role('sysadmin')->whereIn('id', $data['user_ids'])->pluck('id')->all();
+        $users = User::whereIn('id', array_diff($data['user_ids'], $protected))->get();
+        $role = $data['action'] === 'change_role' ? \Spatie\Permission\Models\Role::findById((int) $data['role_id'], 'web') : null;
+        if ($role && $role->name === 'sysadmin') {
+            return response()->json(['success' => false, 'error' => 'Sysadmin can only be given one person at a time, from their page.'], 422);
+        }
+        foreach ($users as $user) {
+            match ($data['action']) {
+                'activate' => $user->forceFill(['status' => 0])->save(),
+                'deactivate' => $user->forceFill(['status' => 1])->save(),
+                'change_role' => $user->syncRoles([$role->name]),
+                'change_company' => $user->forceFill(['company_id' => (int) $data['company_id']])->save(),
+            };
+        }
+        $skipped = count($protected) ? ' ('.count($protected).' sysadmin left unchanged)' : '';
+
+        return response()->json(['success' => true, 'message' => $users->count().' users updated'.$skipped.'.']);
+    }
+
+    /** CSV of the users the Users page is showing (same filters), or of the ticked ones. */
+    public function export(Request $request)
+    {
+        $q = User::query()->with(['roles:id,name', 'company:id,name']);
+        if ($ids = array_filter(explode(',', (string) $request->ids))) {
+            $q->whereIn('id', array_map('intval', $ids));
+        }
+        if ($s = trim((string) $request->search)) {
+            $q->where(fn ($w) => $w->where('name', 'like', "%{$s}%")->orWhere('email', 'like', "%{$s}%")->orWhere('phone', 'like', "%{$s}%"));
+        }
+        if ($request->filled('role_id')) {
+            $q->whereHas('roles', fn ($r) => $r->where('id', (int) $request->role_id));
+        }
+        if ($request->filled('company_id')) {
+            $q->where('company_id', (int) $request->company_id);
+        }
+        if ($request->filled('status')) {
+            $q->where('status', (int) $request->status);
+        }
+        if ($request->filled('date_from')) {
+            $q->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $q->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        return response()->streamDownload(function () use ($q) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'Name', 'Email', 'Phone', 'Role', 'Company', 'Status', 'Created']);
+            $q->orderBy('id')->chunk(500, function ($rows) use ($out) {
+                foreach ($rows as $u) {
+                    fputcsv($out, [$u->id, $u->name, $u->email, $u->phone, $u->roles->pluck('name')->implode(', '), $u->company?->name, (int) $u->status === 1 ? 'Inactive' : 'Active', optional($u->created_at)->format('Y-m-d')]);
+                }
+            });
+            fclose($out);
+        }, 'scharge-users-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv']);
+    }
 }

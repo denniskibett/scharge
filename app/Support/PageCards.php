@@ -39,7 +39,9 @@ class PageCards
         if (! method_exists($self, $method)) {
             return [];
         }
-        $key = 'page-cards:'.$page.':'.($self->ids === null ? 'all' : implode(',', $self->ids)).':'.$self->now->format('YmdH').intdiv((int) $self->now->format('i'), 2);
+        // Account managers see hundreds of companies: hash the id list so the key fits the cache table (255 chars).
+        $scope = $self->ids === null ? 'all' : (count($self->ids) <= 20 ? implode(',', $self->ids) : 'h'.md5(implode(',', $self->ids)));
+        $key = 'page-cards:'.$page.':'.$scope.':'.$self->now->format('YmdH').intdiv((int) $self->now->format('i'), 2);
 
         try {
             return Cache::remember($key, 120, fn () => $self->{$method}());

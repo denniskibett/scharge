@@ -24,9 +24,20 @@ class Tenancy extends Model
                 \App\Support\CompanyAccess::tenancyFilter($query, $ids);
             }
         });
+
+        // A tenancy always carries its unit's company and property (many were saved without them).
+        static::creating(function (self $tenancy) {
+            if ($tenancy->unit_id && (! $tenancy->company_id || ! $tenancy->property_id)) {
+                $unit = \Illuminate\Support\Facades\DB::table('units')->where('id', $tenancy->unit_id)->first(['company_id', 'property_id']);
+                $tenancy->company_id = $tenancy->company_id ?: $unit?->company_id;
+                $tenancy->property_id = $tenancy->property_id ?: $unit?->property_id;
+            }
+        });
     }
 
     protected $fillable = [
+        'company_id',
+        'property_id',
         'tenant_id', 
         'unit_id', 
         'move_in_date', 

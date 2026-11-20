@@ -594,7 +594,7 @@
     function verifyUser(userId) {
         if (!confirm('Verify this user?')) return;
         
-        fetch('/admin/users/' + userId + '/verify', {
+        fetch('/users/' + userId + '/verify', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -921,11 +921,12 @@
             return;
         }
 
-        fetch('{{ route("users.create") }}', {
+        fetch('{{ route("admin.users.bulk") }}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
             },
             body: JSON.stringify(data)
         })
@@ -1030,7 +1031,7 @@
         }
 
         var ids = Array.from(selectedIds);
-        var url = new URL('{{ route("users.create") }}');
+        var url = new URL('{{ route("admin.users.export") }}');
         url.searchParams.append('ids', ids.join(','));
 
         var search = document.getElementById('searchInput') ? document.getElementById('searchInput').value : '';
@@ -1053,7 +1054,7 @@
     }
 
     function exportUsers() {
-        var url = new URL('{{ route("users.create") }}');
+        var url = new URL('{{ route("admin.users.export") }}');
 
         var search = document.getElementById('searchInput') ? document.getElementById('searchInput').value : '';
         var role = document.getElementById('roleFilter') ? document.getElementById('roleFilter').value : '';
