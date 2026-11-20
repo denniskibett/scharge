@@ -10,6 +10,9 @@ class SmsService
     protected $apiKey;
     protected $senderId;
 
+    /** The company these messages are sent for (its sender ID and WhatsApp number); null = scharge itself. */
+    protected ?int $companyId = null;
+
     public function __construct()
     {
         $this->baseUrl = config('sms.base_url');
@@ -30,6 +33,7 @@ class SmsService
     protected function useSender(array $sender): void
     {
         $this->senderId = $sender['sender_id'] ?: $this->senderId;
+        $this->companyId = $sender['company_id'] ?? null;
         $this->apiKey = $sender['api_key'] ?: $this->apiKey;
     }
 
@@ -38,7 +42,7 @@ class SmsService
         // KenyaSMS only reaches Kenyan numbers; foreign ones go by WhatsApp or email instead.
         if (\App\Helpers\PhoneHelper::isForeign($phone)) {
             // Send it on WhatsApp instead when a WhatsApp number is set up (company's own, else scharge's).
-            $wa = \App\Services\WhatsApp::forCompany(auth()->user()?->company_id);
+            $wa = \App\Services\WhatsApp::forCompany($this->companyId);
             if ($wa->canSend()) {
                 return $wa->send($phone, $message) + ['channel' => 'whatsapp', 'foreign' => true];
             }

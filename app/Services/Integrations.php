@@ -88,7 +88,14 @@ class Integrations
         if ($companyId === -1) {
             $companyId = auth()->user()?->company_id;
         }
-        $out = ['api_key' => config('sms.kenyasms.api_key') ?: config('sms.api_key'), 'sender_id' => config('sms.kenyasms.sender_id') ?: config('sms.sender_id'), 'own_account' => false];
+        // scharge's own sender (SHARETENT): the platform KenyaSMS card a sysadmin saves, else the server's .env.
+        $platform = self::for(null, 'kenyasms');
+        $out = [
+            'api_key' => ($platform && filled($platform->get('api_key')) ? $platform->get('api_key') : null) ?: config('sms.kenyasms.api_key') ?: config('sms.api_key'),
+            'sender_id' => ($platform && filled($platform->get('sender_id')) ? $platform->get('sender_id') : null) ?: config('sms.kenyasms.sender_id') ?: config('sms.sender_id'),
+            'own_account' => false,
+            'company_id' => $companyId ?: null,
+        ];
         $row = $companyId ? self::for((int) $companyId, 'kenyasms_sender') : null;
         // A name scharge registers for the company is used only once the networks approved it.
         if ($row && $row->get('setup') === 'managed' && $row->get('approval') !== 'approved') {
