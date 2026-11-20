@@ -4,7 +4,15 @@
 @section('page_title', 'Billing')
 
 @php
-  $money = fn ($amount, $cur = 'KES') => $cur.' '.number_format((float) $amount, 0);
+  // Bills, the wallet and the ledger stay in the currency they were charged in; totals add an "about" figure in the
+  // company's display currency at Sharet's rate (App\Support\Money)
+  $money = fn ($amount, $cur = null) => \App\Support\Money::format($amount, $cur, 0);
+  $about = function ($amount, $cur = null) use ($shownIn) {
+      $cur = strtoupper((string) ($cur ?: \App\Support\Currency::book()));
+      $c = $shownIn !== $cur && \App\Support\Currency::supported($cur) ? \App\Support\Money::convert($amount, $cur, $shownIn) : null;
+
+      return $c === null ? null : 'about '.\App\Support\Money::format($c, $shownIn);
+  };
   $card = 'rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]';
 @endphp
 
@@ -53,10 +61,13 @@
 
     <div class="grid grid-cols-2 gap-3">
       @include('partials.card.stat', ['card' => ['label' => 'Amount due', 'value' => $money($status['total_due'], $status['currency']), 'icon' => 'banknotes', 'tone' => $status['overdue'] ? 'red' : 'brand',
-        'hint' => count($status['unpaid']).' unpaid '.\Illuminate\Support\Str::plural('bill', count($status['unpaid']))]])
+        'hint' => collect([count($status['unpaid']).' unpaid '.\Illuminate\Support\Str::plural('bill', count($status['unpaid'])), $status['total_due'] > 0 ? $about($status['total_due'], $status['currency']) : null])->filter()->implode(' · ')]])
       @include('partials.card.stat', ['card' => ['label' => 'Overdue', 'value' => count($status['overdue']), 'icon' => 'clock', 'tone' => $status['overdue'] ? 'amber' : 'green',
         'hint' => $status['overdue'] ? 'past the due date' : 'nothing overdue']])
     </div>
+    @if ($status['total_due'] > 0 || ($wallet['available'] ?? 0) > 0)
+      <x-fx-note :from="$status['currency']" :to="$shownIn" />
+    @endif
 
     <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
       <div class="border-b border-gray-200 px-5 py-3 dark:border-gray-800"><h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">Unpaid bills</h3></div>
@@ -110,7 +121,7 @@
       <div class="{{ $card }}">
         <div class="flex flex-wrap items-baseline justify-between gap-2">
           <h3 class="text-sm font-semibold text-gray-800 dark:text-white/90">scharge wallet</h3>
-          <p class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $money($wallet['available']) }} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">available</span></p>
+          <p class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $money($wallet['available']) }} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">available{{ $wallet['available'] > 0 && $about($wallet['available']) ? ' · '.$about($wallet['available']) : '' }}</span></p>
         </div>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
           {{ collect(['Rent collected, not yet paid out '.$money($wallet['gross']),

@@ -535,6 +535,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::get('/settings/white-label', [App\Http\Controllers\BrandController::class, 'edit'])->name('brand.edit');
         Route::post('/settings/white-label', [App\Http\Controllers\BrandController::class, 'update'])->name('brand.update');
         Route::post('/settings/white-label/remove', [App\Http\Controllers\BrandController::class, 'destroy'])->name('brand.destroy');
+        Route::post('/settings/currency', [App\Http\Controllers\BrandController::class, 'currency'])->name('brand.currency');
         Route::get('/settings/white-label/export', [App\Http\Controllers\BrandController::class, 'export'])->middleware('throttle:6,1,brand-export')->name('brand.export');
         Route::get('/settings/data-agreement', [App\Http\Controllers\AgreementController::class, 'show'])->name('dpa.show');
         Route::post('/settings/data-agreement', [App\Http\Controllers\AgreementController::class, 'accept'])->name('dpa.accept');

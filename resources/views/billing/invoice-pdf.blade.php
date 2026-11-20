@@ -1,8 +1,12 @@
 {{-- scharge invoice as a PDF (BillingController::pdf, dompdf). Same data as billing/invoice; tables only, since dompdf has no flex or grid. --}}
 @php
   $cur = $inv->currency ?: 'KES';
-  $money = fn ($v) => $cur.' '.number_format((float) $v, 2);
+  $money = fn ($v) => \App\Support\Money::format($v, $cur, 2);
   $total = (float) $inv->amount;
+  // The bill is charged in its own currency; the company's display currency only adds an "about" figure (App\Support\Money)
+  $shownIn = \App\Support\Currency::forCompany((int) $inv->company_id);
+  $approx = $shownIn !== strtoupper($cur) && \App\Support\Currency::supported($cur) ? \App\Support\Money::convert($total, $cur, $shownIn) : null;
+  $fxLine = $approx !== null ? \App\Support\Money::note($cur, $shownIn) : null;
   $paid = $inv->status === 'paid';
   $late = ! $paid && \Illuminate\Support\Carbon::parse($inv->due_date)->lt(now()->startOfDay());
   $rateTxt = rtrim(rtrim(number_format($vat['rate'], 2), '0'), '.');
@@ -110,6 +114,9 @@ h1 { margin: 0; font-size: 18pt; }
 @unless ($paid)
 @endunless
 @if (! empty($json['note']))<div class="note">{{ $json['note'] }}</div>@endif
+@if ($fxLine)
+<p style="font-size:8pt;color:#667085;margin-top:8pt">Charged in {{ strtoupper($cur) }}. Total about {{ \App\Support\Money::format($approx, $shownIn) }}: {{ $fxLine }}</p>
+@endif
 
 </body>
 </html>

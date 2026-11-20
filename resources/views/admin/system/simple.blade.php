@@ -296,7 +296,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Currency *
+                                Default display currency *
                             </label>
                             <select name="currency" required
                                     class="w-full px-3 py-2.5 rounded-lg border border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700 text-gray-800 dark:text-gray-200 text-sm focus:border-brand-300 focus:outline-none">
@@ -326,6 +326,18 @@
                                 <option value="after_space" {{ old('currency_position', $system->settings['currency_position'] ?? 'before') == 'after_space' ? 'selected' : '' }}>After with space (100 $)</option>
                             </select>
                         </div>
+                    </div>
+                    {{-- What the currency setting does, and the Sharet rates behind it (App\Support\FxRates) --}}
+                    <div class="mt-3 rounded-lg bg-gray-50 p-3 text-xs leading-relaxed text-gray-600 dark:bg-white/[0.03] dark:text-gray-400">
+                        <p>Dashboards, reports and billing totals are shown in this currency unless a company picks its own (Settings › White label). Amounts are stored and charged in the currency they were created in ({{ \App\Support\Currency::book() }} for rent, invoices, wallets and the ledger) and never change; only what is shown is converted, at Sharet's rate for the day.</p>
+                        <p class="mt-1">
+                            @if ($fx)
+                                Sharet rates of {{ \Illuminate\Support\Carbon::parse($fx['date'])->format('j M Y') }}{{ $fx['stale'] ? ' (last known: Sharet could not be reached)' : '' }}:
+                                @foreach ($fx['rates'] as $code => $rate)<span class="whitespace-nowrap">1 {{ $fx['base'] }} = {{ rtrim(rtrim(number_format((float) $rate, 6), '0'), '.') }} {{ $code }}</span>{{ $loop->last ? '' : ' · ' }}@endforeach
+                            @else
+                                No rates from Sharet yet, so every amount is shown in {{ \App\Support\Currency::book() }}. Run <code>php artisan fx:rates</code> to check.
+                            @endif
+                        </p>
                     </div>
                 </div>
 

@@ -5,7 +5,10 @@ import ApexCharts from "apexcharts";
  * <script type="application/json"> block on the page, so it works after background navigation too.
  */
 const charts = [];
-const kes = (v) => "KES " + Math.round(v).toLocaleString();
+// Money series are book (KES) amounts; window.scMoney (layouts/app, App\Support\Money::js) shows them in the display currency.
+const fx = () => window.scMoney || { code: "KES", rate: 1 };
+const conv = (v) => Number(v || 0) * fx().rate;
+const kes = (v) => fx().code + " " + Math.round(v).toLocaleString();
 const compact = (v) => (v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : v >= 1e3 ? Math.round(v / 1e3) + "k" : String(Math.round(v)));
 const dark = () => document.documentElement.classList.contains("dark") || document.body.classList.contains("dark");
 const base = () => ({
@@ -37,9 +40,9 @@ export default function reportCharts() {
     if (d.monthly) draw("report-monthly", {
       chart: { type: "bar", height: 300 },
       series: [
-        { name: "Billed", data: d.monthly.map((m) => m.billed) },
-        { name: "Collected", data: d.monthly.map((m) => m.collected) },
-        ...(d.monthly.some((m) => m.expenses > 0) ? [{ name: "Expenses", data: d.monthly.map((m) => m.expenses) }] : []),
+        { name: "Billed", data: d.monthly.map((m) => conv(m.billed)) },
+        { name: "Collected", data: d.monthly.map((m) => conv(m.collected)) },
+        ...(d.monthly.some((m) => m.expenses > 0) ? [{ name: "Expenses", data: d.monthly.map((m) => conv(m.expenses)) }] : []),
       ],
       colors: ["#465fff", "#12b76a", "#f79009"],
       plotOptions: { bar: { columnWidth: "55%", borderRadius: 4, borderRadiusApplication: "end" } },
@@ -49,7 +52,7 @@ export default function reportCharts() {
     });
     if (d.methods) draw("report-methods", {
       chart: { type: "donut", height: 300 },
-      series: d.methods.map((m) => m.total),
+      series: d.methods.map((m) => conv(m.total)),
       labels: d.methods.map((m) => m.method),
       colors: ["#465fff", "#12b76a", "#f79009", "#7a5af8", "#ee46bc", "#0ba5ec", "#667085"],
       legend: { position: "bottom" },
@@ -70,7 +73,7 @@ export default function reportCharts() {
     });
     if (d.aging) draw("report-aging", {
       chart: { type: "bar", height: 280 },
-      series: [{ name: "Owed", data: d.aging.map((a) => a.total) }],
+      series: [{ name: "Owed", data: d.aging.map((a) => conv(a.total)) }],
       colors: ["#f04438"],
       plotOptions: { bar: { columnWidth: "50%", borderRadius: 4, borderRadiusApplication: "end", distributed: false } },
       xaxis: { categories: d.aging.map((a) => a.bucket), axisBorder: { show: false }, axisTicks: { show: false } },
@@ -81,7 +84,7 @@ export default function reportCharts() {
       chart: { type: "line", height: 300 },
       series: [
         { name: "Units used", type: "column", data: d.water.map((m) => m.consumption) },
-        { name: "Charged (KES)", type: "line", data: d.water.map((m) => m.charge) },
+        { name: "Charged (" + fx().code + ")", type: "line", data: d.water.map((m) => conv(m.charge)) },
       ],
       colors: ["#0ba5ec", "#465fff"],
       stroke: { width: [0, 3], curve: "monotoneCubic" },
@@ -89,7 +92,7 @@ export default function reportCharts() {
       xaxis: { categories: d.water.map((m) => m.month), axisBorder: { show: false }, axisTicks: { show: false } },
       yaxis: [
         { title: { text: "Units" }, labels: { formatter: compact } },
-        { opposite: true, title: { text: "KES" }, labels: { formatter: compact } },
+        { opposite: true, title: { text: fx().code }, labels: { formatter: compact } },
       ],
       tooltip: { shared: true, y: { formatter: (v, o) => (o.seriesIndex === 1 ? kes(v) : Math.round(v).toLocaleString() + " units") } },
     });
@@ -100,8 +103,8 @@ export default function reportCharts() {
     draw("dash-analytics-chart", {
       chart: { type: "area", height: 180, sparkline: { enabled: false } },
       series: [
-        { name: "Billed", data: s.map((m) => m.billed) },
-        { name: "Collected", data: s.map((m) => m.collected) },
+        { name: "Billed", data: s.map((m) => conv(m.billed)) },
+        { name: "Collected", data: s.map((m) => conv(m.collected)) },
       ],
       colors: ["#465fff", "#12b76a"],
       stroke: { curve: "monotoneCubic", width: 2 },

@@ -17,20 +17,9 @@ class SystemController extends Controller
     $system = System::settings();
     $timezones = \DateTimeZone::listIdentifiers(\DateTimeZone::ALL);
     
-    // Get currencies from CountryHelper
-    try {
-        $currencies = CountryHelper::currencyOptions(false);
-    } catch (\Exception $e) {
-        // Fallback currencies
-        $currencies = [
-            'KES' => 'Kenyan Shilling (KSh)',
-            'USD' => 'US Dollar ($)',
-            'EUR' => 'Euro (€)',
-            'GBP' => 'British Pound (£)',
-            'JPY' => 'Japanese Yen (¥)',
-            'CAD' => 'Canadian Dollar (C$)',
-        ];
-    }
+    // Display currencies: the fiat list Sharet quotes (config/currency.php), so every choice can be converted.
+    $currencies = collect(\App\Support\Currency::all())->map(fn ($c, $code) => $code.' · '.$c['name'])->all();
+    $fx = \App\Support\FxRates::snapshot();
 
         // Get countries for location - use countryOptions() method
         try {
@@ -67,6 +56,7 @@ class SystemController extends Controller
             'system', 
             'timezones', 
             'currencies',
+            'fx',
             'countries',
             'socialPlatforms'
         ));
@@ -82,7 +72,7 @@ class SystemController extends Controller
             'slogan' => 'nullable|string|max:255',
             'timezone' => 'required|string',
             'date_format' => 'required|string',
-            'currency' => 'required|string|max:3',
+            'currency' => ['required', 'string', \Illuminate\Validation\Rule::in(array_keys(\App\Support\Currency::all()))],
             'currency_symbol' => 'required|string|max:10',
             'primary_color' => 'required|string|max:7',
             'secondary_color' => 'required|string|max:7',
@@ -155,6 +145,7 @@ class SystemController extends Controller
         $system->update($data);
         Cache::forget('system_settings');
         SystemHelper::clearCache();
+        \App\Support\Currency::flush();
         return back()->with('success', 'System settings updated successfully!');
     }   
     
