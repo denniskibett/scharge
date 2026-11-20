@@ -35,6 +35,10 @@
                 @if ($company->profile('last_emailed_at')) · last emailed {{ \Illuminate\Support\Carbon::parse($company->profile('last_emailed_at'))->diffForHumans() }}@endif
             </p>
             @include('crm.partials.engagement', ['e' => \App\Modules\CRM\Support\EmailEngagement::summary(null, $company->id), 'events' => \App\Modules\CRM\Support\EmailEngagement::events(null, $company->id, 20)])
+            @if ($company->profile('demo_draft.saved_at'))
+                @php $dd = (array) $company->profile('demo_draft.data', []); @endphp
+                <p class="mt-1 text-xs text-amber-700 dark:text-amber-300">Started the demo form, stopped at step {{ (int) $company->profile('demo_draft.step', 1) }} of 4 ({{ \Illuminate\Support\Carbon::parse($company->profile('demo_draft.saved_at'))->tz('Africa/Nairobi')->format('D j M, g:ia') }})@if (! empty($dd['name'])) · {{ $dd['name'] }}@endif @if (! empty($dd['phone'])) · {{ $dd['phone'] }}@endif @if (! empty($dd['properties'])) · {{ collect($dd['properties'])->sum('units') }} units @endif</p>
+            @endif
         </div>
         <div class="flex shrink-0 items-center gap-1">
             <div class="relative" x-data="{ menu: false }" @click.outside="menu = false" @keydown.escape.stop="menu = false">

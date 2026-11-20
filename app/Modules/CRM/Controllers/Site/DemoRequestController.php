@@ -32,7 +32,44 @@ class DemoRequestController extends Controller
         EmailTracking::mark($email, 'clicked');
         \App\Modules\CRM\Support\EmailEngagement::record($email, 'click', $request);
 
-        return view('home.demo-request', ['company' => $company, 'ref' => strtoupper($ref), 'manager' => $company->owner]);
+        return view('home.demo-request', ['company' => $company, 'ref' => strtoupper($ref), 'manager' => $company->owner,
+            'draft' => (array) $company->profile('demo_draft.data', []), 'draftStep' => (int) $company->profile('demo_draft.step', 1)]);
+    }
+
+    /**
+     * Save the demo form step by step (one page at a time, nothing is lost if they stop half way). Kept on the
+     * prospect as crm_profile.demo_draft until they book; the playbook shows how far they got.
+     */
+    public function draft(Request $request, string $ref): \Illuminate\Http\JsonResponse
+    {
+        $company = Demo::findByRef($ref);
+        abort_unless($company, 404);
+        if (filled($request->input('website_url'))) {   // honeypot
+            return response()->json(['saved' => true]);
+        }
+        $str = fn ($v, int $n) => is_scalar($v) ? mb_substr(trim(strip_tags((string) $v)), 0, $n) : null;
+        $in = $request->all();
+        $data = array_filter([
+            'role' => in_array($in['role'] ?? null, array_keys(Demo::ROLES), true) ? $in['role'] : null,
+            'name' => $str($in['name'] ?? null, 120), 'job_title' => $str($in['job_title'] ?? null, 120),
+            'phone' => $str($in['phone'] ?? null, 40), 'email' => $str($in['email'] ?? null, 190),
+            'interests' => array_values(array_intersect((array) ($in['interests'] ?? []), array_keys(Demo::INTERESTS))) ?: null,
+            'properties' => collect((array) ($in['properties'] ?? []))->take(50)->map(fn ($p) => [
+                'name' => $str($p['name'] ?? null, 120), 'type' => in_array($p['type'] ?? null, Demo::PROPERTY_TYPES, true) ? $p['type'] : null,
+                'location' => $str($p['location'] ?? null, 120), 'units' => is_numeric($p['units'] ?? null) ? max(0, min(100000, (int) $p['units'])) : null,
+            ])->values()->all() ?: null,
+            'billing_now' => in_array($in['billing_now'] ?? null, Demo::BILLING_NOW, true) ? $in['billing_now'] : null,
+            'contact_date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($in['contact_date'] ?? '')) ? $in['contact_date'] : null,
+            'contact_window' => in_array($in['contact_window'] ?? null, Demo::WINDOWS, true) ? $in['contact_window'] : null,
+            'channel' => in_array($in['channel'] ?? null, Demo::CHANNELS, true) ? $in['channel'] : null,
+            'message' => $str($in['message'] ?? null, 2000),
+        ], fn ($v) => $v !== null && $v !== '');
+        $step = max(1, min(4, (int) $request->input('step', 1)));
+        $profile = (array) $company->crm_profile;
+        $profile['demo_draft'] = ['data' => $data, 'step' => $step, 'saved_at' => now()->toDateTimeString()];
+        $company->forceFill(['crm_profile' => $profile])->saveQuietly();
+
+        return response()->json(['saved' => true, 'step' => $step]);
     }
 
     /** 1×1 image in cold emails: records that the email was opened. */
@@ -82,6 +119,10 @@ class DemoRequestController extends Controller
         }
 
         $this->demos->submit($company, $data, strtoupper($ref));
+        $fresh = $company->fresh();                            // booked: the half-filled draft is no longer needed
+        $profile = (array) $fresh->crm_profile;
+        unset($profile['demo_draft']);
+        $fresh->forceFill(['crm_profile' => $profile])->saveQuietly();
 
         return redirect()->route('site.demo-request.thanks', $ref);
     }

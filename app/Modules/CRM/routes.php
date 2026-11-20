@@ -36,6 +36,7 @@ Route::middleware('throttle:6,1,site-forms')->group(function () {
 // Private demo form linked from each cold email: /demo/SC-XXXXXX
 Route::get('/demo/{ref}', [DemoRequestController::class, 'show'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->name('site.demo-request');
 Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->middleware('throttle:6,1,demo-form')->name('site.demo-request.store');
+Route::post('/demo/{ref}/draft', [DemoRequestController::class, 'draft'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->middleware('throttle:40,1,demo-draft')->name('site.demo-request.draft');
 Route::get('/demo/{ref}/thanks', [DemoRequestController::class, 'thanks'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->name('site.demo-request.thanks');
 Route::get('/e/{token}.gif', [DemoRequestController::class, 'opened'])->where('token', '[A-Za-z0-9]{24}')->middleware('throttle:60,1,email-open')->name('site.email-open');
 Route::get('/feedback/{token}', [SiteFeedbackController::class, 'show'])->name('site.feedback.show');
