@@ -56,7 +56,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&family=DM+Sans:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}">
+<link rel="stylesheet" href="{{ asset('assets/css/styles.css') }}?v={{ @filemtime(public_path('assets/css/styles.css')) }}">
 {{-- Log in / Register are real links here (not the demo modal buttons), so centre them like the buttons they replace. --}}
 <style>.nav-auth a.nav-login,.nav-auth form{display:inline-flex;align-items:center;justify-content:center;margin:0}
 .footer-brand{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:22rem}.footer-brand p{margin:0;color:var(--on-dark);font-size:.95rem;line-height:1.5}.site-footer .footer-brand .btn{color:var(--white);min-height:44px}
