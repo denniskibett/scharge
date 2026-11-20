@@ -29,7 +29,7 @@ class ReplyService
     public function match(InboundEmail $mail): array
     {
         $q = fn () => Company::withoutGlobalScope('customers');
-        if (! $mail->from || str_ends_with($mail->from, '@sharet.africa')) {
+        if (! $mail->from || self::isOurs($mail->from)) {
             return [null, null]; // our own staff or system mail, never a prospect's reply
         }
         if ($mail->replyTo) {
@@ -51,6 +51,17 @@ class ReplyService
         }
 
         return [null, null];
+    }
+
+    /** Our own address: sharet.africa mail, or any address of a sysadmin or account manager (their personal Gmail too). */
+    public static function isOurs(string $email): bool
+    {
+        $email = strtolower(trim($email));
+        if (str_ends_with($email, '@sharet.africa')) {
+            return true;
+        }
+
+        return User::whereRaw('LOWER(email) = ?', [$email])->whereHas('roles', fn ($r) => $r->whereIn('name', ['sysadmin', 'account_manager']))->exists();
     }
 
     /** Log a reply once; returns the logged row, or null when it was already logged. */
