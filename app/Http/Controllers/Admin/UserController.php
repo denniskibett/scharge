@@ -140,13 +140,13 @@ class UserController extends Controller
             if ($request->role_id) {
                 $role = Role::find($request->role_id);
                 if ($role) {
-                    $user->assignRole($role->name);
+                    \App\Models\User::findOrFail($user->id)->assignRole($role->name);
                 }
             } else {
                 // Default to 'guest' role if no role specified
                 $guestRole = Role::where('name', 'guest')->first();
                 if ($guestRole) {
-                    $user->assignRole($guestRole->name);
+                    \App\Models\User::findOrFail($user->id)->assignRole($guestRole->name);
                 }
             }
 
@@ -270,12 +270,12 @@ class UserController extends Controller
             if ($request->role_id) {
                 $role = Role::find($request->role_id);
                 if ($role) {
-                    $user->syncRoles([$role->name]);
+                    \App\Models\User::findOrFail($user->id)->syncRoles([$role->name]);
                 }
             } else {
                 // If no role specified, keep existing roles
                 // Or uncomment to remove all roles:
-                // $user->syncRoles([]);
+                // \App\Models\User::findOrFail($user->id)->syncRoles([]);
             }
 
             DB::commit();
@@ -431,7 +431,7 @@ class UserController extends Controller
                 if (isset($validated['role_id'])) {
                     $role = Role::find($validated['role_id']);
                     if ($role) {
-                        $user->syncRoles([$role->name]);
+                        \App\Models\User::findOrFail($user->id)->syncRoles([$role->name]);
                     }
                 }
                 
@@ -714,7 +714,7 @@ class UserController extends Controller
             match ($data['action']) {
                 'activate' => $user->forceFill(['status' => 0])->save(),
                 'deactivate' => $user->forceFill(['status' => 1])->save(),
-                'change_role' => $user->syncRoles([$role->name]),
+                'change_role' => \App\Models\User::findOrFail($user->id)->syncRoles([$role->name]),
                 'change_company' => $user->forceFill(['company_id' => (int) $data['company_id']])->save(),
             };
         }
