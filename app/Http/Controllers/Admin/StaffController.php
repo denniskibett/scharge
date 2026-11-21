@@ -276,6 +276,15 @@ class StaffController extends Controller
      */
     public function quickUpdate(Request $request, $id)
     {
+        // A company admin or accountant edits their own company's staff only, and cannot move them to another company.
+        $own = \App\Support\CompanyAccess::ids();
+        if ($own !== null && ! in_array((int) User::whereKey($id)->value('company_id'), $own, true)) {
+            return response()->json(['success' => false, 'message' => 'This person is not in your company.'], 403);
+        }
+        if ($own !== null) {
+            $request->request->remove('company_id');
+        }
+
         $validator = Validator::make($request->all(), [
             'name'  => 'required|string|max:255',
             'email' => ['required', 'email', 'unique:users,email,' . $id, new \App\Rules\RealEmail],
@@ -299,11 +308,19 @@ class StaffController extends Controller
             ], 422);
         }
 
-        $user->update($request->only(['name', 'email', 'phone', 'company_id', 'status']));
+        $role = $request->has('role_id') ? Role::findOrFail($request->role_id) : null;
+        if ($role && ! in_array($role->name, $this->getStaffRoleNames(), true)) {
+            return response()->json(['success' => false, 'message' => 'Pick one of the staff roles.'], 422);
+        }
+
+        $fields = $request->only(['name', 'email', 'phone', 'status']);
+        if ($own === null) {
+            $fields['company_id'] = $request->input('company_id');
+        }
+        $user->update($fields);
 
         // Update role using Spatie
-        if ($request->has('role_id')) {
-            $role = Role::findOrFail($request->role_id);
+        if ($role) {
             $user->syncRoles([$role->name]);
         }
 
