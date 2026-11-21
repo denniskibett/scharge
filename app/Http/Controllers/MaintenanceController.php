@@ -197,7 +197,7 @@ class MaintenanceController extends Controller
         }
         
         // For non-AJAX requests, redirect to index with the maintenance ID for modal opening
-        return redirect()->route('maintenance.index')->with('edit_id', $maintenance->id);
+        return redirect()->route('maintenance.index', ['edit' => $maintenance->id]);
     }
 
     /**
@@ -301,7 +301,8 @@ class MaintenanceController extends Controller
             ]);
         }
         
-        return view('maintenance.show', compact('maintenance'));
+        // No separate page: the Repairs list opens this request in its view pop-up.
+        return redirect()->route('maintenance.index', ['view' => $maintenance->id]);
     }
 
     public function tenantRequests()

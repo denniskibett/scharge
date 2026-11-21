@@ -329,7 +329,7 @@ public function store(Request $request)
             ]);
         }
         
-        return view('tenants.edit', compact('tenant'));
+        return redirect()->route('tenants.show', $tenant);
     }
 
     public function update(Request $request, Tenant $tenant)

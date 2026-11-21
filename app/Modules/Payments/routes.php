@@ -6,7 +6,7 @@ use App\Http\Controllers\PaymentController;
 
 Route::middleware(['auth'])->prefix('payments')->name('payments.')->group(function () {
     // Invoice CRUD
-    Route::resource('invoices', InvoiceController::class);
+    Route::resource('invoices', InvoiceController::class)->except(['create']);
     Route::resource('payments', PaymentController::class)->except(['create', 'edit']);
     
     // Invoice custom routes

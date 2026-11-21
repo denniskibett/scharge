@@ -1,27 +1,21 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
-    </div>
+@extends('home.auth')
+@section('robots', 'noindex,nofollow')
 
-    <form method="POST" action="{{ route('password.confirm') }}">
-        @csrf
+@section('title', 'Confirm your password | scharge')
+@section('description', 'Confirm your password to continue.')
 
-        <!-- Password -->
-        <div>
-            <x-input-label for="password" :value="__('Password')" />
+@section('auth_form')
+<form class="auth-view" method="POST" action="{{ route('password.confirm') }}">
+@csrf
+<h1>Confirm it's you.</h1>
+<p class="lead">This part of scharge needs your password again before you continue.</p>
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+<div class="field">
+<label for="password">Password</label>
+<div class="input-wrap"><input id="password" type="password" name="password" required autofocus autocomplete="current-password" @error('password') aria-invalid="true" aria-describedby="password-error" @enderror><button type="button" class="peek" aria-label="Show password">Show</button></div>
+@error('password')<p class="auth-error" id="password-error">{{ $message }}</p>@enderror
+</div>
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <div class="flex justify-end mt-4">
-            <x-primary-button>
-                {{ __('Confirm') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+<button class="btn btn--primary" type="submit">Continue</button>
+</form>
+@endsection

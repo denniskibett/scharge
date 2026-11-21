@@ -815,12 +815,6 @@ class InvoiceController extends Controller
         }
     }
 
-    public function create()
-    {
-        $tenancies = Tenancy::with('tenant.user', 'unit')->where('status', 'active')->get();
-        return view('invoices.create', compact('tenancies'));
-    }
-
     public function store(Request $request)
     {
         try {
@@ -943,8 +937,8 @@ class InvoiceController extends Controller
 
     public function edit(Invoice $invoice)
     {
-        $tenancies = Tenancy::with('tenant.user', 'unit')->get();
-        return view('invoices.edit', compact('invoice', 'tenancies'));
+        // Invoices are edited in the pop-up on the invoice page.
+        return redirect()->route('invoices.show', $invoice);
     }
 
     public function update(Request $request, Invoice $invoice)
@@ -1351,7 +1345,7 @@ class InvoiceController extends Controller
             ]);
         }
         
-        return view('invoices.index-for-tenancy', compact('tenancy', 'invoices'));
+        return redirect()->route('tenancies.show', $tenancy);
     }
 
     public function updateWaterReadingAfterInvoice(Tenancy $tenancy)

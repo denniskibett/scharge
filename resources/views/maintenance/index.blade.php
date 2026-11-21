@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="invoicePage()">
+<div>
     @include('partials.card.maintenance')
     @include('partials.table.table-maintenance')
 </div>

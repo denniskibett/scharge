@@ -444,10 +444,7 @@ public function show(Tenancy $tenancy)
             ]);
         }
         
-        $units = Unit::with('property')->select('id', 'unit_number', 'property_id', 'unit_type', 
-                                              'rent_amount', 'water_charge', 'service_charge', 
-                                              'garbage_charge', 'security_charge', 'status')->get();
-        return view('tenancies.edit', compact('tenancy', 'units'));
+        return redirect()->route('tenancies.show', $tenancy);
     }
 
     public function create(Request $request)
@@ -459,9 +456,8 @@ public function show(Tenancy $tenancy)
             $unit = Unit::with('property')->findOrFail($unitId);
         }
 
-        $tenants = Tenant::with('user')->get();
-
-        return view('tenancies.create', compact('unit', 'tenants'));
+        // New tenancies are made from the slide-over on the Tenancies page.
+        return redirect()->route('tenancies.index', $request->only('unit_id'));
     }
 
     public function store(Request $request)
