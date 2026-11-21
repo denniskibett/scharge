@@ -17,13 +17,18 @@ class InvoiceController extends Controller
 {
     public function index()
     {
-        $invoices = Invoice::with('tenancy.tenant', 'tenancy.unit', 'items', 'payments')
+        $invoices = Invoice::with('tenancy.tenant.user', 'tenancy.unit', 'items', 'payments')
             ->orderBy('created_at', 'desc')
             ->get();
             
         $activeTenancies = Tenancy::where('status', 'active')
-            ->with('tenant', 'unit')
+            ->with('tenant.user', 'unit')
             ->get();
+
+        // Months already billed for every active tenancy, in one query (it was two queries per tenancy).
+        $monthly = $activeTenancies->isEmpty() ? collect() : \Illuminate\Support\Facades\DB::table('invoices')
+            ->whereIn('tenancy_id', $activeTenancies->pluck('id'))->where('invoice_type', 'monthly')
+            ->orderBy('billing_month')->get(['tenancy_id', 'billing_month', 'status'])->groupBy('tenancy_id');
 
         $users = Tenant::with('user')->get()->map(function ($tenant) {
             return [
@@ -104,10 +109,12 @@ class InvoiceController extends Controller
             ];
         });
         
-        $mappedActiveTenancies = $activeTenancies->map(function($tenancy) {
-            $nextBillingMonth = $this->getNextBillingMonth($tenancy);
+        $mappedActiveTenancies = $activeTenancies->map(function($tenancy) use ($monthly) {
+            $rows = $monthly[$tenancy->id] ?? collect();
+            $nextBillingMonth = $this->getNextBillingMonth($tenancy,
+                $rows->where('status', '!=', 'cancelled')->map(fn ($r) => Carbon::parse($r->billing_month)->format('Y-m'))->values()->all());
             $canGenerateInvoice = $this->canGenerateInvoice($tenancy);
-            $existingInvoiceForMonth = $this->hasInvoiceForMonth($tenancy, $nextBillingMonth);
+            $existingInvoiceForMonth = $rows->contains(fn ($r) => Carbon::parse($r->billing_month)->format('Y-m') === $nextBillingMonth);
             
             return [
                 'id' => $tenancy->id,
@@ -234,12 +241,13 @@ class InvoiceController extends Controller
         return $this->updateInvoiceStatus($invoice);
     }
 
-    private function getNextBillingMonth($tenancy)
+    /** @param  array<string>|null  $existingMonths  months already billed (Y-m, not cancelled), when the caller has them */
+    private function getNextBillingMonth($tenancy, ?array $existingMonths = null)
     {
         $moveInDate = Carbon::parse($tenancy->move_in_date);
         $currentDate = Carbon::now();
         
-        $existingMonths = Invoice::where('tenancy_id', $tenancy->id)
+        $existingMonths ??= Invoice::where('tenancy_id', $tenancy->id)
             ->where('invoice_type', 'monthly')
             ->where('status', '!=', 'cancelled')
             ->orderBy('billing_month', 'asc')

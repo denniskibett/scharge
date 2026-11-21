@@ -15,6 +15,9 @@ use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
+    /** Everything the payments list reads per row (unit number, "paid to" company), loaded in a few queries, not 4 per payment. */
+    private const LIST_WITH = ['tenant.user', 'invoice.items', 'invoice.tenancy.unit.property.company', 'user'];
+
     protected $walletService;
     
     public function __construct(WalletService $walletService)
@@ -29,7 +32,7 @@ class PaymentController extends Controller
         
         // Get payments based on user role
         if ($user->hasRole('sysadmin')) {
-            $payments = Payment::with(['tenant.user', 'invoice', 'invoice.items', 'user'])
+            $payments = Payment::with(self::LIST_WITH)
                 ->orderBy('created_at', 'desc')
                 ->get();
         } else if ($company) {
@@ -37,9 +40,12 @@ class PaymentController extends Controller
             $payments = Payment::whereHas('invoice.tenancy.unit', function($q) use ($company) {
                     $q->where('company_id', $company->id);
                 })
-                ->with(['tenant.user', 'invoice', 'invoice.items', 'user'])
+                ->with(self::LIST_WITH)
                 ->orderBy('created_at', 'desc')
                 ->get();
+        } else if (\App\Support\TenantSelf::id() !== null) {
+            // A resident (no company on their user row) sees their own payments; the model scope narrows it.
+            $payments = Payment::with(self::LIST_WITH)->orderBy('created_at', 'desc')->get();
         } else {
             $payments = collect();
         }

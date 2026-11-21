@@ -27,15 +27,23 @@ class TenancyController extends Controller
     public function index()
     {
         $tenancies = Tenancy::with(['tenant.user', 'unit.property', 'charges'])->get();
-        
+
+        // Totals for every tenancy in two grouped queries (they were three queries per tenancy).
+        $ids = $tenancies->pluck('id');
+        $paidBy = $ids->isEmpty() ? collect() : DB::table('payments')->join('invoices', 'invoices.id', '=', 'payments.invoice_id')
+            ->whereIn('invoices.tenancy_id', $ids)->whereNull('payments.deleted_at')
+            ->groupBy('invoices.tenancy_id')->selectRaw('invoices.tenancy_id as tid, SUM(payments.amount) as total')->pluck('total', 'tid');
+        $invoicedBy = $ids->isEmpty() ? collect() : DB::table('invoices')->whereIn('tenancy_id', $ids)
+            ->groupBy('tenancy_id')->selectRaw('tenancy_id as tid, SUM(total_amount) as total')->pluck('total', 'tid');
+
         // Format data for Alpine.js
-        $tenanciesData = $tenancies->map(function ($tenancy) {
-            $totalPaid = $tenancy->payments()->sum('amount');
-            $totalInvoiced = $tenancy->invoices()->sum('total_amount');
+        $tenanciesData = $tenancies->map(function ($tenancy) use ($paidBy, $invoicedBy) {
+            $totalPaid = (float) ($paidBy[$tenancy->id] ?? 0);
+            $totalInvoiced = (float) ($invoicedBy[$tenancy->id] ?? 0);
             $balance = $totalInvoiced - $totalPaid;
             
-            // Get deposit from tenancy_charges
-            $depositCharge = $tenancy->charges()
+            // Get deposit from tenancy_charges (already loaded)
+            $depositCharge = $tenancy->charges
                 ->where('charge_type', 'deposit')
                 ->where('status', '!=', 'refunded')
                 ->first();
@@ -164,12 +172,14 @@ class TenancyController extends Controller
         $allUnits = Unit::with('property')
             ->select('id', 'unit_number', 'property_id', 'unit_type', 'rent_amount', 
                     'water_charge', 'service_charge', 'garbage_charge', 'security_charge', 'status')
-            ->get()
-            ->map(function ($unit) {
-                // Get maintenance count for this unit
-                $maintenanceCount = Maintenance::where('unit_id', $unit->id)
-                    ->whereIn('status', ['pending', 'open', 'in_progress'])
-                    ->count();
+            ->get();
+        // Open repairs per unit in one query (it was one query per unit).
+        $openRepairs = $allUnits->isEmpty() ? collect() : Maintenance::whereIn('unit_id', $allUnits->pluck('id'))
+            ->whereIn('status', ['pending', 'open', 'in_progress'])
+            ->groupBy('unit_id')->selectRaw('unit_id as uid, COUNT(*) as n')->pluck('n', 'uid');
+        $allUnits = $allUnits
+            ->map(function ($unit) use ($openRepairs) {
+                $maintenanceCount = (int) ($openRepairs[$unit->id] ?? 0);
                     
                 return [
                     'id' => $unit->id,
