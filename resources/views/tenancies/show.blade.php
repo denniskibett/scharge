@@ -122,9 +122,13 @@
             <div class="space-y-3">
               <div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Unit Number</p>
+                @if (auth()->user()?->hasRole('sysadmin') || auth()->user()?->can('properties.view'))
                 <a href="{{ route('units.show', $tenancy->unit) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                   {{ $tenancy->unit->unit_number ?? 'N/A' }}
                 </a>
+                @else
+                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenancy->unit->unit_number ?? 'N/A' }}</p>
+                @endif
               </div>
               <div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Unit Type</p>
@@ -132,9 +136,13 @@
               </div>
               <div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Property</p>
+                @if (auth()->user()?->hasRole('sysadmin') || auth()->user()?->can('properties.view'))
                 <a href="{{ route('properties.show', $tenancy->unit->property) }}" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                   {{ $tenancy->unit->property->name ?? 'N/A' }}
                 </a>
+                @else
+                <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ $tenancy->unit->property->name ?? 'N/A' }}</p>
+                @endif
               </div>
               <div>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</p>
