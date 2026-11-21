@@ -696,6 +696,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     // STAFF ROUTES
     // ============================================
     Route::resource('staff', StaffController::class)->except(['edit', 'update'])->middleware('access:team')->middleware('role:sysadmin|admin|accountant');
+    Route::post('/admin/staff/quick-update/{id}', [StaffController::class, 'quickUpdate'])->whereNumber('id')->middleware(['access:team', 'role:sysadmin|admin|accountant'])->name('staff.quick-update');
 
     // ============================================
     // Staff can make someone confirm their email again (KYC done badly before).

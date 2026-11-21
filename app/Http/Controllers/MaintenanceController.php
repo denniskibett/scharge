@@ -348,8 +348,10 @@ class MaintenanceController extends Controller
     {
         $user = auth()->user();
         
-        // Only property managers and maintenance staff can view history
-        if (!$user->hasAnyRole(['property_manager', 'maintenance', 'super_admin', 'admin'])) {
+        // Property managers and maintenance staff; a resident for the unit they live in (shown when they report a repair).
+        $ownUnit = ($self = \App\Support\TenantSelf::id()) !== null
+            && \Illuminate\Support\Facades\DB::table('tenancies')->where('tenant_id', $self)->where('unit_id', $unitId)->where('status', 'active')->exists();
+        if (! $ownUnit && !$user->hasAnyRole(['property_manager', 'maintenance', 'super_admin', 'admin'])) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
         
