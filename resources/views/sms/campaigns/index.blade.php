@@ -109,66 +109,21 @@
 
 @push('scripts')
 <script>
-// Simple AJAX actions (Send, Duplicate, Delete)
-function sendCampaign(id) {
-    if (!confirm('Send this campaign to all recipients?')) return;
-    $.ajax({
-        url: '/sms/campaigns/' + id + '/send',
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        success: function(response) {
-            if (response.success) {
-                toastr.success('Campaign is being sent!');
-                setTimeout(function() { (window.schargeRefresh || (() => location.reload()))(); }, 2000);
-            } else {
-                toastr.error(response.message || 'Failed to send');
-            }
-        },
-        error: function(xhr) {
-            toastr.error('Error sending campaign');
-        }
-    });
+// Send, Duplicate and Delete from the row menu.
+async function campaignAction(url, method, confirmText) {
+    if (!confirm(confirmText)) return;
+    try {
+        const res = await fetch(url, { method, headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' } });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.success === false) { alert(data.message || 'That did not work. Please try again.'); return; }
+        (window.schargeRefresh || (() => location.reload()))();
+    } catch (e) {
+        alert('Could not reach scharge. Check your connection and try again.');
+    }
 }
-
-function duplicateCampaign(id) {
-    if (!confirm('Duplicate this campaign?')) return;
-    $.ajax({
-        url: '/sms/campaigns/' + id + '/duplicate',
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        success: function(response) {
-            if (response.success) {
-                toastr.success('Campaign duplicated!');
-                (window.schargeRefresh || (() => location.reload()))();
-            } else {
-                toastr.error(response.message || 'Failed to duplicate');
-            }
-        },
-        error: function(xhr) {
-            toastr.error('Error duplicating campaign');
-        }
-    });
-}
-
-function deleteCampaign(id) {
-    if (!confirm('Delete this campaign? This cannot be undone.')) return;
-    $.ajax({
-        url: '/sms/campaigns/' + id,
-        method: 'DELETE',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-        success: function(response) {
-            if (response.success) {
-                toastr.success('Campaign deleted');
-                $('#campaign-row-' + id).remove();
-            } else {
-                toastr.error(response.message || 'Failed to delete');
-            }
-        },
-        error: function(xhr) {
-            toastr.error('Error deleting campaign');
-        }
-    });
-}
+function sendCampaign(id) { campaignAction('/sms/campaigns/' + id + '/send', 'POST', 'Send this campaign to all recipients?'); }
+function duplicateCampaign(id) { campaignAction('/sms/campaigns/' + id + '/duplicate', 'POST', 'Duplicate this campaign?'); }
+function deleteCampaign(id) { campaignAction('/sms/campaigns/' + id, 'DELETE', 'Delete this campaign? This cannot be undone.'); }
 </script>
 @endpush
 @endsection

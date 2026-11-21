@@ -439,7 +439,7 @@ function tenantWalletComponent() {
             if (this.depositPhone) formData.append('phone_number', this.depositPhone);
             
             try {
-                const response = await fetch('{{ route("tenant.wallet.deposit") }}', {
+                const response = await fetch('{{ route("api.wallet.deposit") }}', {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
