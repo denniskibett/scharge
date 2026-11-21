@@ -3,12 +3,24 @@
 namespace App\Modules\SMS\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Models\CampaignRecipient;
+use App\Modules\SMS\Models\CampaignRecipient;
 use App\Models\User;
 use App\Models\SmsTemplate;
 
 class SmsCampaign extends Model
 {
+    /** A company sees only campaigns its own people created; the platform sysadmin, jobs and webhooks see all. */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function (\Illuminate\Database\Eloquent\Builder $q) {
+            $user = auth()->user();
+            if (! $user || $user->hasRole('sysadmin')) {
+                return;
+            }
+            $q->whereIn('sms_campaigns.created_by', fn ($s) => $s->select('id')->from('users')->where('company_id', $user->company_id ?? 0));
+        });
+    }
+
     protected $table = 'sms_campaigns';
 
     // Status constants - MUST MATCH DATABASE ENUM

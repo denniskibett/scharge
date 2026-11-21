@@ -10,7 +10,6 @@ Route::middleware(['auth'])->prefix('expenses')->name('expenses.')->group(functi
     Route::resource('/', ExpenseController::class)->parameters(['' => 'expense']);
     
     // Custom routes
-    Route::get('/categories', [ExpenseCategoryController::class, 'index'])->name('categories.index');
     Route::post('/categories', [ExpenseCategoryController::class, 'store'])->name('categories.store');
     Route::put('/categories/{category}', [ExpenseCategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [ExpenseCategoryController::class, 'destroy'])->name('categories.destroy');

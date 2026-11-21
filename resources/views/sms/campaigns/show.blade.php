@@ -1,462 +1,66 @@
-{{-- resources/views/sms/campaigns/show.blade.php --}}
 @extends('layouts.app')
 
-@section('title', 'Campaign Details')
-
 @section('content')
-<style>
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-.animate-spin {
-    animation: spin 1s linear infinite;
-}
-</style>
-
-<div>
-    
-    <!-- Alerts -->
-    @if(session('success'))
-    <div class="mb-4 rounded-sm border-l-4 border-success bg-success/10 p-4 text-success">
-        <div class="flex items-center gap-3">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <strong>Success!</strong> {{ session('success') }}
-        </div>
-    </div>
-    @endif
-
-    @if(session('error'))
-    <div class="mb-4 rounded-sm border-l-4 border-danger bg-danger/10 p-4 text-danger">
-        <div class="flex items-center gap-3">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <strong>Error!</strong> {{ session('error') }}
-        </div>
-    </div>
-    @endif
-
-    <!-- Header -->
-    <div class="mb-6 rounded-sm border border-stroke bg-white p-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-        <div class="flex flex-col flex-wrap items-start justify-between gap-4 md:flex-row md:items-center">
-            <div class="flex flex-wrap items-center gap-3">
-                @section('page_title')
-{{ $campaign->name }}
-@endsection
-                @php
-                    $statusColors = [
-                        'draft' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-                        'scheduled' => 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-300',
-                        'queued' => 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-300',
-                        'sending' => 'bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-300',
-                        'completed' => 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-300',
-                        'failed' => 'bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-300',
-                        'cancelled' => 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-                    ];
-                @endphp
-                <span class="inline-flex rounded-full px-3 py-1 text-sm font-medium {{ $statusColors[$campaign->status] ?? 'bg-gray-100 text-gray-700' }}">
-                    {{ ucfirst($campaign->status) }}
-                </span>
-                <span class="text-sm text-gray-500 dark:text-gray-400">
-                    Created: {{ $campaign->created_at->format('M d, Y H:i') }}
-                </span>
-            </div>
-
-            <!-- Actions -->
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('sms.campaigns.index') }}" class="inline-flex items-center rounded-md border border-stroke px-4 py-2 text-sm hover:bg-gray-100 dark:border-strokedark dark:hover:bg-gray-800">
-                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                    </svg>
-                    Back
-                </a>
-                
-                @if($campaign->status == 'draft')
-                    <a href="{{ route('sms.campaigns.edit', $campaign) }}" class="inline-flex items-center rounded-md bg-warning px-4 py-2 text-sm text-white hover:bg-warning/90">
-                        <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                        </svg>
-                        Edit
-                    </a>
-                    <form action="{{ route('sms.campaigns.destroy', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('Delete this campaign? This action cannot be undone!')">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="inline-flex items-center rounded-md bg-danger px-4 py-2 text-sm text-white hover:bg-danger/90">
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                            Delete
-                        </button>
-                    </form>
-                @endif
-
-                <!-- SEND BUTTON -->
-                @if(in_array($campaign->status, ['draft', 'scheduled']))
-                    <form action="{{ route('sms.campaigns.send', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('Send this campaign now? This will send SMS to all ' + {{ $stats['total'] }} + ' recipients.')">
-                        @csrf
-                        <button type="submit" id="sendBtn" class="inline-flex items-center rounded-md bg-success px-4 py-2 text-sm text-white hover:bg-success/90">
-                            <svg id="sendIcon" class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                            </svg>
-                            <span id="sendText">Send</span>
-                        </button>
-                    </form>
-                @endif
-
-                @if($campaign->status == 'scheduled' || $campaign->status == 'queued')
-                    <form action="{{ route('sms.campaigns.cancel', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('Cancel this campaign?')">
-                        @csrf
-                        <button type="submit" class="inline-flex items-center rounded-md bg-danger px-4 py-2 text-sm text-white hover:bg-danger/90">
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                            Cancel
-                        </button>
-                    </form>
-                @endif
-
-                @if($campaign->status == 'completed' && $stats['failed'] > 0)
-                    <form action="{{ route('sms.campaigns.resend-failed', $campaign) }}" method="POST" class="inline" onsubmit="return confirm('Resend failed messages?')">
-                        @csrf
-                        <button type="submit" class="inline-flex items-center rounded-md bg-warning px-4 py-2 text-sm text-white hover:bg-warning/90">
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                            </svg>
-                            Resend Failed
-                        </button>
-                    </form>
-                @endif
-
-                <form action="{{ route('sms.campaigns.duplicate', $campaign) }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm text-white hover:bg-primary/90">
-                        <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-                        </svg>
-                        Duplicate
-                    </button>
-                </form>
-
-                <a href="{{ route('sms.campaigns.export', $campaign) }}" class="inline-flex items-center rounded-md border border-stroke px-4 py-2 text-sm hover:bg-gray-100 dark:border-strokedark dark:hover:bg-gray-800">
-                    <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                    </svg>
-                    Export
-                </a>
-            </div>
-        </div>
-
-        <!-- Stats Row -->
-        <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-5">
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Status</span>
-                <p class="mt-0.5 font-medium text-black dark:text-white">{{ ucfirst($campaign->status) }}</p>
-            </div>
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Property</span>
-                <p class="mt-0.5 font-medium text-black dark:text-white">{{ $campaign->property->name ?? 'N/A' }}</p>
-            </div>
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Billing Month</span>
-                <p class="mt-0.5 font-medium text-black dark:text-white">{{ $campaign->billing_month }}</p>
-            </div>
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Cost</span>
-                <p class="mt-0.5 font-medium text-black dark:text-white">
-                    KES {{ number_format($campaign->estimated_cost, 2) }}
-                    <span class="text-sm text-gray-500 font-normal">Actual: KES {{ number_format($campaign->actual_cost ?? 0, 2) }}</span>
-                </p>
-            </div>
-            <div>
-                <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
-                <p class="mt-0.5 font-medium text-black dark:text-white">{{ $stats['total'] }}</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Progress -->
-    @if($stats['total'] > 0)
-    <div class="mb-6 rounded-sm border border-stroke bg-white p-5 shadow-default dark:border-strokedark dark:bg-boxdark">
-        <div class="flex items-center justify-between">
-            <span class="text-sm font-medium text-black dark:text-white">Delivery Progress</span>
-            <span class="text-sm text-gray-500 dark:text-gray-400">
-                {{ $stats['delivered'] }} / {{ $stats['total'] }} ({{ $stats['success_rate'] }}%)
-            </span>
-        </div>
-        <div class="relative mt-3 h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-            <div class="h-2.5 rounded-full bg-success transition-all" style="width: {{ $stats['success_rate'] }}%;"></div>
-        </div>
-        <div class="mt-3 flex flex-wrap gap-5 text-sm">
-            <span class="flex items-center gap-2 text-success">
-                <span class="inline-block h-2.5 w-2.5 rounded-full bg-success"></span>
-                {{ $stats['delivered'] }} Delivered
-            </span>
-            <span class="flex items-center gap-2 text-danger">
-                <span class="inline-block h-2.5 w-2.5 rounded-full bg-danger"></span>
-                {{ $stats['failed'] }} Failed
-            </span>
-            <span class="flex items-center gap-2 text-warning">
-                <span class="inline-block h-2.5 w-2.5 rounded-full bg-warning"></span>
-                {{ $stats['pending'] ?? 0 }} Pending
-            </span>
-        </div>
-    </div>
-    @endif
-
-    <!-- Stats Cards -->
-    <div class="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div class="rounded-sm border border-stroke bg-white p-5 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <span class="text-sm text-gray-500 dark:text-gray-400">Total</span>
-            <h4 class="mt-1 text-2xl font-bold text-black dark:text-white">{{ $stats['total'] }}</h4>
-        </div>
-        <div class="rounded-sm border border-stroke bg-white p-5 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <span class="text-sm text-gray-500 dark:text-gray-400">Delivered</span>
-            <h4 class="mt-1 text-2xl font-bold text-success">{{ $stats['delivered'] }}</h4>
-        </div>
-        <div class="rounded-sm border border-stroke bg-white p-5 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <span class="text-sm text-gray-500 dark:text-gray-400">Failed</span>
-            <h4 class="mt-1 text-2xl font-bold text-danger">{{ $stats['failed'] }}</h4>
-        </div>
-        <div class="rounded-sm border border-stroke bg-white p-5 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <span class="text-sm text-gray-500 dark:text-gray-400">Success Rate</span>
-            <h4 class="mt-1 text-2xl font-bold text-primary">{{ $stats['success_rate'] }}%</h4>
-        </div>
-    </div>
-
-    <!-- Three Columns -->
-    <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <!-- Campaign Information -->
-        <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-            <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
-                <h5 class="text-base font-semibold text-black dark:text-white">Campaign Information</h5>
-            </div>
-            <div class="p-6">
-                <dl class="space-y-3">
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Campaign Name</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->name }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Type</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">Water Bill Campaign</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Property</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->property->name ?? 'N/A' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Billing Month</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->billing_month }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Created By</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->createdBy->name ?? 'Super Admin' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Status</dt>
-                        <dd class="text-sm font-medium">
-                            <span class="inline-flex rounded-full px-3 py-1 text-sm font-medium {{ $statusColors[$campaign->status] ?? 'bg-gray-100 text-gray-700' }}">
-                                {{ ucfirst($campaign->status) }}
-                            </span>
-                        </dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-
-        <!-- Timeline -->
-        <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-            <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
-                <h5 class="text-base font-semibold text-black dark:text-white">Timeline</h5>
-            </div>
-            <div class="p-6">
-                <dl class="space-y-3">
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Created</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->created_at->format('M d, Y H:i') }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Scheduled</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->scheduled_at ? $campaign->scheduled_at->format('M d, Y H:i') : 'Not scheduled' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Sent</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->sent_at ? $campaign->sent_at->format('M d, Y H:i') : 'Not sent' }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Completed</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">{{ $campaign->completed_at ? $campaign->completed_at->format('M d, Y H:i') : 'Not completed' }}</dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-
-        <!-- Cost Summary -->
-        <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-            <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
-                <h5 class="text-base font-semibold text-black dark:text-white">Cost Summary</h5>
-            </div>
-            <div class="p-6">
-                <dl class="space-y-3">
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Estimated Cost</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">KES {{ number_format($campaign->estimated_cost, 2) }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Actual Cost</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">KES {{ number_format($campaign->actual_cost ?? 0, 2) }}</dd>
-                    </div>
-                    <div class="flex justify-between">
-                        <dt class="text-sm text-gray-500 dark:text-gray-400">Cost Per SMS</dt>
-                        <dd class="text-sm font-medium text-black dark:text-white">KES {{ number_format($campaign->cost_per_sms ?? 0, 4) }}</dd>
-                    </div>
-                </dl>
-            </div>
-        </div>
-    </div>
-
-    <!-- Message Preview -->
-    <div class="mb-6 rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-        <div class="border-b border-stroke px-6 py-4 dark:border-strokedark">
-            <h5 class="text-base font-semibold text-black dark:text-white">Message Preview</h5>
-        </div>
-        <div class="p-6">
-            <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
-                <div class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
-                    {{ $campaign->message }}
-                </div>
-            </div>
-            @if(strpos($campaign->message, '{{') !== false)
-                <div class="mt-3 text-xs text-gray-500">
-                    <strong>Placeholders:</strong>
-                    @php
-                        preg_match_all('/{{([^}]*)}}/', $campaign->message, $matches);
-                        $placeholders = array_unique($matches[1] ?? []);
-                    @endphp
-                    @foreach($placeholders as $placeholder)
-                        <span class="inline-block rounded bg-blue-100 px-2 py-0.5 text-xs font-mono dark:bg-blue-900">{{ $placeholder }}</span>
-                    @endforeach
-                </div>
-            @endif
-        </div>
-    </div>
-
-    <!-- Recipients Table -->
-    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="flex flex-col gap-4 border-b border-gray-200 px-5 py-4 lg:flex-row lg:items-center lg:justify-between dark:border-gray-700">
-            <h5 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                Recipients
-                <span class="ml-2 rounded-full px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ $stats['total'] }}</span>
-            </h5>
-            <div class="flex flex-wrap items-center gap-3 lg:justify-end">
-                <span class="text-sm text-success">● {{ $stats['delivered'] }}</span>
-                <span class="text-sm text-danger">● {{ $stats['failed'] }}</span>
-                <span class="text-sm text-warning">● {{ $stats['pending'] ?? 0 }}</span>
-            </div>
-        </div>
+@php
+    $pill = ['pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200', 'sending' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        'sent' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200', 'delivered' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'completed' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200', 'failed' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'];
+    $th = 'p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400';
+    $td = 'p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400';
+@endphp
+<div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <div class="w-full overflow-x-auto">
-                <table class="data-table w-full table-auto">
-                    <thead>
-                        <tr class="border-b border-gray-200 dark:border-gray-800">
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">#</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Unit</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Tenant</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Phone</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Amount</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Status</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Sent At</th>
-                            <th class="p-4 text-left text-xs font-medium whitespace-nowrap text-gray-500 dark:text-gray-400">Failure Reason</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-x divide-y divide-gray-200 dark:divide-gray-800">
-                        @forelse($recipients as $index => $recipient)
-                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $index + 1 }}</td>
-                            <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">{{ $recipient->unit_number ?? 'N/A' }}</td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $recipient->tenant_name ?? 'N/A' }}</td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ $recipient->phone }}</td>
-                            <td class="p-4 whitespace-nowrap text-sm font-medium text-gray-800 dark:text-white/90">KES {{ number_format($recipient->water_bill ?? 0, 2) }}</td>
-                            <td class="p-4 whitespace-nowrap">
-                                @php
-                                    $recipientColors = [
-                                        'delivered' => 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                        'sent' => 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                        'queued' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-                                        'failed' => 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                                        'pending' => 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-                                    ];
-                                @endphp
-                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $recipientColors[$recipient->status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
-                                    {{ ucfirst($recipient->status) }}
-                                </span>
-                            </td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $recipient->sent_at ? $recipient->sent_at->format('M d, H:i') : '-' }}
-                            </td>
-                            <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                                {{ $recipient->failure_reason ?? '-' }}
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="8" class="p-4 text-center">
-    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
-    <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">No recipients found for this campaign</h3>
-  </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-            @if(method_exists($recipients, 'lastPage'))
-                @include('partials.table.pager', ['paginator' => $recipients])
-            @elseif(method_exists($recipients, 'links'))
-                <div class="border-t border-gray-200 px-5 py-4 dark:border-gray-800">{{ $recipients->links() }}</div>
-            @endif
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $campaign->name }}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Created {{ $campaign->created_at?->format('j M Y, H:i') }}@if($campaign->creator) by {{ $campaign->creator->name }}@endif
+                @if($campaign->template) · Template: {{ $campaign->template->name }}@endif
+            </p>
         </div>
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $pill[$campaign->status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ ucfirst($campaign->status) }}</span>
+            <a href="{{ route('sms.campaigns.export', $campaign->id) }}" class="shadow-theme-xs flex h-11 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">Export CSV</a>
+            <a href="{{ route('sms.campaigns.index') }}" class="shadow-theme-xs flex h-11 items-center rounded-lg border border-gray-300 bg-white px-4 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400">Back</a>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        @foreach ([['Recipients', $stats['total'], ''], ['Sent or delivered', $stats['sent'], 'text-green-600 dark:text-green-400'], ['Failed', $stats['failed'], 'text-red-600 dark:text-red-400'], ['Waiting', $stats['pending'], 'text-amber-600']] as [$label, $n, $tone])
+            <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03]">
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ $label }}</span>
+                <h4 class="stat-num mt-1 {{ $tone }}">{{ number_format($n) }}</h4>
+            </div>
+        @endforeach
+    </div>
+
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="border-b border-gray-200 px-5 py-4 dark:border-gray-700">
+            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">Recipients</h3>
+        </div>
+        <div class="custom-scrollbar overflow-x-auto">
+            <table class="w-full table-auto">
+                <thead><tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="{{ $th }}">Phone</th><th class="{{ $th }}">Tenant</th><th class="{{ $th }}">Status</th><th class="{{ $th }}">Sent</th><th class="{{ $th }}">Message</th>
+                </tr></thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                    @forelse ($recipients as $r)
+                        <tr class="transition hover:bg-gray-50 dark:hover:bg-gray-900">
+                            <td class="{{ $td }} font-medium text-gray-800 dark:text-white/90">{{ $r->phone_number }}</td>
+                            <td class="{{ $td }}">{{ $r->tenant?->user?->name ?? '—' }}</td>
+                            <td class="p-4 whitespace-nowrap">
+                                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium {{ $pill[$r->status] ?? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ ucfirst($r->status ?? 'pending') }}</span>
+                                @if ($r->error_message)<p class="mt-1 max-w-xs truncate text-xs text-red-600" title="{{ $r->error_message }}">{{ $r->error_message }}</p>@endif
+                            </td>
+                            <td class="{{ $td }}">{{ $r->sent_at ? \Illuminate\Support\Carbon::parse($r->sent_at)->format('j M, H:i') : '—' }}</td>
+                            <td class="p-4 text-sm text-gray-500 dark:text-gray-400"><span class="line-clamp-2 max-w-md">{{ $r->message }}</span></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5" class="p-8 text-center text-sm text-gray-500 dark:text-gray-400">No recipients in this campaign yet.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @include('partials.table.pager', ['paginator' => $recipients])
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const sendBtn = document.getElementById('sendBtn');
-    const sendText = document.getElementById('sendText');
-    const sendIcon = document.getElementById('sendIcon');
-
-    if (sendBtn) {
-        sendBtn.addEventListener('click', function(e) {
-            // Show loading state immediately
-            sendBtn.disabled = true;
-            sendBtn.classList.add('opacity-75', 'cursor-not-allowed');
-            sendText.textContent = 'Sending...';
-            sendIcon.innerHTML = `
-                <svg class="mr-1.5 h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                </svg>
-            `;
-        });
-    }
-
-    // Check if there's a success message and reset button state
-    const successMessage = document.querySelector('.text-success');
-    const errorMessage = document.querySelector('.text-danger');
-    
-    if (successMessage || errorMessage) {
-        if (sendBtn) {
-            sendBtn.disabled = false;
-            sendBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-            sendText.textContent = 'Send';
-            sendIcon.innerHTML = `
-                <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                </svg>
-            `;
-        }
-    }
-});
-</script>
 @endsection

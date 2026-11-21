@@ -177,7 +177,7 @@ class OnboardingGuide
                 ],
                 'progress' => $tenancies ? "{$tenancies} active ".str('tenancy')->plural($tenancies) : 'No tenancies yet',
                 'done' => $tenancies > 0,
-                'actions' => [['Add tenant', 'tenants.create'], ['New tenancy', 'tenancies.create']],
+                'actions' => [['Add tenant', 'tenants.index'], ['New tenancy', 'tenancies.create']],
             ],
             [
                 'key' => 'payments', 'title' => 'Get paid: M-Pesa, invoices, receipts, reminders',
