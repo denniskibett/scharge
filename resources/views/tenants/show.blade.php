@@ -195,9 +195,13 @@
             </div>
             <div class="min-w-0 flex-1">
               <p class="text-xs font-medium text-gray-500 dark:text-gray-400 truncate">Current Unit</p>
+              @if (auth()->user()?->hasRole('sysadmin') || auth()->user()?->can('properties.view'))
               <a href="{{ route('units.show', $activeTenancy->unit_id) }}" class="text-base font-bold text-blue-600 hover:text-blue-800 dark:text-blue-400 truncate block">
                 {{ $activeTenancy->unit->unit_number ?? 'N/A' }}
               </a>
+              @else
+              <p class="text-base font-bold text-gray-800 dark:text-white/90 truncate">{{ $activeTenancy->unit->unit_number ?? 'N/A' }}</p>
+              @endif
               <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ $activeTenancy->unit->property->name ?? '' }}</p>
             </div>
           </div>
