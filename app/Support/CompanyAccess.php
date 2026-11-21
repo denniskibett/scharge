@@ -12,7 +12,8 @@ use Illuminate\Support\Facades\DB;
  *  - sysadmin: null = all companies
  *  - a user with a company: that company
  *  - an account manager without a company: the companies they own
- *  - anyone else (e.g. a tenant without a company): null, as before; their screens filter by tenant
+ *  - a tenant without a company: the companies of their tenant record and tenancies ([0] if none)
+ *  - anyone else (e.g. a guest): null, as before
  */
 class CompanyAccess
 {
@@ -33,6 +34,12 @@ class CompanyAccess
         } finally {
             self::$bypass--;
         }
+    }
+
+    /** True while system work runs inside bypass(). */
+    public static function bypassing(): bool
+    {
+        return self::$bypass > 0;
     }
 
     /** @return array<int>|null */
@@ -62,6 +69,16 @@ class CompanyAccess
         }
         if (method_exists($user, 'hasRole') && $user->hasRole('account_manager')) {
             return DB::table('companies')->where('owner_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->all() ?: [0];
+        }
+        // A resident's user row has no company: they belong to their landlords' companies (their tenant record and
+        // tenancies). Without this every company-scoped list (units, repairs...) showed all companies to a tenant.
+        if (method_exists($user, 'hasRole') && $user->hasRole('tenant')) {
+            $tenantIds = DB::table('tenants')->where('user_id', $user->id)->pluck('id');
+            $ids = DB::table('tenants')->whereIn('id', $tenantIds)->whereNotNull('company_id')->pluck('company_id')
+                ->merge(DB::table('tenancies')->whereIn('tenant_id', $tenantIds)->whereNotNull('company_id')->pluck('company_id'))
+                ->map(fn ($id) => (int) $id)->unique()->values()->all();
+
+            return $ids ?: [0];
         }
 
         return null;

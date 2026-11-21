@@ -18,6 +18,13 @@ class Tenancy extends Model
     /** Signed-in company users only find their own company's tenancies (App\Support\CompanyAccess). */
     protected static function booted(): void
     {
+        // A resident signed in sees only their own records (App\Support\TenantSelf).
+        static::addGlobalScope('tenant_self', function ($query) {
+            if (($self = \App\Support\TenantSelf::id()) !== null) {
+                $query->where('tenancies.tenant_id', $self);
+            }
+        });
+
         static::addGlobalScope('company', function ($query) {
             $ids = \App\Support\CompanyAccess::ids();
             if ($ids !== null) {

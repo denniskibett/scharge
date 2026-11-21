@@ -33,6 +33,8 @@ class StaffController extends Controller
         
         // Get users that have any of the staff roles using Spatie
         $query = User::with(['company'])
+            // A company admin or accountant sees their own company's staff; sysadmin sees all (CompanyAccess).
+            ->when(\App\Support\CompanyAccess::ids() !== null, fn ($q) => $q->whereIn('users.company_id', \App\Support\CompanyAccess::ids()))
             ->whereHas('roles', function ($q) use ($staffRoleNames) {
                 $q->whereIn('name', $staffRoleNames);
             });
@@ -326,6 +328,8 @@ class StaffController extends Controller
         $staffRoleNames = $this->getStaffRoleNames();
 
         $query = User::with(['company'])
+            // A company admin or accountant sees their own company's staff; sysadmin sees all (CompanyAccess).
+            ->when(\App\Support\CompanyAccess::ids() !== null, fn ($q) => $q->whereIn('users.company_id', \App\Support\CompanyAccess::ids()))
             ->whereHas('roles', function ($q) use ($staffRoleNames) {
                 $q->whereIn('name', $staffRoleNames);
             });

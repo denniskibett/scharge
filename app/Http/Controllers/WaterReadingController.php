@@ -122,7 +122,7 @@ class WaterReadingController extends Controller
             });
         
         // Get properties for the bulk mode dropdown
-        $properties = \App\Models\Property::orderBy('name')->get();
+        $properties = \App\Models\Property::visible()->orderBy('name')->get();
         
         return view('water.index', compact('groupedReadings', 'units', 'properties'));
     }

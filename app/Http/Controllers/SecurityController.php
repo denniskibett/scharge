@@ -109,7 +109,7 @@ class SecurityController extends Controller
             $counts = ['all' => 0, 'inside' => 0, 'out' => 0, 'pending' => 0];
             $error = 'Error loading logs: ' . $e->getMessage();
         }
-        $properties = Property::orderBy('name')->get(['id', 'name']);
+        $properties = Property::visible()->orderBy('name')->get(['id', 'name']);
 
         return view('security.logs', compact('logs', 'properties', 'counts', 'status') + ($error ? ['error' => $error] : []));
     }
@@ -268,7 +268,7 @@ class SecurityController extends Controller
     public function quickEntryView()
     {
         try {
-            $properties = Property::all();
+            $properties = Property::visible()->get();
             $units = Unit::with('property')->get();
             return view('security.quick-entry', compact('properties', 'units'));
         } catch (\Exception $e) {
@@ -407,7 +407,7 @@ class SecurityController extends Controller
     public function fullEntryView()
     {
         try {
-            $properties = Property::all();
+            $properties = Property::visible()->get();
             $units = Unit::with('property')->get();
             return view('security.full-entry', compact('properties', 'units'));
         } catch (\Exception $e) {
@@ -845,7 +845,7 @@ class SecurityController extends Controller
             $companyId = $user->company_id;
             
             if ($user->hasRole('sysadmin')) {
-                $properties = Property::orderBy('name')->get();
+                $properties = Property::visible()->orderBy('name')->get();
             } else {
                 $properties = Property::where('company_id', $companyId)
                     ->orderBy('name')

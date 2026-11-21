@@ -155,7 +155,7 @@ class SmsController extends Controller
         // ============================================
         // Other data for the view
         // ============================================
-        $properties = Property::orderBy('name')->get();
+        $properties = Property::visible()->orderBy('name')->get();
         $companies = Company::orderBy('name')->get();
         $templates = SmsTemplate::orderBy('name')->get();
         $logs = SmsLog::orderBy('created_at', 'desc')->paginate(20);

@@ -248,7 +248,8 @@ class MaintenanceController extends Controller
         // Get staff users for assignment dropdown
         $staffUsers = User::whereHas('roles', function($q) {
             $q->whereIn('name', ['admin', 'super_admin', 'property_manager', 'maintenance']);
-        })->select('id', 'name', 'email')->get();
+        })->when(\App\Support\CompanyAccess::ids() !== null, fn ($q) => $q->whereIn('users.company_id', \App\Support\CompanyAccess::ids()))
+          ->select('id', 'name', 'email')->get();
         
         return response()->json([
             'success' => true,

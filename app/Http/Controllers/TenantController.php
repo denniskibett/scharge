@@ -36,7 +36,9 @@ class TenantController extends Controller
             });
         
         // Get existing users without tenant records (for dropdown in modal)
+        // Only this company's people: the list went to the page and named users of every company.
         $existingUsersWithoutTenant = User::whereDoesntHave('tenant')
+            ->when(! auth()->user()?->hasRole('sysadmin'), fn ($q) => $q->where('users.company_id', auth()->user()?->company_id ?? 0))
             ->where(function($q) {
                 $q->whereHas('roles', function($r) {
                     $r->where('name', 'tenant');
