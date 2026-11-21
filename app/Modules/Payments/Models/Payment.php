@@ -18,6 +18,13 @@ class Payment extends Model
     /** Signed-in company users only find payments on their own company's invoices (App\Support\CompanyAccess). */
     protected static function booted(): void
     {
+        // A resident signed in sees only their own records (App\Support\TenantSelf).
+        static::addGlobalScope('tenant_self', function ($query) {
+            if (($self = \App\Support\TenantSelf::id()) !== null) {
+                $query->where(fn ($w) => $w->where('payments.tenant_id', $self)->orWhereIn('payments.invoice_id', fn ($q) => $q->select('invoices.id')->from('invoices')->join('tenancies', 'tenancies.id', '=', 'invoices.tenancy_id')->where('tenancies.tenant_id', $self)));
+            }
+        });
+
         static::addGlobalScope('company', function ($query) {
             if (\App\Support\CompanyAccess::ids() !== null) {
                 $query->whereHas('invoice');

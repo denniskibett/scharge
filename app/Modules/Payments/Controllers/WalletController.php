@@ -66,7 +66,8 @@ class WalletController extends Controller
             $pendingInvoices = Invoice::where('tenancy_id', $walletOwner->activeTenancy->id)
                 ->whereIn('status', ['unpaid', 'partial'])
                 ->with('items')
-                ->get();
+                ->get()
+                ->each->append('remaining_amount');   // the page shows what is left to pay
         }
 
         $cards = auth()->user()->cards ?? [

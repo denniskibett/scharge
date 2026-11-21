@@ -17,6 +17,13 @@ class Invoice extends Model
      */
     protected static function booted(): void
     {
+        // A resident signed in sees only their own records (App\Support\TenantSelf).
+        static::addGlobalScope('tenant_self', function ($query) {
+            if (($self = \App\Support\TenantSelf::id()) !== null) {
+                $query->whereIn('invoices.tenancy_id', fn ($q) => $q->select('id')->from('tenancies')->where('tenant_id', $self));
+            }
+        });
+
         static::addGlobalScope('company', function ($query) {
             $ids = \App\Support\CompanyAccess::ids();
             if ($ids !== null) {

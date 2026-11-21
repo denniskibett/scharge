@@ -146,6 +146,7 @@ class TenancyController extends Controller
         
         if ($guestRole) {
             $allUsers = User::where('role_id', $guestRole->id)
+                ->when(\App\Support\CompanyAccess::ids() !== null, fn ($q) => $q->whereIn('users.company_id', \App\Support\CompanyAccess::ids()))
                 ->select('id', 'name', 'email', 'phone')
                 ->get();
         }
@@ -195,7 +196,7 @@ class TenancyController extends Controller
             return $unit['status'] === 'vacant';
         })->values();
         
-        $properties = Property::orderBy('name')->get();
+        $properties = Property::visible()->orderBy('name')->get();
 
         return view('tenancies.index', [
             'tenanciesData' => $tenanciesData,
@@ -969,6 +970,7 @@ public function show(Tenancy $tenancy)
     {
         if ($request->ajax()) {
             $users = User::role('guest')
+                ->when(\App\Support\CompanyAccess::ids() !== null, fn ($q) => $q->whereIn('users.company_id', \App\Support\CompanyAccess::ids()))
                 ->select('id', 'name', 'email', 'phone')
                 ->get()
                 ->map(function ($user) {
@@ -1022,11 +1024,14 @@ public function show(Tenancy $tenancy)
         if ($request->ajax()) {
             $search = $request->get('search', '');
             
+            // Partial matches within the company; someone outside it only by their exact email or phone.
+            $ids = \App\Support\CompanyAccess::ids();
             $users = User::role('guest')
-                ->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                          ->orWhere('email', 'like', "%{$search}%")
-                          ->orWhere('phone', 'like', "%{$search}%");
+                ->where(function ($query) use ($search, $ids) {
+                    $query->where(fn ($own) => $own->when($ids !== null, fn ($q) => $q->whereIn('users.company_id', $ids))
+                            ->where(fn ($q) => $q->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhere('phone', 'like', "%{$search}%")))
+                          ->orWhere('email', $search)
+                          ->orWhere('phone', \App\Modules\CRM\Support\Normalizer::phone($search) ?: $search);
                 })
                 ->select('id', 'name', 'email', 'phone')
                 ->limit(10)

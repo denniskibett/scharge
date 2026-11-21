@@ -8,6 +8,22 @@ use App\Models\Company;
 
 class Property extends Model
 {
+    /**
+     * Buildings the signed-in person may pick in a dropdown: their company's (CompanyAccess), for a resident only
+     * their own building (TenantSelf), everything for sysadmin and system work. Property has no global company scope
+     * because one building is shared by the agencies, managers and hosts linked to it.
+     */
+    public function scopeVisible($query)
+    {
+        if (($self = \App\Support\TenantSelf::id()) !== null) {
+            return $query->whereIn('properties.id', fn ($q) => $q->select('units.property_id')->from('units')
+                ->join('tenancies', 'tenancies.unit_id', '=', 'units.id')->where('tenancies.tenant_id', $self));
+        }
+        $ids = \App\Support\CompanyAccess::ids();
+
+        return $ids === null ? $query : $query->whereIn('properties.company_id', $ids);
+    }
+
     use HasFactory;
 
     // company_id is set by the server (PropertyController@store), never from the form. Without it here,
