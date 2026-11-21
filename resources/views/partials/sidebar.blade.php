@@ -261,7 +261,7 @@ document.addEventListener('alpine:init', () => {
         'finance', 'invoices', 'payments',
         'property', 'tenancies',
         'maintenance',
-        'gate', 'security', 'security_logs'
+        'gate'
       ],
       // Agent: the properties landlords gave their agency.
       'agent': [
