@@ -34,7 +34,7 @@ Import properties and units
   <div class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200">Imported for {{ $done['company']['name'] }}. The results are below.</div>
 @endif
 
-@if (! $report)
+@if (! $report && ! $done)
 <div class="grid gap-6 lg:grid-cols-5">
   <div class="{{ $card }} p-5 lg:col-span-2">
     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">1. Fill the template</h3>
@@ -91,7 +91,7 @@ Import properties and units
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
       <div>
         <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $shown['commit'] ? 'Import done' : 'Preview: nothing saved yet' }}</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{ $upload['name'] ?? '' }} · {{ $shown['company']['name'] }} as {{ str_replace('_', ' ', $shown['role']) }} · {{ $c['rows'] }} rows</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">@if (! empty($upload['name'])){{ $upload['name'] }} · @endif{{ $shown['company']['name'] }} as {{ str_replace('_', ' ', $shown['role']) }} · {{ $c['rows'] }} rows</p>
       </div>
       <div class="flex gap-3">
         @if (! $shown['commit'] && empty($shown['fatal']))
