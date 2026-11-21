@@ -287,7 +287,9 @@ class StaffController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name'  => 'required|string|max:255',
-            'email' => ['required', 'email', 'unique:users,email,' . $id, new \App\Rules\RealEmail],
+            // The inline edit sends the stored email back with every change: only a changed email is checked as real.
+            'email' => array_merge(['required', 'email', 'unique:users,email,' . $id],
+                strcasecmp((string) $request->input('email'), (string) User::whereKey($id)->value('email')) !== 0 ? [new \App\Rules\RealEmail] : []),
             'phone' => 'nullable|string|max:20',
             'role_id' => 'required|exists:roles,id',
             'company_id' => ['nullable', new \App\Rules\CustomerCompany],
