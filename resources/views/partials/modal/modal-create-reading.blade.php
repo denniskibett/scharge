@@ -357,8 +357,10 @@ function unitHasReadingForMonth(unit, month) {
 
 // ==================== LOAD BULK UNITS ====================
 async function loadBulkUnits() {
+    // Scheduled a moment after the bulk view opens; if the user switched to Single Unit meanwhile, it is gone.
+    if (!document.getElementById('bulkTableContainer') || !document.getElementById('bulkPropertySelect')) return;
     const propertyId = document.getElementById('bulkPropertySelect').value;
-    const readingMonth = document.getElementById('bulkReadingMonth').value;
+    const readingMonth = document.getElementById('bulkReadingMonth')?.value;
     
     console.log('Loading units for property:', propertyId);
     console.log('Reading month:', readingMonth);
