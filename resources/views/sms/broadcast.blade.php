@@ -1939,6 +1939,7 @@ function renderPreviewWithData(invoiceData, template, allSelected, selectedCount
         // ============================================================
         function renderPreviewHTML(previews, selectedCount) {
             const previewContainer = document.getElementById('previewContainer');
+            if (!previewContainer) return;   // the page was left while the preview loaded
             let html = '';
             previews.forEach((p) => {
                 let unpaidInfo = p.unpaid_count > 0

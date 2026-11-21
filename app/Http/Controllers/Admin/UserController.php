@@ -63,6 +63,11 @@ class UserController extends Controller
             });
         }
         
+        // "Select all" across pages asks for every matching id (it got the HTML page back and failed).
+        if ($request->query('select_all') === 'true') {
+            return response()->json(['ids' => (clone $query)->pluck('id')->all()]);
+        }
+
         $users = $query->orderBy('created_at', 'desc')->paginate(20);
         
         // Add role names to each user for display
