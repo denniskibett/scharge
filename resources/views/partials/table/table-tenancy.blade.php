@@ -247,9 +247,13 @@
                 </div>
               </td>
               <td class="p-4 whitespace-nowrap">
+                @if (auth()->user()?->hasRole('sysadmin') || auth()->user()?->can('properties.view'))
                 <a :href="`/units/${tenancy.unit_id}`" class="text-sm font-medium text-blue-600 hover:text-blue-900 dark:text-blue-400">
                   <span x-text="tenancy.unit_number || '-'"></span>
                 </a>
+                @else
+                <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="tenancy.unit_number || '-'"></span>
+                @endif
               </td>
               <td class="p-4 whitespace-nowrap">
                 <span class="text-sm font-medium" :class="getPropertyTextColor(tenancy.property_name)" x-text="tenancy.property_name || '-'"></span>
