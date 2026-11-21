@@ -25,6 +25,16 @@ class PropertyOnboardingController extends Controller
         ]);
     }
 
+    /** The Excel template. Also served without signing in (routes: onboarding.template.public) so prospects can fill it before a demo. */
+    public function templateXlsx()
+    {
+        return response($this->onboarding->templateXlsx(), 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="scharge-onboarding-template.xlsx"',
+            'Cache-Control' => 'public, max-age=3600',
+        ]);
+    }
+
     public function create(Request $request)
     {
         $upload = $request->session()->get('onboarding');
@@ -45,15 +55,21 @@ class PropertyOnboardingController extends Controller
     {
         $companies = $this->companies($request);
         $data = $request->validate([
-            'file' => 'required|file|max:5120|mimes:csv,txt',
+            'file' => 'required|file|max:5120|extensions:csv,txt,xlsx,xls',
             'role' => 'required|in:'.implode(',', array_keys(PropertyOnboarding::ROLES)),
             'company_id' => 'nullable|integer',
         ]);
         $company = $this->company($request, $companies, $data['company_id'] ?? null);
 
         $this->forget($request);
-        $path = $request->file('file')->storeAs('onboarding', Str::uuid().'.csv', 'local');
+        $ext = PropertyOnboarding::isWorkbook($request->file('file')->getRealPath()) ? 'xlsx' : 'csv';
+        $path = $request->file('file')->storeAs('onboarding', Str::uuid().'.'.$ext, 'local');
         $read = $this->onboarding->read(Storage::disk('local')->path($path));
+        if ($ext === 'xlsx' && ! $read['rows'] && ! $read['unknown'] && $read['missing']) {
+            Storage::disk('local')->delete($path);
+
+            return back()->withErrors(['file' => 'That Excel file could not be read. Save it again from Excel (File › Save As › Excel Workbook) or as CSV, and upload it again.']);
+        }
         if ($read['missing']) {
             Storage::disk('local')->delete($path);
 

@@ -38,8 +38,12 @@ Import properties and units
 <div class="grid gap-6 lg:grid-cols-5">
   <div class="{{ $card }} p-5 lg:col-span-2">
     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">1. Fill the template</h3>
-    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Open it in Excel or Google Sheets, replace the two example rows, and save as CSV.</p>
-    <a href="{{ route('properties.onboard.template') }}" class="{{ $btn2 }} mt-4">Download template (CSV)</a>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Open it in Excel or Google Sheets and replace the two grey example rows: one row per unit, with the tenant living there now and what they owe, if any. Upload it as it is; no need to save as CSV.</p>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <a href="{{ route('properties.onboard.template.xlsx') }}" class="{{ $btn }}">Download template (Excel)</a>
+      <a href="{{ route('properties.onboard.template') }}" class="{{ $btn2 }}">CSV</a>
+    </div>
+    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Clients can fill it before onboarding too: <a href="{{ route('onboarding.template.public') }}" class="text-brand-500 hover:underline">{{ route('onboarding.template.public') }}</a></p>
 
     <h3 class="mt-8 text-lg font-semibold text-gray-800 dark:text-white/90">2. Upload it</h3>
     <form method="POST" action="{{ route('properties.onboard.preview') }}" enctype="multipart/form-data" class="mt-3 space-y-4">
@@ -60,9 +64,9 @@ Import properties and units
           </label>
         @endforeach
       </fieldset>
-      <input type="file" name="file" accept=".csv,text/csv" required class="block w-full text-sm text-gray-700 dark:text-gray-300">
+      <input type="file" name="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required class="block w-full text-sm text-gray-700 dark:text-gray-300">
       <button class="{{ $btn }}">Check the file</button>
-      <p class="text-xs text-gray-500 dark:text-gray-400">Checking saves nothing.</p>
+      <p class="text-xs text-gray-500 dark:text-gray-400">Excel (.xlsx, .xls) or CSV, up to 5 MB. Checking saves nothing, and tenants get no message.</p>
     </form>
   </div>
 
@@ -100,10 +104,12 @@ Import properties and units
     <dl class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
       @foreach (['properties_created' => 'New buildings', 'properties_matched' => 'Buildings matched', 'properties_review' => 'To check', 'claims' => 'Claims',
                  'units_created' => 'New units', 'units_matched' => 'Units matched', 'units_linked' => 'Units linked', 'units_skipped' => 'Units skipped',
+                 'tenants_created' => 'New tenants', 'tenants_skipped' => 'Tenants skipped', 'balances_added' => 'Balances carried over',
                  'meters_created' => 'New meters', 'fields_filled' => 'Blanks filled', 'errors' => 'Rows with errors'] as $k => $label)
-        <div class="rounded-lg bg-gray-50 p-3 dark:bg-white/[0.03]"><dt class="text-xs text-gray-500 dark:text-gray-400">{{ $label }}</dt><dd class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ $c[$k] }}</dd></div>
+        <div class="rounded-lg bg-gray-50 p-3 dark:bg-white/[0.03]"><dt class="text-xs text-gray-500 dark:text-gray-400">{{ $label }}</dt><dd class="stat-num text-lg font-semibold text-gray-800 dark:text-white/90">{{ number_format($c[$k] ?? 0) }}</dd></div>
       @endforeach
     </dl>
+    @if (($c['balances_total'] ?? 0) > 0)<p class="mt-3 text-sm text-gray-600 dark:text-gray-300">Balances carried over: <span class="stat-num font-semibold">KES {{ number_format($c['balances_total'], 2) }}</span>, each as one unpaid bill on the tenant's account.</p>@endif
     @if (! empty($shown['unknown_columns']))<p class="mt-3 text-xs text-gray-500 dark:text-gray-400">Ignored columns: {{ implode(', ', $shown['unknown_columns']) }}</p>@endif
   </div>
 
@@ -142,7 +148,7 @@ Import properties and units
               <td class="{{ $td }}">{{ $r['property'] }}</td>
               <td class="{{ $td }} whitespace-nowrap">{{ $r['unit'] }}</td>
               <td class="{{ $td }} whitespace-nowrap"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {{ $badge($r['unit_action']) }}">{{ $words[$r['unit_action']] ?? $r['unit_action'] }}</span></td>
-              <td class="{{ $td }} text-xs">{{ $r['unit_action'] === 'created' ? 'new unit' : implode(', ', array_map(fn ($f) => str_replace('_', ' ', $f), $r['filled'])) }}</td>
+              <td class="{{ $td }} text-xs">{{ implode(', ', array_merge($r['unit_action'] === 'created' ? ['new unit'] : [], array_map(fn ($f) => str_replace('_', ' ', $f), $r['filled']))) }}</td>
               <td class="{{ $td }} text-xs">@foreach ($r['kept'] as $k)<p>{{ str_replace('_', ' ', $k['field']) }}: {{ $k['existing'] }} (file: {{ $k['file'] }})</p>@endforeach</td>
               <td class="{{ $td }} text-xs @if ($r['errors']) text-red-600 @endif">{{ implode('; ', array_merge($r['errors'], $r['notes'])) }}</td>
             </tr>

@@ -190,6 +190,8 @@ Route::controller(App\Http\Controllers\HomeController::class)->group(function ()
     Route::get('/credits', 'credits')->name('home.credits');
 });
 
+// The onboarding template for prospects (example rows only, no client data): linked from demo emails and the import page.
+Route::get('/onboarding-template.xlsx', [App\Http\Controllers\PropertyOnboardingController::class, 'templateXlsx'])->middleware('throttle:30,1')->name('onboarding.template.public');
 // One public listing's own page (shareable, indexed; built from ListingCatalog)
 Route::get('/listings/{slug}', [App\Http\Controllers\HomeController::class, 'listing'])->where('slug', '[a-z0-9-]+')->name('home.listing');
 
@@ -448,6 +450,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     Route::middleware('role:sysadmin|account_manager|admin|property_manager|bnb_host')->group(function () {
         Route::get('/properties/onboard', [App\Http\Controllers\PropertyOnboardingController::class, 'create'])->name('properties.onboard');
         Route::get('/properties/onboard/template.csv', [App\Http\Controllers\PropertyOnboardingController::class, 'template'])->name('properties.onboard.template');
+        Route::get('/properties/onboard/template.xlsx', [App\Http\Controllers\PropertyOnboardingController::class, 'templateXlsx'])->name('properties.onboard.template.xlsx');
         Route::post('/properties/onboard/preview', [App\Http\Controllers\PropertyOnboardingController::class, 'preview'])->middleware('throttle:20,1,onboard-preview')->name('properties.onboard.preview');
         Route::post('/properties/onboard/confirm', [App\Http\Controllers\PropertyOnboardingController::class, 'confirm'])->middleware('throttle:10,1,onboard-confirm')->name('properties.onboard.confirm');
         Route::post('/properties/onboard/cancel', [App\Http\Controllers\PropertyOnboardingController::class, 'cancel'])->name('properties.onboard.cancel');

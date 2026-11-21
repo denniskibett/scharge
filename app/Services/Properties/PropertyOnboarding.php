@@ -5,7 +5,10 @@ namespace App\Services\Properties;
 use App\Models\Company;
 use App\Models\Meter;
 use App\Models\Property;
+use App\Models\Invoice;
 use App\Models\PropertyClaim;
+use App\Models\Tenancy;
+use App\Models\Tenant;
 use App\Models\Unit;
 use App\Models\UnitManagement;
 use App\Models\User;
@@ -72,6 +75,12 @@ class PropertyOnboarding
         'owner_name' => 'Unit owner, if not you',
         'owner_phone' => 'Unit owner phone',
         'owner_email' => 'Unit owner email',
+        'tenant_name' => 'Tenant living in the unit now (leave blank if vacant)',
+        'tenant_phone' => 'Tenant phone (needed to add the tenant; they sign in with it)',
+        'tenant_email' => 'Tenant email, if any',
+        'tenant_id_number' => 'Tenant national ID / passport number',
+        'move_in_date' => 'When the tenant moved in (e.g. 2025-03-01). Blank = today',
+        'balance' => 'What the tenant owes today (KES), carried over as an unpaid bill. 0 or blank if nothing',
     ];
 
     /** Other headings clients use for the same columns. */
@@ -85,6 +94,11 @@ class PropertyOnboarding
         'power_meter' => 'power_meter_no', 'kplc_meter' => 'power_meter_no', 'electricity_meter' => 'power_meter_no', 'power_meter_number' => 'power_meter_no',
         'water_reading' => 'water_meter_reading', 'power_reading' => 'power_meter_reading', 'water_charge' => 'water_flat_charge',
         'furnishing_status' => 'furnishing', 'property_category' => 'category', 'bnb_nightly_rate' => 'nightly_rate',
+        'tenant' => 'tenant_name', 'tenant_names' => 'tenant_name', 'tenant_full_name' => 'tenant_name', 'occupant' => 'tenant_name',
+        'tenant_phone_number' => 'tenant_phone', 'tenant_mobile' => 'tenant_phone', 'tenant_tel' => 'tenant_phone', 'tenant_contact' => 'tenant_phone',
+        'tenant_id' => 'tenant_id_number', 'tenant_id_no' => 'tenant_id_number', 'id_number' => 'tenant_id_number', 'id_no' => 'tenant_id_number', 'national_id' => 'tenant_id_number',
+        'move_in' => 'move_in_date', 'moved_in' => 'move_in_date', 'date_moved_in' => 'move_in_date', 'start_date' => 'move_in_date', 'lease_start' => 'move_in_date',
+        'arrears' => 'balance', 'balance_owed' => 'balance', 'amount_owed' => 'balance', 'opening_balance' => 'balance', 'outstanding' => 'balance', 'balance_due' => 'balance', 'arrears_kes' => 'balance',
     ];
 
     public const MAX_ROWS = 5000;
@@ -111,17 +125,21 @@ class PropertyOnboarding
 
     // ---------------------------------------------------------------- template and reading
 
+    /** Two example rows: a let unit with its tenant and balance, and a vacant BnB unit with its owner. */
+    private const EXAMPLES = [
+        ['Kings Serenity Apartments', 'Kilimani, Nairobi', 'Nairobi/Block 1/234', '-1.2921, 36.7856', '', '150', '3000', '300', '500',
+            'A1', '', '2', '45000', '45000', '', '', '', 'consumption', '', 'WM-10023', '120.5', '37123456789', '', 'occupied', 'long_stay', 'unfurnished', 'residential', '', '', '', '',
+            'John Kamau', '0722 111 222', '', '12345678', '2025-03-01', '12000'],
+        ['Kings Serenity Apartments', 'Kilimani, Nairobi', 'Nairobi/Block 1/234', '-1.2921, 36.7856', '', '150', '3000', '300', '500',
+            'A2', 'Studio', '0', '25000', '25000', '2500', '', '', 'flat', '800', '', '', '', '', 'vacant', 'bnb', 'furnished', 'residential', '4500', 'Mercy Mumbi', '0712 345 678', 'mercy@example.com',
+            '', '', '', '', '', ''],
+    ];
+
     public function template(): string
     {
         $out = fopen('php://temp', 'r+');
         fputcsv($out, array_keys(self::COLUMNS));
-        $examples = [
-            ['Kings Serenity Apartments', 'Kilimani, Nairobi', 'Nairobi/Block 1/234', '-1.2921, 36.7856', '', '150', '3000', '300', '500',
-                'A1', '', '2', '45000', '45000', '', '', '', 'consumption', '', 'WM-10023', '120.5', '37123456789', '', 'occupied', 'long_stay', 'unfurnished', 'residential', '', '', '', ''],
-            ['Kings Serenity Apartments', 'Kilimani, Nairobi', 'Nairobi/Block 1/234', '-1.2921, 36.7856', '', '150', '3000', '300', '500',
-                'A2', 'Studio', '0', '25000', '25000', '2500', '', '', 'flat', '800', '', '', '', '', 'vacant', 'bnb', 'furnished', 'residential', '4500', 'Mercy Mumbi', '0712 345 678', 'mercy@example.com'],
-        ];
-        foreach ($examples as $row) {
+        foreach (self::EXAMPLES as $row) {
             fputcsv($out, $row);
         }
         rewind($out);
@@ -129,31 +147,66 @@ class PropertyOnboarding
         return "\u{FEFF}".stream_get_contents($out);   // BOM so Excel opens it as UTF-8
     }
 
+    /** The same template as an Excel workbook: "Units" to fill in (phones and numbers kept as text), "How to fill" to read. */
+    public function templateXlsx(): string
+    {
+        $book = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+        $book->getProperties()->setCreator('scharge')->setTitle('scharge onboarding template');
+        $sheet = $book->getActiveSheet()->setTitle('Units');
+        $keys = array_keys(self::COLUMNS);
+        foreach ($keys as $i => $key) {
+            $col = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1);
+            $sheet->setCellValueExplicit($col.'1', $key, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->getComment($col.'1')->getText()->createText(ltrim(self::COLUMNS[$key], '* '));
+            $sheet->getColumnDimension($col)->setWidth(max(12, min(30, strlen($key) + 4)));
+            $sheet->getStyle($col.':'.$col)->getNumberFormat()->setFormatCode('@');   // Excel must not drop the 0 of 0712...
+            foreach (self::EXAMPLES as $r => $row) {
+                $sheet->setCellValueExplicit($col.($r + 2), $row[$i] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            }
+            if (str_starts_with(self::COLUMNS[$key], '*')) {
+                $sheet->getStyle($col.'1')->getFont()->getColor()->setRGB('B42318');
+            }
+        }
+        $last = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($keys));
+        $sheet->getStyle('A1:'.$last.'1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:'.$last.'1')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setRGB('FFF1E7');
+        $sheet->getStyle('A2:'.$last.'3')->getFont()->getColor()->setRGB('8A8A8A');
+        $sheet->freezePane('B2');
+
+        $help = $book->createSheet()->setTitle('How to fill');
+        $help->fromArray([['Column', 'What goes in it'], ['', 'One row per unit. Columns marked * are required. Replace the two grey example rows with your own. Extra columns are ignored.']], null, 'A1');
+        $r = 3;
+        foreach (self::COLUMNS as $key => $text) {
+            $help->setCellValue('A'.$r, $key);
+            $help->setCellValue('B'.$r++, $text);
+        }
+        $help->getStyle('A1:B1')->getFont()->setBold(true);
+        $help->getColumnDimension('A')->setWidth(26);
+        $help->getColumnDimension('B')->setWidth(100);
+        $book->setActiveSheetIndex(0);
+
+        $out = fopen('php://temp', 'r+');
+        (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($out);
+        rewind($out);
+
+        return stream_get_contents($out);
+    }
+
     /**
-     * Rows keyed by template column. Accepts comma, semicolon or tab separated files, Excel's BOM, extra columns
-     * (ignored) and the usual alternative headings.
+     * Rows keyed by template column. Accepts Excel workbooks (.xlsx / .xls: the first sheet with a property_name
+     * heading), comma, semicolon or tab separated files, Excel's BOM, extra columns (ignored) and the usual
+     * alternative headings.
      *
      * @return array{rows: array<int, array>, unknown: array<int, string>, missing: array<int, string>}
      */
     public function read(string $path): array
     {
-        $raw = (string) file_get_contents($path);
-        $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
-        if (! mb_check_encoding($raw, 'UTF-8')) {
-            $raw = mb_convert_encoding($raw, 'UTF-8', 'Windows-1252');
-        }
-        $first = strtok($raw, "\n") ?: '';
-        $delim = collect([',', ';', "\t"])->sortByDesc(fn ($d) => substr_count($first, $d))->first();
-
-        $fh = fopen('php://temp', 'r+');
-        fwrite($fh, $raw);
-        rewind($fh);
-        $header = fgetcsv($fh, 0, $delim, '"', '') ?: [];
+        $table = self::isWorkbook($path) ? $this->workbookTable($path) : $this->csvTable($path);
+        $header = array_shift($table) ?? [];
         $map = [];
         $unknown = [];
         foreach ($header as $i => $h) {
-            $k = Str::of((string) $h)->lower()->replaceMatches('/\(.*?\)|\*/', '')->trim()->replaceMatches('/[^a-z0-9]+/', '_')->trim('_')->toString();
-            $k = self::ALIASES[$k] ?? $k;
+            $k = self::heading($h);
             if (isset(self::COLUMNS[$k]) && ! in_array($k, $map, true)) {
                 $map[$i] = $k;
             } elseif ($k !== '') {
@@ -163,7 +216,7 @@ class PropertyOnboarding
 
         $rows = [];
         $line = 1;
-        while (($cells = fgetcsv($fh, 0, $delim, '"', '')) !== false) {
+        foreach ($table as $cells) {
             $line++;
             if (count(array_filter($cells, fn ($c) => trim((string) $c) !== '')) === 0) {
                 continue;
@@ -177,9 +230,98 @@ class PropertyOnboarding
                 break;
             }
         }
-        fclose($fh);
 
         return ['rows' => $rows, 'unknown' => $unknown, 'missing' => array_values(array_diff(['property_name', 'unit_number'], $map))];
+    }
+
+    /** An Excel file, by its first bytes (zip for .xlsx, OLE for .xls), whatever it is called. */
+    public static function isWorkbook(string $path): bool
+    {
+        $head = (string) @file_get_contents($path, false, null, 0, 4);
+
+        return $head === "PK\x03\x04" || $head === "\xD0\xCF\x11\xE0";
+    }
+
+    private static function heading($h): string
+    {
+        $k = Str::of((string) $h)->lower()->replaceMatches('/\(.*?\)|\*/', '')->trim()->replaceMatches('/[^a-z0-9]+/', '_')->trim('_')->toString();
+
+        return self::ALIASES[$k] ?? $k;
+    }
+
+    /** @return array<int, array<int, string>> */
+    private function csvTable(string $path): array
+    {
+        $raw = (string) file_get_contents($path);
+        $raw = preg_replace('/^\xEF\xBB\xBF/', '', $raw);
+        if (! mb_check_encoding($raw, 'UTF-8')) {
+            $raw = mb_convert_encoding($raw, 'UTF-8', 'Windows-1252');
+        }
+        $first = strtok($raw, "\n") ?: '';
+        $delim = collect([',', ';', "\t"])->sortByDesc(fn ($d) => substr_count($first, $d))->first();
+
+        $fh = fopen('php://temp', 'r+');
+        fwrite($fh, $raw);
+        rewind($fh);
+        $table = [];
+        while (($cells = fgetcsv($fh, 0, $delim, '"', '')) !== false && count($table) <= self::MAX_ROWS + 1) {
+            $table[] = $cells;
+        }
+        fclose($fh);
+
+        return $table;
+    }
+
+    /**
+     * Cells as text, the way the client sees them: dates as Y-m-d, whole numbers without ".0" or exponents
+     * (meter numbers, 712345678), formulas as their value. Only cell values are read (no macros, no styles).
+     *
+     * @return array<int, array<int, string>>
+     */
+    private function workbookTable(string $path): array
+    {
+        try {
+            $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($path);
+            $reader->setReadDataOnly(false);   // number formats are needed to tell dates apart
+            $book = $reader->load($path);
+        } catch (\Throwable $e) {
+            return [];
+        }
+        $sheet = $book->getSheet(0);
+        foreach ($book->getWorksheetIterator() as $ws) {   // the sheet that has the headings, if it is not the first
+            $first = $ws->rangeToArray('A1:'.$ws->getHighestDataColumn().'1', null, false, false)[0] ?? [];
+            if (in_array('property_name', array_map(fn ($h) => self::heading($h), $first), true)) {
+                $sheet = $ws;
+                break;
+            }
+        }
+
+        $table = [];
+        $lastCol = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $lastRow = min($sheet->getHighestDataRow(), self::MAX_ROWS + 2);
+        for ($r = 1; $r <= $lastRow; $r++) {
+            $cells = [];
+            for ($c = 1; $c <= $lastCol; $c++) {
+                $cell = $sheet->getCell([$c, $r]);
+                try {
+                    $v = $cell->getCalculatedValue();
+                } catch (\Throwable $e) {
+                    $v = $cell->getOldCalculatedValue() ?? '';
+                }
+                if (is_numeric($v) && ! is_string($v) && \PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($cell)) {
+                    $v = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($v)->format('Y-m-d');
+                } elseif (is_float($v) && floor($v) == $v && abs($v) < 1e15) {
+                    $v = number_format($v, 0, '', '');
+                } elseif (is_bool($v)) {
+                    $v = $v ? 'yes' : 'no';
+                }
+                $cells[] = (string) $v;
+            }
+            $table[] = $cells;
+        }
+        $book->disconnectWorksheets();
+
+        return $table;
     }
 
     // ---------------------------------------------------------------- the import
@@ -197,7 +339,8 @@ class PropertyOnboarding
         $this->byId = [];
         $this->report = ['commit' => $commit, 'company' => ['id' => $company->id, 'name' => $company->name], 'role' => $role,
             'counts' => array_fill_keys(['rows', 'errors', 'properties_created', 'properties_matched', 'properties_review', 'claims',
-                'units_created', 'units_matched', 'units_linked', 'units_skipped', 'meters_created', 'meters_matched', 'meters_skipped', 'fields_filled'], 0),
+                'units_created', 'units_matched', 'units_linked', 'units_skipped', 'meters_created', 'meters_matched', 'meters_skipped', 'fields_filled',
+                'tenants_created', 'tenants_matched', 'tenants_skipped', 'balances_added', 'balances_total'], 0),
             'properties' => [], 'rows' => []];
 
         if (count($rows) > self::MAX_ROWS) {
@@ -496,6 +639,111 @@ class PropertyOnboarding
         $this->meter($unit, $property, 'water', $d['water_meter_no'], $d['water_meter_reading'], $canWrite, $out);
         $this->meter($unit, $property, 'electricity', $d['power_meter_no'], $d['power_meter_reading'], $canWrite, $out);
         $this->owner($unit, $d, $canWrite, $out);
+        $this->tenant($unit, $property, $d, $canWrite, $out);
+    }
+
+    /**
+     * The tenant living in the unit now: a tenant account (signs in with the phone; default password as on the Tenants
+     * page), an active tenancy from move_in_date, and what they owe today as one unpaid "balance brought forward" bill.
+     * Nothing is sent to the tenant. A unit that already has a tenant on scharge keeps them: the row is only reported,
+     * so uploading the same file twice never adds a second tenant or a second balance.
+     */
+    private function tenant(Unit $unit, Property $property, array $d, bool $canWrite, array &$out): void
+    {
+        if (! $d['tenant_name'] && ! $d['tenant_phone']) {
+            if ($d['balance']) {
+                $out['notes'][] = 'Balance '.number_format($d['balance']).' not added: the row has no tenant';
+            }
+
+            return;
+        }
+        $skip = function (string $why) use (&$out) {
+            $out['notes'][] = $why;
+            $this->report['counts']['tenants_skipped']++;
+        };
+        if (! $d['tenant_name'] || ! $d['tenant_phone']) {
+            $skip('Tenant not added: needs both tenant_name and tenant_phone');
+
+            return;
+        }
+        if (! $canWrite) {
+            $skip('Tenant not added: the unit\'s manager adds tenants');
+
+            return;
+        }
+
+        $current = Tenancy::withoutGlobalScopes()->where('unit_id', $unit->id)->where('status', 'active')->with(['tenant' => fn ($q) => $q->withoutGlobalScopes()->with('user')])->first();
+        if ($current) {
+            $phone = $current->tenant?->user?->phone;
+            if ($phone && substr(preg_replace('/\D+/', '', $phone), -9) === substr($d['tenant_phone'], -9)) {
+                $out['notes'][] = 'Tenant '.$current->tenant->user->name.' is already on this unit; balance not added again';
+                $this->report['counts']['tenants_matched']++;
+            } else {
+                $skip('Unit already has a tenant on scharge ('.($current->tenant?->user?->name ?? 'tenancy #'.$current->id).'); nothing changed. End that tenancy first if '.$d['tenant_name'].' has replaced them');
+            }
+
+            return;
+        }
+
+        $companyId = (int) ($unit->company_id ?: $this->company->id);
+        $user = $this->tenantUser($d, $companyId);
+        $tenant = Tenant::withoutGlobalScopes()->where('user_id', $user->id)->first();
+        if (! $tenant) {
+            $tenant = (new Tenant)->forceFill(['user_id' => $user->id, 'company_id' => $companyId, 'id_number' => $d['tenant_id_number'], 'notes' => 'Added by onboarding upload']);
+            $tenant->save();
+        }
+        $tenancy = Tenancy::withoutGlobalScopes()->create(['tenant_id' => $tenant->id, 'unit_id' => $unit->id, 'company_id' => $companyId,
+            'property_id' => $property->id, 'move_in_date' => $d['move_in_date'] ?? now()->toDateString(), 'status' => 'active']);
+        if ($unit->status !== 'occupied') {
+            $unit->forceFill(['status' => 'occupied'])->save();
+        }
+        $out['filled'][] = 'tenant';
+        $out['notes'][] = 'Tenant '.$user->name.' added'.($d['move_in_date'] ? ', moved in '.$d['move_in_date'] : '');
+        $this->report['counts']['tenants_created']++;
+
+        if ($d['balance']) {
+            // A "move_in" bill: reminders chase it like rent, the rent run still bills this month, and no late fee is added.
+            $invoice = Invoice::withoutGlobalScopes()->create(['tenancy_id' => $tenancy->id, 'invoice_type' => 'move_in',
+                'billing_month' => now()->subMonthNoOverflow()->startOfMonth()->toDateString(), 'total_amount' => $d['balance'], 'total_paid' => 0, 'status' => 'unpaid']);
+            $invoice->forceFill(['company_id' => $companyId])->saveQuietly();
+            $invoice->items()->create(['item_type' => 'other', 'description' => 'Balance brought forward (from previous records)', 'amount' => $d['balance']]
+                + (\Illuminate\Support\Facades\Schema::hasColumn('invoice_items', 'company_id') ? ['company_id' => $companyId] : []));
+            $out['filled'][] = 'balance';
+            $out['notes'][] = 'Balance KES '.number_format($d['balance'], 2).' carried over as an unpaid bill';
+            $this->report['counts']['balances_added']++;
+            $this->report['counts']['balances_total'] += $d['balance'];
+        }
+    }
+
+    /** The tenant's account: one this company already has for that phone, or a new one (same as the Tenants page). */
+    private function tenantUser(array $d, int $companyId): User
+    {
+        $last9 = substr($d['tenant_phone'], -9);
+        $existing = User::withoutGlobalScopes()->whereNotNull('phone')->where('phone', 'like', '%'.substr($last9, -6))
+            ->whereIn('id', Tenant::withoutGlobalScopes()->where('company_id', $companyId)->select('user_id'))->get()
+            ->first(fn (User $u) => substr(preg_replace('/\D+/', '', (string) $u->phone), -9) === $last9);
+        if ($existing) {
+            return $existing;
+        }
+
+        $email = $d['tenant_email'] && ! User::withoutGlobalScopes()->where('email', $d['tenant_email'])->exists() ? $d['tenant_email'] : null;
+        if (! $email) {
+            $base = Str::slug($d['tenant_name'], '.').'.'.substr($last9, -4);
+            $email = $base.'@tenant.com';
+            for ($i = 1; User::withoutGlobalScopes()->where('email', $email)->exists(); $i++) {
+                $email = $base.$i.'@tenant.com';
+            }
+        }
+        $role = \Spatie\Permission\Models\Role::where('name', 'tenant')->where('guard_name', 'web')->first();
+        $user = (new User)->forceFill(['name' => $d['tenant_name'], 'email' => $email, 'phone' => $d['tenant_phone'],
+            'password' => \Illuminate\Support\Facades\Hash::make('00000000'), 'email_verified_at' => now()]
+            + (\Illuminate\Support\Facades\Schema::hasColumn('users', 'role_id') ? ['role_id' => $role?->id] : []));
+        $user->save();
+        if ($role) {
+            $user->assignRole($role);
+        }
+
+        return $user;
     }
 
     /** Link a company to a unit in a role, once. Returns true if a new link was made. */
@@ -729,6 +977,31 @@ class PropertyOnboarding
         if ($email !== '' && ! $ownerEmail && ! Normalizer::blank($email)) {
             $errors[] = "owner_email \"{$email}\" is not an email address";
         }
+        $tPhoneRaw = trim((string) ($r['tenant_phone'] ?? ''));
+        $tenantPhone = Normalizer::phone($tPhoneRaw);
+        if ($tPhoneRaw !== '' && ! $tenantPhone && ! Normalizer::blank($tPhoneRaw)) {
+            $errors[] = "tenant_phone \"{$tPhoneRaw}\" is not a phone number";
+        }
+        $tEmailRaw = trim((string) ($r['tenant_email'] ?? ''));
+        $tenantEmail = Normalizer::email($tEmailRaw);
+        if ($tEmailRaw !== '' && ! $tenantEmail && ! Normalizer::blank($tEmailRaw)) {
+            $errors[] = "tenant_email \"{$tEmailRaw}\" is not an email address";
+        }
+        $moveIn = null;
+        if (($m = trim((string) ($r['move_in_date'] ?? ''))) !== '' && ! Normalizer::blank($m)) {
+            try {
+                // 01/03/2025 is read the Kenyan way (day first)
+                $moveIn = preg_match('#^\d{1,2}[/.-]\d{1,2}[/.-]\d{4}$#', $m)
+                    ? \Carbon\Carbon::createFromFormat('d/m/Y', preg_replace('#[.-]#', '/', $m))->toDateString()
+                    : \Carbon\Carbon::parse($m)->toDateString();
+                if ($moveIn > now()->addYear()->toDateString() || $moveIn < '1980-01-01') {
+                    throw new \InvalidArgumentException;
+                }
+            } catch (\Throwable $e) {
+                $errors[] = "move_in_date \"{$m}\" is not a date (write it like 2025-03-01)";
+                $moveIn = null;
+            }
+        }
         $phone = trim((string) ($r['owner_phone'] ?? ''));
         $ownerPhone = Normalizer::phone($phone);
         if ($phone !== '' && ! $ownerPhone && ! Normalizer::blank($phone)) {
@@ -769,6 +1042,12 @@ class PropertyOnboarding
             'owner_name' => Normalizer::anyName($t('owner_name')),
             'owner_phone' => $ownerPhone,
             'owner_email' => $ownerEmail,
+            'tenant_name' => Normalizer::anyName($t('tenant_name')),
+            'tenant_phone' => $tenantPhone,
+            'tenant_email' => $tenantEmail,
+            'tenant_id_number' => $t('tenant_id_number', 50),
+            'move_in_date' => $moveIn,
+            'balance' => $money('balance') ?: null,
         ];
     }
 
