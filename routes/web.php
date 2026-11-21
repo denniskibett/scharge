@@ -471,6 +471,11 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     Route::resource('expenses', ExpenseController::class)->except(['create', 'show', 'edit'])->middleware('access:expenses');
     Route::resource('expense-categories', ExpenseCategoryController::class)->except(['index', 'create', 'show', 'edit'])->middleware('access:expenses');
     Route::resource('payees', PayeeController::class)->except(['create', 'edit'])->middleware('access:expenses');
+    // Service-charge budgets per building and year (BudgetController)
+    Route::get('/budgets', [App\Http\Controllers\BudgetController::class, 'index'])->name('budgets.index')->middleware('access:expenses');
+    Route::post('/budgets', [App\Http\Controllers\BudgetController::class, 'store'])->name('budgets.store')->middleware('access:expenses');
+    Route::put('/budgets/{budget}', [App\Http\Controllers\BudgetController::class, 'update'])->whereNumber('budget')->name('budgets.update')->middleware('access:expenses');
+    Route::get('/budgets/{budget}/statement', [App\Http\Controllers\BudgetController::class, 'statement'])->whereNumber('budget')->name('budgets.statement')->middleware('access:expenses');
 
     // ============================================
     // TENANT ROUTES

@@ -123,7 +123,7 @@ class Access
         'maintenance' => 'maintenance.view',
         'gate' => 'security.view', 'security' => 'security.view', 'security_logs' => 'security.view',
         'finance' => ['invoices.view', 'payments.view'], 'invoices' => 'invoices.view', 'payments' => 'payments.view', 'rent' => 'payments.view',
-        'expenses' => 'expenses.view', 'payees' => 'expenses.view',
+        'expenses' => 'expenses.view', 'budgets' => 'expenses.view', 'payees' => 'expenses.view',
         'sms' => 'sms.view', 'sms_send' => 'sms.manage', 'sms_history' => 'sms.view', 'sms_templates' => 'sms.manage', 'sms_settings' => 'settings.manage',
         'crm' => 'crm.view', 'crm_pipeline' => 'crm.view', 'crm_follow_ups' => 'crm.view', 'crm_demos' => 'crm.view', 'crm_waitlist' => 'crm.view', 'crm_feedback' => 'crm.view',
         'companies' => 'companies.view', 'property_claims' => 'companies.manage',

@@ -94,6 +94,10 @@ class KenyaSMS
             'scheduled' => $scheduleAt ? true : false
         ]);
 
+        if ($blanks = self::blanks((string) $message)) {
+            return $this->refuseBlanks($blanks);
+        }
+
         try {
             $phone = $this->formatPhoneNumber($phone);
             
@@ -196,6 +200,10 @@ class KenyaSMS
             'type' => $type
         ]);
 
+        if ($blanks = self::blanks((string) $message)) {
+            return $this->refuseBlanks($blanks);
+        }
+
         $formattedRecipients = [];
         foreach ($recipients as $recipient) {
             $phone = $recipient['phone'] ?? $recipient['phone_number'] ?? $recipient;
@@ -293,6 +301,10 @@ class KenyaSMS
             
             if ($formatted) {
                 $variables = $recipient['variables'] ?? [];
+                if ($missing = self::missingFields((string) $template, $variables)) {
+                    Log::warning('KenyaSMS: recipient skipped, template fields empty', ['phone' => $formatted, 'missing' => $missing]);
+                    continue;
+                }
                 $preparedRecipients[] = [
                     'phone' => $formatted,
                     'variables' => $variables
@@ -414,6 +426,10 @@ class KenyaSMS
         foreach ($recipients as $recipient) {
             $phone = $this->formatPhoneNumber($recipient['phone'] ?? $recipient['phone_number'] ?? '');
             if ($phone) {
+                if ($missing = self::missingFields((string) $template, $recipient['variables'] ?? [])) {
+                    Log::warning('KenyaSMS: recipient skipped, template fields empty', ['phone' => $phone, 'missing' => $missing]);
+                    continue;
+                }
                 $preparedRecipients[] = [
                     'phone' => $phone,
                     'variables' => $recipient['variables'] ?? []
@@ -1056,6 +1072,30 @@ class KenyaSMS
         } catch (\Exception $e) {
             Log::error('Failed to log SMS: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Placeholders still in a message, e.g. ["estate_name"] for "{{estate_name}} water bill".
+     * In June 2026, 263 messages went out with {{estate_name}} and similar left in, so nothing is sent with blanks.
+     */
+    public static function blanks(string $message): array
+    {
+        preg_match_all('/\{\{\s*([^{}]+?)\s*\}\}/', $message, $m);
+
+        return array_values(array_unique($m[1]));
+    }
+
+    /** Template fields this recipient has no value for. */
+    public static function missingFields(string $template, array $variables): array
+    {
+        return array_values(array_filter(self::blanks($template), fn ($f) => ! filled($variables[$f] ?? null)));
+    }
+
+    private function refuseBlanks(array $blanks): array
+    {
+        Log::warning('KenyaSMS: not sent, message still has blanks', ['blanks' => $blanks]);
+
+        return ['success' => false, 'error' => 'Not sent: the message still has blanks to fill in ('.implode(', ', array_map(fn ($b) => '{{'.$b.'}}', $blanks)).').'];
     }
 
     public function formatPhoneNumber($phone)
