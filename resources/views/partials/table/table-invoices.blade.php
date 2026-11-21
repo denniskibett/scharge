@@ -425,8 +425,8 @@ document.addEventListener('alpine:init', () => {
             this.loading = true;
             try {
                 // Try to get data from the page first (if preloaded)
-                if (typeof invoicesData !== 'undefined' && invoicesData && invoicesData.length > 0) {
-                    this.invoices = invoicesData;
+                if (typeof invoicesData !== 'undefined') {
+                    this.invoices = invoicesData || [];   // the page always sends its list, even when empty
                 } else {
                     // Fallback: Fetch from API
                     const response = await fetch('/api/invoices', {

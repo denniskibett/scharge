@@ -54,6 +54,27 @@
           </div>
         </template>
 
+        {{-- Opened from the Invoices page (no tenancy yet): pick who the invoice is for. Tenancy is company-scoped. --}}
+        @php
+            $invoicePickList = rescue(fn () => \App\Models\Tenancy::with(['tenant.user:id,name', 'unit:id,unit_number,property_id', 'unit.property:id,name'])
+                ->where('status', 'active')->get()
+                ->map(fn ($t) => ['id' => $t->id, 'label' => trim(($t->unit?->property?->name ?? '').' '.($t->unit?->unit_number ?? '')).' · '.($t->tenant?->user?->name ?? 'Tenant')])
+                ->sortBy('label')->values(), collect(), false);
+        @endphp
+        <div class="mb-6" x-show="!tenancyId">
+          <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Who is this invoice for?</label>
+          @if ($invoicePickList->isEmpty())
+            <p class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600 dark:bg-gray-800 dark:text-gray-400">No active tenancies yet. Add a tenant to a unit first, then bill them here.</p>
+          @else
+            <select @change="pickTenancy($event.target.value)" class="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:text-white/90">
+              <option value="">Choose the unit and tenant</option>
+              @foreach ($invoicePickList as $opt)
+                <option value="{{ $opt['id'] }}">{{ $opt['label'] }}</option>
+              @endforeach
+            </select>
+          @endif
+        </div>
+
         <!-- Tenancy Info Card -->
         <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg" x-show="tenancyData">
           <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">Tenancy Information</h5>
@@ -788,12 +809,21 @@ document.addEventListener('alpine:init', () => {
       this.allInvoicesGenerated = false;
       this.addedUtilities = [];
       
+      document.body.style.overflow = 'hidden';
+      if (tenancyId) await this.loadTenancy();   // else the "Who is this invoice for?" picker shows first
+    },
+
+    async loadTenancy() {
       await this.fetchTenancyData();
       await this.checkExistingInvoices();
       await this.fetchBillingHistory();
       await this.determineNextBillingMonth();
-      
-      document.body.style.overflow = 'hidden';
+    },
+
+    async pickTenancy(id) {
+      if (!id) return;
+      this.tenancyId = id;
+      await this.loadTenancy();
     },
     
     async fetchTenancyData() {
@@ -1368,6 +1398,10 @@ document.addEventListener('alpine:init', () => {
     },
     
     async submitForm() {
+      if (!this.tenancyId) {
+        this.formErrors = ['Choose the unit and tenant this invoice is for.'];
+        return;
+      }
       if (!this.validateForm()) {
         const modalContent = document.querySelector('.overflow-y-auto');
         if (modalContent) {
