@@ -228,6 +228,10 @@ document.addEventListener('alpine:init', () => {
         loading: false,
         
         init() {
+            // /maintenance/{id} and /maintenance/{id}/edit land here with ?view= or ?edit=: open that request.
+            const q = new URLSearchParams(window.location.search);
+            if (q.get('view')) this.$nextTick(() => setTimeout(() => this.viewRequestModal(q.get('view')), 300));
+            if (q.get('edit')) this.$nextTick(() => setTimeout(() => this.openEditModal(q.get('edit')), 300));
             // Accept a plain array, a collection, or a paginator's { data: [...] }.
             const raw = this.requests;
             const rows = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : Object.values(raw || {}));

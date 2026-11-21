@@ -950,16 +950,8 @@ class SubscriptionController extends Controller
                 ->orderBy('price_per_unit')
                 ->get();
             
-            return view('subscriptions.company-show', compact(
-                'company', 
-                'currentSubscription', 
-                'subscriptionHistory', 
-                'unitCount', 
-                'currentPrice',
-                'pricePerUnit',
-                'invoices',
-                'plans'
-            ));
+            // The company's subscription is shown on its company page.
+            return redirect()->route('admin.companies.show', $company);
             
         } catch (\Exception $e) {
             Log::error('Error in companyShow: ' . $e->getMessage());

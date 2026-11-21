@@ -214,8 +214,8 @@ class UnitController extends Controller
             ]);
         }
         
-        $properties = Property::where('company_id', Auth::user()->company_id)->get();
-        return view('units.edit', compact('unit', 'properties'));
+        // Units are edited in the slide-over on the unit page.
+        return redirect()->route('units.show', $unit);
     }
 
     public function update(Request $request, Unit $unit)

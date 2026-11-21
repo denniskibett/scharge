@@ -39,7 +39,7 @@ body { background: var(--blush); }
 </nav>
 @endunless
 @if (session('status'))
-<p class="auth-status" role="status">{{ session('status') }}</p>
+<p class="auth-status" role="status">{{ ['verification-link-sent' => 'A new link is on its way to your email.'][session('status')] ?? session('status') }}</p>
 @endif
 @yield('auth_form')
 </div>

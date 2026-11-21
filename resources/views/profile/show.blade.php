@@ -14,7 +14,7 @@
     <!-- Success Message -->
     <div id="success-message" 
          class="hidden fixed top-20 right-5 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transition-all duration-300"
-         x-data="{ show: false }"
+         x-data="{ show: false, message: '' }"
          x-show="show"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 translate-y-2"
@@ -22,8 +22,7 @@
          x-transition:leave="transition ease-in duration-200"
          x-transition:leave-start="opacity-100 translate-y-0"
          x-transition:leave-end="opacity-0 translate-y-2"
-         @profile-updated.window="show = true; setTimeout(() => show = false, 3000)"
-         @profile-updated.window="message = $event.detail.message">
+         @profile-updated.window="message = $event.detail?.message || 'Saved'; show = true; setTimeout(() => show = false, 3000)">
         <div class="flex items-center gap-2">
             <i class="fas fa-check-circle"></i>
             <span x-text="message"></span>

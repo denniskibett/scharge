@@ -90,9 +90,8 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::orderBy('name')->get();
-        $companies = Company::orderBy('name')->get();
-        return view('admin.users.create', compact('roles', 'companies'));
+        // People are added from the slide-over on the Users page.
+        return redirect()->route('users.index');
     }
 
     /**
