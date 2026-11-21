@@ -341,7 +341,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/videos', fn () => view('videos'))->name('videos');
         Route::get('/line-chart', fn () => view('line-chart'))->name('line-chart');
         Route::get('/bar-chart', fn () => view('bar-chart'))->name('bar-chart');
-        Route::get('/dash', fn () => view('dash'))->name('dash');
     });
     Route::get('/calendar', [App\Http\Controllers\CalendarController::class, 'index'])->name('calendar');
     Route::get('/calendar/events', [App\Http\Controllers\CalendarController::class, 'events'])->name('calendar.events');
