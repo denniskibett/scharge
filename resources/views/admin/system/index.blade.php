@@ -1363,7 +1363,7 @@ function diagnoseForm() {
             
             // Send to debug endpoint
             try {
-                const response = await fetch('{{ route("system.debug") }}', {
+                const response = await fetch('/system/debug', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1581,7 +1581,7 @@ function diagnoseForm() {
         
         // Send to debug endpoint
         try {
-            const response = await fetch('{{ route("system.debug") }}', {
+            const response = await fetch('/system/debug', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1803,7 +1803,7 @@ function diagnoseForm() {
         
         // Send to debug endpoint
         try {
-            const response = await fetch('{{ route("system.debug") }}', {
+            const response = await fetch('/system/debug', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

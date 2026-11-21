@@ -896,6 +896,8 @@ class SecurityController extends Controller
                 });
             
             return response()->json(['success' => true, 'units' => $units]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('Get Units Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error loading units'], 500);
@@ -943,6 +945,8 @@ class SecurityController extends Controller
             }
             
             return response()->json(['success' => true, 'tenants' => $tenants]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('Get Tenants Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error loading tenants'], 500);
@@ -1032,6 +1036,8 @@ class SecurityController extends Controller
                     'total_visits' => $visitors->sum('visit_count'),
                 ]
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage(), 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('Get Visitors Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error loading visitors'], 500);

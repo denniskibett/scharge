@@ -369,6 +369,8 @@
                 @include('partials.page-header-bar', ['pageTitle' => $__env->yieldContent('page_title'), 'docTitle' => $__env->yieldContent('title')])
             @endif
             @yield('content')
+            {{-- Page scripts pushed with @push('scripts'): inside #app-content so in-app navigation runs them too. --}}
+            @stack('scripts')
         </main>
 
     </div>
