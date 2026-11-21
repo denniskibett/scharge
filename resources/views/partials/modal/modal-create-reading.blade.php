@@ -369,7 +369,7 @@ async function loadBulkUnits() {
     updateMonthDisplay();
     
     if (allUnits.length === 0) {
-        document.getElementById('bulkTableContainer').innerHTML = `
+        (document.getElementById('bulkTableContainer') || {}).innerHTML = `
             <div class="text-center text-gray-500 py-8">
                 <p>No units loaded. Please refresh the page.</p>
                 <button onclick="(window.schargeRefresh || (() => location.reload()))()" class="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
@@ -387,7 +387,7 @@ async function loadBulkUnits() {
     }
     
     if (filteredUnits.length === 0) {
-        document.getElementById('bulkTableContainer').innerHTML = `
+        (document.getElementById('bulkTableContainer') || {}).innerHTML = `
             <div class="text-center text-gray-500 py-8">
                 <p>No units found for this property.</p>
                 <p class="text-xs text-gray-400 mt-2">Total units: ${allUnits.length} | Property ID: ${propertyId || 'All'}</p>
@@ -553,7 +553,7 @@ async function loadBulkUnits() {
     }
     
     html += `</tbody></table>`;
-    document.getElementById('bulkTableContainer').innerHTML = html;
+    (document.getElementById('bulkTableContainer') || {}).innerHTML = html;
     updateBulkStats();
     
     // Always enable submit button - user should be able to save new readings
