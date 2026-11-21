@@ -180,8 +180,8 @@ class StaffController extends Controller
                 'status'     => $request->status ?? 0,
             ]);
 
-            // Assign role using Spatie
-            $user->assignRole($role);
+            // Assign role using Spatie, on the auth model (the module User class has no guard, so Spatie refused it).
+            \App\Models\User::findOrFail($user->id)->assignRole($role->name);
 
             return response()->json([
                 'success' => true,
@@ -239,7 +239,7 @@ class StaffController extends Controller
                     $users = User::whereIn('id', $userIds)->get();
                     foreach ($users as $user) {
                         // Remove all existing roles and assign the new one
-                        $user->syncRoles([$role->name]);
+                        \App\Models\User::findOrFail($user->id)->syncRoles([$role->name]);
                     }
                     $message = 'Role updated successfully.';
                     break;
@@ -321,9 +321,9 @@ class StaffController extends Controller
         }
         $user->update($fields);
 
-        // Update role using Spatie
+        // Update role using Spatie, on the auth model (the module User class has no guard, so Spatie refused it).
         if ($role) {
-            $user->syncRoles([$role->name]);
+            \App\Models\User::findOrFail($user->id)->syncRoles([$role->name]);
         }
 
         $user->load(['company']);
