@@ -58,7 +58,7 @@ class Modules
         'api_keys' => ['label' => 'API keys', 'blurb' => 'The scharge API for the company\'s own systems.',
             'paths' => ['api-keys'], 'menu' => ['api_keys']], // and every call made with a key (AuthenticateApiKey)
         'expenses' => ['label' => 'Expenses & payees', 'blurb' => 'Property expenses, categories and payees.',
-            'paths' => ['expenses', 'expense-categories', 'payees'], 'menu' => ['expenses', 'payees']],
+            'paths' => ['expenses', 'expense-categories', 'payees', 'budgets'], 'menu' => ['expenses', 'budgets', 'payees']],
         'reports' => ['label' => 'Reports', 'blurb' => 'Collection, arrears, occupancy and statement reports.',
             'paths' => ['reports'], 'menu' => ['reports', 'analytics']],
         'agents' => ['label' => 'Agents', 'blurb' => 'Give properties to letting agencies; the agency\'s agent dashboard.',
