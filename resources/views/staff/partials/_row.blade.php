@@ -36,7 +36,9 @@
       <div x-show="open" x-cloak :style="`position:fixed;top:${y}px;left:${x - 160}px`" class="shadow-theme-lg dark:bg-gray-dark z-50 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 text-left dark:border-gray-800">
         <a href="{{ route('staff.show', $user->id) }}" class="{{ $menuItem }}">View</a>
         <div class="{{ $menuItem }}"><x-reverify-email :user="$user" label="Re-verify email" /></div>
-        @if ((int) $user->status !== 0)
+        @if (! (auth()->user()?->hasRole('sysadmin') || auth()->user()?->can('team.manage')))
+          {{-- can see the team, cannot change it --}}
+        @elseif ((int) $user->status !== 0)
           <button type="button" onclick="quickUpdate({{ $user->id }}, 'status', 0)" @click="open = false" class="{{ $menuItem }}">Activate</button>
         @elseif (! $user->is(auth()->user()))
           <button type="button" onclick="quickUpdate({{ $user->id }}, 'status', 1)" @click="open = false" class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-500/10">Switch off</button>

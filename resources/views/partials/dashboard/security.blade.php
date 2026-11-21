@@ -4,7 +4,7 @@
 @section('title', 'Security Dashboard')
 
 @section('content')
-<div>
+<div x-data="securityDashboard()" x-init="init()">
     
     <!-- Welcome Card -->
     <div class="row mb-6">

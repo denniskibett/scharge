@@ -689,8 +689,8 @@ class SubscriptionController extends Controller
     public function getUsers()
     {
         try {
-            $users = User::where('is_active', true)
-                ->orderBy('name')
+            // users has no is_active column (the query failed); list everyone for this sysadmin picker.
+            $users = User::orderBy('name')
                 ->get(['id', 'name', 'email']);
             
             return response()->json([
@@ -1121,8 +1121,8 @@ class SubscriptionController extends Controller
     public function getCounties()
     {
         try {
-            $counties = County::orderBy('name')
-                ->get(['id', 'name']);
+            $counties = County::orderBy('county_name')
+                ->get(['id', 'county_name as name']);
             
             return response()->json([
                 'success' => true,
@@ -1146,8 +1146,8 @@ class SubscriptionController extends Controller
     {
         try {
             $subcounties = Subcounty::with(['county'])
-                ->orderBy('name')
-                ->get(['id', 'name', 'county_id']);
+                ->orderBy('constituency_name')
+                ->get(['id', 'constituency_name as name', 'county_id']);
             
             return response()->json([
                 'success' => true,
@@ -1171,8 +1171,8 @@ class SubscriptionController extends Controller
     {
         try {
             $subcounties = Subcounty::where('county_id', $countyId)
-                ->orderBy('name')
-                ->get(['id', 'name', 'county_id']);
+                ->orderBy('constituency_name')
+                ->get(['id', 'constituency_name as name', 'county_id']);
             
             return response()->json([
                 'success' => true,
@@ -1195,15 +1195,11 @@ class SubscriptionController extends Controller
     public function getProperties(Request $request)
     {
         try {
-            $query = Property::with(['subcounty.county'])
-                ->orderBy('name');
+            // properties carry no sub-county column, so there is nothing to filter or load by it.
+            $query = Property::query()->orderBy('name');
             
             // Filter by subcounty if provided
-            if ($request->has('subcounty_id') && $request->subcounty_id) {
-                $query->where('subcounty_id', $request->subcounty_id);
-            }
-            
-            $properties = $query->get(['id', 'name', 'subcounty_id']);
+            $properties = $query->get(['id', 'name', 'location']);
             
             return response()->json([
                 'success' => true,
