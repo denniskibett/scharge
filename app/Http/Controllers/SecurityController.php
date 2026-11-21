@@ -870,6 +870,20 @@ class SecurityController extends Controller
     /**
      * Get units for a specific property with active tenancies
      */
+    /**
+     * A tenant (with no staff role) uses these lookups only for their own unit and visitors, so the gate-pass form
+     * cannot be used to list other residents' phone numbers. Staff are unaffected.
+     */
+    private function tenantSelf(): ?Tenant
+    {
+        $user = Auth::user();
+        if (! $user || ! $user->hasRole('tenant') || $user->hasAnyRole(['sysadmin', 'admin', 'accountant', 'property_manager', 'security', 'maintenance', 'cleaning_staff', 'meter_reader'])) {
+            return null;
+        }
+
+        return Tenant::where('user_id', $user->id)->first() ?? new Tenant(['id' => 0]);
+    }
+
     public function getUnitsByProperty(Request $request)
     {
         try {
@@ -877,7 +891,9 @@ class SecurityController extends Controller
                 'property_id' => 'required|exists:properties,id',
             ]);
             
+            $self = $this->tenantSelf();
             $units = Unit::where('property_id', $request->property_id)
+                ->when($self, fn ($q) => $q->whereHas('activeTenancy', fn ($t) => $t->where('tenant_id', $self->id)))
                 ->with(['activeTenancy.tenant.user'])
                 ->get()
                 ->map(function($unit) {
@@ -914,7 +930,11 @@ class SecurityController extends Controller
                 'unit_id' => 'required|exists:units,id',
             ]);
             
-            $unit = Unit::with(['activeTenancy.tenant.user', 'tenancies.tenant.user'])->find($request->unit_id);
+            $unit = Unit::with(['activeTenancy.tenant.user', 'tenancies.tenant.user'])->findOrFail($request->unit_id);
+            $self = $this->tenantSelf();
+            if ($self && (int) $unit->activeTenancy?->tenant_id !== (int) $self->id) {
+                return response()->json(['success' => false, 'message' => 'You can only see your own unit.'], 403);
+            }
             
             $tenants = collect();
             
@@ -930,7 +950,7 @@ class SecurityController extends Controller
                 ]);
             }
             
-            foreach ($unit->tenancies->where('status', '!=', 'active') as $tenancy) {
+            foreach (($self ? collect() : $unit->tenancies->where('status', '!=', 'active')) as $tenancy) {   // past tenants: staff only
                 if ($tenancy->tenant) {
                     $tenants->push([
                         'id' => $tenancy->tenant->id,
@@ -963,7 +983,11 @@ class SecurityController extends Controller
                 'tenant_id' => 'required|exists:tenants,id',
             ]);
             
-            $tenant = Tenant::with(['user'])->find($request->tenant_id);
+            $self = $this->tenantSelf();
+            if ($self && (int) $request->tenant_id !== (int) $self->id) {
+                return response()->json(['success' => false, 'message' => 'You can only see your own visitors.'], 403);
+            }
+            $tenant = Tenant::with(['user'])->findOrFail($request->tenant_id);
             $unit = $tenant->activeTenancy?->unit;
             
             $visitors = Visitor::where('registered_by_tenant_id', $tenant->id)
