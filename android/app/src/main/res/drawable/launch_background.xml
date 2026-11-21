@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch screen: scharge red with the "s" mark while the app starts. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/ic_launcher_background" />
+    <item android:width="96dp" android:height="96dp" android:gravity="center">
+        <bitmap android:gravity="fill" android:src="@mipmap/ic_launcher_foreground" />
+    </item>
+</layer-list>
