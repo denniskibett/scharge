@@ -328,10 +328,8 @@ Route::middleware(['auth'])->group(function () {
     // STATIC / DEMO PAGES (TailAdmin samples) - scharge staff only
     // ============================================
     Route::middleware('role:sysadmin')->group(function () {
-        Route::get('/index', fn () => view('index'))->name('index');
         Route::get('/invoice', fn () => view('invoice'))->name('invoice');
         Route::get('/404', fn () => view('404'))->name('404');
-        Route::get('/messages', fn () => view('messages'))->name('messages');
         Route::get('/alerts', fn () => view('alerts'))->name('alerts');
         Route::get('/blank', fn () => view('blank'))->name('blank');
         Route::get('/form-elements', fn () => view('form-elements'))->name('form-elements');
@@ -341,8 +339,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/buttons', fn () => view('buttons'))->name('buttons');
         Route::get('/images', fn () => view('images'))->name('images');
         Route::get('/videos', fn () => view('videos'))->name('videos');
-        Route::get('/signin', fn () => view('signin'))->name('signin');
-        Route::get('/signup', fn () => view('signup'))->name('signup');
         Route::get('/line-chart', fn () => view('line-chart'))->name('line-chart');
         Route::get('/bar-chart', fn () => view('bar-chart'))->name('bar-chart');
         Route::get('/dash', fn () => view('dash'))->name('dash');
