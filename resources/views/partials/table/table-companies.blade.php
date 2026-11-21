@@ -481,8 +481,10 @@ window.companiesPageStats = {
     avgUsersPerCompany: 0
 };
 
-// Auto-refresh stats every 30 seconds
-setInterval(() => {
+// Auto-refresh stats every 30 seconds while the companies table is on screen (in-app navigation keeps timers alive).
+window.__companiesRefresh && clearInterval(window.__companiesRefresh);
+window.__companiesRefresh = setInterval(() => {
+    if (!document.querySelector('[x-data="companiesTable()"]')) { clearInterval(window.__companiesRefresh); window.__companiesRefresh = null; return; }
     if (window.companiesTable && typeof window.companiesTable.loadCompanies === 'function') {
         window.companiesTable.loadCompanies();
     }
