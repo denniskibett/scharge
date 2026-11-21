@@ -41,9 +41,7 @@ Route::prefix('sms')->middleware(['auth', 'access:sms'])->group(function () {
     // Templates
     // ======================
     Route::get('/templates', [SmsTemplateController::class, 'index'])->name('sms.templates.index');
-    Route::get('/templates/create', [SmsTemplateController::class, 'create'])->name('sms.templates.create');
     Route::post('/templates', [SmsTemplateController::class, 'store'])->name('sms.templates.store');
-    Route::get('/templates/{template}/edit', [SmsTemplateController::class, 'edit'])->name('sms.templates.edit');
     Route::put('/templates/{template}', [SmsTemplateController::class, 'update'])->name('sms.templates.update');
     Route::delete('/templates/{template}', [SmsTemplateController::class, 'destroy'])->name('sms.templates.destroy');
 
@@ -57,26 +55,19 @@ Route::prefix('sms')->middleware(['auth', 'access:sms'])->group(function () {
     // CAMPAIGNS - Full CRUD (Web routes)
     // =========================================================
     Route::get('/campaigns', [CampaignController::class, 'index'])->name('sms.campaigns.index');
-    Route::get('/campaigns/create', [CampaignController::class, 'create'])->name('sms.campaigns.create');
     Route::post('/campaigns', [CampaignController::class, 'store'])->name('sms.campaigns.store');
     Route::get('/campaigns/{campaign}', [CampaignController::class, 'show'])->name('sms.campaigns.show');
-    Route::get('/campaigns/{campaign}/edit', [CampaignController::class, 'edit'])->name('sms.campaigns.edit');
-    Route::put('/campaigns/{campaign}', [CampaignController::class, 'update'])->name('sms.campaigns.update');
     Route::delete('/campaigns/{campaign}', [CampaignController::class, 'destroy'])->name('sms.campaigns.destroy');
     
     // Campaign Actions
     Route::post('/campaigns/{campaign}/send', [CampaignController::class, 'send'])->name('sms.campaigns.send');
     Route::post('/campaigns/{campaign}/duplicate', [CampaignController::class, 'duplicate'])->name('sms.campaigns.duplicate');
-    Route::post('/campaigns/{campaign}/cancel', [CampaignController::class, 'cancel'])->name('sms.campaigns.cancel');
     Route::post('/campaigns/{campaign}/resend-failed', [CampaignController::class, 'resendFailed'])->name('sms.campaigns.resend-failed');
     Route::post('/campaigns/{campaign}/resend-pending', [CampaignController::class, 'resendPending'])->name('sms.campaigns.resend-pending');
     Route::post('/campaigns/{campaign}/check-pending', [CampaignController::class, 'checkPendingStatus'])->name('sms.campaigns.check-pending');
     
     // Reports & Export
     Route::get('/campaigns/{campaign}/export', [CampaignController::class, 'export'])->name('sms.campaigns.export');
-    Route::get('/campaigns/{campaign}/status', [CampaignController::class, 'status'])->name('sms.campaigns.status');
-    Route::get('/campaigns/{campaign}/failed', [CampaignController::class, 'failed'])->name('sms.campaigns.failed');
-    Route::get('/campaigns/{campaign}/timeline', [CampaignController::class, 'timeline'])->name('sms.campaigns.timeline');
 
     // (KenyaSMS delivery-report webhook moved above, outside the auth group.)
 
@@ -127,7 +118,6 @@ Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () 
     // Specific routes first
     Route::get('/campaigns', [CampaignController::class, 'apiIndex']);
     Route::post('/campaigns', [CampaignController::class, 'store']);
-    Route::post('/campaigns/preview', [CampaignController::class, 'preview']);
     Route::get('/campaigns/kenyasms', [CampaignController::class, 'listFromKenyaSMS']);
     
     // IMPORT ALL CAMPAIGNS - ADD THIS ROUTE
@@ -149,7 +139,6 @@ Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () 
     Route::post('/campaigns/{id}/sync-status', [CampaignController::class, 'syncStatus']);
     
     // Recipient routes
-    Route::post('/recipients/{id}/sync-status', [CampaignController::class, 'syncRecipientStatus']);
     Route::post('/recipients/{id}/resend', [CampaignController::class, 'resendIndividualRecipient']);
     Route::get('/campaigns/{id}/status-summary', [CampaignController::class, 'getStatusSummary']);
     Route::get('/campaigns/{id}/invalid-recipients', [CampaignController::class, 'getInvalidRecipients']);

@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // White label: the company's brand on its own address and for its people (docs/WHITE_LABEL.md).
         $middleware->web(append: [\App\Http\Middleware\ApplyBrand::class]);
+        $middleware->web(append: [\App\Http\Middleware\SecurityHeaders::class]);
 
         $middleware->alias([
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

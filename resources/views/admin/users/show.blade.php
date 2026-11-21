@@ -212,7 +212,7 @@
                         <i class="fas fa-home text-emerald-600 dark:text-emerald-400"></i>
                         Tenant Information
                     </h3>
-                    <a href="{{ route('admin.tenants.show', $user->tenant->id) }}" class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
+                    <a href="{{ route('tenants.show', $user->tenant->id) }}" class="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
                         View Full Profile <i class="fas fa-arrow-right ml-1"></i>
                     </a>
                 </div>

@@ -263,6 +263,22 @@ public function listFromKenyaSMS(Request $request)
     // ============================================================
     // STORE – Create a new campaign (API)
     // ============================================================
+    /** One campaign and who it went to. The company scope on SmsCampaign keeps other companies' campaigns out (404). */
+    public function show($campaign)
+    {
+        $campaign = SmsCampaign::with(['template', 'creator'])->findOrFail($campaign);
+        $counts = $campaign->recipients()->selectRaw('status, count(*) n')->groupBy('status')->pluck('n', 'status');
+        $stats = [
+            'total' => (int) $counts->sum(),
+            'sent' => (int) ($counts['sent'] ?? 0) + (int) ($counts['delivered'] ?? 0),
+            'failed' => (int) ($counts['failed'] ?? 0),
+        ];
+        $stats['pending'] = max(0, $stats['total'] - $stats['sent'] - $stats['failed']);
+        $recipients = $campaign->recipients()->with('tenant.user')->orderBy('id')->paginate(50);
+
+        return view('sms.campaigns.show', compact('campaign', 'stats', 'recipients'));
+    }
+
     public function store(Request $request)
     {
         try {

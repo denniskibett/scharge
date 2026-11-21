@@ -8,23 +8,20 @@ use App\Http\Controllers\WaterReadingController;
 
 Route::middleware(['auth'])->prefix('properties')->name('properties.')->group(function () {
     // Properties CRUD
-    Route::resource('properties', PropertyController::class);
+    Route::resource('properties', PropertyController::class)->except(['create', 'edit']);
     
     // Units CRUD
-    Route::resource('units', UnitController::class);
+    Route::resource('units', UnitController::class)->except(['create']);
     
     // Tenancies CRUD
     Route::resource('tenancies', TenancyController::class);
     
     // Unit custom routes
-    Route::get('/units/{unit}/water-reading', [UnitController::class, 'showWaterReadingForm'])->name('units.water-reading');
     Route::put('/units/{unit}/water-reading', [UnitController::class, 'updateWaterReading'])->name('units.water-reading.update');
-    Route::get('/units/{unit}/meter-reading', [UnitController::class, 'showMeterReadingForm'])->name('units.meter-reading');
-    Route::put('/units/{unit}/meter-reading', [UnitController::class, 'updateMeterReading'])->name('units.meter-reading.update');
     Route::get('/units/{unit}/meter-reading-data', [UnitController::class, 'getMeterReadingData'])->name('units.meter-reading-data');
     
     // Meter reader routes
-    Route::get('/meter-readings', [UnitController::class, 'meterReadingsIndex'])->name('meter-readings.index');
+    Route::redirect('/meter-readings', '/water')->name('meter-readings.index');
     Route::get('/meter-readings/reports', [UnitController::class, 'meterReadingReports'])->name('meter-readings.reports');
 
     

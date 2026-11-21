@@ -8,6 +8,26 @@ use App\Modules\Tenants\Models\Tenant;
 
 class SmsLog extends Model
 {
+    /**
+     * The log has no company column, so a company sees the messages sent to its own people
+     * (matched on the last 9 digits of the phone) or sent in its own campaigns. Sysadmin, jobs and webhooks see all.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('company', function (\Illuminate\Database\Eloquent\Builder $q) {
+            $user = auth()->user();
+            if (! $user || $user->hasRole('sysadmin')) {
+                return;
+            }
+            $company = $user->company_id ?? 0;
+            $q->where(function ($w) use ($company) {
+                $w->whereIn('sms_logs.campaign_id', fn ($s) => $s->select('id')->from('sms_campaigns')
+                        ->whereIn('created_by', fn ($u) => $u->select('id')->from('users')->where('company_id', $company)))
+                    ->orWhereRaw('SUBSTR(sms_logs.recipient_phone, -9) IN (SELECT SUBSTR(phone, -9) FROM users WHERE company_id = ? AND phone IS NOT NULL AND phone <> \'\')', [$company]);
+            });
+        });
+    }
+
     protected $table = 'sms_logs';
 
     protected $fillable = [

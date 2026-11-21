@@ -32,7 +32,6 @@ Route::middleware(['web', 'auth'])->prefix('admin/subscriptions')->name('admin.s
     
     // Payment Methods
     Route::get('/companies/{company}/payment-methods', [PaymentController::class, 'index'])->name('payment-methods.index');
-    Route::get('/companies/{company}/payment-methods/create', [PaymentController::class, 'create'])->name('payment-methods.create');
     Route::post('/companies/{company}/payment-methods', [PaymentController::class, 'store'])->name('payment-methods.store');
     Route::put('/payment-methods/{paymentMethod}/default', [PaymentController::class, 'setDefault'])->name('payment-methods.set-default');
     Route::delete('/payment-methods/{paymentMethod}', [PaymentController::class, 'destroy'])->name('payment-methods.destroy');

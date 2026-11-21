@@ -173,7 +173,6 @@
                     </div>
                 </div>
             </div>
-    </div>
     
     {{-- Deposit Modal --}}
     <div x-show="showDepositModal" x-cloak
@@ -312,6 +311,7 @@
       </div>
     </div>
         </div>{{-- /tenantWalletComponent: the deposit, withdraw and transfer forms sit inside it so their buttons can open them --}}
+    </div>
 </div>
 
 <script>
