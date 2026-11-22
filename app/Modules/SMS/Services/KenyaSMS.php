@@ -949,7 +949,7 @@ class KenyaSMS
             $response = Http::withHeaders($headers)
                 ->withoutVerifying()
                 ->timeout(30)
-                ->get($this->baseUrl . '/wallet/balance');
+                ->get($this->baseUrl . '/account/balance');
 
             if ($response->successful()) {
                 $data = $response->json();
