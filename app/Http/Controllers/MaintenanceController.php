@@ -111,6 +111,11 @@ class MaintenanceController extends Controller
         ]);
 
         $user = Auth::user();
+        // A unit the person can see (Unit scope: their company's); a resident reports for the unit they rent.
+        abort_unless(Unit::whereKey($validated['unit_id'])->exists(), 404);
+        if (($self = \App\Support\TenantSelf::id()) !== null) {
+            abort_unless(\Illuminate\Support\Facades\DB::table('tenancies')->where('tenant_id', $self)->where('unit_id', $validated['unit_id'])->where('status', 'active')->exists(), 403);
+        }
         
         // Get tenant properly
         $tenant = Tenant::where('user_id', $user->id)->first();
@@ -220,6 +225,11 @@ class MaintenanceController extends Controller
             'category' => 'sometimes|in:plumbing,electrical,hvac,appliance,structural,pest_control,cleaning,other',
             'duration' => 'nullable|string',
         ]);
+        // Assign to one of the company's own people only.
+        $own = \App\Support\CompanyAccess::ids();
+        if (! empty($validated['assigned_to']) && $own !== null) {
+            abort_unless(\Illuminate\Support\Facades\DB::table('users')->where('id', $validated['assigned_to'])->whereIn('company_id', $own ?: [0])->exists(), 422, 'Pick one of your own staff.');
+        }
         
         if (isset($validated['status']) && $validated['status'] === 'completed') {
             $validated['completed_date'] = $validated['completed_date'] ?? Carbon::now();

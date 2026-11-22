@@ -10,7 +10,14 @@ use App\Models\Unit;
 
 class Maintenance extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\OwnCompanyRecords;
+
+    /** A resident finds the repairs they reported and those of the unit(s) they rent, never another resident's. */
+    protected static function residentFilter(\Illuminate\Database\Eloquent\Builder $q, string $table, int $self): void
+    {
+        $q->where(fn ($w) => $w->where("$table.tenant_id", $self)
+            ->orWhereIn("$table.unit_id", \Illuminate\Support\Facades\DB::table('tenancies')->where('tenant_id', $self)->where('status', 'active')->select('unit_id')));
+    }
 
 
     protected $fillable = [

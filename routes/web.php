@@ -30,8 +30,12 @@ use App\Http\Controllers\RoleController;
 require __DIR__ . '/mpesa.php';
 
 // DIRECT CAMPAIGN ROUTE - For viewing campaign details (FIXED)
-Route::middleware('auth')->get('/campaign/{id}', function($id) {
+Route::middleware(['auth', 'access:sms'])->get('/campaign/{id}', function($id) {
     try {
+        // Through the model, so a company only opens its own campaigns (the raw table below has no such filter).
+        if (! \App\Modules\SMS\Models\SmsCampaign::whereKey($id)->exists()) {
+            return response()->json(['error' => 'Campaign not found'], 404);
+        }
         // Clear query cache to ensure fresh data on each request
         DB::connection()->getQueryLog();
         
@@ -885,7 +889,7 @@ Route::prefix('users')->group(function () {
 // ============================================
 // API FALLBACK ROUTES (outside auth middleware)
 // ============================================
-Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings'])->middleware('auth');
+Route::get('/water/api/water/readings/bulk', [WaterReadingController::class, 'getBulkReadings'])->middleware(['auth', 'access:water']);
 
 // Accountant transaction endpoints
 Route::prefix('api/wallet')->middleware(['auth'])->group(function () {

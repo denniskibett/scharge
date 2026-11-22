@@ -59,6 +59,8 @@ class SmsTemplateController extends Controller
 
     public function update(Request $request, SmsTemplate $template)
     {
+        // scharge's own templates are shared with every company: only scharge changes those.
+        abort_unless($template->editableByUser(), 403, 'This template is shared by scharge. Save your own copy to change it.');
         $request->validate([
             'name' => 'required|string|max:255',
             'content' => 'required|string',
@@ -86,6 +88,7 @@ class SmsTemplateController extends Controller
 
     public function destroy(SmsTemplate $template)
     {
+        abort_unless($template->editableByUser(), 403, 'This template is shared by scharge and cannot be deleted.');
         $template->delete();
 
         if (request()->ajax()) {

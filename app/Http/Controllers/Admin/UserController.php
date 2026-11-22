@@ -517,7 +517,10 @@ class UserController extends Controller
     public function getUsers(Request $request)
     {
         try {
+            $own = \App\Support\CompanyAccess::ids();
             $query = User::select('id', 'name', 'email', 'company_id')
+                // A company's people pick from their own company; sysadmin sees all (CompanyAccess).
+                ->when($own !== null, fn ($q) => $q->whereIn('users.company_id', $own))
                 ->with(['roles', 'company']);
             
             // Filter by role name (using Spatie)

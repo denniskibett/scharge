@@ -853,6 +853,12 @@ class WalletController extends Controller
             }
             
             $transaction = Transaction::findOrFail($transactionId);
+
+            // Only a deposit of one of this company's tenants (the Tenant model is filtered by company), as in approve.
+            $isTenantWallet = in_array($transaction->payable_type, ['App\\Models\\Tenant', 'App\\Modules\\Tenants\\Models\\Tenant'], true);
+            if (! $isTenantWallet || ! \App\Models\Tenant::whereKey($transaction->payable_id)->exists()) {
+                return response()->json(['success' => false, 'error' => 'Cannot find tenant for this transaction.'], 404);
+            }
             
             if ($transaction->confirmed) {
                 return response()->json([

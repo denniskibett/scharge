@@ -22,6 +22,27 @@ class StaffController extends Controller
         return ['admin', 'property_manager', 'accountant', 'security', 'maintenance', 'meter_reader', 'cleaning_staff'];
     }
 
+    /** Company ids the signed-in person manages; null for a sysadmin (everyone). */
+    private function own(): ?array
+    {
+        return \App\Support\CompanyAccess::ids();
+    }
+
+    /** The companies offered in filters and forms: a company admin or accountant gets their own only. */
+    private function companies()
+    {
+        return Company::when($this->own() !== null, fn ($q) => $q->whereIn('id', $this->own()))->orderBy('name')->get();
+    }
+
+    /** A company admin or accountant reaches only their own company's people; anyone else's page is "not found". */
+    private function staffOrFail($id): User
+    {
+        $user = User::with(['company'])->findOrFail($id);
+        abort_if($this->own() !== null && ! in_array((int) $user->company_id, $this->own(), true), 404);
+
+        return $user;
+    }
+
     /**
      * Display a listing of staff (users with staff roles).
      */
@@ -113,7 +134,7 @@ class StaffController extends Controller
 
         // Get roles for filter dropdown
         $roles = Role::whereIn('name', $staffRoleNames)->orderBy('name')->get();
-        $companies = Company::orderBy('name')->get();
+        $companies = $this->companies();
 
         if ($request->wantsJson()) {
             // Add role names to each user for JSON response
@@ -140,7 +161,7 @@ class StaffController extends Controller
         $roles = Role::whereIn('name', $this->getStaffRoleNames())
             ->orderBy('name')
             ->get();
-        $companies = Company::orderBy('name')->get();
+        $companies = $this->companies();
         return view('admin.staff.create', compact('roles', 'companies'));
     }
 
@@ -167,8 +188,13 @@ class StaffController extends Controller
         }
 
         try {
-            // Get the role
+            // Get the role: staff roles only (never sysadmin, tenant...).
             $role = Role::findOrFail($request->role_id);
+            if (! in_array($role->name, $this->getStaffRoleNames(), true)) {
+                return response()->json(['success' => false, 'message' => 'Pick one of the staff roles.', 'errors' => ['Pick one of the staff roles.']], 422);
+            }
+            // A company admin or accountant adds people to their own company, whatever the form sent.
+            $companyId = $this->own() !== null ? ($this->own()[0] ?? null) : $request->company_id;
 
             // Create user
             $user = User::create([
@@ -176,7 +202,7 @@ class StaffController extends Controller
                 'email'      => $request->email,
                 'password'   => Hash::make($request->password),
                 'phone'      => $request->phone,
-                'company_id' => $request->company_id,
+                'company_id' => $companyId,
                 'status'     => $request->status ?? 0,
             ]);
 
@@ -220,6 +246,12 @@ class StaffController extends Controller
 
         $userIds = $request->user_ids;
         $action = $request->action;
+        if ($this->own() !== null) {
+            // Own company's people only; moving people between companies and handing out any role is for sysadmins.
+            $userIds = User::whereIn('id', $userIds)->whereIn('company_id', $this->own())->pluck('id')->all();
+            abort_if(in_array($action, ['change_company'], true), 403);
+            abort_if($action === 'change_role' && ! in_array(Role::find($request->role_id)?->name, $this->getStaffRoleNames(), true), 403);
+        }
 
         try {
             switch ($action) {
@@ -282,7 +314,9 @@ class StaffController extends Controller
             return response()->json(['success' => false, 'message' => 'This person is not in your company.'], 403);
         }
         if ($own !== null) {
+            // The inline edit posts JSON, which is a separate bag from form input: drop it from both.
             $request->request->remove('company_id');
+            $request->json()->remove('company_id');
         }
 
         $validator = Validator::make($request->all(), [
@@ -297,7 +331,7 @@ class StaffController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            return response()->json(['success' => false, 'message' => $validator->errors()->first(), 'errors' => $validator->errors()], 422);
         }
 
         $user = User::findOrFail($id);
@@ -426,7 +460,7 @@ class StaffController extends Controller
      */
     public function show($id)
     {
-        $user = User::with(['company'])->findOrFail($id);
+        $user = $this->staffOrFail($id);
         $user->primary_role = $user->getRoleNames()->first();
         $user->role_names = $user->getRoleNames()->toArray();
         $user->all_roles = $user->roles;
@@ -439,7 +473,7 @@ class StaffController extends Controller
      */
     public function destroy(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        $user = $this->staffOrFail($id);
         
         if ($user->hasRole('sysadmin')) {
             return response()->json([

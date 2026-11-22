@@ -11,7 +11,7 @@ use App\Models\User;
 
 class SecurityLog extends Model
 {
-    use HasFactory;
+    use HasFactory, \App\Traits\OwnCompanyRecords;
 
     protected $table = 'security';
 

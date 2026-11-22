@@ -174,6 +174,11 @@ public function store(Request $request)
             $this->freeUnitOrFail((int) $validated['unit_id']);
         }
 
+        // Same people as the dropdown on the page: this company's own users (an id from elsewhere is refused).
+        if (! auth()->user()?->hasRole('sysadmin')) {
+            abort_unless(User::whereKey($validated['user_id'])->where('users.company_id', auth()->user()?->company_id ?? 0)->exists(), 404);
+        }
+
         // Check if user already has a tenant record
         $existingTenant = Tenant::where('user_id', $validated['user_id'])->first();
         if ($existingTenant) {

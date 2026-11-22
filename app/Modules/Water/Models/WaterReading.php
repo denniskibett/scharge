@@ -27,6 +27,14 @@ class WaterReading extends Model
         'notes'
     ];
     
+    use \App\Traits\OwnCompanyRecords;
+
+    /** A resident finds the readings of the unit(s) they rent only. */
+    protected static function residentFilter(\Illuminate\Database\Eloquent\Builder $q, string $table, int $self): void
+    {
+        $q->whereIn("$table.unit_id", \Illuminate\Support\Facades\DB::table('tenancies')->where('tenant_id', $self)->select('unit_id'));
+    }
+
     /** Every reading belongs to its unit's company (it used to be saved without one). */
     protected static function booted(): void
     {

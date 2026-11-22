@@ -280,6 +280,25 @@ class SecurityController extends Controller
     /**
      * Store Quick Entry
      */
+    /**
+     * True when this business already knows the visitor (they came to one of its units, or it registered them).
+     * Same rule as Gate::lookup: a visitor known elsewhere is not shown or changed here.
+     */
+    private function knownHere(?Visitor $visitor): bool
+    {
+        if (! $visitor) {
+            return false;
+        }
+        $unitIds = \App\Services\Gate\Gate::scopeUnitIds(auth()->user());
+        if ($unitIds === null) {
+            return true;
+        }
+        $own = \App\Support\CompanyAccess::ids() ?? [];
+
+        return ($visitor->company_id && in_array((int) $visitor->company_id, $own, true))
+            || \App\Modules\Security\Models\VisitorPlace::where('visitor_id', $visitor->id)->whereIn('unit_id', $unitIds ?: [0])->exists();
+    }
+
     public function quickEntryStore(Request $request)
     {
         try {
@@ -300,8 +319,11 @@ class SecurityController extends Controller
             ]);
             
             // Check if visitor_id is provided (existing visitor)
-            if (!empty($validated['visitor_id'])) {
-                $visitor = Visitor::find($validated['visitor_id']);
+            $visitor = ! empty($validated['visitor_id']) ? Visitor::find($validated['visitor_id']) : null;
+            if ($visitor && ! $this->knownHere($visitor)) {
+                $visitor = null; // an id from another business: treat as a new arrival (matched by phone below)
+            }
+            if ($visitor) {
                 if ($visitor) {
                     $visitor->update([
                         'name' => $validated['name'],
@@ -1088,7 +1110,7 @@ class SecurityController extends Controller
                 ->orWhere('id_number', $searchTerm)
                 ->first();
             
-            if (!$visitor) {
+            if (!$visitor || ! $this->knownHere($visitor)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Visitor not found'
