@@ -33,7 +33,42 @@ class BrandController extends Controller
             'companies' => $request->user()->hasRole('sysadmin') ? \App\Models\Company::orderBy('name')->get(['id', 'name']) : collect(),
             'backup' => CompanyIntegration::where('company_id', $company->id)->where('provider', 'data_backup')->first(),
             'counts' => app(CompanyExport::class)->counts($company->id),
+            'own' => $this->ownChannels($company->id),
         ]);
+    }
+
+    /**
+     * The rest of the white-label offer: what reaches tenants under the company's own name and where their money
+     * goes. Each is set up on Integrations; this page shows which are on. [key => name, text, status, on]
+     */
+    private function ownChannels(int $companyId): array
+    {
+        $rows = CompanyIntegration::where('company_id', $companyId)
+            ->whereIn('provider', ['kenyasms_sender', 'company_email', 'mpesa_daraja', 'sharet_payouts'])->get()->keyBy('provider');
+        $on = fn (string $key) => (bool) $rows->get($key)?->enabled;
+
+        $sender = $rows->get('kenyasms_sender');
+        $senderLive = $on('kenyasms_sender') && filled($sender->get('sender_id'))
+            && ! ($sender->get('setup') === 'managed' && $sender->get('approval') !== 'approved');
+        $payouts = $rows->get('sharet_payouts');
+
+        return [
+            'kenyasms_sender' => ['name' => 'Your own SMS sender ID', 'on' => $senderLive,
+                'text' => 'Bills, reminders and receipts reach tenants under your name, not scharge\'s.',
+                'status' => $senderLive ? 'Sending as '.$sender->get('sender_id')
+                    : ($on('kenyasms_sender') && filled($sender->get('sender_id')) ? $sender->get('sender_id').': waiting for the networks to approve it' : 'Not set up')],
+            'company_email' => ['name' => 'Email from your own address', 'on' => $on('company_email'),
+                'text' => 'Bills, receipts and gate passes are emailed from your company address, and replies come to you.',
+                'status' => $on('company_email') ? 'Sending from '.($rows->get('company_email')->get('from_address') ?: 'your address') : 'Not set up'],
+            'mpesa_daraja' => ['name' => 'Your own M-Pesa paybill or till (Daraja)', 'on' => $on('mpesa_daraja'),
+                'text' => 'Tenants are prompted on their phone and pay straight into your own paybill or till. scharge only records the payment.',
+                'status' => $on('mpesa_daraja') ? 'On: '.($rows->get('mpesa_daraja')->get('kind') === 'till' ? 'till ' : 'paybill ').$rows->get('mpesa_daraja')->get('shortcode') : 'Not set up'],
+            'sharet_payouts' => ['name' => 'Your own payment rails', 'on' => $on('sharet_payouts'),
+                'text' => 'Rent collected goes to your own Sharet account, M-Pesa, paybill, till or bank account.',
+                'status' => ! $on('sharet_payouts') ? 'Not set up'
+                    : ($payouts->get('mode') === 'connected' ? 'Into your own Sharet account' : 'Swept to your '.match ($payouts->get('payout_type')) {
+                        'paybill' => 'paybill', 'till' => 'till', 'bank', 'absa' => 'bank account', default => 'M-Pesa number' }.' three times a day')],
+        ];
     }
 
     public function update(Request $request): RedirectResponse

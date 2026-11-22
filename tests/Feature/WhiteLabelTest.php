@@ -85,6 +85,21 @@ class WhiteLabelTest extends RentSchemaTestCase
         $this->assertStringNotContainsString('danaff', InvoiceLink::url($other));
     }
 
+    public function test_the_page_lists_own_sender_email_mpesa_and_payouts_with_this_companys_status(): void
+    {
+        $row = fn (int $company, string $provider, array $credentials) => tap(new CompanyIntegration(['company_id' => $company, 'provider' => $provider, 'enabled' => true]),
+            fn ($r) => $r->mergeCredentials($credentials))->save();
+        $row($this->a['company'], 'kenyasms_sender', ['setup' => 'managed', 'sender_id' => 'DANAFF', 'approval' => 'submitted']);
+        $row($this->a['company'], 'company_email', ['from_address' => 'accounts@danaff.test']);
+        $row($this->b['company'], 'mpesa_daraja', ['shortcode' => '555111', 'kind' => 'paybill']);   // another company's paybill
+
+        $this->actingAs($this->staff($this->a['company'], 'admin'))->get('/settings/white-label')->assertOk()
+            ->assertSee('Your own SMS sender ID')->assertSee('DANAFF: waiting for the networks to approve it')
+            ->assertSee('Email from your own address')->assertSee('Sending from accounts@danaff.test')
+            ->assertSee('Your own M-Pesa paybill or till (Daraja)')->assertSee('Your own payment rails')
+            ->assertDontSee('555111');
+    }
+
     public function test_admin_edits_the_brand_but_only_scharge_sets_the_address(): void
     {
         $admin = $this->staff($this->a['company'], 'admin');
