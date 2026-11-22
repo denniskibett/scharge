@@ -152,7 +152,7 @@ class KenyaSMSService
      */
     public function getBalance(): ?array
     {
-        $url = $this->baseUrl . '/wallet/balance';
+        $url = $this->baseUrl . '/account/balance';
         
         $headers = [
             'Authorization' => 'Bearer ' . $this->apiKey,
