@@ -13,11 +13,12 @@ use Illuminate\Support\Facades\DB;
  *  - a user with a company: that company
  *  - an account manager without a company: the companies they own
  *  - a tenant without a company: the companies of their tenant record and tenancies ([0] if none)
- *  - anyone else (e.g. a guest): null, as before
+ *  - scharge sales staff: null = all companies
+ *  - anyone else without a company (not yet activated, a guest, no role): [0] = no company's records
  */
 class CompanyAccess
 {
-    /** @var array<int, array<int>|null> per user id, for this request */
+    /** @var array<string, array<int>|null> per user and company, for this request */
     private static array $memo = [];
 
     private static int $bypass = 0;
@@ -50,7 +51,10 @@ class CompanyAccess
             return null;
         }
 
-        return array_key_exists($user->id, self::$memo) ? self::$memo[$user->id] : (self::$memo[$user->id] = self::resolve($user));
+        // Keyed by the company too: sign-up gives the user a company part-way through a request.
+        $key = $user->id.':'.(int) $user->company_id;
+
+        return array_key_exists($key, self::$memo) ? self::$memo[$key] : (self::$memo[$key] = self::resolve($user));
     }
 
     public static function flush(): void
@@ -80,8 +84,14 @@ class CompanyAccess
 
             return $ids ?: [0];
         }
+        // scharge sales staff work every prospect and customer in the CRM.
+        if (method_exists($user, 'hasRole') && $user->hasRole('sales')) {
+            return null;
+        }
 
-        return null;
+        // Anyone else without a company (just signed up and not activated, a guest, a login with no role) belongs to
+        // no landlord: they find no company's records. This used to be "no filter", which showed them everyone's.
+        return [0];
     }
 
     /** Tenancies of the given companies: directly, through the unit, or the unit's property (older rows have no company_id). */
