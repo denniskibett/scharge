@@ -118,13 +118,13 @@ Route::prefix('api/sms')->middleware(['auth', 'access:sms'])->group(function () 
     // Specific routes first
     Route::get('/campaigns', [CampaignController::class, 'apiIndex']);
     Route::post('/campaigns', [CampaignController::class, 'store']);
-    Route::get('/campaigns/kenyasms', [CampaignController::class, 'listFromKenyaSMS']);
+    Route::get('/campaigns/kenyasms', [CampaignController::class, 'listFromKenyaSMS'])->middleware('role:sysadmin'); // the gateway account is shared by every company
     
     // IMPORT ALL CAMPAIGNS - ADD THIS ROUTE
-    Route::post('/campaigns/import-kenyasms', [CampaignController::class, 'importKenyaSmsCampaigns']);
+    Route::post('/campaigns/import-kenyasms', [CampaignController::class, 'importKenyaSmsCampaigns'])->middleware('role:sysadmin'); // the gateway account is shared by every company
     
     // IMPORT SINGLE CAMPAIGN
-    Route::post('/campaigns/kenyasms/{campaignId}/import', [CampaignController::class, 'importFromKenyaSMS']);
+    Route::post('/campaigns/kenyasms/{campaignId}/import', [CampaignController::class, 'importFromKenyaSMS'])->middleware('role:sysadmin'); // the gateway account is shared by every company
     
     // Generic {id} route - must come after specific routes
     Route::get('/campaigns/{id}', [CampaignController::class, 'getDetails']);

@@ -391,7 +391,8 @@ public function storeBulkMatrix(Request $request)
             // CRITICAL FIX: Check if we have an existing_reading_id to update
             if (isset($readingData['existing_reading_id']) && !empty($readingData['existing_reading_id'])) {
                 // UPDATE existing reading
-                $existingReading = WaterReading::find($readingData['existing_reading_id']);
+                // Only a reading of this same unit: the id comes from the page.
+                $existingReading = WaterReading::where('unit_id', $unit->id)->find($readingData['existing_reading_id']);
                 if ($existingReading) {
                     $existingReading->update([
                         'previous_reading' => $previousReading,
