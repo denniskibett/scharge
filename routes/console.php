@@ -114,8 +114,12 @@ Schedule::command('listings:match')
 
 // Sign-in locations (docs/SIGN_IN_LOCATIONS.md): refresh the free city database monthly; keep sign-ins 180 days.
 Schedule::command('geo:update')->monthlyOn(3, '04:00')->withoutOverlapping()->onOneServer();
-Schedule::call(fn () => \Illuminate\Support\Facades\Schema::hasTable('login_events')
-    && \Illuminate\Support\Facades\DB::table('login_events')->where('created_at', '<', now()->subDays(180))->delete())->dailyAt('04:30')->name('prune-login-events')->onOneServer();
+// A block, not "hasTable && delete()": with nothing to prune that returned false, and the scheduler logs false as a failure.
+Schedule::call(function () {
+    if (\Illuminate\Support\Facades\Schema::hasTable('login_events')) {
+        \Illuminate\Support\Facades\DB::table('login_events')->where('created_at', '<', now()->subDays(180))->delete();
+    }
+})->dailyAt('04:30')->name('prune-login-events')->onOneServer();
 
 // CRM: new prospects in Nairobi's upmarket apartment areas (OSM + the curated agents' sheet), deduped against the
 // CRM, imported as prospects; backs up the companies table first (storage/app/crm-backups). Mondays, early.
