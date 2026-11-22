@@ -48,6 +48,15 @@ The company keeps its own copy; Scharge keeps the master database, plus the depl
 
 SMS go out under the company's own sender ID (Integrations › SMS sender) and WhatsApp from its own number, if set up. Both existed before white label.
 
+The White label & data page lists the rest of the offer under **Also under your own name**, with each one's status for that company and a button to Integrations (`BrandController::ownChannels`):
+
+| Offer | Integrations card | Used by |
+|---|---|---|
+| Own SMS sender ID | SMS sender ID (`kenyasms_sender`) | `Integrations::smsSender` |
+| Email from their own address | Email from your address (`company_email`) | `Connectors\CompanyMail::send` (bills, receipts, gate passes) |
+| Own M-Pesa paybill or till | M-Pesa Daraja (`mpesa_daraja`) | `Integrations::daraja`, `MpesaService` |
+| Own payment rails | Rent collection & payouts (`sharet_payouts`) | sweeps to their Sharet account, M-Pesa, paybill, till or bank |
+
 ## Pieces
 
 | Piece | Where |

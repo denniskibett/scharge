@@ -130,5 +130,21 @@ White label & data
       </div>
     </div>
   </div>
+
+  {{-- The rest of the white-label offer (BrandController::ownChannels): set up on Integrations, status shown here --}}
+  <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+    <h2 class="text-base font-semibold text-gray-900 dark:text-white">Also under your own name</h2>
+    <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">White label covers more than the logo: your messages, your email and your money can all run under your own name and accounts.</p>
+    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      @foreach ($own as $key => $item)
+        <div class="flex flex-col rounded-lg border border-gray-200 p-4 dark:border-gray-800">
+          <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ $item['name'] }}</h3>
+          <p class="mt-1 flex-1 text-sm text-gray-500 dark:text-gray-400">{{ $item['text'] }}</p>
+          <p @class(['mt-3 text-xs font-medium', 'text-emerald-700 dark:text-emerald-300' => $item['on'], 'text-gray-500 dark:text-gray-400' => ! $item['on']])>{{ $item['status'] }}</p>
+          <a href="{{ route('integrations.index', $q) }}" class="{{ $outline }} mt-3 w-full">{{ $item['on'] ? 'Change' : 'Set up' }} in Integrations</a>
+        </div>
+      @endforeach
+    </div>
+  </div>
 </div>
 @endsection
