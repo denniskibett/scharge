@@ -294,7 +294,7 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/team/{user}', [App\Http\Controllers\TeamController::class, 'destroy'])->name('team.destroy');
     });
 
-    Route::prefix('roles')->name('roles.')->middleware('role:sysadmin')->middleware('access:system')->group(function () {
+    Route::prefix('roles')->name('roles.')->middleware(['role:sysadmin', 'access:system'])->group(function () {
         Route::get('/', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('index');
         Route::get('/{role}', [App\Http\Controllers\Admin\RoleController::class, 'show'])->name('show');
         Route::post('/', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('store');
@@ -356,7 +356,7 @@ Route::middleware(['auth'])->group(function () {
     // ============================================
     // SYSTEM ROUTES
     // ============================================
-    Route::prefix('system')->name('system.')->middleware('role:sysadmin')->middleware('access:system')->group(function () {
+    Route::prefix('system')->name('system.')->middleware(['role:sysadmin', 'access:system'])->group(function () {
         Route::get('/', [SystemController::class, 'index'])->name('index');
         Route::put('/update', [SystemController::class, 'update'])->name('update');
         Route::get('/clear-cache', [SystemController::class, 'clearCache'])->name('clear-cache');
@@ -671,7 +671,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::post('/property/auto-fill', [WaterReadingController::class, 'autoFillProperty'])->name('property.auto-fill');
     });
 
-    Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings');
+    Route::get('/api/units/with-water-readings', [WaterReadingController::class, 'getUnitsWithWaterReadings'])->name('api.units.with-water-readings')->middleware('access:water');
 
     // Meter Reader specific routes
     Route::middleware(['access:water'])->group(function () {

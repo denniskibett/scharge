@@ -25,6 +25,38 @@ use App\Modules\Expenses\Models\Expense;
 class CompanyController extends Controller
 {
     /**
+     * Company ids this person may open here: null for a sysadmin (all); anyone else (account manager, sales) only the
+     * companies they own (companies.owner_id), the same rule as App\Support\CompanyAccess.
+     */
+    private function ownedIds(): ?array
+    {
+        $user = auth()->user();
+        if (! $user || $user->hasRole('sysadmin')) {
+            return null;
+        }
+
+        return DB::table('companies')->where('owner_id', $user->id)->pluck('id')->map(fn ($id) => (int) $id)->all();
+    }
+
+    /** Every /admin/companies/{company}/... address answers "not found" for a company that is not theirs. */
+    public function callAction($method, $parameters)
+    {
+        $own = $this->ownedIds();
+        $companyId = request()->route('company');
+        if ($own !== null && $companyId !== null) {
+            abort_unless(in_array((int) $companyId, $own, true), 404);
+        }
+
+        return $this->{$method}(...array_values($parameters));
+    }
+
+    /** Roles someone other than a sysadmin may hand out here: the company staff roles, never scharge staff roles. */
+    private function mayGive(Role $role): bool
+    {
+        return auth()->user()?->hasRole('sysadmin') || array_key_exists($role->name, \App\Support\Access::COMPANY_ROLES);
+    }
+
+    /**
      * Display the companies index page
      */
     public function index()
@@ -37,16 +69,19 @@ class CompanyController extends Controller
      */
     public function getCompaniesData(Request $request)
     {
-        $companies = Company::withCount(['users', 'units'])
+        $own = $this->ownedIds();
+        $mine = fn () => Company::when($own !== null, fn ($q) => $q->whereIn('companies.id', $own ?: [0]));
+        $companies = $mine()->withCount(['users', 'units'])
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
+        $userCount = User::when($own !== null, fn ($q) => $q->whereIn('users.company_id', $own ?: [0]))->count();
         $stats = [
-            'totalCompanies' => Company::count(),
-            'activeCompanies' => Company::where('is_active', true)->count(),
-            'totalUsers' => User::count(),
-            'avgUsersPerCompany' => Company::count() > 0 
-                ? round(User::count() / Company::count(), 1) 
+            'totalCompanies' => $mine()->count(),
+            'activeCompanies' => $mine()->where('is_active', true)->count(),
+            'totalUsers' => $userCount,
+            'avgUsersPerCompany' => $mine()->count() > 0
+                ? round($userCount / $mine()->count(), 1)
                 : 0,
         ];
         
@@ -608,7 +643,7 @@ public function getCompanyExpenses($id)
             ]);
             
             $role = Role::find($validated['role_id']);
-            if (in_array($role->name, ['sysadmin', 'tenant'])) {
+            if (in_array($role->name, ['sysadmin', 'tenant']) || ! $this->mayGive($role)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot assign ' . $role->name . ' role to company staff.',
@@ -723,7 +758,7 @@ public function getCompanyExpenses($id)
             }
             
             $role = Role::find($validated['role_id']);
-            if ($role->name === 'sysadmin') {
+            if ($role->name === 'sysadmin' || ! $this->mayGive($role)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Cannot assign sysadmin role to company staff.'
@@ -799,6 +834,8 @@ public function getCompanyExpenses($id)
                 'max_units' => $validated['max_units'] ?? null,
                 'max_tenants' => $validated['max_tenants'] ?? null,
                 'max_users' => $validated['max_users'] ?? null,
+                // An account manager's new company goes into their own book (sysadmins assign an owner later).
+                'owner_id' => auth()->user()?->hasRole('sysadmin') ? null : auth()->id(),
             ]);
             
             // Log company creation
