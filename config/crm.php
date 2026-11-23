@@ -13,6 +13,12 @@ return [
     /* Dated CRM tasks are emailed to their account manager as calendar invitations (Support\CalendarInvite). */
     'calendar_invites' => (bool) env('CRM_CALENDAR_INVITES', true),
 
+    /*
+     * New customers (sign-ups, deals marked Won) get an account manager at once (Support\Onboarding): this user id
+     * when set, otherwise the account manager with the fewest customers.
+     */
+    'onboarding_owner' => env('CRM_ONBOARDING_OWNER'),
+
     /* Extra addresses copied on every prospect reply and on our answers, besides sysadmins and the account manager (comma-separated). */
     'reply_cc' => array_filter(array_map('trim', explode(',', (string) env('CRM_REPLY_CC', '')))),
 

@@ -23,6 +23,27 @@
 </div>
 
 <div class="field">
+<label for="business_name">Business name</label>
+<input id="business_name" type="text" name="business_name" value="{{ old('business_name') }}" required maxlength="120" autocomplete="organization" placeholder="e.g. Grey Oak Properties" @error('business_name') aria-invalid="true" aria-describedby="business_name-error" @enderror>
+@error('business_name')<p class="auth-error" id="business_name-error">{{ $message }}</p>@enderror
+</div>
+
+<div class="field-row">
+<div class="field">
+<label for="kind">What do you do?</label>
+<select id="kind" name="kind" required>
+@foreach (\App\Http\Controllers\Auth\AccountActivationController::KINDS as $k => $label)<option value="{{ $k }}" @selected(old('kind', 'manager') === $k)>{{ $label }}</option>@endforeach
+</select>
+@error('kind')<p class="auth-error">{{ $message }}</p>@enderror
+</div>
+<div class="field">
+<label for="phone">Business phone (M-PESA)</label>
+<input id="phone" type="tel" name="phone" value="{{ old('phone') }}" required autocomplete="tel" placeholder="0712 345 678" @error('phone') aria-invalid="true" aria-describedby="phone-error" @enderror>
+@error('phone')<p class="auth-error" id="phone-error">{{ $message }}</p>@enderror
+</div>
+</div>
+
+<div class="field">
 <label for="password">Password</label>
 <div class="input-wrap"><input id="password" type="password" name="password" required minlength="8" autocomplete="new-password" data-strength-for @error('password') aria-invalid="true" aria-describedby="password-error" @enderror><button type="button" class="peek" aria-label="Show password">Show</button></div>
 <div class="strength" aria-hidden="true"><i></i></div><span class="strength-label" aria-live="polite">At least 8 characters</span>

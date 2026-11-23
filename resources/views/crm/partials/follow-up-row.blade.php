@@ -42,6 +42,7 @@
                 </div>
             @endif
             @if ($followUp->notes)<div class="mt-1 text-xs text-gray-600 dark:text-gray-300">{{ $followUp->notes }}</div>@endif
+            @if ($followUp->detail('file'))<a href="{{ route('crm.follow-ups.file', $followUp) }}" data-no-spa class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:underline"><x-icon name="document-text" class="h-3.5 w-3.5" /> {{ $followUp->detail('file_name') ?: 'Uploaded file' }}</a>@endif
             @if ($followUp->detail('pdf'))<a href="{{ route('crm.follow-ups.pdf', $followUp) }}" class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:underline"><x-icon name="document-text" class="h-3.5 w-3.5" /> {{ $followUp->type === 'demo' && ! $followUp->detail('form') ? 'Demo request' : ($followUp->detail('form.name') ?? 'Submission') }} PDF{{ $followUp->detail('ref') ? ' · '.$followUp->detail('ref') : '' }}</a>@endif
         </div>
         <button type="button" @click="open = !open" class="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5" x-text="open ? 'Cancel' : '{{ $isDemo ? 'Update' : 'Mark done' }}'"></button>

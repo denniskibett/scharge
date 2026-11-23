@@ -174,24 +174,25 @@
 
             {{-- Step 2: activate by setting up their business (App\Http\Controllers\Auth\AccountActivationController) --}}
             @if ($status === 'no_company' && ! $user->hasAnyRole(['sysadmin', 'account_manager']))
+                @php $signup = \App\Http\Controllers\Auth\AccountActivationController::remembered($user) ?? []; @endphp
                 <form method="POST" action="{{ route('account.activate') }}" class="mb-6 rounded-2xl border border-gray-200 p-6 text-left dark:border-gray-800">
                     @csrf
                     <div class="space-y-4">
                         <div>
                             <label for="business_name" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Business name</label>
-                            <input id="business_name" name="business_name" value="{{ old('business_name', $user->name) }}" required maxlength="120" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
+                            <input id="business_name" name="business_name" value="{{ old('business_name', $signup['business_name'] ?? $user->name) }}" required maxlength="120" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
                         </div>
                         <div>
                             <label for="kind" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">What do you do?</label>
                             <select id="kind" name="kind" required class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">
                                 @foreach (\App\Http\Controllers\Auth\AccountActivationController::KINDS as $k => $label)
-                                    <option value="{{ $k }}" @selected(old('kind', 'manager') === $k)>{{ $label }}</option>
+                                    <option value="{{ $k }}" @selected(old('kind', $signup['kind'] ?? 'manager') === $k)>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div>
                             <label for="phone" class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">Business phone (M-PESA)</label>
-                            <input id="phone" name="phone" type="tel" value="{{ old('phone', $user->phone) }}" required placeholder="0712 345 678" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
+                            <input id="phone" name="phone" type="tel" value="{{ old('phone', $signup['phone'] ?? $user->phone) }}" required placeholder="0712 345 678" class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:text-white/90">
                         </div>
                     </div>
                     <button type="submit" class="mt-5 w-full rounded-lg bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700">Activate my account</button>

@@ -51,14 +51,14 @@ class CalendarInvite
 
     /**
      * True when this task belongs on someone's own calendar: a to-do with a time and an owner who has an email,
-     * that a person made or a prospect asked for. The "follow up on the cold email" calls a campaign creates by the
+     * that a person made, a prospect asked for, or that is about a customer's onboarding (Support\Onboarding). The "follow up on the cold email" calls a campaign creates by the
      * hundred (created_by empty) stay in the CRM only: they would bury a Gmail calendar.
      */
     public static function eligible(CrmFollowUp $task): bool
     {
         return $task->due_at !== null && $task->assigned_to
             && ! in_array($task->type, array_merge(CrmFollowUp::NOT_TODO, ['import']), true)
-            && ($task->created_by !== null || in_array($task->type, self::INBOUND, true))
+            && ($task->created_by !== null || in_array($task->type, self::INBOUND, true) || $task->detail('onboarding'))
             && self::recipients($task) !== [];
     }
 

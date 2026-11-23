@@ -262,6 +262,9 @@ class ContactService
             $company->crm_profile = array_merge($company->crm_profile ?? [], ['lost_reason' => $reason]);
         }
         $company->save();
+        if ($stage === 'won') {   // a customer from now on: whoever won it looks after it, else the least loaded account manager
+            \App\Modules\CRM\Support\Onboarding::assignOwner($company, $authorId);
+        }
 
         $label = fn ($s) => Company::CRM_STAGES[$s] ?? ucfirst((string) $s);
         $this->log($company, 'stage', 'Stage: '.($from ? $label($from) : 'none').' → '.$label($stage), $reason, ['from' => $from, 'to' => $stage], null, $authorId);

@@ -178,6 +178,8 @@ class OnboardingGuide
                 'progress' => $tenancies ? "{$tenancies} active ".str('tenancy')->plural($tenancies) : 'No tenancies yet',
                 'done' => $tenancies > 0,
                 'actions' => [['Add tenant', 'tenants.index'], ['New tenancy', 'tenancies.create']],
+                // "We load it for you": the upload box under this chapter (OnboardingGuideController::tenantList)
+                'upload' => ['done' => $this->state()['tenant_list'] ?? null],
             ],
             [
                 'key' => 'payments', 'title' => 'Get paid: M-Pesa, invoices, receipts, reminders',

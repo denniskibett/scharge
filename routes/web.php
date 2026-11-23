@@ -438,6 +438,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
     Route::get('/guide', [App\Http\Controllers\OnboardingGuideController::class, 'show'])->name('guide');
     Route::post('/guide/mark', [App\Http\Controllers\OnboardingGuideController::class, 'mark'])->middleware('role:admin|property_manager')->name('guide.mark');
     Route::post('/guide/visibility', [App\Http\Controllers\OnboardingGuideController::class, 'visibility'])->middleware('role:admin|property_manager')->name('guide.visibility');
+    Route::post('/guide/tenant-list', [App\Http\Controllers\OnboardingGuideController::class, 'tenantList'])->middleware(['role:admin|property_manager', 'throttle:6,10,tenant-list'])->name('guide.tenant-list');
 
     // Onboarding from the CSV template (one row per unit; matches existing buildings and units, dry run first)
     Route::middleware('role:sysadmin|account_manager|admin|property_manager|bnb_host')->group(function () {
