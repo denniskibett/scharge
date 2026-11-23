@@ -317,6 +317,6 @@ class SiteFormController extends Controller
     {
         Log::error("Website {$form} form failed", ['error' => $e->getMessage()]);
 
-        return $this->alert($request, 'Something went wrong.', 'We could not save your details. Please try again, or email hello@scharge.com.', 'error', 500);
+        return $this->alert($request, 'Something went wrong.', 'We could not save your details. Please try again, or email scharge@sharet.africa.', 'error', 500);
     }
 }

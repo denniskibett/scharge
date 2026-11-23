@@ -15,7 +15,7 @@ class Seo
 
     public const DESCRIPTION = 'Property management software built in Kenya: collect rent, service charge and water bills on M-Pesa, with repairs, payouts and reports in one app. From KES 40 per unit a month.';
 
-    public const EMAIL = 'hello@scharge.com';
+    public const EMAIL = 'scharge@sharet.africa';
 
     /** Indexed pages: route => [summary for llms.txt, sitemap priority, change frequency] */
     public const PAGES = [
