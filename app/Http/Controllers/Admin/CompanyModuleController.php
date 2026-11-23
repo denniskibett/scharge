@@ -43,6 +43,27 @@ class CompanyModuleController extends Controller
             'message' => ($data['until'] ?? null) ? 'Grace until '.\Illuminate\Support\Carbon::parse($data['until'])->format('j M Y').'.' : 'Grace ended.']);
     }
 
+    /** Price per unit for the company's first bill (App\Support\FirstBill). Empty clears it. Logged like module changes. */
+    public function price(Request $request, int $company)
+    {
+        abort_unless(\App\Support\FirstBill::installed(), 503, 'Run database/schema/2026_11_23_first_bill.sql first.');
+        $before = DB::table('companies')->where('id', $company)->value('price_per_unit');
+        abort_unless(DB::table('companies')->where('id', $company)->exists(), 404);
+        $data = $request->validate(['price' => 'nullable|numeric|min:1|max:100000']);
+        $price = isset($data['price']) ? round((float) $data['price'], 2) : null;
+        $status = \App\Support\FirstBill::setPrice($company, $price, $request->user()->id);
+        $log = null;
+        if (Modules::installed()) {
+            DB::table('company_module_logs')->insert(['company_id' => $company, 'module' => 'price_per_unit',
+                'from_state' => $before === null ? 'none' : (string) (float) $before, 'to_state' => $price === null ? 'none' : (string) $price,
+                'note' => $price === null ? 'Price cleared' : 'Price per unit KES '.number_format($price, 2), 'user_id' => $request->user()->id, 'created_at' => now()]);
+            $log = self::logs($company, 1)[0] ?? null;
+        }
+
+        return response()->json(['ok' => true, 'first_bill' => $status, 'log' => $log,
+            'message' => $price === null ? 'Price cleared.' : 'Price saved: KES '.number_format($price, 2).' per unit. '.$status['note']]);
+    }
+
     /** The plan's module list: "all" (no list: every module) or the keys ticked. */
     public function plan(Request $request, int $plan)
     {
