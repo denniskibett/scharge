@@ -30,7 +30,12 @@ class DashboardController extends Controller
     public function index()
     {
         $user = auth()->user();
-        
+
+        // A sign-up whose email is now confirmed (by any route): set up the business they named on the sign-up form.
+        if (! $user->company_id && ($company = \App\Http\Controllers\Auth\AccountActivationController::finishSignup($user))) {
+            return redirect()->route('dashboard')->with('success', "Welcome to scharge. {$company->name} is ready.");
+        }
+
         if (!$this->isUserReady($user)) {
             return $this->pendingVerificationView($user);
         }

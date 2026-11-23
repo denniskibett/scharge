@@ -69,6 +69,24 @@
               </li>
             @endforeach
           </ol>
+          @if (isset($ch['upload']) && ! $ch['data_done'] && Route::has('guide.tenant-list') && auth()->user()->hasAnyRole(['admin', 'property_manager']))
+            @php $sent = $ch['upload']['done']; $manager = $guide->company()->owner; @endphp
+            <div class="mt-4 rounded-xl bg-gray-50 p-4 dark:bg-white/[0.03]">
+              <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Short on time? Upload your tenant list and we load it for you. It is free.</p>
+              @if ($sent)
+                <p class="mt-1 text-sm text-green-700 dark:text-green-200">We have "{{ $sent['name'] ?? 'your list' }}" (sent {{ \Illuminate\Support\Carbon::parse($sent['at'])->timezone('Africa/Nairobi')->format('j M, H:i') }}). {{ $manager?->name ? $manager->name.', your account manager,' : 'Our team' }} will load it and call you. You can send another file below.</p>
+              @else
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Any form works: Excel, a PDF, or a photo of the rent book, with each tenant's name, phone, house number and rent. {{ $manager?->name ? $manager->name.', your account manager,' : 'Our team' }} loads it and calls you to confirm.</p>
+              @endif
+              <form method="POST" action="{{ route('guide.tenant-list') }}" enctype="multipart/form-data" data-no-spa class="mt-3 flex flex-wrap items-center gap-2">
+                @csrf
+                <input type="file" name="list" required accept=".xlsx,.xls,.csv,.pdf,.jpg,.jpeg,.png,.heic,.doc,.docx,.ods,.txt" class="text-sm text-gray-700 dark:text-gray-300" style="max-width:100%">
+                <input type="text" name="note" maxlength="500" placeholder="Anything we should know? (optional)" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300" style="flex:1;min-width:12rem">
+                <button class="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600">Send my list</button>
+              </form>
+              @error('list')<p class="mt-2 text-sm text-red-800 dark:text-red-200">{{ $message }}</p>@enderror
+            </div>
+          @endif
           <div class="mt-4 flex flex-wrap items-center gap-2">
             @foreach ($ch['actions'] as $i => $a)
               <a href="{{ $a['url'] }}" @if (str_ends_with($a['url'], '.csv')) data-no-spa @endif

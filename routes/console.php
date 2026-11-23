@@ -158,6 +158,13 @@ foreach ($campaignOrder as $i => $type) {
 Schedule::call(fn () => \App\Modules\CRM\Support\EmailEngagement::prune())
     ->name('crm-email-events-prune')->dailyAt('03:20')->onOneServer();
 
+// Customers stuck on the same setup step for three days: a call for their account manager, naming the step (Support\Onboarding).
+Schedule::command('crm:onboarding-stalls')
+    ->weekdays()->at('08:30')
+    ->withoutOverlapping(30)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+
 // CRM recap of the last working day (Monday covers the weekend): sysadmins get the team, each account manager their own day and calls.
 Schedule::command('crm:daily-recap')
     ->weekdays()->at('07:30')

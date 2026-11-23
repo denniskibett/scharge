@@ -73,6 +73,7 @@ Route::middleware(['auth', 'role:sysadmin|account_manager|sales', 'access:crm'])
 
     Route::get('/follow-ups', [CrmFollowUpController::class, 'index'])->name('follow-ups.index');
     Route::get('/follow-ups/{followUp}/pdf', [DemoRequestController::class, 'pdf'])->name('follow-ups.pdf');
+    Route::get('/follow-ups/{followUp}/file', [DemoRequestController::class, 'file'])->name('follow-ups.file');
     Route::patch('/follow-ups/{followUp}', [CrmFollowUpController::class, 'update'])->name('follow-ups.update');
     Route::get('/requests', [CrmFollowUpController::class, 'requests'])->name('requests.index');
     Route::redirect('/demos', '/crm/requests');

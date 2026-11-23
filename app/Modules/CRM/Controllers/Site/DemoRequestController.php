@@ -149,4 +149,17 @@ class DemoRequestController extends Controller
 
         return Storage::disk('local')->download($path, basename($path), ['Content-Type' => 'application/pdf']);
     }
+
+    /** Staff: a file a customer uploaded for us to load (their tenant list, details.file), from the task. */
+    public function file(Request $request, CrmFollowUp $followUp): StreamedResponse
+    {
+        abort_unless(CrmAccess::followUps(CrmFollowUp::whereKey($followUp->id), $request->user())->exists(), 403);
+        if ($followUp->company) {
+            CrmAccess::authorizeCompany($followUp->company, $request->user());
+        }
+        $path = (string) $followUp->detail('file');
+        abort_unless(str_starts_with($path, 'onboarding/') && Storage::disk('local')->exists($path), 404);
+
+        return Storage::disk('local')->download($path, $followUp->detail('file_name') ?: basename($path));
+    }
 }

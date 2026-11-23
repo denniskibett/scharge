@@ -20,7 +20,7 @@ class EmailCodeController extends Controller
                 $user->forceFill(['email_verified_at' => $user->email_confirmed_at])->save();
             }
 
-            return redirect()->intended(route('dashboard'));
+            return $this->onward($request);
         }
         // First visit: send a code straight away.
         if (EmailOtp::wait($user) === 0 && ! $request->session()->has('email_code_sent')) {
@@ -41,7 +41,19 @@ class EmailCodeController extends Controller
         }
         $request->session()->forget('email_code_sent');
 
-        return redirect()->intended(route('dashboard'))->with('status', $r['message']);
+        return $this->onward($request, $r['message']);
+    }
+
+    /** Email confirmed: set up the business they named at sign-up, then on to the dashboard. */
+    private function onward(Request $request, ?string $status = null)
+    {
+        $company = AccountActivationController::finishSignup($request->user()->fresh());
+        $to = redirect()->intended(route('dashboard'));
+        if ($company) {
+            return $to->with('success', "Welcome to scharge. {$company->name} is ready.");
+        }
+
+        return $status ? $to->with('status', $status) : $to;
     }
 
     public function resend(Request $request)

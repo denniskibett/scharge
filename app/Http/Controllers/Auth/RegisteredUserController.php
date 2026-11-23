@@ -40,7 +40,11 @@ class RegisteredUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class, new \App\Rules\RealEmail],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        ] + AccountActivationController::rules(), AccountActivationController::MESSAGES);
+        // Their business is asked for here, not on a second page after the email code (half of sign-ups stopped there).
+        if ($taken = AccountActivationController::nameTaken((string) $request->business_name)) {
+            return back()->withInput($request->except('password', 'password_confirmation'))->withErrors(['business_name' => $taken]);
+        }
 
         $user = User::create([
             'name' => $request->name,
@@ -52,6 +56,10 @@ class RegisteredUserController extends Controller
         event(new Registered($user));
 
         Auth::login($user);
+        AccountActivationController::remember($user, $request->only('business_name', 'kind', 'phone'));
+        if ($company = AccountActivationController::finishSignup($user)) {   // email already counts as confirmed (codes switched off)
+            return redirect(route('dashboard', absolute: false))->with('success', "Welcome to scharge. {$company->name} is ready.");
+        }
 
         return redirect(route('dashboard', absolute: false));
     }
