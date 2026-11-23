@@ -219,7 +219,7 @@ return [
             'encryption' => ['label' => 'Encryption', 'type' => 'select', 'options' => ['tls' => 'TLS (587)', 'ssl' => 'SSL (465)', 'none' => 'None']],
             'username' => ['label' => 'Username'],
             'password' => ['label' => 'Password', 'secret' => true],
-            'from_address' => ['label' => 'From address', 'type' => 'email', 'required' => true, 'placeholder' => 'hello@scharge.com'],
+            'from_address' => ['label' => 'From address', 'type' => 'email', 'required' => true, 'placeholder' => 'scharge@sharet.africa'],
             'from_name' => ['label' => 'From name', 'placeholder' => 'scharge'],
         ],
     ],
