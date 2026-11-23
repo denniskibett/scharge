@@ -281,7 +281,10 @@ class CalendarController extends Controller
         // they stay on today, in red, until they are done (at most 50, oldest first).
         $today = now();
         $late = $today->between($start, $end)
-            ? $mine()->where('due_at', '<', $start)->orderBy('due_at')->limit(50)->get()
+            ? $mine()->where('due_at', '<', $start)
+                // not the follow-up calls a campaign makes by the hundred: those are worked from the CRM lists
+                ->where(fn ($q) => $q->whereNotNull('created_by')->orWhereIn('type', \App\Modules\CRM\Support\CalendarInvite::INBOUND))
+                ->orderBy('due_at')->limit(50)->get()
             : collect();
 
         $event = fn ($f, bool $carried) => $this->event('followups', (string) $f->id,
