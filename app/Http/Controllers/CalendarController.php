@@ -275,13 +275,23 @@ class CalendarController extends Controller
     /** Open CRM follow-ups (scharge staff; account managers see their own book). */
     private function eventsFollowups(Carbon $start, Carbon $end, array $ctx, $user): Collection
     {
-        $q = CrmAccess::followUps(\App\Modules\CRM\Models\CrmFollowUp::query(), $user)
-            ->with('company:id,name')->whereIn('status', ['open', 'scheduled'])->whereBetween('due_at', [$start, $end]);
+        $mine = fn () => CrmAccess::followUps(\App\Modules\CRM\Models\CrmFollowUp::query(), $user)->with('company:id,name')->todo();
+        $tasks = $mine()->whereBetween('due_at', [$start, $end])->get();
+        // Tasks that were due before the days on screen and are still open would vanish from the calendar:
+        // they stay on today, in red, until they are done (at most 50, oldest first).
+        $today = now();
+        $late = $today->between($start, $end)
+            ? $mine()->where('due_at', '<', $start)->orderBy('due_at')->limit(50)->get()
+            : collect();
 
-        return $q->get()->map(fn ($f) => $this->event('followups', (string) $f->id,
-            ucfirst(str_replace('_', ' ', $f->type)).': '.($f->company?->name ?? $f->title ?? 'Lead'), $f->due_at,
-            ['allDay' => false, 'url' => $f->company_id ? url('/crm/companies/'.$f->company_id) : url('/crm/requests'),
-                'extendedProps' => ['calendar' => $f->due_at->isPast() ? 'Danger' : 'Primary', 'type' => 'followups']]));
+        $event = fn ($f, bool $carried) => $this->event('followups', (string) $f->id,
+            ($carried ? 'Overdue since '.$f->due_at->timezone('Africa/Nairobi')->format('j M').' · ' : '')
+                .ucfirst(str_replace('_', ' ', $f->type)).': '.($f->company?->name ?? $f->title ?? 'Lead'),
+            $carried ? $today->copy()->startOfDay() : $f->due_at,
+            ['allDay' => $carried, 'url' => $f->company_id ? url('/crm/companies/'.$f->company_id) : url('/crm/requests'),
+                'extendedProps' => ['calendar' => $f->due_at->isPast() ? 'Danger' : 'Primary', 'type' => 'followups']]);
+
+        return $tasks->map(fn ($f) => $event($f, false))->concat($late->map(fn ($f) => $event($f, true)));
     }
 
     /** Subscription renewals / trial ends. */

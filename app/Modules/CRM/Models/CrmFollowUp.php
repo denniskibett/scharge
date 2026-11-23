@@ -55,6 +55,8 @@ class CrmFollowUp extends Model
     /** Titles, notes and outcomes are plain text, whoever writes them (staff, forms, emails, campaigns). */
     protected static function booted(): void
     {
+        // A task with a time reaches its account manager's own calendar by email invitation (Support\CalendarInvite).
+        static::saved(fn (self $row) => \App\Modules\CRM\Support\CalendarInvite::saved($row));
         static::saving(function (self $row) {
             $N = \App\Modules\CRM\Support\Normalizer::class;
             if ($row->isDirty('title') && is_string($row->title)) {

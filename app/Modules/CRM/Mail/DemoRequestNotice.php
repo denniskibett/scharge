@@ -36,7 +36,13 @@ class DemoRequestNotice extends Mailable
     public function attachments(): array
     {
         $path = $this->demo->detail('pdf');
+        $files = $path ? [Attachment::fromStorageDisk('local', $path)->as(basename($path))->withMime('application/pdf')] : [];
+        // The call itself, as a calendar invitation: it lands on the account manager's Gmail calendar with no step from them.
+        if (config('crm.calendar_invites', true) && \App\Modules\CRM\Support\CalendarInvite::eligible($this->demo)) {
+            $files[] = Attachment::fromData(fn () => \App\Modules\CRM\Support\CalendarInvite::ics($this->demo), 'invite.ics')
+                ->withMime('text/calendar; charset=UTF-8; method=REQUEST');
+        }
 
-        return $path ? [Attachment::fromStorageDisk('local', $path)->as(basename($path))->withMime('application/pdf')] : [];
+        return $files;
     }
 }
