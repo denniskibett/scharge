@@ -46,11 +46,19 @@ class CalendarInvite
         }
     }
 
-    /** True when this task belongs on someone's calendar: a to-do with a time and an owner who has an email. */
+    /** Requests that come in from the website: always worth a place on the calendar. */
+    public const INBOUND = ['demo', 'viewing', 'meeting'];
+
+    /**
+     * True when this task belongs on someone's own calendar: a to-do with a time and an owner who has an email,
+     * that a person made or a prospect asked for. The "follow up on the cold email" calls a campaign creates by the
+     * hundred (created_by empty) stay in the CRM only: they would bury a Gmail calendar.
+     */
     public static function eligible(CrmFollowUp $task): bool
     {
         return $task->due_at !== null && $task->assigned_to
             && ! in_array($task->type, array_merge(CrmFollowUp::NOT_TODO, ['import']), true)
+            && ($task->created_by !== null || in_array($task->type, self::INBOUND, true))
             && self::recipients($task) !== [];
     }
 

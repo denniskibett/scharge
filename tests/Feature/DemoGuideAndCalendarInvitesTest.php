@@ -53,7 +53,7 @@ class DemoGuideAndCalendarInvitesTest extends RentSchemaTestCase
 
     private function task(array $over = []): CrmFollowUp
     {
-        return CrmFollowUp::create($over + ['company_id' => $this->companyId, 'user_id' => 9, 'assigned_to' => 5, 'type' => 'call',
+        return CrmFollowUp::create($over + ['company_id' => $this->companyId, 'user_id' => 9, 'assigned_to' => 5, 'created_by' => 5, 'type' => 'call',
             'status' => 'open', 'title' => 'Call Grace', 'due_at' => '2026-11-25 14:00:00']);
     }
 
@@ -118,7 +118,12 @@ class DemoGuideAndCalendarInvitesTest extends RentSchemaTestCase
         $this->task(['assigned_to' => null]);
         $this->task(['type' => 'import', 'status' => 'done']);
         $this->task(['due_at' => '2026-11-20 10:00:00']);            // already in the past
+        $this->task(['created_by' => null, 'title' => 'Follow up on the cold email to Grey Oak Ltd']);   // made by a campaign
         Mail::assertNothingSent();
+
+        $this->task(['created_by' => null, 'type' => 'demo']);       // asked for by the prospect: invited
+        Mail::assertSent(FollowUpInvite::class, 1);
+        Mail::fake();
 
         $done = $this->task();
         $done->update(['status' => 'done', 'done_at' => now()]);     // finished: stays on the calendar as history
@@ -134,6 +139,7 @@ class DemoGuideAndCalendarInvitesTest extends RentSchemaTestCase
         CalendarInvite::quietly(function () {
             $this->task(['title' => 'This week', 'due_at' => '2026-11-25 14:00:00']);
             $this->task(['title' => 'Old one', 'due_at' => '2026-10-02 09:00:00']);
+            $this->task(['title' => 'Old campaign call', 'due_at' => '2026-10-04 10:00:00', 'created_by' => null]);
             $this->task(['title' => 'Old but done', 'due_at' => '2026-10-03 09:00:00', 'status' => 'done']);
             $this->task(['title' => 'A link, not a to-do', 'type' => 'contact', 'due_at' => '2026-11-24 09:00:00']);
         });
