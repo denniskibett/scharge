@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Company;
 use App\Modules\CRM\Controllers\Admin\CrmCompanyController;
 use App\Modules\CRM\Controllers\Admin\CrmFollowUpController;
 use App\Modules\CRM\Controllers\Admin\CrmInboxController;
@@ -20,8 +19,7 @@ use Illuminate\Support\Facades\Route;
 
 // Loaded from routes/web.php (inside the "web" middleware group).
 
-// CRM pages work with prospects too, which the Company model hides by default.
-Route::bind('crmCompany', fn ($id) => Company::withoutGlobalScope('customers')->findOrFail($id));
+// {crmCompany} (prospects included) is bound in AppServiceProvider: a binding made here is lost once routes are cached.
 
 // ---------------------------------------------------------------------------
 // Public website forms
