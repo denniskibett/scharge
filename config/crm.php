@@ -10,6 +10,9 @@ return [
         'sidiannete@gmail.com' => ['akenga@sharet.africa'],
     ],
 
+    /* Dated CRM tasks are emailed to their account manager as calendar invitations (Support\CalendarInvite). */
+    'calendar_invites' => (bool) env('CRM_CALENDAR_INVITES', true),
+
     /* Extra addresses copied on every prospect reply and on our answers, besides sysadmins and the account manager (comma-separated). */
     'reply_cc' => array_filter(array_map('trim', explode(',', (string) env('CRM_REPLY_CC', '')))),
 

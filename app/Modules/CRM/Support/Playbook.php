@@ -15,6 +15,12 @@ class Playbook
 {
     private const PRICE = 'from KES 40 per unit per month, billed only for the units you manage';
 
+    /** The price line account managers quote. */
+    public static function price(): string
+    {
+        return self::PRICE;
+    }
+
     public static function segmentOf(Company $company): string
     {
         $segment = (string) $company->profile('segment');

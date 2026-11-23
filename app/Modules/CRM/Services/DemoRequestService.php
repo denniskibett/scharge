@@ -141,7 +141,8 @@ class DemoRequestService
         $mix = self::mix($properties);
         $when = Carbon::parse($data['contact_date'].' '.substr($data['contact_window'], 0, 5), 'Africa/Nairobi');
 
-        $followUp = DB::transaction(function () use ($company, $data, $properties, $totalUnits, $mix, $when, $ref) {
+        // The demo notice below carries the calendar invitation itself, so the automatic one is held back here.
+        $followUp = \App\Modules\CRM\Support\CalendarInvite::quietly(fn () => DB::transaction(function () use ($company, $data, $properties, $totalUnits, $mix, $when, $ref) {
             [$person] = $this->contacts->upsertPerson([
                 'name' => $data['name'], 'phone' => $data['phone'], 'email' => $data['email'] ?? null, 'country_code' => 'KE',
             ], 'website_demo');
@@ -185,20 +186,29 @@ class DemoRequestService
             $this->addOpenProperties($company, $properties, $ref, $demo->id, $demo->details['interests'] ?? []);
 
             return $demo;
-        });
+        }));
 
         \App\Modules\CRM\Support\EmailTracking::mark(\App\Modules\CRM\Support\EmailTracking::latestFor($company), 'booked');
         $followUp->load('company', 'contact', 'assignee');
         $pdf = $this->pdf($followUp);
-        $followUp->update(['details' => array_merge($followUp->details, ['pdf' => $pdf])]);
+        \App\Modules\CRM\Support\CalendarInvite::quietly(fn () => $followUp->update(['details' => array_merge($followUp->details, ['pdf' => $pdf])]));
         $this->contacts->log($company, 'note', 'Demo form submitted ('.$ref.')', 'PDF saved with the demo request.', ['pdf' => $pdf, 'demo_id' => $followUp->id], $followUp->contact);
 
         $to = $followUp->assignee?->mailboxes() ?? [];   // their login email plus any sharet.africa work copy
         if ($to) {
             try {
                 Mail::to($to)->send(new DemoRequestNotice($followUp->fresh(['company', 'contact', 'assignee'])));
+                if (config('crm.calendar_invites', true) && \App\Modules\CRM\Support\CalendarInvite::eligible($followUp)) {
+                    \App\Modules\CRM\Support\CalendarInvite::sent($followUp);   // the notice carried it
+                }
             } catch (\Throwable $e) {
                 Log::warning('Demo request notice failed', ['follow_up' => $followUp->id, 'error' => $e->getMessage()]);
+            }
+            // Then how to handle it: what to show, the answers to expect, and the steps to onboard them.
+            try {
+                Mail::to($to)->send(new \App\Modules\CRM\Mail\DemoHandlingGuide($followUp->fresh(['company', 'contact', 'assignee'])));
+            } catch (\Throwable $e) {
+                Log::warning('Demo handling guide failed', ['follow_up' => $followUp->id, 'error' => $e->getMessage()]);
             }
         }
         // The prospect's own copy, with the same PDF.
