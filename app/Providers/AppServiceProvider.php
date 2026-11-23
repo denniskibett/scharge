@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // CRM pages work with prospects too, which the Company model hides by default. Bound here, not in the routes
+        // file, because `route:cache` keeps the routes but drops bindings made while the routes file loads.
+        \Illuminate\Support\Facades\Route::bind('crmCompany', fn ($id) => \App\Models\Company::withoutGlobalScope('customers')->findOrFail($id));
+
         // Live is served over https: every generated link, form action and asset URL must be https too.
         if ($this->app->isProduction() && $this->app->bound('request') && str_starts_with((string) config('app.url'), 'https://')) {
             \Illuminate\Support\Facades\URL::forceScheme('https');
