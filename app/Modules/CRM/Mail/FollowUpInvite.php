@@ -32,7 +32,7 @@ class FollowUpInvite extends Mailable
 
     public function content(): Content
     {
-        return new Content(text: 'emails.crm-task-invite-text');
+        return new Content(view: 'emails.crm-task-invite', text: 'emails.crm-task-invite-text');
     }
 
     public function attachments(): array

@@ -97,6 +97,10 @@ class DemoGuideAndCalendarInvitesTest extends RentSchemaTestCase
         $task = $this->task();
         Mail::assertSent(FollowUpInvite::class, fn ($m) => $m->method === 'REQUEST' && $m->sequence === 0 && $m->hasTo('amina@example.test'));
 
+        $html = (new FollowUpInvite($task->fresh(['company', 'contact', 'assignee']), 'REQUEST', 0, ['amina@example.test']))->render();
+        $this->assertStringContainsString('On your calendar', $html);
+        $this->assertStringContainsString('Call: Grey Oak Ltd', $html);
+
         $task->update(['notes' => 'Bring the price list']);          // nothing their calendar shows changed
         Mail::assertSent(FollowUpInvite::class, 1);
 
