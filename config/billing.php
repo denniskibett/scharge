@@ -11,6 +11,12 @@ return [
     // Invoices due before this date never lock (old test or migrated invoices). Empty = every invoice counts.
     'lock_from' => env('BILLING_LOCK_FROM'),
 
+    // New accounts' first bill (App\Support\FirstBill): "pay one month, get three months". Only companies created on or
+    // after first_bill_from get it; staff set each company's price per unit first, so no amount is ever guessed.
+    'first_bill_from' => env('BILLING_FIRST_BILL_FROM', '2026-11-23'),
+    'first_bill_due_days' => (int) env('BILLING_FIRST_BILL_DUE_DAYS', 7),
+    'first_bill_months' => (int) env('BILLING_FIRST_BILL_MONTHS', 3),
+
     // How companies pay scharge, shown on the Billing page to the owner and accountant.
     'paybill' => env('SCHARGE_PAYBILL'),
     'account_hint' => env('SCHARGE_PAYBILL_ACCOUNT_HINT', 'your invoice number'),

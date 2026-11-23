@@ -30,6 +30,26 @@ function billingGrace(b, companyId) {
     },
   };
 }
+function firstBill(f, companyId) {
+  return {
+    f, price: f.price ?? '', saving: false,
+    async save(clear) {
+      this.saving = true;
+      try {
+        const res = await fetch(`/admin/companies/${companyId}/billing-price`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content },
+          body: JSON.stringify({ price: clear || this.price === '' ? null : Number(this.price) }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Could not save.');
+        this.f = data.first_bill; this.price = this.f.price ?? '';
+        if (data.log) window.dispatchEvent(new CustomEvent('module-log', { detail: data.log }));
+        window.toast ? window.toast(data.message) : null;
+      } catch (e) { alert(e.message); } finally { this.saving = false; }
+    },
+  };
+}
 function companyModules(rows, logs, companyId) {
   return {
     rows: rows.map(r => ({ ...r, draft: null, noteDraft: '', saving: false })),
@@ -90,6 +110,29 @@ function companyModules(rows, logs, companyId) {
           <input type="text" x-model="note" placeholder="Note (optional)" maxlength="255" class="{{ $field }} w-40">
           <button type="button" @click="save(until)" :disabled="saving || !until" class="inline-flex h-9 items-center rounded-lg bg-brand-500 px-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50">Give grace</button>
           <button type="button" x-show="b.grace_until" @click="save(null)" :disabled="saving" class="inline-flex h-9 items-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">End grace</button>
+        </div>
+      @endif
+    </div>
+  </div>
+
+  @php $first = \App\Support\FirstBill::status($company->id); @endphp
+  <div x-data="firstBill(@js($first), {{ $company->id }})" class="rounded-2xl border border-gray-200 p-4 text-sm dark:border-gray-800">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h3 class="font-semibold text-gray-800 dark:text-white/90">Price per unit</h3>
+        <p class="mt-0.5 text-gray-600 dark:text-gray-300">
+          <span x-text="f.price !== null ? 'KES ' + Number(f.price).toLocaleString() + ' a unit a month' : 'Not set'"></span>
+          <span class="text-gray-500 dark:text-gray-400" x-text="' · ' + f.units + ' units' + (f.amount !== null ? ' · KES ' + Number(f.amount).toLocaleString() + ' a month' : '')"></span>
+        </p>
+        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" x-text="f.note"></p>
+        <p class="mt-0.5 text-xs text-gray-400" x-show="f.eligible && !f.bill" x-text="'New accounts: the first bill is one month, due in ' + f.due_days + ' days, and paying it opens ' + f.months + ' months.'"></p>
+      </div>
+      @if ($canEdit)
+        <div class="flex flex-wrap items-center gap-2" x-show="f.installed">
+          <label class="sr-only" for="price-per-unit">Price per unit (KES)</label>
+          <input id="price-per-unit" type="number" min="1" step="0.01" x-model="price" placeholder="KES per unit" class="{{ $field }} w-32">
+          <button type="button" @click="save(false)" :disabled="saving || price === ''" class="inline-flex h-9 items-center rounded-lg bg-brand-500 px-3 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50">Save price</button>
+          <button type="button" x-show="f.price !== null && !f.bill" @click="save(true)" :disabled="saving" class="inline-flex h-9 items-center rounded-lg border border-gray-300 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5">Clear</button>
         </div>
       @endif
     </div>

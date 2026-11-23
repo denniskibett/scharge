@@ -226,6 +226,8 @@ class BillPayments
                 'payment_id' => $row->sharet_transaction ?? $row->sharet_id ?? 'BP-'.$row->id, 'updated_at' => now()]);
         if (! $updated) {
             Log::warning('scharge bill paid again; refund or credit it', ['billing_payment_id' => $row->id, 'invoice_id' => $row->subscription_invoice_id]);
+        } else {
+            \App\Support\FirstBill::paid((int) $row->subscription_invoice_id);   // a first bill opens its three months
         }
     }
 

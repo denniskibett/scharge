@@ -50,6 +50,12 @@ Schedule::command('meters:post-water')
     ->withoutOverlapping()
     ->onOneServer();
 
+// New accounts' first bill (App\Support\FirstBill): one month (units × staff-set price), due in 7 days, opens 3 months.
+Schedule::command('billing:first-bills')
+    ->hourly()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // Subscription billing is deliberately NOT scheduled yet:
 // SubscriptionService::processMonthlyBilling() charges through a stub gateway
 // that always reports success, so running it would extend subscriptions for

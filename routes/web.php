@@ -837,6 +837,7 @@ Route::prefix('users')->name('admin.users.')->middleware(['access:team', 'role:s
         Route::put('/{company}/users/{user}/role', [App\Http\Controllers\Admin\CompanyController::class, 'updateUserRole'])->name('update-user-role');
         // Paid modules per company (App\Support\Modules): sysadmins only.
         Route::put('/{company}/billing-grace', [App\Http\Controllers\Admin\CompanyModuleController::class, 'grace'])->whereNumber('company')->middleware('role:sysadmin')->name('billing-grace');
+        Route::put('/{company}/billing-price', [App\Http\Controllers\Admin\CompanyModuleController::class, 'price'])->whereNumber('company')->middleware('role:sysadmin')->name('billing-price');
         Route::put('/{company}/modules/{module}', [App\Http\Controllers\Admin\CompanyModuleController::class, 'update'])->whereNumber('company')->middleware('role:sysadmin')->name('modules.update');
         Route::get('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'show'])->name('show');
         Route::put('/{company}', [App\Http\Controllers\Admin\CompanyController::class, 'update'])->name('update');
