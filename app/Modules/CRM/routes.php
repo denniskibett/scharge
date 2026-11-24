@@ -76,6 +76,7 @@ Route::middleware(['auth', 'role:sysadmin|account_manager|sales', 'access:crm'])
     Route::get('/follow-ups/{followUp}/pdf', [DemoRequestController::class, 'pdf'])->name('follow-ups.pdf');
     Route::get('/follow-ups/{followUp}/file', [DemoRequestController::class, 'file'])->name('follow-ups.file');
     Route::patch('/follow-ups/{followUp}', [CrmFollowUpController::class, 'update'])->name('follow-ups.update');
+    Route::post('/follow-ups/{followUp}/draft', [CrmFollowUpController::class, 'sendDraft'])->middleware('throttle:20,1')->name('follow-ups.draft.send');
     Route::get('/requests', [CrmFollowUpController::class, 'requests'])->name('requests.index');
     Route::redirect('/demos', '/crm/requests');
     Route::get('/feedback', [CrmFollowUpController::class, 'feedback'])->name('feedback.index');

@@ -171,6 +171,13 @@ Schedule::command('crm:onboarding-stalls')
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
 
+// Leads that turned us down, quiet for 3 weeks: a value-led email drafted for their account manager to approve (nothing is sent).
+Schedule::command('crm:winback')
+    ->weekdays()->at('08:15')
+    ->withoutOverlapping(30)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+
 // Out-of-office replies that gave a return date: the cold email goes to them again at 08:00 that morning (ReplyService::autoReply).
 Schedule::command('crm:resend-returning')
     ->dailyAt('08:00')

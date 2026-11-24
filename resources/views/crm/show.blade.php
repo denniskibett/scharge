@@ -144,7 +144,7 @@
                 </form>
                 <ol class="divide-y divide-gray-100 dark:divide-gray-800">
                     @forelse ($history as $row)
-                        @if ($row->type === 'email')
+                        @if ($row->type === 'email' && ! ($row->detail('winback') && ! $row->detail('track'))){{-- a win-back draft that was skipped is not an email --}}
                             <li class="py-2" x-show="show === 'all' || show === 'messages'">@include('crm.partials.email-entry', ['row' => $row, 'company' => $company])</li>
                             @continue
                         @endif

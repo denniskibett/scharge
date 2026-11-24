@@ -26,6 +26,9 @@ return [
      */
     'minutes_per_payment' => (int) env('CRM_MINUTES_PER_PAYMENT', 3),
 
+    /* Win-back (crm:winback): leads that turned us down get a value-led draft after this many quiet days, for approval. */
+    'winback' => ['after_days' => (int) env('CRM_WINBACK_AFTER_DAYS', 21)],
+
     /* Extra addresses copied on every prospect reply and on our answers, besides sysadmins and the account manager (comma-separated). */
     'reply_cc' => array_filter(array_map('trim', explode(',', (string) env('CRM_REPLY_CC', '')))),
 

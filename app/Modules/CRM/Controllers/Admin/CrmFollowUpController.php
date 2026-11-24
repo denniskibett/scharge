@@ -87,6 +87,41 @@ class CrmFollowUpController extends Controller
      * Change a row's status. Done/missed/cancelled need an outcome and can book the next step in one go.
      * Demos: scheduled needs a date; done asks the customer for feedback.
      */
+    /** A drafted email (a win-back) approved as is or edited: send it, or skip it. */
+    public function sendDraft(Request $request, CrmFollowUp $followUp, \App\Modules\CRM\Services\OutreachService $outreach): RedirectResponse
+    {
+        abort_unless($this->visible($request)->whereKey($followUp->id)->exists(), 403, 'This follow-up belongs to another account manager.');
+        abort_unless($followUp->detail('winback') && $followUp->is_open && $followUp->company, 404);
+        $input = $request->validate([
+            'action' => ['required', Rule::in(['send', 'skip'])],
+            'subject' => ['required_if:action,send', 'nullable', 'string', 'max:200'],
+            'body' => ['required_if:action,send', 'nullable', 'string', 'max:20000'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+        $company = $followUp->company;
+        if ($input['action'] === 'skip') {
+            $followUp->update(['status' => 'cancelled', 'done_at' => now(), 'outcome' => $input['reason'] ?: 'Skipped']);
+
+            return back()->with('success', 'Skipped. No email was sent.');
+        }
+        try {
+            $row = $outreach->sendText($company, (string) $followUp->detail('to'), [], $input['subject'], $input['body'],
+                'Win-back email approved by '.$request->user()->name.'.', ['winback' => true, 'reason' => $followUp->detail('reason')], $request->user()->id);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return back()->withInput()->with('error', 'The email could not be sent: '.$e->getMessage());
+        }
+        if (! $row) {
+            return back()->with('error', 'Not sent: they asked not to be emailed, or the address is not valid.');
+        }
+        $followUp->update(['status' => 'done', 'done_at' => now(), 'outcome' => 'Sent', 'details' => array_merge($followUp->details ?? [], ['sent_id' => $row->id, 'subject' => $input['subject'], 'body' => $input['body']])]);
+        $company->followUps()->create(['assigned_to' => $company->owner_id, 'created_by' => $request->user()->id, 'type' => 'call', 'status' => 'open',
+            'title' => 'Call about the win-back email to '.$followUp->detail('to'), 'due_at' => now()->addWeekdays(3)->setTime(10, 0)]);
+
+        return back()->with('success', 'Sent to '.$followUp->detail('to').'. A follow-up call is on your calendar in three working days.');
+    }
+
     public function update(Request $request, CrmFollowUp $followUp): RedirectResponse
     {
         abort_unless($this->visible($request)->whereKey($followUp->id)->exists(), 403, 'This follow-up belongs to another account manager.');

@@ -45,8 +45,27 @@
             @if ($followUp->detail('file'))<a href="{{ route('crm.follow-ups.file', $followUp) }}" data-no-spa class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:underline"><x-icon name="document-text" class="h-3.5 w-3.5" /> {{ $followUp->detail('file_name') ?: 'Uploaded file' }}</a>@endif
             @if ($followUp->detail('pdf'))<a href="{{ route('crm.follow-ups.pdf', $followUp) }}" target="_blank" rel="noopener" data-no-spa x-data @click="if ($event.metaKey || $event.ctrlKey || $event.shiftKey) return; $event.preventDefault(); $dispatch('open-pdf', { url: $el.href, title: $el.textContent.trim() })" class="mt-1 inline-flex items-center gap-1 text-xs font-medium text-brand-500 hover:underline"><x-icon name="document-text" class="h-3.5 w-3.5" /> {{ $followUp->type === 'demo' && ! $followUp->detail('form') ? 'Demo request' : ($followUp->detail('form.name') ?? 'Submission') }} PDF{{ $followUp->detail('ref') ? ' · '.$followUp->detail('ref') : '' }}</a>@endif
         </div>
+        @unless ($followUp->detail('winback'))
         <button type="button" @click="open = !open" class="shrink-0 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-white/5" x-text="open ? 'Cancel' : '{{ $isDemo ? 'Update' : 'Mark done' }}'"></button>
+        @endunless
     </div>
+    @if ($followUp->detail('winback') && $followUp->is_open)
+        {{-- A drafted win-back email: read it, change anything, then send or skip. Nothing goes out until someone presses Send. --}}
+        <form method="POST" action="{{ route('crm.follow-ups.draft.send', $followUp) }}" class="mt-3 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-800" x-data="{ skipping: false }">
+            @csrf
+            <label class="block text-xs font-medium text-gray-600 dark:text-gray-400" for="wb-subject-{{ $followUp->id }}">Subject · to {{ $followUp->detail('to') }}</label>
+            <input id="wb-subject-{{ $followUp->id }}" name="subject" value="{{ old('subject', $followUp->detail('subject')) }}" class="{{ $field }}">
+            <label class="sr-only" for="wb-body-{{ $followUp->id }}">Email</label>
+            <textarea id="wb-body-{{ $followUp->id }}" name="body" rows="12" class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm leading-relaxed text-gray-800 focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">{{ old('body', $followUp->detail('body')) }}</textarea>
+            <div x-show="skipping" x-cloak><input name="reason" placeholder="Why skip? (optional)" class="{{ $field }}" aria-label="Why skip"></div>
+            <div class="flex flex-wrap gap-2">
+                <button name="action" value="send" x-show="!skipping" class="h-10 rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600">Send</button>
+                <button type="button" x-show="!skipping" @click="skipping = true" class="h-10 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Skip</button>
+                <button name="action" value="skip" x-show="skipping" x-cloak class="h-10 rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Skip it</button>
+                <button type="button" x-show="skipping" x-cloak @click="skipping = false" class="h-10 px-2 text-sm text-gray-500">Back</button>
+            </div>
+        </form>
+    @endif
     <form x-show="open" x-cloak method="POST" action="{{ route('crm.follow-ups.update', $followUp) }}" class="mt-3 space-y-2 border-t border-gray-200 pt-3 dark:border-gray-800">
         @csrf @method('PATCH')
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_2fr]">

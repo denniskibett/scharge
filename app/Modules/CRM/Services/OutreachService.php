@@ -85,9 +85,19 @@ class OutreachService
     public function resend(Company $company, string $to, array $cc, string $why): ?\App\Modules\CRM\Models\CrmFollowUp
     {
         $company = $company->fresh();
-        $subject = (string) $company->profile('email_subject');
-        $body = (string) $company->profile('email_body');
-        if ($subject === '' || $body === '' || $company->profile('do_not_email') || ! filter_var($to, FILTER_VALIDATE_EMAIL)) {
+
+        return $this->sendText($company, $to, $cc, (string) $company->profile('email_subject'), (string) $company->profile('email_body'), $why, ['resend' => true]);
+    }
+
+    /**
+     * Send one email to a prospect from their account manager (a win-back draft someone approved, say) and log it
+     * on the thread. No new call task, no stage change. Null when there is nothing to send or they asked us to stop.
+     *
+     * @throws \Throwable when the mail could not be sent (nothing is logged then)
+     */
+    public function sendText(Company $company, string $to, array $cc, string $subject, string $body, string $why, array $details = [], ?int $authorId = null): ?\App\Modules\CRM\Models\CrmFollowUp
+    {
+        if (trim($subject) === '' || trim($body) === '' || $company->profile('do_not_email') || ! filter_var($to, FILTER_VALIDATE_EMAIL)) {
             return null;
         }
         $cc = array_values(array_unique(array_filter(array_map(fn ($e) => strtolower(trim((string) $e)), $cc),
@@ -107,8 +117,9 @@ class OutreachService
 
         $row = $company->followUps()->create([
             'assigned_to' => $manager->id, 'type' => 'email', 'status' => 'done', 'done_at' => now(),
-            'title' => Str::limit('Email sent again: '.$subject, 250), 'notes' => $why."\n\n".EmailBody::toText($html),
-            'details' => array_filter(['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::fromFor($company), 'resend' => true, 'why' => $why,
+            'created_by' => $authorId,
+            'title' => Str::limit((! empty($details['resend']) ? 'Email sent again: ' : 'Email: ').$subject, 250), 'notes' => $why."\n\n".EmailBody::toText($html),
+            'details' => array_filter($details + ['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::fromFor($company), 'why' => $why, 'subject' => $subject,
                 'ref' => Playbook::demoRef($company), 'track' => $track, 'message_id' => $sent?->getMessageId(), 'type' => PropertyClass::of($company)]),
         ]);
         $company->forceFill(['crm_profile' => array_merge($company->crm_profile ?? [], ['last_emailed_at' => now()->toDateTimeString()])])->saveQuietly();
