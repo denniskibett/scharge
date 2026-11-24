@@ -106,6 +106,9 @@ Route::prefix('v1/app')->group(function () {
             Route::post('/prospects/{id}/follow-ups', [Mobile\CrmController::class, 'addFollowUp'])->whereNumber('id')->middleware($manage);
             Route::post('/prospects/{id}/reply/handled', [Mobile\CrmController::class, 'replyHandled'])->whereNumber('id')->middleware($manage);
             Route::post('/prospects/{id}/reply', [Mobile\CrmController::class, 'replyAnswer'])->whereNumber('id')->middleware([$manage, 'throttle:20,1,app-crm-reply']);
+            Route::get('/prospects/{id}/playbook', [Mobile\CrmController::class, 'playbook'])->whereNumber('id')->middleware($view);
+            Route::match(['put', 'post'], '/prospects/{id}/playbook/draft', [Mobile\CrmController::class, 'savePlaybookDraft'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/playbook/send', [Mobile\CrmController::class, 'sendPlaybook'])->whereNumber('id')->middleware([$manage, 'throttle:20,1,app-crm-send']);
             Route::get('/follow-ups', [Mobile\CrmController::class, 'followUps'])->middleware($view);
             Route::post('/follow-ups/{id}', [Mobile\CrmController::class, 'updateFollowUp'])->whereNumber('id')->middleware($manage);
             Route::get('/requests', [Mobile\CrmController::class, 'requests'])->middleware($view);

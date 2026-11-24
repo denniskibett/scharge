@@ -184,7 +184,7 @@ class MobileAccess
         if (self::isCrm($user)) {
             $manage = $can('crm.manage');
             $add('crm_today', 'My day');
-            $add('crm_pipeline', 'Pipeline', ['move_stage' => $manage, 'log' => $manage, 'schedule' => $manage, 'handle_reply' => $manage]);
+            $add('crm_pipeline', 'Pipeline', ['move_stage' => $manage, 'log' => $manage, 'schedule' => $manage, 'handle_reply' => $manage, 'send_email' => $manage]);
             $add('crm_follow_ups', 'Follow-ups', ['update' => $manage]);
             $add('crm_sales', 'Sales');
             $add('crm_requests', 'Requests', ['update' => $manage]);

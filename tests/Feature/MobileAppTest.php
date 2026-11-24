@@ -917,6 +917,39 @@ class MobileAppTest extends RentSchemaTestCase
         $this->assertSame(['Mine Homes'], array_column($sales->json('closing'), 'name'));
     }
 
+    public function test_account_managers_send_the_first_email_from_the_app(): void
+    {
+        $this->crmSchema();
+        \Illuminate\Support\Facades\Mail::fake();
+        [$am, $token] = $this->person(null, 'account_manager');
+        [$other] = $this->person(null, 'account_manager');
+        $mine = $this->prospect('Mine Homes', $am->id);
+        DB::table('companies')->where('id', $mine)->update(['email' => 'info@minehomes.test']);
+        $theirs = $this->prospect('Their Estates', $other->id);
+        $blocked = $this->prospect('Quiet Lets', $am->id, 'new', ['do_not_email' => true]);
+
+        $book = $this->api($token)->getJson('/api/v1/app/crm/prospects/'.$mine.'/playbook')->assertOk();
+        $this->assertSame('info@minehomes.test', $book->json('to'));
+        $this->assertNotEmpty($book->json('approach'));
+        $this->assertStringContainsString('Mine Homes', $book->json('subject'));
+        $this->assertStringNotContainsString('<p>', $book->json('body'));   // plain text for the phone
+        $this->assertFalse($book->json('saved_draft'));
+
+        $this->api($token)->putJson('/api/v1/app/crm/prospects/'.$mine.'/playbook/draft', ['subject' => 'Hello Mine', 'body' => "Hi team,\n\nShort note."])
+            ->assertOk()->assertJsonPath('saved_draft', true)->assertJsonPath('subject', 'Hello Mine');
+        $this->api($token)->putJson('/api/v1/app/crm/prospects/'.$mine.'/playbook/draft', ['reset' => true])->assertOk()->assertJsonPath('saved_draft', false);
+
+        $this->api($token)->getJson('/api/v1/app/crm/prospects/'.$theirs.'/playbook')->assertForbidden();
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$theirs.'/playbook/send', ['to' => 'x@y.test', 'subject' => 's', 'body' => 'b', 'follow_up_days' => 3])->assertForbidden();
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$blocked.'/playbook/send', ['to' => 'x@y.test', 'subject' => 's', 'body' => 'b', 'follow_up_days' => 3])->assertStatus(422);
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$mine.'/playbook/send', ['to' => 'info@minehomes.test', 'subject' => 's', 'body' => '   ', 'follow_up_days' => 3])->assertStatus(422);
+
+        $sent = $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$mine.'/playbook/send', ['to' => 'info@minehomes.test', 'subject' => 'Hello Mine', 'body' => "Hi team,\n\nShort note.", 'follow_up_days' => 3])->assertOk();
+        $this->assertStringContainsString('Email sent to info@minehomes.test', $sent->json('message'));
+        \Illuminate\Support\Facades\Mail::assertSent(\App\Modules\CRM\Mail\CrmOutreachEmail::class, fn ($m) => $m->hasTo('info@minehomes.test'));
+        $this->assertSame(1, DB::table('crm_follow_ups')->where('company_id', $mine)->where('status', 'open')->where('assigned_to', $am->id)->count());
+    }
+
     public function test_sysadmins_see_the_whole_pipeline_and_sales_cannot_reach_company_data(): void
     {
         $this->crmSchema();
