@@ -65,7 +65,7 @@
                 @if ($callTo)<a href="{{ $tel($callTo) }}" class="{{ $action }}" title="Call {{ $callTo }}"><x-icon name="phone" class="h-4 w-4" /> Call</a>
                     <a href="{{ $wa($callTo) }}" target="_blank" rel="noopener" class="{{ $action }}"><x-icon name="chat-bubble-left-ellipsis" class="h-4 w-4" /> WhatsApp</a>@endif
                 @if ($mailTo)<a href="mailto:{{ $mailTo }}" class="{{ $action }}" title="{{ $mailTo }}"><x-icon name="envelope" class="h-4 w-4" /> Email</a>@endif
-                <button type="button" x-data x-init="if (new URLSearchParams(location.search).has('playbook')) $nextTick(() => $dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' }))" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600"><x-icon name="light-bulb" class="h-4 w-4" /> Playbook &amp; email</button>
+                <button type="button" x-data x-init="if (new URLSearchParams(location.search).has('playbook')) $nextTick(() => $dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' }))" @click="$dispatch('open-playbook', { url: '{{ route('crm.companies.playbook', $company) }}' })" class="inline-flex h-11 items-center gap-2 rounded-lg bg-brand-500 px-4 text-sm font-semibold text-white hover:bg-brand-600"><x-icon name="light-bulb" class="h-4 w-4" /> Actions</button>
             </div>
         </div>
 

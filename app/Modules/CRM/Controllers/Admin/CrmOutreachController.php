@@ -44,6 +44,8 @@ class CrmOutreachController extends Controller
             'chosenPains' => array_filter(explode(',', (string) $company->profile('pains'))),
             'signals' => Playbook::signals($company),
             'demoUrl' => Playbook::demoUrl($company),
+            'engaged' => \App\Modules\CRM\Support\CloseSteps::engaged($company),
+            'close' => \App\Modules\CRM\Support\CloseSteps::for($company),
         ]);
     }
 

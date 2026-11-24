@@ -22,11 +22,11 @@
 .pb-editor a { color: #DC2626; text-decoration: underline; }
 .pb-editor blockquote { border-left: 3px solid #e5e7eb; padding-left: .8em; color: #6b7280; }
 </style>
-<div x-data="{ tab: '{{ $doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research') }}', copied: '' }" class="flex h-full flex-col overflow-hidden">
+<div x-data="{ tab: '{{ $engaged ? 'close' : ($doNotEmail ? 'approach' : ($hasSavedDraft ? 'email' : 'research')) }}', copied: '' }" class="flex h-full flex-col overflow-hidden">
     {{-- Header --}}
     <div class="flex items-start justify-between gap-3 border-b border-gray-200 p-5 dark:border-gray-800">
         <div class="min-w-0">
-            <p class="text-xs font-medium uppercase tracking-wide text-brand-500">Playbook · {{ $book['label'] }}</p>
+            <p class="text-xs font-medium uppercase tracking-wide text-brand-500">Actions · {{ $book['label'] }}</p>
             <h3 class="truncate text-lg font-semibold text-gray-800 dark:text-white/90">{{ $company->name }}</h3>
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ collect([$company->profile('area'), $company->profile('city')])->filter()->join(', ') ?: 'Location not set' }}
@@ -62,7 +62,7 @@
     </div>
 
     <nav class="flex gap-2 overflow-x-auto border-b border-gray-200 px-5 py-3 dark:border-gray-800" aria-label="Playbook sections">
-        @foreach (['research' => '1 · Research', 'email' => '2 · Cold email', 'approach' => 'How to approach', 'offers' => 'What to sell', 'verify' => 'Verify details'] as $key => $name)
+        @foreach (($engaged ? ['close' => $close['onboarding'] ? 'Onboard them' : 'Close the deal'] : []) + ['research' => '1 · Research', 'email' => ($engaged ? 'Cold email' : '2 · Cold email'), 'approach' => 'How to approach', 'offers' => 'What to sell', 'verify' => 'Verify details'] as $key => $name)
             <button type="button" @click="tab = '{{ $key }}'" :aria-current="{{ $tab($key) }} ? 'page' : null"
                 :class="{{ $tab($key) }} ? 'bg-brand-500 text-white shadow-sm' : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-800 dark:bg-white/5 dark:text-gray-400 dark:hover:bg-white/10'"
                 class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-sm font-medium transition">
@@ -73,6 +73,57 @@
     <div x-show="copied" x-cloak x-text="copied" class="mx-5 mt-3 rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700 dark:bg-green-500/10 dark:text-green-300"></div>
 
     <div class="flex-1 overflow-y-auto p-5">
+        {{-- Close the deal (or onboard them, once Won): shown first once the client has answered --}}
+        @if ($engaged)
+        <div x-show="{{ $tab('close') }}" x-cloak class="space-y-5">
+            @if ($close['said'])
+                <div @class(['rounded-xl border p-4 text-sm', 'border-red-200 bg-red-50/60 dark:border-red-500/30 dark:bg-red-500/5' => $close['said']['pending'], 'border-gray-200 dark:border-gray-800' => ! $close['said']['pending']])>
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $close['said']['from'] }} wrote · {{ $close['said']['at'] }} · <span @class(['font-semibold', 'text-red-700 dark:text-red-300' => ! $close['said']['answered'], 'text-green-700 dark:text-green-300' => $close['said']['answered']])>{{ $close['said']['answered'] ? 'answered' : 'waiting for your answer' }}</span></p>
+                    <p class="mt-2 whitespace-pre-line text-gray-800 dark:text-white/90">{{ $close['said']['text'] }}</p>
+                </div>
+            @endif
+            @if ($close['quote'])
+                <div class="rounded-xl bg-gray-50 p-4 text-sm dark:bg-white/[0.03]">
+                    <p class="font-medium text-gray-800 dark:text-white/90">Their monthly figure · {{ number_format($close['quote']['units']) }} units at KES {{ rtrim(rtrim(number_format($close['quote']['price'], 2), '0'), '.') }}</p>
+                    @if ($close['quote']['start'] === $close['quote']['year'])
+                    <p class="mt-1 text-2xl font-semibold text-gray-800 dark:text-white/90">KES {{ number_format($close['quote']['start']) }} <span class="text-sm font-normal text-gray-500">a month</span></p>
+                    @else
+                    <dl class="mt-2 grid grid-cols-3 gap-3">
+                        <div><dt class="text-xs text-gray-500">First 6 months</dt><dd class="font-semibold text-gray-800 dark:text-white/90">KES {{ number_format($close['quote']['start']) }}</dd></div>
+                        <div><dt class="text-xs text-gray-500">After 6 months</dt><dd class="font-semibold text-gray-800 dark:text-white/90">KES {{ number_format($close['quote']['six']) }}</dd></div>
+                        <div><dt class="text-xs text-gray-500">After a year</dt><dd class="font-semibold text-gray-800 dark:text-white/90">KES {{ number_format($close['quote']['year']) }}</dd></div>
+                    </dl>
+                    @endif
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ $close['quote']['vacant'] !== null ? number_format($close['quote']['in_use']).' in use, '.number_format($close['quote']['vacant']).' vacant (vacant units get 25% off after 6 months, 50% after a year).' : 'All units counted as in use until their units are imported; vacant units get 25% off after 6 months and 50% after a year.' }} Paying the first month opens three.</p>
+                </div>
+            @endif
+            <ol class="space-y-3">
+                @foreach ($close['steps'] as $i => $step)
+                    <li class="flex gap-3 rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                        <span @class(['flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold', 'bg-green-100 text-green-700' => ! empty($step['done']), 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300' => empty($step['done'])])>{{ ! empty($step['done']) ? '✓' : $i + 1 }}</span>
+                        <div class="min-w-0 text-sm">
+                            <p @class(['font-medium text-gray-800 dark:text-white/90', 'line-through opacity-60' => ! empty($step['done'])])>{{ $step['title'] }}</p>
+                            <p class="mt-0.5 text-gray-600 dark:text-gray-400">{{ $step['text'] }}</p>
+                            @if (! empty($step['url']))<a href="{{ $step['url'] }}" class="mt-1 inline-block text-xs font-medium text-brand-500 hover:underline">Open</a>@endif
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
+            @if (! $close['onboarding'])
+                <div>
+                    <h4 class="mb-2 text-sm font-semibold text-gray-800 dark:text-white/90">If they push back</h4>
+                    <dl class="space-y-2 text-sm">
+                        <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"><dt class="font-medium text-gray-800 dark:text-white/90">“It's over our budget”</dt><dd class="mt-0.5 text-gray-600 dark:text-gray-400">Ask for their budget and the units actually in use, then rebuild at the same features: vacant units get cheaper over time, and one building is a fine start.</dd></div>
+                        @foreach (array_slice($book['objections'], 0, 2, true) as $q => $a)
+                            <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-800"><dt class="font-medium text-gray-800 dark:text-white/90">“{{ $q }}”</dt><dd class="mt-0.5 text-gray-600 dark:text-gray-400">{{ $a }}</dd></div>
+                        @endforeach
+                    </dl>
+                    <a href="{{ route('crm.faq.index') }}" class="mt-3 inline-block text-xs font-medium text-brand-500 hover:underline">Client FAQ</a>
+                </div>
+            @endif
+        </div>
+        @endif
+
         {{-- Research: their problems, what we know, what you found --}}
         <div x-show="{{ $tab('research') }}" x-cloak>
             <p class="mb-3 text-sm text-gray-600 dark:text-gray-400">Emails that open with <em>their</em> problem get far more replies than a product pitch. Tick what's likely true for {{ $company->name }}, add one thing you found (their website, listings, reviews), and we'll write the email around it.</p>
@@ -208,7 +259,7 @@
                     <li class="flex gap-2 text-sm text-gray-700 dark:text-gray-300"><x-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-green-600" />{{ $offer }}</li>
                 @endforeach
             </ul>
-            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">Pricing is per unit per month whatever the occupancy. Set the expected monthly fee on the company page so it counts in the sales tracker.</p>
+            <p class="mt-4 text-xs text-gray-500 dark:text-gray-400">Units in use pay the full price per unit; vacant units get 25% off after 6 months as a client and 50% off after a year. The tenant and staff apps are free. Set the expected monthly fee on the company page so it counts in the sales tracker.</p>
         </div>
 
         {{-- Verify details --}}
