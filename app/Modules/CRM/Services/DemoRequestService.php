@@ -121,6 +121,9 @@ class DemoRequestService
 
     public const CHANNELS = ['Phone call', 'WhatsApp', 'Email', 'Video call', 'Visit at our office'];
 
+    /** What the last submit() did: 'new' request, 'same' answers as the open one, or 'merged' into it. */
+    public string $outcome = 'new';
+
     public function __construct(private ContactService $contacts)
     {
     }
@@ -142,7 +145,9 @@ class DemoRequestService
         $when = Carbon::parse($data['contact_date'].' '.substr($data['contact_window'], 0, 5), 'Africa/Nairobi');
 
         // The demo notice below carries the calendar invitation itself, so the automatic one is held back here.
+        $this->outcome = 'new';
         $followUp = \App\Modules\CRM\Support\CalendarInvite::quietly(fn () => DB::transaction(function () use ($company, $data, $properties, $totalUnits, $mix, $when, $ref) {
+            Company::withoutGlobalScope('customers')->whereKey($company->id)->lockForUpdate()->first(); // two quick submits wait in line
             [$person] = $this->contacts->upsertPerson([
                 'name' => $data['name'], 'phone' => $data['phone'], 'email' => $data['email'] ?? null, 'country_code' => 'KE',
             ], 'website_demo');
@@ -161,6 +166,41 @@ class DemoRequestService
             ], fn ($v) => $v !== null));
             $company->update(['crm_profile' => $profile]);
 
+            $details = [
+                'ref' => $ref,
+                'role' => $data['role'],
+                'interests' => array_values(array_intersect(array_keys(self::INTERESTS), $data['interests'] ?? [])),
+                'properties' => $properties,
+                'units' => $totalUnits,
+                'mix' => $mix,
+                'property_class' => self::propertyClass($mix),
+                'billing_now' => $data['billing_now'] ?? null,
+                'contact' => ['date' => $data['contact_date'], 'window' => $data['contact_window'], 'channel' => $data['channel']],
+                'project_type' => self::ROLES[$data['role']] ?? null,
+            ];
+            // One open request per ref: the same answers again (a double click, a resubmit) change nothing; new
+            // answers are merged into the open request (what is new wins, what only the old one had is kept).
+            $open = self::openFor($company, $ref);
+            if ($open) {
+                if (self::fingerprint($open->details ?? [], $open->user_id, $open->notes) === self::fingerprint($details, $person->id, $data['message'] ?? null)) {
+                    $this->outcome = 'same';
+
+                    return $open;
+                }
+                $merged = self::mergeDetails($details + ['consent_at' => now()->toDateTimeString()], $open->details ?? []);
+                $open->update([
+                    'user_id' => $person->id,
+                    'title' => 'Demo request ('.$ref.'): '.$person->name.', '.(($merged['units'] ?? 0) ? number_format($merged['units']).' units' : count($merged['properties'] ?? []).' properties'),
+                    'notes' => trim((string) ($data['message'] ?? '')) !== '' ? $data['message'] : $open->notes,
+                    'due_at' => $when->copy()->timezone(config('app.timezone')),
+                    'details' => $merged,
+                ]);
+                $this->addOpenProperties($company, $merged['properties'] ?? [], $ref, $open->id, $merged['interests'] ?? []);
+                $this->outcome = 'merged';
+
+                return $open;
+            }
+
             $demo = $company->followUps()->create([
                 'user_id' => $person->id,
                 'assigned_to' => $company->owner_id,
@@ -169,30 +209,23 @@ class DemoRequestService
                 'title' => 'Demo request ('.$ref.'): '.$person->name.', '.($totalUnits ? number_format($totalUnits).' units' : count($properties).' properties'),
                 'notes' => $data['message'] ?? null,
                 'due_at' => $when->copy()->timezone(config('app.timezone')),
-                'details' => [
-                    'ref' => $ref,
-                    'role' => $data['role'],
-                    'interests' => array_values(array_intersect(array_keys(self::INTERESTS), $data['interests'] ?? [])),
-                    'properties' => $properties,
-                    'units' => $totalUnits,
-                    'mix' => $mix,
-                    'property_class' => self::propertyClass($mix),
-                    'billing_now' => $data['billing_now'] ?? null,
-                    'contact' => ['date' => $data['contact_date'], 'window' => $data['contact_window'], 'channel' => $data['channel']],
-                    'project_type' => self::ROLES[$data['role']] ?? null,
-                    'consent_at' => now()->toDateTimeString(),
-                ],
+                'details' => $details + ['consent_at' => now()->toDateTimeString()],
             ]);
             $this->addOpenProperties($company, $properties, $ref, $demo->id, $demo->details['interests'] ?? []);
 
             return $demo;
         }));
 
+        if ($this->outcome === 'same') {
+            return $followUp; // same answers as the open request: no second row, PDF or email
+        }
+        $merged = $this->outcome === 'merged';
         \App\Modules\CRM\Support\EmailTracking::mark(\App\Modules\CRM\Support\EmailTracking::latestFor($company), 'booked');
         $followUp->load('company', 'contact', 'assignee');
         $pdf = $this->pdf($followUp);
         \App\Modules\CRM\Support\CalendarInvite::quietly(fn () => $followUp->update(['details' => array_merge($followUp->details, ['pdf' => $pdf])]));
-        $this->contacts->log($company, 'note', 'Demo form submitted ('.$ref.')', 'PDF saved with the demo request.', ['pdf' => $pdf, 'demo_id' => $followUp->id], $followUp->contact);
+        $this->contacts->log($company, 'note', $merged ? 'Demo request updated ('.$ref.')' : 'Demo form submitted ('.$ref.')',
+            $merged ? 'They sent the form again with new answers; merged into the open request and its PDF.' : 'PDF saved with the demo request.', ['pdf' => $pdf, 'demo_id' => $followUp->id], $followUp->contact);
 
         $to = $followUp->assignee?->mailboxes() ?? [];   // their login email plus any sharet.africa work copy
         if ($to) {
@@ -222,6 +255,57 @@ class DemoRequestService
         }
 
         return $followUp;
+    }
+
+    /** The open demo request for this ref, if any (the oldest, when duplicates exist). */
+    public static function openFor(Company $company, string $ref): ?CrmFollowUp
+    {
+        return $company->followUps()->where('type', 'demo')->whereIn('status', ['open', 'scheduled'])
+            ->where('details->ref', strtoupper($ref))->orderBy('id')->first();
+    }
+
+    /** What the prospect answered, without timestamps or files: equal fingerprints mean the same request. */
+    public static function fingerprint(array $details, ?int $userId, ?string $notes): string
+    {
+        $keep = array_intersect_key($details, array_flip(['ref', 'role', 'interests', 'properties', 'billing_now', 'contact']));
+        $keep['interests'] = collect($keep['interests'] ?? [])->sort()->values()->all();
+        $keep['properties'] = collect($keep['properties'] ?? [])->map(fn ($p) => array_map(fn ($v) => is_string($v) ? strtolower(trim($v)) : (int) $v, array_filter((array) $p, fn ($v) => $v !== null && $v !== '')))
+            ->map(function ($p) { ksort($p); return $p; })->sortBy(fn ($p) => json_encode($p))->values()->all();
+        ksort($keep);
+
+        return sha1(json_encode([$keep, $userId, trim((string) $notes)]));
+    }
+
+    /**
+     * Merge two requests for the same ref: $newer wins where it has a value; anything only $older has is kept.
+     * Properties and interests are combined (a property once, by name and location).
+     */
+    public static function mergeDetails(array $newer, array $older): array
+    {
+        $empty = fn ($v) => $v === null || $v === '' || $v === [] || $v === 0;
+        $out = $older;
+        foreach ($newer as $k => $v) {
+            if (in_array($k, ['properties', 'interests', 'mix'], true)) {
+                continue;
+            }
+            if (is_array($v) && is_array($older[$k] ?? null) && ! array_is_list($v)) {
+                $out[$k] = self::mergeDetails($v, $older[$k]);
+            } elseif (! $empty($v) || ! array_key_exists($k, $older)) {
+                $out[$k] = $v;
+            }
+        }
+        $out['interests'] = array_values(array_unique(array_merge($newer['interests'] ?? [], $older['interests'] ?? [])));
+        $props = [];
+        foreach (array_merge($newer['properties'] ?? [], $older['properties'] ?? []) as $p) {
+            $key = strtolower(trim((string) ($p['name'] ?? ''))).'|'.strtolower(trim((string) ($p['location'] ?? '')));
+            $props[$key] = isset($props[$key]) ? $props[$key] + array_filter((array) $p, fn ($v) => $v !== null && $v !== '') : $p;
+        }
+        $out['properties'] = array_values($props);
+        $out['units'] = array_sum(array_map(fn ($p) => (int) ($p['units'] ?? 0), $out['properties']));
+        $out['mix'] = self::mix($out['properties']);
+        $out['property_class'] = self::propertyClass($out['mix']);
+
+        return $out;
     }
 
     public const PROPERTY_STATUSES = ['open' => 'Open', 'demo_done' => 'Demo done', 'proposal' => 'Proposal sent', 'won' => 'Won', 'lost' => 'Lost'];
