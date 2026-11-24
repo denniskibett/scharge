@@ -67,6 +67,7 @@ Route::middleware(['auth', 'role:sysadmin|account_manager|sales', 'access:crm'])
     Route::post('/companies/{crmCompany}/reply/handled', [CrmReplyController::class, 'handled'])->name('companies.reply.handled');
     Route::get('/team', [CrmTeamController::class, 'index'])->name('team.index');
     Route::get('/funnel', [CrmFunnelController::class, 'index'])->name('funnel.index');
+    Route::view('/faq', 'crm.faq')->name('faq.index');
     Route::post('/companies/{crmCompany}/contacts', [CrmCompanyController::class, 'addContact'])->name('companies.contacts.store');
     Route::post('/companies/{crmCompany}/follow-ups', [CrmFollowUpController::class, 'store'])->name('companies.follow-ups.store');
     Route::post('/companies/{crmCompany}/feedback', [CrmFollowUpController::class, 'requestFeedback'])->name('companies.feedback.store');

@@ -7,6 +7,7 @@ use App\Models\Company;
 use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Services\CommissionService;
 use App\Modules\CRM\Support\CrmAccess;
+use App\Modules\CRM\Support\OpenPipeline;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -47,18 +48,14 @@ class CrmSalesController extends Controller
         $companies = CrmAccess::companies(Company::crm(), $user)
             ->when($ownerFilter, fn ($q, $o) => $o === 'none' ? $q->whereNull('owner_id') : $q->where('owner_id', $o));
 
-        $open = (clone $companies)->whereIn('crm_stage', Company::OPEN_CRM_STAGES)
-            ->with('owner:id,name')
-            ->withMin(['followUps as next_due_at' => fn ($q) => $q->todo()], 'due_at')
-            ->get(['id', 'name', 'tier', 'crm_stage', 'owner_id', 'crm_profile']);
+        // The open pipeline as numbers (every imported prospect is an open deal: never load them); only the
+        // late-stage deals on the closing board are fetched.
+        $settings = $this->commission->settings();
+        $groups = OpenPipeline::groups($companies, $settings);
+        $closing = OpenPipeline::closing($companies);
 
-        // Stage changes inside the period, credited to the company's current owner.
-        $moves = CrmFollowUp::where('type', 'stage')
-            ->whereBetween('done_at', [$from, $to])
-            ->whereIn('company_id', (clone $companies)->select('companies.id'))
-            ->with('company:id,name,owner_id,crm_profile,crm_stage')
-            ->orderByDesc('done_at')
-            ->get();
+        // Won and lost inside the period, credited to the company's current owner.
+        $moves = OpenPipeline::closedMoves((clone $companies)->select('companies.id'), $from, $to);
         $won = $moves->filter(fn ($m) => $m->detail('to') === 'won' && $m->company?->crm_stage === 'won')->unique('company_id');
         $lost = $moves->filter(fn ($m) => $m->detail('to') === 'lost' && $m->company?->crm_stage === 'lost')->unique('company_id');
 
@@ -70,10 +67,9 @@ class CrmSalesController extends Controller
         $overdue = CrmAccess::followUps(CrmFollowUp::query(), $user)->overdue()
             ->selectRaw('assigned_to, COUNT(*) as total')->groupBy('assigned_to')->pluck('total', 'assigned_to');
 
-        $rows = $this->scoreboard($staff, $seesAll ? null : $user->id, $open, $won, $lost, $activity, $overdue, $ownerFilter);
+        $rows = $this->scoreboard($staff, $seesAll ? null : $user->id, $groups, $won, $lost, $activity, $overdue, $ownerFilter);
         $lines = $this->commission->lines($from, $to, $rows->pluck('id')->filter()->values()->all());
         $earned = $this->commission->totalsByOwner($lines);
-        $settings = $this->commission->settings();
         $ids = $rows->pluck('id')->filter()->values()->all();
         $managed = $this->commission->managed($ids);
         $rows = $rows->map(fn ($r) => $r + [
@@ -82,10 +78,11 @@ class CrmSalesController extends Controller
             'earned' => $r['id'] ? ($earned[$r['id']] ?? ['fees' => 0, 'commission' => 0, 'properties' => 0]) : null,
             'rate' => $r['id'] ? $this->commission->rateFor($r['id'], $settings) : null,
             // Weighted pipeline (expected monthly platform fees) × this person's share.
-            'forecast_commission' => $r['id'] ? (int) round($open->where('owner_id', $r['id'])->sum(fn ($c) => self::value($c) * (self::STAGE_WEIGHTS[$c->crm_stage] ?? 0)) * $this->commission->rateFor($r['id'], $settings) / 100) : null,
+            'forecast_commission' => $r['id'] ? (int) round($r['forecast'] * $this->commission->rateFor($r['id'], $settings) / 100) : null,
         ]);
 
-        $board = collect(self::CLOSING_STAGES)->mapWithKeys(fn ($stage) => [$stage => $open->where('crm_stage', $stage)
+        $all = OpenPipeline::sum($groups);
+        $board = collect(self::CLOSING_STAGES)->mapWithKeys(fn ($stage) => [$stage => $closing->where('crm_stage', $stage)
             ->sortBy(fn ($c) => [self::date($c->profile('expected_close'))?->timestamp ?? PHP_INT_MAX, $c->tier, $c->name])->values()]);
 
         return view('crm.sales', [
@@ -97,12 +94,12 @@ class CrmSalesController extends Controller
                 'won' => $won->count(),
                 'won_value' => $won->sum(fn ($m) => self::value($m->company)),
                 'lost' => $lost->count(),
-                'open' => $open->count(),
-                'pipeline' => $open->sum(fn ($c) => self::value($c)),
-                'forecast' => (int) round($open->sum(fn ($c) => self::value($c) * (self::STAGE_WEIGHTS[$c->crm_stage] ?? 0))),
+                'open' => $all['open'],
+                'pipeline' => $all['pipeline'],
+                'forecast' => $all['forecast'],
                 'fees' => $lines->sum('fee'),
                 'commission' => $lines->sum('commission'),
-                'closing' => $open->filter(fn ($c) => ($d = self::date($c->profile('expected_close'))) && $d->between($from, $to))->count(),
+                'closing' => OpenPipeline::closingBetween($companies, $from, $to),
             ],
             'board' => $board,
             'recentWins' => $won->take(8),
@@ -158,7 +155,7 @@ class CrmSalesController extends Controller
     }
 
     /** One row per staff member (and "Unassigned"), busiest first. */
-    private function scoreboard($staff, ?int $only, Collection $open, Collection $won, Collection $lost, $activity, $overdue, ?string $ownerFilter): Collection
+    private function scoreboard($staff, ?int $only, Collection $groups, Collection $won, Collection $lost, $activity, $overdue, ?string $ownerFilter): Collection
     {
         $people = $staff->map(fn ($s) => ['id' => $s->id, 'name' => $s->name]);
         if ($only) {
@@ -170,16 +167,17 @@ class CrmSalesController extends Controller
             $people->push(['id' => null, 'name' => 'Unassigned']);
         }
 
-        return $people->map(function ($p) use ($open, $won, $lost, $activity, $overdue) {
-            $mine = $open->where('owner_id', $p['id']);
+        return $people->map(function ($p) use ($groups, $won, $lost, $activity, $overdue) {
+            $mine = OpenPipeline::sum($groups->filter(fn ($g) => $g->owner_id === $p['id']));
             $w = $won->filter(fn ($m) => $m->company->owner_id === $p['id']);
             $l = $lost->filter(fn ($m) => $m->company->owner_id === $p['id']);
 
             return $p + [
-                'open' => $mine->count(),
-                'late' => $mine->whereIn('crm_stage', ['proposal', 'negotiation'])->count(),
-                'pipeline' => $mine->sum(fn ($c) => self::value($c)),
-                'no_next_step' => $mine->whereNull('next_due_at')->count(),
+                'open' => $mine['open'],
+                'late' => $mine['late'],
+                'pipeline' => $mine['pipeline'],
+                'forecast' => $mine['forecast'],
+                'no_next_step' => $mine['no_next_step'],
                 'won' => $w->count(),
                 'won_value' => $w->sum(fn ($m) => self::value($m->company)),
                 'lost' => $l->count(),

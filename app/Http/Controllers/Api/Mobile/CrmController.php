@@ -13,6 +13,7 @@ use App\Modules\CRM\Services\CommissionService;
 use App\Modules\CRM\Services\ContactService;
 use App\Modules\CRM\Services\ReplyService;
 use App\Modules\CRM\Support\CrmAccess;
+use App\Modules\CRM\Support\OpenPipeline;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -290,19 +291,19 @@ class CrmController extends Controller
         [$from, $to] = CrmSalesController::range($period);
         $book = fn () => CrmAccess::companies(Company::crm(), $user)->when(! $seesAll, fn ($q) => $q->where('owner_id', $user->id));
 
-        $open = $book()->whereIn('crm_stage', Company::OPEN_CRM_STAGES)->withMin(['followUps as next_due_at' => fn ($q) => $q->todo()], 'due_at')
-            ->get(['id', 'name', 'tier', 'crm_stage', 'owner_id', 'crm_profile']);
-        $moves = CrmFollowUp::where('type', 'stage')->whereBetween('done_at', [$from, $to])->whereIn('company_id', $book()->select('companies.id'))
-            ->with('company:id,name,owner_id,crm_profile,crm_stage')->orderByDesc('done_at')->get();
+        // Numbers from the database; only the late-stage deals are loaded (Support\OpenPipeline: there are ~180,000 open prospects).
+        $settings = $commission->settings();
+        $all = OpenPipeline::sum(OpenPipeline::groups($book(), $settings));
+        $closing = OpenPipeline::closing($book(), 30);
+        $moves = OpenPipeline::closedMoves($book()->select('companies.id'), $from, $to);
         $won = $moves->filter(fn ($m) => $m->detail('to') === 'won' && $m->company?->crm_stage === 'won')->unique('company_id');
         $lost = $moves->filter(fn ($m) => $m->detail('to') === 'lost' && $m->company?->crm_stage === 'lost')->unique('company_id');
 
-        $settings = $commission->settings();
         $lines = $commission->lines($from, $to, $seesAll ? null : [$user->id]);
         $rate = $seesAll ? null : $commission->rateFor($user->id, $settings);
         $managed = $seesAll ? null : ($commission->managed([$user->id])[$user->id] ?? null);
         $value = fn ($c) => CrmSalesController::value($c);
-        $forecast = (int) round($open->sum(fn ($c) => $value($c) * (CrmSalesController::STAGE_WEIGHTS[$c->crm_stage] ?? 0)));
+        $forecast = $all['forecast'];
         $counts = $book()->selectRaw('crm_stage, COUNT(*) as total')->groupBy('crm_stage')->pluck('total', 'crm_stage');
 
         return response()->json([
@@ -310,16 +311,16 @@ class CrmController extends Controller
             'scope' => $seesAll ? 'team' : 'mine',
             'funnel' => collect(Company::CRM_STAGES)->map(fn ($label, $key) => ['key' => $key, 'label' => $label, 'count' => (int) ($counts[$key] ?? 0)])->values(),
             'totals' => [
-                'open' => $open->count(), 'pipeline' => self::money($open->sum($value)), 'forecast' => self::money($forecast),
+                'open' => $all['open'], 'pipeline' => self::money($all['pipeline']), 'forecast' => self::money($forecast),
                 'won' => $won->count(), 'won_value' => self::money($won->sum(fn ($m) => $value($m->company))), 'lost' => $lost->count(),
                 'win_rate' => $won->count() + $lost->count() ? (int) round($won->count() / ($won->count() + $lost->count()) * 100) : null,
-                'no_next_step' => $open->whereNull('next_due_at')->count(),
+                'no_next_step' => $all['no_next_step'],
                 'fees' => self::money($lines->sum('fee')), 'commission' => self::money($lines->sum('commission')),
                 'rate' => $rate, 'forecast_commission' => $rate !== null ? self::money(round($forecast * $rate / 100)) : null,
                 'units' => $managed ? (int) $managed->units : ($seesAll ? null : 0),
                 'properties' => $managed ? (int) $managed->properties : ($seesAll ? null : 0),
             ],
-            'closing' => $open->whereIn('crm_stage', CrmSalesController::CLOSING_STAGES)->sortBy('tier')->take(30)->map(fn ($c) => $this->prospectRow($c) + ['value' => self::money($value($c))])->values(),
+            'closing' => $closing->map(fn ($c) => $this->prospectRow($c) + ['value' => self::money($value($c))])->values(),
             'wins' => $won->take(10)->map(fn ($m) => ['id' => $m->company_id, 'name' => $m->company?->name, 'at' => $m->done_at?->toIso8601String(), 'value' => self::money($value($m->company))])->values(),
             // Paid platform invoices of the companies this person owns (commission is earned once a bill is settled).
             'lines' => $seesAll ? [] : $lines->sortByDesc('paid_at')->take(40)->map(fn ($l) => ['company' => $l->company, 'property' => $l->property,
