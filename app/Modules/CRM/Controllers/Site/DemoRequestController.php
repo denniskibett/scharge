@@ -147,7 +147,10 @@ class DemoRequestController extends Controller
         $path = $followUp->detail('pdf');
         abort_unless($path && Storage::disk('local')->exists($path), 404);
 
-        return Storage::disk('local')->download($path, basename($path), ['Content-Type' => 'application/pdf']);
+        // Shown in the browser (the CRM's PDF slide-over or a new tab); ?download=1 saves it instead.
+        return $request->boolean('download')
+            ? Storage::disk('local')->download($path, basename($path), ['Content-Type' => 'application/pdf'])
+            : Storage::disk('local')->response($path, basename($path), ['Content-Type' => 'application/pdf'], 'inline');
     }
 
     /** Staff: a file a customer uploaded for us to load (their tenant list, details.file), from the task. */

@@ -1,6 +1,7 @@
 {{-- CRM tabs + success/error pop-ups for every CRM page. --}}
 @include('partials.modal.success-modal')
 @include('partials.modal.error-modal')
+@include('crm.partials.pdf-slideover')
 @php
     $crmTabs = [
         'crm.index' => ['Pipeline', null],
