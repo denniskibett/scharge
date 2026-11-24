@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../core/api.dart';
 import '../core/session.dart';
 import '../core/theme.dart';
 import '../shared/motion.dart';
@@ -415,6 +416,18 @@ class _ProspectScreenState extends State<ProspectScreen> {
                       child: const Text('Mark handled'),
                     ),
                   ]),
+              ],
+              if (_screen?.can('send_email') == true) ...[
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  onPressed: () async {
+                    final sent = await Navigator.of(context).push<bool>(
+                        MaterialPageRoute(builder: (_) => PlaybookEmailScreen(session: s, id: widget.id, name: '${p['name']}')));
+                    if (sent == true) _reload();
+                  },
+                  icon: const Icon(PhosphorIconsLight.paperPlaneTilt, size: 18),
+                  label: const Text('Playbook & email'),
+                ),
               ],
               if (_screen?.can('move_stage') == true || _screen?.can('log') == true) ...[
                 const SizedBox(height: 8),
@@ -949,6 +962,206 @@ class _WaitlistScreenState extends State<WaitlistScreen> {
             ),
         ]);
       },
+    );
+  }
+}
+
+
+/// Playbook and the first email to a prospect, as on the web CRM: how to approach them, what to sell, and the email
+/// (their saved draft or the segment template). Sent from scharge under the account manager's name; replies go to them,
+/// and a follow-up is booked. Server: CrmController::playbook / savePlaybookDraft / sendPlaybook.
+class PlaybookEmailScreen extends StatefulWidget {
+  const PlaybookEmailScreen({super.key, required this.session, required this.id, required this.name});
+  final Session session;
+  final int id;
+  final String name;
+  @override
+  State<PlaybookEmailScreen> createState() => _PlaybookEmailScreenState();
+}
+
+class _PlaybookEmailScreenState extends State<PlaybookEmailScreen> {
+  Map<String, dynamic>? _book;
+  Object? _error;
+  bool _busy = false;
+  final _to = TextEditingController();
+  final _subject = TextEditingController();
+  final _body = TextEditingController();
+  final Set<String> _cc = {};
+  int _days = 3;
+
+  String get _base => '/crm/prospects/${widget.id}/playbook';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _to.dispose();
+    _subject.dispose();
+    _body.dispose();
+    super.dispose();
+  }
+
+  void _fill(Map<String, dynamic> b) {
+    _book = b;
+    _to.text = (b['to'] as String?) ?? _to.text;
+    _subject.text = '${b['subject'] ?? ''}';
+    _body.text = '${b['body'] ?? ''}';
+  }
+
+  Future<void> _load() async {
+    try {
+      final b = await Api.fresh(() => widget.session.api.get(_base));
+      if (mounted) setState(() => _fill(b));
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
+  }
+
+  Future<void> _run(Future<void> Function() work) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      await work();
+    } catch (e) {
+      if (mounted) toast(context, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _save({bool reset = false}) => _run(() async {
+        final b = await widget.session.api.post('$_base/draft', reset ? {'reset': true} : {'subject': _subject.text.trim(), 'body': _body.text});
+        if (!mounted) return;
+        setState(() => _fill(b));
+        toast(context, reset ? 'Back to the playbook email.' : 'Draft saved.');
+      });
+
+  Future<void> _send() async {
+    final to = _to.text.trim();
+    if (to.isEmpty || _subject.text.trim().isEmpty || _body.text.trim().isEmpty) {
+      toast(context, 'Fill in To, Subject and the email first.');
+      return;
+    }
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Send this email?'),
+        content: Text('To $to${_cc.isEmpty ? '' : ' (cc ${_cc.join(', ')})'}, signed by ${_book?['signed_by'] ?? 'you'}. Replies come back to your inbox.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(d).pop(false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.of(d).pop(true), child: const Text('Send')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _run(() async {
+      final r = await widget.session.api.post('$_base/send', {
+        'to': to,
+        'cc': _cc.where((e) => e != to).toList(),
+        'subject': _subject.text.trim(),
+        'body': _body.text,
+        'follow_up_days': _days,
+      });
+      if (!mounted) return;
+      toast(context, '${r['message'] ?? 'Email sent.'}');
+      Navigator.of(context).pop(true);
+    });
+  }
+
+  Widget _bullets(String title, List items, IconData icon) => items.isEmpty
+      ? const SizedBox.shrink()
+      : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SectionTitle(title, icon: icon),
+          for (final i in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('• $i', style: Sc.body(13)),
+            ),
+        ]);
+
+  @override
+  Widget build(BuildContext context) {
+    final b = _book;
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+      body: b == null
+          ? Center(
+              child: _error != null
+                  ? Padding(padding: const EdgeInsets.all(24), child: Text('$_error', textAlign: TextAlign.center))
+                  : const CircularProgressIndicator())
+          : ListView(padding: const EdgeInsets.fromLTRB(12, 8, 12, 40), children: [
+              _title('Playbook', b['label'] as String?),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text('How to approach them', style: Sc.body(14, weight: 600)),
+                children: [
+                  _bullets('Approach', (b['approach'] as List?) ?? [], PhosphorIconsLight.lightbulb),
+                  _bullets('What to sell', (b['offers'] as List?) ?? [], PhosphorIconsLight.tag),
+                  if (_list(b['objections']).isNotEmpty) ...[
+                    const SectionTitle('If they say', icon: PhosphorIconsLight.handshake),
+                    for (final o in _list(b['objections']))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('"${o['q']}"', style: Sc.body(13, weight: 600)),
+                          Text('${o['a']}', style: Sc.body(12.5, color: Sc.muted)),
+                        ]),
+                      ),
+                  ],
+                ],
+              ),
+              const SectionTitle('Email', icon: PhosphorIconsLight.envelope),
+              if (b['do_not_email'] == true)
+                const Notice('They asked not to be emailed', 'Call or WhatsApp instead. This can only be changed on the web CRM.', alert: true)
+              else ...[
+                TextField(controller: _to, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'To')),
+                for (final e in ((b['emails'] as List?) ?? []).cast<String>().where((e) => e != _to.text.trim()))
+                  CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    value: _cc.contains(e),
+                    title: Text('Copy $e', style: Sc.body(13)),
+                    onChanged: (v) => setState(() {
+                      if (v == true && _cc.length < 2) {
+                        _cc.add(e);
+                      } else {
+                        _cc.remove(e);
+                      }
+                    }),
+                  ),
+                const SizedBox(height: 8),
+                TextField(controller: _subject, decoration: const InputDecoration(labelText: 'Subject')),
+                const SizedBox(height: 8),
+                TextField(controller: _body, minLines: 10, maxLines: null, keyboardType: TextInputType.multiline,
+                    decoration: const InputDecoration(labelText: 'Email', alignLabelWithHint: true)),
+                const SizedBox(height: 4),
+                Text('Sent from scharge as ${b['signed_by'] ?? 'you'}; their reply comes to your inbox and shows here.',
+                    style: Sc.body(10.5, color: Sc.muted)),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<int>(
+                  initialValue: _days,
+                  decoration: const InputDecoration(labelText: 'Follow up in'),
+                  items: [
+                    for (final e in ((b['follow_up_days'] as Map?) ?? {'3': '3 working days'}).entries)
+                      DropdownMenuItem(value: int.parse('${e.key}'), child: Text('${e.value}')),
+                  ],
+                  onChanged: (v) => setState(() => _days = v ?? 3),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                    onPressed: _busy ? null : _send, icon: const Icon(PhosphorIconsLight.paperPlaneTilt, size: 18), label: const Text('Send email')),
+                const SizedBox(height: 8),
+                Wrap(spacing: 8, children: [
+                  OutlinedButton(onPressed: _busy ? null : () => _save(), child: const Text('Save draft')),
+                  if (b['saved_draft'] == true)
+                    TextButton(onPressed: _busy ? null : () => _save(reset: true), child: const Text('Back to playbook email')),
+                ]),
+              ],
+            ]),
     );
   }
 }
