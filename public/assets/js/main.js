@@ -225,14 +225,77 @@
         var key = y + '-' + pad(mo + 1) + '-' + pad(d);
         var state = key < today || key > until ? 'past' : taken[key] ? 'booked' : 'free';
         var label = d + ' ' + MONTHS[mo] + (state === 'booked' ? ', booked' : state === 'free' ? ', free' : '');
-        html += '<span class="cal-day is-' + state + (key === today ? ' is-today' : '') + '" title="' + label + '" aria-label="' + label + '">' + d + '</span>';
+        html += state === 'free'
+          ? '<button type="button" class="cal-day is-free' + (key === today ? ' is-today' : '') + '" data-date="' + key + '" title="' + label + '" aria-label="' + label + '">' + d + '</button>'
+          : '<span class="cal-day is-' + state + (key === today ? ' is-today' : '') + '" title="' + label + '" aria-label="' + label + '">' + d + '</span>';
       }
       html += '</div></div>';
     }
-    return html + '</div><p class="cal-legend"><span class="cal-key is-free"></span>Free<span class="cal-key is-booked"></span>Booked<span class="cal-key is-past"></span>Not open yet or past</p>';
+    return html + '</div><p class="cal-legend"><span class="cal-key is-free"></span>Free<span class="cal-key is-booked"></span>Booked<span class="cal-key is-past"></span>Not open yet or past</p>'
+      + '<p class="cal-pick" aria-live="polite">Tap your check-in night, then your check-out day.</p>';
   }
+
+  // Tap check-in, then check-out: the nights between are highlighted and written into the request form's dates field.
+  // A stay can't run through a booked night; tapping again starts over.
+  function pickDates(cal, input) {
+    if (!cal || !input) return;
+    var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], DAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var nice = function (k) { var p = k.split('-').map(Number), d = new Date(Date.UTC(p[0], p[1] - 1, p[2])); return DAY[d.getUTCDay()] + ' ' + p[2] + ' ' + MON[p[1] - 1]; };
+    var nights = function (a, b) { var x = a.split('-').map(Number), y = b.split('-').map(Number); return Math.round((Date.UTC(y[0], y[1] - 1, y[2]) - Date.UTC(x[0], x[1] - 1, x[2])) / 864e5); };
+    var start = null, note = cal.querySelector('.cal-pick');
+    var paint = function (a, b) {
+      $$('.cal-day', cal).forEach(function (el) {
+        var k = el.dataset.date; el.classList.remove('is-start', 'is-range', 'is-end');
+        if (!k) return;
+        if (k === a) el.classList.add('is-start'); else if (b && k === b) el.classList.add('is-end'); else if (b && k > a && k < b) el.classList.add('is-range');
+      });
+    };
+    cal.addEventListener('click', function (e) {
+      var el = e.target.closest('.cal-day[data-date]'); if (!el) return;
+      var k = el.dataset.date;
+      if (!start || k <= start) { start = k; paint(k); input.value = ''; if (note) note.textContent = 'Check-in ' + nice(k) + '. Now tap your check-out day.'; return; }
+      // every night from check-in up to the night before check-out must be free
+      var blocked = false, d = start;
+      while (d < k) { var cell = cal.querySelector('[data-date="' + d + '"]'); if (!cell) { blocked = true; break; } var p = d.split('-').map(Number), n = new Date(Date.UTC(p[0], p[1] - 1, p[2] + 1)); d = n.getUTCFullYear() + '-' + ('0' + (n.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + n.getUTCDate()).slice(-2); }
+      if (blocked) { start = k; paint(k); input.value = ''; if (note) note.textContent = 'Some of those nights are booked. Check-in ' + nice(k) + ': tap your check-out day.'; return; }
+      paint(start, k);
+      var n2 = nights(start, k);
+      input.value = nice(start) + ' to ' + nice(k) + ' (' + n2 + (n2 === 1 ? ' night)' : ' nights)');
+      if (note) note.textContent = 'Picked: ' + input.value + '. Tap another day to change.';
+      start = null;
+      try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (er) {}
+    });
+  }
+
+  // Photo strips: swipe, or use the arrows on wider screens.
+  function gallery(root) {
+    $$('[data-gallery]', root).forEach(function (g) {
+      if (g.dataset.ready) return; g.dataset.ready = '1';
+      var track = g.querySelector('.gallery-track'), count = g.querySelector('.gallery-count'), items = track ? track.children.length : 0;
+      if (!track) return;
+      var step = function (dir) { track.scrollBy({ left: dir * track.clientWidth * 0.9, behavior: 'smooth' }); };
+      $$('[data-gallery-prev]', g).forEach(function (b) { b.addEventListener('click', function () { step(-1); }); });
+      $$('[data-gallery-next]', g).forEach(function (b) { b.addEventListener('click', function () { step(1); }); });
+      var update = function () {
+        var w = track.firstElementChild ? track.firstElementChild.getBoundingClientRect().width + 10 : 1, i = Math.min(items, Math.round(track.scrollLeft / w) + 1);
+        if (count) count.textContent = i + ' / ' + items;
+        g.classList.toggle('at-start', track.scrollLeft < 4);
+        g.classList.toggle('at-end', track.scrollLeft + track.clientWidth >= track.scrollWidth - 4);
+      };
+      track.addEventListener('scroll', function () { clearTimeout(g._t); g._t = setTimeout(update, 60); }, { passive: true });
+      update();
+    });
+  }
+  window.scGallery = gallery;
+  gallery(document);
+
+  var galleryHtml = function (photos, title) {
+    return '<div class="gallery gallery--small" data-gallery><div class="gallery-track">' + photos.slice(0, 12).map(function (u, i) {
+      return '<a class="gallery-item" href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="' + esc(title) + ' photo ' + (i + 1) + '" loading="lazy"></a>';
+    }).join('') + '</div>' + (photos.length > 1 ? '<button type="button" class="gallery-nav gallery-prev" data-gallery-prev aria-label="Previous photo">‹</button><button type="button" class="gallery-nav gallery-next" data-gallery-next aria-label="Next photo">›</button><span class="gallery-count"></span>' : '') + '</div>';
+  };
   var stayCal = $('#stay-cal');
-  if (stayCal) { try { stayCal.innerHTML = stayCalendar(JSON.parse(stayCal.dataset.booked || '[]'), stayCal.dataset.today); } catch (e) {} }
+  if (stayCal) { try { stayCal.innerHTML = stayCalendar(JSON.parse(stayCal.dataset.booked || '[]'), stayCal.dataset.today); pickDates(stayCal, $('#v-when')); } catch (e) {} }
 
   var lroot = $('#browse');
   if (L && lroot) {
@@ -279,11 +342,12 @@
         $('#d-title').textContent = S.title; $('#d-sub').textContent = S.area + ', ' + S.owner + (S.host ? ' · Hosted by ' + S.host : ''); $('#detail').dataset.slug = S.slug || '';
         $('#d-lines').innerHTML = [[ls.kind === 2 ? 'Price' : ls.kind === 1 ? 'Per night' : 'Rent', 'KES ' + fmt(S.price)], ['Other costs', S.costs], ['Availability', S.avail], ['Inspected by scharge', S.verified ? 'Yes' : 'Listed by owner']].map(function (r) { return '<div class="kv"><span class="muted">' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
         if (S.photos && S.photos.length) {
-          $('#d-lines').insertAdjacentHTML('afterbegin', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px">' +
-            S.photos.slice(0, 12).map(function (u, i) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="' + esc(S.title) + ' photo ' + (i + 1) + '" loading="lazy" style="width:100%;height:72px;object-fit:cover;border-radius:10px"></a>'; }).join('') + '</div>');
+          $('#d-lines').insertAdjacentHTML('afterbegin', galleryHtml(S.photos, S.title));
+          gallery($('#d-lines'));
         }
         if (ls.kind === 1 && lroot.dataset.today) {
-          $('#d-lines').insertAdjacentHTML('beforeend', '<h4 class="cal-title">Free dates</h4>' + stayCalendar(S.booked, lroot.dataset.today));
+          $('#d-lines').insertAdjacentHTML('beforeend', '<h4 class="cal-title">Free dates</h4><div class="cal-wrap">' + stayCalendar(S.booked, lroot.dataset.today) + '</div>');
+          pickDates($('#d-lines .cal-wrap'), $('#d-when'));
         }
         $('#d-tags').innerHTML = S.tags.map(function (t) { return '<span class="pill" style="background:var(--blush)">' + esc(t) + '</span>'; }).join('');
         $('#d-form-title').textContent = K.formTitle; $('#d-when-label').textContent = K.whenLabel; $('#d-when').placeholder = K.whenHint;
