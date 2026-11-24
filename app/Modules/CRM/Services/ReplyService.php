@@ -159,11 +159,11 @@ class ReplyService
      * and are saved on the company (extra emails + contacts). A return date ("back on 1 December") schedules the email
      * to go again at 08:00 that morning (crm:resend-returning). Bounces and plain "we got your email" notes: nothing.
      */
-    public function autoReply(Company $company, InboundEmail $mail, CrmFollowUp $row): array
+    public function autoReply(Company $company, InboundEmail $mail, CrmFollowUp $row, ?\Illuminate\Support\Carbon $received = null): array
     {
         $company = $company->fresh();
         $known = array_merge([$company->email], EmailFinder::ccFor($company), (array) $company->profile('bounced_emails', []));
-        $read = OutOfOffice::read($mail, now(), $known);
+        $read = OutOfOffice::read($mail, $received ?? now(), $known);
         $done = ['alternates' => [], 'return_on' => null];
         if ($read['bounce'] || $company->profile('do_not_email') || ! $company->profile('email_subject')) {
             return $done;

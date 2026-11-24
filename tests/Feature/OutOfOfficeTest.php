@@ -151,4 +151,27 @@ class OutOfOfficeTest extends RentSchemaTestCase
         Mail::assertNotSent(CrmOutreachEmail::class);
         $this->assertSame(0, CrmFollowUp::where('details->resend_on_return', true)->count());
     }
+
+    public function test_the_backfill_acts_once_on_replies_logged_before_and_skips_bounces_and_companies_that_wrote_back(): void
+    {
+        Mail::fake();
+        $company = Company::withoutGlobalScopes()->find($this->co);
+        $old = $company->followUps()->create(['type' => 'email', 'status' => 'done', 'title' => 'Automatic reply from Alex', 'created_at' => now()->subDays(3),
+            'notes' => 'I am on leave. For urgent matters contact salesassistant@hilltop.test. I will be back on 1st December.',
+            'details' => ['direction' => 'in', 'auto' => true, 'from' => 'alex@hilltop.test', 'subject' => 'Out of office']]);
+        $company->followUps()->create(['type' => 'email', 'status' => 'done', 'title' => 'Automatic reply', 'notes' => 'Could not deliver to x@y.test',
+            'details' => ['direction' => 'in', 'auto' => true, 'from' => 'mailer-daemon@host.test', 'subject' => 'Undeliverable']]);
+
+        $this->artisan('crm:backfill-out-of-office --dry-run')->assertSuccessful();
+        Mail::assertNothingSent();
+
+        $this->artisan('crm:backfill-out-of-office')->assertSuccessful();
+        Mail::assertSent(CrmOutreachEmail::class, 1);
+        Mail::assertSent(CrmOutreachEmail::class, fn ($m) => $m->hasTo('salesassistant@hilltop.test'));
+        $this->assertSame(1, CrmFollowUp::where('details->resend_on_return', true)->count());
+        $this->assertNotNull($old->fresh()->detail('out_of_office'));
+
+        $this->artisan('crm:backfill-out-of-office')->assertSuccessful();
+        Mail::assertSent(CrmOutreachEmail::class, 1); // a second run does nothing new
+    }
 }
