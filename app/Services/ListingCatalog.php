@@ -62,10 +62,17 @@ class ListingCatalog
                 ->orderBy('sort')->orderBy('id')->get()->groupBy('unit_id')
             : collect();
 
+        // Who hosts a short stay (the BnB company that registered the unit, e.g. "Urban Nest Airbnbs"), by unit.
+        $hosts = Schema::hasTable('unit_managements')
+            ? DB::table('unit_managements as m')->join('companies as h', 'h.id', '=', 'm.company_id')
+                ->whereIn('m.unit_id', $rows->pluck('first_unit'))->where('m.role', 'bnb_host')->where('m.status', 'active')
+                ->orderBy('m.id')->pluck('h.name', 'm.unit_id')
+            : collect();
+
         // Landlords whose KYC scharge verified get the "Verified" badge (docs/ONBOARDING.md).
         $verified = Schema::hasTable('company_kyc') ? DB::table('company_kyc')->where('status', 'verified')->pluck('company_id')->map(fn ($id) => (int) $id)->all() : [];
 
-        return $rows->map(function ($r, $i) use ($photos, $own, $verified) {
+        return $rows->map(function ($r, $i) use ($photos, $own, $verified, $hosts) {
             $stay = $r->stay_type === 'bnb' && (float) $r->bnb_nightly_rate > 0;
             $price = $stay ? (float) $r->bnb_nightly_rate : (float) $r->rent;
             if ($price <= 0) {
@@ -103,6 +110,7 @@ class ListingCatalog
                 'costs' => $costs,
                 'verified' => $r->cid && in_array((int) $r->cid, $verified, true),
                 'owner' => $r->pname,
+                'host' => $stay ? ($hosts[$r->first_unit] ?? null) : null,   // the BnB company, shown as "Hosted by"
                 // A short stay is furnished by nature, whatever the unit record's default says.
                 'tags' => array_values(array_filter([$stay ? 'Short stay (BnB)' : null, $stay ? 'Furnished' : ($r->furnishing ? ucfirst((string) $r->furnishing) : null),
                     $r->n > 1 ? $r->n.' identical units' : null])),

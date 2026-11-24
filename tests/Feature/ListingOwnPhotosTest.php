@@ -41,7 +41,14 @@ class ListingOwnPhotosTest extends RentSchemaTestCase
         $this->photo($p, $c412, 'unit', 'balcony.webp', 2);
         $this->photo($p, null, 'property', 'gate.webp', 3);
 
+        $host = DB::table('companies')->insertGetId(['name' => 'Urban Nest Airbnbs']);
+        DB::table('unit_managements')->insert(['unit_id' => $c412, 'company_id' => $host, 'role' => 'bnb_host', 'status' => 'active']);
         $items = collect(app(ListingCatalog::class)->items())->keyBy('price');
+
+        $this->assertSame('Urban Nest Airbnbs', $items[4500.0]['host'], 'a short stay names its BnB company');
+        $this->assertNull($items[5000.0]['host']);
+        $this->assertSame('One Bedroom BnB · Pinecrest View', $items[4500.0]['title']);
+        $this->assertContains('Short stay (BnB)', $items[4500.0]['tags']);
 
         $this->assertCount(3, $items[4500.0]['photos']);
         $this->assertStringEndsWith('living.webp', $items[4500.0]['photo'], 'its own first photo is the cover');

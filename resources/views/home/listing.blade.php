@@ -26,7 +26,7 @@
     <div class="stack" style="max-width:44rem">
       <div class="chip-row" style="align-self:flex-start">@if ($stay)<span class="pill" style="background:var(--jac);color:#FFF">Short stay · BnB · priced per night</span>@else<span class="pill" style="background:var(--teal);color:#FFF">House to rent · priced per month</span>@endif<span class="pill" style="background:var(--blush)">{{ $item['avail'] }}</span></div>
       <h1 style="font-size:clamp(1.8rem,4vw,3rem)">{{ $item['title'] }}</h1>
-      <p class="muted">@if ($stay)Furnished short stay at {{ $item['owner'] }}, {{ $item['area'] }}. Book by the night; this is not a monthly rental.@else{{ $kind }} in {{ $item['area'] }}, listed by {{ $item['owner'] }}.@endif</p>
+      <p class="muted">@if ($stay)Furnished short stay at {{ $item['owner'] }}, {{ $item['area'] }}@if (! empty($item['host'])), hosted by <b>{{ $item['host'] }}</b>@endif. Book by the night; this is not a monthly rental.@else{{ $kind }} in {{ $item['area'] }}, listed by {{ $item['owner'] }}.@endif</p>
     </div>
     <p class="listing-price" style="font-size:1.6rem">{{ $price }} <span class="small muted" style="font-family:var(--font-body)">{{ $per }}</span></p>
   </div>
@@ -46,6 +46,7 @@
       <h2 style="font-size:1.3rem">Every cost, up front</h2>
       <div>
         <div class="kv"><span class="muted">{{ $stay ? 'Per night' : 'Rent' }}</span><b>{{ $price }}</b></div>
+        @if (! empty($item['host']))<div class="kv"><span class="muted">Hosted by</span><b>{{ $item['host'] }}</b></div>@endif
         <div class="kv"><span class="muted">Other costs</span><b>{{ $item['costs'] }}</b></div>
         <div class="kv"><span class="muted">Availability</span><b>{{ $item['avail'] }}</b></div>
         <div class="kv"><span class="muted">Inspected by scharge</span><b>{{ $item['verified'] ? 'Yes' : 'Listed by owner' }}</b></div>
