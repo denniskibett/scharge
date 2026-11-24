@@ -74,4 +74,45 @@ class OutreachService
 
         return ['manager' => $manager, 'due' => $due];
     }
+
+    /**
+     * Send the company's last cold email again (same subject and text) to $to, copying $cc. Used after an automatic
+     * reply: to the addresses it offered, or on the morning the person is back. Logged on the thread; no new call task
+     * and no stage change. Returns null when there is no email to send again or the company asked not to be emailed.
+     *
+     * @throws \Throwable when the mail could not be sent (nothing is logged then)
+     */
+    public function resend(Company $company, string $to, array $cc, string $why): ?\App\Modules\CRM\Models\CrmFollowUp
+    {
+        $company = $company->fresh();
+        $subject = (string) $company->profile('email_subject');
+        $body = (string) $company->profile('email_body');
+        if ($subject === '' || $body === '' || $company->profile('do_not_email') || ! filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return null;
+        }
+        $cc = array_values(array_unique(array_filter(array_map(fn ($e) => strtolower(trim((string) $e)), $cc),
+            fn ($e) => $e !== strtolower(trim($to)) && filter_var($e, FILTER_VALIDATE_EMAIL))));
+        $manager = ($company->owner_id ? User::find($company->owner_id) : null)
+            ?? User::whereHas('roles', fn ($r) => $r->where('name', 'sysadmin'))->orderBy('id')->first();
+        if (! $manager) {
+            return null;
+        }
+        $html = EmailBody::toHtml($body);
+        $track = Str::random(24);
+        $mailer = Mail::to($to);
+        if ($cc) {
+            $mailer->cc($cc);
+        }
+        $sent = $mailer->send(new CrmOutreachEmail($subject, $html, $manager, $company, $track));
+
+        $row = $company->followUps()->create([
+            'assigned_to' => $manager->id, 'type' => 'email', 'status' => 'done', 'done_at' => now(),
+            'title' => Str::limit('Email sent again: '.$subject, 250), 'notes' => $why."\n\n".EmailBody::toText($html),
+            'details' => array_filter(['to' => $to, 'cc' => $cc ?: null, 'from' => Playbook::fromFor($company), 'resend' => true, 'why' => $why,
+                'ref' => Playbook::demoRef($company), 'track' => $track, 'message_id' => $sent?->getMessageId(), 'type' => PropertyClass::of($company)]),
+        ]);
+        $company->forceFill(['crm_profile' => array_merge($company->crm_profile ?? [], ['last_emailed_at' => now()->toDateTimeString()])])->saveQuietly();
+
+        return $row;
+    }
 }

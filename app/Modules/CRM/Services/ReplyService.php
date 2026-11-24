@@ -7,9 +7,11 @@ use App\Modules\CRM\Mail\CrmReplyCopy;
 use App\Modules\CRM\Mail\CrmReplyEmail;
 use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Support\EmailBody;
+use App\Modules\CRM\Support\EmailFinder;
 use App\Modules\CRM\Support\EmailTracking;
 use App\Modules\CRM\Support\InboundEmail;
 use App\Modules\CRM\Support\Normalizer;
+use App\Modules\CRM\Support\OutOfOffice;
 use App\Modules\CRM\Support\Playbook;
 use App\Modules\Users\Models\User;
 use Illuminate\Support\Facades\Mail;
@@ -22,8 +24,9 @@ use Illuminate\Support\Str;
  */
 class ReplyService
 {
-    public function __construct(private ContactService $contacts)
+    public function __construct(private ContactService $contacts, private ?OutreachService $outreach = null)
     {
+        $this->outreach ??= app(OutreachService::class);
     }
 
     /** The company and our email this message answers, or null when it is not a prospect's reply. */
@@ -118,7 +121,9 @@ class ReplyService
             ], fn ($v) => $v !== null && $v !== ''),
         ]);
         if ($mail->auto) {
-            return $row; // out-of-office and similar: on the thread, no alert
+            $this->autoReply($company, $mail, $row); // on the thread, no alert; acted on below
+
+            return $row;
         }
         EmailTracking::mark($ours, 'replied');
 
@@ -147,6 +152,64 @@ class ReplyService
         }
 
         return $row;
+    }
+
+    /**
+     * An automatic reply to our email. Addresses it offers ("for urgent matters contact …") get our email straight away
+     * and are saved on the company (extra emails + contacts). A return date ("back on 1 December") schedules the email
+     * to go again at 08:00 that morning (crm:resend-returning). Bounces and plain "we got your email" notes: nothing.
+     */
+    public function autoReply(Company $company, InboundEmail $mail, CrmFollowUp $row): array
+    {
+        $company = $company->fresh();
+        $known = array_merge([$company->email], EmailFinder::ccFor($company), (array) $company->profile('bounced_emails', []));
+        $read = OutOfOffice::read($mail, now(), $known);
+        $done = ['alternates' => [], 'return_on' => null];
+        if ($read['bounce'] || $company->profile('do_not_email') || ! $company->profile('email_subject')) {
+            return $done;
+        }
+        $who = $mail->fromName ?: $mail->from;
+
+        if ($read['alternates']) {
+            $alts = $read['alternates'];
+            try {
+                if ($this->outreach->resend($company, $alts[0], array_slice($alts, 1), 'Sent to the addresses in the automatic reply from '.$who.'.')) {
+                    $done['alternates'] = $alts;
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+            EmailFinder::store($company->fresh(), array_map(fn ($e) => ['email' => $e, 'source' => 'auto-reply from '.$mail->from], $alts), false);
+            foreach ($alts as $email) {
+                try {
+                    [$person] = $this->contacts->upsertPerson(['email' => $email], 'crm_auto_reply');
+                    $this->contacts->attachContact($company, $person, 'Named in an automatic reply');
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+            }
+        }
+
+        if ($read['return_on']) {
+            $company->followUps()->where('type', 'email')->where('details->resend_on_return', true)->whereIn('status', ['open', 'scheduled'])->update(['status' => 'cancelled']);
+            $company->followUps()->create([
+                'assigned_to' => $company->owner_id, 'type' => 'email', 'status' => 'scheduled', 'due_at' => $read['return_on']->copy()->timezone(config('app.timezone')),
+                'title' => Str::limit('Send the email again: '.$who.' is back '.$read['return_on']->format('D j M'), 250),
+                'notes' => 'Their automatic reply says they are back on '.$read['return_on']->format('l j F').'. The last cold email goes to '.$mail->from.' again at 08:00 that morning.',
+                'details' => ['resend_on_return' => true, 'to' => $mail->from, 'reply_id' => $row->id],
+            ]);
+            $done['return_on'] = $read['return_on']->toDateString();
+        }
+
+        if ($done['alternates'] || $done['return_on']) {
+            $row->update(['details' => array_merge($row->details ?? [], ['out_of_office' => array_filter($done)])]);
+            $this->contacts->log($company, 'note', 'Automatic reply acted on', collect([
+                $done['alternates'] ? 'Emailed the addresses it offered: '.implode(', ', $done['alternates']).'. Saved them on this company.' : null,
+                $done['return_on'] ? 'The email goes to '.$mail->from.' again at 08:00 on '.$read['return_on']->format('l j F').'.' : null,
+            ])->filter()->join(' '));
+        }
+
+        return $done;
     }
 
     /** Send the account manager's answer in the same thread, then clear the alert. */

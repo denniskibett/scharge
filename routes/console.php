@@ -171,6 +171,13 @@ Schedule::command('crm:onboarding-stalls')
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
 
+// Out-of-office replies that gave a return date: the cold email goes to them again at 08:00 that morning (ReplyService::autoReply).
+Schedule::command('crm:resend-returning')
+    ->dailyAt('08:00')
+    ->withoutOverlapping(30)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+
 // CRM recap of the last working day (Monday covers the weekend): sysadmins get the team, each account manager their own day and calls.
 Schedule::command('crm:daily-recap')
     ->weekdays()->at('07:30')

@@ -25,7 +25,7 @@ class CRMServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([ImportProspects::class, GeocodeProspects::class, SendCampaign::class, MailDelivery::class, MailReplies::class, DailyRecap::class, CleanContacts::class, PullNairobiLeads::class, FindEmails::class, LinkSites::class, TagAreas::class, ApiSandboxKey::class, \App\Modules\CRM\Console\OnboardingStalls::class]);
+            $this->commands([ImportProspects::class, GeocodeProspects::class, SendCampaign::class, MailDelivery::class, MailReplies::class, DailyRecap::class, CleanContacts::class, PullNairobiLeads::class, FindEmails::class, LinkSites::class, TagAreas::class, ApiSandboxKey::class, \App\Modules\CRM\Console\OnboardingStalls::class, \App\Modules\CRM\Console\ResendReturning::class]);
         }
     }
 }
