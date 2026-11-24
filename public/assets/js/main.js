@@ -230,6 +230,7 @@
         var on = ls.sel === h.id;
         return '<article class="listing' + (on ? ' is-selected' : '') + '"><div class="listing-photo" style="background-image:url(' + h.photo + ')"><span class="pill" style="background:' + TAG[ls.kind][0] + ';color:' + TAG[ls.kind][1] + '">' + esc(h.avail) + '</span>' + (h.verified ? '<span class="pill pill--ink">✓ Inspected</span>' : '') + '</div>' +
           '<div class="listing-body"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>' + (h.url ? '<a href="' + esc(h.url) + '" style="color:inherit">' + esc(h.title) + '</a>' : esc(h.title)) + '</b><span class="small muted">' + esc(h.area) + '</span></div>' +
+          (h.host ? '<span class="small muted">Hosted by <b style="color:var(--ink)">' + esc(h.host) + '</b></span>' : '') +
           '<span class="listing-price">KES ' + fmt(h.price) + ' <span class="small muted" style="font-family:var(--font-body)">' + K.per + '</span></span><span class="small muted">' + esc(h.costs) + '</span>' +
           '<button type="button" class="btn ' + (on ? 'btn--ink' : 'btn--primary') + '" style="margin-top:10px" data-open="' + h.id + '">' + (on ? 'Selected' : K.btn) + '</button></div></article>';
       }).join('');
@@ -246,7 +247,7 @@
       document.body.classList.toggle('modal-open', !!S);
       if (wasOpen && !S && lastOpen !== null) { var back = $('[data-open="' + lastOpen + '"]', grid); if (back) back.focus(); }
       if (S) {
-        $('#d-title').textContent = S.title; $('#d-sub').textContent = S.area + ', ' + S.owner; $('#detail').dataset.slug = S.slug || '';
+        $('#d-title').textContent = S.title; $('#d-sub').textContent = S.area + ', ' + S.owner + (S.host ? ' · Hosted by ' + S.host : ''); $('#detail').dataset.slug = S.slug || '';
         $('#d-lines').innerHTML = [[ls.kind === 2 ? 'Price' : ls.kind === 1 ? 'Per night' : 'Rent', 'KES ' + fmt(S.price)], ['Other costs', S.costs], ['Availability', S.avail], ['Inspected by scharge', S.verified ? 'Yes' : 'Listed by owner']].map(function (r) { return '<div class="kv"><span class="muted">' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>'; }).join('');
         if (S.photos && S.photos.length) {
           $('#d-lines').insertAdjacentHTML('afterbegin', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px">' +
