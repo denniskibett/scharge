@@ -170,7 +170,8 @@ class ReplyService
     /**
      * An automatic reply to our email. Addresses it offers ("for urgent matters contact …") get our email straight away
      * and are saved on the company (extra emails + contacts). A return date ("back on 1 December") schedules the email
-     * to go again at 08:00 that morning (crm:resend-returning). Bounces and plain "we got your email" notes: nothing.
+     * to go again at 08:00 that morning (crm:resend-returning). A bounce notice marks the address and tries the next one
+     * (Support\LateBounce). Plain "we got your email" notes: nothing.
      */
     public function autoReply(Company $company, InboundEmail $mail, CrmFollowUp $row, ?\Illuminate\Support\Carbon $received = null): array
     {
@@ -178,7 +179,16 @@ class ReplyService
         $known = array_merge([$company->email], EmailFinder::ccFor($company), (array) $company->profile('bounced_emails', []));
         $read = OutOfOffice::read($mail, $received ?? now(), $known);
         $done = ['alternates' => [], 'return_on' => null];
-        if ($read['bounce'] || $company->profile('do_not_email') || ! $company->profile('email_subject')) {
+        if ($read['bounce']) {   // returned after it was accepted: mark the address, try the next one (Support\LateBounce)
+            try {
+                \App\Modules\CRM\Support\LateBounce::handle($row);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            return $done;
+        }
+        if ($company->profile('do_not_email') || ! $company->profile('email_subject')) {
             return $done;
         }
         $who = $mail->fromName ?: $mail->from;
