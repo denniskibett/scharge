@@ -80,6 +80,7 @@
               </td>
               <td class="p-4 whitespace-nowrap">
                 <div class="property-location text-sm text-gray-500 dark:text-gray-400" x-text="property.location"></div>
+                <div class="text-xs font-medium text-brand-500" x-show="property.owner" x-text="property.owner"></div>
               </td>
               <td class="p-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400" x-text="property.units_count"></td>
               <td class="p-4 whitespace-nowrap text-right">
@@ -634,6 +635,7 @@ function propertyTable() {
                     return (
                         property.name.toLowerCase().includes(term) ||
                         (property.location && property.location.toLowerCase().includes(term)) ||
+                        (property.owner && property.owner.toLowerCase().includes(term)) ||
                         property.units_count.toString().includes(term)
                     );
                 });

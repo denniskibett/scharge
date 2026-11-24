@@ -71,7 +71,8 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                         @foreach ($properties as $p)
                             <tr>
-                                <td class="{{ $td }}"><span class="font-medium text-gray-800 dark:text-white/90">{{ $p->name }}</span>@if ($p->location)<span class="block text-xs text-gray-500 dark:text-gray-400">{{ $p->location }}</span>@endif</td>
+                                <td class="{{ $td }}"><span class="font-medium text-gray-800 dark:text-white/90">{{ $p->name }}</span>@if ($p->location)<span class="block text-xs text-gray-500 dark:text-gray-400">{{ $p->location }}</span>@endif
+                                    @if (! empty($p->hosted))<span class="block text-xs font-medium text-brand-500">Hosts {{ str_replace(',', ', ', $p->hosted) }} here (not the building's owner)</span>@endif</td>
                                 <td class="{{ $td }}">{{ number_format((int) $p->units) }}</td>
                                 <td class="{{ $td }}">{{ number_format((int) $p->occupied) }}</td>
                                 <td class="{{ $td }} text-right font-medium">{{ $plan ? $kes((int) $p->units * $perUnit) : '—' }}</td>
