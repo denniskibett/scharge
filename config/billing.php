@@ -17,6 +17,10 @@ return [
     'first_bill_due_days' => (int) env('BILLING_FIRST_BILL_DUE_DAYS', 7),
     'first_bill_months' => (int) env('BILLING_FIRST_BILL_MONTHS', 3),
 
+    // Vacant units (App\Support\UnitPricing): months as a client => % off the price per unit. Units in use pay in full.
+    // Owner, 24 Nov 2026: 0% for the first 6 months, 25% off after 6 months, 50% off after the first year.
+    'vacant_discounts' => [6 => 25, 12 => 50],
+
     // How companies pay scharge, shown on the Billing page to the owner and accountant.
     'paybill' => env('SCHARGE_PAYBILL'),
     'account_hint' => env('SCHARGE_PAYBILL_ACCOUNT_HINT', 'your invoice number'),

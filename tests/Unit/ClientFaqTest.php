@@ -33,8 +33,8 @@ class ClientFaqTest extends TestCase
         $text = $this->text();
         $this->assertStringContainsString(Playbook::price(), $text);
         $this->assertStringContainsString('How many units do they have in total?', $text);
-        $this->assertStringContainsString('Only the units in use', $text);
-        $this->assertStringContainsString('Vacant units are 50% off, or free.', $text);
+        $this->assertStringContainsString('**First 6 months: no discount** on vacant units. **After 6 months: 25% off** vacant units. **After the first year: 50% off** vacant units.', $text);
+        $this->assertStringNotContainsString('or free', $text);
         $this->assertStringContainsString('We give them everything in their branding.', $text);
         $this->assertStringContainsString('**Last.**', $text);
         $this->assertStringNotContainsStringIgnoringCase('cloud9', $text);

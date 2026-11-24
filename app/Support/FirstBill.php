@@ -111,8 +111,10 @@ class FirstBill
             default => 'The bill is issued within the hour of their last unit being added.',
         };
 
+        $month = $price !== null ? UnitPricing::month($companyId, $price) : null;
+
         return ['installed' => true, 'eligible' => $eligible, 'price' => $price, 'units' => $units,
-            'amount' => $price !== null ? round($price * $units, 2) : null,
+            'amount' => $month['amount'] ?? null, 'month' => $month,
             'bill' => $bill ? ['id' => $bill->id, 'number' => $bill->invoice_number, 'amount' => (float) $bill->amount, 'status' => $bill->status,
                 'due_date' => $bill->due_date, 'first' => $first] : null,
             'months' => self::months(), 'due_days' => self::dueDays(), 'note' => $note];
@@ -150,7 +152,8 @@ class FirstBill
                 return null;
             }
             $price = round((float) $c->price_per_unit, 2);
-            $amount = round($price * $units, 2);
+            $month = UnitPricing::month($companyId, $price);
+            $amount = $month['amount'];
 
             $sub = DB::table('company_subscriptions')->where('company_id', $companyId)->orderByDesc('id')->first(['id']);
             $subId = $sub?->id;
@@ -182,7 +185,8 @@ class FirstBill
                 $invoice['invoice_json'] = json_encode([
                     'first_bill' => true, 'price_per_unit' => $price, 'unit_count' => $units, 'months' => 1, 'covers_months' => $months,
                     'note' => "Pay one month, get {$months} months: paying this bill opens {$months} months of scharge from the day it is paid.",
-                    'lines' => [['month' => 'First month ('.$months.' months of access)', 'units' => $units, 'rate' => $price, 'amount' => $amount]],
+                    'in_use' => $month['in_use'], 'vacant' => $month['vacant'], 'vacant_discount' => $month['discount'],
+                    'lines' => array_map(fn ($l) => ['month' => 'First month ('.$months.' months of access): '.lcfirst($l['month'])] + $l, $month['lines']),
                 ]);
             }
             $id = DB::table('subscription_invoices')->insertGetId($invoice);

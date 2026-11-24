@@ -35,7 +35,7 @@ class ClientFaq
                     ]],
                     ['q' => 'When do I pitch, and what do I lead with?', 'a' => [
                         'Only after the questions. Lead with the **free tenant app and staff app**: tenants see bills, pay and get receipts, send repair requests; staff (caretakers, guards, accountants) work from their phones. Both apps are free and sit outside the client\'s fee.',
-                        'Then the fee: they pay only for the units in use (see Price below).',
+                        'Then the fee: full price for units in use, and vacant units get cheaper the longer they stay with us (see Price below).',
                     ]],
                     ['q' => 'When do I bring up white label?', 'a' => [
                         '**Last.** Never open with it. Put it on the table only after units, how they work, the free apps and the price are settled, or when they ask for their own branding.',
@@ -52,8 +52,9 @@ class ClientFaq
                         'Example: 100 units in use × KES 40 = KES 4,000 a month.',
                     ]],
                     ['q' => 'Which units are charged?', 'a' => [
-                        '**Only the units in use** (occupied). Confirm this to the client: they do not pay full price for empty houses.',
-                        '**Vacant units are 50% off, or free.** Offer 50% off vacant units first; you can go to no charge on vacant units to close the deal.',
+                        '**Units in use pay the full price.** Vacant units get a discount that grows the longer they stay with us, counted from the day they became a client:',
+                        '**First 6 months: no discount** on vacant units. **After 6 months: 25% off** vacant units. **After the first year: 50% off** vacant units.',
+                        'Example at KES 40, with 80 units in use and 20 vacant: KES 4,000 a month at the start, KES 3,800 after 6 months, KES 3,600 after a year. The bill works this out by itself.',
                     ]],
                     ['q' => 'How do they pay us, and what happens if they don\'t?', 'a' => [
                         'The first bill is one month. Paying it opens **three months** of access.',
@@ -62,7 +63,7 @@ class ClientFaq
                     ]],
                     ['q' => 'The client says it is too expensive or over budget. What now?', 'a' => [
                         'Do not drop the price on the spot, and do not let them cancel quietly. **Ask for their budget** for the units and how many units are actually in use.',
-                        'Then rebuild the offer at the same features: count only units in use, take vacant units to 50% off or zero, and start with one building if that fits. Book a proper demo call around that plan.',
+                        'Then rebuild the offer at the same features: show how vacant units get 25% off after 6 months and 50% off after a year, and start with one building if that fits. Book a proper demo call around that plan.',
                         'Per unit, a 20-unit block costs about KES 800 a month: less than one trip to chase late rent.',
                     ]],
                     ['q' => 'Do they have to do the setup themselves?', 'a' => [

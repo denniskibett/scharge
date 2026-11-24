@@ -22,3 +22,7 @@ Only companies created on or after `BILLING_FIRST_BILL_FROM` (default 2026-11-23
 Pieces: `app/Support/FirstBill.php`, `app/Console/Commands/FirstBills.php`, `CompanyModuleController::price` (`PUT /admin/companies/{id}/billing-price`, sysadmin), the Price per unit box in `resources/views/admin/companies/partials/modules.blade.php`, `BillPayments::settle`, `tests/Feature/FirstBillTest.php`.
 
 Going live: `mysql scha_main < database/schema/2026_11_23_first_bill.sql`, then deploy.
+
+## Vacant units (added 2026-11-24)
+
+The month's amount comes from `App\Support\UnitPricing`: units in use pay the full price per unit; vacant units (`units.status = 'vacant'`) get a discount by how long the company has been a client, counted from its first subscription (else when the company was created): **0% for the first 6 months, 25% off from month 7, 50% off from the first anniversary** (`billing.vacant_discounts`). The first bill shows the two lines. The staff price box shows the vacant count and the discount, so bills made by hand use the same figure.

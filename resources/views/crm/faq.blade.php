@@ -25,7 +25,7 @@
 
     <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-100">
         <p class="font-semibold">The call in one line</p>
-        <p class="mt-1">Total units → how they receive and send information → free tenant and staff apps (outside their fee) → charged only for units in use, vacant units 50% off or free → white label last.</p>
+        <p class="mt-1">Total units → how they receive and send information → free tenant and staff apps (outside their fee) → full price for units in use, vacant units 25% off after 6 months and 50% off after a year → white label last.</p>
     </div>
 
     <div class="space-y-6">

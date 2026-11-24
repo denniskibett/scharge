@@ -122,7 +122,7 @@ function companyModules(rows, logs, companyId) {
         <h3 class="font-semibold text-gray-800 dark:text-white/90">Price per unit</h3>
         <p class="mt-0.5 text-gray-600 dark:text-gray-300">
           <span x-text="f.price !== null ? 'KES ' + Number(f.price).toLocaleString() + ' a unit a month' : 'Not set'"></span>
-          <span class="text-gray-500 dark:text-gray-400" x-text="' · ' + f.units + ' units' + (f.amount !== null ? ' · KES ' + Number(f.amount).toLocaleString() + ' a month' : '')"></span>
+          <span class="text-gray-500 dark:text-gray-400" x-text="' · ' + f.units + ' units' + (f.amount !== null ? ' · KES ' + Number(f.amount).toLocaleString() + ' a month' : '') + (f.month && f.month.vacant ? ' (' + f.month.vacant + ' vacant' + (f.month.discount > 0 ? ' at ' + f.month.discount + '% off' : ', full price for now') + ')' : '')"></span>
         </p>
         <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400" x-text="f.note"></p>
         <p class="mt-0.5 text-xs text-gray-400" x-show="f.eligible && !f.bill" x-text="'New accounts: the first bill is one month, due in ' + f.due_days + ' days, and paying it opens ' + f.months + ' months.'"></p>
