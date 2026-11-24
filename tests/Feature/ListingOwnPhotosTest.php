@@ -57,6 +57,33 @@ class ListingOwnPhotosTest extends RentSchemaTestCase
         $this->assertStringEndsWith('gate.webp', $items[5000.0]['photo']);
     }
 
+    public function test_a_short_stay_shows_the_nights_that_are_taken_and_when_it_is_next_free(): void
+    {
+        \Illuminate\Support\Carbon::setTestNow('2026-11-24 09:00:00');
+        $p = DB::table('properties')->insertGetId(['name' => 'Pinecrest View', 'location' => 'Kilimani']);
+        $one = $this->unit($p, 'C412', 4500);
+        $a = $this->unit($p, 'D1', 7000, 'Two Bedroom');
+        $b = $this->unit($p, 'D2', 7000, 'Two Bedroom');
+        $stay = fn (int $unit, string $in, string $out, string $status = 'confirmed') => \App\Models\Booking::create(['unit_id' => $unit, 'source' => 'direct', 'status' => $status, 'check_in' => $in, 'check_out' => $out, 'guest_name' => 'Guest']);
+        $stay($one, '2026-11-24', '2026-11-27');            // tonight and two more nights; the guest leaves on the 27th
+        $stay($one, '2026-12-01', '2026-12-02', 'cancelled');
+        $stay($a, '2026-11-24', '2026-11-26');              // one of the two identical flats is taken, the other is free
+        $stay($b, '2026-11-25', '2026-11-26');
+
+        $items = collect(app(ListingCatalog::class)->items())->keyBy('price');
+
+        $this->assertSame(['2026-11-24', '2026-11-25', '2026-11-26'], $items[4500.0]['booked']);
+        $this->assertSame('2026-11-27', $items[4500.0]['next_free']);
+        $this->assertSame('Free from 27 Nov', $items[4500.0]['avail']);
+        $this->assertSame(['2026-11-25'], $items[7000.0]['booked'], 'taken only on the night both flats are taken');
+        $this->assertSame('Free tonight', $items[7000.0]['avail']);
+
+        // A new booking shows at once (the listings are cached for a few minutes otherwise).
+        $stay($b, '2026-11-24', '2026-11-25');
+        $this->assertSame('Free from 26 Nov', collect(app(ListingCatalog::class)->items())->keyBy('price')[7000.0]['avail']);
+        \Illuminate\Support\Carbon::setTestNow();
+    }
+
     public function test_a_listing_for_several_identical_houses_keeps_to_shared_photos(): void
     {
         $p = DB::table('properties')->insertGetId(['name' => 'Oak Court', 'location' => 'Ruaka']);
@@ -67,7 +94,7 @@ class ListingOwnPhotosTest extends RentSchemaTestCase
 
         $item = app(ListingCatalog::class)->items()[0];
 
-        $this->assertSame('2 available', $item['avail']);
+        $this->assertSame('2 free tonight', $item['avail']);
         $this->assertCount(1, $item['photos']);
         $this->assertStringEndsWith('one-bed.webp', $item['photo']);
     }

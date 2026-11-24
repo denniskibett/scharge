@@ -54,7 +54,7 @@
 </div>
 <div class="hero-controls"><button class="hero-arrow hero-prev" aria-label="Previous slide">‹</button><button class="hero-dot" aria-label="Show slide 1" aria-current="true"></button><button class="hero-dot" aria-label="Show slide 2" aria-current="false"></button><button class="hero-dot" aria-label="Show slide 3" aria-current="false"></button><button class="hero-dot" aria-label="Show slide 4" aria-current="false"></button><button class="hero-arrow hero-next" aria-label="Next slide">›</button></div>
 </section>
-<section class="section" id="browse" data-kind="{{ $startKind }}"><div class="wrap stack-l">
+<section class="section" id="browse" data-kind="{{ $startKind }}" data-today="{{ now('Africa/Nairobi')->toDateString() }}"><div class="wrap stack-l">
 <div class="filters"><div role="tablist" aria-label="Listing type" class="tabs"><button role="tab" class="tab" data-kind="0" aria-selected="false">Homes to rent ({{ $kindCount[0] }})</button><button role="tab" class="tab" data-kind="1" aria-selected="false">Short stays · BnB ({{ $kindCount[1] }})</button><button role="tab" class="tab" data-kind="2" aria-selected="false">Plots for sale ({{ $kindCount[2] }})</button></div>
 <div class="filters-row"><div class="chip-row" style="align-items:center"><span class="small muted" style="font-weight:600">Area</span><span class="chip-row" id="area-chips"></span></div>
 <label class="price" for="lmax"><span class="range-label"><span id="lmax-label">Max rent</span><b id="lmax-out" style="color:var(--ink)"></b></span><input id="lmax" type="range"></label>

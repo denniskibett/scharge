@@ -14,6 +14,13 @@ class Booking extends Model
 
     public const SOURCES = ['direct' => 'Direct', 'airbnb' => 'Airbnb', 'booking_com' => 'Booking.com', 'vrbo' => 'Vrbo', 'other' => 'Other'];
 
+    /** Any change to a stay changes the free dates shown on the public listing. */
+    protected static function booted(): void
+    {
+        static::saved(fn () => \App\Services\ListingCatalog::forget());
+        static::deleted(fn () => \App\Services\ListingCatalog::forget());
+    }
+
     public function unit()
     {
         return $this->belongsTo(Unit::class);

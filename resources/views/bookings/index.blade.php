@@ -41,6 +41,51 @@ Bookings
           <a href="{{ route('bookings.index') }}" class="{{ $unitId ? $outline : $primary }}">All units</a>
           @foreach ($units as $u)<a href="{{ route('bookings.index', ['unit' => $u->id]) }}" class="{{ $unitId === $u->id ? $primary : $outline }}">{{ $u->unit_number }}</a>@endforeach
         </div>
+        {{-- Availability: free and taken nights per unit for four weeks (BookingCalendar::nights). Inline colours: not every shade is in the CSS build. --}}
+        <div class="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]" id="availability">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 p-3 dark:border-gray-800">
+            <div>
+              <p class="text-sm font-semibold text-gray-800 dark:text-white/90">Free and booked nights</p>
+              <p class="text-xs text-gray-500">{{ $calendarStart->format('j M') }} to {{ $calendarDays->last()->format('j M Y') }} ·
+                <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#BBF7D0"></span> free
+                <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:#FCA5A5;margin-left:6px"></span> booked</p>
+            </div>
+            <div class="flex gap-2">
+              <a href="{{ route('bookings.index', array_filter(['unit' => $unitId, 'from' => $calendarStart->copy()->subDays(28)->toDateString()])) }}#availability" class="{{ $outline }}">← Earlier</a>
+              <a href="{{ route('bookings.index', array_filter(['unit' => $unitId])) }}#availability" class="{{ $outline }}">Today</a>
+              <a href="{{ route('bookings.index', array_filter(['unit' => $unitId, 'from' => $calendarStart->copy()->addDays(28)->toDateString()])) }}#availability" class="{{ $outline }}">Later →</a>
+            </div>
+          </div>
+          <div class="overflow-x-auto p-3">
+            <table class="text-xs" style="border-collapse:separate;border-spacing:2px">
+              <thead><tr>
+                <th class="text-left text-gray-500" style="min-width:9rem;padding-right:8px">Unit</th>
+                @foreach ($calendarDays as $d)
+                  <th class="text-gray-500" style="min-width:26px;font-weight:{{ $d->toDateString() === $today ? 700 : 400 }}">{{ substr($d->format('D'), 0, 1) }}<br><span class="text-gray-800 dark:text-white/90">{{ $d->format('j') }}</span>@if ($loop->first || $d->day === 1)<br><span>{{ $d->format('M') }}</span>@endif</th>
+                @endforeach
+              </tr></thead>
+              <tbody>
+                @foreach ($calendarUnits as $u)
+                  <tr>
+                    <td class="text-gray-800 dark:text-white/90" style="padding-right:8px;white-space:nowrap"><b>{{ $u->unit_number }}</b> <span class="text-gray-500">{{ $u->property?->name }}</span></td>
+                    @foreach ($calendarDays as $d)
+                      @php
+                        $b = $nights[$u->id][$d->toDateString()] ?? null;
+                      @endphp
+                      @if ($d->toDateString() < $today)
+                        <td style="height:26px;border-radius:5px;background:{{ $b ? '#E5E7EB' : '#F3F4F6' }}" title="{{ $d->format('D j M') }}{{ $b ? ': '.($b->guest_name ?: 'booked') : '' }}"></td>
+                      @elseif ($b)
+                        <td style="height:26px;border-radius:5px;background:#FCA5A5{{ $d->toDateString() === $today ? ';outline:2px solid #111827' : '' }}" title="{{ $d->format('D j M') }}: {{ $b->guest_name ?: 'Booked' }} ({{ \App\Models\Booking::SOURCES[$b->source] ?? $b->source }}), {{ $b->check_in->format('j M') }} to {{ $b->check_out->format('j M') }}"></td>
+                      @else
+                        <td style="height:26px;border-radius:5px;background:#BBF7D0{{ $d->toDateString() === $today ? ';outline:2px solid #111827' : '' }}" title="{{ $d->format('D j M') }}: free"></td>
+                      @endif
+                    @endforeach
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+        </div>
         <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
           <table class="w-full text-sm">
             <thead><tr class="border-b border-gray-200 text-left text-xs text-gray-500 dark:border-gray-800 dark:text-gray-400">

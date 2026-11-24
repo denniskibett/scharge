@@ -41,6 +41,15 @@
     <img src="{{ $item['photo'] }}" alt="" width="640" height="420" style="width:100%;max-width:640px;border-radius:16px">
   @endif
 
+  @if ($stay)
+    {{-- Free and taken nights for the next three months (drawn by main.js stayCalendar from ListingCatalog's "booked"). --}}
+    <div class="stack">
+      <h2 style="font-size:1.3rem">Free dates</h2>
+      <p class="muted">{{ $item['avail'] }}. Green nights are free; pick yours and send the request below.</p>
+      <div id="stay-cal" data-today="{{ now('Africa/Nairobi')->toDateString() }}" data-booked='@json($item['booked'] ?? [])'><noscript>Ask the host for free dates.</noscript></div>
+    </div>
+  @endif
+
   <div class="detail-page" style="display:flex;flex-wrap:wrap;gap:24px">
     <div class="stack" style="flex:1 1 300px">
       <h2 style="font-size:1.3rem">Every cost, up front</h2>
