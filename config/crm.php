@@ -8,6 +8,7 @@ return [
     'work_copies' => [
         'waithakakamau44@gmail.com' => ['wkamau@sharet.africa'],
         'sidiannete@gmail.com' => ['akenga@sharet.africa'],
+        'aggreyoluoch007@gmail.com' => ['aoluoch@sharet.africa'],
     ],
 
     /* Dated CRM tasks are emailed to their account manager as calendar invitations (Support\CalendarInvite). */
