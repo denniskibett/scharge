@@ -74,7 +74,8 @@
                   </div>
                   <div>
                     <a :href="`/properties/${property.id}`" class="property-name text-sm font-medium text-gray-800 hover:text-blue-600 dark:text-white/90" x-text="property.name"></a>
-                    <p class="property-units text-xs text-gray-500 dark:text-gray-400"><span x-text="property.units_count"></span> units</p>
+                    <p class="property-units text-xs text-gray-500 dark:text-gray-400"><span x-text="property.units_count"></span> <span x-text="property.owned === false ? 'of their units' : 'units'"></span>
+                      <span x-show="property.role && property.owned === false" x-cloak class="ml-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:bg-amber-500/10 dark:text-amber-400" x-text="property.role"></span></p>
                   </div>
                 </div>
               </td>
