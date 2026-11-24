@@ -13,21 +13,24 @@ class PropertyController extends Controller
 {
     public function index()
     {
-        // Get the current authenticated user's company ID
-        $companyId = Auth::user()->company_id;
-        
-        // Scope properties by company_id
-        $properties = Property::where('company_id', $companyId)
+        // A company sees its own buildings. A sysadmin sees every building on scharge, with who it belongs to:
+        // its company, or the hosts running units in it (a host's building has no company of its own).
+        $user = Auth::user();
+        $everything = $user->hasRole('sysadmin');
+        $properties = Property::when(! $everything, fn ($q) => $q->where('company_id', $user->company_id))
                         ->withCount('units')
+                        ->orderBy('name')
                         ->get();
+        $owners = $everything ? self::owners($properties->pluck('id')->all()) : [];
         
         // Prepare properties data for Alpine.js including utility fields
-        $propertiesData = $properties->map(function($property) {
+        $propertiesData = $properties->map(function($property) use ($owners) {
             return [
                 'id' => $property->id,
                 'name' => $property->name,
                 'location' => $property->location,
                 'units_count' => $property->units_count,
+                'owner' => $owners[$property->id] ?? null,
                 'water_rate' => (float) ($property->water_rate ?? 0),
                 'service_charge' => (float) ($property->service_charge ?? 0),
                 'garbage_charge' => (float) ($property->garbage_charge ?? 0),
@@ -443,6 +446,33 @@ class PropertyController extends Controller
      * @param Property $property
      * @throws \Illuminate\Auth\Access\AuthorizationException
      */
+    /**
+     * Who each building belongs to, for the sysadmin's list: "Danaff Kenya", or "Hosted by Urban Nest Airbnbs"
+     * when no company owns it and hosts run units there.
+     *
+     * @param  array<int>  $ids
+     * @return array<int, string>
+     */
+    public static function owners(array $ids): array
+    {
+        $companies = \Illuminate\Support\Facades\DB::table('properties')->join('companies', 'companies.id', '=', 'properties.company_id')
+            ->whereIn('properties.id', $ids)->pluck('companies.name', 'properties.id');
+        $hosts = \Illuminate\Support\Facades\Schema::hasTable('unit_managements')
+            ? \Illuminate\Support\Facades\DB::table('unit_managements as m')->join('units', 'units.id', '=', 'm.unit_id')->join('companies', 'companies.id', '=', 'm.company_id')
+                ->whereIn('units.property_id', $ids)->where('m.status', 'active')->where('m.role', 'bnb_host')
+                ->select('units.property_id', 'companies.name')->distinct()->get()->groupBy('property_id')
+            : collect();
+        $out = [];
+        foreach ($ids as $id) {
+            $names = ($hosts[$id] ?? collect())->pluck('name')->unique()->values();
+            $out[$id] = isset($companies[$id])
+                ? $companies[$id].($names->isNotEmpty() ? ' · hosts: '.$names->implode(', ') : '')
+                : ($names->isNotEmpty() ? 'Hosted by '.$names->implode(', ') : 'No company yet');
+        }
+
+        return $out;
+    }
+
     private function authorizeCompanyAccess(Property $property)
     {
         // Allow sysadmin to access any property

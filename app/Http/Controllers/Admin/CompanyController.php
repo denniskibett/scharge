@@ -197,6 +197,18 @@ class CompanyController extends Controller
             ->groupBy('properties.id', 'properties.name', 'properties.location')
             ->selectRaw("properties.id, properties.name, properties.location, COUNT(units.id) as units, SUM(units.status = 'occupied') as occupied")
             ->orderBy('properties.name')->get();
+        // A host runs units in buildings it does not own: list those too, counting only its own units there.
+        if (\Illuminate\Support\Facades\Schema::hasTable('unit_managements')) {
+            $hosted = \Illuminate\Support\Facades\DB::table('unit_managements as m')->join('units', 'units.id', '=', 'm.unit_id')
+                ->join('properties', 'properties.id', '=', 'units.property_id')
+                ->where('m.company_id', $company->id)->where('m.status', 'active')
+                ->where(fn ($q) => $q->whereNull('properties.company_id')->orWhere('properties.company_id', '!=', $company->id))
+                ->groupBy('properties.id', 'properties.name', 'properties.location')
+                ->selectRaw("properties.id, properties.name, properties.location, COUNT(DISTINCT units.id) as units,
+                    COUNT(DISTINCT CASE WHEN units.status = 'occupied' THEN units.id END) as occupied, GROUP_CONCAT(DISTINCT units.unit_number) as hosted")
+                ->orderBy('properties.name')->get();
+            $propertyBilling = $propertyBilling->concat($hosted)->sortBy('name')->values();
+        }
 
         return view('admin.companies.show', compact(
             'companySubscriptions',
