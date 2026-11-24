@@ -83,7 +83,24 @@ class CloseSteps
             ],
         };
 
-        return ['stage' => $stage, 'said' => $said, 'demo' => $demo, 'quote' => $quote, 'steps' => $steps, 'onboarding' => $stage === 'won'];
+        // What their latest reply says (ReplyIntent) leads the steps and gives a suggested answer.
+        $intent = $reply && (int) $company->profile('reply_intent.follow_up_id') === $reply->id ? (string) $company->profile('reply_intent.intent') : null;
+        $suggested = null;
+        if ($intent && $stage !== 'won') {
+            $first = trim(explode(' ', (string) ($reply->detail('from_name') ?: ''))[0] ?? '');
+            $next = ReplyIntent::next($intent, ctype_upper(str_replace(' ', '', $first)) ? ucfirst(strtolower($first)) : $first);
+            $suggested = $next['answer'];
+            $lead = ['title' => $next['title'], 'text' => $next['text'], 'url' => $page.'#reply', 'done' => $said['answered'] ?? false];
+            $steps = in_array($stage, ['new', 'contacted', 'qualified', 'nurture', 'lost', ''], true)
+                ? array_merge([$lead], array_slice($steps, 1))
+                : array_merge([$lead], $steps);
+            if ($intent === 'seller') {
+                $quote = null; // the per-unit rental price does not apply to a seller
+            }
+        }
+
+        return ['stage' => $stage, 'said' => $said, 'demo' => $demo, 'quote' => $quote, 'steps' => $steps, 'onboarding' => $stage === 'won',
+            'intent' => $intent, 'intent_label' => $intent ? ReplyIntent::LABELS[$intent] : null, 'suggested' => $suggested];
     }
 
     /** "They asked for a phone call 12:00–14:00 on Thu 26 Nov. Call or WhatsApp to confirm." (old requests carry no channel or time) */

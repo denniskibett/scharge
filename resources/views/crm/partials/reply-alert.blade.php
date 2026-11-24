@@ -36,7 +36,9 @@
     <form x-show="tab === 'answer'" method="POST" action="{{ route('crm.companies.reply.answer', $company) }}" class="mt-4 space-y-3">
         @csrf
         <div><label class="{{ $label }}" for="reply-body">Your answer (goes from {{ \App\Modules\CRM\Support\Playbook::fromFor($company) }} in the same thread, signed {{ $company->owner?->name ?? auth()->user()->name }}; their replies come back to you)</label>
-            <textarea id="reply-body" name="body" rows="6" required class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">{{ old('body', 'Hi '.($first ?: 'there').",\n\n") }}</textarea></div>
+            <textarea id="reply-body" name="body" rows="6" required class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">{{ old('body', ($company->profile('reply_intent.intent') && (int) $company->profile('reply_intent.follow_up_id') === (int) ($reply['follow_up_id'] ?? 0))
+                ? \App\Modules\CRM\Support\ReplyIntent::next($company->profile('reply_intent.intent'), ctype_upper(str_replace(' ', '', $first)) ? ucfirst(strtolower($first)) : $first)['answer']
+                : 'Hi '.($first ?: 'there').",\n\n") }}</textarea></div>
         <div class="flex flex-wrap items-end gap-3">
             <div style="min-width:220px"><label class="{{ $label }}" for="reply-stage">Stage</label>{!! $stageSelect('reply-stage') !!}</div>
             <button class="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-500 px-4 text-sm font-medium text-white hover:bg-brand-600"><x-icon name="paper-airplane" class="h-4 w-4" /> Send answer</button>

@@ -31,6 +31,7 @@ class Playbook
 
         return match (true) {
             $company->kind === 'agency' => 'agency',
+            str_contains($hint, 'land & home sales') || (bool) preg_match('/\\b(plots?|land sales?|land selling|homes? for sale)\\b/', $hint) => 'seller',
             str_contains($hint, 'affordable') || str_contains($hint, 'housing co') || str_contains($hint, 'sacco') => 'affordable',
             str_contains($hint, 'developer') => 'developer',
             str_contains($hint, 'airbnb') || str_contains($hint, 'short') || str_contains($hint, 'bnb') || str_contains($hint, 'serviced') => 'shortstay',
@@ -56,6 +57,7 @@ class Playbook
             'Office / Commercial' => 'commercial', 'Retail / Mall' => 'commercial', 'Industrial / Logistics' => 'industrial',
             'High-end Residential' => 'manager', 'Serviced Apartments' => 'shortstay', 'Gated Community' => 'building', 'Upmarket Agency' => 'manager',
             'Real Estate Agency' => 'agency',
+            'Land & Home Sales' => 'seller',
         ][$segment] ?? 'manager';
     }
 
@@ -214,6 +216,13 @@ class Playbook
     }
 
     private const PAINS = [
+        // Sellers of plots and houses (a reply told us "we sell, we don't rent out"): instalments and listings.
+        'seller' => [
+            'instalments' => ['Buyers paying plots or houses in instalments, tracked on Excel and M-Pesa messages', 'each buyer has a payment plan; M-Pesa payments match themselves to the right buyer'],
+            'statements' => ['Buyers asking how much they have paid and what is left', 'every buyer gets an SMS statement and a reminder before each instalment is due'],
+            'arrears' => ['Late instalments noticed only at month end', 'an arrears list per project with automatic reminders'],
+            'unsold' => ['Unsold plots and houses that need marketing', 'what is still for sale is listed publicly from the system'],
+        ],
         // Agencies: wording approved by the user before the AGENCY campaign is sent.
         'agency' => [
             'listings' => ['Vacant homes scattered across portals and WhatsApp groups, with landlords forgetting to tell you what is free', 'a landlord adds your agency to their building once; you see which homes are vacant and put them on scharge Open listings with photos'],
@@ -293,6 +302,19 @@ class Playbook
     private const SIGN = "\n\nYou can pick a time and tell us about your properties here (2 minutes): {demo_link}\n\nKind regards,\n{manager}\nAccount Manager, scharge\n{manager_email}  {manager_phone}\nhttps://scharge.sharet.africa";
 
     private const BOOKS = [
+        'seller' => [
+            'label' => 'Land & home sales',
+            'approach' => [
+                'They sell plots or houses; they do not let them. Do not pitch rent collection.',
+                'Ask whether buyers pay in instalments, how many buyers are paying now, and how they track it.',
+                'Lead with instalment collections: a payment plan per buyer, M-Pesa matching, SMS statements and reminders.',
+                'Then listings for what is still unsold, and ask whether any buyers rent out what they buy (they can be referred).',
+            ],
+            'offers' => ['Instalment plans per buyer (plots, houses, off-plan)', 'M-Pesa payments matched to the right buyer', 'SMS statements and reminders before each instalment', 'Arrears list per project', 'Listings for unsold plots and houses', 'Buyers who rent out can manage their units on scharge', 'Pricing: confirm with the admin before quoting (the per-unit price is for rentals)'],
+            'objections' => ['We sell, we don\'t rent out' => 'That is the point: scharge tracks buyer instalments, not only rent.', 'Our buyers pay cash' => 'Then listings for unsold plots and houses, and a referral for buyers who later rent out.', 'We use Excel' => 'Import the buyer list once; statements and reminders then go out by themselves.'],
+            'subject' => '{company}: buyer instalments without the spreadsheet',
+            'body' => "Hello {company} team,\n\nWe are from scharge. For companies selling plots and houses in {city}, we track buyer instalments: each buyer has a payment plan, M-Pesa payments match themselves to the right buyer, and buyers get an SMS statement and a reminder before each instalment is due. What is still unsold can be listed publicly from the same place.\n\nWould a short call to see if it fits your projects be useful?".self::SIGN,
+        ],
         'agency' => [
             'label' => 'Real estate agency / agent',
             'approach' => [

@@ -147,6 +147,11 @@ class ReplyService
             'details' => ['answer_reply' => true, 'reply_id' => $row->id],
         ]);
         $this->copyTeam($company, $row, $mail);
+        try {
+            \App\Modules\CRM\Support\ReplyIntent::apply($company, $row); // what the reply says (seller, price, later…)
+        } catch (\Throwable $e) {
+            report($e);
+        }
         if ($optOut) {
             $this->contacts->log($company, 'note', 'Asked not to be emailed', 'Their reply asked us to stop emailing, so campaigns skip them now. Call only if they asked for it.');
         }

@@ -80,6 +80,19 @@
                 <div @class(['rounded-xl border p-4 text-sm', 'border-red-200 bg-red-50/60 dark:border-red-500/30 dark:bg-red-500/5' => $close['said']['pending'], 'border-gray-200 dark:border-gray-800' => ! $close['said']['pending']])>
                     <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ $close['said']['from'] }} wrote · {{ $close['said']['at'] }} · <span @class(['font-semibold', 'text-red-700 dark:text-red-300' => ! $close['said']['answered'], 'text-green-700 dark:text-green-300' => $close['said']['answered']])>{{ $close['said']['answered'] ? 'answered' : 'waiting for your answer' }}</span></p>
                     <p class="mt-2 whitespace-pre-line text-gray-800 dark:text-white/90">{{ $close['said']['text'] }}</p>
+                    @if ($close['intent_label'])<p class="mt-2"><span class="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">Reads as: {{ $close['intent_label'] }}</span></p>@endif
+                </div>
+            @endif
+            @if ($close['suggested'] && ! ($close['said']['answered'] ?? false))
+                <div class="rounded-xl border border-brand-200 bg-brand-50/40 p-4 text-sm dark:border-brand-500/30 dark:bg-brand-500/5" x-data="{ done: false }">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="font-medium text-gray-800 dark:text-white/90">Suggested answer</p>
+                        <div class="flex gap-2">
+                            <button type="button" class="text-xs font-medium text-brand-600 hover:underline" @click="navigator.clipboard.writeText($refs.sa.innerText); done = true" x-text="done ? 'Copied' : 'Copy'"></button>
+                            <a href="{{ route('crm.companies.show', $company) }}#reply" class="text-xs font-medium text-brand-600 hover:underline">Answer on their page</a>
+                        </div>
+                    </div>
+                    <p x-ref="sa" class="mt-2 whitespace-pre-line text-gray-700 dark:text-gray-300">{{ $close['suggested'] }}</p>
                 </div>
             @endif
             @if ($close['quote'])
