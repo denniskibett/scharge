@@ -209,6 +209,31 @@
   }
   window.listingViewed = listingViewed;
 
+  // Short stays: a calendar of the next three months, free nights and taken nights (data from ListingCatalog).
+  function stayCalendar(booked, today) {
+    var taken = {}; (booked || []).forEach(function (d) { taken[d] = 1; });
+    var t = String(today).split('-').map(Number), MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var last = new Date(Date.UTC(t[0], t[1] - 1, t[2] + 91)), until = last.getUTCFullYear() + '-' + pad(last.getUTCMonth() + 1) + '-' + pad(last.getUTCDate());
+    var html = '<div class="cal">';
+    for (var m = 0; m < 3; m++) {
+      var first = new Date(Date.UTC(t[0], t[1] - 1 + m, 1)), y = first.getUTCFullYear(), mo = first.getUTCMonth();
+      var days = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate(), lead = (first.getUTCDay() + 6) % 7;
+      html += '<div class="cal-month"><b>' + MONTHS[mo] + ' ' + y + '</b><div class="cal-grid">' + ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(function (d) { return '<span class="cal-head">' + d + '</span>'; }).join('');
+      for (var i = 0; i < lead; i++) html += '<span></span>';
+      for (var d = 1; d <= days; d++) {
+        var key = y + '-' + pad(mo + 1) + '-' + pad(d);
+        var state = key < today || key > until ? 'past' : taken[key] ? 'booked' : 'free';
+        var label = d + ' ' + MONTHS[mo] + (state === 'booked' ? ', booked' : state === 'free' ? ', free' : '');
+        html += '<span class="cal-day is-' + state + (key === today ? ' is-today' : '') + '" title="' + label + '" aria-label="' + label + '">' + d + '</span>';
+      }
+      html += '</div></div>';
+    }
+    return html + '</div><p class="cal-legend"><span class="cal-key is-free"></span>Free<span class="cal-key is-booked"></span>Booked<span class="cal-key is-past"></span>Not open yet or past</p>';
+  }
+  var stayCal = $('#stay-cal');
+  if (stayCal) { try { stayCal.innerHTML = stayCalendar(JSON.parse(stayCal.dataset.booked || '[]'), stayCal.dataset.today); } catch (e) {} }
+
   var lroot = $('#browse');
   if (L && lroot) {
     var ls = { kind: +(lroot.dataset.kind || 0), area: 'All', max: null, ver: false, sel: null };
@@ -228,11 +253,15 @@
       $('#result-line').textContent = list.length + ' ' + K.name.toLowerCase() + (ls.area === 'All' ? '' : ' in ' + ls.area);
       grid.innerHTML = list.map(function (h) {
         var on = ls.sel === h.id;
+        // "Two Bedroom BnB · Capital Gardens": the home on one line, the building and area under it.
+        var cut = h.title.indexOf(' · '), name = cut < 0 ? [h.title, ''] : [h.title.slice(0, cut), h.title.slice(cut + 3)];
         return '<article class="listing' + (on ? ' is-selected' : '') + '"><div class="listing-photo" style="background-image:url(' + h.photo + ')"><span class="pill" style="background:' + TAG[ls.kind][0] + ';color:' + TAG[ls.kind][1] + '">' + esc(h.avail) + '</span>' + (h.verified ? '<span class="pill pill--ink">✓ Inspected</span>' : '') + '</div>' +
-          '<div class="listing-body"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><b>' + (h.url ? '<a href="' + esc(h.url) + '" style="color:inherit">' + esc(h.title) + '</a>' : esc(h.title)) + '</b><span class="small muted">' + esc(h.area) + '</span></div>' +
-          (h.host ? '<span class="small muted">Hosted by <b style="color:var(--ink)">' + esc(h.host) + '</b></span>' : '') +
-          '<span class="listing-price">KES ' + fmt(h.price) + ' <span class="small muted" style="font-family:var(--font-body)">' + K.per + '</span></span><span class="small muted">' + esc(h.costs) + '</span>' +
-          '<button type="button" class="btn ' + (on ? 'btn--ink' : 'btn--primary') + '" style="margin-top:10px" data-open="' + h.id + '">' + (on ? 'Selected' : K.btn) + '</button></div></article>';
+          '<div class="listing-body">' + (h.url ? '<a class="listing-title" href="' + esc(h.url) + '">' + esc(name[0]) + '</a>' : '<b class="listing-title">' + esc(name[0]) + '</b>') +
+          '<span class="listing-where">' + esc((name[1] ? name[1] + ' · ' : '') + h.area) + '</span>' +
+          (h.host ? '<span class="listing-where">Hosted by <b style="color:var(--ink)">' + esc(h.host) + '</b></span>' : '') +
+          '<div class="listing-foot"><span class="listing-price">KES ' + fmt(h.price) + ' <span class="small muted" style="font-family:var(--font-body)">' + K.per + '</span></span>' +
+          (ls.kind === 1 ? '' : '<span class="small muted">' + esc(h.costs) + '</span>') +
+          '<button type="button" class="btn ' + (on ? 'btn--ink' : 'btn--primary') + '" data-open="' + h.id + '">' + (on ? 'Selected' : K.btn) + '</button></div></div></article>';
       }).join('');
       $('#none').hidden = list.length > 0;
       // Renter demand (docs/RENTER_DEMAND.md): what was searched and how many matched, once the person stops changing filters.
@@ -252,6 +281,9 @@
         if (S.photos && S.photos.length) {
           $('#d-lines').insertAdjacentHTML('afterbegin', '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px">' +
             S.photos.slice(0, 12).map(function (u, i) { return '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" alt="' + esc(S.title) + ' photo ' + (i + 1) + '" loading="lazy" style="width:100%;height:72px;object-fit:cover;border-radius:10px"></a>'; }).join('') + '</div>');
+        }
+        if (ls.kind === 1 && lroot.dataset.today) {
+          $('#d-lines').insertAdjacentHTML('beforeend', '<h4 class="cal-title">Free dates</h4>' + stayCalendar(S.booked, lroot.dataset.today));
         }
         $('#d-tags').innerHTML = S.tags.map(function (t) { return '<span class="pill" style="background:var(--blush)">' + esc(t) + '</span>'; }).join('');
         $('#d-form-title').textContent = K.formTitle; $('#d-when-label').textContent = K.whenLabel; $('#d-when').placeholder = K.whenHint;

@@ -22,6 +22,30 @@ class BookingCalendar
             ->when($exceptId, fn ($q) => $q->whereKeyNot($exceptId))->orderBy('check_in')->get();
     }
 
+    /**
+     * The nights taken in [from, to) for each unit, with the booking that takes them: the availability calendar on
+     * the Bookings page and (as dates only) on the public listing.
+     *
+     * @param  array<int>  $unitIds
+     * @return array<int, array<string, Booking>>  [unit id => ['2026-11-26' => Booking]]
+     */
+    public function nights(array $unitIds, \Carbon\CarbonInterface $from, \Carbon\CarbonInterface $to): array
+    {
+        $out = [];
+        if (! $unitIds || ! \Illuminate\Support\Facades\Schema::hasTable('bookings')) {
+            return $out;
+        }
+        $bookings = Booking::withoutGlobalScopes()->whereIn('unit_id', $unitIds)->where('status', 'confirmed')
+            ->whereDate('check_in', '<', $to->toDateString())->whereDate('check_out', '>', $from->toDateString())->orderBy('check_in')->get();
+        foreach ($bookings as $b) {
+            for ($d = $b->check_in->copy()->max($from->copy()->startOfDay()); $d->lt($b->check_out) && $d->lt($to); $d->addDay()) {
+                $out[$b->unit_id][$d->toDateString()] = $b;
+            }
+        }
+
+        return $out;
+    }
+
     /** A direct booking. Refused when the nights are taken. */
     public function book(Unit $unit, array $data, ?int $userId): Booking
     {

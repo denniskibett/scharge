@@ -11,6 +11,7 @@ My BnB units
       <p class="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">These units are yours to manage. If your building's management joins scharge, they handle the building's service charge and water; your bookings and earnings stay private to you.</p>
     </div>
     <div class="flex gap-2">
+      @if (Route::has('bookings.index'))<a href="{{ route('bookings.index') }}" class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Bookings calendar</a>@endif
       <a href="{{ route('gate.index') }}" class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-300">Guests & gate</a>
       <a href="{{ route('gate.passes.create') }}" class="inline-flex items-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600">Send a guest code</a>
     </div>
@@ -28,7 +29,7 @@ My BnB units
       <a href="{{ route('units.show', $u) }}" class="rounded-2xl border border-gray-200 bg-white p-5 transition hover:shadow-sm dark:border-gray-800 dark:bg-white/[0.03]">
         <p class="text-xs text-gray-500">{{ $u->property?->name }} · {{ $u->property?->location }}</p>
         <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-white">{{ $u->unit_number }} · {{ $u->unit_type }}</p>
-        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">KES {{ number_format((float) $u->bnb_nightly_rate) }} / night</p>
+        <p class="mt-2 text-sm text-gray-700 dark:text-gray-300">KES {{ number_format((float) $u->bnb_nightly_rate) }} / night · <span style="color:{{ ($free[$u->id] ?? '') === 'Free tonight' ? '#15803D' : '#B91C1C' }};font-weight:600">{{ $free[$u->id] ?? '' }}</span></p>
         <p class="mt-3 text-xs text-gray-500">{{ $u->property?->claim_status === 'unclaimed' ? 'Building not managed on scharge yet' : 'Building managed on scharge' }} · Add photos on the unit page</p>
       </a>
     @empty

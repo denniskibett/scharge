@@ -19,9 +19,14 @@ class ListingCatalog
 
     public const KIND_STAY = 1;
 
+    public const TZ = 'Africa/Nairobi';
+
+    /** How far ahead the public calendar of free dates shows. */
+    public const CALENDAR_DAYS = 92;
+
     public function items(): array
     {
-        return Cache::remember('public-listings-v3', now()->addMinutes(5), fn () => $this->build());
+        return Cache::remember('public-listings-v4', now()->addMinutes(5), fn () => $this->build());
     }
 
     /** One listing by its page address (home.listing), or null when it is let / no longer advertised. */
@@ -32,7 +37,7 @@ class ListingCatalog
 
     public static function forget(): void
     {
-        Cache::forget('public-listings-v3');
+        Cache::forget('public-listings-v4');
     }
 
     private function build(): array
@@ -46,7 +51,7 @@ class ListingCatalog
             ->selectRaw("p.id as pid, p.company_id as cid, p.name as pname, p.location, p.water_rate, u.unit_type, u.stay_type,
                 COALESCE(NULLIF(u.rent_amount, 0), 0) as rent, u.bnb_nightly_rate, MAX(u.service_charge) as service,
                 MAX(u.security_deposit_amount) as deposit, MAX(u.furnishing_status) as furnishing, MAX(u.custom_water_rate) as custom_rate,
-                COUNT(*) as n, MIN(u.id) as first_unit")
+                COUNT(*) as n, MIN(u.id) as first_unit, GROUP_CONCAT(u.id) as unit_ids")
             ->groupBy('p.id', 'p.company_id', 'p.name', 'p.location', 'p.water_rate', 'u.unit_type', 'u.stay_type', 'rent', 'u.bnb_nightly_rate')
             ->orderBy('p.name')->get();
 
@@ -69,14 +74,40 @@ class ListingCatalog
                 ->orderBy('m.id')->pluck('h.name', 'm.unit_id')
             : collect();
 
+        // Short stays: the nights already taken in the next three months, per unit (Services\Bookings\BookingCalendar).
+        $today = now(self::TZ)->startOfDay();
+        $stayUnits = $rows->where('stay_type', 'bnb')->flatMap(fn ($r) => explode(',', (string) $r->unit_ids))->map(fn ($id) => (int) $id)->all();
+        $nights = app(\App\Services\Bookings\BookingCalendar::class)->nights($stayUnits, $today, $today->copy()->addDays(self::CALENDAR_DAYS));
+
         // Landlords whose KYC scharge verified get the "Verified" badge (docs/ONBOARDING.md).
         $verified = Schema::hasTable('company_kyc') ? DB::table('company_kyc')->where('status', 'verified')->pluck('company_id')->map(fn ($id) => (int) $id)->all() : [];
 
-        return $rows->map(function ($r, $i) use ($photos, $own, $verified, $hosts) {
+        return $rows->map(function ($r, $i) use ($photos, $own, $verified, $hosts, $nights, $today) {
             $stay = $r->stay_type === 'bnb' && (float) $r->bnb_nightly_rate > 0;
             $price = $stay ? (float) $r->bnb_nightly_rate : (float) $r->rent;
             if ($price <= 0) {
                 return null;   // no price set: not ready to advertise
+            }
+
+            // A night is taken only when every unit behind this listing is taken that night.
+            $booked = [];
+            $nextFree = null;
+            if ($stay) {
+                $ids = array_map('intval', explode(',', (string) $r->unit_ids));
+                for ($i2 = 0, $d = $today->copy(); $i2 < self::CALENDAR_DAYS; $i2++, $d->addDay()) {
+                    $key = $d->toDateString();
+                    if (collect($ids)->every(fn ($id) => isset($nights[$id][$key]))) {
+                        $booked[] = $key;
+                    } elseif ($nextFree === null) {
+                        $nextFree = $key;
+                    }
+                }
+            }
+            $avail = $r->n > 1 ? $r->n.' available' : 'Available now';
+            if ($stay) {
+                $avail = $nextFree === null ? 'Fully booked' : ($nextFree === $today->toDateString()
+                    ? (($free = collect($ids)->reject(fn ($id) => isset($nights[$id][$nextFree]))->count()) > 1 ? $free.' free tonight' : 'Free tonight')
+                    : 'Free from '.\Illuminate\Support\Carbon::parse($nextFree)->format('j M'));
             }
 
             $set = $photos->get($r->pid, collect());
@@ -106,7 +137,9 @@ class ListingCatalog
                 'title' => trim(($r->unit_type ?: 'House').($stay ? ' BnB' : '').' · '.$r->pname),
                 'area' => $r->location ?: $r->pname,
                 'price' => $price,
-                'avail' => $r->n > 1 ? $r->n.' available' : 'Available now',
+                'avail' => $avail,
+                'booked' => $booked,          // short stays: nights taken (Y-m-d), next three months
+                'next_free' => $nextFree,
                 'costs' => $costs,
                 'verified' => $r->cid && in_array((int) $r->cid, $verified, true),
                 'owner' => $r->pname,

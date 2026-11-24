@@ -86,7 +86,20 @@ class HostController extends Controller
     {
         $units = $this->myUnits($request)->with('property:id,name,location,claim_status')->get();
 
-        return view('host.dashboard', ['units' => $units]);
+        // Each unit's next free night, from its bookings (the full calendar is on the Bookings page).
+        $today = now('Africa/Nairobi')->startOfDay();
+        $nights = app(\App\Services\Bookings\BookingCalendar::class)->nights($units->pluck('id')->all(), $today, $today->copy()->addDays(92));
+        $free = $units->mapWithKeys(function ($u) use ($nights, $today) {
+            for ($i = 0, $d = $today->copy(); $i < 92; $i++, $d->addDay()) {
+                if (! isset($nights[$u->id][$d->toDateString()])) {
+                    return [$u->id => $i === 0 ? 'Free tonight' : 'Booked until '.$d->format('j M')];
+                }
+            }
+
+            return [$u->id => 'Booked for the next three months'];
+        });
+
+        return view('host.dashboard', ['units' => $units, 'free' => $free]);
     }
 
     public function addUnit(Request $request, HostUnits $hosts)

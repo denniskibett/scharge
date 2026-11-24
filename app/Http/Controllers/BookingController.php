@@ -23,7 +23,7 @@ class BookingController extends Controller
 {
     private const STAY_TYPES = ['short_stay', 'bnb', 'mixed'];
 
-    public function index(Request $request): View
+    public function index(Request $request, BookingCalendar $calendar): View
     {
         $units = Unit::with('property')->whereIn('stay_type', self::STAY_TYPES)->orderBy('property_id')->orderBy('unit_number')->get();
         $unitId = $units->firstWhere('id', (int) $request->query('unit'))?->id;
@@ -31,7 +31,20 @@ class BookingController extends Controller
             ->when($unitId, fn ($q) => $q->where('unit_id', $unitId))
             ->where('status', 'confirmed')->whereDate('check_out', '>=', now()->toDateString())->orderBy('check_in')->paginate(30)->withQueryString();
 
+        // Availability: four weeks from the chosen day (today unless moved), one row per unit, free and taken nights.
+        $today = now('Africa/Nairobi')->startOfDay();
+        try {
+            $start = $request->query('from') ? \Illuminate\Support\Carbon::parse((string) $request->query('from'), 'Africa/Nairobi')->startOfDay() : $today->copy();
+        } catch (\Throwable) {
+            $start = $today->copy();
+        }
+        $shown = $unitId ? $units->where('id', $unitId)->values() : $units;
+
         return view('bookings.index', [
+            'calendarStart' => $start,
+            'calendarDays' => collect(range(0, 27))->map(fn ($i) => $start->copy()->addDays($i)),
+            'calendarUnits' => $shown,
+            'nights' => $calendar->nights($shown->pluck('id')->all(), $start, $start->copy()->addDays(28)),
             'units' => $units,
             'unitId' => $unitId,
             'bookings' => $bookings,
