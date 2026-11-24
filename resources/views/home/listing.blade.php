@@ -32,10 +32,17 @@
   </div>
 
   @if (! empty($item['photos']))
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:10px">
-      @foreach (array_slice($item['photos'], 0, 12) as $i => $photo)
-        <a href="{{ $photo }}" target="_blank" rel="noopener"><img src="{{ $photo }}" alt="{{ $item['title'] }}, photo {{ $i + 1 }}" loading="{{ $i < 3 ? 'eager' : 'lazy' }}" width="440" height="300" style="width:100%;height:200px;object-fit:cover;border-radius:16px"></a>
-      @endforeach
+    <div class="gallery" data-gallery>
+      <div class="gallery-track">
+        @foreach (array_slice($item['photos'], 0, 12) as $i => $photo)
+          <a class="gallery-item" href="{{ $photo }}" target="_blank" rel="noopener"><img src="{{ $photo }}" alt="{{ $item['title'] }}, photo {{ $i + 1 }}" loading="{{ $i < 2 ? 'eager' : 'lazy' }}" width="640" height="420"></a>
+        @endforeach
+      </div>
+      @if (count($item['photos']) > 1)
+        <button type="button" class="gallery-nav gallery-prev" data-gallery-prev aria-label="Previous photo">‹</button>
+        <button type="button" class="gallery-nav gallery-next" data-gallery-next aria-label="Next photo">›</button>
+        <span class="gallery-count"></span>
+      @endif
     </div>
   @else
     <img src="{{ $item['photo'] }}" alt="" width="640" height="420" style="width:100%;max-width:640px;border-radius:16px">
@@ -45,7 +52,7 @@
     {{-- Free and taken nights for the next three months (drawn by main.js stayCalendar from ListingCatalog's "booked"). --}}
     <div class="stack">
       <h2 style="font-size:1.3rem">Free dates</h2>
-      <p class="muted">{{ $item['avail'] }}. Green nights are free; pick yours and send the request below.</p>
+      <p class="muted">{{ $item['avail'] }}. Green nights are free. Tap your check-in, then your check-out, and the dates go into the request below.</p>
       <div id="stay-cal" data-today="{{ now('Africa/Nairobi')->toDateString() }}" data-booked='@json($item['booked'] ?? [])'><noscript>Ask the host for free dates.</noscript></div>
     </div>
   @endif
