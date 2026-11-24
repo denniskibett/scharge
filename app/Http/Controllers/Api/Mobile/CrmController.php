@@ -11,8 +11,11 @@ use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Models\WaitlistEntry;
 use App\Modules\CRM\Services\CommissionService;
 use App\Modules\CRM\Services\ContactService;
+use App\Modules\CRM\Services\OutreachService;
 use App\Modules\CRM\Services\ReplyService;
 use App\Modules\CRM\Support\CrmAccess;
+use App\Modules\CRM\Support\EmailBody;
+use App\Modules\CRM\Support\Playbook;
 use App\Modules\CRM\Support\OpenPipeline;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -190,6 +193,72 @@ class CrmController extends Controller
         return response()->json($this->prospectRow($company->fresh()));
     }
 
+    /** Playbook: how to approach them, what to sell, and the first email (saved draft or the segment template), as on the web. */
+    public function playbook(Request $request, int $id)
+    {
+        $company = $this->company($request, $id);
+        $manager = $company->owner ?? $request->user();
+        $book = Playbook::for($company);
+        $draft = Playbook::draft($company, $manager);
+        $emails = $company->followUps()->where('type', 'contact')->with('contact:id,email')->get()->toBase()
+            ->map(fn ($r) => strtolower(trim((string) $r->contact?->email)))->prepend(strtolower(trim((string) $company->email)))
+            ->filter(fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL))->unique()->values();
+
+        return response()->json([
+            'label' => $book['label'] ?? null,
+            'approach' => $book['approach'] ?? [],
+            'offers' => $book['offers'] ?? [],
+            'objections' => collect($book['objections'] ?? [])->map(fn ($a, $q) => ['q' => $q, 'a' => $a])->values(),
+            'subject' => $draft['subject'],
+            'body' => EmailBody::toText($draft['body']),
+            'saved_draft' => (bool) $company->profile('email_body'),
+            'do_not_email' => (bool) $company->profile('do_not_email'),
+            'to' => $emails->first(),
+            'emails' => $emails,
+            'signed_by' => $manager->name,
+            'follow_up_days' => [2 => '2 working days', 3 => '3 working days', 5 => '1 week', 10 => '2 weeks'],
+        ]);
+    }
+
+    /** Save the email draft for this prospect (reset=true goes back to the playbook template). */
+    public function savePlaybookDraft(Request $request, int $id)
+    {
+        $company = $this->company($request, $id);
+        if ($request->boolean('reset')) {
+            $this->setProfile($company, ['email_subject' => null, 'email_body' => null]);
+        } else {
+            $input = $this->emailInput($request, ['subject' => ['required', 'string', 'max:200']]);
+            $this->setProfile($company, ['email_subject' => $input['subject'], 'email_body' => $input['body']]);
+        }
+
+        return $this->playbook($request, $id);
+    }
+
+    /** Send the first email from the app: same as the web Playbook (logged, follow-up booked, Reply-To the manager). */
+    public function sendPlaybook(Request $request, int $id, OutreachService $outreach)
+    {
+        $company = $this->company($request, $id);
+        $input = $this->emailInput($request, [
+            'to' => ['required', 'email:rfc', 'max:190'],
+            'subject' => ['required', 'string', 'max:200'],
+            'follow_up_days' => ['required', 'integer', 'between:1,30'],
+            'cc' => ['nullable', 'array', 'max:2'],
+            'cc.*' => ['email:rfc', 'max:190'],
+        ]);
+        abort_if((bool) $company->profile('do_not_email'), 422, $company->name.' asked not to be emailed.');
+        try {
+            ['manager' => $manager, 'due' => $due] = $outreach->send($company, $request->user(), $input['to'], $input['subject'], $input['body'], (int) $input['follow_up_days'], null, $input['cc'] ?? []);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['message' => 'The email could not be sent: '.$e->getMessage()], 422);
+        }
+
+        return response()->json($this->prospectRow($company->fresh()) + [
+            'message' => 'Email sent to '.$input['to'].'. '.$manager->name.' has a follow-up on '.$due->format('D j M').'.',
+        ]);
+    }
+
     /** Follow-ups: overdue, today, open (to do) or done. */
     public function followUps(Request $request)
     {
@@ -330,6 +399,24 @@ class CrmController extends Controller
     }
 
     // ---------------------------------------------------------------------------------------------------------------
+
+    /** The rest of the rules plus the body: written as plain text in the app, stored as the same safe HTML as the web editor. */
+    private function emailInput(Request $request, array $rules): array
+    {
+        $input = $request->validate($rules + ['body' => ['required', 'string', 'max:30000']]);
+        $input['body'] = EmailBody::toHtml($input['body']);
+        if (trim(EmailBody::toText($input['body'])) === '') {
+            throw \Illuminate\Validation\ValidationException::withMessages(['body' => 'Write the email before saving or sending it.']);
+        }
+
+        return $input;
+    }
+
+    private function setProfile(Company $company, array $values): void
+    {
+        $profile = array_merge($company->crm_profile ?? [], $values);
+        $company->update(['crm_profile' => array_filter($profile, fn ($v) => $v !== null && $v !== '')]);
+    }
 
     private function company(Request $request, int $id): Company
     {
