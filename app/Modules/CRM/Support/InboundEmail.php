@@ -47,6 +47,8 @@ class InboundEmail
             || $h('x-autoreply') !== '' || $h('x-autorespond') !== ''
             || preg_match('/^(auto_reply|bulk|junk)$/i', trim($h('precedence')))
             || preg_match('/^(auto(matic)?[ -]?reply|out of (the )?office|autoreply|undeliverable|delivery status|returned mail|mail delivery)/i', $m->subject)
+            // Canned acknowledgements ("Thank you for your message", "We have received your email"): a person answering starts with "Re:".
+            || preg_match('/^(thank(s| you) for (your|the) (message|email|e-mail|enquiry|inquiry|mail)|thank(s| you) for (contacting|reaching out|writing)|we (have )?received your (message|email|e-mail|enquiry|inquiry)|your (message|email|enquiry|inquiry) (has been|was) received)/i', trim($m->subject))
             || preg_match('/^(mailer-daemon|postmaster)@/i', $m->from);
 
         $m->text = self::bodyText($m->headers, $body);

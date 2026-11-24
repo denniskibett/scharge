@@ -833,7 +833,7 @@ class MobileAppTest extends RentSchemaTestCase
     private function crmSchema(): void
     {
         Schema::table('companies', function (Blueprint $t) {
-            foreach (['crm_stage' => 'string', 'email' => 'string', 'phone' => 'string', 'kind' => 'string'] as $col => $type) {
+            foreach (['crm_stage' => 'string', 'email' => 'string', 'phone' => 'string', 'kind' => 'string', 'country_code' => 'string', 'domain' => 'string', 'name_key' => 'string', 'source' => 'string'] as $col => $type) {
                 if (! Schema::hasColumn('companies', $col)) {
                     $t->{$type}($col)->nullable();
                 }
@@ -948,6 +948,55 @@ class MobileAppTest extends RentSchemaTestCase
         $this->assertStringContainsString('Email sent to info@minehomes.test', $sent->json('message'));
         \Illuminate\Support\Facades\Mail::assertSent(\App\Modules\CRM\Mail\CrmOutreachEmail::class, fn ($m) => $m->hasTo('info@minehomes.test'));
         $this->assertSame(1, DB::table('crm_follow_ups')->where('company_id', $mine)->where('status', 'open')->where('assigned_to', $am->id)->count());
+    }
+
+    public function test_account_managers_do_every_crm_step_in_the_app(): void
+    {
+        $this->crmSchema();
+        \Illuminate\Support\Facades\Mail::fake();
+        [$am, $token] = $this->person(null, 'account_manager');
+        [$other] = $this->person(null, 'account_manager');
+        $theirs = $this->prospect('Their Estates', $other->id);
+
+        // Add a prospect: it is theirs.
+        $new = $this->api($token)->postJson('/api/v1/app/crm/prospects', ['name' => 'Fresh Lets', 'phone' => '0712345678', 'email' => 'hi@freshlets.test'])->assertCreated();
+        $id = $new->json('id');
+        $this->assertSame($am->id, (int) DB::table('companies')->where('id', $id)->value('owner_id'));
+
+        // Edit details, mark do-not-email (sending then refuses), allow again.
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$id, ['profile' => ['city' => 'Nakuru', 'estimated_units' => '40'], 'do_not_email' => true])->assertOk();
+        $this->assertTrue($this->api($token)->getJson('/api/v1/app/crm/prospects/'.$id.'/playbook')->json('do_not_email'));
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$id, ['do_not_email' => false])->assertOk();
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$theirs, ['profile' => ['city' => 'X']])->assertForbidden();
+
+        // Add a contact; their email becomes a choice for the email.
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$id.'/contacts', ['name' => 'Wanjiru Mwangi', 'email' => 'wanjiru@freshlets.test', 'job_title' => 'Manager'])->assertOk();
+        $book = $this->api($token)->getJson('/api/v1/app/crm/prospects/'.$id.'/playbook')->assertOk();
+        $this->assertContains('wanjiru@freshlets.test', $book->json('emails'));
+        $this->assertStringContainsString('/demo/', $book->json('form_url'));
+        $this->assertStringContainsString($book->json('form_url'), $book->json('form_message'));
+        $this->assertNotEmpty($book->json('pains'));
+
+        // Research: rewrite the email around chosen problems.
+        $pain = $book->json('pains.0.key');
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$id.'/playbook/compose', ['pains' => [$pain], 'research' => 'They manage 40 units in Nakuru'])
+            ->assertOk()->assertJsonPath('saved_draft', true)->assertJsonPath('chosen_pains', [$pain]);
+
+        // The form instead of email: shared by WhatsApp, logged, next step booked, stage moves on.
+        $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$id.'/playbook/form', ['via' => 'whatsapp'])->assertOk()->assertJsonPath('stage', 'contacted');
+        $this->assertSame(1, DB::table('crm_follow_ups')->where('company_id', $id)->where('title', 'Sent the demo form by WhatsApp')->count());
+        $this->assertSame(1, DB::table('crm_follow_ups')->where('company_id', $id)->where('status', 'open')->where('title', 'like', 'Check they filled%')->count());
+
+        // Feedback link.
+        $this->assertStringContainsString('/feedback/', $this->api($token)->postJson('/api/v1/app/crm/prospects/'.$id.'/feedback', ['context' => 'demo'])->assertCreated()->json('link'));
+
+        // A win-back draft waiting for approval: shown with the follow-up, then sent.
+        $draft = DB::table('crm_follow_ups')->insertGetId(['company_id' => $id, 'assigned_to' => $am->id, 'type' => 'email', 'status' => 'open', 'title' => 'Win-back draft',
+            'due_at' => now(), 'details' => json_encode(['winback' => true, 'to' => 'hi@freshlets.test', 'subject' => 'Still there?', 'body' => '<p>Hello again</p>'])]);
+        $row = collect($this->api($token)->getJson('/api/v1/app/crm/follow-ups?view=open')->assertOk()->json('data'))->firstWhere('id', $draft);
+        $this->assertSame('Hello again', $row['draft']['body']);
+        $this->api($token)->postJson('/api/v1/app/crm/follow-ups/'.$draft.'/draft', ['action' => 'send', 'subject' => 'Still there?', 'body' => 'Hello again'])->assertOk();
+        $this->assertSame('done', DB::table('crm_follow_ups')->where('id', $draft)->value('status'));
     }
 
     public function test_sysadmins_see_the_whole_pipeline_and_sales_cannot_reach_company_data(): void

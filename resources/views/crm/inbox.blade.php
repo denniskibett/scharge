@@ -73,15 +73,25 @@
             @elseif (! $box->isConnected())
                 {{-- Connect --}}
                 <div class="{{ $card }} mx-auto max-w-xl p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Connect {{ $box->address }}</h3>
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-500 dark:bg-brand-500/10"><x-icon name="envelope" class="h-5 w-5" /></span>
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Connect your work email</h3>
+                            <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ $box->address }}</p>
+                        </div>
+                    </div>
                     @if ($box->manageableBy(auth()->user()))
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Type this mailbox's password once (the one set in CyberPanel). scharge checks it with the mail server and keeps it encrypted, so you can read and send from here.</p>
-                        <form method="POST" action="{{ route('crm.inbox.connect', $box) }}" class="mt-5 space-y-3">
+                        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Enter this mailbox's password once. Your prospects' emails and replies then show here, and you can answer them without leaving scharge.</p>
+                        <form method="POST" action="{{ route('crm.inbox.connect', $box) }}" class="mt-5 space-y-4" x-data="{ show: false }">
                             @csrf
-                            <div><label class="{{ $label }}" for="mb-password">Mailbox password</label>
-                                <input id="mb-password" name="password" type="password" required autocomplete="off" class="{{ $field }}">
+                            <div><label class="{{ $label }}" for="mb-password">Email password</label>
+                                <div class="relative">
+                                    <input id="mb-password" name="password" :type="show ? 'text' : 'password'" type="password" required autocomplete="off" class="{{ $field }} pr-16">
+                                    <button type="button" @click="show = !show" class="absolute inset-y-0 right-0 px-4 text-xs font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400" x-text="show ? 'Hide' : 'Show'">Show</button>
+                                </div>
                                 @error('password')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
-                            <button class="h-11 rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600">Connect</button>
+                            <button class="h-11 w-full rounded-lg bg-brand-500 px-5 text-sm font-medium text-white hover:bg-brand-600 sm:w-auto">Connect inbox</button>
+                            <p class="flex items-center gap-1.5 text-xs text-gray-400"><x-icon name="lock-closed" class="h-3.5 w-3.5" /> Kept encrypted. Only used to read and send from this inbox.</p>
                         </form>
                     @else
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A sysadmin connects this shared mailbox. Ask them to type its password on this page.</p>
@@ -128,7 +138,7 @@
                 @if ($error)
                     <div class="mb-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
                         {{ $error }}
-                        @if ($box->manageableBy(auth()->user()) && str_contains($error, 'password')) If the password was changed in CyberPanel, disconnect and connect again with the new one. @endif
+                        @if ($box->manageableBy(auth()->user()) && str_contains($error, 'password')) If this mailbox's password changed, disconnect and connect again with the new one. @endif
                     </div>
                 @endif
 

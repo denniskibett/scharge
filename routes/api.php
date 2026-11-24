@@ -109,6 +109,13 @@ Route::prefix('v1/app')->group(function () {
             Route::get('/prospects/{id}/playbook', [Mobile\CrmController::class, 'playbook'])->whereNumber('id')->middleware($view);
             Route::match(['put', 'post'], '/prospects/{id}/playbook/draft', [Mobile\CrmController::class, 'savePlaybookDraft'])->whereNumber('id')->middleware($manage);
             Route::post('/prospects/{id}/playbook/send', [Mobile\CrmController::class, 'sendPlaybook'])->whereNumber('id')->middleware([$manage, 'throttle:20,1,app-crm-send']);
+            Route::post('/prospects/{id}/playbook/compose', [Mobile\CrmController::class, 'composePlaybook'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/playbook/form', [Mobile\CrmController::class, 'formShared'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects', [Mobile\CrmController::class, 'createProspect'])->middleware($manage);
+            Route::post('/prospects/{id}', [Mobile\CrmController::class, 'updateProspect'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/contacts', [Mobile\CrmController::class, 'addContact'])->whereNumber('id')->middleware($manage);
+            Route::post('/prospects/{id}/feedback', [Mobile\CrmController::class, 'requestFeedback'])->whereNumber('id')->middleware($manage);
+            Route::post('/follow-ups/{id}/draft', [Mobile\CrmController::class, 'sendDraft'])->whereNumber('id')->middleware([$manage, 'throttle:20,1,app-crm-send']);
             Route::get('/follow-ups', [Mobile\CrmController::class, 'followUps'])->middleware($view);
             Route::post('/follow-ups/{id}', [Mobile\CrmController::class, 'updateFollowUp'])->whereNumber('id')->middleware($manage);
             Route::get('/requests', [Mobile\CrmController::class, 'requests'])->middleware($view);
