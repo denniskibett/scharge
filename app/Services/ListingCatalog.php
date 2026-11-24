@@ -55,10 +55,17 @@ class ListingCatalog
                 ->orderBy('sort')->get()->groupBy('property_id')
             : collect();
 
+        // A listing that is one house (a host's flat) also shows that house's own photos, first. Listings that stand
+        // for several identical houses keep to the shared photos, so one flat's photos never advertise another.
+        $own = Schema::hasTable('unit_photos')
+            ? UnitPhoto::whereIn('unit_id', $rows->where('n', 1)->pluck('first_unit'))->where('applies_to', 'unit')
+                ->orderBy('sort')->orderBy('id')->get()->groupBy('unit_id')
+            : collect();
+
         // Landlords whose KYC scharge verified get the "Verified" badge (docs/ONBOARDING.md).
         $verified = Schema::hasTable('company_kyc') ? DB::table('company_kyc')->where('status', 'verified')->pluck('company_id')->map(fn ($id) => (int) $id)->all() : [];
 
-        return $rows->map(function ($r, $i) use ($photos, $verified) {
+        return $rows->map(function ($r, $i) use ($photos, $own, $verified) {
             $stay = $r->stay_type === 'bnb' && (float) $r->bnb_nightly_rate > 0;
             $price = $stay ? (float) $r->bnb_nightly_rate : (float) $r->rent;
             if ($price <= 0) {
@@ -66,7 +73,8 @@ class ListingCatalog
             }
 
             $set = $photos->get($r->pid, collect());
-            $urls = $set->where('applies_to', 'type')->where('unit_type', $r->unit_type)->merge($set->where('applies_to', 'property'))
+            $mine = (int) $r->n === 1 ? $own->get($r->first_unit, collect()) : collect();
+            $urls = $mine->concat($set->where('applies_to', 'type')->where('unit_type', $r->unit_type))->concat($set->where('applies_to', 'property'))
                 ->map(fn ($p) => Storage::disk('public')->url($p->path))->values()->all();
 
             // A unit's own water rate wins only when set (> 0); a 0 there must not hide the building's rate.
