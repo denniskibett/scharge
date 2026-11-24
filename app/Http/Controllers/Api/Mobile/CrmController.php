@@ -13,7 +13,9 @@ use App\Modules\CRM\Services\CommissionService;
 use App\Modules\CRM\Services\ContactService;
 use App\Modules\CRM\Services\OutreachService;
 use App\Modules\CRM\Services\ReplyService;
+use App\Modules\CRM\Support\Countries;
 use App\Modules\CRM\Support\CrmAccess;
+use App\Modules\CRM\Support\Normalizer;
 use App\Modules\CRM\Support\EmailBody;
 use App\Modules\CRM\Support\Playbook;
 use App\Modules\CRM\Support\OpenPipeline;
@@ -200,7 +202,10 @@ class CrmController extends Controller
         $manager = $company->owner ?? $request->user();
         $book = Playbook::for($company);
         $draft = Playbook::draft($company, $manager);
-        $emails = $company->followUps()->where('type', 'contact')->with('contact:id,email')->get()->toBase()
+        $people = $company->followUps()->where('type', 'contact')->with('contact:id,name,email,phone')->get()->toBase();
+        $phones = $people->map(fn ($r) => $r->contact?->phone ? ['name' => $r->contact->name, 'phone' => $r->contact->phone] : null)
+            ->prepend($company->phone ? ['name' => $company->name, 'phone' => $company->phone] : null)->filter()->unique('phone')->values();
+        $emails = $people
             ->map(fn ($r) => strtolower(trim((string) $r->contact?->email)))->prepend(strtolower(trim((string) $company->email)))
             ->filter(fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL))->unique()->values();
 
@@ -215,7 +220,17 @@ class CrmController extends Controller
             'do_not_email' => (bool) $company->profile('do_not_email'),
             'to' => $emails->first(),
             'emails' => $emails,
+            'phones' => $phones,
             'signed_by' => $manager->name,
+            'signals' => Playbook::signals($company),
+            'pains' => collect(Playbook::pains($company))->map(fn ($x, $k) => ['key' => $k, 'problem' => $x[0], 'fix' => $x[1]])->values(),
+            'chosen_pains' => array_values(array_filter(explode(',', (string) $company->profile('pains')))),
+            'research' => $company->profile('research'),
+            // The other way in: their private demo form. Shared by WhatsApp or SMS from the phone when email is not the way.
+            'form_url' => $url = Playbook::demoUrl($company),
+            'form_message' => 'Hello '.preg_replace('/\s*\([^()]*\)\s*$/', '', $company->name).', this is '.$manager->name.' from scharge. '
+                .'This short form tells us how you run your properties so we can show you what fits: '.$url,
+            'form_filled' => $company->followUps()->where('type', 'demo')->exists(),
             'follow_up_days' => [2 => '2 working days', 3 => '3 working days', 5 => '1 week', 10 => '2 weeks'],
         ]);
     }
@@ -257,6 +272,162 @@ class CrmController extends Controller
         return response()->json($this->prospectRow($company->fresh()) + [
             'message' => 'Email sent to '.$input['to'].'. '.$manager->name.' has a follow-up on '.$due->format('D j M').'.',
         ]);
+    }
+
+    /** Rewrite the email around the problems they chose and what the account manager found (web: Playbook › Research). */
+    public function composePlaybook(Request $request, int $id)
+    {
+        $company = $this->company($request, $id);
+        $input = $request->validate([
+            'pains' => ['nullable', 'array'],
+            'pains.*' => [Rule::in(array_keys(Playbook::pains($company)))],
+            'research' => ['nullable', 'string', 'max:600'],
+        ]);
+        $draft = Playbook::compose($company, $company->owner ?? $request->user(), $input['pains'] ?? [], $input['research'] ?? null);
+        $this->setProfile($company, ['research' => $input['research'] ?? null, 'pains' => implode(',', $input['pains'] ?? []),
+            'email_subject' => $draft['subject'], 'email_body' => $draft['body']]);
+
+        return $this->playbook($request, $id);
+    }
+
+    /** The demo form link was sent from the phone (WhatsApp, SMS or another way): log it and book the next step. */
+    public function formShared(Request $request, int $id)
+    {
+        $company = $this->company($request, $id);
+        $input = $request->validate(['via' => ['required', Rule::in(['whatsapp', 'sms', 'other'])], 'follow_up_days' => ['nullable', 'integer', 'between:1,30']]);
+        $author = $request->user()->id;
+        $via = ['whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'other' => 'a message'][$input['via']];
+        $company->followUps()->create(['assigned_to' => $company->owner_id ?? $author, 'created_by' => $author, 'type' => $input['via'] === 'whatsapp' ? 'whatsapp' : 'note',
+            'status' => 'done', 'done_at' => now(), 'title' => 'Sent the demo form by '.$via, 'notes' => Playbook::demoUrl($company)]);
+        $days = (int) ($input['follow_up_days'] ?? 3);
+        $company->followUps()->create(['assigned_to' => $company->owner_id ?? $author, 'created_by' => $author, 'type' => 'call', 'status' => 'open',
+            'title' => 'Check they filled the demo form ('.$via.')', 'due_at' => now()->addWeekdays($days)->setTime(10, 0)]);
+        if ($company->crm_stage === 'new') {
+            $this->contacts->setStage($company, 'contacted', $author);
+        }
+
+        return response()->json($this->prospectRow($company->fresh()) + ['message' => 'Logged. A follow-up is booked in '.$days.' working days.']);
+    }
+
+    /** Add a prospect (web: CRM › Add prospect). An existing company is opened and filled in, never copied. */
+    public function createProspect(Request $request)
+    {
+        $input = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'tier' => ['nullable', 'integer', 'between:1,3'],
+            'website' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:40'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'business_type' => ['nullable', 'string', 'max:150'],
+            'country_code' => ['nullable', Rule::in(array_keys(Countries::africa()))],
+        ]);
+        $input['tier'] ??= 2;
+        $input['country_code'] ??= 'KE';
+        $input['phone'] = Normalizer::phone($input['phone'] ?? null, Countries::dial($input['country_code']));
+        $input['owner_id'] = $request->user()->id;
+        [$company, $created] = $this->contacts->upsertCompany($input, 'Added by '.$request->user()->name.' (app)');
+        if ($created) {
+            $this->contacts->log($company, 'note', 'Prospect added', null, [], null, $request->user()->id);
+        }
+        CrmAccess::authorizeCompany($company, $request->user());
+
+        return response()->json($this->prospectRow($company->fresh()) + ['created' => $created,
+            'message' => $created ? 'Prospect added.' : 'That company is already in the system, so it was opened and its missing details filled in.'], $created ? 201 : 200);
+    }
+
+    /** Edit details (web: the company page's Details and Verify cards). Only the fields sent change. */
+    public function updateProspect(Request $request, int $id)
+    {
+        $company = $this->company($request, $id);
+        $fields = ['website', 'city', 'area', 'estimated_units', 'decision_maker', 'current_system', 'next_action', 'notes', 'business_type', 'phone_alt'];
+        $input = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:40'],
+            'tier' => ['sometimes', 'required', 'integer', 'between:1,3'],
+            'do_not_email' => ['sometimes', 'boolean'],
+            'needs_verification' => ['sometimes', 'boolean'],
+            'profile' => ['sometimes', 'array'],
+            'profile.*' => ['nullable', 'string', 'max:5000'],
+        ]);
+        $changes = array_intersect_key($input, array_flip(['tier', 'email']));
+        if (array_key_exists('phone', $input)) {
+            $changes['phone'] = Normalizer::phone($input['phone'], Countries::dial($company->country_code ?: 'KE'));
+        }
+        if (isset($input['name'])) {
+            $changes['name'] = Normalizer::companyName($input['name']);
+            $changes['name_key'] = Normalizer::companyKey($changes['name']);
+        }
+        $profile = $company->crm_profile ?? [];
+        $profile = array_merge($profile, array_intersect_key($input['profile'] ?? [], array_flip($fields)));
+        foreach (['do_not_email', 'needs_verification'] as $flag) {
+            if (array_key_exists($flag, $input)) {
+                $profile[$flag] = $input[$flag] ? true : null;
+            }
+        }
+        if (array_key_exists('website', $input['profile'] ?? [])) {
+            $profile['website'] = Normalizer::website($input['profile']['website']);
+            $changes['domain'] = Normalizer::domain($profile['website'], $changes['email'] ?? $company->email) ?? $company->domain;
+        }
+        $changes['crm_profile'] = array_filter($profile, fn ($v) => $v !== null && $v !== '');
+        $company->update($changes);
+        if (array_key_exists('do_not_email', $input)) {
+            $this->contacts->log($company, 'note', $input['do_not_email'] ? 'Marked: do not email' : 'Email allowed again', null, [], null, $request->user()->id);
+        }
+
+        return $this->prospect($request, $id);
+    }
+
+    /** Add a person at the prospect (linked, never copied, if they are already in the system). */
+    public function addContact(Request $request, int $id)
+    {
+        $company = $this->company($request, $id);
+        $input = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'email' => ['nullable', 'email', 'max:190', 'required_without:phone'],
+            'phone' => ['nullable', 'string', 'max:40', 'required_without:email'],
+            'job_title' => ['nullable', 'string', 'max:150'],
+        ]);
+        [$user] = $this->contacts->upsertPerson($input + ['country_code' => $company->country_code], 'crm_manual');
+        $this->contacts->attachContact($company, $user, $input['job_title'] ?? null, $request->user()->id);
+
+        return $this->prospect($request, $id);
+    }
+
+    /** A feedback link to send them (after a demo, onboarding or support), as on the web. */
+    public function requestFeedback(Request $request, int $id, \App\Modules\CRM\Services\LeadService $leads)
+    {
+        $company = $this->company($request, $id);
+        $input = $request->validate(['context' => ['required', Rule::in(array_keys(CrmFollowUp::FEEDBACK_CONTEXTS))]]);
+        $feedback = $leads->requestFeedback($company, $input['context'], null, $request->user()->id);
+
+        return response()->json(['link' => route('site.feedback.show', $feedback->token), 'contexts' => CrmFollowUp::FEEDBACK_CONTEXTS], 201);
+    }
+
+    /** A win-back email drafted for approval (web: Follow-ups › draft): send it as written/edited, or skip it. */
+    public function sendDraft(Request $request, int $id, OutreachService $outreach)
+    {
+        $f = $this->visible($request)->with('company')->findOrFail($id);
+        abort_unless($f->detail('winback') && $f->is_open && $f->company, 404, 'No draft waiting here.');
+        $input = $request->validate([
+            'action' => ['required', Rule::in(['send', 'skip'])],
+            'subject' => ['required_if:action,send', 'nullable', 'string', 'max:200'],
+            'body' => ['required_if:action,send', 'nullable', 'string', 'max:20000'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+        if ($input['action'] === 'skip') {
+            $f->update(['status' => 'cancelled', 'done_at' => now(), 'outcome' => $input['reason'] ?: 'Skipped']);
+
+            return response()->json($this->followUp($f->fresh()) + ['message' => 'Skipped. No email was sent.']);
+        }
+        $row = $outreach->sendText($f->company, (string) $f->detail('to'), [], $input['subject'], $input['body'],
+            'Win-back email approved by '.$request->user()->name.' (app).', ['winback' => true, 'reason' => $f->detail('reason')], $request->user()->id);
+        abort_unless($row, 422, 'Not sent: they asked not to be emailed, or the address is not valid.');
+        $f->update(['status' => 'done', 'done_at' => now(), 'outcome' => 'Sent', 'details' => array_merge($f->details ?? [], ['sent_id' => $row->id, 'subject' => $input['subject'], 'body' => $input['body']])]);
+        $f->company->followUps()->create(['assigned_to' => $f->company->owner_id, 'created_by' => $request->user()->id, 'type' => 'call', 'status' => 'open',
+            'title' => 'Call about the win-back email to '.$f->detail('to'), 'due_at' => now()->addWeekdays(3)->setTime(10, 0)]);
+
+        return response()->json($this->followUp($f->fresh()) + ['message' => 'Sent to '.$f->detail('to').'. A follow-up call is booked in three working days.']);
     }
 
     /** Follow-ups: overdue, today, open (to do) or done. */
@@ -447,7 +618,7 @@ class CrmController extends Controller
             'owner' => $c->relationLoaded('owner') ? $c->owner?->name : null, 'mine' => $c->owner_id !== null && (int) $c->owner_id === (int) request()->user()?->id, 'unassigned' => $c->owner_id === null,
             'phone' => $c->phone, 'email' => $c->email, 'website' => $c->profile('website'), 'segment' => $c->profile('segment'),
             'place' => collect([$c->profile('city') ?? $c->profile('location'), $c->profile('sub_county'), $c->profile('county')])->filter()->unique()->join(', ') ?: null,
-            'units' => $c->profile('units'), 'expected_close' => $c->profile('expected_close'), 'lost_reason' => $c->profile('lost_reason'),
+            'units' => $c->profile('units') ?? $c->profile('estimated_units'), 'city' => $c->profile('city'), 'do_not_email' => (bool) $c->profile('do_not_email'), 'expected_close' => $c->profile('expected_close'), 'lost_reason' => $c->profile('lost_reason'),
             'next_due_at' => $nextDue ? \Illuminate\Support\Carbon::parse($nextDue)->toIso8601String() : null,
             'reply' => $pending && is_array($reply) ? ['from' => $reply['name'] ?? $reply['from'] ?? null, 'subject' => $reply['subject'] ?? null,
                 'snippet' => $reply['snippet'] ?? null, 'at' => $reply['at'] ?? null, 'opt_out' => (bool) ($reply['opt_out'] ?? false)] : null,
@@ -465,6 +636,7 @@ class CrmController extends Controller
             'company' => $f->company ? ['id' => $f->company->id, 'name' => $f->company->name, 'stage' => $f->company->crm_stage] : null,
             'contact' => $f->contact ? ['name' => $f->contact->name, 'phone' => $f->contact->phone, 'email' => $f->contact->email] : null,
             'assigned_to' => $f->relationLoaded('assignee') ? $f->assignee?->name : null,
+            'draft' => $f->detail('winback') && $f->is_open ? ['to' => $f->detail('to'), 'subject' => $f->detail('subject'), 'body' => EmailBody::toText((string) $f->detail('body'))] : null,
         ];
     }
 

@@ -113,4 +113,15 @@ class ReplyIntentTest extends RentSchemaTestCase
         $r = \App\Modules\CRM\Support\OutOfOffice::read($parse('svieliza@ktdateas.test'), \Illuminate\Support\Carbon::parse('2026-11-24 12:37', 'Africa/Nairobi'));
         $this->assertSame('2026-11-30', $r['return_on']?->toDateString(), 'US date in the subject');
     }
+
+    public function test_canned_acknowledgements_are_auto_replies_but_real_answers_are_not(): void
+    {
+        $parse = fn ($subject) => InboundEmail::parse("From: Info <info@eskartec.test>\r\nSubject: {$subject}\r\nContent-Type: text/plain\r\n\r\nThank you for reaching out.\r\n");
+        foreach (['Thank You for Your Message', 'Thanks for contacting us', 'We have received your email', 'Your enquiry has been received'] as $subject) {
+            $this->assertTrue((bool) $parse($subject)->auto, $subject);
+        }
+        foreach (['Re: Thank you for your message', 'Re: clients who install meters', 'Meeting next week?'] as $subject) {
+            $this->assertFalse((bool) $parse($subject)->auto, $subject);
+        }
+    }
 }
