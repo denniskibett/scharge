@@ -134,11 +134,17 @@ class CommissionService
     /** Expected monthly platform fee of a deal: the value staff entered, else estimated units × pipeline price. */
     public function dealValue($company, ?array $settings = null): int
     {
-        $set = (int) preg_replace('/\D/', '', (string) $company?->profile('deal_value'));
+        return $this->dealValueFrom($company?->profile('deal_value'), $company?->profile('estimated_units'), $settings);
+    }
+
+    /** The same from the two profile values alone (Support\OpenPipeline works on grouped rows, not companies). */
+    public function dealValueFrom(mixed $dealValue, mixed $estimatedUnits, ?array $settings = null): int
+    {
+        $set = (int) preg_replace('/\D/', '', (string) $dealValue);
         if ($set > 0) {
             return $set;
         }
-        $units = (int) $company?->profile('estimated_units');
+        $units = (int) $estimatedUnits;
 
         return $units > 0 ? $units * (int) ($settings ?? $this->settings())['pipeline_price_per_unit'] : 0;
     }
