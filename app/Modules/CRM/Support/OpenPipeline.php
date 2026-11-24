@@ -7,6 +7,7 @@ use App\Modules\CRM\Models\CrmFollowUp;
 use App\Modules\CRM\Services\CommissionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Collection;
 
 /**
@@ -18,6 +19,16 @@ class OpenPipeline
 {
     /** Likelihood of closing per stage, for the weighted forecast. */
     public const WEIGHTS = ['new' => 0.05, 'contacted' => 0.1, 'qualified' => 0.2, 'demo_booked' => 0.35, 'proposal' => 0.5, 'negotiation' => 0.75];
+
+    public const CACHE_MINUTES = 5;
+
+    private const VERSION_KEY = 'crm:open-pipeline:version';
+
+    /** The pipeline changed (a stage move): the next page load counts again. */
+    public static function forget(): void
+    {
+        Cache::put(self::VERSION_KEY, (int) Cache::get(self::VERSION_KEY, 0) + 1, now()->addDay());
+    }
 
     /** Stages on the closing board. */
     public const CLOSING = ['qualified', 'demo_booked', 'proposal', 'negotiation'];
@@ -35,12 +46,18 @@ class OpenPipeline
         // Companies with something still to do that has a date: the rest have "no next step".
         $next = CrmFollowUp::query()->todo()->whereNotNull('due_at')->whereNotNull('company_id')->select('company_id')->distinct();
 
-        return (clone $companies)->whereIn('crm_stage', Company::OPEN_CRM_STAGES)
+        $query = (clone $companies)->whereIn('crm_stage', Company::OPEN_CRM_STAGES)
             ->leftJoinSub($next, 'nx', 'nx.company_id', '=', 'companies.id')
             ->select('companies.owner_id', 'companies.crm_stage', 'companies.crm_profile->deal_value as dv', 'companies.crm_profile->estimated_units as eu')
             ->selectRaw('COUNT(*) as n, COUNT(nx.company_id) as with_next')
             ->groupBy('companies.owner_id', 'companies.crm_stage', 'dv', 'eu')
-            ->toBase()->get()
+            ->toBase();
+        // The count reads every open prospect (seconds on live), so it is kept for a few minutes per view (whose
+        // book, which filter). A stage change starts a new version at once (forget(), from ContactService::setStage).
+        $key = 'crm:open-pipeline:'.(int) Cache::get(self::VERSION_KEY, 0).':'.md5($query->toSql().'|'.json_encode($query->getBindings()));
+        $rows = Cache::remember($key, now()->addMinutes(self::CACHE_MINUTES), fn () => $query->get()->map(fn ($g) => (array) $g)->all());
+
+        return collect($rows)->map(fn ($g) => (object) $g)
             ->map(fn ($g) => (object) [
                 'owner_id' => $g->owner_id === null ? null : (int) $g->owner_id, 'crm_stage' => $g->crm_stage,
                 'n' => (int) $g->n, 'with_next' => (int) $g->with_next,

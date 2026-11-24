@@ -72,6 +72,12 @@ class OpenPipelineTest extends RentSchemaTestCase
 
         $this->assertSame(['Entered value', 'Other owner'], OpenPipeline::closing($companies)->pluck('name')->sort()->values()->all());
         $this->assertSame(1, OpenPipeline::closingBetween($companies, now()->startOfMonth(), now()->endOfMonth()));
+        // The count is kept for a few minutes; a stage change makes the next load count again.
+        $this->prospect('Added later', 'new', null);
+        $this->assertSame(44, OpenPipeline::sum(OpenPipeline::groups($companies, ['pipeline_price_per_unit' => $price]))['open']);
+        app(\App\Modules\CRM\Services\ContactService::class)->setStage(Company::withoutGlobalScopes()->find($b), 'qualified', 5);
+        $this->assertSame(45, OpenPipeline::sum(OpenPipeline::groups($companies, ['pipeline_price_per_unit' => $price]))['open']);
+
         $moves = OpenPipeline::closedMoves(Company::withoutGlobalScopes()->select('companies.id'), now()->startOfMonth(), now()->endOfMonth());
         $this->assertSame(['won'], $moves->map(fn ($m) => $m->detail('to'))->all(), 'the campaign\'s "contacted" moves are not loaded');
     }

@@ -262,6 +262,11 @@ class ContactService
             $company->crm_profile = array_merge($company->crm_profile ?? [], ['lost_reason' => $reason]);
         }
         $company->save();
+        // Sales totals count again on the next load. Not for a campaign's new → contacted (one every few seconds
+        // while it runs, which would defeat the cache): those show within five minutes.
+        if (! (in_array($from, [null, 'new'], true) && $stage === 'contacted')) {
+            \App\Modules\CRM\Support\OpenPipeline::forget();
+        }
         if ($stage === 'won') {   // a customer from now on: whoever won it looks after it, else the least loaded account manager
             \App\Modules\CRM\Support\Onboarding::assignOwner($company, $authorId);
         }
