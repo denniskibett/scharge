@@ -144,6 +144,10 @@
                 </form>
                 <ol class="divide-y divide-gray-100 dark:divide-gray-800">
                     @forelse ($history as $row)
+                        @if ($row->type === 'email')
+                            <li class="py-2" x-show="show === 'all' || show === 'messages'">@include('crm.partials.email-entry', ['row' => $row, 'company' => $company])</li>
+                            @continue
+                        @endif
                         <li class="grid grid-cols-[88px_minmax(0,1fr)] gap-4 py-3.5" x-show="show === 'all' || show === '{{ $kindOf($row) }}'">
                             <div class="text-xs leading-5 text-gray-500 dark:text-gray-400">{{ ($row->done_at ?? $row->created_at)->format('j M') }}<br>{{ ($row->done_at ?? $row->created_at)->format('H:i') }}</div>
                             <div class="min-w-0">
