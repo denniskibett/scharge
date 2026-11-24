@@ -3,6 +3,15 @@
 Every build that leaves this Mac has a section here and a tag `mobile-v<version>`. Builds before 1.1.1+3 were made
 before the app was in git and are not recorded.
 
+## 1.3.0+5 (24 Nov 2026)
+
+- Account managers do every CRM step in the app: add a prospect, edit details (including "do not email"), add
+  people, rewrite the email around the problems they chose, ask for feedback, and approve or skip win-back drafts.
+- Reach out by email or by their private demo form: the form link goes by WhatsApp or SMS from the phone, is logged,
+  and books a check in three working days. A prospect with no email (or who asked not to be emailed) starts on the form.
+- Cleaner prospect page: one row of quick actions (Call, WhatsApp, Mail app, Log, Next step), tap the stage to move
+  it, Edit / Add a person / Feedback link under the ⋯ menu, and history without repeated labels.
+
 ## 1.2.0+4 (24 Nov 2026)
 
 - Account managers send the first email to a prospect from the app: Playbook & email on a prospect shows how to
