@@ -211,7 +211,7 @@
 
   var lroot = $('#browse');
   if (L && lroot) {
-    var ls = { kind: 0, area: 'All', max: null, ver: false, sel: null };
+    var ls = { kind: +(lroot.dataset.kind || 0), area: 'All', max: null, ver: false, sel: null };
     var grid = $('#listing-grid'), detail = $('#detail'), backdrop = $('#detail-backdrop'), lastOpen = null;
     function closeDetail() { ls.sel = null; lrender(); }
     var TAG = [['var(--teal)', '#FFF'], ['var(--jac)', '#FFF'], ['var(--gold)', 'var(--ink)']];

@@ -9,7 +9,7 @@
 @endphp
 
 @section('title', $item['title'].', '.$item['area'].' · '.$price.($stay ? '/night' : '/month').' | scharge')
-@section('description', $kind.' in '.$item['area'].': '.$item['title'].', '.$price.' '.$per.'. '.$item['costs'].'. '.$item['avail'].'. Book a viewing free, no agent fees.')
+@section('description', $kind.' in '.$item['area'].': '.$item['title'].', '.$price.' '.$per.'. '.$item['costs'].'. '.$item['avail'].'. '.($stay ? 'Request your dates free; the host confirms on WhatsApp.' : 'Book a viewing free, no agent fees.'))
 @section('canonical', $item['url'])
 @if (! empty($item['photos'][0]))
 @section('og_image', $item['photos'][0])
@@ -21,12 +21,12 @@
 
 @section('content')
 <section class="section"><div class="wrap stack-l">
-  <nav aria-label="Breadcrumb" class="small muted"><a href="{{ route('home') }}">Home</a> › <a href="{{ route('home.listings') }}">Open listings</a> › <span aria-current="page">{{ $item['title'] }}</span></nav>
+  <nav aria-label="Breadcrumb" class="small muted"><a href="{{ route('home') }}">Home</a> › <a href="{{ route('home.listings') }}">Open listings</a> › <a href="{{ route('home.listings', $stay ? ['type' => 'stays'] : []) }}#browse">{{ $stay ? 'Short stays' : 'Homes to rent' }}</a> › <span aria-current="page">{{ $item['title'] }}</span></nav>
   <div class="row" style="justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
     <div class="stack" style="max-width:44rem">
-      <span class="pill" style="background:var(--blush);align-self:flex-start">{{ $item['avail'] }}</span>
+      <div class="chip-row" style="align-self:flex-start">@if ($stay)<span class="pill" style="background:var(--jac);color:#FFF">Short stay · BnB · priced per night</span>@else<span class="pill" style="background:var(--teal);color:#FFF">House to rent · priced per month</span>@endif<span class="pill" style="background:var(--blush)">{{ $item['avail'] }}</span></div>
       <h1 style="font-size:clamp(1.8rem,4vw,3rem)">{{ $item['title'] }}</h1>
-      <p class="muted">{{ $kind }} in {{ $item['area'] }}, listed by {{ $item['owner'] }}.</p>
+      <p class="muted">@if ($stay)Furnished short stay at {{ $item['owner'] }}, {{ $item['area'] }}. Book by the night; this is not a monthly rental.@else{{ $kind }} in {{ $item['area'] }}, listed by {{ $item['owner'] }}.@endif</p>
     </div>
     <p class="listing-price" style="font-size:1.6rem">{{ $price }} <span class="small muted" style="font-family:var(--font-body)">{{ $per }}</span></p>
   </div>
@@ -54,7 +54,7 @@
         <div class="chip-row">@foreach ($item['tags'] as $t)<span class="pill" style="background:var(--blush)">{{ $t }}</span>@endforeach</div>
       @endif
       <p class="small muted">Never pay a deposit to a personal number. On scharge, deposits go to the property's account and you get a receipt.</p>
-      <p><a class="btn btn--ghost" href="{{ route('home.listings') }}#browse">See all vacancies</a></p>
+      <p><a class="btn btn--ghost" href="{{ route('home.listings', $stay ? ['type' => 'stays'] : []) }}#browse">{{ $stay ? 'See all short stays' : 'See all homes to rent' }}</a></p>
     </div>
 
     <div class="card card--blush" id="request" style="flex:1 1 300px">
@@ -69,7 +69,7 @@
           <input type="hidden" name="listing_action" value="{{ $action }}"><input type="hidden" name="listing_slug" value="{{ $item['slug'] }}">
           <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
           <button class="btn btn--primary" type="submit">{{ $stay ? 'Request booking' : 'Request viewing' }}</button>
-          <p class="small muted">Free. The owner or caretaker replies on WhatsApp.</p>
+          <p class="small muted">Free. {{ $stay ? 'The host' : 'The owner or caretaker' }} replies on WhatsApp.</p>
         </div>
         <div class="thanks stack" tabindex="-1"><h3>Request sent.</h3><p class="muted">{{ $stay ? 'The host confirms on WhatsApp, then you pay a deposit on M-Pesa.' : 'The caretaker will WhatsApp you a time today.' }}</p></div>
       </form>
