@@ -121,11 +121,7 @@ class CompanyController extends Controller
      */
     private function getTenantCountForCompany($company)
     {
-        return Tenancy::whereHas('unit', function($q) use ($company) {
-            $q->whereHas('property', function($qe) use ($company) {
-                $qe->where('company_id', $company->id);
-            });
-        })->where('status', 'active')->distinct('tenant_id')->count('tenant_id');
+        return Tenancy::whereIn('unit_id', $this->unitIdsQuery($company))->where('status', 'active')->distinct('tenant_id')->count('tenant_id');
     }
     
     /**
@@ -302,22 +298,17 @@ class CompanyController extends Controller
             ->count();
         
         // Properties count
-        $totalProperties = Property::where('company_id', $company->id)->count();
+        $units = $this->unitIdsQuery($company);
+        $totalProperties = $this->propertiesOf($company)->count();
         
         // Units count
-        $totalUnits = Unit::whereHas('property', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })->count();
+        $totalUnits = Unit::whereIn('id', $units)->count();
         
         // Active tenancies count (status = active)
-        $totalTenants = Tenancy::whereHas('unit.property', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })->where('status', 'active')->count();
+        $totalTenants = Tenancy::whereIn('unit_id', $units)->where('status', 'active')->count();
         
         // Invoices count
-        $totalInvoices = Invoice::whereHas('tenancy.unit.property', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })->count();
+        $totalInvoices = Invoice::whereHas('tenancy', fn ($q) => $q->whereIn('unit_id', $units))->count();
         
         // Expenses count
         $totalExpenses = Expense::whereHas('property', function ($q) use ($company) {
@@ -325,9 +316,7 @@ class CompanyController extends Controller
         })->count();
         
         // Total revenue
-        $totalRevenue = Payment::whereHas('invoice.tenancy.unit.property', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })->sum('amount');
+        $totalRevenue = Payment::whereHas('invoice.tenancy', fn ($q) => $q->whereIn('unit_id', $units))->sum('amount');
         
         return [
             'totalStaff' => $totalStaff,
@@ -341,23 +330,57 @@ class CompanyController extends Controller
     }
     
     /**
-     * Get properties for view
+     * The units a company works with: units in buildings it owns, plus units it manages or hosts (BnB) in buildings
+     * owned by others (unit_managements, active). One building exists once; hosts and managers link to it.
      */
-    private function getPropertiesForView($company)
+    private function unitIdsQuery($company)
     {
-        return Property::where('company_id', $company->id)
+        return fn ($q) => $q->select('units.id')->from('units')
+            ->whereIn('units.property_id', fn ($p) => $p->select('id')->from('properties')->where('company_id', $company->id))
+            ->orWhereIn('units.id', fn ($m) => $m->select('unit_id')->from('unit_managements')->where('company_id', $company->id)->where('status', 'active'));
+    }
+
+    /** Buildings the company owns or has managed/hosted units in, with how it is linked and its unit counts. */
+    private function propertiesOf($company)
+    {
+        $managed = DB::table('unit_managements')->join('units', 'units.id', '=', 'unit_managements.unit_id')
+            ->where('unit_managements.company_id', $company->id)->where('unit_managements.status', 'active')
+            ->selectRaw('units.property_id, unit_managements.role, COUNT(DISTINCT units.id) as units')
+            ->groupBy('units.property_id', 'unit_managements.role')->get()->groupBy('property_id');
+
+        return Property::where('company_id', $company->id)->orWhereIn('id', $managed->keys())
             ->withCount('units')
             ->get()
-            ->map(function($property) {
+            ->map(function ($property) use ($company, $managed) {
+                $owns = (int) $property->company_id === (int) $company->id;
+                $links = $managed->get($property->id, collect());
+                $role = $owns ? 'Owner' : (collect(['bnb_host' => 'BnB host', 'manager' => 'Manager', 'owner' => 'Unit owner'])
+                    ->only($links->pluck('role')->all())->values()->join(', ') ?: 'Manager');
+                $unitIds = $owns ? null : DB::table('unit_managements')->where('company_id', $company->id)->where('status', 'active')
+                    ->whereIn('unit_id', fn ($q) => $q->select('id')->from('units')->where('property_id', $property->id))->pluck('unit_id');
+                $units = $owns ? $property->units_count : $unitIds->count();
+                $occupied = $owns ? $property->units()->where('status', 'occupied')->count()
+                    : Unit::whereIn('id', $unitIds)->where('status', 'occupied')->count();
+
                 return [
                     'id' => $property->id,
                     'name' => $property->name,
                     'location' => $property->location ?? '-',
-                    'units_count' => $property->units_count,
-                    'occupied_units' => $property->units()->where('status', 'occupied')->count(),
+                    'units_count' => $units,
+                    'occupied_units' => $occupied,
+                    'role' => $role,
+                    'owned' => $owns,
                     'created_at' => $property->created_at ? $property->created_at->toISOString() : null,
                 ];
-            });
+            })->values();
+    }
+
+    /**
+     * Get properties for view
+     */
+    private function getPropertiesForView($company)
+    {
+        return $this->propertiesOf($company);
     }
     
     /**
@@ -365,9 +388,7 @@ class CompanyController extends Controller
      */
     private function getTenanciesForView($company)
     {
-        return Tenancy::whereHas('unit.property', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })
+        return Tenancy::whereIn('unit_id', $this->unitIdsQuery($company))
         ->with(['tenant.user', 'unit.property'])
         ->where('status', 'active')  // ONLY ACTIVE TENANCIES
         ->orderBy('created_at', 'desc')
@@ -396,19 +417,7 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         
-        $properties = Property::where('company_id', $company->id)
-            ->withCount('units')
-            ->get()
-            ->map(function($property) {
-                return [
-                    'id' => $property->id,
-                    'name' => $property->name,
-                    'location' => $property->location ?? '-',
-                    'units_count' => $property->units_count,
-                    'occupied_units' => $property->units()->where('status', 'occupied')->count(),
-                    'created_at' => $property->created_at ? $property->created_at->toISOString() : null,
-                ];
-            });
+        $properties = $this->propertiesOf($company);
         
         return response()->json([
             'success' => true,
@@ -423,9 +432,7 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         
-        $tenancies = Tenancy::whereHas('unit.property', function($q) use ($company) {
-            $q->where('company_id', $company->id);
-        })
+        $tenancies = Tenancy::whereIn('unit_id', $this->unitIdsQuery($company))
         ->with(['tenant.user', 'unit.property'])
         ->where('status', 'active')  // ONLY ACTIVE TENANCIES
         ->orderBy('created_at', 'desc')
