@@ -92,26 +92,56 @@ class ReplyIntent
         return $intent;
     }
 
-    /** The first closing step and a suggested answer for this intent. @return array{title: string, text: string, answer: string} */
-    public static function next(string $intent, string $first): array
+    /**
+     * What the client told us, turned into what they save: their units, the hours a month their team spends
+     * confirming and recording payments by hand (crm.minutes_per_payment each), and their monthly fee.
+     *
+     * @return array{units: int, hours: int, fee: ?int}
+     */
+    public static function facts(Company $company): array
+    {
+        $demo = $company->followUps()->where('type', 'demo')->whereIn('status', ['open', 'scheduled', 'done'])->latest('id')->first();
+        $units = (int) ($demo?->detail('units') ?: $company->profile('estimated_units') ?: 0);
+        $quote = $units ? CloseSteps::quote($company, $demo) : null;
+
+        return ['units' => $units, 'hours' => (int) round($units * max(1, (int) config('crm.minutes_per_payment', 3)) / 60), 'fee' => $quote ? (int) $quote['start'] : null];
+    }
+
+    /**
+     * The first closing step and a suggested answer for this intent. Answers sell the saving, not the features:
+     * the hours their team gets back from their own unit count, the first payment covering three months, and vacant
+     * units getting cheaper over time.
+     *
+     * @param  array{units?: int, hours?: int, fee?: ?int}  $facts
+     * @return array{title: string, text: string, answer: string}
+     */
+    public static function next(string $intent, string $first, array $facts = []): array
     {
         $hi = 'Hi '.($first !== '' ? $first : 'there').",\n\n";
+        $units = (int) ($facts['units'] ?? 0);
+        $hours = (int) ($facts['hours'] ?? 0);
+        $fee = $facts['fee'] ?? null;
+        // The saving in their own numbers, when they gave us units; otherwise the same point without a figure.
+        $time = $units && $hours
+            ? 'With '.number_format($units).' units, confirming each M-Pesa message and updating the records by hand takes a team about '.$hours.' hours a month. That time comes back to you: payments match themselves to the right tenant and receipts go out on their own.'
+            : 'The hours your team spends confirming M-Pesa messages and updating records by hand come back to you: payments match themselves to the right tenant and receipts go out on their own.';
+        $start = $fee ? 'Your first payment of KES '.number_format($fee).' covers three months, so the next two are on us' : 'Your first payment covers three months, so the next two are on us';
 
         return match ($intent) {
-            'seller' => ['title' => 'Pivot to what fits a seller', 'text' => 'They sell plots or houses. Thank them for setting us straight and offer buyer instalment collections and listings instead of rent collection.',
-                'answer' => $hi."Thank you for setting us straight, and sorry for the mix-up.\n\nSince you sell plots and houses, the part of scharge that fits is buyer instalments: each buyer has a payment plan, M-Pesa payments match themselves to the right buyer, and buyers get an SMS statement and a reminder before each instalment is due. What is still unsold can be listed publicly from the same place.\n\nIf you sell on instalments, would a short call this week be useful? And if any of your buyers rent out what they buy, we would be glad to help them too."],
+            'seller' => ['title' => 'Pivot to what fits a seller', 'text' => 'They sell plots or houses. Thank them for setting us straight, then sell the time and follow-up calls they save on buyer instalments, not rent collection.',
+                'answer' => $hi."Thank you for setting us straight, and sorry for the mix-up.\n\nWhere sellers like you save is on instalments: every buyer payment you confirm from an M-Pesa message, and every call from a buyer asking what is left, is time your team gets back. Each payment lands on the right buyer by itself, and buyers get their balance by SMS before each instalment is due, so the calls stop.\n\nIf you sell on instalments, would a short call this week be useful? I can show you what it saves on one of your projects."],
             'partner' => ['title' => 'Explore working together', 'text' => 'They offered to help (advertising, referrals). Ask who they reach and book a short call about a partnership; agree terms with the admin before promising any fee.',
-                'answer' => $hi."Thank you, that is kind of you. We would be glad to explore working together: you reach landlords, managers and buyers who could use scharge, and we can help the people you work with collect rent and instalments.\n\nCould we have a short call this week to see what would work for both of us?"],
-            'not_interested' => ['title' => 'Close politely and mark it Lost', 'text' => 'Thank them, leave the door open, and set the stage to Lost with their reason.',
-                'answer' => $hi."Thank you for letting us know. We will leave it there; if anything changes, just reply to this email and we will pick it up."],
-            'has_system' => ['title' => 'Find the gap in what they use', 'text' => 'Ask what their system does not do well (M-Pesa matching, statements, water). Offer to run scharge beside it for a month; import is done for them.',
-                'answer' => $hi."Thanks for telling us. Many teams we work with had a system too; what moved them was M-Pesa payments matching themselves and landlord statements going out on their own.\n\nWhat does your current system leave you doing by hand? If it helps, we can import your data and run scharge beside it for a month so you can compare."],
-            'price' => ['title' => 'Ask for their budget', 'text' => 'Do not drop the price. Ask for their budget and units in use, then rebuild with the vacant-unit discount or one building to start.',
-                'answer' => $hi."Thank you for being open about the cost. Could you share the monthly budget you have in mind and how many units are occupied today? Vacant units get cheaper the longer you are with us, and starting with one building is fine, so we can put together a plan that fits."],
+                'answer' => $hi."Thank you, that is kind of you. We would be glad to explore working together: the landlords, managers and sellers you reach lose hours every month confirming payments by hand, and that is the time we give back to them.\n\nCould we have a short call this week to see what would work for both of us?"],
+            'not_interested' => ['title' => 'Close politely and mark it Lost', 'text' => 'Thank them, leave one line on the saving, and set the stage to Lost with their reason.',
+                'answer' => $hi."Thank you for letting us know. We will leave it there.\n\n".$time."\n\nIf that ever becomes worth a look, just reply to this email and we will pick it up."],
+            'has_system' => ['title' => 'Find what their system still leaves by hand', 'text' => 'Ask what is still done by hand (confirming M-Pesa, statements, water). Sell the hours back, and offer to run beside their system for a month; import is done for them.',
+                'answer' => $hi."Thanks for telling us. Most teams we speak to have a system too; what they still do by hand is the expensive part.\n\n".$time."\n\nWhat does yours still leave you doing by hand? We can import your data and run beside it for a month so you can see the difference in your own numbers."],
+            'price' => ['title' => 'Sell the saving, then ask for their budget', 'text' => 'Do not drop the price. Show the hours their team gets back and that the first payment covers three months, then ask for their budget and units in use.',
+                'answer' => $hi."Thank you for being open about the cost.\n\n".$time."\n\n".$start.", and vacant units get cheaper the longer you are with us.\n\nCould you share the monthly budget you have in mind and how many units are occupied today? We will put together a plan that fits that figure."],
             'later' => ['title' => 'Book the follow-up for when they said', 'text' => 'Agree the date they gave and schedule a call for it, so it lands on your calendar.',
-                'answer' => $hi."No problem at all. I will get back to you then; if a specific day suits you better, just let me know."],
+                'answer' => $hi."No problem at all. I will get back to you then.\n\nWhen you are ready, ".lcfirst($start).", so there is nothing to lose in starting early. If a specific day suits you better, just let me know."],
             default => ['title' => 'Book the demo now', 'text' => 'They are interested. Call today and agree a time, or send their demo link so they pick one.',
-                'answer' => $hi."Great to hear from you. Could we set up a 20-minute call this week? I will show you how it would work on one of your properties."],
+                'answer' => $hi."Great to hear from you.\n\n".$time."\n\nCould we set up a 20-minute call this week? I will show you where that time comes back on one of your properties."],
         };
     }
 }

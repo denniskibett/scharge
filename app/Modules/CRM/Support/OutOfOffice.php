@@ -32,7 +32,7 @@ class OutOfOffice
         if (self::isBounce($subject, $from)) {
             return ['bounce' => true, 'away' => false, 'return_on' => null, 'alternates' => []];
         }
-        $returnOn = self::returnDate($text, $received);
+        $returnOn = self::returnDate($subject."\n".$text, $received); // "(returning 11/30/2026)" is often only in the subject
         $away = $returnOn !== null || (bool) preg_match('/\b(out of (the )?office|away from (the |my )?(office|desk)|on (annual |medical |maternity |paternity |study )?leave|on (holiday|vacation)|limited access to (my )?e-?mail|currently away|travell?ing)\b/i', $subject.' '.$text);
 
         return ['bounce' => false, 'away' => $away, 'return_on' => $returnOn, 'alternates' => self::alternates($text, $from, $known)];
@@ -103,7 +103,14 @@ class OutOfOffice
         try {
             if (preg_match('/^(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?$/', $s, $p)) {
                 $year = isset($p[3]) ? (int) (strlen($p[3]) === 2 ? '20'.$p[3] : $p[3]) : $received->year;
-                $d = Carbon::create($year, (int) $p[2], (int) $p[1], 0, 0, 0, self::tz()); // Kenya writes the day first
+                [$day, $month] = [(int) $p[1], (int) $p[2]];       // Kenya writes the day first…
+                if ($month > 12 && $day <= 12) {
+                    [$day, $month] = [$month, $day];                // …US mail systems write 11/30/2026
+                }
+                if ($month < 1 || $month > 12 || $day < 1 || $day > 31 || ! checkdate($month, $day, $year)) {
+                    return null;
+                }
+                $d = Carbon::create($year, $month, $day, 0, 0, 0, self::tz());
                 $explicit = isset($p[3]);
             } else {
                 $clean = preg_replace('/(\d)(st|nd|rd|th)\b/', '$1', str_replace([',', ' of '], [' ', ' '], $s));

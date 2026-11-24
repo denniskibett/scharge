@@ -88,7 +88,7 @@ class CloseSteps
         $suggested = null;
         if ($intent && $stage !== 'won') {
             $first = trim(explode(' ', (string) ($reply->detail('from_name') ?: ''))[0] ?? '');
-            $next = ReplyIntent::next($intent, ctype_upper(str_replace(' ', '', $first)) ? ucfirst(strtolower($first)) : $first);
+            $next = ReplyIntent::next($intent, ctype_upper(str_replace(' ', '', $first)) ? ucfirst(strtolower($first)) : $first, ReplyIntent::facts($company));
             $suggested = $next['answer'];
             $lead = ['title' => $next['title'], 'text' => $next['text'], 'url' => $page.'#reply', 'done' => $said['answered'] ?? false];
             $steps = in_array($stage, ['new', 'contacted', 'qualified', 'nurture', 'lost', ''], true)

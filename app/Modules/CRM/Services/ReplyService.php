@@ -47,6 +47,14 @@ class ReplyService
         if ($company) {
             return [$company, EmailTracking::latestFor($company)];
         }
+        // A colleague at the same company (an out-of-office from someone we did not write to): same business domain.
+        $domain = \Illuminate\Support\Str::after($mail->from, '@');
+        if ($domain !== '' && ! \App\Modules\CRM\Support\EmailFinder::isFreeMail($mail->from)) {
+            $company = $q()->where('email', 'like', '%@'.addcslashes($domain, '%_'))->whereNotNull('crm_profile->last_emailed_at')->latest('crm_profile->last_emailed_at')->first();
+            if ($company) {
+                return [$company, EmailTracking::latestFor($company)];
+            }
+        }
         if (preg_match('/\b('.Playbook::REF_PATTERN.')\b/', $mail->subject, $r)) {
             $company = $q()->where('crm_profile->demo_ref', strtoupper($r[1]))->first();
             if ($company) {

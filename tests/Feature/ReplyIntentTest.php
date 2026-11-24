@@ -61,7 +61,7 @@ class ReplyIntentTest extends RentSchemaTestCase
         $close = CloseSteps::for($company);
         $this->assertSame('Pivot to what fits a seller', $close['steps'][0]['title']);
         $this->assertStringStartsWith('Hi Sammy,', $close['suggested']);
-        $this->assertStringContainsString('buyer instalments', $close['suggested']);
+        $this->assertStringContainsString('instalments', $close['suggested']);
         $this->assertNull($close['quote'], 'no rental per-unit figure for a seller');
     }
 
@@ -82,5 +82,35 @@ class ReplyIntentTest extends RentSchemaTestCase
         $notes = CrmFollowUp::where('company_id', $id)->where('type', 'note')->count();
         $this->artisan('crm:read-replies')->assertSuccessful();
         $this->assertSame($notes, CrmFollowUp::where('company_id', $id)->where('type', 'note')->count(), 'read once');
+    }
+
+    public function test_answers_sell_the_saving_in_their_own_numbers(): void
+    {
+        config(['crm.minutes_per_payment' => 3]);
+        $a = ReplyIntent::next('price', 'Emma', ['units' => 221, 'hours' => 11, 'fee' => 8840])['answer'];
+        $this->assertStringContainsString('With 221 units', $a);
+        $this->assertStringContainsString('about 11 hours a month', $a);
+        $this->assertStringContainsString('KES 8,840 covers three months', $a);
+        $this->assertStringNotContainsString('With 0 units', ReplyIntent::next('price', 'Emma')['answer'], 'no figure when we do not know their units');
+    }
+
+    public function test_a_colleague_at_the_same_business_domain_is_matched_but_free_mail_is_not(): void
+    {
+        foreach (['crm_profile' => 'json', 'email' => 'string', 'crm_stage' => 'string', 'kind' => 'string'] as $col => $type) {
+            if (! Schema::hasColumn('companies', $col)) {
+                Schema::table('companies', fn (Blueprint $t) => $t->{$type}($col)->nullable());
+            }
+        }
+        $ktda = DB::table('companies')->insertGetId(['name' => 'KTDA Test', 'lifecycle' => 'prospect', 'email' => 'info@ktdateas.test', 'crm_profile' => json_encode(['last_emailed_at' => '2026-11-24 12:34:00'])]);
+        DB::table('companies')->insertGetId(['name' => 'Gmail Co', 'lifecycle' => 'prospect', 'email' => 'someone@gmail.com', 'crm_profile' => json_encode(['last_emailed_at' => '2026-11-24 12:34:00'])]);
+        $parse = fn ($from) => InboundEmail::parse("From: X <{$from}>\r\nSubject: AUTO: out of the office (returning 11/30/2026)\r\nAuto-Submitted: auto-replied\r\n\r\nI am out of the office.\r\n");
+
+        [$c] = app(ReplyService::class)->match($parse('svieliza@ktdateas.test'));
+        $this->assertSame($ktda, $c?->id);
+        [$none] = app(ReplyService::class)->match($parse('stranger@gmail.com'));
+        $this->assertNull($none);
+
+        $r = \App\Modules\CRM\Support\OutOfOffice::read($parse('svieliza@ktdateas.test'), \Illuminate\Support\Carbon::parse('2026-11-24 12:37', 'Africa/Nairobi'));
+        $this->assertSame('2026-11-30', $r['return_on']?->toDateString(), 'US date in the subject');
     }
 }

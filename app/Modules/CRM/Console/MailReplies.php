@@ -70,5 +70,11 @@ class MailReplies extends Command
         $emails = array_unique(array_filter(array_map(fn ($e) => strtolower(trim((string) $e)), $emails), fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
         sort($emails);
         @file_put_contents(storage_path('app/crm-emailed.txt'), implode("\n", $emails)."\n", LOCK_EX);
+        // Business domains we emailed: a reply from a colleague at the same company (an out-of-office from
+        // someone we didn't write to, say) is theirs too. Free mail (gmail…) is never a company domain.
+        $domains = array_values(array_unique(array_filter(array_map(fn ($e) => \Illuminate\Support\Str::after($e, '@'), $emails),
+            fn ($d) => $d !== '' && ! \App\Modules\CRM\Support\EmailFinder::isFreeMail('x@'.$d))));
+        sort($domains);
+        @file_put_contents(storage_path('app/crm-emailed-domains.txt'), implode("\n", $domains)."\n", LOCK_EX);
     }
 }

@@ -11,6 +11,7 @@ SEEN=/var/lib/scharge-mailreplies.seen
 OUT=$APP/storage/app/inbox
 mkdir -p "$OUT"; touch "$SEEN"
 LIST=$APP/storage/app/crm-emailed.txt
+DOMAINS=$APP/storage/app/crm-emailed-domains.txt
 now=$(date +%s); day=$(date -d today +%s); week=$((now - 7*86400))
 
 json="{\"generated_at\":$now,\"mailboxes\":{"; first=1
@@ -25,7 +26,8 @@ for b in $BOXES; do
     head=$(zcat -f "$f" 2>/dev/null | sed -n '1,/^\r\?$/p' | tr -d '\000' | head -c 20000)
     from=$(printf '%s\n' "$head" | grep -i -m1 '^From:' | grep -oiE '[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]+' | head -1 | tr 'A-Z' 'a-z')
     if printf '%s\n' "$head" | grep -iE '^(In-Reply-To|References):|^[[:space:]]+<' | grep -qi '@sharet\.africa>' \
-       || { [ -n "$from" ] && [ -f "$LIST" ] && grep -qxF "$from" "$LIST"; }; then
+       || { [ -n "$from" ] && [ -f "$LIST" ] && grep -qxF "$from" "$LIST"; } \
+       || { [ -n "$from" ] && [ -f "$DOMAINS" ] && grep -qxF "${from#*@}" "$DOMAINS"; }; then
       zcat -f "$f" > "$OUT/${b}__$(basename "$f" | cut -d: -f1 | tr -c 'A-Za-z0-9._-' '_').eml"
     fi
     echo "$key" >> "$SEEN"

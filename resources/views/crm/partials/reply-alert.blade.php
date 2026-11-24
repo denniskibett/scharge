@@ -37,7 +37,7 @@
         @csrf
         <div><label class="{{ $label }}" for="reply-body">Your answer (goes from {{ \App\Modules\CRM\Support\Playbook::fromFor($company) }} in the same thread, signed {{ $company->owner?->name ?? auth()->user()->name }}; their replies come back to you)</label>
             <textarea id="reply-body" name="body" rows="6" required class="w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm text-gray-800 focus:border-brand-300 focus:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-white/90">{{ old('body', ($company->profile('reply_intent.intent') && (int) $company->profile('reply_intent.follow_up_id') === (int) ($reply['follow_up_id'] ?? 0))
-                ? \App\Modules\CRM\Support\ReplyIntent::next($company->profile('reply_intent.intent'), ctype_upper(str_replace(' ', '', $first)) ? ucfirst(strtolower($first)) : $first)['answer']
+                ? \App\Modules\CRM\Support\ReplyIntent::next($company->profile('reply_intent.intent'), ctype_upper(str_replace(' ', '', $first)) ? ucfirst(strtolower($first)) : $first, \App\Modules\CRM\Support\ReplyIntent::facts($company))['answer']
                 : 'Hi '.($first ?: 'there').",\n\n") }}</textarea></div>
         <div class="flex flex-wrap items-end gap-3">
             <div style="min-width:220px"><label class="{{ $label }}" for="reply-stage">Stage</label>{!! $stageSelect('reply-stage') !!}</div>

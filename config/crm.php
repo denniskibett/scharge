@@ -20,6 +20,12 @@ return [
      */
     'onboarding_owner' => env('CRM_ONBOARDING_OWNER'),
 
+    /*
+     * Suggested answers sell the saving, worked out from what the client told us (ReplyIntent::facts): the time their
+     * team spends confirming and recording each rent payment by hand, in minutes. Shown as "about".
+     */
+    'minutes_per_payment' => (int) env('CRM_MINUTES_PER_PAYMENT', 3),
+
     /* Extra addresses copied on every prospect reply and on our answers, besides sysadmins and the account manager (comma-separated). */
     'reply_cc' => array_filter(array_map('trim', explode(',', (string) env('CRM_REPLY_CC', '')))),
 
