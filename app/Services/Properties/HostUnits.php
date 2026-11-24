@@ -51,6 +51,7 @@ class HostUnits
                 'rent_amount' => 0,
                 'status' => 'vacant',
                 'stay_type' => 'bnb',
+                'furnishing_status' => 'furnished',   // a short stay is let furnished
                 'bnb_nightly_rate' => $d['nightly_rate'] ?? null,
                 'is_active' => 1,
             ]);

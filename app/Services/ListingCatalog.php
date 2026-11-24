@@ -83,7 +83,7 @@ class ListingCatalog
                 $water > 0 ? 'Water KES '.number_format($water).'/m³' : null,
                 (float) $r->service > 0 ? 'service KES '.number_format((float) $r->service) : null,
                 (float) $r->deposit > 0 ? 'deposit KES '.number_format((float) $r->deposit) : null,
-            ])->filter()->join(' · ') ?: 'Ask the caretaker for other costs';
+            ])->filter()->join(' · ') ?: ($stay ? 'Ask the host about cleaning and other costs' : 'Ask the caretaker for other costs');
 
             // Stable address for the listing's own page: survives other listings coming and going.
             $slug = \Illuminate\Support\Str::slug(($r->unit_type ?: 'house').' '.($r->location ?: $r->pname))
@@ -95,14 +95,17 @@ class ListingCatalog
                 'id' => $i + 1,
                 'slug' => $slug,
                 'url' => route('home.listing', $slug),
-                'title' => trim(($r->unit_type ?: 'House').' · '.$r->pname),
+                // A short stay says so in its name, so it is never taken for a house to rent by the month.
+                'title' => trim(($r->unit_type ?: 'House').($stay ? ' BnB' : '').' · '.$r->pname),
                 'area' => $r->location ?: $r->pname,
                 'price' => $price,
                 'avail' => $r->n > 1 ? $r->n.' available' : 'Available now',
                 'costs' => $costs,
                 'verified' => $r->cid && in_array((int) $r->cid, $verified, true),
                 'owner' => $r->pname,
-                'tags' => array_values(array_filter([$r->furnishing ? ucfirst((string) $r->furnishing) : null, $r->n > 1 ? $r->n.' identical units' : null])),
+                // A short stay is furnished by nature, whatever the unit record's default says.
+                'tags' => array_values(array_filter([$stay ? 'Short stay (BnB)' : null, $stay ? 'Furnished' : ($r->furnishing ? ucfirst((string) $r->furnishing) : null),
+                    $r->n > 1 ? $r->n.' identical units' : null])),
                 'photo' => $urls[0] ?? $this->placeholder($r->unit_type, $r->pname),
                 'photos' => $urls,
             ];

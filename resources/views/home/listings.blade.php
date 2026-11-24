@@ -12,6 +12,12 @@
 @endsection
 
 @section('content')
+@php
+    // Real counts per type; the page opens on the type asked for (?type=stays), else the first type that has listings.
+    $kindCount = [0, 0, 0];
+    foreach ($listingItems ?? [] as $h) { $kindCount[$h['k']] = ($kindCount[$h['k']] ?? 0) + 1; }
+    $startKind = ['stays' => 1, 'bnb' => 1, 'plots' => 2, 'rent' => 0][request('type')] ?? (collect($kindCount)->search(fn ($n) => $n > 0) ?: 0);
+@endphp
 <section class="hero" data-slider aria-roledescription="carousel" aria-label="Highlights">
 <div class="hero-slide is-active" role="group" aria-roledescription="slide" aria-label="1 of 4">
 <div class="hero-bg" style="background-image:url('{{ asset('assets/images/slides/listings-1.jpg') }}')"></div><div class="hero-shade"></div><div class="hero-stripe s-teal"></div>
@@ -48,8 +54,8 @@
 </div>
 <div class="hero-controls"><button class="hero-arrow hero-prev" aria-label="Previous slide">‹</button><button class="hero-dot" aria-label="Show slide 1" aria-current="true"></button><button class="hero-dot" aria-label="Show slide 2" aria-current="false"></button><button class="hero-dot" aria-label="Show slide 3" aria-current="false"></button><button class="hero-dot" aria-label="Show slide 4" aria-current="false"></button><button class="hero-arrow hero-next" aria-label="Next slide">›</button></div>
 </section>
-<section class="section" id="browse"><div class="wrap stack-l">
-<div class="filters"><div role="tablist" aria-label="Listing type" class="tabs"><button role="tab" class="tab" data-kind="0" aria-selected="false">Homes to rent (6)</button><button role="tab" class="tab" data-kind="1" aria-selected="false">Short stays (3)</button><button role="tab" class="tab" data-kind="2" aria-selected="false">Plots for sale (2)</button></div>
+<section class="section" id="browse" data-kind="{{ $startKind }}"><div class="wrap stack-l">
+<div class="filters"><div role="tablist" aria-label="Listing type" class="tabs"><button role="tab" class="tab" data-kind="0" aria-selected="false">Homes to rent ({{ $kindCount[0] }})</button><button role="tab" class="tab" data-kind="1" aria-selected="false">Short stays · BnB ({{ $kindCount[1] }})</button><button role="tab" class="tab" data-kind="2" aria-selected="false">Plots for sale ({{ $kindCount[2] }})</button></div>
 <div class="filters-row"><div class="chip-row" style="align-items:center"><span class="small muted" style="font-weight:600">Area</span><span class="chip-row" id="area-chips"></span></div>
 <label class="price" for="lmax"><span class="range-label"><span id="lmax-label">Max rent</span><b id="lmax-out" style="color:var(--ink)"></b></span><input id="lmax" type="range"></label>
 <label class="check" style="gap:10px"><input id="lver" type="checkbox"> Inspected only</label></div></div>
@@ -62,9 +68,13 @@
 </div></section>
 @if (! empty($listingItems))
 <section class="section" id="all-vacancies" aria-labelledby="all-vacancies-h"><div class="wrap stack">
-<h2 id="all-vacancies-h" style="font-size:1.3rem">Every vacancy, by area</h2>
-@foreach (collect($listingItems)->groupBy('area')->sortKeys() as $area => $group)
-<p class="small"><b>{{ $area }}:</b> @foreach ($group as $h)<a href="{{ $h['url'] }}">{{ $h['title'] }}, KES {{ number_format($h['price']) }}{{ $h['k'] === 1 ? ' a night' : ' a month' }}</a>@unless ($loop->last) · @endunless @endforeach</p>
+<h2 id="all-vacancies-h" style="font-size:1.3rem">Every listing, by type and area</h2>
+@foreach ([0 => 'Homes to rent (by the month)', 1 => 'Short stays · BnB (by the night)', 2 => 'Plots for sale'] as $k => $heading)
+@continue(! $kindCount[$k])
+<h3 style="font-size:1.05rem;margin-top:8px">{{ $heading }}</h3>
+@foreach (collect($listingItems)->where('k', $k)->groupBy('area')->sortKeys() as $area => $group)
+<p class="small"><b>{{ $area }}:</b> @foreach ($group as $h)<a href="{{ $h['url'] }}">{{ $h['title'] }}, KES {{ number_format($h['price']) }}{{ $k === 1 ? ' a night' : ($k === 0 ? ' a month' : '') }}</a>@unless ($loop->last) · @endunless @endforeach</p>
+@endforeach
 @endforeach
 </div></section>
 @endif
