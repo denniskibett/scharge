@@ -164,6 +164,14 @@ foreach ($campaignOrder as $i => $type) {
 Schedule::call(fn () => \App\Modules\CRM\Support\EmailEngagement::prune())
     ->name('crm-email-events-prune')->dailyAt('03:20')->onOneServer();
 
+// Bounces that came back as emails: mark dead addresses, send to the next address on file, and read the websites of
+// companies left without one for a working address (Support\LateBounce). Light: at most 25 websites a day.
+Schedule::command('crm:late-bounces --find --limit=25')
+    ->weekdays()->at('06:40')
+    ->withoutOverlapping(30)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+
 // Customers stuck on the same setup step for three days: a call for their account manager, naming the step (Support\Onboarding).
 Schedule::command('crm:onboarding-stalls')
     ->weekdays()->at('08:30')
