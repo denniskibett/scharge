@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 /** Done-for-you onboarding from the command line (the CRM page has the same button: Onboarding › Set up their account). */
 class SetUpAccount extends Command
 {
-    protected $signature = 'crm:set-up {company* : CRM company ids} {--no-send : Set up and build the PDF, but do not email them}';
+    protected $signature = 'crm:set-up {company* : CRM company ids} {--no-send : Set up and build the PDF, but do not email them} {--sms-only : Already set up: send the welcome link by SMS}';
 
     protected $description = 'Set a demo company\'s account up from the demo data and email the welcome link and onboarding to-do PDF';
 
@@ -19,6 +19,14 @@ class SetUpAccount extends Command
             $company = Company::withoutGlobalScope('customers')->find($id);
             if (! $company) {
                 $this->warn("#{$id}: not found");
+
+                continue;
+            }
+            if ($this->option('sms-only')) {
+                $user = \App\Models\User::find($company->profile('setup.user_id'));
+                $manager = \App\Models\User::find($company->owner_id);
+                $ok = $user && $manager && $onboarding->sms($company, $user, $manager);
+                $this->line("#{$id} {$company->name}: SMS ".($ok ? 'sent to '.($user->phone ?: $company->phone) : 'not sent (see the CRM thread)'));
 
                 continue;
             }

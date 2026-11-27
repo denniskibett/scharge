@@ -231,8 +231,41 @@ class DemoOnboarding
         $profile = $company->fresh()->crm_profile ?? [];
         $profile['setup']['sent_at'] = now()->toDateTimeString();
         $company->forceFill(['crm_profile' => $profile])->saveQuietly();
+        $this->sms($company->fresh(), $user, $manager);
 
         return true;
+    }
+
+    /**
+     * The welcome link by SMS too (KenyaSMS, scharge's SHARETENT sender), to the number they gave on the demo form
+     * (else the company's). Logged on the CRM thread. Returns whether it went.
+     */
+    public function sms(Company $company, User $user, User $manager): bool
+    {
+        $phone = $user->phone ?: $company->phone;
+        if (! $phone) {
+            return false;
+        }
+        $first = explode(' ', trim((string) $user->name))[0] ?: 'there';
+        $text = 'Hi '.$first.', your scharge account for '.preg_replace('/\s*\([^()]*\)\s*$/', '', $company->name).' is ready. Set your password here (14 days): '
+            .self::welcomeUrl($user).' . Then add your units; we do the rest. '.$manager->name.', scharge '.$manager->phone;
+        try {
+            $r = app(\App\Services\SmsService::class)->forCompany(null)->send($phone, $text);
+        } catch (\Throwable $e) {
+            report($e);
+            $r = ['success' => false, 'message' => $e->getMessage()];
+        }
+        $ok = (bool) ($r['success'] ?? false);
+        $company->followUps()->create(['assigned_to' => $manager->id, 'type' => 'note', 'status' => 'done', 'done_at' => now(),
+            'title' => ($ok ? 'SMS sent: ' : 'SMS failed: ').'welcome link to '.$phone, 'notes' => $text,
+            'details' => ['onboarding' => 'welcome_sms', 'to' => $phone, 'result' => array_intersect_key((array) $r, array_flip(['success', 'status', 'message', 'channel']))]]);
+        if ($ok) {
+            $profile = $company->fresh()->crm_profile ?? [];
+            $profile['setup']['sms_at'] = now()->toDateTimeString();
+            $company->forceFill(['crm_profile' => $profile])->saveQuietly();
+        }
+
+        return $ok;
     }
 
     /**

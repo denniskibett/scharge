@@ -53,7 +53,14 @@ class DemoOnboardingTest extends RentSchemaTestCase
                 'prospect_properties' => [['id' => 'r0ojqtlm', 'name' => 'Blemerg', 'location' => 'Adlife Plaza', 'units' => 221, 'status' => 'open']]])]);
         CrmFollowUp::create(['company_id' => $this->companyId, 'user_id' => 9, 'type' => 'contact', 'status' => 'done', 'title' => 'Emma linked', 'details' => ['primary' => true]]);
         SetupMode::flush();
+        $this->sms = [];
+        $fake = \Mockery::mock(\App\Services\SmsService::class);
+        $fake->shouldReceive('forCompany')->andReturnSelf();
+        $fake->shouldReceive('send')->andReturnUsing(function ($phone, $text) { $this->sms[] = [$phone, $text]; return ['success' => true]; });
+        $this->app->instance(\App\Services\SmsService::class, $fake);
     }
+
+    private array $sms = [];
 
     public function test_the_account_is_set_up_from_the_demo_and_they_get_the_pdf(): void
     {
@@ -73,6 +80,10 @@ class DemoOnboardingTest extends RentSchemaTestCase
         Storage::disk('local')->assertExists($r['pdf']);
         $this->assertGreaterThanOrEqual(4, CrmFollowUp::where('company_id', $this->companyId)->where('details->onboarding', 'setup')->count(), 'the account manager\'s setup tasks');
         Mail::assertSent(AccountReadyEmail::class, fn ($m) => $m->hasTo('emma@jourdan.test') && $m->pdf === $r['pdf'] && str_contains($m->body, '/welcome/9'));
+
+        $this->assertCount(1, $this->sms, 'the welcome link by SMS too');
+        $this->assertSame('+254700000009', $this->sms[0][0], 'to the number they gave on the demo form');
+        $this->assertStringContainsString('/welcome/9', $this->sms[0][1]);
 
         $p = DemoOnboarding::progress($c);
         $this->assertSame(221, $p['expected']);
