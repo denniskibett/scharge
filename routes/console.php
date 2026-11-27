@@ -135,7 +135,7 @@ Schedule::command('crm:pull-nairobi --enrich=80')
     ->onOneServer()
     ->appendOutputTo(storage_path('logs/crm-pull-nairobi.log'));
 
-// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): a batch every 10 minutes on weekdays, 08:00-21:00 Nairobi.
+// CRM cold-email campaigns (crm:campaign, from sales@sharet.africa): 15 emails every 3 minutes on weekdays, 08:00-21:00 Nairobi.
 // Prospects with a business email, never emailed, not opted out get their property type's email. One type at a time:
 // agencies first, then residential, hotels / short-stay, commercial, utilities (--after). Each batch is 40 emails at 6 a minute (~7 min).
 // Daily ramp so sales@ keeps its reputation: 800 on 19 Nov, 1,500 on 20 Nov, then 2,500 a day (all types together).
@@ -153,9 +153,10 @@ $campaignManager = ['RESIDENTIAL' => 664, 'BNB' => 667];
 foreach ($campaignOrder as $i => $type) {
     $after = $i ? ' --after='.implode(',', array_slice($campaignOrder, 0, $i)) : '';
     $manager = isset($campaignManager[$type]) ? ' --manager='.$campaignManager[$type] : '';
-    Schedule::command("crm:campaign {$type}{$after}{$manager} --send --limit=40 --per-minute=6 --daily-cap=".$campaignCap())
-        ->weekdays()->everyTenMinutes()->between('08:00', '20:59')
-        ->withoutOverlapping(15)
+    // 15 emails every 3 minutes, like the follow-ups (user, 27 Nov).
+    Schedule::command("crm:campaign {$type}{$after}{$manager} --send --limit=15 --per-minute=6 --daily-cap=".$campaignCap())
+        ->weekdays()->everyThreeMinutes()->between('08:00', '20:59')
+        ->withoutOverlapping(5)
         ->onOneServer()
         ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
 }
