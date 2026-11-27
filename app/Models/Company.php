@@ -52,6 +52,15 @@ class Company extends Model
             static::addGlobalScope('customers', fn ($query) => $query->where('companies.lifecycle', '!=', 'prospect'));
         }
 
+        // Soft-deleted companies (removed from the CRM, kept on record) are hidden everywhere. The check waits for
+        // the column (database/schema/2026_11_27_company_soft_delete.sql). Imports still find them by domain or name
+        // (ContactService::findCompany), so a removed company is never added again.
+        static $hasDeletedAt;
+        $hasDeletedAt ??= rescue(fn () => \Illuminate\Support\Facades\Schema::hasColumn('companies', 'deleted_at'), false, false);
+        if ($hasDeletedAt) {
+            static::addGlobalScope('not_deleted', fn ($query) => $query->whereNull('companies.deleted_at'));
+        }
+
         // Whatever path saves a company (forms, imports, CRM, scrapers), the contact fields are stored clean:
         // plain text without tags or control characters, names in name case, phones in +254… form, emails lower-case.
         static::saving(function (self $company) {
@@ -216,4 +225,18 @@ class Company extends Model
         return max(0, $maxUsers - $currentUsers);
     }
 
+
+    /**
+     * Remove from the CRM but keep the record: hidden everywhere, never emailed, and never re-imported.
+     * $reachedOut notes that we had contacted them before removing them.
+     */
+    public function softDelete(string $reason, bool $reachedOut = true, ?int $by = null): void
+    {
+        $profile = array_merge($this->crm_profile ?? [], array_filter([
+            'do_not_email' => true,
+            'reached_out' => $reachedOut ?: null,
+            'removed' => ['at' => now()->toDateTimeString(), 'by' => $by, 'reason' => $reason],
+        ], fn ($v) => $v !== null));
+        $this->forceFill(['crm_profile' => $profile, 'deleted_at' => now()])->saveQuietly();
+    }
 }
