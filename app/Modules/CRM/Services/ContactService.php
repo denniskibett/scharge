@@ -203,7 +203,8 @@ class ContactService
     /** Match on website / email domain first, then on the normalised name, across prospects and customers. */
     public function findCompany(?string $domain, ?string $key): ?Company
     {
-        $query = fn () => Company::withoutGlobalScope('customers');
+        // Soft-deleted companies count too: a company removed from the CRM is merged into (and stays hidden), never added again.
+        $query = fn () => Company::withoutGlobalScopes(['customers', 'not_deleted']);
 
         if ($domain && ($company = $query()->where('domain', $domain)->first())) {
             return $company;
