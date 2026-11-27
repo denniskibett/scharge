@@ -92,10 +92,11 @@ class OutreachService
     /**
      * Send one email to a prospect from their account manager (a win-back draft someone approved, say) and log it
      * on the thread. No new call task, no stage change. Null when there is nothing to send or they asked us to stop.
+     * $thread: message-ids it follows (In-Reply-To/References), so it lands in the same conversation.
      *
      * @throws \Throwable when the mail could not be sent (nothing is logged then)
      */
-    public function sendText(Company $company, string $to, array $cc, string $subject, string $body, string $why, array $details = [], ?int $authorId = null): ?\App\Modules\CRM\Models\CrmFollowUp
+    public function sendText(Company $company, string $to, array $cc, string $subject, string $body, string $why, array $details = [], ?int $authorId = null, array $thread = []): ?\App\Modules\CRM\Models\CrmFollowUp
     {
         if (trim($subject) === '' || trim($body) === '' || $company->profile('do_not_email') || ! filter_var($to, FILTER_VALIDATE_EMAIL)) {
             return null;
@@ -113,7 +114,7 @@ class OutreachService
         if ($cc) {
             $mailer->cc($cc);
         }
-        $sent = $mailer->send(new CrmOutreachEmail($subject, $html, $manager, $company, $track));
+        $sent = $mailer->send(new CrmOutreachEmail($subject, $html, $manager, $company, $track, array_values(array_filter($thread))));
 
         $row = $company->followUps()->create([
             'assigned_to' => $manager->id, 'type' => 'email', 'status' => 'done', 'done_at' => now(),
