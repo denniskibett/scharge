@@ -26,6 +26,43 @@ class SetupController extends Controller
         return redirect()->route('password.reset', ['token' => Password::broker()->createToken($user), 'email' => $user->email]);
     }
 
+    /** The client's button (signed link from the demo thank-you page and their booking email): what will be set up. */
+    public function start(Request $request, int $company)
+    {
+        $c = $this->startable($company);
+        $user = $c->profile('setup.user_id') ? User::find($c->profile('setup.user_id')) : null;
+
+        return view('home.setup-start', ['company' => $c, 'done' => (bool) $c->profile('setup.started_at'), 'user' => $user,
+            'contact' => \App\Modules\CRM\Models\CrmFollowUp::where('company_id', $c->id)->where('type', 'contact')->whereNotNull('user_id')->latest('id')->first()?->contact,
+            'properties' => (array) $c->profile('prospect_properties', []), 'manager' => $c->owner, 'action' => $request->fullUrl()]);
+    }
+
+    /** The client pressed "Create my scharge account": set it up, then straight on to choosing their password. */
+    public function startConfirm(Request $request, int $company, DemoOnboarding $onboarding)
+    {
+        $c = $this->startable($company);
+        if ($c->profile('setup.started_at')) {
+            $user = User::find($c->profile('setup.user_id'));
+
+            return $user ? redirect(DemoOnboarding::welcomeUrl($user)) : redirect()->route('login');
+        }
+        $r = $onboarding->setUp($c, null, true);
+        app(\App\Modules\CRM\Services\ContactService::class)->log($c->fresh(), 'note', 'The client created their account', 'They pressed "Create my scharge account" on their demo link.', [], null, null);
+        if (! $r['user']) {
+            return redirect($request->fullUrl())->with('error', 'We could not create your login: '.implode(' ', $r['problems']).' Your account manager will call you.');
+        }
+
+        return redirect(DemoOnboarding::welcomeUrl($r['user']));
+    }
+
+    private function startable(int $id): Company
+    {
+        $c = Company::withoutGlobalScope('customers')->find($id);
+        abort_unless($c && ($c->profile('prospect_properties') || $c->profile('setup.started_at')), 404);
+
+        return $c;
+    }
+
     /** CRM: set the account up from the demo data and send the welcome email with the to-do PDF. */
     public function setUp(Request $request, Company $crmCompany, DemoOnboarding $onboarding)
     {

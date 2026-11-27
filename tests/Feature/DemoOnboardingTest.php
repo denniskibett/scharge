@@ -124,4 +124,25 @@ class DemoOnboardingTest extends RentSchemaTestCase
         $this->get($url)->assertRedirect(route('login'));
         $this->get(str_replace('signature=', 'signature=x', $url))->assertForbidden();
     }
+
+    public function test_the_client_creates_their_own_account_from_the_button(): void
+    {
+        Mail::fake();
+        Storage::fake('local');
+        $c = Company::withoutGlobalScopes()->find($this->companyId);
+        $url = DemoOnboarding::startUrl($c);
+
+        $this->get($url)->assertOk()->assertSee('Create my scharge account')->assertSee('Blemerg')->assertSee('emma@jourdan.test');
+        $this->get(str_replace('signature=', 'signature=x', $url))->assertForbidden();
+
+        $this->post($url)->assertRedirectContains('/welcome/9');
+        $c = Company::withoutGlobalScopes()->find($this->companyId);
+        $this->assertSame('customer', $c->lifecycle);
+        $this->assertTrue(SetupMode::on($this->companyId));
+        Mail::assertSent(AccountReadyEmail::class);
+        $this->assertTrue(CrmFollowUp::where('company_id', $this->companyId)->where('title', 'The client created their account')->exists());
+
+        $this->post($url)->assertRedirectContains('/welcome/9');
+        $this->assertSame(1, DB::table('properties')->where('company_id', $this->companyId)->count(), 'pressing twice sets up once');
+    }
 }

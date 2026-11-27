@@ -67,7 +67,14 @@
         to set up your demo for {{ $companyName }}.
     </p>
     <p class="muted">Keep your reference <strong class="dr-ref">{{ $ref }}</strong>. If anything changes, reply to our email or use this page again.</p>
-    <a class="btn btn--primary" href="{{ route('home') }}" style="align-self:flex-start">Back to scharge</a>
+    @unless ($company->profile('setup.started_at'))
+    <div class="dr-company" style="border-style:solid;padding:16px">
+        <b>Don't want to wait for the demo?</b>
+        <p class="muted" style="margin:6px 0 10px">Create your scharge account now. We set it up from what you just sent: your properties are added, you add your units, and we do the rest (tenants, M-Pesa, invoices). Nothing is billed until you decide to go ahead.</p>
+        <a class="btn btn--primary" href="{{ \App\Modules\CRM\Services\DemoOnboarding::startUrl($company) }}">Create my scharge account</a>
+    </div>
+    @endunless
+    <a class="btn btn--glass" href="{{ route('home') }}" style="align-self:flex-start">Back to scharge</a>
 @else
     <span class="label">Book your demo · <span class="dr-ref">{{ $ref }}</span></span>
     <h1 style="font-size:1.6rem">{{ $companyName }}, let's set up your scharge demo</h1>

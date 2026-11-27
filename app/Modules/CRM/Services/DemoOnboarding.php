@@ -86,6 +86,12 @@ class DemoOnboarding
         return ['company' => $company->fresh(), 'user' => $user, 'properties' => $props, 'pdf' => $pdf, 'sent' => $sent, 'problems' => $problems];
     }
 
+    /** The client's own "Create my scharge account" button (signed, 30 days): the action comes from them. */
+    public static function startUrl(Company $company): string
+    {
+        return URL::temporarySignedRoute('setup.start', now()->addDays(30), ['company' => $company->id]);
+    }
+
     /** The signed welcome link (14 days): opening it issues a fresh set-password link, until they have signed in once. */
     public static function welcomeUrl(User $user): string
     {

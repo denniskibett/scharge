@@ -37,6 +37,9 @@ Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref'
 Route::post('/demo/{ref}/draft', [DemoRequestController::class, 'draft'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->middleware('throttle:40,1,demo-draft')->name('site.demo-request.draft');
 Route::get('/demo/{ref}/thanks', [DemoRequestController::class, 'thanks'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->name('site.demo-request.thanks');
 Route::get('/e/{token}.gif', [DemoRequestController::class, 'opened'])->where('token', '[A-Za-z0-9]{24}')->middleware('throttle:60,1,email-open')->name('site.email-open');
+// The client's own "Create my scharge account" button (signed, 30 days), from the demo thank-you page and booking email.
+Route::get('/start/{company}', [\App\Modules\CRM\Controllers\SetupController::class, 'start'])->whereNumber('company')->middleware(['signed', 'throttle:20,1,setup-start'])->name('setup.start');
+Route::post('/start/{company}', [\App\Modules\CRM\Controllers\SetupController::class, 'startConfirm'])->whereNumber('company')->middleware(['signed', 'throttle:5,1,setup-start-go'])->name('setup.start.go');
 // Signed 14-day welcome link from the "account ready" email (done-for-you onboarding).
 Route::get('/welcome/{user}', [\App\Modules\CRM\Controllers\SetupController::class, 'welcome'])->whereNumber('user')->middleware(['signed', 'throttle:10,1,setup-welcome'])->name('setup.welcome');
 Route::get('/feedback/{token}', [SiteFeedbackController::class, 'show'])->name('site.feedback.show');
