@@ -164,6 +164,14 @@ foreach ($campaignOrder as $i => $type) {
 Schedule::call(fn () => \App\Modules\CRM\Support\EmailEngagement::prune())
     ->name('crm-email-events-prune')->dailyAt('03:20')->onOneServer();
 
+// Follow-up email (crm:follow-up): one short reply in the same thread to first emails not answered after 4 working days,
+// clicked first, then opened. Same hours, pace, daily cap and bounce brake as the campaigns (the cap counts both).
+Schedule::command('crm:follow-up --send --after=4 --limit=40 --per-minute=6 --daily-cap='.$campaignCap())
+    ->weekdays()->everyTenMinutes()->between('08:05', '20:55')
+    ->withoutOverlapping(15)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/crm-campaigns.log'));
+
 // Bounces that came back as emails: mark dead addresses, send to the next address on file, and read the websites of
 // companies left without one for a working address (Support\LateBounce). Light: at most 25 websites a day.
 Schedule::command('crm:late-bounces --find --limit=25')

@@ -9,12 +9,21 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\Mailables\Headers;
 
 /** An account manager's email in the scharge "Ink" design: from sales@sharet.africa (onboarding@ once the prospect is onboarding), replies go to the manager. */
 class CrmOutreachEmail extends Mailable
 {
-    public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null, public ?string $track = null)
+    /** @param string[] $thread message-ids this email follows (without <>): a follow-up lands in the same thread as the first email */
+    public function __construct(public string $subjectLine, public string $body, public User $manager, public ?Company $company = null, public ?string $track = null, public array $thread = [])
     {
+    }
+
+    public function headers(): Headers
+    {
+        $last = end($this->thread);
+
+        return new Headers(references: $this->thread, text: $last ? ['In-Reply-To' => '<'.$last.'>'] : []);
     }
 
     public function envelope(): Envelope
