@@ -69,7 +69,7 @@ class DemoGuideAndCalendarInvitesTest extends RentSchemaTestCase
         $this->assertStringContainsString('Excel', $guide['before'][0]);
         $this->assertCount(2, $guide['show']);                       // water and gate, nothing else
         $this->assertStringStartsWith('Water:', $guide['show'][0]);
-        $this->assertSame('Send them the template', $guide['onboard'][0]['title']);
+        $this->assertSame('Set up their account straight after the demo', $guide['onboard'][0]['title']);
         $this->assertStringContainsString('company='.$this->companyId, $guide['onboard'][3]['url']);
 
         $html = (new DemoHandlingGuide($demo->fresh(['company', 'contact', 'assignee'])))->render();

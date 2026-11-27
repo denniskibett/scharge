@@ -61,10 +61,10 @@ class DemoGuide
             'show' => $show ?: ['They ticked nothing in particular: show bills going out, a payment matching itself, and the tenant\'s receipt.'],
             'objections' => array_slice($book['objections'] ?? [], 0, 3, true),
             'onboard' => [
-                ['title' => 'Send them the template', 'url' => url('/onboarding-template.xlsx'),
-                    'text' => 'One Excel sheet: buildings, units, tenants and what each tenant owes. Ask for it back before you set anything up.'],
-                ['title' => 'Make them a customer', 'url' => $id ? url('/crm/companies/'.$id) : null,
-                    'text' => 'When they agree, set the stage to Won on their CRM page. The same record becomes a customer and stays in your book. Then add their admin login on Admin › Companies.'],
+                ['title' => 'Set up their account straight after the demo', 'url' => $id ? url('/crm/companies/'.$id) : null,
+                    'text' => 'On their CRM page press Onboarding › Set up their account. It makes the login for the person who booked, creates their properties from the form, books your setup tasks and emails them the onboarding to-do PDF. They add units; you do the rest. Nothing is billed until you mark the deal Won.'],
+                ['title' => 'Get their tenant list', 'url' => url('/onboarding-template.xlsx'),
+                    'text' => 'One Excel sheet (or a photo of their book): units, tenants and what each tenant owes. Load it for them with Properties › Import.'],
                 ['title' => 'Bring in their buildings', 'url' => route('properties.onboard'),
                     'text' => 'Properties › Import: upload the filled template, check the preview with them, then confirm.'],
                 ['title' => 'Verify the business', 'url' => route('kyc.show', $scope),
@@ -73,6 +73,8 @@ class DemoGuide
                     'text' => 'Rent collection and payouts (M-Pesa, bank or Sharet Pay), or their own M-Pesa paybill. Press Test once it is saved.'],
                 ['title' => 'Switch on bills and their name', 'url' => route('brand.edit', $scope),
                     'text' => 'Rent automation on Integrations sends bills by themselves. White label puts their logo, colour, SMS name and email address on everything.'],
+                ['title' => 'Open full access, then mark Won', 'url' => $id ? url('/crm/companies/'.$id) : null,
+                    'text' => 'When tenants, payments and KYC are done, press Open full access on their CRM page. Mark the deal Won and set their price per unit on Admin › Companies: that starts their first bill.'],
             ],
             'after' => [
                 'Straight after the call, write the outcome on the demo and move the stage: Demo booked, Proposal, Negotiation, Won.',

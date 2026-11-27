@@ -300,6 +300,10 @@ class Modules
         if ($locked = BillingLock::deny($request, $apiKey ? (int) $apiKey->company_id : null)) {
             return $locked;
         }
+        // Done-for-you setup: the client adds units, scharge does the rest (App\Modules\CRM\Support\SetupMode).
+        if (! $apiKey && ($setup = \App\Modules\CRM\Support\SetupMode::deny($request))) {
+            return $setup;
+        }
         $keys = array_merge(self::forPath($request->path()), $apiKey ? ['api_keys'] : []);
         if (! $keys) {
             return null;

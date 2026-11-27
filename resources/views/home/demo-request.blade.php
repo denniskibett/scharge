@@ -25,6 +25,7 @@
 .dr-card { max-width: 760px; margin: 0 auto; background: var(--white); border-radius: 26px; padding: clamp(22px, 5vw, 44px); box-shadow: var(--shadow-l); display: flex; flex-direction: column; gap: 22px; }
 .dr-card h2 { font-size: 1.05rem; margin: 0; }
 .dr-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.dr-company { border: 1px dashed var(--line); border-radius: 12px; padding: 10px 12px; } .dr-company summary { cursor: pointer; } .dr-company .dr-grid { margin-top: 10px; }
 .dr-field { display: flex; flex-direction: column; gap: 6px; font-size: .9rem; font-weight: 600; }
 .dr-field input, .dr-field select, .dr-field textarea, .dr-prop input, .dr-prop select { width: 100%; min-height: 46px; padding: 10px 12px; border-radius: 12px; border: 1px solid #EBD5D5; font: 1rem var(--font-body); background: #fff; color: inherit; }
 .dr-field textarea { min-height: 96px; }
@@ -96,6 +97,20 @@
                 <label class="dr-field">Phone<input name="phone" required maxlength="40" value="{{ $val('phone') }}" inputmode="tel" autocomplete="tel" placeholder="0712 345 678"></label>
                 <label class="dr-field">Email <span class="muted" style="font-weight:400">(optional)</span><input name="email" type="email" maxlength="190" value="{{ $val('email', $company->email) }}" autocomplete="email"></label>
             </div>
+            <details class="dr-company" @if ($val('company.legal_name') || $val('company.kra_pin')) open @endif>
+                <summary><b>Company details</b> <span class="muted" style="font-weight:400">(optional: we set up your account with them, so you don't type them again)</span></summary>
+                <div class="dr-chips" style="margin-top:8px">
+                    @foreach (['business' => 'A registered business', 'individual' => 'An individual'] as $key => $label)
+                        <label class="dr-chip"><input type="radio" name="company[entity_type]" value="{{ $key }}" @checked($val('company.entity_type') === $key)> {{ $label }}</label>
+                    @endforeach
+                </div>
+                <div class="dr-grid">
+                    <label class="dr-field">Registered name<input name="company[legal_name]" maxlength="190" value="{{ $val('company.legal_name') }}" placeholder="As on your certificate"></label>
+                    <label class="dr-field">KRA PIN<input name="company[kra_pin]" maxlength="20" value="{{ $val('company.kra_pin') }}" placeholder="e.g. P051234567X" style="text-transform:uppercase"></label>
+                    <label class="dr-field">Registration number<input name="company[registration_number]" maxlength="60" value="{{ $val('company.registration_number') }}" placeholder="e.g. PVT-AB1234"></label>
+                    <label class="dr-field">Office address<input name="company[address]" maxlength="190" value="{{ $val('company.address') }}" placeholder="Building, street, town"></label>
+                </div>
+            </details>
         </div>
 
         <div class="stack dr-step" data-step="2" style="gap:10px" role="group" aria-labelledby="dr-h2">

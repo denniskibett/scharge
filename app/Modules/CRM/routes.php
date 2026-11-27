@@ -37,6 +37,8 @@ Route::post('/demo/{ref}', [DemoRequestController::class, 'store'])->where('ref'
 Route::post('/demo/{ref}/draft', [DemoRequestController::class, 'draft'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->middleware('throttle:40,1,demo-draft')->name('site.demo-request.draft');
 Route::get('/demo/{ref}/thanks', [DemoRequestController::class, 'thanks'])->where('ref', \App\Modules\CRM\Support\Playbook::REF_PATTERN)->name('site.demo-request.thanks');
 Route::get('/e/{token}.gif', [DemoRequestController::class, 'opened'])->where('token', '[A-Za-z0-9]{24}')->middleware('throttle:60,1,email-open')->name('site.email-open');
+// Signed 14-day welcome link from the "account ready" email (done-for-you onboarding).
+Route::get('/welcome/{user}', [\App\Modules\CRM\Controllers\SetupController::class, 'welcome'])->whereNumber('user')->middleware(['signed', 'throttle:10,1,setup-welcome'])->name('setup.welcome');
 Route::get('/feedback/{token}', [SiteFeedbackController::class, 'show'])->name('site.feedback.show');
 Route::post('/feedback/{token}', [SiteFeedbackController::class, 'store'])->middleware('throttle:10,1,feedback')->name('site.feedback.store');
 
@@ -58,6 +60,9 @@ Route::middleware(['auth', 'role:sysadmin|account_manager|sales', 'access:crm'])
     Route::post('/companies', [CrmCompanyController::class, 'store'])->name('companies.store');
     Route::get('/companies/{crmCompany}', [CrmCompanyController::class, 'show'])->name('companies.show');
     Route::put('/companies/{crmCompany}', [CrmCompanyController::class, 'update'])->name('companies.update');
+    Route::post('/companies/{crmCompany}/set-up', [\App\Modules\CRM\Controllers\SetupController::class, 'setUp'])->middleware('throttle:10,1,crm-setup')->name('companies.setup');
+    Route::post('/companies/{crmCompany}/set-up/finish', [\App\Modules\CRM\Controllers\SetupController::class, 'finish'])->name('companies.setup.finish');
+    Route::get('/companies/{crmCompany}/set-up/pdf', [\App\Modules\CRM\Controllers\SetupController::class, 'pdf'])->name('companies.setup.pdf');
     Route::get('/companies/{crmCompany}/playbook', [CrmOutreachController::class, 'show'])->name('companies.playbook');
     Route::get('/companies/{crmCompany}/playbook/preview', [CrmOutreachController::class, 'preview'])->name('companies.playbook.preview');
     Route::post('/companies/{crmCompany}/playbook/compose', [CrmOutreachController::class, 'compose'])->name('companies.playbook.compose');

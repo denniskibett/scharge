@@ -90,6 +90,8 @@
     <div class="flex flex-wrap items-start gap-6">
         {{-- LEFT: what to do, then what happened --}}
         <div class="min-w-0 space-y-6" style="flex: 999 1 560px">
+            @include('crm.partials.onboarding')
+
             {{-- Do next --}}
             <section class="{{ $card }} space-y-3" aria-labelledby="do-next">
                 <h2 id="do-next" @class(['text-xs font-semibold uppercase tracking-wider', 'text-red-700 dark:text-red-400' => $doNext?->is_overdue, 'text-gray-500 dark:text-gray-400' => ! $doNext?->is_overdue])>Do next{{ $doNext?->is_overdue ? ' · overdue' : '' }}</h2>

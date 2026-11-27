@@ -164,6 +164,14 @@ class DemoRequestService
                 'property_types' => implode(', ', array_values(array_unique(array_filter(array_column($properties, 'type'))))) ?: null,
                 'needs_verification' => false,
             ], fn ($v) => $v !== null));
+            // Company details shared on the form (optional): used when scharge sets their account up (DemoOnboarding).
+            $shared = array_filter(array_map(fn ($v) => is_string($v) ? trim($v) : $v, (array) ($data['company'] ?? [])), fn ($v) => $v !== null && $v !== '');
+            if (isset($shared['kra_pin'])) {
+                $shared['kra_pin'] = strtoupper($shared['kra_pin']);
+            }
+            if ($shared) {
+                $profile['company_details'] = array_merge((array) ($profile['company_details'] ?? []), $shared, ['shared_at' => now()->toDateTimeString()]);
+            }
             $company->update(['crm_profile' => $profile]);
 
             $details = [
