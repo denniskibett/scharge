@@ -27,7 +27,11 @@
       <p style="margin:0 0 14px;">Hello {{ $first }},</p>
       <p style="margin:0 0 14px;">Thank you for telling us about your properties. A copy of everything you sent is attached as a PDF; keep it with your reference <strong>{{ $demo->detail('ref') }}</strong>.</p>
       <p style="margin:0 0 14px;">{{ $am?->name ?? 'Your account manager' }} will contact you on {{ $when }} by {{ $channel }}{{ $demo->detail('units') ? ' to walk through how scharge would run your '.number_format((int) $demo->detail('units')).' units' : '' }}.</p>
-      <p style="margin:0;">If anything changes, just reply to this email{{ $am?->phone ? ' or call '.$am->phone : '' }}.</p>
+      <p style="margin:0 0 18px;">If anything changes, just reply to this email{{ $am?->phone ? ' or call '.$am->phone : '' }}.</p>
+      @if ($demo->company && ! $demo->company->profile('setup.started_at'))
+      <p style="margin:0 0 12px;"><strong>Don't want to wait for the demo?</strong> Create your scharge account now. We set it up from what you sent: you add your units, we do the rest. Nothing is billed until you decide to go ahead.</p>
+      <p style="margin:0;"><a href="{{ \App\Modules\CRM\Services\DemoOnboarding::startUrl($demo->company) }}" style="display:inline-block;background:#DC2626;color:#FFFFFF;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:999px;">Create my scharge account</a></p>
+      @endif
     </td></tr>
     <tr><td style="background:#1A1214;padding:22px 32px;font-family:{!! $sans !!};font-size:12px;line-height:1.55;color:#CDBFC2;">
       <strong style="color:#FFFFFF;">scharge</strong> · Sharet Africa · Nairobi, Kenya<br>
