@@ -25,7 +25,7 @@ class CRMServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if ($this->app->runningInConsole()) {
-            $this->commands([ImportProspects::class, GeocodeProspects::class, SendCampaign::class, MailDelivery::class, MailReplies::class, DailyRecap::class, CleanContacts::class, PullNairobiLeads::class, FindEmails::class, LinkSites::class, TagAreas::class, ApiSandboxKey::class, \App\Modules\CRM\Console\OnboardingStalls::class, \App\Modules\CRM\Console\LateBounces::class, \App\Modules\CRM\Console\ResendReturning::class, \App\Modules\CRM\Console\BackfillOutOfOffice::class, \App\Modules\CRM\Console\MergeDemoDuplicates::class, \App\Modules\CRM\Console\ReadReplies::class, \App\Modules\CRM\Console\WinBackDrafts::class, \App\Modules\CRM\Console\SendFollowUps::class]);
+            $this->commands([ImportProspects::class, GeocodeProspects::class, SendCampaign::class, MailDelivery::class, MailReplies::class, DailyRecap::class, CleanContacts::class, PullNairobiLeads::class, FindEmails::class, LinkSites::class, TagAreas::class, ApiSandboxKey::class, \App\Modules\CRM\Console\OnboardingStalls::class, \App\Modules\CRM\Console\LateBounces::class, \App\Modules\CRM\Console\ResendReturning::class, \App\Modules\CRM\Console\BackfillOutOfOffice::class, \App\Modules\CRM\Console\MergeDemoDuplicates::class, \App\Modules\CRM\Console\ReadReplies::class, \App\Modules\CRM\Console\WinBackDrafts::class, \App\Modules\CRM\Console\SendFollowUps::class, \App\Modules\CRM\Console\SetUpAccount::class]);
         }
     }
 }

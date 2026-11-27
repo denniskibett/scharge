@@ -63,6 +63,11 @@ class DemoRequestController extends Controller
             'contact_window' => in_array($in['contact_window'] ?? null, Demo::WINDOWS, true) ? $in['contact_window'] : null,
             'channel' => in_array($in['channel'] ?? null, Demo::CHANNELS, true) ? $in['channel'] : null,
             'message' => $str($in['message'] ?? null, 2000),
+            'company' => array_filter([
+                'entity_type' => in_array($in['company']['entity_type'] ?? null, ['business', 'individual'], true) ? $in['company']['entity_type'] : null,
+                'legal_name' => $str($in['company']['legal_name'] ?? null, 190), 'kra_pin' => $str($in['company']['kra_pin'] ?? null, 20),
+                'registration_number' => $str($in['company']['registration_number'] ?? null, 60), 'address' => $str($in['company']['address'] ?? null, 190),
+            ], fn ($v) => $v !== null && $v !== '') ?: null,
         ], fn ($v) => $v !== null && $v !== '');
         $step = max(1, min(4, (int) $request->input('step', 1)));
         $profile = (array) $company->crm_profile;
@@ -97,6 +102,12 @@ class DemoRequestController extends Controller
             'job_title' => ['nullable', 'string', 'max:120'],
             'phone' => ['required', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:190'],
+            'company' => ['nullable', 'array'],
+            'company.entity_type' => ['nullable', Rule::in(['business', 'individual'])],
+            'company.legal_name' => ['nullable', 'string', 'max:190'],
+            'company.kra_pin' => ['nullable', 'string', 'max:20', 'regex:/^[AP]\d{9}[A-Z]$/i'],
+            'company.registration_number' => ['nullable', 'string', 'max:60'],
+            'company.address' => ['nullable', 'string', 'max:190'],
             'interests' => ['nullable', 'array'],
             'interests.*' => [Rule::in(array_keys(Demo::INTERESTS))],
             'properties' => ['required', 'array', 'min:1', 'max:50'],
@@ -110,7 +121,7 @@ class DemoRequestController extends Controller
             'channel' => ['required', Rule::in(Demo::CHANNELS)],
             'message' => ['nullable', 'string', 'max:2000'],
             'consent' => ['accepted'],
-        ], ['consent.accepted' => 'Please agree to be contacted about the demo.', 'properties.*.type.required_with' => 'Pick a property type for each property (apartments, offices, Airbnb…).'], ['properties.*.units' => 'units', 'properties.*.type' => 'property type']);
+        ], ['consent.accepted' => 'Please agree to be contacted about the demo.', 'properties.*.type.required_with' => 'Pick a property type for each property (apartments, offices, Airbnb…).', 'company.kra_pin.regex' => 'A KRA PIN looks like P051234567X (a letter, 9 digits, a letter).'], ['properties.*.units' => 'units', 'properties.*.type' => 'property type']);
         if (! Normalizer::phone($data['phone'], '254')) {
             throw ValidationException::withMessages(['phone' => 'Enter a phone number we can call, e.g. 0712 345 678.']);
         }
